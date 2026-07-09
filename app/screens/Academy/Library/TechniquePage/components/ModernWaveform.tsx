@@ -1,6 +1,7 @@
 // ModernWaveform.tsx
 import React, { useMemo, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { useTheme } from "../../../../../design-system";
 
 type Props = {
   envelope?: number[];
@@ -25,9 +26,12 @@ export default function ModernWaveform({
   envelope,
   mode = "idle",
   height = 40,
-  glowColor = "#F97316", // Default Orange
+  glowColor,
   points = 40, // View-based bars
 }: Props) {
+  const { colors } = useTheme();
+  // Falls back to the DS brand orange; the recorder always passes a live colour.
+  const barColor = glowColor ?? colors.action.primary;
   const [containerWidth, setContainerWidth] = useState(300);
 
   function onLayout(e: LayoutChangeEvent) {
@@ -91,7 +95,7 @@ export default function ModernWaveform({
               style={{
                 width: barWidth,
                 height: h,
-                backgroundColor: glowColor,
+                backgroundColor: barColor,
                 borderRadius: barWidth / 2,
                 marginHorizontal: gap / 2,
                 opacity,

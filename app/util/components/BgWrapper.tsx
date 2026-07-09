@@ -1,9 +1,7 @@
 // app/components/ScreenWrapper.tsx
 
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Platform,
     StatusBar,
     StyleProp,
     StyleSheet,
@@ -11,7 +9,7 @@ import {
     ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "../../Theme/tokens";
+import { useTheme } from "../../design-system";
 
 interface BgWrapperProps {
   children?: React.ReactNode;
@@ -24,24 +22,12 @@ const BgWrapper: React.FC<BgWrapperProps> = ({
   style,
   edges = ["left", "right"],
 }) => {
-  return (
-    <View style={styles.container}>
-      {/* Background gradient behind everything */}
-      <LinearGradient
-        colors={[
-          theme.colors.background.light,
-          theme.colors.background.default,
-        ]}
-        style={StyleSheet.absoluteFill}
-      />
+  const { colors } = useTheme();
 
-      {/* Optional: set background for iOS overscroll */}
-      {Platform.OS === "ios" && (
-        <StatusBar
-          backgroundColor={theme.colors.background.default}
-          barStyle="dark-content"
-        />
-      )}
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
+      {/* Edge-to-edge translucent status bar over the dark app canvas. */}
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Safe area view for content */}
       <SafeAreaView style={[styles.content, style]} edges={edges}>
@@ -56,7 +42,6 @@ export default BgWrapper;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background.default, // fallback color
   },
   content: {
     flex: 1,

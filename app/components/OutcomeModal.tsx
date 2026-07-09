@@ -1,22 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
-import { theme } from "../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
-import BottomSheetModal from "./BottomSheetModal";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+  useTheme,
+  spacing,
+  radius,
+  Text,
+  Button,
+  Icon,
+  icons,
+  Sheet,
+  useSuccessPop,
+} from "../design-system";
 
+/** Global success/error confirmation. Rendered once at the app root; driven by the
+ *  event store. Now a dark DS Sheet (valence accent disc + "Got it"). NOTE: never show
+ *  this while another Sheet/Modal is open — close that first, then fire the event
+ *  (two stacked native Modals wedge touch handling on iOS). */
 const OutcomeModal = () => {
+  const { colors } = useTheme();
   const { events, clear } = useEventStore();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<"error" | "success" | null>(null);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalTag, setModalTag] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [type, setType] = useState<"error" | "success">("success");
+  const [title, setTitle] = useState("");
+  const [tag, setTag] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -26,154 +36,74 @@ const OutcomeModal = () => {
         event.name === EVENT_NAMES.SHOW_ERROR_MODAL ||
         event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL
       ) {
-        const type =
+        const kind =
           event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL ? "success" : "error";
 
-        const title =
+        const nextTitle =
           event.detail?.modalTitle ||
           event.detail?.title ||
-          (type === "error" ? "Something went wrong" : "Success");
-        const message =
+          (kind === "error" ? "Something went wrong" : "Success");
+        const nextMessage =
           event.detail?.errorMessage ||
           event.detail?.message ||
           event.detail?.desc ||
           "";
-        const tag = event.detail?.modalTag || event.detail?.tag || "";
+        const nextTag = event.detail?.modalTag || event.detail?.tag || "";
 
-        setModalType(type);
-        setModalTitle(title);
-        setModalTag(tag);
-        setModalMessage(message);
-        setModalVisible(true);
+        setType(kind);
+        setTitle(nextTitle);
+        setTag(nextTag);
+        setMessage(nextMessage);
+        setVisible(true);
         clear(event.name);
       }
     }
   }, [events, clear]);
 
+  const success = type === "success";
+  // Bright valence disc with the AA-correct dark glyph (same pattern as ShareMoment).
+  const accent = success ? colors.accent.success : colors.accent.danger;
+  const accentOn = success ? colors.accentOn.success : colors.accentOn.danger;
+  // Disc scales in each time the sheet opens — celebratory bounce for success,
+  // a calm settle for errors (bounce stays reserved for celebration).
+  const discStyle = useSuccessPop(visible, { celebrate: success });
+
   return (
-    <BottomSheetModal
-      visible={modalVisible}
-      onClose={() => setModalVisible(false)}
-    >
-      <View style={styles.container}>
-        {/* Top Handle / Indicator */}
-        <View style={styles.handle} />
-
-        {/* Close Button (White circle matching the screenshot) */}
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setModalVisible(false)}
-        >
-          <Icon name="close" size={16} color="#000" />
-        </TouchableOpacity>
-
-        <View style={styles.content}>
-          <Text style={styles.title} adjustsFontSizeToFit={true} numberOfLines={2}>
-            {modalTitle}
-          </Text>
-          {modalTag ? <Text style={styles.subtitle}>{modalTag}</Text> : null}
-
-          <View style={styles.divider} />
-
-          <Text style={styles.message}>{modalMessage}</Text>
-
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              modalType === "success" && { backgroundColor: theme.colors.feedback.success },
-              modalType === "error" && { backgroundColor: theme.colors.feedback.error },
-            ]}
-            onPress={() => setModalVisible(false)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionButtonText}>Got it</Text>
-          </TouchableOpacity>
+    <Sheet visible={visible} onClose={() => setVisible(false)}>
+      <View style={styles.body}>
+        <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
+          <Icon name={success ? icons.success : icons.danger} size={28} color={accentOn} />
+        </Animated.View>
+        <Text variant="h2" center>{title}</Text>
+        {tag ? (
+          <Text variant="label" color="tertiary" center style={styles.tag}>{tag}</Text>
+        ) : null}
+        {message ? (
+          <Text variant="bodySm" color="secondary" center>{message}</Text>
+        ) : null}
+        <View style={styles.action}>
+          <Button label="Got it" variant="primary" onPress={() => setVisible(false)} />
         </View>
       </View>
-    </BottomSheetModal>
+    </Sheet>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#FFFCF8",
-    paddingTop: 12,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    alignItems: "center",
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#E2E8F0",
-    marginBottom: 20,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    zIndex: 10,
-  },
-  content: {
-    alignItems: "center",
-    width: "100%",
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#0F172A",
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#64748B",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  divider: {
-    width: 32,
-    height: 2,
-    backgroundColor: "#F1F5F9",
-    marginBottom: 16,
-  },
-  message: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#475569",
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 24,
-    fontSize: 15,
-  },
-  actionButton: {
-    width: "100%",
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: "#FF914D",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-});
-
 export default OutcomeModal;
+
+const styles = StyleSheet.create({
+  body: {
+    alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
+  },
+  iconDisc: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tag: { letterSpacing: 1 },
+  action: { width: "100%", marginTop: spacing.xs },
+});

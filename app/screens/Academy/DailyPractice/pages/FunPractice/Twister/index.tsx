@@ -1,25 +1,19 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
   LayoutAnimation,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+  Text as RNText,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 
-import { BlurView } from "expo-blur";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import RecorderTools from "../../ReadingPractice/StoryPractice/components/RecorderTools";
+import { ReadingStage } from "../../ReadingPractice/shared/ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
+import FocusLamp from "../../../components/FocusLamp";
 
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -38,15 +32,18 @@ import { useUserStore } from "../../../../../../stores/user";
 import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
 import ToolConsentModal from "../../../../../../components/ToolConsentModal";
 import ToolNudge from "../../../../../../components/ToolNudge";
-import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
+  Page,
+  Button,
+  Text,
+  useTheme,
+  spacing,
+  Sheet,
+  withAlpha,
+} from "../../../../../../design-system";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 
-import { ScrollView } from "react-native";
 import { ToolType } from "../../../../../../api/tools/types";
 import Metronome, {
   useMetronome,
@@ -54,13 +51,6 @@ import Metronome, {
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
-
-// Tool Types (Simplified for Twister if needed, or reuse generic)
-// enum ToolType {
-//   DAF = "DAF",
-// }
-
-const { width } = Dimensions.get("window");
 
 import {
   TwisterFDPStackNavigationProp,
@@ -70,8 +60,14 @@ import {
 const Twister = () => {
   const navigation =
     useNavigation<TwisterFDPStackNavigationProp<"TwisterExercise">>();
-  const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
+  const { colors } = useTheme();
+  // Tongue Twisters = the "success" (green) accent on the Fun Practice list; the
+  // whole practice inherits that identity (like CVExercise's purple) so the stage,
+  // focus, dock tools and done screen all read green — mirroring the reading pages.
+  const accentRole = "success" as const;
+  const accentColor = colors.accent[accentRole];
+  const onAccentColor = colors.accentOn[accentRole];
+  const highlightColor = withAlpha(onAccentColor, 0.14);
   const route = useRoute<TwisterFDPStackRouteProp<"TwisterExercise">>();
   const { packContext, from } = route.params || {};
   const { updateActivity, doesActivityExist } = useActivityStore();
@@ -170,6 +166,8 @@ const Twister = () => {
             onRecheckHeadset={() => {
               void dafState.updateHeadsetStatus(true);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.METRONOME:
@@ -185,6 +183,8 @@ const Twister = () => {
             }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.CHORUS:
@@ -197,6 +197,8 @@ const Twister = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             onToggleSpeech={() => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
@@ -274,7 +276,7 @@ const Twister = () => {
         setIsLoading(true);
         const ts = await getFunPracticeByType(FunPracticeType.TONGUE_TWISTER, hardMode);
         setTwisters(ts);
-        
+
         const targetId = route.params?.id;
         if (targetId && !hardMode) {
           const foundIndex = ts.findIndex((t) => t.id === targetId);
@@ -415,23 +417,27 @@ const Twister = () => {
     const text = twisters[currentIndex]?.tongueTwisterData?.text || "";
     const [start, length] = highlightRange;
     if (start < 0 || length === 0) {
-      return <Text style={styles.readingText}>{text}</Text>;
+      return (
+        <Text variant="h2" color="primary" style={styles.readingText}>
+          {text}
+        </Text>
+      );
     }
     const before = text.slice(0, start);
     const word = text.slice(start, start + length);
     const after = text.slice(start + length);
 
     return (
-      <Text style={styles.readingText}>
+      <Text variant="h2" color="primary" style={styles.readingText}>
         {before}
-        <Text
+        <RNText
           style={{
-            backgroundColor: theme.colors.library.orange[200],
-            color: theme.colors.text.title,
+            backgroundColor: highlightColor,
+            color: colors.text.primary,
           }}
         >
           {word}
-        </Text>
+        </RNText>
         {after}
       </Text>
     );
@@ -445,6 +451,7 @@ const Twister = () => {
     activityId: currentActivityId,
     isCompleted: practiceComplete,
     onSave: onDonePress,
+    accentColor,
     family: "Fun",
     from,
     packContext,
@@ -456,6 +463,8 @@ const Twister = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="tongue twister"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -476,7 +485,7 @@ const Twister = () => {
     );
   }
 
-  // 1. Pre-Practice (Tips) View
+  // 1. Pre-Practice (Tips) View — DETAIL recipe on the dark canvas.
   if (!currentActivityId) {
     const tipsArray = twisters[currentIndex]?.tongueTwisterData?.hints || [
       "Start slowly and focus on clarity.",
@@ -485,365 +494,154 @@ const Twister = () => {
     ];
 
     return (
-      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.screenHeaderTitle}>Tongue Twister</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
-
-        <ScrollView
-          key="tips-scroll"
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-            paddingBottom: 120,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>Tongue Twisters</Text>
-            <Text style={styles.heroDescription}>
-              Challenge your articulation and speed with playful phonetic puzzles.
-            </Text>
-          </View>
-
-          {nudgeVisible && toolNudge && (
-            <ToolNudge
-              directive={toolNudge}
-              onTryWithout={() => handleNudgeTryWithout(runStart)}
-              onDismiss={handleNudgeDismiss}
-              style={{ marginBottom: 32 }}
-            />
-          )}
-
-          <HardModeToggle
-            value={hardMode}
-            onValueChange={setHardMode}
-            canUseHardMode={canUseHardMode}
-            style={{ marginBottom: 32 }}
-          />
-
-          <View style={styles.timelineSection}>
-            <Text style={styles.sectionHeader}>Tips</Text>
-            <View style={styles.timelineContainer}>
-              {tipsArray.map((tip, index, arr) => (
-                <View key={index} style={styles.timelineItem}>
-                  <View style={styles.timelineTrack}>
-                    <View style={styles.timelineDot} />
-                    {index !== arr.length - 1 && (
-                      <View style={styles.timelineLine} />
-                    )}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineText}>{tip}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Fixed Start Button at bottom */}
-        <View
-          style={[
-            styles.bottomActionContainer,
-            { paddingBottom: insets.bottom || 24 },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.9}
+      <Page
+        title="Tongue Twisters"
+        description="Challenge your articulation and speed with playful phonetic puzzles."
+        background={<FocusLamp focus={hardMode} />}
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        footer={
+          <Button
+            label={hasHydrated ? "Start Practice" : "Loading..."}
             onPress={() => runStart()}
+            loading={isStarting || !hasHydrated}
             disabled={isStarting || !hasHydrated}
-            style={styles.startButton}
-          >
-            <LinearGradient
-              colors={
-                !hasHydrated
-                  ? ["#94A3B8", "#64748B"]
-                  : [
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>
-                {!hasHydrated ? "Loading..." : "Start Practice"}
+            style={
+              isStarting || !hasHydrated
+                ? undefined
+                : { backgroundColor: accentColor }
+            }
+          />
+        }
+      >
+        {nudgeVisible && toolNudge && (
+          <ToolNudge
+            directive={toolNudge}
+            onTryWithout={() => handleNudgeTryWithout(runStart)}
+            onDismiss={handleNudgeDismiss}
+          />
+        )}
+
+        <HardModeToggle
+          value={hardMode}
+          onValueChange={setHardMode}
+          canUseHardMode={canUseHardMode}
+          accent={accentRole}
+        />
+
+        {/* Tips — a dot timeline on the dark canvas. */}
+        <View>
+          <Text variant="h3" color="primary" style={styles.tipsHeading}>
+            Tips
+          </Text>
+          {tipsArray.map((tip, index, arr) => (
+            <View key={index} style={styles.tipRow}>
+              <View style={styles.tipTrack}>
+                <View
+                  style={[
+                    styles.tipDot,
+                    { backgroundColor: accentColor },
+                  ]}
+                />
+                {index !== arr.length - 1 && (
+                  <View
+                    style={[
+                      styles.tipLine,
+                      { backgroundColor: colors.border.default },
+                    ]}
+                  />
+                )}
+              </View>
+              <Text variant="body" color="secondary" style={styles.tipText}>
+                {tip}
               </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </View>
+          ))}
         </View>
-      </ScreenView>
+      </Page>
     );
   }
 
-  const bottomPadding = 400; // Space for the dock
-
-  // 2. Active Practice View
+  // 2. Active Practice View — the shared "Clean Focus" reading stage (logic intact).
   return (
-    <ScreenView style={styles.screenView}>
-      {/* Background */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
-          locations={[0, 0.6, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-
-      {/* Header */}
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() =>
-            from === "MOOD_CHECK"
-              ? navigation.navigate("Root" as any, { screen: "HOME" })
-              : navigation.goBack()
-          }
-          style={styles.backButton}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.screenHeaderTitle}>Tongue Twister</Text>
-        
-        {/* Hard Mode Toggle in Header */}
-        <View style={styles.headerRight}>
-          {(user?.fearedSounds?.length ?? 0) > 0 && (
-            <TouchableOpacity 
-              onPress={() => setHardMode(!hardMode)}
-              style={[styles.headerHardModeButton, hardMode && styles.headerHardModeActive]}
-            >
-              <Icon 
-                name="fire" 
-                size={14} 
-                color={hardMode ? "#EA580C" : theme.colors.text.title} 
-                solid={hardMode}
+    <>
+      <ReadingStage
+        title="Tongue Twister"
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        category="TWISTER"
+        accent={accentColor}
+        onNext={toggleIndex}
+        focus={{
+          active: hardMode,
+          canUse: canUseHardMode,
+          onToggle: setHardMode,
+          accentColor,
+        }}
+        dock={
+          <SmartRecorder
+            onRecorded={setVoiceRecordingUri}
+            onToggle={toggleIndex}
+            prevRecordingUri={voiceRecordingUri || undefined}
+            onSubmit={async () => {
+              setIsLoading(true);
+              try {
+                await onDonePress();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            onDiscard={() => {
+              setVoiceRecordingUri(null);
+            }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
+            renderTools={() => (
+              <RecorderTools
+                activeToolId={selectedPracticeTool}
+                isDafActive={dafState.isDAFActive}
+                isGuideActive={vhIsPlaying}
+                isTempoActive={metronomeState.isPlaying}
+                onSelect={handleToolSelect}
+                focusMode={focusMode}
+                expanded={toolsExpanded}
+                onExpand={() => setToolsExpanded(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
-              {hardMode && <View style={styles.activeDot} />}
-            </TouchableOpacity>
-          )}
-        </View>
-      </BlurView>
-
-      {/* Reading Content */}
-      <View style={{ flex: 1 }}>
-        <CustomScrollView
-          key="practice-scroll"
-          scrollEnabled={true}
-          contentContainerStyle={[
-            styles.readingScrollContent,
-            {
-              paddingTop: HEADER_HEIGHT + insets.top + 10,
-              paddingBottom: bottomPadding,
-            },
-          ]}
-        >
-          <View style={styles.cardContainer}>
-            {/* 1. Warm Gradient Header */}
-            <LinearGradient
-              colors={["#F59E0B", "#D97706"]} // Amber
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardHeaderGradient}
-            >
-              <View style={styles.headerTopRow}>
-                <View style={styles.categoryPill}>
-                  <Icon name="wind" size={12} color="#92400E" />
-                  <Text style={styles.categoryPillText}>TWISTER</Text>
-                </View>
-
-                {/* Glassy Next Button */}
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                  <TouchableOpacity
-                    onPress={toggleIndex}
-                    style={styles.glassButton}
-                  >
-                    <Text style={styles.glassButtonText}>Next</Text>
-                    <Icon name="chevron-right" size={12} color="#FFF" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Watermark */}
-              <View style={styles.headerWatermark}>
-                <Icon name="wind" size={96} color="rgba(255,255,255,0.15)" />
-              </View>
-            </LinearGradient>
-
-            {/* 2. White Sheet Content */}
-            <View style={styles.cardBodySheet}>
-              {/* Internal Watermark */}
-              <View style={styles.sheetWatermarkContainer}>
-                <Icon
-                  name="wind"
-                  size={120}
-                  color={theme.colors.library.orange[100]}
-                />
-              </View>
-
-              <View style={styles.textArea}>
-                <Text style={styles.titleText}>
-                  {twisters[currentIndex]?.name}
-                </Text>
-                {selectedPracticeTool === ToolType.CHORUS && (
-                  <View style={{ height: 0, overflow: "hidden" }}>
-                    <VoiceHover
-                      text={
-                        twisters[currentIndex]?.tongueTwisterData?.text || ""
-                      }
-                      onHighlightChange={(s, l) => setHighlightRange([s, l])}
-                      rate={vhRate}
-                      prePause={vhPrePause}
-                      gap={vhGap}
-                      isPlaying={vhIsPlaying}
-                      onComplete={() => setVhIsPlaying(false)}
-                    />
-                  </View>
-                )}
-                {renderHighlightedText()}
-              </View>
-            </View>
+            )}
+          />
+        }
+      >
+        <Text variant="h2" color="primary" style={styles.titleText}>
+          {twisters[currentIndex]?.name}
+        </Text>
+        {/* VoiceHover drives the highlight; the component itself is hidden. */}
+        {selectedPracticeTool === ToolType.CHORUS && (
+          <View style={{ height: 0, overflow: "hidden" }}>
+            <VoiceHover
+              text={twisters[currentIndex]?.tongueTwisterData?.text || ""}
+              onHighlightChange={(s, l) => setHighlightRange([s, l])}
+              rate={vhRate}
+              prePause={vhPrePause}
+              gap={vhGap}
+              isPlaying={vhIsPlaying}
+              onComplete={() => setVhIsPlaying(false)}
+            />
           </View>
-        </CustomScrollView>
-      </View>
-
-      {/* Action Dock (Fixed Bottom) */}
-      <View style={styles.actionDockWrapper}>
-        <SmartRecorder
-          onRecorded={setVoiceRecordingUri}
-          onToggle={toggleIndex}
-          prevRecordingUri={voiceRecordingUri || undefined}
-          onSubmit={async () => {
-            setIsLoading(true);
-            try {
-              await onDonePress();
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          onDiscard={() => {
-            setVoiceRecordingUri(null);
-          }}
-          renderTools={() =>
-            focusMode && !toolsExpanded ? (
-              <TouchableOpacity
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: 16,
-                  backgroundColor: "rgba(148,163,184,0.12)",
-                }}
-                onPress={() => {
-                  LayoutAnimation.configureNext(
-                    LayoutAnimation.Presets.easeInEaseOut,
-                  );
-                  setToolsExpanded(true);
-                }}
-                activeOpacity={0.8}
-              >
-                <Icon name="sliders-h" size={14} color="#94A3B8" />
-                <Text
-                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
-                >
-                  Tools
-                </Text>
-              </TouchableOpacity>
-            ) : (
-            <View style={styles.dockTools}>
-              {[
-                { id: ToolType.DAF, icon: "headphones", label: "DAF" },
-                { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
-                { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
-              ].map((tool) => {
-                const isActive =
-                  (tool.id === ToolType.DAF &&
-                    selectedPracticeTool === tool.id &&
-                    dafState.isDAFActive) ||
-                  (tool.id === ToolType.CHORUS &&
-                    selectedPracticeTool === tool.id &&
-                    vhIsPlaying) ||
-                  (tool.id === ToolType.METRONOME &&
-                    selectedPracticeTool === tool.id &&
-                    metronomeState.isPlaying);
-                return (
-                  <TouchableOpacity
-                    key={tool.id}
-                    style={[styles.dockItem, isActive && styles.dockItemActive]}
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut,
-                      );
-                      handleToolSelect(tool.id);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Icon
-                      name={tool.icon}
-                      size={20}
-                      color={isActive ? "#FFF" : "#94A3B8"}
-                    />
-                    {isActive && (
-                      <Text style={styles.dockItemLabel} numberOfLines={1}>
-                        {tool.label}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            )
-          }
-        />
-      </View>
+        )}
+        {renderHighlightedText()}
+      </ReadingStage>
 
       {/* Detail Sheet for Tools */}
-      <BottomSheetModal
-        visible={!!activeToolSheet}
-        onClose={() => setActiveToolSheet(null)}
-        maxHeight={500}
-        showCloseButton={true}
-        fitContent={true}
-      >
-        <ScrollView
-          contentContainerStyle={[
-            styles.sheetContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sheetTitle}>
+      <Sheet visible={!!activeToolSheet} onClose={() => setActiveToolSheet(null)}>
+          <Text variant="h2" center style={styles.sheetTitle}>
             {activeToolSheet === ToolType.CHORUS
               ? "Guide Settings"
               : activeToolSheet === ToolType.DAF
@@ -851,8 +649,7 @@ const Twister = () => {
                 : "Metronome Settings"}
           </Text>
           {renderToolSheetContent()}
-        </ScrollView>
-      </BottomSheetModal>
+      </Sheet>
 
       <ToolConsentModal
         visible={consentTool !== null}
@@ -861,320 +658,54 @@ const Twister = () => {
       />
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
 export default Twister;
 
 const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
-  },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  screenHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  headerRight: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerHardModeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerHardModeActive: {
-    backgroundColor: "#FFF7ED",
-    borderColor: "rgba(234, 88, 12, 0.3)",
-  },
-  activeDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#EA580C",
-    borderWidth: 1.5,
-    borderColor: "#FFF",
-  },
-  // Tips Styles
-  scrollContent: {
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-  },
-  startButton: {
-    marginTop: 20,
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-  },
-
   // Reading Mode Styles
-  readingScrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
-  textArea: {
-    marginTop: 16,
-    alignItems: "center",
-    gap: 16,
-  },
   titleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    fontWeight: "700",
-    fontSize: 22,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     textAlign: "center",
   },
   readingText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.default,
     lineHeight: 36,
-    fontSize: 24,
     textAlign: "center",
   },
 
-  // Action Dock
-  actionDockWrapper: {},
-  dockTools: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 4,
-  },
-
-  // Card UI
-  cardContainer: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden",
-    minHeight: 450,
-  },
-  cardHeaderGradient: {
-    padding: 24,
-    paddingBottom: 48, // Space for overlap
-    position: "relative",
-    height: 180,
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.7)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#92400E",
-    letterSpacing: 1,
-  },
-  glassButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  glassButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -10,
-    opacity: 0.15,
-    transform: [{ rotate: "-15deg" }],
-  },
-  cardBodySheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -40, // Overlap
-    padding: 24,
-    paddingBottom: 40,
-    minHeight: 300,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetWatermarkContainer: {
-    position: "absolute",
-    top: 40,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.6,
-    zIndex: 0,
-  },
-  // Tools Sheet
-  sheetContent: {
-    padding: 24,
-  },
+  // Tools Sheet (renders on the shared DS Sheet's dark surface)
   sheetTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    marginBottom: 20,
-    textAlign: "center",
+    marginBottom: spacing.xl,
   },
-  // Dock Items
-  dockItem: {
-    paddingVertical: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
+  // Pre-practice tips (dark)
+  tipsHeading: {
+    marginBottom: spacing.lg,
+  },
+  tipRow: {
     flexDirection: "row",
-    flex: 1,
   },
-  dockItemActive: {
-    backgroundColor: theme.colors.library.orange[400],
-    paddingHorizontal: 12,
-    flex: 2.5,
-  },
-  dockItemLabel: {
-    marginLeft: 6,
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  bottomActionContainer: {
-    paddingHorizontal: 24,
-  },
-  // Timeline & Hero Styles
-  heroSection: {
-    marginBottom: 32,
-  },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 40,
-    color: '#111827',
-    marginBottom: 12,
-    letterSpacing: -1,
-    lineHeight: 48,
-  },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#4B5563',
-    lineHeight: 24,
-  },
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
+  tipTrack: {
+    alignItems: "center",
     width: 20,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
-  timelineDot: {
+  tipDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.library.blue[500],
     marginTop: 7,
-    zIndex: 2,
   },
-  timelineLine: {
+  tipLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
     marginTop: 4,
     marginBottom: -4,
-    zIndex: 1,
   },
-  timelineContent: {
+  tipText: {
     flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151',
+    paddingBottom: spacing["2xl"],
     lineHeight: 24,
   },
 });

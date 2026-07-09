@@ -15,9 +15,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../Theme/tokens";
-import { parseShadowStyle } from "../util/functions/parseStyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme, relativeLuminance } from "../design-system";
 
 interface BottomSheetModalProps {
   visible: boolean;
@@ -43,7 +42,9 @@ interface BottomSheetModalProps {
    */
   showCloseButton?: boolean;
   /**
-   * Optional background color to override default 'white'
+   * Sheet background. Defaults to the dark `surface.elevated`. Pass a light colour
+   * for a light sheet — the handle/close chrome auto-adapts to the background's
+   * luminance so it stays legible either way.
    */
   backgroundColor?: string;
   /**
@@ -70,14 +71,24 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   maxHeight,
   showHandle = true,
   showCloseButton = false,
-  backgroundColor = "white",
+  backgroundColor,
   fitContent = false,
   hasBottomSafePadding = false,
   closeOnBackdropPress = true,
 }) => {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [isMounted, setIsMounted] = useState(visible);
+
+  // Default to the dark sheet surface; derive the handle/close chrome from the
+  // background's luminance so it reads on both dark and (legacy) light sheets.
+  const sheetBg = backgroundColor ?? colors.surface.elevated;
+  const onDark = relativeLuminance(sheetBg) < 0.4;
+  const handleColor = onDark ? "rgba(255,255,255,0.26)" : "rgba(0,0,0,0.14)";
+  const closeDiscBg = onDark ? "rgba(255,255,255,0.12)" : "#FFFFFF";
+  const closeDiscBorder = onDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.06)";
+  const closeIconColor = onDark ? colors.text.primary : "#1C1B1F";
 
   // Start the sheet off-screen
   const translateY = useSharedValue(windowHeight);
@@ -146,7 +157,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         <Animated.View
           style={[
             styles.modal,
-            { backgroundColor },
+            { backgroundColor: sheetBg },
             hasBottomSafePadding && { paddingBottom: Math.max(insets.bottom, 20) },
             resolvedSheetHeight != null
               ? fitContent
@@ -159,14 +170,13 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
           ]}
         >
           {children}
-          {showHandle && <View style={styles.handle} />}
+          {showHandle && <View style={[styles.handle, { backgroundColor: handleColor }]} />}
           {showCloseButton && (
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <MaterialCommunityIcons
-                name="close"
-                size={20}
-                color={theme.colors.text.title}
-              />
+            <TouchableOpacity
+              style={[styles.closeBtn, { backgroundColor: closeDiscBg, borderColor: closeDiscBorder }]}
+              onPress={onClose}
+            >
+              <MaterialCommunityIcons name="close" size={20} color={closeIconColor} />
             </TouchableOpacity>
           )}
         </Animated.View>
@@ -192,7 +202,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     overflow: "hidden",
     elevation: 20,
-    ...parseShadowStyle(theme.shadow.elevation4),
   },
   handle: {
     position: "absolute",
@@ -200,7 +209,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: 44,
     height: 5,
-    backgroundColor: "rgba(0,0,0,0.12)",
     borderRadius: 3,
     zIndex: 10,
   },
@@ -212,11 +220,8 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.7)
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
   },
 });

@@ -18,6 +18,7 @@ import {
     View,
     ViewStyle,
 } from "react-native";
+import { ForceDark } from "../design-system";
 
 if (
   Platform.OS === "android" &&
@@ -34,8 +35,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Video, { VideoRef } from "react-native-video";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
+import { typography, useTheme } from "../design-system";
 import Button from "./Button";
 import SkeletonLoader from "./SkeletonLoader";
 
@@ -81,6 +81,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   initialAspectRatio,
 }) => {
   const isFocused = useIsFocused();
+  const { colors } = useTheme();
   // Video State
   const videoRef = useRef<VideoRef>(null);
   const [paused, setPaused] = useState(!autoPlay);
@@ -425,7 +426,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         height={380}
         style={{
           borderRadius: 16,
-          backgroundColor: theme.colors.background.default,
+          backgroundColor: colors.background.canvas,
         }}
       />
     );
@@ -570,8 +571,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Locked Premium State Overlay */}
       {isLocked && onPressGoPremium && (
         <View style={styles.lockedOverlay}>
-          <Icon name="lock" size={48} color={theme.colors.text.onDark} />
-          <Text style={styles.lockedText}>
+          <Icon name="lock" size={48} color={colors.text.primary} />
+          <Text style={[styles.lockedText, { color: colors.text.primary }]}>
             Unlock this tutorial with Premium
           </Text>
           <Button
@@ -606,8 +607,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.metaTextContent}>
-            {title && <Text style={styles.videoMetaTitleText}>{title}</Text>}
-            {subtitle && <Text style={styles.videoMetaDescText}>{subtitle}</Text>}
+            {title && <Text style={[styles.videoMetaTitleText, { color: colors.text.primary }]}>{title}</Text>}
+            {subtitle && <Text style={[styles.videoMetaDescText, { color: colors.text.primary }]}>{subtitle}</Text>}
           </View>
         </Animated.View>
       )}
@@ -639,9 +640,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 minimumValue={0}
                 maximumValue={Math.max(duration, 0.01)}
                 value={seeking ? tempSeekTime : currentTime}
-                minimumTrackTintColor={theme.colors.actionPrimary.default}
+                minimumTrackTintColor={colors.action.primary}
                 maximumTrackTintColor="rgba(255,255,255,0.2)"
-                thumbTintColor={theme.colors.actionPrimary.default}
+                thumbTintColor={colors.action.primary}
                 onSlidingStart={onSlidingStart}
                 onValueChange={onSliderValueChange}
                 onSlidingComplete={onSlidingComplete}
@@ -699,7 +700,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       }
                       startAutoHide();
                     }}
-                   minimumTrackTintColor={theme.colors.actionPrimary.default}
+                   minimumTrackTintColor={colors.action.primary}
                    maximumTrackTintColor="rgba(255,255,255,0.2)"
                    thumbTintColor="white"
                 />
@@ -800,7 +801,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ]}
           onRequestClose={toggleFullScreen}
         >
-          {renderPlayer()}
+          {/* Scheme-locked dark — fullscreen video is a dark surface by design. */}
+          <ForceDark>{renderPlayer()}</ForceDark>
         </Modal>
       ) : (
         renderPlayer()
@@ -856,14 +858,12 @@ const styles = StyleSheet.create({
     zIndex: 200,
   },
   lockedText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.onDark,
+    ...typography.body,
     marginTop: 8,
     marginBottom: 8,
   },
   premiumButton: {
     minWidth: 150,
-    backgroundColor: theme.colors.actionPrimary.default,
   },
 
    // Meta Overlay
@@ -882,13 +882,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.25)",
   },
   videoMetaTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.onDark,
-    fontWeight: "600",
+    ...typography.title,
   },
   videoMetaDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.onDark,
+    ...typography.bodySm,
     opacity: 0.9,
   },
   // Controls

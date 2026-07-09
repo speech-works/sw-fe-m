@@ -4,17 +4,22 @@ import {
   useNavigation,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
 import React, { useCallback, useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import WarriorFace from "../../../assets/mood-check/WarriorFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
 import { usePracticeCategorySummaryStore } from "../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../stores/user";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
+import {
+  useTheme,
+  spacing,
+  space,
+  radius,
+  Text,
+} from "../../../design-system";
+import PressableScale from "../../../components/PressableScale";
 
 // We need to navigate deep into DailyPracticeStack
 type RootStackParamList = {
@@ -27,10 +32,23 @@ type RootStackParamList = {
   };
 };
 
+type Practice = {
+  name: string;
+  subtitle: string;
+  weeklyCount: number;
+  badge?: string;
+  faceType: "reader" | "movie" | "breathing" | "warrior";
+  route: string;
+  /** Vivid energy accent — keys of `colors.accent`/`colors.accentOn` (Community-card pattern).
+   *  Chosen distinct + to contrast each card's avatar plate. */
+  accent: "info" | "warning" | "danger" | "purple";
+};
+
 const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
+  const { colors, elevation } = useTheme();
   const { user } = useUserStore();
   const { categories, fetchSummary } = usePracticeCategorySummaryStore();
 
@@ -56,44 +74,40 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
     [categories],
   );
 
-  const practices = useMemo(
+  const practices = useMemo<Practice[]>(
     () => [
       {
         name: "Reading",
         subtitle: "Read Aloud",
         weeklyCount: getCount("READING_PRACTICE"),
-        faceType: "reader" as const,
+        faceType: "reader",
         route: "ReadingPracticeStack",
-        colors: ["#FFD8B5", "#FFAB76"],
-        shadowColor: "#FFAB76",
+        accent: "info",
       },
       {
         name: "Fun",
         subtitle: "Expression",
         weeklyCount: getCount("FUN_PRACTICE"),
-        faceType: "movie" as const,
+        faceType: "movie",
         route: "FunPracticeStack",
-        colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
-        shadowColor: "#98E6E6",
+        accent: "warning",
       },
       {
         name: "Cognitive",
         subtitle: "Focus",
         weeklyCount: getCount("COGNITIVE_PRACTICE"),
         badge: "FREE",
-        faceType: "breathing" as const,
+        faceType: "breathing",
         route: "CognitivePracticeStack",
-        colors: ["#EBCBF5", "#D8A7F0"],
-        shadowColor: "#D8A7F0",
+        accent: "danger",
       },
       {
         name: "Exposure",
         subtitle: "Courage",
         weeklyCount: getCount("EXPOSURE_PRACTICE"),
-        faceType: "warrior" as const,
+        faceType: "warrior",
         route: "ExposureStack",
-        colors: ["#FFC8C8", "#FF9E9E"],
-        shadowColor: "#FF9E9E",
+        accent: "purple",
       },
     ],
     [getCount],
@@ -123,58 +137,46 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Jump In</Text>
+      <Text variant="h3">Jump In</Text>
       <View style={styles.grid}>
-        {practices.map((p, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => handlePress(p.route)}
-            activeOpacity={0.8}
-            style={[
-              styles.cardWrapper,
-              {
-                shadowColor: p.shadowColor,
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
-                backgroundColor: "#FFF",
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={p.colors as any}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardGradient}
+        {practices.map((p, i) => {
+          const on = colors.accentOn[p.accent];
+          return (
+            <PressableScale
+              key={i}
+              onPress={() => handlePress(p.route)}
+              scaleTo={0.97}
+              style={styles.cardWrapper}
             >
-              <View style={styles.cardHeader}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={styles.cardSubtitle}>{p.subtitle}</Text>
-                  {/* Small badge for count */}
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countValue}>{p.weeklyCount}</Text>
+              {/* Solid vivid accent fill + dark on-text — the Community card pattern. */}
+              <View style={[styles.cardFill, { backgroundColor: colors.accent[p.accent] }]}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.headerRow}>
+                    <Text variant="label" color={on} style={styles.subtitleCaps}>
+                      {p.subtitle}
+                    </Text>
+                    {/* Count chip — a small dark surface chip (the in-app card-chip pattern). */}
+                    <View style={[styles.countBadge, { backgroundColor: colors.surface.default }]}>
+                      <Text variant="caption" color="primary">{p.weeklyCount}</Text>
+                    </View>
                   </View>
+                  <Text variant="h3" color={on}>{p.name}</Text>
                 </View>
-                <Text style={styles.cardTitle}>{p.name}</Text>
+                <View style={styles.iconWrapper} pointerEvents="none">
+                  {renderFace(p.faceType)}
+                </View>
               </View>
-              <View style={styles.iconWrapper} pointerEvents="none">
-                {renderFace(p.faceType)}
-              </View>
-            </LinearGradient>
 
-            {p.badge && (
-              <View style={styles.cornerBadge}>
-                <Text style={styles.cornerBadgeText}>{p.badge}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+              {p.badge ? (
+                <View style={[styles.cornerBadge, { backgroundColor: colors.accent.success }, elevation.e2]}>
+                  <Text variant="caption" color={colors.accentOn.success} style={styles.cornerBadgeText}>
+                    {p.badge}
+                  </Text>
+                </View>
+              ) : null}
+            </PressableScale>
+          );
+        })}
       </View>
     </View>
   );
@@ -184,29 +186,23 @@ export default React.memo(PracticeGrid);
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
-    marginVertical: 10,
-  },
-  sectionTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    gap: space.groupGap,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between", // Push to edges
-    rowGap: 16, // Vertical gap
+    rowGap: space.groupGap, // Vertical gap
   },
   cardWrapper: {
     width: "48%", // Force 2 columns
     aspectRatio: 0.9, // Keep consistent shape (slightly taller than square)
-    borderRadius: 24,
-    // Shadow props applied inline for dynamic colors
+    borderRadius: radius.card,
   },
-  cardGradient: {
+  cardFill: {
     flex: 1,
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: radius.card,
+    padding: spacing.xl,
     justifyContent: "space-between",
     position: "relative",
     overflow: "hidden",
@@ -214,21 +210,14 @@ const styles = StyleSheet.create({
   cardHeader: {
     zIndex: 2,
   },
-  cardSubtitle: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(0,0,0,0.5)",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    fontSize: 10,
-    letterSpacing: 0.5,
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  cardTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "rgba(0,0,0,0.8)",
-    fontSize: 24,
-    fontWeight: "900",
-    marginTop: 2,
-    letterSpacing: -0.6,
+  subtitleCaps: {
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   iconWrapper: {
     alignSelf: "flex-end",
@@ -237,38 +226,23 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.1 }, { translateY: 5 }, { translateX: 5 }],
   },
   countBadge: {
-    backgroundColor: "rgba(255,255,255,0.4)",
-    minWidth: 24,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 999,
+    minWidth: spacing["2xl"],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
-  countValue: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(0,0,0,0.6)",
-  },
   cornerBadge: {
     position: "absolute",
-    top: -8,
-    right: -8,
-    backgroundColor: "#10B981", // Stylish green (Emerald 500)
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    top: -spacing.sm,
+    right: -spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
     zIndex: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
   },
   cornerBadgeText: {
-    color: "#FFF",
-    fontSize: 9,
-    fontWeight: "900",
     textTransform: "uppercase",
   },
 });

@@ -27,6 +27,15 @@ export function useBackgroundAudio(
       { uri: soundUri },
       { isLooping: true, volume: volume }
     );
+    // If the screen unmounted while the track was loading, the unmount
+    // cleanup already ran against a null ref — release this one directly.
+    if (!isMounted.current) {
+      sound.unloadAsync().catch(() => {});
+      return;
+    }
+    if (backgroundSound.current && backgroundSound.current !== sound) {
+      backgroundSound.current.unloadAsync().catch(() => {});
+    }
     backgroundSound.current = sound;
   }, [soundUri]);
 

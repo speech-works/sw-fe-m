@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 
 import {
   ReactionType,
@@ -17,6 +17,7 @@ import { useInboxStore } from "../../stores/inbox";
 import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering } from "../../design-system";
 import SignalCard from "../SignalCard";
 
 interface TimelineProps {
@@ -42,6 +43,8 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   const [error, setError] = useState(false);
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const myId = useUserStore((s) => s.user?.id);
+  const { colors } = useTheme();
+  const reduced = useReducedMotion();
 
   const load = useCallback(async () => {
     try {
@@ -152,7 +155,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#FF6B00" />
+        <ActivityIndicator color={colors.action.primary} />
       </View>
     );
   }
@@ -160,10 +163,10 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   if (error) {
     return (
       <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={36} color="#A1A4AA" />
-        <Text style={styles.muted}>Couldn't load the timeline.</Text>
-        <TouchableOpacity onPress={load} style={styles.retryBtn}>
-          <Text style={styles.retryText}>Retry</Text>
+        <Icon name={icons.warning} size={36} color={colors.text.tertiary} />
+        <Text variant="bodySm" color="secondary" style={styles.muted}>Couldn't load the timeline.</Text>
+        <TouchableOpacity onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }]}>
+          <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -174,19 +177,19 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
     return (
       <View style={styles.emptyWrap}>
         <View style={styles.emptyHero}>
-          <View style={styles.emptyIconCircle}>
-            <MaterialCommunityIcons name="hand-heart" size={28} color="#FF6B00" />
+          <View style={[styles.emptyIconCircle, { backgroundColor: colors.action.primaryTint }]}>
+            <Icon name={icons.care} size={28} color={colors.text.accent} />
           </View>
-          <Text style={styles.emptyTitle}>Your wins and moments live here</Text>
-          <Text style={styles.muted}>
-            Finish a practice and tap <Text style={styles.mutedStrong}>Share</Text>, or{" "}
-            <Text style={styles.mutedStrong}>Share a moment</Text> to tell {who} how it's going — they'll
+          <Text variant="h3" style={styles.emptyTitle}>Your wins and moments live here</Text>
+          <Text variant="bodySm" color="secondary" style={styles.muted}>
+            Finish a practice and tap <Text variant="bodySm" color="primary" style={styles.bold}>Share</Text>, or{" "}
+            <Text variant="bodySm" color="primary" style={styles.bold}>Share a moment</Text> to tell {who} how it's going — they'll
             see it here and can cheer you on.
           </Text>
           {onStartPractice ? (
-            <TouchableOpacity onPress={onStartPractice} style={styles.emptyCta} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="play" size={16} color="#FFFFFF" />
-              <Text style={styles.emptyCtaText}>Start a practice</Text>
+            <TouchableOpacity onPress={onStartPractice} style={[styles.emptyCta, { backgroundColor: colors.action.primary }]} activeOpacity={0.85}>
+              <Icon name={icons.play} size={16} color={colors.action.onPrimary} />
+              <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Start a practice</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -197,36 +200,39 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   return (
     <View style={styles.list}>
       {signals.map((signal, index) => (
-        <SignalCard
-          key={signal.id}
-          isFirst={index === 0}
-          isLast={index === signals.length - 1}
-          signal={signal}
-          prevSignal={index > 0 ? signals[index - 1] : undefined}
-          nextSignal={index < signals.length - 1 ? signals[index + 1] : undefined}
-          variant="feed"
-          buddyName={buddyName}
-          onReact={(type) => handleReact(signal.id, type)}
-          onUnreact={() => handleUnreact(signal.id)}
-          onDelete={() => handleDelete(signal.id)}
-          onReplyPrompt={(replyId) => handleReplyPrompt(signal.id, replyId)}
-          replyPending={replyingId === signal.id}
-          onReachOut={() => {
-            track(ANALYTICS_EVENTS.BUDDY_SUPPORT_OPENED, { postId: signal.id });
-            onReachOut?.(signal);
-          }}
-        />
+        // Opacity-only stagger: the thread "draws in" top-to-bottom without any
+        // transform, so the continuous rail never shifts. Fires once per card mount.
+        <Animated.View key={signal.id} entering={fadeStaggerEntering(index, reduced)}>
+          <SignalCard
+            isFirst={index === 0}
+            isLast={index === signals.length - 1}
+            signal={signal}
+            prevSignal={index > 0 ? signals[index - 1] : undefined}
+            nextSignal={index < signals.length - 1 ? signals[index + 1] : undefined}
+            variant="feed"
+            buddyName={buddyName}
+            onReact={(type) => handleReact(signal.id, type)}
+            onUnreact={() => handleUnreact(signal.id)}
+            onDelete={() => handleDelete(signal.id)}
+            onReplyPrompt={(replyId) => handleReplyPrompt(signal.id, replyId)}
+            replyPending={replyingId === signal.id}
+            onReachOut={() => {
+              track(ANALYTICS_EVENTS.BUDDY_SUPPORT_OPENED, { postId: signal.id });
+              onReachOut?.(signal);
+            }}
+          />
+        </Animated.View>
       ))}
 
       {loadingMore ? (
         <View style={styles.loadMoreFooter}>
-          <ActivityIndicator color="#803600" size="small" />
+          <ActivityIndicator color={colors.action.primary} size="small" />
         </View>
       ) : nextCursor ? (
         // Fallback for the rare case the first page doesn't fill the viewport
         // (so onEndReached never fires): a low-emphasis tap target to fetch more.
         <TouchableOpacity onPress={loadMore} style={styles.loadMoreFooter} activeOpacity={0.7}>
-          <Text style={styles.loadMoreText}>Load more</Text>
+          <Text variant="bodySm" color="accent" style={styles.bold}>Load more</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -236,42 +242,37 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
 export default Timeline;
 
 const styles = StyleSheet.create({
-  list: { paddingTop: 8, paddingHorizontal: 16 },
-  center: { alignItems: "center", justifyContent: "center", paddingVertical: 48, paddingHorizontal: 30, gap: 8 },
-  emptyTitle: { fontSize: 17, fontWeight: "800", color: "#803600", marginTop: 4 },
-  muted: { fontSize: 14, color: "#737780", textAlign: "center", lineHeight: 20 },
-  mutedStrong: { fontWeight: "800", color: "#803600" },
-  emptyWrap: { paddingHorizontal: 16, paddingTop: 4 },
-  emptyHero: { alignItems: "center", paddingVertical: 20, paddingHorizontal: 12, gap: 8 },
+  list: { paddingTop: spacing.sm, paddingHorizontal: space.screenX },
+  center: { alignItems: "center", justifyContent: "center", paddingVertical: spacing["5xl"], paddingHorizontal: 30, gap: spacing.sm },
+  bold: { fontFamily: fonts.bold },
+  emptyTitle: { marginTop: spacing.xs },
+  muted: { textAlign: "center" },
+  emptyWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
+  emptyHero: { alignItems: "center", paddingVertical: spacing.xl, paddingHorizontal: spacing.md, gap: spacing.sm },
   emptyIconCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#FFF0E5",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 14,
-    backgroundColor: "#FF6B00",
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-    borderRadius: 100,
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radius.full,
   },
-  emptyCtaText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
-  retryBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 100, backgroundColor: "#FF6B00" },
-  retryText: { color: "#FFFFFF", fontWeight: "700", fontSize: 15 },
+  retryBtn: { marginTop: spacing.md, paddingHorizontal: spacing["2xl"], paddingVertical: spacing.md, borderRadius: radius.full },
   loadMoreFooter: {
     alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    marginTop: 4,
-    marginBottom: 8,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  loadMoreText: { color: "#803600", fontWeight: "700", fontSize: 14 },
 });

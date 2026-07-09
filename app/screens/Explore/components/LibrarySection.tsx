@@ -1,13 +1,16 @@
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../Theme/tokens";
+import { StyleSheet, View } from "react-native";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
+  useTheme,
+  spacing,
+  space,
+  radius,
+  Text,
+  Icon,
+  icons,
+} from "../../../design-system";
+import PressableScale from "../../../components/PressableScale";
 
 interface LibrarySectionProps {
   onLayoutCapture?: (event: any) => void;
@@ -15,6 +18,9 @@ interface LibrarySectionProps {
 
 const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
   const navigation = useNavigation<any>();
+  const { colors, elevation } = useTheme();
+  // Solid vivid accent card (Community pattern). Dark ink reads on the fill.
+  const ink = colors.accentOn.success;
 
   return (
     <View
@@ -23,75 +29,59 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
       }}
       style={styles.container}
     >
-      <Text style={styles.sectionTitle}>Library</Text>
+      <Text variant="h3">Library</Text>
 
-      <TouchableOpacity
-        style={styles.cardContainer}
+      <PressableScale
+        style={[styles.cardContainer, elevation.e2]}
+        scaleTo={0.98}
         onPress={() =>
           navigation.navigate("LibraryStack", {
             screen: "Library",
             params: { from: "EXPLORE" },
           })
         }
-        activeOpacity={0.9}
       >
-        <LinearGradient
-          // Premium Purple-Pink-Orange Gradient
-          // Warm Orange-Pink Gradient
-          colors={[
-            theme.colors.library.orange[400],
-            theme.colors.library.orange[500],
-            "#DB2777",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          {/* Decorative Bubbles */}
+        <View style={[styles.gradient, { backgroundColor: colors.accent.success }]}>
+          {/* Decorative ink bubbles (dark-on-bright texture) */}
           <View
             style={[
               styles.bubble,
-              { width: 100, height: 100, top: -20, right: -20, opacity: 0.2 },
+              { backgroundColor: ink, width: 100, height: 100, top: -20, right: -20, opacity: 0.18 },
             ]}
           />
           <View
             style={[
               styles.bubble,
-              { width: 60, height: 60, bottom: 10, left: 10, opacity: 0.15 },
+              { backgroundColor: ink, width: 60, height: 60, bottom: 10, left: 10, opacity: 0.13 },
             ]}
           />
           <View
             style={[
               styles.bubble,
-              { width: 40, height: 40, top: 20, right: 80, opacity: 0.1 },
+              { backgroundColor: ink, width: 40, height: 40, top: 20, right: 80, opacity: 0.1 },
             ]}
           />
 
           <View style={styles.content}>
             <View style={styles.textContainer}>
-              <Text style={styles.cardTitle}>Video Tutorials</Text>
-              <Text style={styles.cardSubtitle}>
+              <Text variant="h2" color={ink}>Video Tutorials</Text>
+              <Text variant="bodySm" color={ink}>
                 Master speech techniques with our curated video collection.
               </Text>
             </View>
 
-            <View style={styles.iconCircle}>
-              <Icon
-                name="play"
-                size={24}
-                color={theme.colors.library.orange[500]}
-                style={{ marginLeft: 4 }}
-              />
+            <View style={[styles.iconCircle, { backgroundColor: colors.surface.default }]}>
+              <Icon name={icons.play} size={24} color={colors.text.primary} style={styles.playGlyph} />
             </View>
           </View>
 
-          {/* Tag / Badge */}
-          <View style={styles.badge}>
-            <Icon name="video" size={12} color="#FFFFFF" />
-            <Text style={styles.badgeText}>Recorded Lessons</Text>
+          {/* Tag / Badge — dark surface chip with a vivid glyph (in-app chip pattern). */}
+          <View style={[styles.badge, { backgroundColor: colors.surface.default }]}>
+            <Icon name={icons.play} size={12} color={colors.text.primary} />
+            <Text variant="caption" color="primary">Recorded Lessons</Text>
           </View>
-        </LinearGradient>
-      </TouchableOpacity>
+        </View>
+      </PressableScale>
     </View>
   );
 };
@@ -100,32 +90,24 @@ export default React.memo(LibrarySection);
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
-  },
-  sectionTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    gap: space.groupGap,
   },
   cardContainer: {
     width: "100%",
-    height: 200, // Increased from 160 to reduce cramped feeling
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
+    height: 200,
+    borderRadius: radius.card,
     overflow: "hidden", // Clips the gradient and bubbles
-    backgroundColor: "#FFF",
   },
   gradient: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 32, // Increased from 24
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing["3xl"],
     justifyContent: "space-between",
     position: "relative",
   },
   bubble: {
     position: "absolute",
-    backgroundColor: "white",
-    borderRadius: 999,
+    borderRadius: radius.full,
   },
   content: {
     flexDirection: "row",
@@ -134,46 +116,27 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    paddingRight: 16,
-    gap: 4,
-  },
-  cardTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "900",
-    letterSpacing: -0.6,
-  },
-  cardSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
+    paddingRight: spacing.lg,
+    gap: spacing.xs,
   },
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 16, // Nesting: 24 - 8 = 16 or just common standard
-    backgroundColor: "#FFFFFF",
+    borderRadius: radius.input,
     justifyContent: "center",
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  playGlyph: {
+    marginLeft: 4,
   },
   badge: {
     flexDirection: "row",
     alignSelf: "flex-start",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    marginTop: 12,
-  },
-  badgeText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#FFFFFF",
-    fontWeight: "600",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    marginTop: spacing.md,
   },
 });

@@ -5,30 +5,36 @@ import {
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/types";
 import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
-import { theme } from "../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
 import { PAYMENTS_ENABLED } from "../../../constants/features";
+import {
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+  gradients,
+  Text,
+  Icon,
+  icons,
+  type IconName,
+} from "../../../design-system";
 
 interface BuyProProps {
   onLayoutCapture?: (event: any) => void;
 }
 
 const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
-  // Hidden while monetization is dormant (no in-app billing wired yet).
-  if (!PAYMENTS_ENABLED) return null;
-
   type SettingsNav = NativeStackNavigationProp<SettingsStackParamList>;
   type ExploreNav = NativeStackNavigationProp<ExploreStackParamList>;
   type CrossNavigationProp = CompositeNavigationProp<SettingsNav, ExploreNav>;
 
+  const { colors, elevation } = useTheme();
   const navigation = useNavigation<CrossNavigationProp>();
+
+  // Hidden while monetization is dormant (no in-app billing wired yet).
+  if (!PAYMENTS_ENABLED) return null;
 
   const copy = {
     badge: "EXCLUSIVE OFFER",
@@ -38,72 +44,90 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
     cta: "Explore Premium",
   };
 
-  const benefits = [
-    { text: "No Daily Caps", icon: "infinity" },
-    { text: "AI Calls", icon: "robot" },
-    { text: "Personal Roadmap", icon: "map-check" },
+  const benefits: { text: string; icon: IconName }[] = [
+    { text: "No Daily Caps", icon: icons.unlimited },
+    { text: "AI Calls", icon: icons.ai },
+    { text: "Personal Roadmap", icon: icons.roadmap },
   ];
 
   return (
     <LinearGradient
       onLayout={(event) => onLayoutCapture?.(event)}
-      colors={["#0F172A", "#1E293B", "#0F172A"]} // Premium Dark Slate
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
+      colors={gradients.premiumSlate.colors}
+      start={gradients.premiumSlate.start}
+      end={gradients.premiumSlate.end}
+      style={[styles.container, { borderColor: colors.border.default }, elevation.e3]}
     >
       {/* Decorative Orbs */}
       <View
         style={[
           styles.glowOrb,
-          { top: -40, right: -40, backgroundColor: "#22D3EE", opacity: 0.1 },
+          { top: -40, right: -40, backgroundColor: colors.premium.orbCyan, opacity: 0.1 },
         ]}
       />
       <View
         style={[
           styles.glowOrb,
-          { bottom: -30, left: -30, backgroundColor: "#8B5CF6", opacity: 0.08 },
+          { bottom: -30, left: -30, backgroundColor: colors.premium.orbPurple, opacity: 0.08 },
         ]}
       />
 
       {/* Badge */}
-      <View style={styles.badgeContainer}>
-        <Icon name="crown" size={12} color="#D4AF37" />
-        <Text style={styles.badgeText}>{copy.badge}</Text>
+      <View
+        style={[
+          styles.badgeContainer,
+          { backgroundColor: colors.premium.goldTint, borderColor: colors.premium.goldBorder },
+        ]}
+      >
+        <Icon name={icons.pro} size={12} color={colors.premium.gold} />
+        <Text variant="label" color={colors.premium.gold}>
+          {copy.badge}
+        </Text>
       </View>
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>{copy.title}</Text>
-        <Text style={styles.subtitle}>{copy.subtitle}</Text>
+        <Text variant="h2" color={colors.text.primary}>
+          {copy.title}
+        </Text>
+        <Text variant="bodySm" color={colors.text.secondary}>
+          {copy.subtitle}
+        </Text>
       </View>
 
-      {/* Benefits Grid (Original Compact Style) */}
+      {/* Benefits Grid */}
       <View style={styles.benefitsGrid}>
         {benefits.map((benefit, index) => (
-          <View key={index} style={styles.benefitItem}>
-            <Icon
-              name={benefit.icon}
-              size={14}
-              color="#FFF"
-              style={{ opacity: 0.9 }}
-            />
-            <Text style={styles.benefitText}>{benefit.text}</Text>
+          <View
+            key={index}
+            style={[
+              styles.benefitItem,
+              { backgroundColor: colors.border.hairline, borderColor: colors.border.hairline },
+            ]}
+          >
+            <Icon name={benefit.icon} size={14} color={colors.text.primary} style={styles.benefitIcon} />
+            <Text variant="caption" color={colors.text.primary}>
+              {benefit.text}
+            </Text>
           </View>
         ))}
       </View>
 
       {/* CTA Button */}
       <TouchableOpacity
-        style={styles.ctaButton}
+        style={[styles.ctaButton, elevation.e2]}
         activeOpacity={0.9}
         onPress={() => navigation.navigate("PremiumModal" as any)}
       >
         <LinearGradient
-          colors={["#D4AF37", "#996515"]} // Metallic Gold
+          colors={gradients.premiumGold.colors}
+          start={gradients.premiumGold.start}
+          end={gradients.premiumGold.end}
           style={styles.ctaGradient}
         >
-          <Text style={styles.ctaText}>{copy.cta}</Text>
+          <Text variant="title" color={colors.text.primary}>
+            {copy.cta}
+          </Text>
         </LinearGradient>
       </TouchableOpacity>
     </LinearGradient>
@@ -114,96 +138,60 @@ export default React.memo(BuyPro);
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24,
-    ...parseShadowStyle(theme.shadow.elevation4),
+    borderRadius: radius.card,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
     position: "relative",
     overflow: "hidden",
-    gap: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    gap: spacing.xl,
+    borderWidth: borderWidth.thin,
   },
   glowOrb: {
     position: "absolute",
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: radius.full,
   },
   badgeContainer: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "rgba(212, 175, 55, 0.15)", // Translucent Gold
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 100,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.3)",
-  },
-  badgeText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontWeight: "900",
-    color: "#D4AF37",
-    fontSize: 10,
-    letterSpacing: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    gap: spacing.xs,
+    borderWidth: borderWidth.thin,
   },
   header: {
-    gap: 8,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "900",
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 14,
-    lineHeight: 20,
+    gap: spacing.sm,
   },
   benefitsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginTop: 8,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   benefitItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.05)",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    borderWidth: borderWidth.thin,
   },
-  benefitText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 12,
+  benefitIcon: {
+    opacity: 0.9,
   },
   ctaButton: {
-    marginTop: 12,
-    borderRadius: 100,
+    marginTop: spacing.md,
+    borderRadius: radius.full,
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation3),
   },
   ctaGradient: {
-    paddingVertical: 16,
+    paddingVertical: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
-  },
-  ctaText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
   },
 });

@@ -3,25 +3,16 @@ import {
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
-  LayoutAnimation,
-  ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+  Text as RNText,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 
-import { BlurView } from "expo-blur";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Tools
 import Metronome, {
@@ -34,15 +25,23 @@ import ToolNudge from "../../../../../../components/ToolNudge";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import SmartRecorder from "../StoryPractice/components/SmartRecorder"; // Reuse SmartRecorder
+import RecorderTools from "../StoryPractice/components/RecorderTools";
+import { ReadingStage } from "../shared/ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
+import FocusLamp from "../../../components/FocusLamp";
 
 import { ToolType } from "../../../../../../api/tools/types";
-import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
-import { readingTips } from "../data";
+  Page,
+  Button,
+  Text as DSText,
+  Sheet,
+  Spinner,
+  useTheme,
+  spacing,
+  withAlpha,
+} from "../../../../../../design-system";
+import { readingPracticeAccents, readingTips } from "../data";
 
 // API & Stores
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
@@ -66,8 +65,6 @@ import { toPascalCase } from "../../../../../../util/functions/strings";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 
-const { width } = Dimensions.get("window");
-
 import {
   RDPStackNavigationProp,
   RDPStackRouteProp,
@@ -75,8 +72,11 @@ import {
 
 const PoemPractice = () => {
   const navigation = useNavigation<RDPStackNavigationProp<"PoemPractice">>();
-  const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
+  const { colors } = useTheme();
+  const accent = readingPracticeAccents.poem;
+  const accentColor = colors.accent[accent];
+  const onAccentColor = colors.accentOn[accent];
+  const highlightColor = withAlpha(onAccentColor, 0.14);
   const { setTabBarVisible } = useUIStore();
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -334,24 +334,78 @@ const PoemPractice = () => {
     }
   };
 
+  // --- Scroll-driven page tracking (replaces the pager buttons) ---
+  // All pages render in one continuous scroll; the "active" page is whichever has
+  // scrolled up to the reading line. currentPage stays the recording/guide unit —
+  // only HOW it's chosen changed, so the recording/highlight logic is untouched.
+  const pageRefs = useRef<Array<View | null>>([]);
+  const lastTrackY = useRef(-1);
+
+  const trackActivePage = useCallback(() => {
+    const valid = pageRefs.current
+      .map((r, i) => ({ r, i }))
+      .filter((x) => x.r) as Array<{ r: View; i: number }>;
+    if (!valid.length) return;
+    const line = Dimensions.get("window").height * 0.34;
+    const tops: Record<number, number> = {};
+    let remaining = valid.length;
+    valid.forEach(({ r, i }) => {
+      r.measureInWindow((_x, y) => {
+        tops[i] = y;
+        remaining -= 1;
+        if (remaining === 0) {
+          let active = 0;
+          Object.keys(tops)
+            .map(Number)
+            .sort((a, b) => a - b)
+            .forEach((idx) => {
+              if (tops[idx] <= line) active = idx;
+            });
+          setCurrentPage(active);
+        }
+      });
+    });
+  }, [setCurrentPage]);
+
+  const handleScrollY = useCallback(
+    (y: number) => {
+      // Recompute only every ~40px so we're not measuring on every bucketed tick.
+      if (Math.abs(y - lastTrackY.current) < 40) return;
+      lastTrackY.current = y;
+      trackActivePage();
+    },
+    [trackActivePage],
+  );
+
   // --- Render Helpers ---
 
   const renderHighlightedText = () => {
     const practiceText = pages[currentPage] || "";
     const [start, length] = highlightRange;
     if (start < 0 || length === 0) {
-      return <Text style={styles.readingText}>{practiceText}</Text>;
+      return (
+        <DSText variant="body" color={onAccentColor} style={styles.readingText}>
+          {practiceText}
+        </DSText>
+      );
     }
     const before = practiceText.slice(0, start);
     const word = practiceText.slice(start, start + length);
     const after = practiceText.slice(start + length);
 
     return (
-      <Text style={styles.readingText}>
+      <DSText variant="body" color={onAccentColor} style={styles.readingText}>
         {before}
-        <Text style={styles.highlight}>{word}</Text>
+        <RNText
+          style={{
+            backgroundColor: highlightColor,
+            color: onAccentColor,
+          }}
+        >
+          {word}
+        </RNText>
         {after}
-      </Text>
+      </DSText>
     );
   };
 
@@ -385,6 +439,8 @@ const PoemPractice = () => {
             onRecheckHeadset={() => {
               void dafState.updateHeadsetStatus(true);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.METRONOME:
@@ -400,6 +456,8 @@ const PoemPractice = () => {
             }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.CHORUS:
@@ -412,6 +470,8 @@ const PoemPractice = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             onToggleSpeech={() => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
@@ -426,8 +486,7 @@ const PoemPractice = () => {
         return null;
     }
   };
-
-  const bottomPadding = 32; // Ultra-compact clearance, allows slight overlap with dock for tight feel
+ // Ultra-compact clearance, allows slight overlap with dock for tight feel
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
   const { exitSheet } = useConfirmOnExit({
@@ -438,6 +497,8 @@ const PoemPractice = () => {
     family: "Reading",
     from,
     packContext,
+    accentColor,
+    onAccentColor,
   });
 
   // --- View: Done Practice ---
@@ -447,6 +508,8 @@ const PoemPractice = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="poem practice"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () =>
@@ -465,785 +528,270 @@ const PoemPractice = () => {
   // --- View: Pre-Practice (Tips) ---
   if (!currentActivityId) {
     return (
-      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.screenHeaderTitle}>Poem Practice</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
-
-        <ScrollView
-          key="tips-scroll"
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-            paddingBottom: 120,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>Poem Practice</Text>
-            <Text style={styles.heroDescription}>
-              Find your rhythm and express emotion through the art of poetry.
-            </Text>
-          </View>
-
-          {nudgeVisible && toolNudge && (
-            <ToolNudge
-              directive={toolNudge}
-              onTryWithout={() => handleNudgeTryWithout(runStart)}
-              onDismiss={handleNudgeDismiss}
-              style={{ marginBottom: 32 }}
-            />
-          )}
-
-          <HardModeToggle
-            value={hardMode}
-            onValueChange={setHardMode}
-            canUseHardMode={canUseHardMode}
-            style={{ marginBottom: 32 }}
-          />
-
-          <View style={styles.timelineSection}>
-            <Text style={styles.sectionHeader}>Tips</Text>
-            <View style={styles.timelineContainer}>
-              {readingTips.poem.map((tip, index, arr) => (
-                <View key={index} style={styles.timelineItem}>
-                  <View style={styles.timelineTrack}>
-                    <View style={styles.timelineDot} />
-                    {index !== arr.length - 1 && (
-                      <View style={styles.timelineLine} />
-                    )}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineText}>{tip}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Fixed Start Button at bottom */}
-        <View
-          style={[
-            styles.bottomActionContainer,
-            { paddingBottom: insets.bottom || 24 },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.9}
+      <Page
+        title="Poem Practice"
+        description="Find your rhythm and express emotion through the art of poetry."
+        onBack={onBackPress}
+        background={<FocusLamp focus={hardMode} />}
+        footer={
+          <Button
+            label="Start Practice"
             onPress={() => runStart()}
+            loading={isStarting || isLoading}
             disabled={isStarting || isLoading}
-            style={styles.startButton}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.orange[500],
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>
-                {isStarting ? "Loading..." : "Start Practice"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            style={isStarting || isLoading ? undefined : { backgroundColor: accentColor }}
+          />
+        }
+      >
+        {nudgeVisible && toolNudge && (
+          <ToolNudge
+            directive={toolNudge}
+            onTryWithout={() => handleNudgeTryWithout(runStart)}
+            onDismiss={handleNudgeDismiss}
+          />
+        )}
+
+        <HardModeToggle
+          value={hardMode}
+          onValueChange={setHardMode}
+          canUseHardMode={canUseHardMode}
+          accent={accent}
+        />
+
+        {/* Tips — a dot timeline on the dark canvas. */}
+        <View>
+          <DSText variant="h3" color="primary" style={styles.tipsHeading}>Tips</DSText>
+          {readingTips.poem.map((tip, index, arr) => (
+            <View key={index} style={styles.tipRow}>
+              <View style={styles.tipTrack}>
+                <View style={[styles.tipDot, { backgroundColor: accentColor }]} />
+                {index !== arr.length - 1 && (
+                  <View style={[styles.tipLine, { backgroundColor: colors.border.default }]} />
+                )}
+              </View>
+              <DSText variant="body" color="secondary" style={styles.tipText}>
+                {tip}
+              </DSText>
+            </View>
+          ))}
         </View>
-      </ScreenView>
+      </Page>
     );
   }
 
-  // --- View: Active Practice ---
+  // --- View: Active Practice — the shared "Clean Focus" reading stage (logic intact). ---
   return (
-    <ScreenView style={styles.screenView}>
-      {/* Background */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]} // Peach -> Pink -> White
-          locations={[0, 0.6, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-
-      {/* Header */}
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-        ]}
-      >
-        <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.screenHeaderTitle}>Poem Practice</Text>
-        
-        {/* Hard Mode Toggle in Header */}
-        <View style={styles.headerRight}>
-          {canUseHardMode && (
-            <TouchableOpacity 
-              onPress={() => setHardMode(!hardMode)}
-              style={[styles.headerHardModeButton, hardMode && styles.headerHardModeActive]}
-            >
-              <Icon 
-                name="fire" 
-                size={14} 
-                color={hardMode ? "#EA580C" : theme.colors.text.title} 
-                solid={hardMode}
+    <>
+      <ReadingStage
+        title="Poem Practice"
+        onBack={onBackPress}
+        category="POEM"
+        align="top"
+        accent={accentColor}
+        onAccent={onAccentColor}
+        onNext={toggleIndex}
+        onScrollY={handleScrollY}
+        focus={{
+          active: hardMode,
+          canUse: canUseHardMode,
+          onToggle: setHardMode,
+        }}
+        dock={
+          <SmartRecorder
+            onRecorded={setVoiceRecordingUri}
+            onToggle={toggleIndex}
+            prevRecordingUri={voiceRecordingUri || undefined}
+            onSubmit={async () => {
+              setIsLoading(true);
+              try {
+                await onDonePress();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            onDiscard={() => setVoiceRecordingUri(null)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
+            renderTools={() => (
+              <RecorderTools
+                activeToolId={selectedPracticeTool}
+                isDafActive={dafState.isDAFActive}
+                isGuideActive={vhIsPlaying}
+                isTempoActive={metronomeState.isPlaying}
+                onSelect={handleToolSelect}
+                focusMode={focusMode}
+                expanded={toolsExpanded}
+                onExpand={() => setToolsExpanded(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
-              {hardMode && <View style={styles.activeDot} />}
-            </TouchableOpacity>
+            )}
+          />
+        }
+      >
+        <View style={styles.readingBlock}>
+          <View style={styles.metaHead}>
+            <DSText variant="h2" color={onAccentColor} center>
+              {allPoems[selectedIndex]?.title}
+            </DSText>
+            <DSText variant="bodySm" color={withAlpha(onAccentColor, 0.68)} center>
+              — {allPoems[selectedIndex]?.author} · Level{" "}
+              {toPascalCase(allPoems[selectedIndex]?.difficulty)}
+            </DSText>
+          </View>
+
+          {/* VoiceHover drives the highlight; the component itself is hidden. */}
+          {selectedPracticeTool === ToolType.CHORUS && (
+            <View style={{ height: 0, overflow: "hidden" }}>
+              <VoiceHover
+                text={pages[currentPage] || ""}
+                onHighlightChange={(s, l) => setHighlightRange([s, l])}
+                rate={vhRate}
+                prePause={vhPrePause}
+                gap={vhGap}
+                isPlaying={vhIsPlaying}
+                onComplete={() => setVhIsPlaying(false)}
+              />
+            </View>
+          )}
+
+          {/* Every page in one continuous scroll; the active page is lit + gets the
+              read-along highlight, the rest are dimmed. Scrolling one to the reading
+              line makes it active (see handleScrollY). A spinner covers the content
+              load, and an end marker closes the passage. */}
+          {pages.length === 0 ? (
+            <View style={styles.loadingWrap}>
+              <Spinner color={onAccentColor} />
+            </View>
+          ) : (
+            <>
+              {pages.map((pageText, i) => (
+                <View
+                  key={i}
+                  ref={(el) => {
+                    pageRefs.current[i] = el;
+                  }}
+                >
+                  {i === currentPage ? (
+                    renderHighlightedText()
+                  ) : (
+                    <DSText variant="body" color={onAccentColor} style={styles.readingText}>
+                      {pageText}
+                    </DSText>
+                  )}
+                </View>
+              ))}
+              <View style={styles.endMark}>
+                <View
+                  style={[styles.endRule, { backgroundColor: withAlpha(onAccentColor, 0.28) }]}
+                />
+                <DSText
+                  variant="label"
+                  color={withAlpha(onAccentColor, 0.55)}
+                  style={styles.endText}
+                >
+                  THE END
+                </DSText>
+                <View
+                  style={[styles.endRule, { backgroundColor: withAlpha(onAccentColor, 0.28) }]}
+                />
+              </View>
+            </>
           )}
         </View>
-      </BlurView>
-
-      {/* Reading Content */}
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          key="practice-scroll"
-          scrollEnabled={true}
-          contentContainerStyle={[
-            styles.readingScrollContent,
-            {
-              paddingTop: HEADER_HEIGHT + insets.top + 10,
-              paddingBottom: bottomPadding,
-            },
-          ]}
-        >
-          <View style={styles.cardContainer}>
-            {/* 1. Warm Gradient Header */}
-            <LinearGradient
-              colors={["#EA580C", "#F97316"]} // Burnt Orange -> Orange 500
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardHeaderGradient}
-            >
-              <View style={styles.headerTopRow}>
-                <View style={styles.categoryPill}>
-                  <Icon name="feather-alt" size={12} color="#9A3412" />
-                  <Text style={styles.categoryPillText}>POEM</Text>
-                </View>
-
-                {/* Glassy Next Button */}
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                  <TouchableOpacity
-                    onPress={toggleIndex}
-                    style={styles.glassButton}
-                  >
-                    <Text style={styles.glassButtonText}>Next</Text>
-                    <Icon name="chevron-right" size={12} color="#FFF" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <Text style={styles.articleTitle}>
-                {allPoems[selectedIndex]?.title}
-              </Text>
-              <Text style={styles.headerAuthor}>
-                — {allPoems[selectedIndex]?.author}
-              </Text>
-
-              {/* Display Level/Difficulty */}
-              <Text style={styles.headerLevel}>
-                Level: {toPascalCase(allPoems[selectedIndex]?.difficulty)}
-              </Text>
-
-              {/* Subtle Watermark */}
-              <View style={styles.headerWatermark}>
-                <Icon
-                  name="feather-alt"
-                  size={96}
-                  color="rgba(255,255,255,0.15)"
-                />
-              </View>
-            </LinearGradient>
-
-            {/* 2. White Sheet Content */}
-            <View style={styles.cardBodySheet}>
-              {/* Time Badge Overlapping Edge */}
-              <View style={styles.floatingTimeBadge}>
-                <Icon
-                  name="clock"
-                  size={12}
-                  color={theme.colors.library.orange[600]}
-                />
-                <Text style={styles.floatingTimeText}>5 min read</Text>
-              </View>
-
-              <View style={styles.textArea}>
-                {/* VoiceHover Logic */}
-                {selectedPracticeTool === ToolType.CHORUS && (
-                  <View style={{ height: 0, overflow: "hidden" }}>
-                    <VoiceHover
-                      text={pages[currentPage] || ""}
-                      onHighlightChange={(s, l) => setHighlightRange([s, l])}
-                      rate={vhRate}
-                      prePause={vhPrePause}
-                      gap={vhGap}
-                      isPlaying={vhIsPlaying}
-                      onComplete={() => setVhIsPlaying(false)}
-                    />
-                  </View>
-                )}
-                {renderHighlightedText()}
-              </View>
-
-              {/* Minimal Pagination at Bottom of Sheet */}
-              <View style={styles.paginationRow}>
-                <Text style={styles.pageText}>
-                  Page {currentPage + 1} / {pages.length}
-                </Text>
-                <View style={{ flexDirection: "row", gap: 12 }}>
-                  <TouchableOpacity
-                    disabled={currentPage === 0}
-                    onPress={() => setCurrentPage((p) => Math.max(0, p - 1))}
-                    style={[
-                      styles.miniNavButton,
-                      currentPage === 0 && { opacity: 0.3 },
-                    ]}
-                  >
-                    <Icon
-                      name="arrow-left"
-                      size={14}
-                      color={theme.colors.text.default}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    disabled={currentPage >= pages.length - 1}
-                    onPress={() =>
-                      setCurrentPage((p) => Math.min(pages.length - 1, p + 1))
-                    }
-                    style={[
-                      styles.miniNavButton,
-                      currentPage >= pages.length - 1 && { opacity: 0.3 },
-                    ]}
-                  >
-                    <Icon
-                      name="arrow-right"
-                      size={14}
-                      color={theme.colors.text.default}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
-
-      {/* Action Dock (Fixed Bottom) */}
-      <View style={styles.actionDockWrapper}>
-        <SmartRecorder
-          onRecorded={setVoiceRecordingUri}
-          onToggle={toggleIndex}
-          prevRecordingUri={voiceRecordingUri || undefined}
-          onSubmit={async () => {
-            setIsLoading(true);
-            try {
-              await onDonePress();
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          onDiscard={() => setVoiceRecordingUri(null)}
-          renderTools={() =>
-            focusMode && !toolsExpanded ? (
-              <TouchableOpacity
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: 16,
-                  backgroundColor: "rgba(148,163,184,0.12)",
-                }}
-                onPress={() => {
-                  LayoutAnimation.configureNext(
-                    LayoutAnimation.Presets.easeInEaseOut,
-                  );
-                  setToolsExpanded(true);
-                }}
-                activeOpacity={0.8}
-              >
-                <Icon name="sliders-h" size={14} color="#94A3B8" />
-                <Text
-                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
-                >
-                  Tools
-                </Text>
-              </TouchableOpacity>
-            ) : (
-            <View style={styles.dockTools}>
-              {[
-                { id: ToolType.DAF, icon: "headphones", label: "DAF" },
-                { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
-                { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
-              ].map((tool) => {
-                const isActive =
-                  (tool.id === ToolType.DAF &&
-                    selectedPracticeTool === tool.id &&
-                    dafState.isDAFActive) ||
-                  (tool.id === ToolType.CHORUS &&
-                    selectedPracticeTool === tool.id &&
-                    vhIsPlaying) ||
-                  (tool.id === ToolType.METRONOME &&
-                    selectedPracticeTool === tool.id &&
-                    metronomeState.isPlaying);
-                return (
-                  <TouchableOpacity
-                    key={tool.id}
-                    style={[styles.dockItem, isActive && styles.dockItemActive]}
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut,
-                      );
-                      handleToolSelect(tool.id);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Icon
-                      name={tool.icon}
-                      size={20}
-                      color={isActive ? "#FFF" : "#94A3B8"}
-                    />
-                    {isActive && (
-                      <Text style={styles.dockItemLabel} numberOfLines={1}>
-                        {tool.label}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            )
-          }
-        />
-      </View>
+      </ReadingStage>
 
       {/* Detail Sheet for Tools */}
-      <BottomSheetModal
-        visible={!!activeToolSheet}
-        onClose={() => setActiveToolSheet(null)}
-        maxHeight={500}
-        showCloseButton={true}
-        fitContent={true}
-      >
-        <ScrollView
-          contentContainerStyle={[
-            styles.sheetContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sheetTitle}>
-            {activeToolSheet === ToolType.CHORUS
-              ? "Guide Settings"
-              : `${activeToolSheet} Settings`}
-          </Text>
-          {renderToolSheetContent()}
-        </ScrollView>
-      </BottomSheetModal>
+      <Sheet visible={!!activeToolSheet} onClose={() => setActiveToolSheet(null)}>
+        <DSText variant="h2" center style={styles.sheetTitle}>
+          {activeToolSheet === ToolType.CHORUS
+            ? "Guide Settings"
+            : `${activeToolSheet} Settings`}
+        </DSText>
+        {renderToolSheetContent()}
+      </Sheet>
 
       <ToolConsentModal
         visible={consentTool !== null}
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
 export default PoemPractice;
 
 const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
+  readingBlock: {
+    width: "100%",
+    gap: spacing["2xl"],
   },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
+  metaHead: {
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  screenHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  headerRight: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerHardModeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerHardModeActive: {
-    backgroundColor: "#FFF7ED",
-    borderColor: "rgba(234, 88, 12, 0.3)",
-  },
-  activeDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#EA580C",
-    borderWidth: 1.5,
-    borderColor: "#FFF",
-  },
-  // Tips Styles
-  scrollContent: {
-    paddingHorizontal: 20,
-  },
-  backButtonMinimal: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginBottom: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  heroSection: {
-    marginBottom: 32,
-  },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 40,
-    color: '#111827',
-    marginBottom: 12,
-    letterSpacing: -1,
-    lineHeight: 48,
-  },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#4B5563',
-    lineHeight: 24,
-  },
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
-    width: 20,
-    marginRight: 16,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.library.blue[500],
-    marginTop: 7,
-    zIndex: 2,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: '#E5E7EB',
-    marginTop: 4,
-    marginBottom: -4,
-    zIndex: 1,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151',
-    lineHeight: 24,
-  },
-
-  startButton: {
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
+    gap: spacing.xs,
   },
 
   // Reading Mode Styles
-  readingScrollContent: {
-    paddingHorizontal: 24,
-    // paddingBottom handled dynamically
-  },
-  textArea: {
-    marginTop: 8,
-  },
   readingText: {
-    ...parseTextStyle(theme.typography.BodyHighLight), // Larger text
-    color: theme.colors.text.default,
     lineHeight: 32, // More breathability
     fontSize: 18,
   },
-  highlight: {
-    backgroundColor: theme.colors.library.orange[200],
-    color: theme.colors.text.title,
+  loadingWrap: {
+    paddingVertical: spacing["5xl"],
+    alignItems: "center",
+  },
+  endMark: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+    marginTop: spacing["2xl"],
+  },
+  endRule: {
+    height: 1,
+    width: 40,
+  },
+  endText: {
+    letterSpacing: 3,
   },
 
   // Action Dock
-  actionDockWrapper: {},
-  actionDock: {
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  bottomActionContainer: {
-    paddingHorizontal: 24,
-  },
-  dockTools: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 4,
-  },
-  dockItem: {
-    paddingVertical: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-    flexDirection: "row",
-    flex: 1, // Default share space
-  },
-  dockItemActive: {
-    backgroundColor: theme.colors.library.orange[400],
-    paddingHorizontal: 12,
-    flex: 2.5, // Matches CustomTabBar expansion ratio
-  },
-  dockItemLabel: {
-    marginLeft: 6,
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  completeButtonContainer: {
-    paddingTop: 8,
-  },
-  // Sheet
-  sheetContent: {
-    padding: 24,
-  },
+  // Sheet (renders on the shared DS Sheet's dark surface)
   sheetTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    marginBottom: 20,
-    textAlign: "center",
+    marginBottom: spacing.xl,
   },
-  cardContainer: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden", // Clip the sheet
+  // Pre-practice tips (dark)
+  tipsHeading: {
+    marginBottom: spacing.lg,
   },
-  cardHeaderGradient: {
-    padding: 24,
-    paddingBottom: 48, // Space for overlap
-    position: "relative",
-  },
-  headerTopRow: {
+  tipRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+  },
+  tipTrack: {
     alignItems: "center",
-    marginBottom: 16,
+    width: 20,
+    marginRight: spacing.lg,
   },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.7)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+  tipDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 7,
   },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#9A3412",
-    letterSpacing: 1,
-  },
-  glassButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  glassButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  articleTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 24,
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  headerAuthor: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.9)",
-    fontStyle: "italic",
-    zIndex: 1,
-  },
-  headerLevel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.8)",
+  tipLine: {
+    width: 2,
+    flex: 1,
     marginTop: 4,
-    zIndex: 1,
+    marginBottom: -4,
   },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    opacity: 0.6,
-    transform: [{ rotate: "-10deg" }],
-    zIndex: 0,
-  },
-  cardBodySheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -24, // Overlap
-    padding: 24,
-    paddingBottom: 24,
-    justifyContent: "space-between", // Pushes text top, pagination bottom
-  },
-  floatingTimeBadge: {
-    position: "absolute",
-    top: -16,
-    right: 24,
-    backgroundColor: "#FFF",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: theme.colors.library.orange[100],
-  },
-  floatingTimeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.library.orange[600],
-  },
-  paginationRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 32,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-  },
-  pageText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
-  },
-  miniNavButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F8FAFC",
-    alignItems: "center",
-    justifyContent: "center",
+  tipText: {
+    flex: 1,
+    paddingBottom: spacing["2xl"],
+    lineHeight: 24,
   },
 });

@@ -1,11 +1,15 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/Feather";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
-import BottomSheetModal from "./BottomSheetModal";
-import Button from "./Button";
+import { StyleSheet, View } from "react-native";
+import {
+  Sheet,
+  Text,
+  Button,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+} from "../design-system";
 
 interface ImpactAssessmentContinueModalProps {
   visible: boolean;
@@ -14,119 +18,93 @@ interface ImpactAssessmentContinueModalProps {
   onSaveForLater: () => void;
 }
 
+/**
+ * "Great job — keep going?" prompt shown between assessment sets. Built on the
+ * design-system `Sheet` (grab handle + backdrop-tap dismiss, NO cross button) so
+ * it matches the shared confirm-sheet chrome, with an extra badge for the
+ * remaining-question count.
+ */
 const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps> = ({
   visible,
   remainingQuestions,
   onContinue,
   onSaveForLater,
 }) => {
-  const insets = useSafeAreaInsets();
-  // If assessment is complete, don't show this modal
+  const { colors } = useTheme();
+  // If the assessment is complete, don't show this modal.
   if (remainingQuestions === 0) {
     return null;
   }
 
   return (
-    <BottomSheetModal
-      visible={visible}
-      onClose={onSaveForLater}
-      showCloseButton={true}
-      fitContent={true}
-    >
-      <View
-        style={[
-          styles.container,
-          { paddingBottom: Math.max(insets.bottom, 40) },
-        ]}
-      >
-        {/* Celebration Icon */}
-        <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Icon name="check" size={32} color="#10B981" />
-          </View>
+    <Sheet visible={visible} onClose={onSaveForLater}>
+      <View style={styles.container}>
+        {/* Success disc — a "set complete" celebration. */}
+        <View style={[styles.iconDisc, { backgroundColor: colors.accentTint.success }]}>
+          <Icon name={icons.success} size={28} color={colors.accentText.success} />
         </View>
 
-        {/* Title & Subtitle */}
-        <Text style={styles.title}>Great job!</Text>
-        <Text style={styles.subtitle}>You completed this set.</Text>
+        <Text variant="h2" center>
+          Great job!
+        </Text>
+        <Text variant="bodySm" color="secondary" center>
+          You completed this set.
+        </Text>
 
-        {/* Remaining Info */}
-        <View style={styles.remainingBadge}>
-          <Icon name="clock" size={14} color={theme.colors.text.default} />
-          <Text style={styles.remainingText}>
+        {/* Remaining-question badge. */}
+        <View style={[styles.remainingBadge, { backgroundColor: colors.accentTint.warning }]}>
+          <Icon name={icons.duration} size={14} color={colors.text.secondary} />
+          <Text variant="label" color="secondary">
             {remainingQuestions} question{remainingQuestions !== 1 ? "s" : ""}{" "}
             remaining
           </Text>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actions}>
+        <View style={styles.buttons}>
           <Button
-            text="Continue Now"
+            label="Continue Now"
             onPress={onContinue}
-            style={styles.continueButton}
+            variant="primary"
+            accentColor={colors.accent.warning}
+            onAccentColor={colors.accentOn.warning}
           />
           <Button
-            text="Save for Later"
+            label="Save for Later"
             variant="ghost"
+            onColor={colors.feedback.warningText}
             onPress={onSaveForLater}
-            textColor={theme.colors.text.default}
           />
         </View>
       </View>
-    </BottomSheetModal>
+    </Sheet>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 40,
     alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
-  iconContainer: {
-    marginBottom: 20,
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#D1FAE5", // Green 100
+  iconDisc: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    marginBottom: 4,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    marginBottom: 20,
   },
   remainingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.library.orange[100],
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-    marginBottom: 28,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.chip,
+    gap: spacing.sm,
   },
-  remainingText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "600",
-  },
-  actions: {
+  buttons: {
     width: "100%",
-    gap: 12,
-  },
-  continueButton: {
-    width: "100%",
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

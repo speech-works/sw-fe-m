@@ -1,12 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome5';
-import { BlurView } from 'expo-blur';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Button from '../../../../../components/Button';
-import { theme } from '../../../../../Theme/tokens';
-import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/parseStyles';
+import {
+  Page,
+  Button,
+  Surface,
+  Text,
+  Icon,
+  useTheme,
+  makeStyles,
+  spacing,
+  space,
+  radius,
+} from '../../../../../design-system';
 import { MirrorWorkData } from './types';
 import { selectSessionPrompts } from './util/promptSelection';
 import { loadSeenOpeners, recordSeenOpener } from './util/promptSelectionStorage';
@@ -15,12 +21,51 @@ import { getCognitivePracticeByType } from '../../../../../api/dailyPractice';
 import { CognitivePracticeType } from '../../../../../api/dailyPractice/types';
 import { PracticeActivityContentType } from '../../../../../api/practiceActivities/types';
 
+/**
+ * Confidence-cue colours. These MUST mirror the in-session `AwarenessOverlay`
+ * (a protected zone, still on literals): this legend explains those exact
+ * on-screen colours, so tokenising them here would make the legend lie. Migrate
+ * the two together when the session overlay moves to the design system.
+ */
+const CUE_LEGEND = [
+  {
+    key: 'firm',
+    label: 'Firm observation',
+    desc:
+      "High-confidence cues like lip pressing or jaw tension. We're quite sure we saw it.",
+    fill: 'rgba(255, 122, 51, 0.25)',
+    border: 'rgba(255, 122, 51, 0.80)',
+    dashed: false,
+  },
+  {
+    key: 'soft',
+    label: 'Soft observation',
+    desc:
+      "Subtler cues — brow tension, cheek puffing. We'll phrase these gently because they're harder to detect precisely.",
+    fill: 'rgba(230, 180, 80, 0.15)',
+    border: 'rgba(230, 180, 80, 0.60)',
+    dashed: true,
+  },
+  {
+    key: 'head',
+    label: 'Head movement',
+    desc:
+      "Gaze shifts and head movements. These are informational — they don't affect your overall score.",
+    fill: 'rgba(147, 112, 219, 0.20)',
+    border: 'rgba(147, 112, 219, 0.70)',
+    dashed: false,
+  },
+] as const;
+
 export const PrepScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
-  
+  const { colors } = useTheme();
+  const styles = useStyles();
+  // Mirror Work = the "success" (green) accent from the Cognitive Practice list.
+  const accentColor = colors.accent.success;
+  const onAccentColor = colors.accentOn.success;
+
   const practiceData = route.params?.practiceData || {};
   const mirrorWorkData: MirrorWorkData = practiceData.mirrorWorkData || {
     tips: [
@@ -133,346 +178,183 @@ export const PrepScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.screenView}>
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.headerBar,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{practiceData.name || "Mirror Work"}</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
-
-      <ScrollView 
-        style={styles.container} 
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: HEADER_HEIGHT + insets.top + 20 }
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>{practiceData.name || "Mirror Work"}</Text>
-          <Text style={styles.heroDescription}>
-            {practiceData.description || "Speak to your camera and notice what your body does. No scores, no performance — just observation."}
+    <Page
+      title={practiceData.name || 'Mirror Work'}
+      onBack={() => navigation.goBack()}
+      description={
+        practiceData.description ||
+        'Speak to your camera and notice what your body does. No scores, no performance — just observation.'
+      }
+      footer={
+        <Button
+          label="Start practice"
+          variant="primary"
+          onPress={handleStart}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
+        />
+      }
+    >
+      {/* Two-up bento: privacy + gentle-notes reassurance. */}
+      <View style={styles.bentoGrid}>
+        <Surface level="elevated" rounded="card" padded={spacing.xl} style={styles.bentoCard}>
+          <View style={styles.watermark} pointerEvents="none">
+            <Icon name="shield" size={80} color={colors.accent.success} />
+          </View>
+          <Text variant="title" color="primary">100% Private</Text>
+          <Text variant="bodySm" color="secondary" style={styles.bentoDesc}>
+            On-device only. No video is recorded or sent.
           </Text>
-        </View>
+        </Surface>
 
-        <View style={styles.bentoGrid}>
-          <View style={[styles.bentoCard, styles.bentoCardLeft]}>
-            <View style={styles.bentoWatermark} pointerEvents="none">
-              <Icon name="shield-alt" size={80} color="#10B981" />
-            </View>
-            <View style={styles.bentoContent}>
-              <Text style={styles.bentoTitle}>100% Private</Text>
-              <Text style={styles.bentoDesc}>On-device only. No video is recorded or sent.</Text>
-            </View>
+        <Surface level="elevated" rounded="card" padded={spacing.xl} style={styles.bentoCard}>
+          <View style={styles.watermark} pointerEvents="none">
+            <Icon name="lightbulb" size={80} color={colors.accent.info} />
           </View>
-
-          <View style={[styles.bentoCard, styles.bentoCardRight]}>
-            <View style={styles.bentoWatermark} pointerEvents="none">
-              <Icon name="lightbulb" size={80} color="#3B82F6" />
-            </View>
-            <View style={styles.bentoContent}>
-              <Text style={styles.bentoTitle}>Gentle Notes</Text>
-              <Text style={styles.bentoDesc}>Non-intrusive feedback as it happens.</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.timelineSection}>
-          <Text style={styles.sectionHeader}>What to expect</Text>
-          <View style={styles.timelineContainer}>
-            {mirrorWorkData.tips.map((tip, index) => (
-              <View key={index} style={styles.timelineItem}>
-                <View style={styles.timelineTrack}>
-                  <View style={styles.timelineDot} />
-                  {index !== mirrorWorkData.tips.length - 1 && (
-                    <View style={styles.timelineLine} />
-                  )}
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineText}>{tip}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* ── Confidence legend (spec §5.4) ── */}
-        <View style={styles.legendSection}>
-          <Text style={styles.sectionHeader}>How notes work</Text>
-          <Text style={styles.legendIntro}>
-            When we notice something, a gentle note appears on screen. Different colors tell you how sure we are:
+          <Text variant="title" color="primary">Gentle Notes</Text>
+          <Text variant="bodySm" color="secondary" style={styles.bentoDesc}>
+            Non-intrusive feedback as it happens.
           </Text>
-
-          <View style={styles.legendRow}>
-            <View style={[styles.legendSwatch, styles.legendSwatchHigh]} />
-            <View style={styles.legendTextGroup}>
-              <Text style={styles.legendLabel}>Firm observation</Text>
-              <Text style={styles.legendDesc}>
-                High-confidence cues like lip pressing or jaw tension. We&apos;re quite sure we saw it.
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.legendRow}>
-            <View style={[styles.legendSwatch, styles.legendSwatchSoft]} />
-            <View style={styles.legendTextGroup}>
-              <Text style={styles.legendLabel}>Soft observation</Text>
-              <Text style={styles.legendDesc}>
-                Subtler cues — brow tension, cheek puffing. We&apos;ll phrase these gently because they&apos;re harder to detect precisely.
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.legendRow}>
-            <View style={[styles.legendSwatch, styles.legendSwatchHead]} />
-            <View style={styles.legendTextGroup}>
-              <Text style={styles.legendLabel}>Head movement</Text>
-              <Text style={styles.legendDesc}>
-                Gaze shifts and head movements. These are informational — they don&apos;t affect your overall score.
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.legendFootnote}>
-            None of this is a diagnosis. It&apos;s just a mirror with a memory.
-          </Text>
-        </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <Button text="Start practice" onPress={handleStart} style={styles.startButton} />
+        </Surface>
       </View>
-    </View>
+
+      {/* What to expect — timeline of gentle framing. */}
+      <View style={styles.section}>
+        <Text variant="h2" color="primary" style={styles.sectionHeader}>
+          What to expect
+        </Text>
+        <View style={styles.timeline}>
+          {mirrorWorkData.tips.map((tip, index) => (
+            <View key={index} style={styles.timelineItem}>
+              <View style={styles.timelineTrack}>
+                <View style={styles.timelineDot} />
+                {index !== mirrorWorkData.tips.length - 1 && (
+                  <View style={styles.timelineLine} />
+                )}
+              </View>
+              <View style={styles.timelineContent}>
+                <Text variant="body" color="secondary">{tip}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Confidence legend (spec §5.4) — swatch colours mirror AwarenessOverlay. */}
+      <View style={styles.section}>
+        <Text variant="h2" color="primary" style={styles.sectionHeader}>
+          How notes work
+        </Text>
+        <Text variant="body" color="secondary" style={styles.legendIntro}>
+          When we notice something, a gentle note appears on screen. Different
+          colors tell you how sure we are:
+        </Text>
+
+        {CUE_LEGEND.map((row) => (
+          <View key={row.key} style={styles.legendRow}>
+            <View
+              style={[
+                styles.legendSwatch,
+                {
+                  backgroundColor: row.fill,
+                  borderColor: row.border,
+                  borderStyle: row.dashed ? 'dashed' : 'solid',
+                },
+              ]}
+            />
+            <View style={styles.legendTextGroup}>
+              <Text variant="title" color="primary">{row.label}</Text>
+              <Text variant="bodySm" color="secondary">{row.desc}</Text>
+            </View>
+          </View>
+        ))}
+
+        <Text variant="caption" color="tertiary" center style={styles.legendFootnote}>
+          None of this is a diagnosis. It's just a mirror with a memory.
+        </Text>
+      </View>
+    </Page>
   );
 };
 
-const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
-    backgroundColor: '#FAFAFA', // Soft off-white for a cleaner look
-  },
-  headerBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 24,
-  },
-  heroSection: {
-    marginBottom: 40,
-  },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 34,
-    color: '#111827', // Gray 900
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 17,
-    color: '#4B5563', // Gray 600
-    lineHeight: 26,
-  },
+const useStyles = makeStyles((c) => ({
   bentoGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
+    gap: space.groupGap,
+    marginTop: space.sectionGap,
   },
   bentoCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E7EB', // Gray 200
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 2,
     overflow: 'hidden',
   },
-  bentoCardLeft: {
-    marginRight: 8,
-  },
-  bentoCardRight: {
-    marginLeft: 8,
-  },
-  bentoWatermark: {
+  watermark: {
     position: 'absolute',
-    right: -15,
-    top: -15,
-    opacity: 0.1,
-    transform: [{ rotate: "15deg" }],
-    zIndex: 0,
-  },
-  bentoContent: {
-    zIndex: 1,
-  },
-  bentoTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 16,
-    color: '#111827',
-    marginBottom: 6,
+    right: -spacing.lg,
+    top: -spacing.lg,
+    opacity: 0.16,
+    transform: [{ rotate: '15deg' }],
   },
   bentoDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: '#6B7280',
-    lineHeight: 20,
+    marginTop: spacing.xs,
   },
-  timelineSection: {
-    marginBottom: 16,
+  section: {
+    marginTop: space.sectionGap,
   },
   sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
+    marginBottom: space.groupGap,
   },
-  timelineContainer: {
-    paddingLeft: 4,
+  timeline: {
+    paddingLeft: spacing.xs,
   },
   timelineItem: {
     flexDirection: 'row',
   },
   timelineTrack: {
     alignItems: 'center',
-    width: 20,
-    marginRight: 16,
+    width: spacing.xl,
+    marginRight: space.iconText,
   },
   timelineDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#3B82F6',
-    marginTop: 7,
-    zIndex: 2,
+    backgroundColor: c.accent.success,
+    marginTop: spacing.sm,
   },
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
-    marginTop: 4,
-    marginBottom: -4,
-    zIndex: 1,
+    backgroundColor: c.border.default,
+    marginTop: spacing.xs,
+    marginBottom: -spacing.xs,
   },
   timelineContent: {
     flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151', // Gray 700
-    lineHeight: 24,
-  },
-  // ── Confidence legend ──
-  legendSection: {
-    marginBottom: 16,
+    paddingBottom: spacing['3xl'],
   },
   legendIntro: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 15,
-    color: '#4B5563',
-    lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: space.groupGap,
   },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: space.groupGap,
   },
   legendSwatch: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    marginTop: 2,
-    marginRight: 14,
+    width: spacing.xl,
+    height: spacing.xl,
+    borderRadius: radius.sm,
+    marginTop: spacing.xxs,
+    marginRight: spacing.md,
     borderWidth: 2,
-  },
-  legendSwatchHigh: {
-    backgroundColor: 'rgba(255, 122, 51, 0.25)',
-    borderColor: 'rgba(255, 122, 51, 0.80)',
-  },
-  legendSwatchSoft: {
-    backgroundColor: 'rgba(230, 180, 80, 0.15)',
-    borderColor: 'rgba(230, 180, 80, 0.60)',
-    borderStyle: 'dashed',
-  },
-  legendSwatchHead: {
-    backgroundColor: 'rgba(147, 112, 219, 0.20)',
-    borderColor: 'rgba(147, 112, 219, 0.70)',
   },
   legendTextGroup: {
     flex: 1,
-  },
-  legendLabel: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 15,
-    color: '#111827',
-    marginBottom: 2,
-  },
-  legendDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    gap: space.titleSub,
   },
   legendFootnote: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 13,
-    color: '#9CA3AF',
-    fontStyle: 'italic',
-    marginTop: 8,
-    textAlign: 'center',
+    marginTop: spacing.sm,
   },
-  footer: {
-    padding: 24,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  startButton: {
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-});
+}));
 
+export default PrepScreen;

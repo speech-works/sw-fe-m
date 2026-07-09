@@ -1,12 +1,13 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
-import { theme } from "../../../Theme/tokens";
+import { useTheme, withAlpha } from "../../../design-system";
 import VoidFace from "../../../assets/sw-faces/VoidFace";
 
 const { width, height } = Dimensions.get("window");
 
 const LoginBackground = () => {
+  const { colors } = useTheme();
+
   // Animation values (0 to 1) for floating effect
   const floatAnim1 = useRef(new Animated.Value(0)).current;
   const floatAnim2 = useRef(new Animated.Value(0)).current;
@@ -76,15 +77,16 @@ const LoginBackground = () => {
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      {/* Base Gradient */}
-      <LinearGradient
-        colors={["#FFF7ED", "#FFFFFF", "#FFFFFF"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
+      {/* Base canvas — the scheme's own ground (replaces the legacy cream gradient). */}
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: colors.background.canvas },
+        ]}
       />
 
-      {/* Orb 1: Top Left - Warm Peach Watermark */}
+      {/* Orb 1: Top Left - Face Watermark (inks derived from scheme roles so the
+          watermark stays a whisper on both the dark canvas and warm paper). */}
       <Animated.View
         style={[
           styles.orb,
@@ -99,8 +101,8 @@ const LoginBackground = () => {
         <VoidFace
           size={500}
           transparentBg
-          skinColor="rgba(255, 255, 255, 0.05)"
-          inkColor="rgba(51, 65, 85, 0.15)"
+          skinColor={withAlpha(colors.surface.inverse, 0.05)}
+          inkColor={withAlpha(colors.text.primary, 0.15)}
         />
       </Animated.View>
 
@@ -121,22 +123,19 @@ const LoginBackground = () => {
         {/* <Butterfly2Face
           size={260}
           transparentBg
-          skinColor="rgba(255, 255, 255, 0.05)"
-          butterflyColor="#F97316"
-          inkColor="#334155"
         /> */}
       </Animated.View>
 
-      {/* Orb 3: Mid Orange Glow (Hidden) */}
+      {/* Orb 3: Soft brand glow — the subtle 12% orange wash that keeps the
+          canvas warm now that the cream gradient is gone. */}
       <Animated.View
         style={[
           styles.orb,
           {
-            backgroundColor: theme.colors.library.orange[100],
+            backgroundColor: colors.action.primaryTint,
             width: 350,
             height: 350,
             borderRadius: 175,
-            opacity: 0,
             ...getOrbStyle(floatAnim3, -50, height - 200, 20, -30),
           },
         ]}
@@ -146,7 +145,7 @@ const LoginBackground = () => {
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: "rgba(255, 255, 255, 0.3)" },
+          { backgroundColor: withAlpha(colors.background.canvas, 0.3) },
         ]}
       />
     </View>

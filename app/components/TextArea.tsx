@@ -1,13 +1,12 @@
 import React, { forwardRef } from "react";
 import {
-    StyleSheet,
     TextInput,
     TextInputProps,
     TextStyle,
     View,
     ViewStyle,
 } from "react-native";
-import { theme } from "../Theme/tokens";
+import { makeStyles, useTheme } from "../design-system";
 
 interface TextAreaProps extends TextInputProps {
   containerStyle?: ViewStyle;
@@ -34,6 +33,8 @@ const TextArea = forwardRef<TextInput, TextAreaProps>(
     },
     ref
   ) => {
+    const styles = useStyles();
+    const { colors } = useTheme();
     // Ensure inputStyle is always treated as an array
     const normalizedInputStyle = Array.isArray(inputStyle)
       ? inputStyle
@@ -54,7 +55,7 @@ const TextArea = forwardRef<TextInput, TextAreaProps>(
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.text.default}
+          placeholderTextColor={colors.input.placeholder}
           underlineColorAndroid="transparent"
           multiline
           textAlignVertical="top"
@@ -69,26 +70,26 @@ const TextArea = forwardRef<TextInput, TextAreaProps>(
 
 export default TextArea;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   wrapper: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: c.input.bg,
+    borderRadius: t.radius.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: theme.colors.text.title,
+    color: c.text.primary,
     padding: 0,
     margin: 0,
   },
   iconContainer: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
-    marginTop: 4,
+    paddingHorizontal: t.spacing.xs,
+    marginTop: t.spacing.xs,
   },
-});
+}));

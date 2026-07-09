@@ -1,16 +1,21 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../components/CustomScrollView";
-import ScreenView from "../../../components/ScreenView";
+import { StyleSheet, View } from "react-native";
+import FAIcon from "react-native-vector-icons/FontAwesome5";
+import PressableScale from "../../../components/PressableScale";
 import {
   DPStackNavigationProp,
   DPStackParamList,
 } from "../../../navigators/stacks/ExploreStack/DailyPracticeStack/types";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
-import ListCard, { ListCardProps } from "./components/ListCard";
+import {
+  Page,
+  Text,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+} from "../../../design-system";
 
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
@@ -20,10 +25,15 @@ import { useEventStore } from "../../../stores/events";
 import { EVENT_NAMES } from "../../../stores/events/constants";
 import { useUserStore } from "../../../stores/user";
 
+/** Vivid accent role per hub entry — keeps each card distinct while the whole
+ *  list lives on the dark canvas (the PracticeGrid solid-accent recipe). */
+type HubAccent = "info" | "success" | "warning" | "purple" | "danger";
+
 const DailyPractice = () => {
   const navigation =
     useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
   const { emit } = useEventStore();
+  const { colors } = useTheme();
 
   const moveToReadingPractice = () => {
     navigation.navigate("ReadingPracticeStack");
@@ -42,7 +52,13 @@ const DailyPractice = () => {
   const { user } = useUserStore();
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
 
-  const dailyPracticeData: Array<ListCardProps> = [
+  const dailyPracticeData: Array<{
+    title: string;
+    description: string;
+    onPress: () => void;
+    icon: React.ReactNode;
+    accent: HubAccent;
+  }> = [
     // Show the structured daily assessment only after onboarding is complete
     ...(hasCompletedOnboarding
       ? [
@@ -51,12 +67,13 @@ const DailyPractice = () => {
             description: "Complete your 7-Day Pulse",
             onPress: () => navigation.navigate("ImpactAssessmentIntro"),
             icon: (
-              <Icon
+              <FAIcon
                 name="calendar-check"
                 size={52}
-                color={theme.colors.actionPrimary.default}
+                color={colors.accentOn.info}
               />
             ),
+            accent: "info" as HubAccent,
           },
         ]
       : [
@@ -65,7 +82,14 @@ const DailyPractice = () => {
             title: "Complete Profile",
             description: "Finish your clinical intake",
             onPress: () => emit(EVENT_NAMES.START_ONBOARDING), // Trigger onboarding via event store
-            icon: <Icon name="user-clock" size={52} color={"#F59E0B"} />,
+            icon: (
+              <FAIcon
+                name="user-clock"
+                size={52}
+                color={colors.accentOn.info}
+              />
+            ),
+            accent: "info" as HubAccent,
           },
         ]),
     {
@@ -73,85 +97,128 @@ const DailyPractice = () => {
       description: "Interactive speech games",
       onPress: moveToFunPractice,
       icon: <MovieFace size={52} />,
+      accent: "success",
     },
     {
       title: "Reading Practice",
       description: "Guided reading exercises",
       onPress: moveToReadingPractice,
       icon: <ReaderFace size={52} />,
+      accent: "warning",
     },
     {
       title: "Cognitive Therapy",
       description: "Mental exercises & techniques",
       onPress: moveToCognitiveTherapy,
       icon: <BreathingFace size={52} />,
+      accent: "purple",
     },
     {
       title: "Exposure",
       description: "Real-world speaking scenarios",
       onPress: moveToExposure,
       icon: <ExposureFace size={52} />,
+      accent: "danger",
     },
   ];
 
   return (
-    <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.topNavigation}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon
-            name="chevron-left"
-            size={16}
-            color={theme.colors.text.default}
-          />
-          <Text style={styles.topNavigationText}>Daily Practice</Text>
-        </TouchableOpacity>
-        <CustomScrollView>
-          <View style={styles.listContainer}>
-            {dailyPracticeData.map((item, index) => (
-              <ListCard
-                key={index}
-                title={item.title}
-                description={item.description}
-                icon={item.icon}
-                onPress={item.onPress}
-              />
-            ))}
-          </View>
-        </CustomScrollView>
+    <Page title="Daily Practice" onBack={() => navigation.goBack()}>
+      <View style={styles.listContainer}>
+        {dailyPracticeData.map((item, index) => {
+          const on = colors.accentOn[item.accent];
+          return (
+            <PressableScale
+              key={index}
+              onPress={item.onPress}
+              scaleTo={0.97}
+              style={styles.cardWrapper}
+            >
+              {/* Solid vivid accent fill + dark on-text — the PracticeGrid card recipe. */}
+              <View
+                style={[
+                  styles.cardFill,
+                  { backgroundColor: colors.accent[item.accent] },
+                ]}
+              >
+                <View style={styles.cardContent}>
+                  <View style={styles.iconWrapper}>{item.icon}</View>
+                  <View style={styles.copy}>
+                    <Text variant="h3" color={on}>
+                      {item.title}
+                    </Text>
+                    <Text
+                      variant="bodySm"
+                      color={on}
+                      style={styles.description}
+                    >
+                      {item.description}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Navigate affordance — a small surface chip (the in-app card-chip pattern). */}
+                <View
+                  style={[
+                    styles.chevronChip,
+                    { backgroundColor: colors.surface.default },
+                  ]}
+                >
+                  <Icon
+                    name={icons.chevronRight}
+                    size={16}
+                    color={colors.text.primary}
+                  />
+                </View>
+              </View>
+            </PressableScale>
+          );
+        })}
       </View>
-    </ScreenView>
+    </Page>
   );
 };
 
 export default DailyPractice;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
+  listContainer: {
+    gap: spacing.lg,
   },
-  container: {
-    gap: 32,
-    flex: 1,
-    paddingTop: 40,
+  cardWrapper: {
+    borderRadius: radius.card,
   },
-  topNavigation: {
-    position: "relative",
-    top: 0,
-    display: "flex",
+  cardFill: {
+    borderRadius: radius.card,
+    padding: spacing.xl,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    position: "relative",
+    overflow: "hidden",
   },
-  topNavigationText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.lg,
+    flex: 1,
+    zIndex: 1,
   },
-  listContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
+  iconWrapper: {
+    flexShrink: 0,
+  },
+  copy: {
+    flexShrink: 1,
+  },
+  description: {
+    marginTop: spacing.xxs,
+  },
+  chevronChip: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
   },
 });

@@ -12,7 +12,6 @@ export const ErrorFallback: React.FC<{ resetError: () => void }> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>🌀</Text>
       <Text style={styles.title}>Something went wrong</Text>
       <Text style={styles.body}>
         The app hit an unexpected error. Your progress is safe — please try
@@ -40,7 +39,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     backgroundColor: "#FFFFFF",
   },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: {
     fontSize: 22,
     fontWeight: "700",

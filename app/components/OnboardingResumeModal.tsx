@@ -1,9 +1,14 @@
 import React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/Feather";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
-import Button from "./Button";
+import { StyleSheet, View } from "react-native";
+import {
+  Sheet,
+  Text,
+  Button,
+  Icon,
+  useTheme,
+  radius,
+  spacing,
+} from "../design-system";
 
 interface OnboardingResumeModalProps {
   visible: boolean;
@@ -18,115 +23,48 @@ const OnboardingResumeModal: React.FC<OnboardingResumeModalProps> = ({
   onStartOver,
   onDismiss,
 }) => {
+  const { colors } = useTheme();
+
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={visible}
-      onRequestClose={onDismiss || onResume}
-    >
-      <View style={styles.overlay}>
-        {/* Backdrop tap to resume (or close) */}
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onDismiss || onResume}
-        />
+    <Sheet visible={visible} onClose={onDismiss || onResume}>
+      <View style={styles.container}>
+        <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
+          <Icon name="bookmark" size={28} color={colors.text.accent} />
+        </View>
 
-        {/* Bottom Sheet Content */}
-        <View style={styles.sheet}>
-          <View style={styles.container}>
-            {/* Icon */}
-            <View style={styles.iconContainer}>
-              <View style={styles.iconCircle}>
-                <Icon
-                  name="bookmark"
-                  size={32}
-                  color={theme.colors.actionPrimary.default}
-                />
-              </View>
-            </View>
+        <Text variant="h2" center>
+          Welcome Back!
+        </Text>
+        <Text variant="bodySm" color="secondary" center>
+          You have an onboarding in progress. Would you like to resume?
+        </Text>
 
-            {/* Title & Subtitle */}
-            <Text style={styles.title}>Welcome Back!</Text>
-            <Text style={styles.subtitle}>
-              You have an onboarding in progress. Would you like to resume?
-            </Text>
-
-            {/* Action Buttons */}
-            <View style={styles.actions}>
-              <Button
-                text="Resume"
-                onPress={onResume}
-                style={styles.resumeButton}
-              />
-              <Button
-                text="Start Over"
-                variant="ghost"
-                onPress={onStartOver}
-                textColor={theme.colors.text.default}
-              />
-            </View>
-          </View>
+        <View style={styles.buttons}>
+          <Button label="Resume" onPress={onResume} />
+          <Button label="Start Over" variant="ghost" onPress={onStartOver} />
         </View>
       </View>
-    </Modal>
+    </Sheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  sheet: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    width: "100%",
-    paddingBottom: 34, // Safe area padding approximation
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
   container: {
-    padding: 24,
     alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: theme.colors.background.light,
+  iconDisc: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
   },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    marginBottom: 4,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    marginBottom: 28,
-    textAlign: "center",
-  },
-  actions: {
+  buttons: {
     width: "100%",
-    gap: 12,
-  },
-  resumeButton: {
-    width: "100%",
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

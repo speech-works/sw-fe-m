@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { RefreshControl } from "react-native";
-import { theme } from "../Theme/tokens"; // Assuming your theme is here
+import { useTheme } from "../design-system";
 
 /**
  * Custom hook to provide pull-to-refresh functionality for a ScrollView.
@@ -12,6 +12,7 @@ import { theme } from "../Theme/tokens"; // Assuming your theme is here
  * - refreshControl: The RefreshControl component configured for use in a ScrollView.
  */
 const usePullToRefresh = (onRefreshCallback: () => Promise<void>) => {
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const handleRefresh = useCallback(async () => {
@@ -33,8 +34,8 @@ const usePullToRefresh = (onRefreshCallback: () => Promise<void>) => {
     <RefreshControl
       refreshing={refreshing}
       onRefresh={handleRefresh}
-      tintColor={theme.colors.actionPrimary.default} // Customize your refresh indicator color
-      colors={[theme.colors.actionPrimary.default]} // For Android
+      tintColor={colors.action.primary} // Customize your refresh indicator color
+      colors={[colors.action.primary]} // For Android
     />
   );
 

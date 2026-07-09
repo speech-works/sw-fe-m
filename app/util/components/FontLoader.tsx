@@ -6,6 +6,7 @@ import {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Inter_800ExtraBold,
 } from "@expo-google-fonts/inter";
 
 const FontLoader = () => {
@@ -14,6 +15,7 @@ const FontLoader = () => {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Inter_800ExtraBold,
   });
   if (!fontsLoaded) {
     return (

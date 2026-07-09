@@ -1,80 +1,53 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import Angry1 from "../../../../../assets/mood-check/Angry1";
-import Calm1 from "../../../../../assets/mood-check/Calm1";
-import Happy1 from "../../../../../assets/mood-check/Happy1";
-import Sad1 from "../../../../../assets/mood-check/Sad1";
-import { theme } from "../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import SkeletonLoader from "../../../../../components/SkeletonLoader";
+import { StyleSheet, View } from "react-native";
+import {
+  useTheme,
+  spacing,
+  radius,
+  size,
+  Text,
+  Skeleton,
+  Icon,
+  icons,
+} from "../../../../../design-system";
 import { getMoodRemark } from "./helper";
 
-export const MoodSummarySkeleton = () => (
-  <View style={styles.shadowContainer}>
-    <LinearGradient
-      colors={["#2DD4BF", "#0D9488"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradient}
-    >
-      <View style={styles.contentLayer}>
-        <View style={styles.headerRow}>
-          <View style={{ gap: 6 }}>
-            <SkeletonLoader
-              width={100}
-              height={12}
-              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-            />
-            <SkeletonLoader
-              width={160}
-              height={14}
-              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-            />
-          </View>
-          <View style={styles.headerRight}>
-            <SkeletonLoader
-              width={16}
-              height={16}
-              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-            />
-          </View>
-        </View>
+const SEGMENTS = 8;
+const MOOD_ORDER = ["HAPPY", "CALM", "SAD", "ANGRY"] as const;
 
-        <View style={styles.moodGrid}>
-          {[1, 2, 3].map((i) => (
-            <View
-              key={i}
-              style={[styles.moodItemSkeleton, { minWidth: 80, flex: 0 }]}
-            >
-              <SkeletonLoader
-                width={36}
-                height={36}
-                style={{
-                  borderRadius: 18,
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                }}
-              />
-              <View style={{ gap: 4, alignItems: "center" }}>
-                <SkeletonLoader
-                  width={40}
-                  height={8}
-                  style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-                />
-                <SkeletonLoader
-                  width={20}
-                  height={12}
-                  style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-                />
-              </View>
-            </View>
-          ))}
+/** Mood → semantic accent (happy=warm, calm=green, sad=blue, angry=red). */
+const MOOD_COLOR = {
+  HAPPY: "warning",
+  CALM: "success",
+  SAD: "info",
+  ANGRY: "danger",
+} as const;
+
+const moodName = (mood: string) => mood.charAt(0) + mood.slice(1).toLowerCase();
+
+export const MoodSummarySkeleton = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
+      <View style={styles.headerRow}>
+        <View style={styles.skeletonHeaderText}>
+          <Skeleton width={100} height={12} />
+          <Skeleton width={160} height={14} />
         </View>
+        <Skeleton width={20} height={20} />
       </View>
-    </LinearGradient>
-  </View>
-);
+      <View style={styles.gaugeRow}>
+        {MOOD_ORDER.map((m) => (
+          <View key={m} style={styles.gaugeCol}>
+            <Skeleton width={28} height={20} />
+            <Skeleton width={38} height={GAUGE_HEIGHT} radius={radius.chip} />
+            <Skeleton width={44} height={12} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
 
 type MoodSummaryProps = {
   moodStats: Record<string, number> | null;
@@ -87,286 +60,159 @@ const MoodSummary = ({
   loading = false,
   hasError = false,
 }: MoodSummaryProps) => {
-  const icons = {
-    ANGRY: Angry1,
-    CALM: Calm1,
-    HAPPY: Happy1,
-    SAD: Sad1,
-  };
+  const { colors } = useTheme();
 
   if (loading && !moodStats) {
     return <MoodSummarySkeleton />;
   }
-
   if (!moodStats) {
     return null;
   }
 
-  const nonZeroMoods = moodStats
-    ? (Object.entries(moodStats) as [string, number][]).filter(([, percentage]) => percentage > 0)
-    : [];
+  const moodColor = (mood: string) => {
+    const key = MOOD_COLOR[mood as keyof typeof MOOD_COLOR];
+    return key ? colors.accent[key] : colors.text.tertiary;
+  };
+
+  const total = Object.values(moodStats).reduce((sum, v) => sum + v, 0);
 
   return (
-    <View style={styles.shadowContainer}>
-      <LinearGradient
-        colors={["#14B8A6", "#06B6D4"]} // Teal gradient
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        {/* Watermark Bubbles */}
-        <View style={styles.bubbleTopRight} />
-        <View style={styles.bubbleBottomLeft} />
-
-        {/* Heart Icon Watermark */}
-        <View style={styles.iconWatermark}>
-          <Icon name="heart" size={140} color="rgba(255,255,255,0.08)" />
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <View style={styles.flex1}>
+          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+            MOOD SUMMARY
+          </Text>
+          <Text variant="bodySm" color="secondary">How you felt this week</Text>
         </View>
-
-        {/* Content Layer */}
-        <View style={styles.contentLayer}>
-          {/* Header */}
-          <View style={styles.headerRow}>
-            <Text style={styles.headerLabel}>MOOD SUMMARY</Text>
-            <View style={styles.headerRight}>
-              {hasError && (
-                <Icon
-                  name="exclamation-circle"
-                  size={14}
-                  color="rgba(255,255,255,0.6)"
-                  style={{ marginRight: 8 }}
-                />
-              )}
-            <Icon name="smile" size={20} color="rgba(255,255,255,0.9)" />
-            </View>
-          </View>
-
-          {/* Mood Grid or Empty State */}
-          <View style={styles.moodGrid}>
-            {moodStats ? (
-              nonZeroMoods.length > 0 ? (
-                nonZeroMoods.map(([mood, percentage]) => {
-                  const Icon = icons[mood as keyof typeof icons];
-                  if (!Icon) return null;
-
-                  return (
-                    <View key={mood} style={styles.moodCard}>
-                      <View style={styles.moodIconContainer}>
-                        <Icon width={48} height={48} />
-                      </View>
-                      <Text style={styles.moodName}>
-                        {mood.charAt(0) + mood.slice(1).toLowerCase()}
-                      </Text>
-                      <Text style={styles.moodPercentage}>
-                        {percentage.toFixed(1)}%
-                      </Text>
-                    </View>
-                  );
-                })
-              ) : (
-                <View style={styles.emptyMoodContainer}>
-                  <View style={styles.emptyMoodIconWrapper}>
-                    <Icon name="chart-bar" size={32} color="rgba(255,255,255,0.6)" />
-                  </View>
-                  <Text style={styles.emptyMoodTitle}>Track Your Flow</Text>
-                  <Text style={styles.emptyMoodSubtitle}>
-                    Log your first mood to see trends.
-                  </Text>
-                </View>
-              )
-            ) : (
-              <Text style={styles.loadingText}>Loading...</Text>
-            )}
-          </View>
-
-          {/* Remark Pill */}
-          {moodStats && (
-            <View style={[styles.remarkPill, nonZeroMoods.length === 0 && styles.remarkPillEmpty]}>
-              <Icon name="lightbulb" size={14} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.remarkText}>{getMoodRemark(moodStats)}</Text>
-            </View>
+        <View style={styles.headerRight}>
+          {hasError && (
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           )}
+          <Icon name={icons.mood} size={size.icon} color={colors.text.tertiary} />
         </View>
-      </LinearGradient>
+      </View>
+
+      {total > 0 ? (
+        <View style={styles.gaugeRow}>
+          {MOOD_ORDER.map((mood) => {
+            const pct = moodStats[mood] ?? 0;
+            const filled = pct > 0 ? Math.max(1, Math.round((pct / 100) * SEGMENTS)) : 0;
+            const tint = moodColor(mood);
+            return (
+              <View key={mood} style={styles.gaugeCol}>
+                <Text variant="h2" color={pct > 0 ? "primary" : "tertiary"}>
+                  {String(Math.round(pct)).padStart(2, "0")}
+                </Text>
+                <View style={styles.gauge}>
+                  {Array.from({ length: SEGMENTS }).map((_, i) => {
+                    const fromBottom = SEGMENTS - 1 - i; // 0 = bottom-most
+                    const isFilled = fromBottom < filled;
+                    const ratio = filled > 1 ? fromBottom / (filled - 1) : 0;
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.segment,
+                          {
+                            backgroundColor: isFilled ? tint : colors.surface.control,
+                            opacity: isFilled ? 1 - ratio * 0.5 : 1,
+                          },
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+                <Text variant="caption" color={pct > 0 ? "secondary" : "tertiary"}>
+                  {moodName(mood)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.emptyMood}>
+          <View style={[styles.emptyMoodIcon, { backgroundColor: colors.surface.control }]}>
+            <Icon name={icons.stats} size={28} color={colors.text.tertiary} />
+          </View>
+          <Text variant="h3" center>Track Your Flow</Text>
+          <Text variant="bodySm" color="secondary" center>
+            Log your first mood to see trends.
+          </Text>
+        </View>
+      )}
+
+      {/* Remark */}
+      <View style={[styles.remark, { backgroundColor: colors.surface.default }]}>
+        <Text variant="bodySm" color="secondary">
+          {getMoodRemark(moodStats)}
+        </Text>
+      </View>
     </View>
   );
 };
 
 export default MoodSummary;
 
+const GAUGE_HEIGHT = 132;
+
 const styles = StyleSheet.create({
-  shadowContainer: {
-    borderRadius: 24,
-    shadowColor: "#14B8A6",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    backgroundColor: "#99F6E4",
-    overflow: "hidden",
+  card: {
+    borderRadius: radius.card,
+    padding: spacing["2xl"],
+    gap: spacing["2xl"],
   },
-  gradient: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    minHeight: 240,
-    position: "relative",
-  },
-  // Watermark Bubbles
-  bubbleTopRight: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -50,
-    left: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  iconWatermark: {
-    position: "absolute",
-    left: -40,
-    top: -20,
-    opacity: 0.6,
-  },
-  contentLayer: {
-    flex: 1,
-    zIndex: 1,
-    gap: 20,
-  },
+  flex1: { flex: 1 },
+  eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: spacing.md,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
   },
-  headerLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  moodGrid: {
+  headerErrorIcon: { marginRight: spacing.sm },
+  gaugeRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
   },
-  moodCard: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    gap: 8,
-    minWidth: 100,
+  gaugeCol: {
     flex: 1,
-    maxWidth: 120,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  moodIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
-    justifyContent: "center",
+    gap: spacing.sm,
   },
-  moodName: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    fontWeight: "600",
+  gauge: {
+    width: 38,
+    height: GAUGE_HEIGHT,
+    flexDirection: "column",
+    gap: spacing.xs,
   },
-  moodPercentage: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#FFF",
-    letterSpacing: -0.5,
-  },
-  moodItemSkeleton: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+  segment: {
     flex: 1,
-    minWidth: "18%",
-  },
-  remarkPill: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 16,
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  remarkText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 13,
-    fontWeight: "500",
-    flex: 1,
-    lineHeight: 18,
-  },
-  loadingText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    textAlign: "center",
     width: "100%",
+    borderRadius: radius.full,
   },
-  emptyMoodContainer: {
-    paddingVertical: 10,
+  emptyMood: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    width: "100%",
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
   },
-  emptyMoodIconWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.1)",
+  emptyMoodIcon: {
+    width: size.avatar,
+    height: size.avatar,
+    borderRadius: size.avatar / 2,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
-  emptyMoodTitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 18,
+  remark: {
+    borderRadius: radius.md,
+    padding: spacing.lg,
   },
-  emptyMoodSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-    paddingHorizontal: 30,
-    lineHeight: 18,
-  },
-  remarkPillEmpty: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderColor: "rgba(255,255,255,0.15)",
-  },
+  skeletonHeaderText: { gap: spacing.sm },
 });

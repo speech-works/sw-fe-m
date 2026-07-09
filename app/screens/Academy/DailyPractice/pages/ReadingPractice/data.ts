@@ -1,3 +1,15 @@
+import { SemanticColors } from "../../../../../design-system";
+
+export type ReadingAccent = Extract<keyof SemanticColors["accent"], string>;
+
+export const readingPracticeAccents = {
+  word: "info",
+  phrase: "success",
+  quote: "warning",
+  poem: "purple",
+  story: "danger",
+} as const satisfies Record<string, ReadingAccent>;
+
 export const readingTips = {
   story: [
     "Visualize the story. This makes your reading more natural and expressive.",

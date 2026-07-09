@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
+  View, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -12,8 +12,7 @@ import { FaceRegion } from './types';
 import { completeMirrorWorkActivity, getMirrorWorkComparison } from '../../../../../api/practiceActivities';
 import { useUserStore } from '../../../../../stores/user';
 import DonePractice from '../../components/DonePractice';
-import { theme } from '../../../../../Theme/tokens';
-import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/parseStyles';
+import { Gradient, Text } from '../../../../../design-system';
 import {
   buildReflection, ReflectionView, RenderedInsight, ReflectionTone, Tier,
 } from './util/mirrorReflection';
@@ -21,6 +20,14 @@ import { loadRotationState, saveRotationState } from './util/mirrorReflection/ro
 import { useConfirmOnExit } from '../../../../../hooks/useConfirmOnExit';
 import { markMirrorWorkCompleted, wasMirrorWorkCompleted } from './util/mirrorCompletionGuard';
 import { showErrorBottomSheet } from '../../../../../util/functions/bottomSheet';
+
+// Scheme-locked dark camera flow — this summary keeps its intentional
+// light-pastel HUD/reflection palette (raw hexes stay; see MirrorWork siblings).
+// Brand orange values match the DS palette (orange 100/200/400/500).
+const ORANGE_100 = '#FFF0E5';
+const ORANGE_200 = '#FFDABF';
+const ORANGE_400 = '#FF9040';
+const ORANGE_500 = '#FF6B00';
 
 // ── Hero tint per overall tone (no alarming red — deepest is a warm amber) ──
 const TONE_STYLE: Record<ReflectionTone, { tint: string; gradient: readonly [string, string] }> = {
@@ -69,12 +76,12 @@ function insightVisual(insight: RenderedInsight): { icon: string; bg: string; fg
     case 'progress':
       return { icon: 'trending-up-outline', ...EMERALD };
     case 'arc':
-      return { icon: 'pulse-outline', bg: theme.colors.library.orange[100], fg: theme.colors.library.orange[500] };
+      return { icon: 'pulse-outline', bg: ORANGE_100, fg: ORANGE_500 };
     case 'calm':
       return { icon: 'leaf-outline', ...EMERALD };
     case 'opening':
     default:
-      return { icon: 'sparkles-outline', bg: theme.colors.library.orange[100], fg: theme.colors.library.orange[500] };
+      return { icon: 'sparkles-outline', bg: ORANGE_100, fg: ORANGE_500 };
   }
 }
 
@@ -222,7 +229,7 @@ export const SummaryScreen: React.FC = () => {
         <Icon
           name="sparkles-outline"
           size={320}
-          color={theme.colors.library.orange[200]}
+          color={ORANGE_200}
           style={{ opacity: 0.15, transform: [{ rotate: "-15deg" }] }}
         />
       </View>
@@ -231,7 +238,7 @@ export const SummaryScreen: React.FC = () => {
         <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
           <Icon name="chevron-back" size={20} color="#374151" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Session Summary</Text>
+        <Text variant="h3" color="#0F172A">Session Summary</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -249,12 +256,16 @@ export const SummaryScreen: React.FC = () => {
             style={styles.heroCard}
           >
             <View style={styles.heroLeft}>
-              <Text style={styles.heroEyebrow}>HOW IT FELT</Text>
-              <Text style={[styles.heroTitle, { color: '#1F2937' }]}>
+              <Text variant="label" color="#6B7280" style={styles.heroEyebrow}>
+                HOW IT FELT
+              </Text>
+              <Text variant="h1" color="#1F2937" style={styles.heroTitle}>
                 {reflection ? reflection.moodLabel : 'Reflecting…'}
               </Text>
               {reflection ? (
-                <Text style={styles.heroSubtitle}>{reflection.encouragement}</Text>
+                <Text variant="body" color="#1F2937" style={styles.heroSubtitle}>
+                  {reflection.encouragement}
+                </Text>
               ) : null}
             </View>
             <View style={[styles.heroRingPlaceholder, { borderColor: tone.tint }]}>
@@ -270,18 +281,22 @@ export const SummaryScreen: React.FC = () => {
         {/* Session line — a quiet, non-clinical anchor. Progress lives in the
             reflection below, where the engine owns the (reviewed) wording. */}
         <View style={styles.metaRow}>
-          <Icon name="time-outline" size={18} color={theme.colors.actionPrimary.default} />
-          <Text style={styles.metaValue}>{formatDuration(sessionDurationSeconds || 0)}</Text>
-          <Text style={styles.metaCaption}>in the mirror</Text>
+          <Icon name="time-outline" size={18} color={ORANGE_400} />
+          <Text variant="title" color="#0F172A">
+            {formatDuration(sessionDurationSeconds || 0)}
+          </Text>
+          <Text variant="bodySm" color="#6B7280">in the mirror</Text>
         </View>
 
         {/* Reflection (insights) */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>What we noticed</Text>
+          <Text variant="h3" color="#0F172A">What we noticed</Text>
           {!reflection ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator color={theme.colors.library.orange[500]} />
-              <Text style={styles.loadingText}>Putting your reflection together…</Text>
+              <ActivityIndicator color={ORANGE_500} />
+              <Text variant="bodySm" color="#6B7280" style={styles.loadingText}>
+                Putting your reflection together…
+              </Text>
             </View>
           ) : (
             <View style={styles.signalList}>
@@ -292,7 +307,9 @@ export const SummaryScreen: React.FC = () => {
                     <View style={[styles.signalIconWrap, { backgroundColor: v.bg }]}>
                       <Icon name={v.icon} size={18} color={v.fg} />
                     </View>
-                    <Text style={styles.signalLabel}>{insight.text}</Text>
+                    <Text variant="body" color="#1F2937" style={styles.signalLabel}>
+                      {insight.text}
+                    </Text>
                   </View>
                 );
               })}
@@ -301,7 +318,7 @@ export const SummaryScreen: React.FC = () => {
         </View>
 
         {/* Footnote (rotated caveat — always NSA-safe) */}
-        <Text style={styles.footnote}>
+        <Text variant="bodySm" color="#9CA3AF" style={styles.footnote}>
           {reflection
             ? reflection.caveat
             : "None of this is a diagnosis. It's a mirror with a memory — and noticing is the start of change."}
@@ -313,17 +330,16 @@ export const SummaryScreen: React.FC = () => {
           onPress={handleComplete}
           disabled={isSubmitting}
         >
-          <LinearGradient
-            colors={[
-              theme.colors.library.orange[400],
-              theme.colors.library.orange[500],
-            ]}
-            style={styles.primaryButtonGradient}
+          <Gradient
+            token="brand"
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
+            style={styles.primaryButtonGradient}
           >
-            <Text style={styles.primaryButtonText}>{isSubmitting ? 'Saving…' : 'Continue'}</Text>
-          </LinearGradient>
+            <Text variant="h3" color="#FFFFFF">
+              {isSubmitting ? 'Saving…' : 'Continue'}
+            </Text>
+          </Gradient>
         </TouchableOpacity>
       </ScrollView>
 
@@ -338,6 +354,21 @@ export const SummaryScreen: React.FC = () => {
     </View>
   );
 };
+
+// Legacy `theme.shadow.elevation1/2` resolved values, inlined verbatim so the
+// visuals stay identical while the app/Theme dependency dies.
+const legacyShadow1 = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 5,
+} as const;
+const legacyShadow2 = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 5,
+} as const;
 
 const styles = StyleSheet.create({
   screen: {
@@ -369,10 +400,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
   },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: '#0F172A',
-  },
   content: {
     paddingHorizontal: 20,
     paddingTop: 6,
@@ -385,7 +412,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     marginBottom: 20,
     backgroundColor: '#FFFFFF',
-    ...parseShadowStyle(theme.shadow.elevation1),
+    ...legacyShadow1,
     elevation: 2,
   },
   heroCard: {
@@ -400,21 +427,15 @@ const styles = StyleSheet.create({
   },
   heroLeft: { flex: 1, paddingRight: 12 },
   heroEyebrow: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: '700',
-    color: '#6B7280',
     letterSpacing: 1.4,
     marginBottom: 8,
   },
   heroTitle: {
     fontSize: 26,
-    fontWeight: '800',
     letterSpacing: -0.6,
     lineHeight: 32,
   },
   heroSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: '#1F2937',
     marginTop: 8,
   },
   heroRingPlaceholder: {
@@ -439,17 +460,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.02)',
-    ...parseShadowStyle(theme.shadow.elevation1),
+    ...legacyShadow1,
     elevation: 2,
-  },
-  metaValue: {
-    ...parseTextStyle(theme.typography.Body),
-    color: '#0F172A',
-    fontWeight: '700',
-  },
-  metaCaption: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: '#6B7280',
   },
 
   // ── Cards ──
@@ -460,12 +472,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.02)',
-    ...parseShadowStyle(theme.shadow.elevation1),
+    ...legacyShadow1,
     elevation: 2,
-  },
-  cardTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: '#0F172A',
   },
 
   // ── Insight list ──
@@ -481,15 +489,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.library.orange[100],
+    backgroundColor: ORANGE_100,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
   signalLabel: {
     flex: 1,
-    ...parseTextStyle(theme.typography.Body),
-    color: '#1F2937',
     fontWeight: '500',
     lineHeight: 22,
   },
@@ -499,14 +505,10 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
   },
   loadingText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: '#6B7280',
     marginTop: 12,
   },
 
   footnote: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: '#9CA3AF',
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 24,
@@ -517,7 +519,7 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    ...parseShadowStyle(theme.shadow.elevation2),
+    ...legacyShadow2,
     elevation: 4,
   },
   primaryButtonGradient: {
@@ -526,9 +528,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 18,
     borderRadius: 20,
-  },
-  primaryButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
   },
 });

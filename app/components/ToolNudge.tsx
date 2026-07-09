@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
+import { TouchableOpacity, View } from "react-native";
+import { makeStyles, Text, useTheme } from "../design-system";
 import { ToolNudgeDirective } from "../api/tools/types";
 import { track } from "../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
@@ -26,6 +25,9 @@ export const ToolNudge: React.FC<ToolNudgeProps> = ({
   onDismiss,
   style,
 }) => {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
   useEffect(() => {
     track(ANALYTICS_EVENTS.TOOL_NUDGE_SHOWN, {
       tool: directive.tool,
@@ -39,10 +41,14 @@ export const ToolNudge: React.FC<ToolNudgeProps> = ({
     <View style={[styles.card, style]}>
       <View style={styles.headerRow}>
         <Text style={styles.icon}>{directive.icon}</Text>
-        <Text style={styles.title}>{directive.title}</Text>
+        <Text variant="title" color={colors.feedback.successText} style={styles.title}>
+          {directive.title}
+        </Text>
       </View>
 
-      <Text style={styles.body}>{directive.body}</Text>
+      <Text variant="bodySm" color="secondary" style={styles.body}>
+        {directive.body}
+      </Text>
 
       <View style={styles.actionsRow}>
         <TouchableOpacity
@@ -50,7 +56,7 @@ export const ToolNudge: React.FC<ToolNudgeProps> = ({
           onPress={onDismiss}
           activeOpacity={0.7}
         >
-          <Text style={styles.secondaryText}>
+          <Text variant="bodySm" color={colors.feedback.successText}>
             {directive.secondaryAction.label}
           </Text>
         </TouchableOpacity>
@@ -60,7 +66,7 @@ export const ToolNudge: React.FC<ToolNudgeProps> = ({
           onPress={onTryWithout}
           activeOpacity={0.85}
         >
-          <Text style={styles.primaryText}>
+          <Text variant="bodySm" color={colors.accentOn.success}>
             {directive.primaryAction.label}
           </Text>
         </TouchableOpacity>
@@ -69,14 +75,14 @@ export const ToolNudge: React.FC<ToolNudgeProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   card: {
-    backgroundColor: "#ECFDF5", // emerald-50, calm/supportive
-    borderRadius: 20,
+    backgroundColor: c.accentTint.success, // calm/supportive
+    borderRadius: t.radius.chip,
     borderWidth: 1,
-    borderColor: "#A7F3D0", // emerald-200
+    borderColor: c.accent.success,
     padding: 18,
-    gap: 12,
+    gap: t.spacing.md,
   },
   headerRow: {
     flexDirection: "row",
@@ -87,45 +93,28 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   title: {
-    ...parseTextStyle(theme.typography.Heading4),
     flex: 1,
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#065F46", // emerald-800
   },
   body: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 14,
     lineHeight: 20,
-    color: "#047857", // emerald-700
   },
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 12,
-    marginTop: 2,
+    gap: t.spacing.md,
+    marginTop: t.spacing.xxs,
   },
   secondaryBtn: {
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  secondaryText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#047857",
-  },
   primaryBtn: {
-    backgroundColor: "#059669", // emerald-600
+    backgroundColor: c.accent.success,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: t.radius.md,
   },
-  primaryText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-});
+}));
 
 export default ToolNudge;

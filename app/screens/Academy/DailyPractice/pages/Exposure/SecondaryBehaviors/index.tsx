@@ -1,96 +1,21 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../components/ScreenView";
 import {
   SBEDPStackNavigationProp,
   SBEDPStackParamList,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/SecondaryBehaviorsStack/types";
-import { theme } from "../../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
+import { Page, Text } from "../../../../../../design-system";
 
 const SecondaryBehaviors = () => {
   const navigation =
     useNavigation<SBEDPStackNavigationProp<keyof SBEDPStackParamList>>();
-  const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
   return (
-    <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            <Text style={styles.topNavigationText}>AI Phone Calls</Text>
-          </TouchableOpacity>
-        </BlurView>
-
-        <CustomScrollView
-          contentContainerStyle={[
-            styles.scrollContainer,
-            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
-          ]}
-        >
-          <Text>Secondary Behaviors Screen</Text>
-        </CustomScrollView>
-      </View>
-    </ScreenView>
+    <Page title="AI Phone Calls" onBack={() => navigation.goBack()}>
+      <Text variant="body" color="secondary">
+        Secondary Behaviors Screen
+      </Text>
+    </Page>
   );
 };
 
 export default SecondaryBehaviors;
-
-const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-  },
-  container: {
-    flex: 1, // This is crucial for the footer to position itself at the bottom
-    gap: 32,
-  },
-  scrollContainer: {
-    gap: 32,
-    padding: SHADOW_BUFFER,
-    flexGrow: 1, // Allows CustomScrollView to take available space
-  },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  topNavigationText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-});

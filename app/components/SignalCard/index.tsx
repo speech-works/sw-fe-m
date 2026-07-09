@@ -1,9 +1,6 @@
 import React, { useRef, useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
-
 
 import {
   ReactionType,
@@ -18,52 +15,43 @@ import {
 import { getMoment } from "../../constants/momentMessages";
 import { getPostTemplate } from "../../constants/postTemplates";
 import { getReaction } from "../../constants/reactions";
+import { useTheme, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
+import type { SemanticColors } from "../../design-system/semantic/roles";
 
 import ReactionPicker from "../ReactionPicker";
 import { AnimatedReaction } from "../AnimatedReactions";
 
-export const getSignalIconBg = (signal?: Signal) => {
-  if (!signal) return "#E2E8F0";
-  if (isMoment(signal)) return "#803600";
-  if (isBeat(signal)) {
-    const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
-    return isSupport ? "#EA580C" : "#D97706";
-  }
-  if (isCard(signal)) return "#4A2511";
-  return "#FF6B00";
-};
+/** Per-signal colour identity, resolved from theme tokens.
+ *  `vibrant` cards take a full accent fill (system prompts, milestones);
+ *  everything else is a plain elevated surface. */
+type SignalTone = { accent: string; on: string; vibrant: boolean };
 
-export const getSignalGradient = (signal?: Signal): readonly [string, string, ...string[]] => {
-  if (!signal) return ["#FFFFFF", "#FFFFFF"];
+const signalTone = (colors: SemanticColors, signal?: Signal): SignalTone => {
+  const orange = { accent: colors.action.primary, on: colors.action.onPrimary, vibrant: false };
+  if (!signal) return orange;
 
-  // Completing a whole JOURNEY is a milestone — give the practice card the golden treatment.
-  // (Computed here, up front, so isColored/text colors derive correctly.)
+  // Completing a whole JOURNEY is a milestone — golden treatment.
   if (isPractice(signal) && signal.payload.journeyCompleted) {
-    return ["#FFE082", "#FFCD4B"];
+    return { accent: colors.accent.warning, on: colors.accentOn.warning, vibrant: true };
   }
-
-  // Milestones (beats that are not support) get a golden gradient
   if (isBeat(signal)) {
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
-    if (!isSupport) return ["#FFE082", "#FFCD4B"];
+    // Milestones (non-support beats) get the golden treatment; support stays plain.
+    if (!isSupport) return { accent: colors.accent.warning, on: colors.accentOn.warning, vibrant: true };
+    return orange;
   }
-
-  // System cards get vibrant gradients
   if (isCard(signal)) {
     switch (signal.cardKind) {
-      case "prompt": return ["#EBCBF5", "#D8A7F0"]; // Lilac
-      case "affirmation": return ["#FFD8B5", "#FFAB76"]; // Peach
-      case "tip": return ["#Cbf0f0", "#98E6E6"]; // Cyan
-      case "challenge": return ["#FFC8C8", "#FF9E9E"]; // Rose
-      default: return ["#E2E8F0", "#CBD5E1"]; // Generic light blue/gray
+      case "prompt": return { accent: colors.accent.purple, on: colors.accentOn.purple, vibrant: true };
+      case "affirmation": return { accent: colors.action.primary, on: colors.action.onPrimary, vibrant: true };
+      case "tip": return { accent: colors.accent.info, on: colors.accentOn.info, vibrant: true };
+      case "challenge": return { accent: colors.accent.danger, on: colors.accentOn.danger, vibrant: true };
+      default: return orange;
     }
   }
-
-  // User-generated cards (moments, beats/practice) are purely white
-  return ["#FFFFFF", "#FFFFFF"];
+  // Moments + practice shares are plain cards with an orange identity.
+  return orange;
 };
-
-export const getSignalCardBg = (_signal?: Signal) => "#FFFFFF";
 
 type Variant = "feed" | "preview";
 
@@ -88,29 +76,29 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const statForField = (
   field: PracticePayloadField,
   payload: PracticePayload,
-): { icon: string; label: string } | null => {
+): { icon: IconName; label: string } | null => {
   switch (field) {
     case "durationSeconds":
       return payload.durationSeconds
-        ? { icon: "clock-outline", label: `${Math.max(1, Math.round(payload.durationSeconds / 60))} min` }
+        ? { icon: icons.duration, label: `${Math.max(1, Math.round(payload.durationSeconds / 60))} min` }
         : null;
     case "timeOfDay":
-      return payload.timeOfDay ? { icon: "weather-sunset", label: capitalize(payload.timeOfDay) } : null;
+      return payload.timeOfDay ? { icon: icons.timeOfDay, label: capitalize(payload.timeOfDay) } : null;
     case "showedUp":
-      return payload.showedUp ? { icon: "check-circle-outline", label: "Showed up" } : null;
+      return payload.showedUp ? { icon: icons.success, label: "Showed up" } : null;
     case "streakDays":
-      return payload.streakDays ? { icon: "fire", label: `${payload.streakDays}-day streak` } : null;
+      return payload.streakDays ? { icon: icons.streak, label: `${payload.streakDays}-day streak` } : null;
     case "xpEarned":
-      return payload.xpEarned ? { icon: "star-four-points", label: `+${payload.xpEarned} XP` } : null;
+      return payload.xpEarned ? { icon: icons.xp, label: `+${payload.xpEarned} XP` } : null;
     case "leveledUp":
-      return payload.leveledUp ? { icon: "arrow-up-bold", label: "Leveled up" } : null;
+      return payload.leveledUp ? { icon: icons.levelUp, label: "Leveled up" } : null;
     case "levelStageTitle":
-      return payload.levelStageTitle ? { icon: "shield-outline", label: payload.levelStageTitle } : null;
+      return payload.levelStageTitle ? { icon: icons.rank, label: payload.levelStageTitle } : null;
     case "milestoneLabel":
-      return payload.milestoneLabel ? { icon: "trophy-variant", label: payload.milestoneLabel } : null;
+      return payload.milestoneLabel ? { icon: icons.milestone, label: payload.milestoneLabel } : null;
     case "growthDelta":
       return payload.growthDelta
-        ? { icon: "arrow-up-bold-circle", label: `+${capitalize(payload.growthDelta.axis)}` }
+        ? { icon: icons.growth, label: `+${capitalize(payload.growthDelta.axis)}` }
         : null;
     case "activityName":
     default:
@@ -146,30 +134,26 @@ const formatRelativeTime = (input: Date | string | number | null | undefined): s
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
-const CARD_KIND_META: Record<string, { label: string; icon: string }> = {
-  prompt: { label: "A question for you both", icon: "chat-question-outline" },
-  affirmation: { label: "A reminder", icon: "white-balance-sunny" },
-  tip: { label: "Tip", icon: "lightbulb-on-outline" },
-  challenge: { label: "Shared challenge", icon: "target" },
+const CARD_KIND_META: Record<string, { label: string; icon: IconName }> = {
+  prompt: { label: "A question for you both", icon: icons.prompt },
+  affirmation: { label: "A reminder", icon: icons.affirmation },
+  tip: { label: "Tip", icon: icons.tip },
+  challenge: { label: "Shared challenge", icon: icons.challenge },
 };
-
-const TIMELINE_BG = "#FFFFFF";
 
 const SignalCard = ({
   signal,
   variant = "feed",
   onReact,
   onUnreact,
-  onDelete,
   onReachOut,
   onReplyPrompt,
   replyPending,
   buddyName,
   isFirst = false,
   isLast = false,
-  prevSignal,
-  nextSignal,
 }: SignalCardProps) => {
+  const { colors } = useTheme();
   const authorName = signal.authorIsMe ? "You" : signal.author?.name ?? "Your buddy";
   const initials = (signal.author?.name ?? "?").substring(0, 1).toUpperCase();
   const interactive = variant === "feed" && !signal.authorIsMe;
@@ -181,23 +165,23 @@ const SignalCard = ({
 
   const openPicker = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    cardRef.current?.measure((x, y, w, h, pageX, pageY) => {
+    cardRef.current?.measure((_x, _y, _w, _h, _pageX, pageY) => {
       setPickerY(pageY);
       setPickerVisible(true);
     });
   };
 
-  let cardGradient = getSignalGradient(signal);
-  const isColored = cardGradient[0] !== "#FFFFFF";
-  const primaryText = isColored ? { color: "rgba(0,0,0,0.9)" } : null;
-  const secondaryText = isColored ? { color: "rgba(0,0,0,0.7)" } : null;
-  const tertiaryText = isColored ? { color: "rgba(0,0,0,0.5)" } : null;
+  const tone = signalTone(colors, signal);
+  const cardBg = tone.vibrant ? tone.accent : colors.surface.elevated;
+  // Text colours: dark on-accent for vibrant fills, standard roles otherwise.
+  const onPrimary = tone.vibrant ? tone.on : colors.text.primary;
+  const onSecondary = tone.vibrant ? tone.on : colors.text.secondary;
+  const onTertiary = tone.vibrant ? tone.on : colors.text.tertiary;
+  // Inset chips/badges: dark chips on vibrant cards, control surface on plain.
+  const insetBg = tone.vibrant ? colors.surface.default : colors.surface.control;
+  const insetText = tone.vibrant ? colors.text.primary : colors.text.secondary;
 
-  let cardBg = getSignalCardBg(signal);
-  let iconBg = getSignalIconBg(signal);
   let statusText = "Update";
-  let mainIcon = "star-shooting";
-  let watermarkIcon = "star-shooting"; // fixed per card TYPE for consistency
   let title = "";
   let subtitle = "";
   let bodyText = "";
@@ -209,8 +193,6 @@ const SignalCard = ({
   if (isMoment(signal)) {
     statusText = "Moment";
     const moment = getMoment(signal.momentId);
-    mainIcon = "hand-heart";
-    watermarkIcon = "hand-heart";
     title = moment.text;
     subtitle = signal.authorIsMe ? "You shared a moment" : `${authorName} shared a moment`;
 
@@ -218,17 +200,17 @@ const SignalCard = ({
       if (interactive) {
         dynamicContent = signal.iReachedOut ? (
           <View style={styles.seenRow}>
-            <MaterialCommunityIcons name="check-circle" size={14} color={iconBg} />
-            <Text style={[styles.seenText, { color: iconBg }]}>You reached out</Text>
+            <Icon name={icons.success} size={14} color={tone.accent} />
+            <Text variant="caption" color={tone.accent} style={styles.bold}>You reached out</Text>
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.reachOutBtn, { backgroundColor: iconBg }]}
+            style={[styles.reachOutBtn, { backgroundColor: tone.accent }]}
             activeOpacity={0.85}
             onPress={onReachOut}
           >
-            <MaterialCommunityIcons name="hand-heart" size={16} color="#FFFFFF" />
-            <Text style={styles.reachOutText}>Reach out to {authorName.split(" ")[0]}</Text>
+            <Icon name={icons.care} size={16} color={tone.on} />
+            <Text variant="bodySm" color={tone.on} style={styles.bold}>Reach out to {authorName.split(" ")[0]}</Text>
           </TouchableOpacity>
         );
       }
@@ -239,12 +221,8 @@ const SignalCard = ({
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
     if (isSupport) {
       statusText = "Support";
-      mainIcon = signal.payload.icon ?? "hand-heart";
-      watermarkIcon = "heart-multiple";
     } else {
       statusText = "Milestone";
-      mainIcon = signal.payload.icon ?? "trophy";
-      watermarkIcon = "trophy";
     }
     title = signal.payload.label ?? (isSupport ? "Support" : "Beat");
     const body = signal.payload.body ?? "";
@@ -252,8 +230,6 @@ const SignalCard = ({
   } else if (isCard(signal)) {
     const meta = CARD_KIND_META[signal.cardKind] ?? CARD_KIND_META.affirmation;
     statusText = meta.label;
-    mainIcon = meta.icon;
-    watermarkIcon = meta.icon; // consistent per card kind
     if (signal.payload.title && signal.payload.title !== meta.label) {
       title = signal.payload.title;
     }
@@ -271,9 +247,14 @@ const SignalCard = ({
                 activeOpacity={0.7}
                 disabled={replyPending}
                 onPress={() => onReplyPrompt?.(opt.id)}
-                style={[styles.replyChip, mine && styles.replyChipSelected, replyPending && styles.replyChipDisabled]}
+                style={[
+                  styles.replyChip,
+                  { backgroundColor: insetBg, borderColor: colors.border.default },
+                  mine && { backgroundColor: colors.action.primary, borderColor: colors.action.primary },
+                  replyPending && styles.replyChipDisabled,
+                ]}
               >
-                <Text style={[styles.replyLabel, mine && styles.replyLabelSelected]}>{opt.label}</Text>
+                <Text variant="caption" color={mine ? colors.action.onPrimary : insetText} style={styles.bold}>{opt.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -282,8 +263,8 @@ const SignalCard = ({
     } else if (!isPrompt && signal.seenByBuddy) {
       dynamicContent = (
         <View style={styles.seenRow}>
-          <MaterialCommunityIcons name="eye-check-outline" size={14} color={isColored ? "rgba(0,0,0,0.5)" : "#A1A4AA"} />
-          <Text style={[styles.seenText, tertiaryText]}>{buddyName ?? "Your buddy"} saw this</Text>
+          <Icon name={icons.seen} size={14} color={onTertiary} />
+          <Text variant="caption" color={onTertiary}>{buddyName ?? "Your buddy"} saw this</Text>
         </View>
       );
     }
@@ -292,8 +273,6 @@ const SignalCard = ({
     const template = getPostTemplate(signal.templateId);
     const p = signal.payload;
     statusText = "Practice";
-    mainIcon = template.icon;
-    watermarkIcon = "dumbbell"; // always dumbbell for practice
     title = p.activityName ?? "Practice Session";
     captionText = signal.caption ?? "";
     const actLabel = template.label;
@@ -303,27 +282,22 @@ const SignalCard = ({
     const jp = p.journeyProgress;
     if (p.journeyTitle || p.moduleTitle || jp) {
       journeyRibbon = (
-        <LinearGradient
-          colors={["#FFF7ED", "#FFEDD5"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.journeyBox}
-        >
+        <View style={[styles.journeyBox, { backgroundColor: insetBg, borderColor: colors.border.default }]}>
           {p.journeyTitle || jp ? (
             <View style={styles.journeyTopRow}>
-              <View style={styles.journeyIconDot}>
-                <MaterialCommunityIcons name="layers-outline" size={14} color="#9A4B16" />
+              <View style={[styles.journeyIconDot, { backgroundColor: colors.action.primaryTint }]}>
+                <Icon name={icons.journey} size={14} color={colors.text.accent} />
               </View>
               {p.journeyTitle ? (
-                <Text style={styles.journeyEyebrow}>
+                <Text variant="caption" color={tone.vibrant ? colors.action.primary : "secondary"} style={[styles.flex1, styles.journeyEyebrow]}>
                   {p.journeyTitle}
                 </Text>
               ) : (
-                <View style={styles.journeyFlexSpacer} />
+                <View style={styles.flex1} />
               )}
               {jp ? (
-                <View style={styles.journeyProgressBadge}>
-                  <Text style={styles.journeyProgressText}>
+                <View style={[styles.journeyProgressBadge, { backgroundColor: colors.action.primary }]}>
+                  <Text variant="caption" color={colors.action.onPrimary} style={styles.bold}>
                     {jp.moduleIndex} of {jp.moduleTotal}
                   </Text>
                 </View>
@@ -331,21 +305,21 @@ const SignalCard = ({
             </View>
           ) : null}
           {p.moduleTitle ? (
-            <Text style={styles.journeyModuleText}>
+            <Text variant="bodySm" color={tone.vibrant ? "primary" : "secondary"}>
               {p.moduleTitle}
             </Text>
           ) : null}
-        </LinearGradient>
+        </View>
       );
     }
 
     // Completion milestones override the header/subtitle. journeyCompleted also recolors
-    // the card (golden) via getSignalGradient; journeyTitle may be toggled off, so fall back.
+    // the card (golden) via signalTone; journeyTitle may be toggled off, so fall back.
     if (p.journeyCompleted) {
       statusText = "Journey milestone";
       subtitle = signal.authorIsMe
-        ? `Completed the ${p.journeyTitle ?? "journey"} 🎉`
-        : `${authorName} completed the ${p.journeyTitle ?? "journey"} 🎉`;
+        ? `Completed the ${p.journeyTitle ?? "journey"}`
+        : `${authorName} completed the ${p.journeyTitle ?? "journey"}`;
     } else if (p.moduleCompleted) {
       statusText = "Journey milestone";
       const where = p.journeyTitle ? ` in ${p.journeyTitle}` : "";
@@ -362,18 +336,17 @@ const SignalCard = ({
     ];
     const stats = orderedFields
       .map((f) => statForField(f, signal.payload))
-      .filter((s): s is { icon: string; label: string } => s !== null);
+      .filter((s): s is { icon: IconName; label: string } => s !== null);
 
     if (stats.length > 0) {
-      const chipColor = "#803600";
       dynamicContent = (
         <View style={styles.statColumn}>
           {stats.map((s) => (
-            <View key={s.label} style={[styles.statRowItem, { backgroundColor: chipColor + "0A", borderColor: chipColor + "10" }]}>
+            <View key={s.label} style={[styles.statRowItem, { backgroundColor: insetBg, borderColor: colors.border.default }]}>
               <View style={styles.statIconBox}>
-                <MaterialCommunityIcons name={s.icon as any} size={14} color={chipColor} />
+                <Icon name={s.icon} size={14} color={insetText} />
               </View>
-              <Text style={[styles.statListText, { color: chipColor }]}>{s.label}</Text>
+              <Text variant="caption" color={insetText} style={styles.bold}>{s.label}</Text>
             </View>
           ))}
         </View>
@@ -396,10 +369,10 @@ const SignalCard = ({
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => onUnreact?.()}
-          style={styles.reactionBadgeFloating}
+          style={[styles.reactionBadgeFloating, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default, shadowColor: colors.shadow }]}
         >
           <AnimatedReaction type={selectedReaction.type} selected={true} size={28} />
-          <Text style={styles.reactionBadgeName}>You</Text>
+          <Text variant="caption" color="secondary" style={[styles.bold, styles.reactionBadgeName]}>You</Text>
         </TouchableOpacity>
       );
     }
@@ -407,13 +380,13 @@ const SignalCard = ({
     if (!interactive && buddyReactionTypes.length > 0) {
       const bName = buddyName ? buddyName.split(" ")[0] : "Buddy";
       return (
-        <View style={styles.reactionBadgeFloating}>
-          <View style={{ flexDirection: "row", gap: 4 }}>
+        <View style={[styles.reactionBadgeFloating, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default, shadowColor: colors.shadow }]}>
+          <View style={styles.reactionRow}>
             {buddyReactionTypes.map((type) => (
               <AnimatedReaction key={type} type={type} selected={true} size={28} />
             ))}
           </View>
-          <Text style={styles.reactionBadgeName}>{bName}</Text>
+          <Text variant="caption" color="secondary" style={[styles.bold, styles.reactionBadgeName]}>{bName}</Text>
         </View>
       );
     }
@@ -423,9 +396,9 @@ const SignalCard = ({
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={openPicker}
-          style={styles.reactionCueFloating}
+          style={[styles.reactionCueFloating, { backgroundColor: colors.surface.control, borderColor: colors.border.default }]}
         >
-          <MaterialCommunityIcons name="heart-outline" size={13} color="#94A3B8" />
+          <Icon name={icons.heart} size={13} color={colors.text.tertiary} />
         </TouchableOpacity>
       );
     }
@@ -434,66 +407,60 @@ const SignalCard = ({
   };
 
   const cardBody = (
-    <View ref={cardRef} collapsable={false} style={[styles.mainBodyShadow, { backgroundColor: cardGradient[0] }]}>
-      <LinearGradient
-        colors={cardGradient as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.mainBody}
-      >
+    <View
+      ref={cardRef}
+      collapsable={false}
+      style={[
+        styles.mainBodyShadow,
+        { backgroundColor: cardBg },
+        !tone.vibrant && { borderWidth: borderWidth.thin, borderColor: colors.border.default },
+      ]}
+    >
+      <View style={styles.mainBody}>
         {/* Simple header row */}
         <View style={styles.headerRow}>
-          <Text style={[styles.statusLabel, primaryText]} numberOfLines={1}>{statusText}</Text>
-          <Text style={[styles.timeText, secondaryText]}>{relativeTime}</Text>
+          <Text variant="caption" color={onSecondary} style={[styles.statusLabel, styles.bold]} numberOfLines={1}>{statusText}</Text>
+          <Text variant="caption" color={onTertiary} style={styles.bold}>{relativeTime}</Text>
         </View>
 
         {/* Content */}
         <View style={styles.bodyContentRow}>
           <View style={styles.textContent}>
-            {title ? <Text style={[styles.title, primaryText]}>{title}</Text> : null}
-            {subtitle ? <Text style={[styles.subtitle, secondaryText]}>{subtitle}</Text> : null}
+            {title ? <Text variant="h3" color={onPrimary} style={styles.title}>{title}</Text> : null}
+            {subtitle ? <Text variant="bodySm" color={onSecondary} style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
         </View>
 
         {journeyRibbon ? <View style={styles.journeyRibbonWrap}>{journeyRibbon}</View> : null}
 
-        {bodyText ? <Text style={[styles.bodyParagraph, primaryText]}>{bodyText}</Text> : null}
-        {captionText ? <Text style={[styles.caption, secondaryText]}>{captionText}</Text> : null}
+        {bodyText ? <Text variant="body" color={onPrimary} style={styles.bodyParagraph}>{bodyText}</Text> : null}
+        {captionText ? <Text variant="bodySm" color={onSecondary} style={styles.caption}>{captionText}</Text> : null}
 
         {dynamicContent ? (
-          <View style={{ marginTop: 12 }}>{dynamicContent}</View>
+          <View style={styles.dynamicWrap}>{dynamicContent}</View>
         ) : null}
-      </LinearGradient>
+      </View>
 
       {/* Mobile-native floating reaction badge */}
       {renderReactionBadge()}
     </View>
   );
 
-  const prevColor = getSignalIconBg(prevSignal);
-  const nextColor = getSignalIconBg(nextSignal);
-
   return (
     <View style={styles.row}>
       {/* Timeline axis — avatar of who posted */}
       <View style={styles.axisCol}>
-        <LinearGradient
-          colors={[prevColor + "40", iconBg + "40"]}
-          style={[styles.axisLineTop, isFirst && { opacity: 0 }]}
-        />
-        <View style={[styles.timelineAvatarWrap, { shadowColor: iconBg }]}>
+        <View style={[styles.axisLineTop, { backgroundColor: colors.border.strong }, isFirst && styles.hidden]} />
+        <View style={styles.timelineAvatarWrap}>
           {signal.author?.profilePictureUrl ? (
-            <Image source={{ uri: signal.author.profilePictureUrl }} style={[styles.timelineAvatar, { borderColor: iconBg + "40" }]} />
+            <Image source={{ uri: signal.author.profilePictureUrl }} style={[styles.timelineAvatar, { borderColor: tone.accent }]} />
           ) : (
-            <View style={[styles.timelineAvatarFallback, { backgroundColor: iconBg }]}>
-              <Text style={styles.avatarLetter}>{initials}</Text>
+            <View style={[styles.timelineAvatarFallback, { backgroundColor: tone.accent }]}>
+              <Text variant="caption" color={tone.on} style={styles.bold}>{initials}</Text>
             </View>
           )}
         </View>
-        <LinearGradient
-          colors={[iconBg + "40", nextColor + "40"]}
-          style={[styles.axisLineBottom, isLast && { opacity: 0 }]}
-        />
+        <View style={[styles.axisLineBottom, { backgroundColor: colors.border.strong }, isLast && styles.hidden]} />
       </View>
 
       {/* Card */}
@@ -526,8 +493,14 @@ export default SignalCard;
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    marginBottom: 20,
+    // NB: the inter-card gap lives on `cardCol` (not here) so the axis column
+    // stretches THROUGH it — that's what keeps the timeline line continuous
+    // between avatars instead of breaking into a stub per card.
   },
+  bold: { fontFamily: fonts.bold },
+  flex1: { flex: 1 },
+  hidden: { opacity: 0 },
+  reactionRow: { flexDirection: "row", gap: 4 },
   axisCol: {
     width: 32,
     alignItems: "center",
@@ -536,7 +509,7 @@ const styles = StyleSheet.create({
   },
   axisLineTop: {
     width: 2,
-    height: 12,
+    height: spacing.md,
     borderRadius: 2,
   },
   axisLineBottom: {
@@ -547,16 +520,12 @@ const styles = StyleSheet.create({
   timelineAvatarWrap: {
     marginVertical: 4,
     zIndex: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
   },
   timelineAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    borderWidth: 2,
+    borderWidth: borderWidth.thick,
   },
   timelineAvatarFallback: {
     width: 32,
@@ -565,15 +534,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarLetter: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "800",
-  },
 
   cardCol: {
     flex: 1,
     minWidth: 0,
+    // Inter-card spacing lives here (not on `row`) so the axis column grows to
+    // include it and the timeline line bridges the gap to the next avatar.
+    marginBottom: spacing.xl,
   },
 
   // Header
@@ -581,34 +548,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   statusLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#475569",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-  },
-  timeText: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontWeight: "700",
   },
 
   // Main Card Body
   mainBodyShadow: {
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    borderRadius: radius.card,
   },
   mainBody: {
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: radius.card,
+    padding: spacing.lg,
     overflow: "hidden",
   },
   bodyContentRow: {
@@ -620,89 +573,58 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#0F172A",
     marginBottom: 4,
-    letterSpacing: -0.3,
   },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#64748B",
-    lineHeight: 20,
-  },
+  subtitle: {},
   bodyParagraph: {
-    fontSize: 15,
-    color: "#334155",
-    lineHeight: 22,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   caption: {
-    fontSize: 14,
-    color: "#475569",
-    lineHeight: 20,
-    marginTop: 8,
+    marginTop: spacing.sm,
     fontStyle: "italic",
   },
+  dynamicWrap: { marginTop: spacing.md },
 
   // Reaction Badge (Mobile Native)
   reactionBadgeFloating: {
     position: "absolute",
     bottom: -14,
-    right: 16,
-    backgroundColor: "#FFFFFF",
+    right: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 6,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    shadowColor: "#000",
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thin,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
     elevation: 4,
     gap: 4,
   },
-  reactionBadgeEmoji: {
-    fontSize: 13,
-  },
   reactionBadgeName: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#475569",
     marginLeft: 4,
   },
   reactionCueFloating: {
     position: "absolute",
     bottom: -10,
-    right: 16,
-    backgroundColor: "#F8FAFC",
+    right: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thin,
   },
 
-  // Journey (pack/module) context — soft, evenly-rounded chip (no accent stripe)
-  journeyRibbonWrap: { marginTop: 12 },
+  // Journey (pack/module) context chip
+  journeyRibbonWrap: { marginTop: spacing.md },
   journeyBox: {
-    borderRadius: 16,
+    borderRadius: radius.input,
     borderWidth: 1,
-    borderColor: "rgba(255,107,0,0.15)",
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     paddingHorizontal: 14,
-    gap: 8,
+    gap: spacing.sm,
   },
   journeyTopRow: {
     flexDirection: "row",
@@ -713,86 +635,47 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 7,
-    backgroundColor: "rgba(128,54,0,0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
-  journeyFlexSpacer: { flex: 1 },
   journeyEyebrow: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 0.5,
-    color: "#9A4B16",
     textTransform: "uppercase",
   },
   journeyProgressBadge: {
-    backgroundColor: "#803600",
-    borderRadius: 100,
-    paddingHorizontal: 8,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-  },
-  journeyProgressText: {
-    fontSize: 10.5,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 0.3,
-  },
-  journeyModuleText: {
-    fontSize: 13.5,
-    fontWeight: "600",
-    color: "#6B4A33",
-    lineHeight: 18,
   },
 
   // Dynamic content styles
-  statColumn: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  statColumn: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: spacing.sm },
   statRowItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 100,
-    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thin,
   },
   statIconBox: { alignItems: "center", justifyContent: "center" },
-  statListText: { fontSize: 12, fontWeight: "700" },
-  replyRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  replyRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   replyChip: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 100,
+    borderWidth: borderWidth.thin,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
   },
-  replyChipSelected: { borderColor: "#3B82F6", backgroundColor: "#EFF6FF" },
   replyChipDisabled: { opacity: 0.5 },
-  replyLabel: { fontSize: 12, fontWeight: "700", color: "#475569" },
-  replyLabelSelected: { color: "#1D4ED8" },
   seenRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  seenText: { fontSize: 12, fontWeight: "600", color: "#94A3B8" },
   reachOutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#FF6B00",
-    borderRadius: 100,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
-  reachOutText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800", letterSpacing: 0.3 },
-  reachedOutPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#DCFCE7",
-    borderRadius: 100,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  reachedOutText: { color: "#166534", fontSize: 13, fontWeight: "800", letterSpacing: 0.3 },
 });

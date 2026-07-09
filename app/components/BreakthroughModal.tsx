@@ -1,19 +1,16 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import {
-  Animated,
-  Modal,
-  StyleSheet,
+  AnimatedModal,
+  Button,
+  Icon,
+  IconName,
+  icons,
   Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
+  useTheme,
+  radius,
+  spacing,
+} from "../design-system";
 import { BreakthroughMetadata } from "../api/forms/types";
 
 interface BreakthroughModalProps {
@@ -22,222 +19,118 @@ interface BreakthroughModalProps {
   onClose: () => void;
 }
 
-const AXIS_ICONS: Record<string, any> = {
-  mastery: "target",
-  ease: "leaf",
-  courage: "shield-check",
-  confidence: "lightning-bolt",
-  social: "account-group",
+/** Growth-axis → its DS icon (semantic key, one glyph per concept). */
+const AXIS_ICONS: Record<string, IconName> = {
+  mastery: icons.mastery,
+  ease: icons.ease,
+  courage: icons.courage,
+  confidence: icons.confidence,
+  social: icons.social,
 };
 
+/**
+ * Celebratory "you evolved a dimension" modal — same content grammar as the other
+ * dark modals (LowStamina / VitalsFeedback): centred icon disc + eyebrow + h2, a
+ * body message, gap-driven spacing, a stacked full-width CTA, and no redundant
+ * close X (the "Acknowledged" button and a backdrop tap both dismiss). Reflection
+ * accent (purple) carries the icon disc, delta chip, and CTA (AA-correct `accentOn`
+ * ink on the fill). Rides the DS `AnimatedModal` (dark scrim + 0.96→1 scale).
+ */
 export const BreakthroughModal: React.FC<BreakthroughModalProps> = ({
   visible,
   data,
   onClose,
 }) => {
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 8,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      opacityAnim.setValue(0);
-      scaleAnim.setValue(0.9);
-    }
-  }, [visible]);
-
+  const { colors } = useTheme();
   if (!data) return null;
 
+  const accent = colors.accent.purple;
+  const onAccent = colors.accentOn.purple;
+  const axisIcon = AXIS_ICONS[data.axis] ?? icons.proud;
+  const axisTitle = data.axis.charAt(0).toUpperCase() + data.axis.slice(1);
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: "rgba(15, 23, 42, 0.6)", opacity: opacityAnim },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              opacity: opacityAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          {/* Close Button */}
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <MaterialCommunityIcons
-              name="close"
-              size={20}
-              color={theme.colors.text.disabled}
-            />
-          </TouchableOpacity>
+    <AnimatedModal visible={visible} onClose={onClose} maxWidth={380}>
+      <View style={styles.content}>
+        <View style={[styles.iconDisc, { backgroundColor: accent }]}>
+          <Icon name={axisIcon} size={30} color={onAccent} />
+        </View>
 
-          <LinearGradient
-            colors={["#6366F1", "#8B5CF6"]}
-            style={styles.iconContainer}
-          >
-            <MaterialCommunityIcons
-              name={AXIS_ICONS[data.axis] || "star"}
-              size={32}
-              color="white"
-            />
-          </LinearGradient>
+        <Text variant="label" color="secondary" center>
+          Breakthrough Detected
+        </Text>
+        <Text variant="h2" color="primary" center>
+          {axisTitle} Evolved
+        </Text>
 
-          <Text style={styles.tag}>Breakthrough Detected</Text>
-          <Text style={styles.title}>
-            {data.axis.charAt(0).toUpperCase() + data.axis.slice(1)} Evolved
+        <View style={[styles.deltaChip, { backgroundColor: accent }]}>
+          <Text variant="title" color={onAccent}>
+            +{data.delta} Points
           </Text>
+        </View>
 
-          <View style={styles.deltaBadge}>
-            <Text style={styles.deltaText}>+{data.delta} Points</Text>
-          </View>
+        <Text variant="body" color="secondary" center style={styles.message}>
+          {data.message}
+        </Text>
 
-          <Text style={styles.message}>{data.message}</Text>
+        <View
+          style={[styles.scoreRow, { borderTopColor: colors.border.hairline }]}
+        >
+          <Text variant="bodySm" color="secondary">
+            New Score
+          </Text>
+          <Text variant="h3" color="primary">
+            {data.newScore}
+          </Text>
+        </View>
 
-          <View style={styles.scoreRow}>
-            <Text style={styles.scoreLabel}>New Score</Text>
-            <Text style={styles.scoreValue}>{data.newScore}</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.actionButton}
+        <View style={styles.actions}>
+          <Button
+            label="Acknowledged"
+            accentColor={accent}
+            onAccentColor={onAccent}
             onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionButtonText}>Acknowledged</Text>
-          </TouchableOpacity>
-        </Animated.View>
+          />
+        </View>
       </View>
-    </Modal>
+    </AnimatedModal>
   );
 };
 
+export default BreakthroughModal;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
+  // Centred, gap-driven stack — the shared dark-modal content grammar.
+  content: {
     alignItems: "center",
-    paddingHorizontal: 24,
+    gap: spacing.md,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 32,
-    paddingHorizontal: 32,
-    paddingTop: 48,
-    paddingBottom: 32,
-    width: "100%",
-    maxWidth: 380,
-    alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation4),
-  },
-  closeBtn: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    zIndex: 10,
-  },
-  iconContainer: {
+  iconDisc: {
     width: 64,
     height: 64,
-    borderRadius: 22,
+    borderRadius: radius.input,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: "#6366F1",
-    shadowOpacity: 0.3,
+    marginBottom: spacing.xs,
   },
-  tag: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#6366F1",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 22,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  deltaBadge: {
-    backgroundColor: "rgba(99, 102, 241, 0.1)",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  deltaText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#6366F1",
+  deltaChip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
   },
   message: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 15,
-    color: theme.colors.text.default,
-    textAlign: "center",
     lineHeight: 22,
-    marginBottom: 28,
   },
   scoreRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    paddingTop: 20,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    marginBottom: 24,
   },
-  scoreLabel: {
-    fontSize: 14,
-    color: theme.colors.text.disabled,
-    fontWeight: "500",
-  },
-  scoreValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-  },
-  actionButton: {
+  actions: {
     width: "100%",
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: "#0F172A",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    marginTop: spacing.xs,
   },
 });
-
-export default BreakthroughModal;

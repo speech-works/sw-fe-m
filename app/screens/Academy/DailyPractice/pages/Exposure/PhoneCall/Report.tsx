@@ -1,67 +1,60 @@
 import axios from "axios";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome5";
 
 import {
   getPhoneCallReport,
   PhoneCallReportData,
 } from "../../../../../../api/practiceActivities";
 import ErrorStateCard from "../../../../../../components/Dashboard/ErrorStateCard";
-import LoadingScreen from "../../../../../../components/Loading";
-import { theme } from "../../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
+import {
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+  Text,
+  Icon,
+  icons,
+  Button,
+  Gradient,
+  Spinner,
+} from "../../../../../../design-system";
+import type { SemanticColors } from "../../../../../../design-system";
 
 interface Props {
   practiceActivityId: string;
   onContinue: () => void;
 }
 
-// Polished palette aligned with the app's modern screens (Summary / Dashboard).
-const C = {
-  ink: "#1F2937",
-  body: "#4B5563",
-  muted: "#9CA3AF",
-  border: "#F1F5F9",
-  track: "#EEF0F3",
-  card: "#FFFFFF",
-  orange: "#FF9040",
-  orangeDeep: "#FF6B00",
-  chipBg: "#FFF0E5",
-  chipText: "#BF5000",
-  emerald: "#10B981",
-  amber: "#F59E0B",
-  blue: "#3B82F6",
-  slate: "#64748B",
-};
+// Score → color. On the dark canvas colored text uses the lighter
+// `feedback.*Text` variants; the bright meter segments use the accent/primary base.
+const scoreTextColor = (v: number, colors: SemanticColors) =>
+  v >= 4
+    ? colors.feedback.successText
+    : v >= 3
+      ? colors.feedback.warningText
+      : colors.text.accent;
 
-const cardShadow = {
-  shadowColor: "#64748B",
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.06,
-  shadowRadius: 16,
-  elevation: 3,
-} as const;
-
-const scoreColor = (v: number) =>
-  v >= 4 ? C.emerald : v >= 3 ? C.amber : C.orangeDeep;
+const scoreFillColor = (v: number, colors: SemanticColors) =>
+  v >= 4
+    ? colors.accent.success
+    : v >= 3
+      ? colors.accent.warning
+      : colors.action.primary;
 
 const ScoreMeter = ({ label, value }: { label: string; value?: number }) => {
+  const { colors } = useTheme();
   const v = typeof value === "number" ? value : 0;
-  const color = scoreColor(v);
+  const textColor = scoreTextColor(v, colors);
+  const fill = scoreFillColor(v, colors);
   return (
-    <View style={styles.scoreCard}>
-      <Text style={[styles.scoreValue, { color }]}>
+    <View style={[styles.scoreCard, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
+      <Text variant="display" color={textColor} style={styles.scoreValue}>
         {typeof value === "number" ? value : "–"}
-        <Text style={styles.scoreMax}>/5</Text>
+        <Text variant="bodySm" color="tertiary">
+          /5
+        </Text>
       </Text>
       <View style={styles.segs}>
         {[0, 1, 2, 3, 4].map((i) => (
@@ -69,12 +62,20 @@ const ScoreMeter = ({ label, value }: { label: string; value?: number }) => {
             key={i}
             style={[
               styles.seg,
-              { backgroundColor: i < Math.round(v) ? color : C.track },
+              {
+                backgroundColor: i < Math.round(v) ? fill : colors.surface.control,
+                // Hairline edge so each cell is delineated on the light "paper"
+                // canvas (bright fills otherwise blend into the track); keeps the hue.
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.border.strong,
+              },
             ]}
           />
         ))}
       </View>
-      <Text style={styles.scoreLabel}>{label}</Text>
+      <Text variant="label" color="tertiary" style={styles.scoreLabel}>
+        {label}
+      </Text>
     </View>
   );
 };
@@ -86,31 +87,37 @@ const SectionCard = ({
   tint,
   children,
 }: {
-  icon: string;
+  icon: (typeof icons)[keyof typeof icons];
   title: string;
   accent: string;
   tint: string;
   children: React.ReactNode;
-}) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={[styles.iconCircle, { backgroundColor: tint }]}>
-        <Icon name={icon} size={14} color={accent} solid />
+}) => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.iconCircle, { backgroundColor: tint }]}>
+          <Icon name={icon} size={14} color={accent} />
+        </View>
+        <Text variant="h3" color="primary">
+          {title}
+        </Text>
       </View>
-      <Text style={styles.cardTitle}>{title}</Text>
+      {children}
     </View>
-    {children}
-  </View>
-);
+  );
+};
 
 /**
  * Post-call feedback report shown inline after an AI phone-call practice
- * completes — styled to match the app's modern visual language.
+ * completes — dark "Vivid" surfaces with orange/accent highlights.
  */
 const PhoneCallReport: React.FC<Props> = ({
   practiceActivityId,
   onContinue,
 }) => {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [report, setReport] = useState<PhoneCallReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,12 +166,16 @@ const PhoneCallReport: React.FC<Props> = ({
   }, [load]);
 
   if (loading) {
-    return <LoadingScreen message="Crafting your feedback…" />;
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background.canvas }]}>
+        <Spinner label="Crafting your feedback…" />
+      </View>
+    );
   }
 
   if (error || !report) {
     return (
-      <View style={styles.errorWrap}>
+      <View style={[styles.errorWrap, { backgroundColor: colors.background.canvas }]}>
         <ErrorStateCard
           title={rateLimited ? "Taking a moment" : "Report unavailable"}
           message={
@@ -173,44 +184,42 @@ const PhoneCallReport: React.FC<Props> = ({
               : "We couldn't build your report.\nTry again, or skip for now."
           }
           onRetry={load}
-          variant="light"
+          variant="dark"
         />
         <TouchableOpacity style={styles.skipBtn} onPress={onContinue}>
-          <Text style={styles.skipText}>Skip for now</Text>
+          <Text variant="title" color="secondary">
+            Skip for now
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#FFF7ED", "#FFEDD5", "#FFFFFF"]}
-        locations={[0, 0.45, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 130 },
+          { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + 130 },
         ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero */}
         <View style={styles.hero}>
-          <LinearGradient
-            colors={[C.orange, C.orangeDeep]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroBadge}
-          >
-            <Icon name="comment-dots" size={26} color="#fff" solid />
-          </LinearGradient>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>PRACTICE REPORT</Text>
+          <View style={[styles.heroBadge, { backgroundColor: colors.action.primary }]}>
+            <Icon name={icons.call} size={26} color={colors.action.onPrimary} />
           </View>
-          <Text style={styles.headline}>{report.headline}</Text>
-          <Text style={styles.summary}>{report.summary}</Text>
+          <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
+            <Text variant="label" color="accent" style={styles.chipText}>
+              PRACTICE REPORT
+            </Text>
+          </View>
+          <Text variant="h1" color="primary" center style={styles.headline}>
+            {report.headline}
+          </Text>
+          <Text variant="body" color="secondary" center style={styles.summary}>
+            {report.summary}
+          </Text>
         </View>
 
         {/* Scores */}
@@ -224,18 +233,22 @@ const PhoneCallReport: React.FC<Props> = ({
 
         {report.score_rationale && (
           <SectionCard
-            icon="info-circle"
+            icon={icons.tip}
             title="Why these scores"
-            accent={C.blue}
-            tint="rgba(59,130,246,0.12)"
+            accent={colors.feedback.infoText}
+            tint={colors.accentTint.info}
           >
             {(["confidence", "clarity", "engagement"] as const).map((k) => (
               <View key={k} style={styles.rationaleRow}>
-                <Text style={styles.rationaleLabel}>{k}</Text>
-                <Text style={styles.bodyText}>{report.score_rationale?.[k]}</Text>
+                <Text variant="label" color="tertiary" style={styles.rationaleLabel}>
+                  {k}
+                </Text>
+                <Text variant="body" color="secondary">
+                  {report.score_rationale?.[k]}
+                </Text>
               </View>
             ))}
-            <Text style={styles.caveat}>
+            <Text variant="bodySm" color="tertiary" style={styles.caveat}>
               AI-assessed from your transcript — a guide, not a verdict.
             </Text>
           </SectionCard>
@@ -243,20 +256,22 @@ const PhoneCallReport: React.FC<Props> = ({
 
         {report.what_went_well?.length > 0 && (
           <SectionCard
-            icon="check-circle"
+            icon={icons.success}
             title="What went well"
-            accent={C.emerald}
-            tint="rgba(16,185,129,0.12)"
+            accent={colors.feedback.successText}
+            tint={colors.accentTint.success}
           >
             {report.what_went_well.map((item, i) => (
               <View key={i} style={styles.bulletRow}>
                 <Icon
-                  name="check"
-                  size={11}
-                  color={C.emerald}
+                  name={icons.success}
+                  size={12}
+                  color={colors.feedback.successText}
                   style={styles.bulletIcon}
                 />
-                <Text style={styles.bulletText}>{item}</Text>
+                <Text variant="body" color="secondary" style={styles.bulletText}>
+                  {item}
+                </Text>
               </View>
             ))}
           </SectionCard>
@@ -264,20 +279,22 @@ const PhoneCallReport: React.FC<Props> = ({
 
         {report.areas_to_improve?.length > 0 && (
           <SectionCard
-            icon="seedling"
+            icon={icons.growthSeed}
             title="Areas to grow"
-            accent={C.amber}
-            tint="rgba(245,158,11,0.12)"
+            accent={colors.feedback.warningText}
+            tint={colors.accentTint.warning}
           >
             {report.areas_to_improve.map((item, i) => (
               <View key={i} style={styles.bulletRow}>
                 <Icon
-                  name="arrow-up"
-                  size={11}
-                  color={C.amber}
+                  name={icons.levelUp}
+                  size={12}
+                  color={colors.feedback.warningText}
                   style={styles.bulletIcon}
                 />
-                <Text style={styles.bulletText}>{item}</Text>
+                <Text variant="body" color="secondary" style={styles.bulletText}>
+                  {item}
+                </Text>
               </View>
             ))}
           </SectionCard>
@@ -285,32 +302,40 @@ const PhoneCallReport: React.FC<Props> = ({
 
         {!!report.handled_pressure && (
           <SectionCard
-            icon="bolt"
+            icon={icons.energy}
             title="Under pressure"
-            accent={C.blue}
-            tint="rgba(59,130,246,0.12)"
+            accent={colors.feedback.infoText}
+            tint={colors.accentTint.info}
           >
-            <Text style={styles.bodyText}>{report.handled_pressure}</Text>
+            <Text variant="body" color="secondary">
+              {report.handled_pressure}
+            </Text>
           </SectionCard>
         )}
 
         {report.disfluency_moments && report.disfluency_moments.length > 0 && (
           <SectionCard
-            icon="comment-dots"
+            icon={icons.spokeUp}
             title="In your own words"
-            accent={C.slate}
-            tint="rgba(100,116,139,0.12)"
+            accent={colors.text.secondary}
+            tint={colors.surface.control}
           >
             {report.disfluency_moments.map((m, i) => (
               <View key={i} style={styles.momentRow}>
-                <View style={styles.momentAccent} />
+                <View style={[styles.momentAccent, { backgroundColor: colors.border.strong }]} />
                 <View style={styles.momentBody}>
-                  <Text style={styles.momentQuote}>“{m.quote}”</Text>
-                  {!!m.note && <Text style={styles.momentNote}>{m.note}</Text>}
+                  <Text variant="body" color="primary" style={styles.momentQuote}>
+                    “{m.quote}”
+                  </Text>
+                  {!!m.note && (
+                    <Text variant="bodySm" color="tertiary" style={styles.momentNote}>
+                      {m.note}
+                    </Text>
+                  )}
                 </View>
               </View>
             ))}
-            <Text style={styles.caveat}>
+            <Text variant="bodySm" color="tertiary" style={styles.caveat}>
               Stuttering is a natural way of talking — these are shown for
               transparency, not as something to change. (From the transcript
               text, not audio.)
@@ -320,32 +345,28 @@ const PhoneCallReport: React.FC<Props> = ({
 
         {!!report.suggested_next_practice && (
           <SectionCard
-            icon="arrow-right"
+            icon={icons.forward}
             title="Try this next"
-            accent={C.orangeDeep}
-            tint="rgba(255,107,0,0.12)"
+            accent={colors.text.accent}
+            tint={colors.action.primaryTint}
           >
-            <Text style={styles.bodyText}>{report.suggested_next_practice}</Text>
+            <Text variant="body" color="secondary">
+              {report.suggested_next_practice}
+            </Text>
           </SectionCard>
         )}
 
-        {/* Encouragement */}
-        <View style={styles.encourageCard}>
-          <LinearGradient
-            colors={[C.orange, C.orangeDeep]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.encourageGradient}
-          >
-            <Icon
-              name="heart"
-              size={104}
-              color="#fff"
-              solid
-              style={styles.encourageWatermark}
-            />
-            <Text style={styles.encourageText}>{report.encouragement}</Text>
-          </LinearGradient>
+        {/* Encouragement — the one bright orange identity surface (dark ink on the fill). */}
+        <View style={[styles.encourageCard, { backgroundColor: colors.action.primary }]}>
+          <Icon
+            name={icons.heart}
+            size={104}
+            color={colors.action.onPrimary}
+            style={styles.encourageWatermark}
+          />
+          <Text variant="body" color={colors.action.onPrimary} center style={styles.encourageText}>
+            {report.encouragement}
+          </Text>
         </View>
 
         {/* Transcript */}
@@ -356,28 +377,27 @@ const PhoneCallReport: React.FC<Props> = ({
               style={styles.transcriptToggle}
               activeOpacity={0.7}
             >
-              <Text style={styles.transcriptToggleText}>
+              <Text variant="label" color="secondary">
                 {showTranscript ? "Hide transcript" : "Show full transcript"}
               </Text>
               <Icon
-                name={showTranscript ? "chevron-up" : "chevron-down"}
-                size={11}
-                color={C.slate}
+                name={showTranscript ? icons.chevronUp : icons.chevronDown}
+                size={12}
+                color={colors.text.secondary}
               />
             </TouchableOpacity>
             {showTranscript && (
-              <View style={styles.transcriptBox}>
+              <View style={[styles.transcriptBox, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
                 {report.transcript.split("\n").map((line, i) => {
                   const isUser = line.startsWith("[User]");
                   const text = line.replace(/^\[(User|Interviewer)\]\s?/, "");
                   if (!text) return null;
                   return (
-                    <Text key={i} style={styles.transcriptLine}>
+                    <Text key={i} variant="bodySm" color="secondary" style={styles.transcriptLine}>
                       <Text
-                        style={[
-                          styles.transcriptSpeaker,
-                          { color: isUser ? C.orangeDeep : C.ink },
-                        ]}
+                        variant="bodySm"
+                        color={isUser ? colors.text.accent : colors.text.primary}
+                        style={styles.transcriptSpeaker}
                       >
                         {isUser ? "You  " : "AI  "}
                       </Text>
@@ -391,195 +411,151 @@ const PhoneCallReport: React.FC<Props> = ({
         )}
       </ScrollView>
 
-      {/* Sticky CTA */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
-        <TouchableOpacity
-          style={styles.continueBtn}
+      {/* Bottom fade — content dissolves into the canvas before the floating CTA
+          (matches the Page footer + recorder dock). */}
+      <View
+        pointerEvents="none"
+        style={[styles.footerScrim, { height: insets.bottom + 130 }]}
+      >
+        <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+      </View>
+
+      {/* Sticky CTA — floats over the faded content. */}
+      <View
+        pointerEvents="box-none"
+        style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
+      >
+        <Button
+          variant="primary"
+          label="Continue"
+          rightIcon={icons.forward}
           onPress={onContinue}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={[C.orange, C.orangeDeep]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.continueGradient}
-          >
-            <Text style={styles.continueText}>Continue</Text>
-            <Icon name="arrow-right" size={13} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
+        />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF7ED" },
-  scroll: { paddingHorizontal: 20 },
+  container: { flex: 1 },
+  scroll: { paddingHorizontal: spacing.xl },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
 
   // Hero
-  hero: { alignItems: "center", marginBottom: 22 },
+  hero: { alignItems: "center", marginBottom: spacing["2xl"] },
   heroBadge: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: C.orangeDeep,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.32,
-    shadowRadius: 16,
-    elevation: 8,
   },
   chip: {
-    marginTop: 16,
-    backgroundColor: C.chipBg,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
   },
   chipText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: C.chipText,
-    fontWeight: "800",
     letterSpacing: 1.4,
-    fontSize: 10,
   },
   headline: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: C.ink,
-    textAlign: "center",
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   summary: {
-    ...parseTextStyle(theme.typography.BodyLarge),
-    color: C.body,
-    textAlign: "center",
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
 
   // Scores
-  scoreRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
+  scoreRow: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.lg },
   scoreCard: {
     flex: 1,
-    backgroundColor: C.card,
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    borderRadius: radius.chip,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: C.border,
-    ...cardShadow,
+    borderWidth: borderWidth.thin,
   },
   scoreValue: {
-    ...parseTextStyle(theme.typography.Heading1),
     fontSize: 30,
     letterSpacing: -1,
   },
-  scoreMax: { ...parseTextStyle(theme.typography.BodySmall), color: C.muted },
-  segs: { flexDirection: "row", gap: 3, marginTop: 8, alignSelf: "stretch" },
+  segs: { flexDirection: "row", gap: 3, marginTop: spacing.sm, alignSelf: "stretch" },
   seg: { flex: 1, height: 5, borderRadius: 3 },
   scoreLabel: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: C.muted,
-    marginTop: 10,
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    marginTop: spacing.sm,
   },
 
   // Cards
   card: {
-    backgroundColor: C.card,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: C.border,
-    ...cardShadow,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: borderWidth.thin,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   iconCircle: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-  },
-  cardTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: C.ink,
-    fontSize: 16,
   },
 
   bulletRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 9,
-    gap: 10,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   bulletIcon: { marginTop: 4 },
   bulletText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: C.body,
     flex: 1,
   },
-  bodyText: { ...parseTextStyle(theme.typography.Body), color: C.body },
 
   // Rationale
-  rationaleRow: { marginBottom: 12 },
+  rationaleRow: { marginBottom: spacing.md },
   rationaleLabel: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: C.slate,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: 3,
+    marginBottom: spacing.xxs,
   },
   caveat: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: C.muted,
     fontStyle: "italic",
-    marginTop: 6,
+    marginTop: spacing.xs,
   },
 
   // Moments
-  momentRow: { flexDirection: "row", marginBottom: 14, gap: 12 },
+  momentRow: { flexDirection: "row", marginBottom: spacing.md, gap: spacing.md },
   momentAccent: {
     width: 3,
     borderRadius: 2,
-    backgroundColor: C.slate,
-    opacity: 0.4,
   },
   momentBody: { flex: 1 },
   momentQuote: {
-    ...parseTextStyle(theme.typography.Body),
-    color: C.ink,
     fontStyle: "italic",
   },
   momentNote: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: C.muted,
-    marginTop: 3,
+    marginTop: spacing.xxs,
   },
 
   // Encouragement
   encourageCard: {
-    borderRadius: 24,
+    borderRadius: radius.card,
     overflow: "hidden",
-    marginTop: 4,
-    marginBottom: 4,
-    shadowColor: C.orangeDeep,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    elevation: 8,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+    padding: spacing.xl,
   },
-  encourageGradient: { padding: 22, overflow: "hidden" },
   encourageWatermark: {
     position: "absolute",
     right: -16,
@@ -588,81 +564,51 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-12deg" }],
   },
   encourageText: {
-    ...parseTextStyle(theme.typography.BodyLarge),
-    color: "#fff",
     fontWeight: "600",
-    textAlign: "center",
   },
 
   // Transcript
-  transcriptWrap: { marginTop: 10 },
+  transcriptWrap: { marginTop: spacing.sm },
   transcriptToggle: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-  },
-  transcriptToggleText: {
-    ...parseTextStyle(theme.typography.Label),
-    color: C.slate,
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
   },
   transcriptBox: {
-    backgroundColor: C.card,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    ...cardShadow,
+    borderRadius: radius.input,
+    padding: spacing.lg,
+    borderWidth: borderWidth.thin,
   },
   transcriptLine: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: C.body,
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   transcriptSpeaker: { fontWeight: "800" },
 
   // CTA
+  footerScrim: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   footer: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  continueBtn: {
-    borderRadius: 999,
-    overflow: "hidden",
-    shadowColor: C.orangeDeep,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  continueGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 17,
-  },
-  continueText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#fff",
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
 
   // Error
   errorWrap: {
     flex: 1,
-    backgroundColor: "#FFF7ED",
     justifyContent: "center",
-    padding: 20,
+    padding: spacing.xl,
   },
-  skipBtn: { marginTop: 20, alignItems: "center", padding: 12 },
-  skipText: { ...parseTextStyle(theme.typography.Button), color: C.slate },
+  skipBtn: { marginTop: spacing.xl, alignItems: "center", padding: spacing.md },
 });
 
 export default PhoneCallReport;

@@ -1,30 +1,34 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
   Platform,
+  ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
-import { ScrollView } from "react-native";
-import Button from "../../../../../components/Button";
+import PressableScale from "../../../../../components/PressableScale";
+import {
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+  Text,
+  Icon,
+  icons,
+  Button,
+  Segmented,
+  TextField,
+} from "../../../../../design-system";
 import {
   type Reminder,
   useReminderStore,
 } from "../../../../../stores/reminders";
-import { theme } from "../../../../../Theme/tokens";
 import { requestNotificationPermissionWithFallback } from "../../../../../util/functions/notifications";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
 import {
   REMINDER_TEMPLATES,
   CUSTOM_CATEGORY,
@@ -58,6 +62,9 @@ const allCategories = [
   CUSTOM_CATEGORY,
 ];
 
+const ONE_TIME_LABEL = "One Time";
+const ROUTINE_LABEL = "Routine";
+
 const ReminderModal = ({
   onReminderSet,
   renderTrigger,
@@ -66,6 +73,7 @@ const ReminderModal = ({
   isOpen,
   onClose: onCloseProp,
 }: ReminderProps) => {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const addReminder = useReminderStore((state) => state.addReminder);
   const updateReminder = useReminderStore((state) => state.updateReminder);
@@ -300,8 +308,12 @@ const ReminderModal = ({
   const renderCategoryPicker = () => (
     <View style={styles.categoryContainer}>
       <View style={styles.modalTitleContainer}>
-        <Text style={styles.modalTiteText}>What would you like</Text>
-        <Text style={styles.modalTiteText}>to be reminded about?</Text>
+        <Text variant="h2" color="primary" center>
+          What would you like
+        </Text>
+        <Text variant="h2" color="primary" center>
+          to be reminded about?
+        </Text>
       </View>
       <ScrollView
         style={styles.scrollView}
@@ -309,21 +321,24 @@ const ReminderModal = ({
         showsVerticalScrollIndicator={false}
       >
         {allCategories.map((cat) => (
-          <TouchableOpacity
+          <PressableScale
             key={cat.category}
+            scaleTo={0.98}
+            onPress={() => handleCategorySelect(cat.category)}
             style={[
               styles.categoryCard,
-              { borderColor: `${cat.color}30` },
+              {
+                backgroundColor: colors.surface.default,
+                borderColor: colors.border.default,
+              },
             ]}
-            onPress={() => handleCategorySelect(cat.category)}
-            activeOpacity={0.7}
           >
             <View
-              style={[
-                styles.categoryIconContainer,
-                { backgroundColor: cat.bgColor },
-              ]}
+              style={[styles.categoryIconContainer, { backgroundColor: cat.bgColor }]}
             >
+              {/* Category glyphs are MaterialCommunityIcons names from the reminder
+                  constants (not DS registry keys) — rendered via the vendor set,
+                  keeping the exact per-category icon. */}
               <MaterialCommunityIcons
                 name={cat.icon as any}
                 size={22}
@@ -331,15 +346,15 @@ const ReminderModal = ({
               />
             </View>
             <View style={styles.categoryTextContainer}>
-              <Text style={styles.categoryLabel}>{cat.label}</Text>
-              <Text style={styles.categoryDesc}>{cat.description}</Text>
+              <Text variant="title" color="primary">
+                {cat.label}
+              </Text>
+              <Text variant="bodySm" color="secondary">
+                {cat.description}
+              </Text>
             </View>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={18}
-              color="#CBD5E1"
-            />
-          </TouchableOpacity>
+            <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
+          </PressableScale>
         ))}
       </ScrollView>
     </View>
@@ -354,13 +369,9 @@ const ReminderModal = ({
           {!isEditing && (
             <TouchableOpacity
               onPress={() => setStep("pick")}
-              style={styles.backChip}
+              style={[styles.backChip, { backgroundColor: colors.surface.control }]}
             >
-              <MaterialCommunityIcons
-                name="chevron-left"
-                size={18}
-                color={theme.colors.text.default}
-              />
+              <Icon name={icons.back} size={18} color={colors.text.primary} />
             </TouchableOpacity>
           )}
           <View
@@ -374,12 +385,7 @@ const ReminderModal = ({
               size={16}
               color={selectedTemplate.color}
             />
-            <Text
-              style={[
-                styles.headerCategoryText,
-                { color: selectedTemplate.color },
-              ]}
-            >
+            <Text variant="label" color={selectedTemplate.color}>
               {selectedTemplate.label}
             </Text>
           </View>
@@ -387,38 +393,13 @@ const ReminderModal = ({
       )}
 
       <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            reminderType === "ONE_TIME" && styles.toggleButtonActive,
-          ]}
-          onPress={() => setReminderType("ONE_TIME")}
-        >
-          <Text
-            style={[
-              styles.toggleButtonText,
-              reminderType === "ONE_TIME" && styles.toggleButtonTextActive,
-            ]}
-          >
-            One Time
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            reminderType === "ROUTINE" && styles.toggleButtonActive,
-          ]}
-          onPress={() => setReminderType("ROUTINE")}
-        >
-          <Text
-            style={[
-              styles.toggleButtonText,
-              reminderType === "ROUTINE" && styles.toggleButtonTextActive,
-            ]}
-          >
-            Routine
-          </Text>
-        </TouchableOpacity>
+        <Segmented
+          options={[ONE_TIME_LABEL, ROUTINE_LABEL]}
+          value={reminderType === "ONE_TIME" ? ONE_TIME_LABEL : ROUTINE_LABEL}
+          onChange={(opt) =>
+            setReminderType(opt === ONE_TIME_LABEL ? "ONE_TIME" : "ROUTINE")
+          }
+        />
       </View>
 
       <ScrollView
@@ -431,29 +412,27 @@ const ReminderModal = ({
         ]}
       >
         {/* Title Input (Mandatory) */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Title</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="What should the reminder say?"
-            placeholderTextColor={theme.colors.text.disabled}
-            value={reminderTitle}
-            onChangeText={setReminderTitle}
-            maxLength={60}
-          />
-        </View>
+        <TextField
+          label="TITLE"
+          placeholder="What should the reminder say?"
+          value={reminderTitle}
+          onChangeText={setReminderTitle}
+          maxLength={60}
+        />
 
         {/* Time Picker */}
         <View style={styles.pickerSection}>
           {reminderType === "ONE_TIME" && (
             <View style={{ width: "100%" }}>
-              <Text style={styles.inputLabel}>Date</Text>
+              <Text variant="label" color="tertiary" style={styles.inputLabel}>
+                DATE
+              </Text>
               {isAndroid ? (
                 <TouchableOpacity
                   onPress={() => setShowDatePicker(true)}
-                  style={styles.androidPickerButton}
+                  style={[styles.androidPickerButton, { backgroundColor: colors.surface.control }]}
                 >
-                  <Text style={styles.androidPickerText}>
+                  <Text variant="h3" color="primary">
                     {getFormattedDate(selectedDate)}
                   </Text>
                 </TouchableOpacity>
@@ -462,6 +441,8 @@ const ReminderModal = ({
                   value={selectedDate}
                   mode="date"
                   display="inline"
+                  themeVariant="dark"
+                  accentColor={colors.action.primary}
                   onChange={onChangeDate}
                   minimumDate={new Date()}
                   maximumDate={new Date(2100, 11, 31)}
@@ -480,14 +461,16 @@ const ReminderModal = ({
             </View>
           )}
 
-          <View style={{ width: "100%", marginTop: 16 }}>
-            <Text style={styles.inputLabel}>Time</Text>
+          <View style={{ width: "100%", marginTop: spacing.lg }}>
+            <Text variant="label" color="tertiary" style={styles.inputLabel}>
+              TIME
+            </Text>
             {isAndroid ? (
               <TouchableOpacity
                 onPress={() => setShowTimePicker(true)}
-                style={styles.androidPickerButton}
+                style={[styles.androidPickerButton, { backgroundColor: colors.surface.control }]}
               >
-                <Text style={styles.androidPickerText}>
+                <Text variant="h3" color="primary">
                   {getFormattedTime(selectedTime)}
                 </Text>
               </TouchableOpacity>
@@ -497,6 +480,8 @@ const ReminderModal = ({
                 mode="time"
                 display="spinner"
                 is24Hour={true}
+                themeVariant="dark"
+                accentColor={colors.action.primary}
                 onChange={onChangeTime}
                 style={styles.timePicker}
               />
@@ -516,7 +501,9 @@ const ReminderModal = ({
         {/* Weekday Selector (Routine only) */}
         {reminderType === "ROUTINE" && (
           <View style={styles.repeatContainer}>
-            <Text style={styles.repeatLabel}>Repeat On</Text>
+            <Text variant="label" color="tertiary" style={styles.inputLabel}>
+              REPEAT ON
+            </Text>
             <View style={styles.weekDaysRow}>
               {weekDayLetters.map((letter, index) => {
                 const isSelected = selectedWeekDays.includes(index);
@@ -526,14 +513,19 @@ const ReminderModal = ({
                     onPress={() => toggleWeekDay(index)}
                     style={[
                       styles.dayButton,
-                      isSelected && styles.dayButtonActive,
+                      {
+                        backgroundColor: isSelected
+                          ? colors.action.primary
+                          : colors.surface.control,
+                        borderColor: isSelected
+                          ? colors.border.selected
+                          : colors.border.default,
+                      },
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.dayButtonText,
-                        isSelected && styles.dayButtonTextActive,
-                      ]}
+                      variant="bodySm"
+                      color={isSelected ? colors.action.onPrimary : colors.text.tertiary}
                     >
                       {letter}
                     </Text>
@@ -545,41 +537,23 @@ const ReminderModal = ({
         )}
 
         {/* Message / Body (Optional) */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Message (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.notesInput]}
-            placeholder="Add a personal note..."
-            placeholderTextColor={theme.colors.text.disabled}
-            value={reminderBody}
-            onChangeText={setReminderBody}
-            multiline
-            numberOfLines={3}
-            maxLength={200}
-          />
-        </View>
+        <TextField
+          label="MESSAGE (OPTIONAL)"
+          placeholder="Add a personal note..."
+          value={reminderBody}
+          onChangeText={setReminderBody}
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+        />
 
         {/* Save Button */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={styles.saveButton}
+          <Button
+            variant="primary"
+            label={isEditing ? "Update Reminder" : "Save Reminder"}
             onPress={handleSaveReminder}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.actionPrimary.default,
-                "#E06B00",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.saveGradient}
-            >
-              <Text style={styles.saveButtonText}>
-                {isEditing ? "Update Reminder" : "Save Reminder"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          />
         </View>
       </ScrollView>
     </View>
@@ -592,7 +566,7 @@ const ReminderModal = ({
         (renderTrigger ? (
           renderTrigger(handleOpen)
         ) : (
-          <Button text="Set Reminder" onPress={handleOpen} />
+          <Button label="Set Reminder" onPress={handleOpen} />
         ))}
 
       <BottomSheetModal
@@ -601,7 +575,7 @@ const ReminderModal = ({
         maxHeight="85%"
         showCloseButton={true}
         fitContent={false}
-        backgroundColor="#FFFBF5"
+        backgroundColor={colors.surface.elevated}
       >
         {step === "pick" ? renderCategoryPicker() : renderConfigureForm()}
       </BottomSheetModal>
@@ -615,141 +589,87 @@ const styles = StyleSheet.create({
   // ─── Category Picker ────────────────────────
   categoryContainer: {
     flex: 1,
-    paddingTop: 12,
+    paddingTop: spacing.md,
   },
   modalTitleContainer: {
-    marginTop: 24,
-    marginBottom: 32,
+    marginTop: spacing["2xl"],
+    marginBottom: spacing["3xl"],
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing["2xl"],
   },
-  modalTiteText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    fontWeight: "800",
+  scrollView: {
+    flex: 1,
   },
   categoryList: {
-    gap: 10,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    gap: spacing.sm,
+    paddingHorizontal: spacing["2xl"],
+    paddingBottom: spacing["4xl"],
   },
   categoryCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderRadius: 20,
-    gap: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.chip,
+    gap: spacing.lg,
+    borderWidth: borderWidth.thin,
   },
   categoryIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   categoryTextContainer: {
     flex: 1,
-    gap: 2,
-  },
-  categoryLabel: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: "700",
-    fontSize: 15,
-  },
-  categoryDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontSize: 13,
-    opacity: 0.7,
+    gap: spacing.xxs,
   },
 
   // ─── Configure Form ─────────────────────────
   modalContent: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 12,
+    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing.md,
     width: "100%",
   },
   configHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
-    marginTop: 8,
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+    marginTop: spacing.sm,
   },
   backChip: {
     width: 32,
     height: 32,
-    borderRadius: 12,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F1F5F9",
   },
   headerCategoryBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  headerCategoryText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  scrollView: {
-    flex: 1,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
   },
   scrollContainer: {
-    gap: 24,
-    paddingBottom: 40,
+    gap: spacing["2xl"],
+    paddingBottom: spacing["4xl"],
   },
   toggleContainer: {
-    flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.04)",
-    borderRadius: 12,
-    padding: 3,
     width: "100%",
-    height: 44,
-    marginBottom: 16,
-  },
-  toggleButton: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  toggleButtonActive: {
-    backgroundColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    shadowOpacity: 0.08,
-  },
-  toggleButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#64748B",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  toggleButtonTextActive: {
-    color: theme.colors.text.title,
-    fontWeight: "700",
+    marginBottom: spacing.lg,
   },
   pickerSection: {
     width: "100%",
-    gap: 20,
+    gap: spacing.xl,
   },
   inputLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontSize: 11,
   },
   datePicker: {
     width: "100%",
@@ -761,30 +681,14 @@ const styles = StyleSheet.create({
   },
   androidPickerButton: {
     width: "100%",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.input,
     alignItems: "flex-start",
-  },
-  androidPickerText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
-    color: theme.colors.text.title,
-    fontWeight: "500",
   },
   repeatContainer: {
     width: "100%",
-    gap: 12,
-  },
-  repeatLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "700",
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontSize: 11,
+    gap: spacing.md,
   },
   weekDaysRow: {
     flexDirection: "row",
@@ -794,63 +698,12 @@ const styles = StyleSheet.create({
   dayButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thin,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
-  },
-  dayButtonActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    borderColor: theme.colors.actionPrimary.default,
-  },
-  dayButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
-    fontWeight: "600",
-  },
-  dayButtonTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  inputSection: {
-    width: "100%",
-    gap: 8,
-  },
-  input: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 20,
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-  },
-  notesInput: {
-    height: 100,
-    textAlignVertical: "top",
   },
   actionButtonsContainer: {
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 12,
-  },
-  saveButton: {
-    flex: 2,
-    height: 56,
-    borderRadius: 28,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  saveGradient: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  saveButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
-    color: "#FFFFFF",
-    fontWeight: "800",
+    marginTop: spacing.md,
   },
 });

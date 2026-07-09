@@ -5,7 +5,7 @@ import {
     View
 } from "react-native"; // Import TouchableOpacity
 import Icon from "react-native-vector-icons/FontAwesome5"; // Ensure you have this installed: expo install react-native-vector-icons
-import { theme } from "../Theme/tokens";
+import { useTheme } from "../design-system";
 
 /**
  * StarRating Component
@@ -34,6 +34,7 @@ const StarRating = ({
   interactive = false, // New prop: enables/disables user interaction
   onRatingChange = (_rating: number) => {}, // New prop: callback for rating changes
 }) => {
+  const { colors } = useTheme();
   // Internal state to manage the current rating when interactive is true.
   // It's initialized with `howManyStarsFilled` prop.
   const [currentRating, setCurrentRating] = useState(howManyStarsFilled);
@@ -84,7 +85,10 @@ const StarRating = ({
           solid={isFilled}
           name="star"
           size={validatedSize}
-          color={theme.colors.library.yellow[500]}
+          // `gamification.gold` (bright) is invisible as a filled ICON on the
+          // light "paper" canvas (~1.5:1); the darker warm-gold text cut reads
+          // at ~5.8:1 and preserves the gold intent. Empty stars stay muted.
+          color={isFilled ? colors.feedback.warningText : colors.text.disabled}
           style={styles.starIcon}
         />
       </TouchableOpacity>

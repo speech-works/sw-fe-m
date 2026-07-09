@@ -1,13 +1,16 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
-import BottomSheetModal from "../../../components/BottomSheetModal";
-import Button from "../../../components/Button";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
+import { StyleSheet, View } from "react-native";
+import {
+  useTheme,
+  spacing,
+  AnimatedModal,
+  Text,
+  TextField,
+  Button,
+  Icon,
+} from "../../../design-system";
 
 const CONFIRM_WORD = "DELETE";
-const DANGER = "#DC2626";
 
 interface DeleteAccountModalProps {
   visible: boolean;
@@ -29,6 +32,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const { colors } = useTheme();
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,78 +65,68 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   };
 
   return (
-    <BottomSheetModal
+    <AnimatedModal
       visible={visible}
       onClose={isDeleting ? () => {} : onClose}
-      fitContent
-      showHandle
-      hasBottomSafePadding
+      dismissOnBackdrop={false}
+      maxWidth={360}
+      contentStyle={styles.card}
     >
-      <View style={styles.container}>
-        <View style={styles.watermark} pointerEvents="none">
-          <MaterialCommunityIcons
-            name="alert-octagon"
-            size={160}
-            color={DANGER}
-          />
-        </View>
-
-        <Text style={styles.title}>Delete your account?</Text>
-        <Text style={styles.body}>
-          This permanently deletes your account and all of your data, including
-          your practice recordings, progress, assessments, and history. This
-          cannot be undone.
-        </Text>
-
-        <View style={styles.confirmBlock}>
-          <Text style={styles.confirmLabel}>
-            Type <Text style={styles.confirmWord}>{CONFIRM_WORD}</Text> to confirm
-          </Text>
-          <TextInput
-            value={confirmText}
-            onChangeText={setConfirmText}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            editable={!isDeleting}
-            placeholder={CONFIRM_WORD}
-            placeholderTextColor={theme.colors.library.gray[300]}
-            style={[styles.input, canDelete && styles.inputValid]}
-          />
-        </View>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <View style={styles.buttonContainer}>
-          <Button
-            text="Delete my account"
-            onPress={handleDelete}
-            variant="normal"
-            buttonColor={DANGER}
-            disabled={!canDelete}
-            loading={isDeleting}
-            style={styles.primaryButton}
-          />
-          <Button
-            text="Cancel"
-            onPress={onClose}
-            variant="ghost"
-            disabled={isDeleting}
-            style={styles.secondaryButton}
-            textColor={theme.colors.library.gray[400]}
-          />
-        </View>
+      <View style={styles.watermark} pointerEvents="none">
+        <Icon name="alert-octagon" size={160} color={colors.accentText.danger} />
       </View>
-    </BottomSheetModal>
+
+      <Text variant="h2" center>
+        Delete your account?
+      </Text>
+      <Text variant="bodySm" color="secondary" center style={styles.body}>
+        This permanently deletes your account and all of your data, including your
+        practice recordings, progress, assessments, and history. This cannot be undone.
+      </Text>
+
+      <View style={styles.confirmBlock}>
+        <Text variant="label" color="secondary" style={styles.confirmLabel}>
+          Type{" "}
+          <Text variant="label" color={colors.feedback.dangerText}>
+            {CONFIRM_WORD}
+          </Text>{" "}
+          to confirm
+        </Text>
+        <TextField
+          value={confirmText}
+          onChangeText={setConfirmText}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          editable={!isDeleting}
+          placeholder={CONFIRM_WORD}
+        />
+      </View>
+
+      {error ? (
+        <Text variant="bodySm" color={colors.feedback.dangerText} center style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
+
+      <View style={styles.buttonContainer}>
+        <Button
+          label="Delete my account"
+          onPress={handleDelete}
+          variant="danger"
+          disabled={!canDelete}
+          loading={isDeleting}
+        />
+        <Button label="Cancel" onPress={onClose} variant="ghost" disabled={isDeleting} />
+      </View>
+    </AnimatedModal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 48,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    alignItems: "center",
-    position: "relative",
+  // The card chrome (size, radius, padding, bg, elevation) comes from AnimatedModal;
+  // we only add clipping so the oversized danger watermark stays inside the corners.
+  card: {
+    overflow: "hidden",
   },
   watermark: {
     position: "absolute",
@@ -142,69 +136,24 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-15deg" }],
     zIndex: 0,
   },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 12,
-    fontWeight: "800",
-  },
   body: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 24,
-    opacity: 0.9,
+    marginTop: spacing.md,
+    marginBottom: spacing["2xl"],
   },
   confirmBlock: {
     width: "100%",
-    marginBottom: 8,
   },
   confirmLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginBottom: 8,
-  },
-  confirmWord: {
-    fontWeight: "800",
-    color: DANGER,
-    letterSpacing: 1,
-  },
-  input: {
-    width: "100%",
-    borderWidth: 1.5,
-    borderColor: theme.colors.library.gray[200],
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    letterSpacing: 2,
-    color: theme.colors.text.title,
-    backgroundColor: "#FFFFFF",
-  },
-  inputValid: {
-    borderColor: DANGER,
+    marginBottom: spacing.sm,
   },
   error: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: DANGER,
-    textAlign: "center",
-    marginTop: 12,
+    marginTop: spacing.md,
     width: "100%",
   },
   buttonContainer: {
     width: "100%",
-    gap: 8,
-    marginTop: 24,
-  },
-  primaryButton: {
-    width: "100%",
-    borderRadius: 24,
-  },
-  secondaryButton: {
-    width: "100%",
-    borderWidth: 0,
+    gap: spacing.sm,
+    marginTop: spacing["2xl"],
   },
 });
 

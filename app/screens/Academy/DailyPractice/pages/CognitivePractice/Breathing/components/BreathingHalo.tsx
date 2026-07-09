@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-// import Svg, { Path } from "react-native-svg";
-import { theme } from "../../../../../../../Theme/tokens";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import GuidedBreathingFace, {
   BreathingPhase,
 } from "../../../../../../../assets/sw-faces/GuidedBreathingFace";
 import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
-import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
+import { Text, spacing } from "../../../../../../../design-system";
 
 type BreathingHaloProps = {
   inhale: number; // seconds
@@ -174,7 +172,9 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 
       {/* Text Below */}
       <View style={styles.textContainer}>
-        <Text style={styles.phaseText}>{phaseText}</Text>
+        <Text variant="display" color="primary" style={styles.phaseText}>
+          {phaseText}
+        </Text>
       </View>
     </View>
   );
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 48,
+    gap: spacing["5xl"],
   },
   faceContainer: {
     width: CIRCLE_SIZE,
@@ -200,9 +200,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   phaseText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 32,
-    color: "#F1F5F9", // Slate-100 for dark mode
-    opacity: 0.9,
+    opacity: 0.9, // original softening — between opacity.full and opacity.muted
   },
 });

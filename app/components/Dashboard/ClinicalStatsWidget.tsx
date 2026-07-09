@@ -1,136 +1,179 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useMemo, useState } from "react";
+import { TouchableOpacity, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, {
-  Circle,
-  Defs,
-  G,
-  Line,
-  Path,
-  Stop,
-  LinearGradient as SvgGradient,
-  Text as SvgText,
-} from "react-native-svg";
 import {
   ClinicalDomain,
   GrowthProfileMetrics,
 } from "../../api/userBehaviorTrends/types";
 import { GrowthProfileAxisKey } from "../../api/overallState/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
-import { theme } from "../../Theme/tokens";
+import {
+  buildTrendWeeks,
+  overallOf,
+} from "../../stores/userBehaviorTrends/selectors";
+import {
+  Icon,
+  Text,
+  TrendLine,
+  AnimatedNumber,
+  icons,
+  makeStyles,
+  spacing,
+  space,
+  radius,
+  useTheme,
+  useMotion,
+} from "../../design-system";
+import type { IconName } from "../../design-system/components/Icon";
+import PressableScale from "../PressableScale";
 import SkeletonLoader from "../SkeletonLoader";
 import ErrorStateCard from "./ErrorStateCard";
 import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp } from "../../navigators/index";
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-const CHART_LABEL_TOUCH_WIDTH = 112;
-const CHART_LABEL_TOUCH_HEIGHT = 44;
-
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-// --- 1. Translation Map ---
+type MetricAccentKey = "success" | "danger" | "info" | "purple" | "warning";
+type MomentumState = "ACTIVE" | "QUIET" | "SLIPPING";
+
 const METRIC_CONFIG: Record<
   ClinicalDomain,
   {
     label: string;
-    color: string;
-    icon: string;
-    description: string;
+    accentKey: MetricAccentKey;
+    icon: IconName;
     profileKey: keyof GrowthProfileMetrics;
   }
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#059669", // Emerald 600 - Highly visible green
-    icon: "shield-check",
-    description: "Belief in your ability to speak freely.",
+    accentKey: "success",
+    icon: icons.confidence,
     profileKey: "confidence",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#E11D48", // Rose 600 - Warm and visible red/pink
-    icon: "fire",
-    description: "Facing situations without holding back.",
+    accentKey: "danger",
+    icon: icons.courage,
     profileKey: "courage",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
-    label: "Mastery", // Was Control
-    color: "#0284C7", // Sky 600 - Deep cyan/blue
-    icon: "target",
-    description: "Managing speech techniques effectively.",
+    label: "Mastery",
+    accentKey: "info",
+    icon: icons.mastery,
     profileKey: "mastery",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
-    label: "Ease", // Was Flow
-    color: "#8B5CF6", // Violet 500 - Solid purple
-    icon: "water",
-    description: "Smoothness in daily communication.",
+    label: "Ease",
+    accentKey: "purple",
+    icon: icons.ease,
     profileKey: "ease",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#EA580C", // Orange 600 - Vibrant, visible orange
-    icon: "account-group",
-    description: "Active participation in social life.",
+    accentKey: "warning",
+    icon: icons.social,
     profileKey: "social",
   },
 };
 
-// --- Helper: Polar to Cartesian ---
-const POLAR_TO_CARTESIAN = (
-  centerX: number,
-  centerY: number,
-  radius: number,
-  angleInDegrees: number,
-) => {
-  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
-  return {
-    x: centerX + radius * Math.cos(angleInRadians),
-    y: centerY + radius * Math.sin(angleInRadians),
-  };
+// Momentum wording matches Progress Report's WeeklyGrowthCard.
+const MOMENTUM_LABEL: Record<MomentumState, string> = {
+  ACTIVE: "Rising",
+  QUIET: "Stable",
+  SLIPPING: "Slipping",
 };
 
-type BreakthroughItem = {
+type MetricChipItem = {
   key: GrowthProfileAxisKey;
   domain: ClinicalDomain;
   config: (typeof METRIC_CONFIG)[ClinicalDomain];
   current: number;
-  previous: number | null;
-  absoluteDelta: number | null;
-  percentDelta: number | null;
   hasComparison: boolean;
+  percentDelta: number | null;
   trend: "IMPROVING" | "STABLE" | "WORSENING";
+  uncertainty: number;
+};
+
+/** One tappable metric tile — accent icon, score, a trend arrow, and its label. */
+const MetricChip: React.FC<{
+  item: MetricChipItem;
+  index: number;
+  onPress: (domain: ClinicalDomain) => void;
+}> = ({ item, index, onPress }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const motion = useMotion();
+
+  // The metric icon is a small, meaning-bearing glyph on the control surface —
+  // the bright accent base fails AA on the light "paper" control, so use the
+  // per-scheme colored-text cut (keeps each metric's hue, AA in both schemes).
+  const accent = colors.accentText[item.config.accentKey];
+  const pct = item.percentDelta;
+  const improving = item.trend === "IMPROVING" && (pct ?? 0) > 0;
+  const worsening = item.trend === "WORSENING" && (pct ?? 0) < 0;
+  const showTrend = item.hasComparison && (improving || worsening);
+
+  const trendColor = improving
+    ? colors.feedback.successText
+    : colors.feedback.dangerText;
+
+  const isSettling = item.uncertainty > 25;
+
+  return (
+    <Animated.View style={styles.chipWrap} entering={motion.stagger(index)}>
+      <PressableScale
+        scaleTo={0.96}
+        onPress={() => onPress(item.domain)}
+        style={[styles.chip, isSettling && { opacity: 0.65 }]}
+      >
+        <View style={styles.chipHeader}>
+          <Icon name={item.config.icon} size={16} color={accent} />
+          {showTrend && !isSettling && (
+            <View style={styles.chipTrend}>
+              <Text variant="caption" color={trendColor}>
+                {improving ? "+" : ""}
+                {Math.round(pct ?? 0)}%
+              </Text>
+            </View>
+          )}
+          {isSettling && (
+            <View style={styles.chipTrend}>
+              <Icon name={icons.duration} size={14} color={colors.text.tertiary} />
+            </View>
+          )}
+        </View>
+        <Text variant="h3" color={isSettling ? "tertiary" : "primary"}>
+          {Math.round(item.current)}
+        </Text>
+        <Text variant="bodySm" color="secondary" numberOfLines={1}>
+          {item.config.label}
+        </Text>
+      </PressableScale>
+    </Animated.View>
+  );
 };
 
 const ClinicalStatsWidget = ({ style }: { style?: any }) => {
-  const {
-    overallState,
-    historyBuckets,
-    fetchAllTrends,
-    loading,
-    error,
-  } = useUserBehaviorTrendsStore();
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const motion = useMotion();
+  const { overallState, historyBuckets, fetchAllTrends, loading, error } =
+    useUserBehaviorTrendsStore();
 
   const navigation = useNavigation<HomeStackNavigationProp<"Home">>();
   const combinedProfile = overallState?.profile?.axes?.combined ?? null;
-  const isMomentumSlipping =
-    overallState?.profile?.meta?.momentumState === "SLIPPING";
+  const momentumState = overallState?.profile?.meta?.momentumState as
+    | MomentumState
+    | undefined;
+  const isMomentumSlipping = momentumState === "SLIPPING";
 
   const handleMetricPress = (domain: ClinicalDomain) => {
     if (!overallState) return;
@@ -140,8 +183,8 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       family: "combined" | "clinical" | "engagement",
     ) => {
       const familyAxes = overallState.profile.axes[family];
-      const familyDelta = overallState.profile.comparison.deltas[family][profileKey];
-
+      const familyDelta =
+        overallState.profile.comparison.deltas[family][profileKey];
       return {
         currentScore: familyAxes[profileKey],
         previousScore: familyDelta.previous,
@@ -151,15 +194,14 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       };
     };
 
-    const familyData = {
-      combined: buildFamilyData("combined"),
-      clinical: buildFamilyData("clinical"),
-      engagement: buildFamilyData("engagement"),
-    };
-
     navigation.navigate("DimensionDetail", {
       domain,
-      familyData,
+      accentKey: METRIC_CONFIG[domain].accentKey,
+      familyData: {
+        combined: buildFamilyData("combined"),
+        clinical: buildFamilyData("clinical"),
+        engagement: buildFamilyData("engagement"),
+      },
       comparisonLabel: overallState.profile.comparison.comparisonLabel,
     });
   };
@@ -167,299 +209,80 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   // --- Refresh Handler ---
   const [isRefreshing, setIsRefreshing] = useState(false);
   const rotationAnim = useSharedValue(0);
-  const pulseAnim = useSharedValue(1);
-  const downfallAnim = useSharedValue(0);
-
-  useEffect(() => {
-    if (isMomentumSlipping) {
-      downfallAnim.value = withRepeat(
-        withSequence(
-          withTiming(15, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        true,
-      );
-    } else {
-      downfallAnim.value = 0;
-    }
-  }, [isMomentumSlipping]);
-
-  const downfallStyle = useAnimatedStyle(
-    () => ({
-      transform: [{ translateY: downfallAnim.value }],
-    }),
-    [],
-  );
 
   const onRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-
-    // Start continuous rotation animation
     rotationAnim.value = withRepeat(
-      withTiming(360, {
-        duration: 1000,
-        easing: Easing.linear,
-      }),
-      -1, // Infinite repeat
-      false, // Don't reverse
-    );
-
-    // Subtle pulse on card
-    pulseAnim.value = withRepeat(
-      withSequence(
-        withTiming(0.98, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-      ),
+      withTiming(360, { duration: 1000, easing: Easing.linear }),
       -1,
       false,
     );
-
     try {
       await fetchAllTrends();
-    } catch (error) {
-      console.error("Failed to refresh:", error);
+    } catch (err) {
+      console.error("Failed to refresh:", err);
     } finally {
-      // Stop animations
       rotationAnim.value = withTiming(0, { duration: 200 });
-      pulseAnim.value = withTiming(1, { duration: 200 });
       setIsRefreshing(false);
     }
   };
 
   const refreshIconStyle = useAnimatedStyle(
-    () => ({
-      // Avoids template-literal allocation per frame — string concat is faster
-      transform: [{ rotate: rotationAnim.value + "deg" }],
-    }),
+    () => ({ transform: [{ rotate: rotationAnim.value + "deg" }] }),
     [],
   );
 
-  const topBreakthroughs = useMemo<BreakthroughItem[]>(() => {
-    if (!overallState?.profile) {
-      return [];
-    }
-
+  const metricChips = useMemo<MetricChipItem[]>(() => {
+    if (!overallState?.profile) return [];
     const combinedAxes = overallState.profile.axes.combined;
     const combinedDeltas = overallState.profile.comparison.deltas.combined;
 
-    return (Object.keys(combinedDeltas) as GrowthProfileAxisKey[])
-      .map((key) => {
-        const domain = (Object.keys(METRIC_CONFIG) as ClinicalDomain[]).find(
-          (candidate) => METRIC_CONFIG[candidate].profileKey === key,
-        );
-
-        if (!domain) {
-          return null;
-        }
-
-        return {
-          key,
-          domain,
-          config: METRIC_CONFIG[domain],
-          current: combinedAxes[key],
-          previous: combinedDeltas[key].previous,
-          absoluteDelta: combinedDeltas[key].absoluteDelta,
-          percentDelta: combinedDeltas[key].percentDelta,
-          hasComparison: combinedDeltas[key].hasComparison,
-          trend: combinedDeltas[key].trend,
-        };
-      })
-      .filter((item): item is BreakthroughItem => Boolean(item))
-      .filter(
-        (item) => item.hasComparison && (item.percentDelta ?? 0) > 0,
-      )
-      .sort((a, b) => (b.percentDelta ?? 0) - (a.percentDelta ?? 0))
-      .slice(0, 3);
+    return Object.values(ClinicalDomain).map((domain) => {
+      const config = METRIC_CONFIG[domain];
+      const key = config.profileKey;
+      const delta = combinedDeltas[key];
+      const uncertainty = overallState.clinical.domains[domain]?.uncertainty ?? 0;
+      return {
+        key,
+        domain,
+        config,
+        current: combinedAxes[key],
+        hasComparison: delta.hasComparison,
+        percentDelta: delta.percentDelta,
+        trend: delta.trend,
+        uncertainty,
+      };
+    });
   }, [overallState]);
 
-  const dynamicSubtitle = useMemo(() => {
-    if (topBreakthroughs.length === 0) {
-      return "Building your foundation";
-    }
+  // Overall growth hero: current value, 4-week series, and week-over-week delta.
+  const overall = useMemo(() => {
+    if (!combinedProfile) return null;
+    const current = overallOf(combinedProfile);
+    const series = buildTrendWeeks(historyBuckets, overallState, (agg) =>
+      overallOf(agg.profile.axes.combined),
+    );
+    const prev = series.length >= 2 ? series[series.length - 2].value : null;
+    const delta = prev != null ? current - prev : null;
+    return {
+      current,
+      delta,
+      values: series.map((w) => w.value),
+      labels: series.map((w) => w.label),
+    };
+  }, [combinedProfile, historyBuckets, overallState]);
 
-    const best = topBreakthroughs[0];
+  const dynamicSubtitle = useMemo(() => {
+    const best = metricChips
+      .filter((item) => item.hasComparison && (item.percentDelta ?? 0) > 0)
+      .sort((a, b) => (b.percentDelta ?? 0) - (a.percentDelta ?? 0))[0];
+    if (!best) return "Building your foundation";
     return `Your ${best.config.label} improved ${Math.abs(
       best.percentDelta ?? 0,
     ).toFixed(0)}%!`;
-  }, [topBreakthroughs]);
+  }, [metricChips]);
 
-  const previousCombinedProfile = useMemo(() => {
-    const previousPeriodKey = overallState?.profile.comparison.previousPeriodKey;
-
-    if (!previousPeriodKey) {
-      return null;
-    }
-
-    const previousBucket = historyBuckets.find(
-      (bucket) => bucket.periodKey === previousPeriodKey && bucket.hasData,
-    );
-
-    return previousBucket?.snapshot?.profile.axes.combined ?? null;
-  }, [historyBuckets, overallState?.profile.comparison.previousPeriodKey]);
-
-  // --- Data Logic ---
-  const chartData = useMemo(() => {
-    if (!combinedProfile || !overallState?.profile?.axes?.clinical) return null;
-    const allDomains = Object.values(ClinicalDomain);
-
-    const currentData = allDomains.map((domain) => {
-      const metricKey = METRIC_CONFIG[domain].profileKey;
-      return combinedProfile[metricKey] ?? 50;
-    });
-
-    const baselineData = allDomains.map((domain) => {
-      const metricKey = METRIC_CONFIG[domain].profileKey;
-      return overallState.profile.axes.clinical[metricKey] ?? 50;
-    });
-
-    return { allDomains, currentData, baselineData };
-  }, [combinedProfile, overallState]);
-
-  const width = Dimensions.get("window").width;
-  const CHART_WIDTH = width - 48; // Padding 24 * 2
-  const SIZE = 220;
-  const CENTER = SIZE / 2;
-  const RADIUS = SIZE / 2 - 45; // Slightly more padding for labels
-  const angleStep = chartData ? 360 / chartData.allDomains.length : 72;
-  const chartHorizontalInset = Math.max((CHART_WIDTH - SIZE) / 2, 0);
-  const chartLabelTargets = useMemo(() => {
-    if (!chartData) {
-      return [];
-    }
-
-    return chartData.allDomains.map((domain, index) => {
-      const pos = POLAR_TO_CARTESIAN(
-        CENTER,
-        CENTER,
-        RADIUS + 28,
-        index * angleStep,
-      );
-
-      let textAlign: "left" | "center" | "right" = "center";
-      if (pos.x < CENTER - 10) textAlign = "right";
-      if (pos.x > CENTER + 10) textAlign = "left";
-
-      let left =
-        chartHorizontalInset + pos.x - CHART_LABEL_TOUCH_WIDTH / 2;
-      if (textAlign === "left") {
-        left = chartHorizontalInset + pos.x - 14;
-      } else if (textAlign === "right") {
-        left = chartHorizontalInset + pos.x - CHART_LABEL_TOUCH_WIDTH + 14;
-      }
-
-      return {
-        domain,
-        left: clamp(left, 0, CHART_WIDTH - CHART_LABEL_TOUCH_WIDTH),
-        top: clamp(
-          pos.y - CHART_LABEL_TOUCH_HEIGHT / 2,
-          0,
-          SIZE - CHART_LABEL_TOUCH_HEIGHT,
-        ),
-      };
-    });
-  }, [CHART_WIDTH, CENTER, RADIUS, SIZE, angleStep, chartData, chartHorizontalInset]);
-
-  // --- Memoized heavy SVG path computations (must be before early returns for hooks rules) ---
-  const {
-    currentPoints,
-    gridPaths,
-    currentPathD,
-    historicalPathD,
-    baselinePathD,
-  } = useMemo(() => {
-    if (!chartData) {
-      return {
-        currentPoints: [],
-        gridPaths: [],
-        currentPathD: "",
-        historicalPathD: null as string | null,
-        baselinePathD: "",
-      };
-    }
-
-    const _getPoints = (data: number[], scale: number = 1) => {
-      return data.map((value, i) => {
-        const r = (value / 100) * RADIUS * scale;
-        return POLAR_TO_CARTESIAN(CENTER, CENTER, r, i * angleStep);
-      });
-    };
-
-    const _makeSmoothCurve = (
-      points: { x: number; y: number }[],
-      tension: number = 0.45,
-    ) => {
-      if (points.length < 2) return "";
-      const len = points.length;
-
-      const getControlPoint = (
-        current: { x: number; y: number },
-        previous: { x: number; y: number },
-        next: { x: number; y: number },
-        reverse?: boolean,
-      ) => {
-        const smoothing = tension;
-        const oX = next.x - previous.x;
-        const oY = next.y - previous.y;
-        return {
-          x: current.x + (reverse ? -1 : 1) * (oX * smoothing),
-          y: current.y + (reverse ? -1 : 1) * (oY * smoothing),
-        };
-      };
-
-      const dParts: string[] = [];
-      dParts.push(`M ${points[0].x},${points[0].y}`);
-      for (let i = 0; i < len; i++) {
-        const current = points[i];
-        const next = points[(i + 1) % len];
-        const nextNext = points[(i + 2) % len];
-        const prev = points[i === 0 ? len - 1 : i - 1];
-        const cp1 = getControlPoint(current, prev, next);
-        const cp2 = getControlPoint(next, current, nextNext, true);
-        dParts.push(
-          `C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${next.x},${next.y}`,
-        );
-      }
-      dParts.push("Z");
-      return dParts.join(" ");
-    };
-
-    const _getGridPoints = (percentage: number) => {
-      return _getPoints(
-        new Array(chartData.allDomains.length).fill(percentage),
-      );
-    };
-
-    const _currentPoints = _getPoints(chartData.currentData);
-
-    const gridLevels = [25, 50, 75, 100];
-    const _gridPaths = gridLevels.map((level) => {
-      return _makeSmoothCurve(_getGridPoints(level), 0.3);
-    });
-
-    const _currentPathD = _makeSmoothCurve(_currentPoints, 0.45);
-
-    let _historicalPathD: string | null = null;
-    if (previousCombinedProfile) {
-      const historicalData = chartData.allDomains.map((domain) => {
-        const key = METRIC_CONFIG[domain].profileKey;
-        return previousCombinedProfile[key] ?? 50;
-      });
-      const historicalPoints = _getPoints(historicalData);
-      _historicalPathD = _makeSmoothCurve(historicalPoints, 0.45);
-    }
-
-    return {
-      currentPoints: _currentPoints,
-      gridPaths: _gridPaths,
-      currentPathD: _currentPathD,
-      historicalPathD: _historicalPathD,
-      baselinePathD: _makeSmoothCurve(_getPoints(chartData.baselineData), 0.45),
-    };
-  }, [chartData, previousCombinedProfile]);
-
-  // Error State
   if (error) {
     return (
       <ErrorStateCard
@@ -470,778 +293,177 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     );
   }
 
-  // Safe guard for early render
-  if (loading || !chartData || !overallState?.profile || !combinedProfile) {
+  if (loading || !overallState?.profile || !combinedProfile || !overall) {
     return (
       <View style={[styles.container, style]}>
-        {/* Header Skeleton */}
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <SkeletonLoader
-              width={80}
-              height={24}
-              style={{ borderRadius: 20 }}
-            />
-          </View>
           <View style={styles.textContainer}>
-            <SkeletonLoader
-              width={180}
-              height={34}
-              style={{ borderRadius: 6 }}
-            />
-            <SkeletonLoader
-              width={240}
-              height={18}
-              style={{ borderRadius: 4 }}
-            />
+            <SkeletonLoader width={180} height={34} style={{ borderRadius: 6 }} />
+            <SkeletonLoader width={240} height={18} style={{ borderRadius: 4 }} />
           </View>
         </View>
-
-        {/* Content Panel Skeleton */}
-        <View style={styles.contentPanel}>
-          <SkeletonLoader
-            width="100%"
-            height={SIZE}
-            style={{ marginBottom: 8, borderRadius: 24 }}
-          />
-          <View style={styles.breakthroughContainer}>
+        <SkeletonLoader
+          width="100%"
+          height={120}
+          style={{ borderRadius: 16, marginBottom: spacing.xl }}
+        />
+        <View style={styles.chips}>
+          {[0, 1, 2, 3, 4].map((i) => (
             <SkeletonLoader
-              width={120}
-              height={16}
-              style={{ marginBottom: 16 }}
+              key={i}
+              width="100%"
+              height={72}
+              style={{ borderRadius: 12, flex: 1 }}
             />
-            <View style={styles.heroChartContainer}>
-              <SkeletonLoader
-                width="100%"
-                height={140}
-                style={{ borderRadius: 24 }}
-              />
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <SkeletonLoader
-                  width="48%"
-                  height={100}
-                  style={{ borderRadius: 20, flex: 1 }}
-                />
-                <SkeletonLoader
-                  width="48%"
-                  height={100}
-                  style={{ borderRadius: 20, flex: 1 }}
-                />
-              </View>
-              <SkeletonLoader
-                width={140}
-                height={20}
-                style={{ marginTop: 16, alignSelf: "center", borderRadius: 10 }}
-              />
-            </View>
-          </View>
+          ))}
         </View>
       </View>
     );
   }
 
+  const deltaColor =
+    overall.delta == null || overall.delta === 0
+      ? colors.text.tertiary
+      : overall.delta > 0
+        ? colors.feedback.successText
+        : colors.feedback.dangerText;
+
   return (
     <View>
-      <View
-        // Vibrant Purple/Violet Gradient for Growth/Insights
-        style={styles.container}
-      >
-        {/* Decorative Bubbles */}
+      <View style={[styles.container, style]}>
         <View style={styles.mainWatermarkContainer}>
-          <MaterialCommunityIcons
-            name="trending-up"
+          <Icon
+            name={icons.growthSeed}
             size={300}
-            color={theme.colors.library.orange[500]}
-            style={{ opacity: 0.08 }}
+            color={colors.action.primary}
+            style={{ opacity: 0.1 }}
           />
         </View>
 
-        {/* Header */}
+        {/* Header — title + subtitle, no eyebrow. Momentum chip only when slipping. */}
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
-            {isRefreshing ? (
-              <SkeletonLoader
-                width={80}
-                height={22}
-                style={{ borderRadius: 20 }}
-              />
-            ) : (
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-              >
-                <View style={styles.chip}>
-                  <MaterialCommunityIcons
-                    name="chart-donut"
-                    size={12}
-                    color={theme.colors.library.orange[500]}
-                  />
-                  <Text style={styles.chipText}>TRACKING</Text>
+          {(isRefreshing || isMomentumSlipping) && (
+            <View style={styles.headerTopRow}>
+              {isRefreshing ? (
+                <SkeletonLoader width={80} height={22} style={{ borderRadius: 20 }} />
+              ) : (
+                <View
+                  style={[
+                    styles.chipBadge,
+                    { backgroundColor: colors.surface.control },
+                  ]}
+                >
+                  <Icon name={icons.warning} size={12} color={colors.text.tertiary} />
+                  <Text variant="label" color="secondary">
+                    Slipping Momentum
+                  </Text>
                 </View>
-                {isMomentumSlipping && (
-                  <View
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: theme.colors.library.gray[100],
-                        borderRadius: 12,
-                        paddingHorizontal: 8,
-                      },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="alert-circle-outline"
-                      size={12}
-                      color={theme.colors.library.gray[500]}
-                    />
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: theme.colors.library.gray[600] },
-                      ]}
-                    >
-                      SLIPPING MOMENTUM
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
+              )}
+            </View>
+          )}
 
           <View style={styles.textContainer}>
-            {isRefreshing ? (
-              <>
-                <SkeletonLoader
-                  width={180}
-                  height={34}
-                  style={{ borderRadius: 6 }}
-                />
-                <SkeletonLoader
-                  width={240}
-                  height={18}
-                  style={{ borderRadius: 4 }}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={styles.bigTitle}>Growth Profile</Text>
-                <Text style={styles.subtitle}>{dynamicSubtitle}</Text>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Main Content Panel (White) */}
-        <View style={styles.contentPanel}>
-          {/* Radar Chart Section - Step 7 */}
-          <View style={[styles.chartContainer, { height: SIZE }]}>
-            {isRefreshing ? (
-              <SkeletonLoader width="100%" height={SIZE} />
-            ) : (
-              <Svg
-                height={SIZE}
-                width={CHART_WIDTH}
-                viewBox={`0 0 ${SIZE} ${SIZE}`}
-              >
-                <Defs>
-                  <SvgGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <Stop
-                      offset="0"
-                      stopColor={theme.colors.library.orange[300]}
-                      stopOpacity="0.6"
-                    />
-                    <Stop
-                      offset="1"
-                      stopColor={theme.colors.library.orange[100]}
-                      stopOpacity="0.2"
-                    />
-                  </SvgGradient>
-                </Defs>
-
-                {/* Organic Grid (Concentric Blobs) */}
-                {gridPaths.map((pathD, i) => (
-                  <Path
-                    key={`grid-${i}`}
-                    d={pathD}
-                    stroke={theme.colors.library.gray[200]}
-                    strokeWidth="0.5" // Thinner grid
-                    strokeDasharray="4,2" // Tighter dash
-                    fill="none"
-                    opacity={0.6} // Subtler
-                  />
-                ))}
-
-                {/* Axes */}
-                {chartData.allDomains.map((_, i) => {
-                  const end = POLAR_TO_CARTESIAN(
-                    CENTER,
-                    CENTER,
-                    RADIUS,
-                    i * angleStep,
-                  );
-                  return (
-                    <Line
-                      key={i}
-                      x1={CENTER}
-                      y1={CENTER}
-                      x2={end.x}
-                      y2={end.y}
-                      stroke={theme.colors.library.gray[200]} // Lighter axis
-                      strokeWidth="1"
-                      strokeDasharray="2,2" // Tighter dash
-                    />
-                  );
-                })}
-
-                <G>
-                  {/* 1. Previous Week Ghost Layer */}
-                  {historicalPathD ? (
-                    <AnimatedPath
-                      d={historicalPathD}
-                      fill="none"
-                      stroke={theme.colors.library.gray[300]}
-                      strokeWidth={1.5}
-                      strokeDasharray="5,5"
-                      opacity={0.9}
-                    />
-                  ) : null}
-
-                  {/* 2. Clinical Baseline Layer (Greenish) */}
-                  <AnimatedPath
-                    d={baselinePathD}
-                    fill="#4CAF50"
-                    fillOpacity={0.12}
-                    stroke="#4CAF50"
-                    strokeWidth={1.5}
-                    strokeDasharray="4,4"
-                  />
-
-                  {/* 3. Current Combined Progress Layer (Orange) */}
-                  {/* Glow Effect */}
-                  <AnimatedPath
-                    d={currentPathD}
-                    fill="none"
-                    stroke={theme.colors.library.orange[300]}
-                    strokeWidth="12"
-                    strokeOpacity={0.15}
-                  />
-
-                  {/* Main Fill and Stroke */}
-                  <AnimatedPath
-                    d={currentPathD}
-                    fill="url(#radarGradient)"
-                    fillOpacity={0.6}
-                    stroke="#FF9800"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  {/* Dots (Only for current) */}
-                  {currentPoints.map((coord, i) => (
-                    <Circle
-                      key={`dot-${i}`}
-                      cx={coord.x}
-                      cy={coord.y}
-                      r="4"
-                      fill="white"
-                      stroke="#FF9800"
-                      strokeWidth="2"
-                    />
-                  ))}
-                </G>
-
-                {/* Labels */}
-                {chartData.allDomains.map((domain, i) => {
-                  const pos = POLAR_TO_CARTESIAN(
-                    CENTER,
-                    CENTER,
-                    RADIUS + 28,
-                    i * angleStep,
-                  );
-                  const config = METRIC_CONFIG[domain];
-
-                  type TextAnchor = "start" | "middle" | "end";
-                  let anchor: TextAnchor = "middle";
-                  if (pos.x < CENTER - 10) anchor = "end";
-                  if (pos.x > CENTER + 10) anchor = "start";
-
-                  return (
-                    <SvgText
-                      key={`text-${i}`}
-                      x={pos.x}
-                      y={pos.y}
-                      fill={"#666666"}
-                      fontSize={"10"}
-                      fontWeight={"600"}
-                      textAnchor={anchor}
-                      alignmentBaseline="middle"
-                      letterSpacing={1}
-                    >
-                      {config.label.toUpperCase()}
-                    </SvgText>
-                  );
-                })}
-
-              </Svg>
-            )}
-            {!isRefreshing ? (
-              <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-                {chartLabelTargets.map((target) => {
-                  return (
-                    <TouchableOpacity
-                      key={target.domain}
-                      activeOpacity={0.7}
-                      hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-                      onPress={() => handleMetricPress(target.domain)}
-                      style={[
-                        styles.chartLabelHitbox,
-                        { left: target.left, top: target.top },
-                      ]}
-                    />
-                  );
-                })}
-              </View>
-            ) : null}
-          </View>
-
-          {/* Weekly Breakthroughs */}
-          <View style={styles.breakthroughContainer}>
-            {/* Breakthrough Watermark Icon */}
-            <View style={styles.breakthroughWatermarkContainer}>
-              <MaterialCommunityIcons
-                name="trophy-variant"
-                size={160}
-                color={theme.colors.library.orange[500]}
-                style={{ opacity: 0.08 }}
-              />
-            </View>
-            {isRefreshing ? (
-              <>
-                <SkeletonLoader
-                  width={120}
-                  height={16}
-                  style={{ marginBottom: 16 }}
-                />
-                <View style={styles.heroChartContainer}>
-                  <SkeletonLoader
-                    width="100%"
-                    height={140}
-                    style={{ borderRadius: 24 }}
-                  />
-                  <View style={{ flexDirection: "row", gap: 12 }}>
-                    <SkeletonLoader
-                      width="48%"
-                      height={100}
-                      style={{ borderRadius: 20, flex: 1 }}
-                    />
-                    <SkeletonLoader
-                      width="48%"
-                      height={100}
-                      style={{ borderRadius: 20, flex: 1 }}
-                    />
-                  </View>
-                  {/* Button skeleton MUST be inside heroChartContainer to match layout */}
-                  <SkeletonLoader
-                    width={140}
-                    height={20}
-                    style={{
-                      marginTop: 16,
-                      alignSelf: "center",
-                      borderRadius: 10,
-                    }}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                {topBreakthroughs.length > 0 ? (
-                  <>
-                    <Text style={styles.sectionLabel}>TOP BREAKTHROUGHS</Text>
-                    {(() => {
-                      const [heroItem, ...secondaryItems] = topBreakthroughs;
-                      const isCompactBreakthroughLayout =
-                        topBreakthroughs.length <= 3;
-                      const formatPointDelta = (delta: number | null) => {
-                        if (delta === null) {
-                          return null;
-                        }
-
-                        const rounded = Math.abs(delta).toFixed(1);
-                        return `${delta > 0 ? "+" : ""}${rounded} pts`;
-                      };
-
-                      if (isCompactBreakthroughLayout) {
-                        return (
-                          <View style={styles.compactBreakthroughGrid}>
-                            {topBreakthroughs.map((item) => {
-                              const isImp = item.trend === "IMPROVING";
-
-                              return (
-                                <TouchableOpacity
-                                  key={item.key}
-                                  activeOpacity={0.7}
-                                  onPress={() => handleMetricPress(item.domain)}
-                                  style={[
-                                    styles.miniCard,
-                                    styles.compactBreakthroughCard,
-                                    topBreakthroughs.length === 1
-                                      ? styles.compactBreakthroughCardSingle
-                                      : null,
-                                    {
-                                      borderWidth: 1,
-                                      borderColor: theme.colors.library.gray[100],
-                                    },
-                                  ]}
-                                >
-                                  <View style={styles.compactBreakthroughWatermark}>
-                                    <MaterialCommunityIcons
-                                      name={item.config.icon as any}
-                                      size={40}
-                                      color={item.config.color}
-                                      style={{ opacity: 0.08 }}
-                                    />
-                                  </View>
-
-                                  <View style={styles.compactBreakthroughHeader}>
-                                    <Text
-                                      style={[styles.cardTitle, { marginBottom: 0 }]}
-                                      numberOfLines={1}
-                                      adjustsFontSizeToFit
-                                      minimumFontScale={0.7}
-                                    >
-                                      {item.config.label}
-                                    </Text>
-                                  </View>
-
-                                  <View style={styles.compactBreakthroughValueRow}>
-                                    <Text style={styles.compactBreakthroughValue}>
-                                      {Math.round(item.current)}
-                                    </Text>
-                                    {item.hasComparison ? (
-                                      <View
-                                        style={
-                                          styles.compactBreakthroughDeltaRow
-                                        }
-                                      >
-                                        <Text
-                                          style={[
-                                            styles.btChange,
-                                            isImp
-                                              ? styles.textSuccess
-                                              : styles.textNeutral,
-                                          ]}
-                                        >
-                                          {item.percentDelta! > 0 ? "+" : ""}
-                                          {item.percentDelta?.toFixed(1)}%
-                                        </Text>
-                                        <MaterialCommunityIcons
-                                          name={
-                                            isImp
-                                              ? "trending-up"
-                                              : "trending-down"
-                                          }
-                                          size={14}
-                                          color={
-                                            isImp
-                                              ? theme.colors.library.green[400]
-                                              : theme.colors.library.red[400]
-                                          }
-                                        />
-                                      </View>
-                                    ) : null}
-                                  </View>
-
-                                  {item.absoluteDelta !== null ? (
-                                    <Text style={styles.btDeltaTextSmall}>
-                                      {formatPointDelta(item.absoluteDelta)}
-                                    </Text>
-                                  ) : null}
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        );
-                      }
-
-                      return (
-                        <View style={styles.heroChartContainer}>
-                          {/* Left Col: Hero Card */}
-                          {heroItem ? (
-                            <TouchableOpacity
-                              activeOpacity={0.7}
-                              onPress={() => handleMetricPress(heroItem.domain)}
-                              style={[
-                                styles.miniCard,
-                                styles.heroCard,
-                                {
-                                  borderWidth: 1,
-                                  borderColor: theme.colors.library.gray[100],
-                                },
-                              ]}
-                            >
-                              <View style={styles.heroHeader}>
-                                <Text
-                                  style={[styles.cardTitle, { marginBottom: 0 }]}
-                                >
-                                  {heroItem.config.label}
-                                </Text>
-                                <MaterialCommunityIcons
-                                  name={heroItem.config.icon as any}
-                                  size={18}
-                                  color={heroItem.config.color}
-                                />
-                              </View>
-                              <Text style={styles.heroValue}>
-                                {Math.round(heroItem.current)}
-                              </Text>
-                              <View style={styles.btChangeRow}>
-                                {heroItem.hasComparison && (
-                                  <View
-                                    style={{
-                                      flexDirection: "row",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    <Text
-                                      style={[
-                                        {
-                                          color:
-                                            heroItem.trend === "IMPROVING"
-                                              ? theme.colors.library.green[400]
-                                              : theme.colors.library.red[400],
-                                          fontWeight: "700",
-                                        },
-                                      ]}
-                                    >
-                                      {heroItem.percentDelta! > 0 ? "+" : ""}
-                                      {heroItem.percentDelta?.toFixed(1)}%
-                                    </Text>
-
-                                    <MaterialCommunityIcons
-                                      name={
-                                        heroItem.trend === "IMPROVING"
-                                          ? "trending-up"
-                                          : "trending-down"
-                                      }
-                                      size={16}
-                                      color={
-                                        heroItem.trend === "IMPROVING"
-                                          ? theme.colors.library.green[400]
-                                          : theme.colors.library.red[400]
-                                      }
-                                      style={{ marginLeft: 4 }}
-                                    />
-                                  </View>
-                                )}
-                              </View>
-                              {heroItem.absoluteDelta !== null ? (
-                                <Text style={styles.btDeltaText}>
-                                  {formatPointDelta(heroItem.absoluteDelta)}
-                                </Text>
-                              ) : null}
-                            </TouchableOpacity>
-                          ) : null}
-
-                          {/* Bottom Row: 2 Mini Cards Side-by-Side */}
-                          <View style={{ flexDirection: "row", gap: 12 }}>
-                            {secondaryItems.map((item) => {
-                              const isImp = item.trend === "IMPROVING";
-
-                              return (
-                                <TouchableOpacity
-                                  key={item.key}
-                                  activeOpacity={0.7}
-                                  onPress={() => handleMetricPress(item.domain)}
-                                  style={[
-                                    styles.miniCard,
-                                    {
-                                      borderWidth: 1,
-                                      borderColor:
-                                        theme.colors.library.gray[100],
-                                      flex: 1,
-                                      height: 100,
-                                      padding: 12,
-                                    },
-                                  ]}
-                                >
-                                  <View
-                                    style={{
-                                      flexDirection: "column",
-                                      justifyContent: "space-between",
-                                      height: "100%",
-                                    }}
-                                  >
-                                    <View>
-                                      <View
-                                        style={{
-                                          flexDirection: "row",
-                                          justifyContent: "space-between",
-                                          alignItems: "flex-start",
-                                          width: "100%",
-                                        }}
-                                      >
-                                        <Text
-                                          style={[
-                                            styles.cardTitle,
-                                            { marginBottom: 0, flex: 1 },
-                                          ]}
-                                          numberOfLines={1}
-                                          adjustsFontSizeToFit
-                                          minimumFontScale={0.8}
-                                        >
-                                          {item.config.label}
-                                        </Text>
-                                        <View style={{ marginLeft: 4 }}>
-                                          <MaterialCommunityIcons
-                                            name={item.config.icon as any}
-                                            size={14}
-                                            color={item.config.color}
-                                          />
-                                        </View>
-                                      </View>
-
-                                      {item.hasComparison && (
-                                        <View
-                                          style={{
-                                            flexDirection: "row",
-                                            alignItems: "center",
-                                            marginTop: 4,
-                                          }}
-                                        >
-                                          <Text
-                                            style={[
-                                              styles.btChange,
-                                              isImp
-                                                ? styles.textSuccess
-                                                : styles.textNeutral,
-                                              {
-                                                fontSize: 11,
-                                                fontWeight: "700",
-                                              },
-                                            ]}
-                                          >
-                                            {item.percentDelta! > 0 ? "+" : ""}
-                                            {item.percentDelta?.toFixed(1)}%
-                                          </Text>
-                                          <MaterialCommunityIcons
-                                            name={
-                                              isImp
-                                                ? "trending-up"
-                                                : "trending-down"
-                                            }
-                                            size={14}
-                                            color={
-                                              isImp
-                                                ? theme.colors.library.green[400]
-                                                : theme.colors.library.red[400]
-                                            }
-                                            style={{ marginLeft: 2 }}
-                                          />
-                                        </View>
-                                      )}
-
-                                      {item.absoluteDelta !== null ? (
-                                        <Text style={styles.btDeltaTextSmall}>
-                                          {formatPointDelta(
-                                            item.absoluteDelta,
-                                          )}
-                                        </Text>
-                                      ) : null}
-                                    </View>
-
-                                    <Text style={styles.miniValue}>
-                                      {Math.round(item.current)}
-                                    </Text>
-                                  </View>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-
-                        </View>
-                      );
-                    })()}
-                  </>
-                ) : null}
-              </>
-            )}
-          </View>
-
-          <TouchableOpacity
-            onPress={onRefresh}
-            disabled={isRefreshing}
-            activeOpacity={0.7}
-            style={styles.syncLink}
-          >
-            <Animated.View style={isRefreshing ? refreshIconStyle : null}>
-              <MaterialCommunityIcons
-                name="sync"
-                size={16}
-                color={theme.colors.library.gray[400]}
-              />
-            </Animated.View>
-            <Text style={styles.syncText}>
-              {isRefreshing
-                ? "Syncing data..."
-                : `Last synced at ${new Date(
-                  overallState.profile.meta.computedAt,
-                ).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`}
+            <Text variant="h2" color="primary">
+              Growth Profile
             </Text>
-          </TouchableOpacity>
+            <Text variant="body" color="secondary">
+              {dynamicSubtitle}
+            </Text>
+          </View>
         </View>
 
-        {/* Modal removed - now uses DimensionDetailScreen via navigation */}
+        {/* Hero — overall growth score + weekly delta + momentum. */}
+        <View style={styles.hero}>
+          <AnimatedNumber
+            value={overall.current}
+            variant="screenTitle"
+            color="primary"
+          />
+          <View style={styles.heroMeta}>
+            {overall.delta != null && (
+              <View style={styles.heroDelta}>
+                {overall.delta !== 0 && (
+                  <Icon
+                    name={overall.delta > 0 ? icons.trend : icons.trendDown}
+                    size={14}
+                    color={deltaColor}
+                  />
+                )}
+                <Text variant="bodySm" color={deltaColor}>
+                  {overall.delta > 0 ? "+" : ""}
+                  {overall.delta} this week
+                </Text>
+              </View>
+            )}
+            {momentumState && (
+              <View
+                style={[styles.momentumPill, { backgroundColor: colors.surface.control }]}
+              >
+                <Text variant="label" color="secondary">
+                  {MOMENTUM_LABEL[momentumState]}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Signature line chart — overall trajectory over 4 weeks. */}
+        <View style={styles.chartWrap}>
+          <TrendLine
+            data={overall.values}
+            labels={overall.labels}
+            color={colors.text.link}
+            height={120}
+          />
+        </View>
+
+        <View style={[styles.divider, { backgroundColor: colors.border.hairline }]} />
+
+        {/* 5 tappable metric chips. */}
+        <View style={styles.chips}>
+          {metricChips.map((item, index) => (
+            <MetricChip
+              key={item.key}
+              item={item}
+              index={index}
+              onPress={handleMetricPress}
+            />
+          ))}
+        </View>
+
+        <TouchableOpacity
+          onPress={onRefresh}
+          disabled={isRefreshing}
+          activeOpacity={0.7}
+          style={styles.syncLink}
+        >
+          <Animated.View style={isRefreshing ? refreshIconStyle : null}>
+            <Icon name={icons.refresh} size={16} color={colors.text.tertiary} />
+          </Animated.View>
+          <Text variant="caption" color="tertiary" style={styles.syncText}>
+            {isRefreshing
+              ? "Syncing data..."
+              : `Last synced at ${new Date(
+                  overallState.profile.meta.computedAt,
+                ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   container: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24, // Reduced bottom padding
+    borderRadius: radius.card,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
     marginVertical: 0,
-    backgroundColor: "white",
+    backgroundColor: c.surface.default,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-    // Premium SaaS Shadow
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  comparisonCaption: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#94A3B8",
-    fontWeight: "600",
-  },
-  contentPanel: {
-    marginTop: 16,
-    paddingHorizontal: 0,
-  },
-
-  btChangeRow: {
-    marginTop: "auto",
-    paddingTop: 12,
-  },
-  miniValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-  },
-  card: {
-    backgroundColor: "white",
-    borderRadius: 24,
-    marginVertical: 0,
-    padding: 20,
+    borderColor: c.border.hairline,
   },
   mainWatermarkContainer: {
     position: "absolute",
@@ -1250,245 +472,96 @@ const styles = StyleSheet.create({
     zIndex: 0,
     transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
-  // Decorative Elements (White transparent overlays)
-
   header: {
-    marginBottom: 24,
+    marginBottom: space.groupGap,
     zIndex: 1,
   },
   headerTopRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
-  chip: {
+  chipBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: theme.colors.library.orange[100],
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderRadius: 12,
-    gap: 6,
+    gap: spacing.sm,
     alignSelf: "flex-start",
   },
-  chipText: {
-    color: theme.colors.library.orange[600],
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
   textContainer: {
-    gap: 6,
+    gap: space.titleSub,
   },
-  bigTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: theme.colors.text.title,
-    letterSpacing: -0.6,
-    lineHeight: 30,
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1,
+    marginBottom: spacing.sm,
   },
-  subtitle: {
-    fontSize: 15,
-    color: "#64748B",
-    lineHeight: 22,
-    fontWeight: "500",
+  heroMeta: {
+    alignItems: "flex-end",
+    gap: space.inlineGap,
+  },
+  heroDelta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  momentumPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+  },
+  chartWrap: {
+    zIndex: 1,
+    marginBottom: spacing.lg,
+  },
+  divider: {
+    height: 1,
+    marginBottom: spacing.lg,
+  },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    zIndex: 1,
+    marginBottom: spacing.md,
+  },
+  // ~30% basis wraps 5 tiles into 3-then-2 rows; flexGrow lets each row's
+  // tiles stretch evenly to fill the width instead of leaving a gap.
+  chipWrap: {
+    flexGrow: 1,
+    flexBasis: "30%",
+  },
+  chip: {
+    backgroundColor: c.surface.control,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  chipHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  chipTrend: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   syncLink: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    marginTop: 8,
-    gap: 8,
-    paddingVertical: 0,
+    marginTop: spacing.sm,
+    marginLeft: -2,
+    gap: spacing.sm,
+    zIndex: 1,
   },
   syncText: {
-    fontSize: 12,
-    color: theme.colors.library.gray[400],
-    fontWeight: "600",
-    width: "100%",
-  },
-  chartContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  chartLabelHitbox: {
-    position: "absolute",
-    width: CHART_LABEL_TOUCH_WIDTH,
-    height: CHART_LABEL_TOUCH_HEIGHT,
-    zIndex: 2,
-  },
-  iconCircle: {
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-    minHeight: 300,
-  },
-  errorText: {
-    color: theme.colors.text.default,
-    marginTop: 12,
-    marginBottom: 16,
-    fontSize: 14,
-  },
-  retryBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: theme.colors.library.orange[400],
-    borderRadius: 20,
-  },
-  retryText: {
-    color: theme.colors.text.onDark,
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  heroChartContainer: {
-    marginTop: 12,
-    flexDirection: "column",
-    gap: 12,
-  },
-  compactBreakthroughGrid: {
-    marginTop: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  compactBreakthroughCard: {
-    width: "48%",
-    flexGrow: 1,
-    flexBasis: "45%",
-    height: 104,
-    justifyContent: "space-between",
-    padding: 16,
-    position: "relative",
-    overflow: "hidden",
-  },
-  compactBreakthroughCardSingle: {
-    width: "100%",
-    height: 96,
-  },
-  compactBreakthroughWatermark: {
-    position: "absolute",
-    right: 10,
-    bottom: 8,
-    zIndex: 0,
-  },
-  compactBreakthroughHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    zIndex: 1,
-  },
-  compactBreakthroughValueRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 12,
-    zIndex: 1,
-  },
-  compactBreakthroughValue: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: theme.colors.text.title,
-    letterSpacing: -0.8,
-    lineHeight: 30,
-  },
-  compactBreakthroughDeltaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  heroCard: {
-    height: 140,
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  heroHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  cardTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#64748B",
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.2,
-  },
-  heroValue: {
-    fontSize: 36,
-    fontWeight: "800",
-    color: theme.colors.text.title,
-    letterSpacing: -1,
-    marginTop: 8,
-  },
-  bentoBottomRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  miniCard: {
     flex: 1,
-    justifyContent: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 16,
-    borderRadius: 16,
-    height: 110,
   },
-  miniContent: {
-    flexDirection: "column",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    height: "100%",
-  },
+}));
 
-  breakthroughContainer: {
-    marginTop: 12,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    position: "relative",
-  },
-  breakthroughWatermarkContainer: {
-    position: "absolute",
-    bottom: 100,
-    left: -80,
-    zIndex: 0,
-    transform: [{ rotate: "15deg" }],
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#94A3B8",
-    marginBottom: 16,
-    textTransform: "uppercase",
-    letterSpacing: 2,
-  },
-
-  btChange: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  btDeltaText: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.text.default,
-  },
-  btDeltaTextSmall: {
-    marginTop: 4,
-    fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.text.default,
-  },
-  textSuccess: { color: theme.colors.library.green[400] },
-  textError: { color: theme.colors.library.red[400] },
-  textNeutral: { color: theme.colors.library.red[400] },
-
-});
-
-export default React.memo(ClinicalStatsWidget);
+export default ClinicalStatsWidget;

@@ -8,12 +8,11 @@ import { SupportNoteId } from "../api/threads/types";
  */
 export interface SupportNote {
   id: SupportNoteId;
-  emoji: string;
   text: string;
 }
 
 export const SUPPORT_NOTES: SupportNote[] = [
-  { id: "here_for_you", emoji: "💛", text: "I'm here for you — you're not alone in this." },
-  { id: "not_going_anywhere", emoji: "🫂", text: "Thank you for telling me. I'm not going anywhere." },
-  { id: "you_matter", emoji: "🤍", text: "You matter to me. Can we talk?" },
+  { id: "here_for_you", text: "I'm here for you — you're not alone in this." },
+  { id: "not_going_anywhere", text: "Thank you for telling me. I'm not going anywhere." },
+  { id: "you_matter", text: "You matter to me. Can we talk?" },
 ];

@@ -1,13 +1,20 @@
-import Slider from "@react-native-community/slider";
 import { Audio } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../../Theme/tokens";
+import { StyleSheet, View } from "react-native";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+  Text,
+  Icon,
+  icons,
+  Button,
+  Slider,
+  withAlpha,
+  darkenForContrast,
+  mix,
+} from "../../../../../design-system";
 
 export const useMetronome = (muteLogic = false) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -23,11 +30,18 @@ export const useMetronome = (muteLogic = false) => {
       return;
     }
 
+    let cancelled = false;
     const loadSound = async () => {
       try {
         const { sound } = await Audio.Sound.createAsync(
           require("../../../../../assets/single-tick.mp3")
         );
+        // Unmounted (or muted) while loading — the cleanup below already ran
+        // against a null ref, so release this instance directly.
+        if (cancelled) {
+          sound.unloadAsync().catch(() => {});
+          return;
+        }
         soundRef.current = sound;
         setIsSoundLoaded(true);
       } catch (error) {
@@ -38,7 +52,9 @@ export const useMetronome = (muteLogic = false) => {
     loadSound();
 
     return () => {
+      cancelled = true;
       soundRef.current?.unloadAsync();
+      soundRef.current = null;
       if (intervalRef.current) clearInterval(intervalRef.current);
       setIsSoundLoaded(false);
     };
@@ -83,6 +99,8 @@ interface MetronomeProps {
   onTogglePlay?: (playing: boolean) => void;
   speed?: number;
   onSpeedChange?: (speed: number) => void;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 const Metronome = ({
@@ -90,7 +108,16 @@ const Metronome = ({
   onTogglePlay,
   speed: controlledSpeed,
   onSpeedChange,
+  accentColor,
+  onAccentColor,
 }: MetronomeProps) => {
+  const { colors } = useTheme();
+  const accent = accentColor ?? colors.action.primary;
+  // The "Beat" chip label is colored foreground on a faint accent wash — darken
+  // an arbitrary threaded hue until it clears AA on paper (a no-op on dark). Keep
+  // the bright `accent` for the badge fill + border.
+  const accentFg = darkenForContrast(accent, mix(colors.surface.elevated, accent, 0.14));
+  const onAccent = onAccentColor ?? colors.action.onPrimary;
   const isControlled = controlledIsPlaying !== undefined;
 
   // If controlled, mute the internal hook logic (because parent runs it)
@@ -114,100 +141,119 @@ const Metronome = ({
 
   return (
     <View style={styles.container}>
+      {/* Hero — free-floating eyebrow/title/status on the sheet surface. */}
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View style={styles.heroHeaderText}>
-            <Text style={styles.heroEyebrow}>Tempo</Text>
-            <Text style={styles.heroTitle}>Metronome</Text>
+            <Text variant="label" color="tertiary">
+              TEMPO
+            </Text>
+            <Text variant="h3" color="primary">
+              Metronome
+            </Text>
           </View>
 
           <View
             style={[
               styles.statusBadge,
-              activeIsPlaying ? styles.statusBadgeReady : styles.statusBadgeIdle,
+              {
+                backgroundColor: activeIsPlaying
+                  ? colors.accentTint.success
+                  : withAlpha(accent, 0.14),
+              },
             ]}
           >
-            <FAIcon
-              name="clock"
+            <Icon
+              name={icons.duration}
               size={12}
               color={
                 activeIsPlaying
-                  ? "#10B981"
-                  : theme.colors.actionPrimary.default
+                  ? colors.feedback.successText
+                  : accent
               }
             />
             <Text
-              style={[
-                styles.statusBadgeText,
+              variant="label"
+              color={
                 activeIsPlaying
-                  ? styles.statusBadgeTextReady
-                  : styles.statusBadgeTextIdle,
-              ]}
+                  ? colors.feedback.successText
+                  : accent
+              }
             >
               {activeIsPlaying ? "Playing" : "Ready"}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.heroText}>
+        <Text variant="bodySm" color="secondary">
           Set a steady beat for your reading, then press start when you're
           ready.
         </Text>
       </View>
 
-      <View style={styles.sliderCard}>
+      {/* Slider card — elevated surface + hairline. */}
+      <View
+        style={[
+          styles.sliderCard,
+          {
+            backgroundColor: colors.surface.elevated,
+            borderColor: colors.border.default,
+          },
+        ]}
+      >
         <View style={styles.sliderHeader}>
           <View>
-            <Text style={styles.sectionEyebrow}>Speed</Text>
-            <Text style={styles.sectionTitle}>{activeSpeed} BPM</Text>
-          </View>
-
-          <View style={styles.valueBadge}>
-            <Text style={styles.valueBadgeText}>Beat</Text>
-          </View>
-        </View>
-
-        <View style={styles.sliderWrapper}>
-          <Slider
-            style={styles.slider}
-            minimumValue={min}
-            maximumValue={max}
-            step={1}
-            value={activeSpeed}
-            onValueChange={(val) => activeSetSpeed && activeSetSpeed(val)}
-            minimumTrackTintColor={theme.colors.library.orange[400]}
-            maximumTrackTintColor="#F1D9C6"
-            thumbTintColor={theme.colors.library.orange[400]}
-          />
-        </View>
-
-        <View style={styles.rowContainer}>
-          <Text style={styles.paceText}>Slow</Text>
-          <Text style={styles.paceText}>Fast</Text>
-        </View>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          onPress={() => activeSetIsPlaying && activeSetIsPlaying(!activeIsPlaying)}
-          style={[
-            styles.button,
-            activeIsPlaying ? styles.buttonStop : styles.buttonStart,
-          ]}
-          activeOpacity={0.85}
-        >
-          <View style={styles.buttonContent}>
-            <FAIcon
-              name={activeIsPlaying ? "stop" : "play"}
-              size={14}
-              color="#FFF"
-            />
-            <Text style={styles.buttonText}>
-              {activeIsPlaying ? "Stop Metronome" : "Start Metronome"}
+            <Text variant="label" color="tertiary">
+              SPEED
+            </Text>
+            <Text variant="h3" color="primary">
+              {activeSpeed} BPM
             </Text>
           </View>
-        </TouchableOpacity>
+
+          <View
+            style={[
+              styles.valueBadge,
+              {
+                backgroundColor: withAlpha(accent, 0.14),
+                borderColor: accent,
+              },
+            ]}
+          >
+            <Text variant="label" color={accentFg}>
+              Beat
+            </Text>
+          </View>
+        </View>
+
+        <Slider
+          minimumValue={min}
+          maximumValue={max}
+          step={1}
+          value={activeSpeed}
+          onValueChange={(val) => activeSetSpeed && activeSetSpeed(val)}
+          haptic={false}
+          accentColor={accent}
+        />
+
+        <View style={styles.rowContainer}>
+          <Text variant="caption" color="tertiary">
+            Slow
+          </Text>
+          <Text variant="caption" color="tertiary">
+            Fast
+          </Text>
+        </View>
       </View>
+
+      <Button
+        variant={activeIsPlaying ? "secondary" : "primary"}
+        label={activeIsPlaying ? "Stop Metronome" : "Start Metronome"}
+        leftIcon={activeIsPlaying ? icons.stop : icons.play}
+        onPress={() => activeSetIsPlaying && activeSetIsPlaying(!activeIsPlaying)}
+        accentColor={accent}
+        onAccentColor={onAccent}
+      />
     </View>
   );
 };
@@ -216,77 +262,38 @@ export default Metronome;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
     flexDirection: "column",
-    gap: 14,
+    gap: spacing.lg,
   },
   heroCard: {
-    paddingHorizontal: 4,
-    paddingTop: 2,
-    paddingBottom: 0,
-    gap: 14,
+    paddingHorizontal: spacing.xs,
+    gap: spacing.md,
   },
   heroHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.md,
   },
   heroHeaderText: {
     flex: 1,
-    gap: 2,
-  },
-  heroEyebrow: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.text.default,
-    opacity: 0.62,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading4),
-    color: theme.colors.text.title,
-  },
-  heroText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    gap: spacing.xxs,
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-  },
-  statusBadgeReady: {
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
-    borderColor: "rgba(16, 185, 129, 0.16)",
-  },
-  statusBadgeIdle: {
-    backgroundColor: "#FFF4E6",
-    borderColor: "rgba(255, 144, 64, 0.20)",
-  },
-  statusBadgeText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    fontWeight: "600",
-  },
-  statusBadgeTextReady: {
-    color: "#0F9F6E",
-  },
-  statusBadgeTextIdle: {
-    color: theme.colors.actionPrimary.default,
+    gap: spacing.xs,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   sliderCard: {
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: "rgba(253, 182, 129, 0.22)",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderRadius: radius.card,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.lg,
+    borderWidth: borderWidth.thin,
   },
   sliderHeader: {
     width: "100%",
@@ -294,74 +301,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sectionEyebrow: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.text.default,
-    opacity: 0.7,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  sectionTitle: {
-    ...parseTextStyle(theme.typography.BodyHighLight),
-    color: theme.colors.text.title,
-  },
   valueBadge: {
-    backgroundColor: "#FFF4E6",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255, 144, 64, 0.20)",
-  },
-  valueBadgeText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.actionPrimary.default,
-    fontWeight: "700",
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderWidth: borderWidth.thin,
   },
   rowContainer: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  sliderWrapper: {
-    width: "100%",
-    justifyContent: "center",
-    overflow: "visible",
-  },
-  slider: {
-    width: "100%",
-    height: 22,
-  },
-  paceText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    opacity: 0.68,
-  },
-  buttonContainer: {
-    marginTop: 2,
-  },
-  button: {
-    minHeight: 52,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle("0px 6px 16px 0px rgba(255, 144, 64, 0.18)"),
-  },
-  buttonStart: {
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
-  buttonStop: {
-    backgroundColor: "#E85D4A",
-  },
-  buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  buttonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFF",
-    fontWeight: "600",
   },
 });

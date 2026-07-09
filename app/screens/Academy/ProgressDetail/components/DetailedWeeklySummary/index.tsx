@@ -1,373 +1,125 @@
 import { addDays, format, startOfWeek } from "date-fns";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import Svg, {
-  Circle,
-  Defs,
-  Line,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  Rect,
-  Stop,
-} from "react-native-svg";
+import { StyleSheet, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
-import SeekerFace from "../../../../../assets/sw-faces/SeekerFace";
-import PathfinderFace from "../../../../../assets/sw-faces/PathfinderFace";
-import VanguardFace from "../../../../../assets/sw-faces/VanguardFace";
-import CatalystFace from "../../../../../assets/sw-faces/CatalystFace";
-import BeaconFace from "../../../../../assets/sw-faces/BeaconFace";
 import { WeeklyReportResponse } from "../../../../../api/progressReport/types";
-import { theme } from "../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import SkeletonLoader from "../../../../../components/SkeletonLoader";
+import {
+  useTheme,
+  spacing,
+  radius,
+  size,
+  fonts,
+  Text,
+  Skeleton,
+  Icon,
+  icons,
+} from "../../../../../design-system";
 import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
 
-/** Speaker's Journey stage → animated camel face (keyed by the stage title). */
-const LEVEL_FACES: Record<string, React.ComponentType<{ size?: number; shouldAnimate?: boolean; transparentBg?: boolean }>> = {
-  seeker: SeekerFace,
-  pathfinder: PathfinderFace,
-  vanguard: VanguardFace,
-  catalyst: CatalystFace,
-  beacon: BeaconFace,
-};
-
-export const WeeklySummarySkeleton = () => (
-  <View style={styles.shadowContainer}>
-    <LinearGradient
-      colors={["#8B5CF6", "#6D28D9"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradient}
-    >
-      <View style={styles.contentLayer}>
-        <View style={styles.headerRow}>
-          <View style={{ gap: 8 }}>
-            <SkeletonLoader width={120} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-            <SkeletonLoader width={180} height={16} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-          </View>
-          <View style={styles.headerRight}>
-            <SkeletonLoader width={20} height={20} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-          </View>
-        </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statBadgeSkeleton}>
-             <SkeletonLoader width={"50%"} height={32} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
-             <SkeletonLoader width={"80%"} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 12 }} />
-             <SkeletonLoader width={"100%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
-             <SkeletonLoader width={"60%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-          </View>
-          <View style={styles.statBadgeSkeleton}>
-             <SkeletonLoader width={"50%"} height={32} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
-             <SkeletonLoader width={"80%"} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 12 }} />
-             <SkeletonLoader width={"100%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
-             <SkeletonLoader width={"60%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-          </View>
-        </View>
-      </View>
-    </LinearGradient>
-  </View>
-);
-
-// ── Sparkline ──────────────────────────────────────────────────────────────
-const TREND_VIEWBOX_WIDTH = 320;
-const TREND_VIEWBOX_HEIGHT = 110;
-const TREND_PADDING_X = 20;
-const TREND_PADDING_TOP = 12;
-const TREND_PADDING_BOTTOM = 28;
 const MAX_ACTIVE_DAYS_PER_WEEK = 7;
+const CHART_W = 320;
+const CHART_H = 88;
+const CHART_PAD_Y = 14;
 
 const toLocalChartDate = (value: string | Date) => {
-  if (value instanceof Date) {
-    return value;
-  }
-
+  if (value instanceof Date) return value;
   const normalized = value.includes("T") ? value.split("T")[0] : value;
   return new Date(`${normalized}T00:00:00`);
 };
 
-const buildLinePath = (points: Array<{ x: number; y: number }>) => {
-  if (points.length === 0) {
-    return "";
+/** Catmull-Rom → cubic-bezier smoothing for a clean curved line. */
+const buildSmoothPath = (pts: Array<{ x: number; y: number }>) => {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
   }
-
-  if (points.length === 1) {
-    return `M ${points[0].x} ${points[0].y}`;
-  }
-
-  return points.reduce(
-    (path, point, index) =>
-      index === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`,
-    "",
-  );
+  return d;
 };
 
-const buildAreaPath = (
-  points: Array<{ x: number; y: number }>,
-  baselineY: number,
-) => {
-  if (points.length === 0) {
-    return "";
-  }
-
-  if (points.length === 1) {
-    const { x, y } = points[0];
-    return `M ${x} ${baselineY} L ${x} ${y} L ${x} ${baselineY} Z`;
-  }
-
-  const linePath = buildLinePath(points);
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
-
-  return `${linePath} L ${lastPoint.x} ${baselineY} L ${firstPoint.x} ${baselineY} Z`;
-};
-
-const DaysActiveSparkline: React.FC<{
-  historicalActiveDays: { weekStart: string; daysActive: number }[];
-  benchmarkText: string;
-  isAhead: boolean;
-}> = ({ historicalActiveDays, benchmarkText, isAhead }) => {
-  const chartData = React.useMemo(() => {
-    const innerWidth = TREND_VIEWBOX_WIDTH - TREND_PADDING_X * 2;
-    const innerHeight =
-      TREND_VIEWBOX_HEIGHT - TREND_PADDING_TOP - TREND_PADDING_BOTTOM;
-    const baselineY = TREND_PADDING_TOP + innerHeight;
-    const step =
-      historicalActiveDays.length > 1
-        ? innerWidth / (historicalActiveDays.length - 1)
-        : 0;
-
-    const points = historicalActiveDays.map((week, index) => {
-      const normalizedDays = Math.max(
-        0,
-        Math.min(MAX_ACTIVE_DAYS_PER_WEEK, week.daysActive),
-      );
-
-      return {
-        ...week,
-        x:
-          historicalActiveDays.length > 1
-            ? TREND_PADDING_X + step * index
-            : TREND_VIEWBOX_WIDTH / 2,
-        y:
-          baselineY -
-          (normalizedDays / MAX_ACTIVE_DAYS_PER_WEEK) * innerHeight,
-        daysLabel:
-          normalizedDays === 1 ? "1 active day" : `${normalizedDays} active days`,
-      };
-    });
-
+/** Minimal smooth line — one thin stroke + a small current-point dot. */
+const RhythmLine: React.FC<{
+  days: { weekStart: string; daysActive: number }[];
+  accent: string;
+}> = ({ days, accent }) => {
+  const n = days.length;
+  const innerH = CHART_H - CHART_PAD_Y * 2;
+  const points = days.map((week, i) => {
+    const d = Math.max(0, Math.min(MAX_ACTIVE_DAYS_PER_WEEK, week.daysActive));
     return {
-      points,
-      baselineY,
-      linePath: buildLinePath(points),
-      areaPath: buildAreaPath(points, baselineY),
-      gridLines: [0.25, 0.5, 0.75].map(
-        (level) => TREND_PADDING_TOP + innerHeight * level,
-      ),
+      x: (CHART_W / n) * (i + 0.5),
+      y: CHART_PAD_Y + innerH - (d / MAX_ACTIVE_DAYS_PER_WEEK) * innerH,
     };
-  }, [historicalActiveDays]);
-
-  const latestPoint = chartData.points[chartData.points.length - 1];
-
+  });
+  const last = points[n - 1];
   return (
-    <View style={styles.sparklineContainer}>
-      <View style={styles.sparklineHeaderRow}>
-        <View>
-          <Text style={styles.sparklineTitle}>4-week rhythm</Text>
-          <Text style={styles.sparklineSubtitle}>Days active each week</Text>
-        </View>
-        {latestPoint ? (
-          <View style={styles.currentWeekChip}>
-            <Text style={styles.currentWeekChipEyebrow}>NOW</Text>
-            <Text style={styles.currentWeekChipValue}>{latestPoint.daysLabel}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.sparklineChartCard}>
-        <Svg
-          width="100%"
-          height={TREND_VIEWBOX_HEIGHT}
-          viewBox={`0 0 ${TREND_VIEWBOX_WIDTH} ${TREND_VIEWBOX_HEIGHT}`}
-        >
-          <Defs>
-            <SvgLinearGradient
-              id="days-active-area"
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
-            >
-              <Stop offset="0%" stopColor="rgba(255,255,255,0.28)" />
-              <Stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
-            </SvgLinearGradient>
-            <SvgLinearGradient
-              id="days-active-column"
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
-            >
-              <Stop offset="0%" stopColor="rgba(255,255,255,0.32)" />
-              <Stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
-            </SvgLinearGradient>
-          </Defs>
-
-          {chartData.gridLines.map((y, index) => (
-            <Line
-              key={`grid-${index}`}
-              x1={TREND_PADDING_X}
-              x2={TREND_VIEWBOX_WIDTH - TREND_PADDING_X}
-              y1={y}
-              y2={y}
-              stroke="rgba(255,255,255,0.14)"
-              strokeDasharray="4 8"
-              strokeWidth={1}
-            />
-          ))}
-
-          <Line
-            x1={TREND_PADDING_X}
-            x2={TREND_VIEWBOX_WIDTH - TREND_PADDING_X}
-            y1={chartData.baselineY}
-            y2={chartData.baselineY}
-            stroke="rgba(255,255,255,0.22)"
-            strokeWidth={1.5}
-          />
-
-          {chartData.points.map((point, index) => {
-            const isCurrent = index === chartData.points.length - 1;
-            return (
-              <React.Fragment key={point.weekStart}>
-                <Rect
-                  x={point.x - (isCurrent ? 12 : 10)}
-                  y={point.y}
-                  width={isCurrent ? 24 : 20}
-                  height={Math.max(10, chartData.baselineY - point.y)}
-                  rx={isCurrent ? 12 : 10}
-                  fill="url(#days-active-column)"
-                  opacity={isCurrent ? 0.9 : 0.55}
-                />
-                <Line
-                  x1={point.x}
-                  x2={point.x}
-                  y1={chartData.baselineY}
-                  y2={point.y}
-                  stroke="rgba(255,255,255,0.18)"
-                  strokeWidth={1}
-                />
-              </React.Fragment>
-            );
-          })}
-
-          {chartData.areaPath ? (
-            <Path d={chartData.areaPath} fill="url(#days-active-area)" />
-          ) : null}
-
-          {chartData.linePath ? (
-            <Path
-              d={chartData.linePath}
-              fill="none"
-              stroke="rgba(255,255,255,0.95)"
-              strokeWidth={3.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : null}
-
-          {chartData.points.map((point, index) => {
-            const isCurrent = index === chartData.points.length - 1;
-            return (
-              <React.Fragment key={`${point.weekStart}-marker`}>
-                {isCurrent ? (
-                  <Circle
-                    cx={point.x}
-                    cy={point.y}
-                    r={12}
-                    fill="rgba(255,255,255,0.2)"
-                  />
-                ) : null}
-                <Circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={isCurrent ? 6.5 : 5}
-                  fill="#FFFFFF"
-                  stroke="rgba(109,40,217,0.35)"
-                  strokeWidth={isCurrent ? 3 : 2}
-                />
-              </React.Fragment>
-            );
-          })}
-        </Svg>
-
-        <View style={styles.sparklineLabelsRow}>
-          {historicalActiveDays.map((week, index) => {
-            const isCurrent = index === historicalActiveDays.length - 1;
-            return (
-              <View
-                key={`${week.weekStart}-label`}
-                style={[
-                  styles.sparklineLabelPill,
-                  isCurrent && styles.sparklineLabelPillCurrent,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.sparklineWeekLabel,
-                    isCurrent && styles.sparklineWeekLabelCurrent,
-                  ]}
-                >
-                  {isCurrent
-                    ? "Now"
-                    : format(toLocalChartDate(week.weekStart), "MMM d")}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
-      <View style={styles.sparklineTrendPill}>
-        <Icon
-          name={
-            benchmarkText === "Matched last week"
-              ? "minus"
-              : isAhead
-                ? "arrow-up"
-                : "arrow-down"
-          }
-          size={9}
-          color={
-            benchmarkText === "Matched last week"
-              ? "rgba(255,255,255,0.7)"
-              : isAhead
-                ? "#6EE7B7"
-                : "#FCA5A5"
-          }
+    <View>
+      <Svg width="100%" height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
+        <Path
+          d={buildSmoothPath(points)}
+          fill="none"
+          stroke={accent}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <Text
-          style={[
-            styles.sparklineTrendText,
-            {
-              color:
-                benchmarkText === "Matched last week"
-                  ? "rgba(255,255,255,0.7)"
-                  : isAhead
-                    ? "#6EE7B7"
-                    : "#FCA5A5",
-            },
-          ]}
-        >
-          {benchmarkText}
-        </Text>
+        {last ? <Circle cx={last.x} cy={last.y} r={4} fill={accent} /> : null}
+      </Svg>
+      <View style={styles.lineLabels}>
+        {days.map((week, i) => (
+          <Text
+            key={week.weekStart}
+            variant="caption"
+            color={i === n - 1 ? accent : "tertiary"}
+            style={styles.lineLabel}
+          >
+            {i === n - 1 ? "Now" : format(toLocalChartDate(week.weekStart), "MMM d")}
+          </Text>
+        ))}
       </View>
     </View>
   );
 };
 
-// ── Main Component ─────────────────────────────────────────────────────────
+export const WeeklySummarySkeleton = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
+      <View style={styles.skeletonBody}>
+        <View style={styles.headerRow}>
+          <View style={styles.skeletonHeaderText}>
+            <Skeleton width={120} height={12} />
+            <Skeleton width={180} height={16} />
+          </View>
+          <Skeleton width={20} height={20} />
+        </View>
+        <View style={styles.statsRow}>
+          <View style={[styles.statBadge, { backgroundColor: colors.surface.default }]}>
+            <Skeleton width={"50%"} height={32} />
+            <Skeleton width={"80%"} height={14} />
+            <Skeleton width={"100%"} height={12} />
+          </View>
+          <View style={[styles.statBadge, { backgroundColor: colors.surface.default }]}>
+            <Skeleton width={"50%"} height={32} />
+            <Skeleton width={"80%"} height={14} />
+            <Skeleton width={"100%"} height={12} />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 type DetailedWeeklySummaryProps = {
   summary: WeeklyReportResponse["summary"] | null;
   loading?: boolean;
@@ -379,13 +131,16 @@ const DetailedWeeklySummary = ({
   loading = false,
   hasError = false,
 }: DetailedWeeklySummaryProps) => {
+  const { colors } = useTheme();
+  // Orange has no feedback tone; text.link is the per-scheme legible orange cut
+  // for the on-surface stroke/dot/"Now" text (bright streak hue fails AA on light).
+  const accent = colors.text.link; // brand orange = activity/streak
   const [levelStage, setLevelStage] = React.useState<LevelStage | null>(null);
 
   React.useEffect(() => {
     const fetchStage = async () => {
       try {
-        const stage = await getLevelStage();
-        setLevelStage(stage);
+        setLevelStage(await getLevelStage());
       } catch (err) {
         console.error("Failed to fetch level stage:", err);
       }
@@ -400,11 +155,8 @@ const DetailedWeeklySummary = ({
         "MMM d",
       )}`;
     }
-
-    const now = new Date();
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    const end = addDays(start, 6);
-    return `${format(start, "MMM d")} – ${format(end, "MMM d")}`;
+    const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+    return `${format(start, "MMM d")} – ${format(addDays(start, 6), "MMM d")}`;
   };
 
   const practiceBenchmark = getFlowBenchmarkCopy(
@@ -418,165 +170,113 @@ const DetailedWeeklySummary = ({
     { compact: true },
   );
 
-  // Sparkline / trend state
   const dataWeeksAvailable = weeklyData?.dataWeeksAvailable ?? 0;
   const historicalActiveDays = weeklyData?.historicalActiveDays ?? [];
-  const showSparkline = dataWeeksAvailable >= 1 && historicalActiveDays.length > 0;
+  const showRhythm = dataWeeksAvailable >= 1 && historicalActiveDays.length > 0;
+  const latest = historicalActiveDays[historicalActiveDays.length - 1];
+  const latestDays = latest
+    ? Math.max(0, Math.min(MAX_ACTIVE_DAYS_PER_WEEK, latest.daysActive))
+    : 0;
 
   if (loading && !weeklyData) {
     return <WeeklySummarySkeleton />;
   }
-
   if (!weeklyData) {
     return null;
   }
 
+  const hasStats =
+    weeklyData.totalPracticeMinutes > 0 || weeklyData.totalDaysActive > 0;
+
   return (
-    <View style={styles.shadowContainer}>
-      <LinearGradient
-        colors={["#8B5CF6", "#6D28D9"]} // Purple gradient
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        {/* Watermark Bubbles */}
-        <View style={styles.bubbleTopRight} />
-        <View style={styles.bubbleBottomLeft} />
-
-        {/* Calendar Icon Watermark */}
-        <View style={styles.calendarWatermark}>
-          <Icon
-            name="calendar-week"
-            size={140}
-            color="rgba(255,255,255,0.08)"
-          />
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <View style={styles.flex1}>
+          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+            {levelStage?.title || "WEEKLY SUMMARY"}
+          </Text>
+          <Text variant="h3">{getWeekRangeLabel()}</Text>
         </View>
+        <View style={styles.headerRight}>
+          {hasError && (
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+          )}
+          <Icon name={icons.trend} size={size.icon} color={colors.text.tertiary} />
+        </View>
+      </View>
 
-        {/* Level-stage character, bleeding off the bottom-right corner */}
-        {(() => {
-          const key = levelStage?.title?.toLowerCase().split(" ")[0] ?? "";
-          const LevelFace = LEVEL_FACES[key];
-          if (!LevelFace) return null;
-          return (
-            <View style={styles.levelFaceWatermark} pointerEvents="none">
-              <LevelFace size={150} shouldAnimate transparentBg />
+      {hasStats ? (
+        <>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={[styles.statBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+              <Text variant="h1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {weeklyData.totalPracticeMinutes < 60
+                  ? `${weeklyData.totalPracticeMinutes}m`
+                  : `${(weeklyData.totalPracticeMinutes / 60).toFixed(1)}h`}
+              </Text>
+              <Text variant="bodySm" color="secondary" style={styles.bold}>Practice Time</Text>
+              <Text variant="caption" color="tertiary" numberOfLines={2} style={styles.benchmark}>
+                {practiceBenchmark.primary}
+                {practiceBenchmark.secondary ? ` • ${practiceBenchmark.secondary}` : ""}
+              </Text>
             </View>
-          );
-        })()}
 
-        {/* Content Layer */}
-        <View style={styles.contentLayer}>
-          {/* Header */}
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerLabel}>
-                {levelStage?.title || "WEEKLY SUMMARY"}
+            <View style={[styles.statBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+              <Text variant="h1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {weeklyData.totalDaysActive}
               </Text>
-              <Text style={styles.dateRangeText}>
-                {getWeekRangeLabel()}
+              <Text variant="bodySm" color="secondary" style={styles.bold}>Days Active</Text>
+              <Text variant="caption" color="tertiary" numberOfLines={2} style={styles.benchmark}>
+                {daysBenchmark.primary}
+                {daysBenchmark.secondary ? ` • ${daysBenchmark.secondary}` : ""}
               </Text>
-            </View>
-            <View style={styles.headerRight}>
-              {hasError && (
-                <Icon
-                  name="exclamation-circle"
-                  size={14}
-                  color="rgba(255,255,255,0.6)"
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              <Icon name="chart-line" size={20} color="rgba(255,255,255,0.9)" />
             </View>
           </View>
 
-          {/* Stats Badges or Empty State */}
-          {weeklyData && (weeklyData.totalPracticeMinutes > 0 || weeklyData.totalDaysActive > 0) ? (
-            <>
-            <View style={styles.statsRow}>
-              {/* Practice Time Badge */}
-              <View style={styles.statBadge}>
-                <View style={styles.watermarkIconContainer}>
-                  <Icon name="clock" size={80} color="#FFF" />
+          {showRhythm ? (
+            <View style={styles.rhythm}>
+              <View style={styles.rhythmHeader}>
+                <View>
+                  <Text variant="bodySm" style={styles.bold}>4-week rhythm</Text>
+                  <Text variant="caption" color="tertiary">Days active each week</Text>
                 </View>
-                <View style={styles.statContent}>
-                  <Text
-                    style={styles.statNumber}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                  >
-                    {weeklyData.totalPracticeMinutes < 60
-                      ? `${weeklyData.totalPracticeMinutes}m`
-                      : `${(weeklyData.totalPracticeMinutes / 60).toFixed(1)}h`}
-                  </Text>
-                  <Text style={styles.statLabel}>Practice Time</Text>
-                  <Text style={styles.benchmarkCombinedText} numberOfLines={2}>
-                    {practiceBenchmark.primary}
-                    {practiceBenchmark.secondary ? ` • ${practiceBenchmark.secondary}` : ""}
+                <View style={styles.rhythmNow}>
+                  <Text variant="caption" color="tertiary" style={styles.eyebrow}>NOW</Text>
+                  <Text variant="bodySm" style={styles.bold}>
+                    {latestDays === 1 ? "1 active day" : `${latestDays} active days`}
                   </Text>
                 </View>
               </View>
 
-              {/* Days Active Badge */}
-              <View style={styles.statBadge}>
-                <View style={styles.watermarkIconContainer}>
-                  <Icon name="fire" size={80} color="#FFF" />
-                </View>
-                <View style={styles.statContent}>
-                  <Text
-                    style={styles.statNumber}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                  >
-                    {weeklyData.totalDaysActive}
-                  </Text>
-                  <Text style={styles.statLabel}>Days Active</Text>
-                  <Text style={styles.benchmarkCombinedText} numberOfLines={2}>
-                    {daysBenchmark.primary}
-                    {daysBenchmark.secondary ? ` • ${daysBenchmark.secondary}` : ""}
-                  </Text>
-                </View>
-              </View>
+              {/* Clean smooth line — one thin stroke, current point dotted */}
+              <RhythmLine days={historicalActiveDays} accent={accent} />
             </View>
-
-              {/* Sparkline trend or welcome message */}
-              {showSparkline ? (
-                <DaysActiveSparkline
-                  historicalActiveDays={historicalActiveDays}
-                  benchmarkText={daysBenchmark.primary}
-                  isAhead={daysBenchmark.isAhead}
-                />
-              ) : (
-                <View style={styles.welcomeRow}>
-                  <Text style={styles.welcomeEmoji}>🎉</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.welcomeTitle}>Welcome!</Text>
-                    <Text style={styles.welcomeSubtitle}>
-                      Keep practicing — your trend will appear after your first full week.
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </>
           ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyHeaderRow}>
-                <Text style={styles.emptyTitle}>Build Your Streak</Text>
-              </View>
-              <Text style={styles.emptySubtitle}>
-                Start practicing to track your stats.
-              </Text>
-              <View style={styles.tipPill}>
-                <Icon name="lightbulb" size={12} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.tipText}>
-                  Tip: Consistency is king.
+            <View style={[styles.welcomeRow, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+              <Icon name={icons.celebrate} size={24} color={colors.text.primary} />
+              <View style={styles.flex1}>
+                <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
+                <Text variant="caption" color="secondary">
+                  Keep practicing — your trend will appear after your first full week.
                 </Text>
               </View>
             </View>
           )}
+        </>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text variant="h2">Build Your Streak</Text>
+          <Text variant="bodySm" color="secondary">
+            Start practicing to track your stats.
+          </Text>
+          <View style={[styles.tipPill, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+            <Icon name={icons.tip} size={12} color={colors.feedback.warningText} />
+            <Text variant="caption" color="secondary">Tip: Consistency is king.</Text>
+          </View>
         </View>
-      </LinearGradient>
+      )}
     </View>
   );
 };
@@ -584,61 +284,14 @@ const DetailedWeeklySummary = ({
 export default DetailedWeeklySummary;
 
 const styles = StyleSheet.create({
-  shadowContainer: {
-    borderRadius: 24,
-    shadowColor: "#8B5CF6",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    backgroundColor: "#DDD6FE",
-    overflow: "hidden",
+  card: {
+    borderRadius: radius.card,
+    padding: spacing["2xl"],
+    gap: spacing["2xl"],
   },
-  gradient: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    minHeight: 180,
-    position: "relative",
-  },
-  // Watermark Bubbles
-  bubbleTopRight: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -50,
-    left: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  calendarWatermark: {
-    position: "absolute",
-    right: -40,
-    top: -20,
-    opacity: 0.6,
-  },
-  levelFaceWatermark: {
-    position: "absolute",
-    right: -16,
-    bottom: -22, // bleeds off the bottom-right corner, cropped by the card
-    zIndex: 0, // behind the content
-    opacity: 0.18, // faint watermark so text stays legible over it
-  },
-  contentLayer: {
-    flex: 1,
-    justifyContent: "space-between",
-    zIndex: 1,
-    gap: 24,
-  },
+  flex1: { flex: 1 },
+  bold: { fontFamily: fonts.bold },
+  eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -648,234 +301,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  headerLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    marginBottom: 2,
-  },
-  dateRangeText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    marginTop: 6,
-  },
+  headerErrorIcon: { marginRight: spacing.sm },
   statsRow: {
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "center",
+    gap: spacing.md,
   },
   statBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: radius.card,
+    padding: spacing.lg,
     flex: 1,
-    overflow: "hidden",
-    position: "relative",
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  watermarkIconContainer: {
-    position: "absolute",
-    right: -16,
-    bottom: -18,
-    opacity: 0.08,
-    transform: [{ rotate: "-15deg" }],
+  benchmark: { marginTop: spacing.sm },
+  // ── Rhythm (bar chart) ──────────────────────────────────────────────────
+  rhythm: { gap: spacing.lg },
+  rhythmHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: spacing.md,
   },
-  statBadgeSkeleton: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 24,
-    padding: 18,
+  rhythmNow: { alignItems: "flex-end" },
+  lineLabels: {
+    flexDirection: "row",
+    marginTop: spacing.sm,
+  },
+  lineLabel: {
     flex: 1,
-  },
-  statContent: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#FFF",
-    letterSpacing: -0.5,
-    lineHeight: 32,
-  },
-  statLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.9)",
-    marginTop: 2,
-  },
-  benchmarkCombinedText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.75)",
-    letterSpacing: -0.1,
-    lineHeight: 16,
-  },
-  loadingText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
     textAlign: "center",
   },
-  // ── Sparkline ──────────────────────────────────────────────────────────
-  sparklineContainer: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-  },
-  sparklineHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  sparklineTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 0.2,
-  },
-  sparklineSubtitle: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.68)",
-    marginTop: 2,
-  },
-  currentWeekChip: {
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-    minWidth: 96,
-  },
-  currentWeekChipEyebrow: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.64)",
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  currentWeekChipValue: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#FFF",
-  },
-  sparklineChartCard: {
-    backgroundColor: "rgba(49, 17, 118, 0.18)",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    overflow: "hidden",
-  },
-  sparklineLabelsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-    gap: 8,
-  },
-  sparklineLabelPill: {
-    minWidth: 56,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-  sparklineLabelPillCurrent: {
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-  },
-  sparklineWeekLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.62)",
-    letterSpacing: 0.2,
-  },
-  sparklineWeekLabelCurrent: {
-    color: "#FFF",
-  },
-  sparklineTrendPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 2,
-  },
-  sparklineTrendText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  // ── Welcome (new user) ─────────────────────────────────────────────────
+  // ── Welcome / empty ─────────────────────────────────────────────────────
   welcomeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    gap: spacing.md,
+    borderRadius: radius.input,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  welcomeEmoji: {
-    fontSize: 22,
-  },
-  welcomeTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#FFF",
-    marginBottom: 2,
-  },
-  welcomeSubtitle: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 15,
-  },
-  emptyContainer: {
-    gap: 8,
-  },
-  emptyHeaderRow: {
-    marginBottom: 2,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#FFF",
-    letterSpacing: -0.5,
-  },
-  emptySubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 4,
-  },
+  emptyContainer: { gap: spacing.sm },
   tipPill: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
     alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  tipText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 11,
-    fontWeight: "600",
-  },
+  skeletonBody: { gap: spacing.xl },
+  skeletonHeaderText: { gap: spacing.sm },
 });

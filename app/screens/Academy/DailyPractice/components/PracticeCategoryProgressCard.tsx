@@ -1,28 +1,37 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StyleSheet, View } from "react-native";
 import { PracticeCategorySummaryItem } from "../../../../api/practiceCategories/types";
-import { theme } from "../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+  Surface,
+  Divider,
+  Text,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  space,
+  radius,
+} from "../../../../design-system";
 import { formatDuration } from "../../../../util/functions/time";
+
+/** Vivid accent role — a key of `colors.accent` / `colors.accentOn` / `colors.accentTint`.
+ *  Keeps each practice category visually distinct (Reading=info, Fun=success, …) while the
+ *  card body stays on dark surface tokens. */
+export type ProgressCardAccent =
+  | "info"
+  | "success"
+  | "warning"
+  | "danger"
+  | "purple"
+  | "lime";
 
 type PracticeCategoryProgressCardProps = {
   summary: PracticeCategorySummaryItem | null;
   title: string;
   subtitle: string;
   badgeLabel: string;
-  accent: {
-    gradient: readonly [string, string];
-    iconBg: string;
-    iconColor: string;
-    badgeBg: string;
-    badgeBorder: string;
-    badgeText: string;
-  };
+  /** Which vivid accent tints this card's icon discs + scope badge. */
+  accent: ProgressCardAccent;
 };
 
 const formatMinutesCompact = (minutes: number) => {
@@ -45,131 +54,120 @@ const PracticeCategoryProgressCard = ({
   badgeLabel,
   accent,
 }: PracticeCategoryProgressCardProps) => {
+  const { colors } = useTheme();
+  // The badge label + stat icons are colored foreground ON the tint disc — the
+  // per-scheme legible cut (bright on dark, AA-dark on paper), not the bright
+  // fill base which collapses to ~2:1 as foreground on the light canvas.
+  const accentText = colors.accentText[accent];
+  const accentTint = colors.accentTint[accent];
+
   return (
-    <View style={styles.statsSection}>
-      <LinearGradient colors={accent.gradient} style={styles.statsDashboard}>
-        <View style={styles.dashboardHeader}>
-          <View style={styles.headerCopy}>
-            <Text style={styles.dashboardTitle}>{title}</Text>
-            <Text style={styles.dashboardSubtitle}>
-              {getPrimarySubtitleLine(subtitle)}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: accent.badgeBg,
-                borderColor: accent.badgeBorder,
-              },
-            ]}
-          >
-            <Text style={[styles.statusBadgeText, { color: accent.badgeText }]}>
-              {badgeLabel}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.dashboardGrid}>
-          <View style={styles.statItem}>
-            <View
-              style={[styles.statIconWrapper, { backgroundColor: accent.iconBg }]}
-            >
-              <Icon name="check-double" size={18} color={accent.iconColor} />
-            </View>
-            <View style={styles.statCopy}>
-              <Text style={styles.statValueBig}>
-                {summary?.weekly.completedCount ?? 0}
-              </Text>
-              <Text style={styles.statLabelSmall}>completed this week</Text>
-            </View>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <View
-              style={[styles.statIconWrapper, { backgroundColor: accent.iconBg }]}
-            >
-              <Icon
-                name="hourglass-half"
-                size={18}
-                color={accent.iconColor}
-              />
-            </View>
-            <View style={styles.statCopy}>
-              <Text style={styles.statValueBig}>
-                {formatMinutesCompact(summary?.weekly.totalMinutes ?? 0)}
-              </Text>
-              <Text style={styles.statLabelSmall}>practice time this week</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.footerRow}>
-          <Text style={styles.footerTitle}>Lifetime</Text>
-          <Text style={styles.footerText}>
-            {summary?.lifetime.completedCount ?? 0} completed •{" "}
-            {formatMinutesCompact(summary?.lifetime.totalMinutes ?? 0)} total
-            time
+    <Surface
+      level="elevated"
+      rounded="card"
+      bordered
+      style={styles.card}
+    >
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
+          <Text variant="h3" color="primary">
+            {title}
+          </Text>
+          <Text variant="caption" color="secondary" style={styles.subtitle}>
+            {getPrimarySubtitleLine(subtitle)}
           </Text>
         </View>
-      </LinearGradient>
-    </View>
+        {/* Scope badge — a soft accent-tinted chip so the category reads at a glance. */}
+        <View style={[styles.statusBadge, { backgroundColor: accentTint }]}>
+          <Text variant="caption" color={accentText} style={styles.statusBadgeText}>
+            {badgeLabel}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.grid}>
+        <View style={styles.statItem}>
+          <View style={[styles.statIconWrapper, { backgroundColor: accentTint }]}>
+            <Icon name={icons.success} size={18} color={accentText} />
+          </View>
+          <View style={styles.statCopy}>
+            <Text variant="h3" color="primary" style={styles.statValueBig}>
+              {summary?.weekly.completedCount ?? 0}
+            </Text>
+            <Text variant="caption" color="tertiary">
+              completed this week
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[styles.statDivider, { backgroundColor: colors.border.default }]}
+        />
+
+        <View style={styles.statItem}>
+          <View style={[styles.statIconWrapper, { backgroundColor: accentTint }]}>
+            <Icon name={icons.duration} size={18} color={accentText} />
+          </View>
+          <View style={styles.statCopy}>
+            <Text variant="h3" color="primary" style={styles.statValueBig}>
+              {formatMinutesCompact(summary?.weekly.totalMinutes ?? 0)}
+            </Text>
+            <Text variant="caption" color="tertiary">
+              practice time this week
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.footerDivider}>
+        <Divider />
+      </View>
+
+      <View style={styles.footerRow}>
+        <Text variant="caption" color="tertiary" style={styles.footerTitle}>
+          Lifetime
+        </Text>
+        <Text variant="caption" color="secondary">
+          {summary?.lifetime.completedCount ?? 0} completed •{" "}
+          {formatMinutesCompact(summary?.lifetime.totalMinutes ?? 0)} total time
+        </Text>
+      </View>
+    </Surface>
   );
 };
 
 export default PracticeCategoryProgressCard;
 
 const styles = StyleSheet.create({
-  statsSection: {
-    marginTop: 8,
+  card: {
+    padding: spacing["2xl"],
   },
-  statsDashboard: {
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  dashboardHeader: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 24,
+    gap: spacing.md,
+    marginBottom: spacing["2xl"],
   },
   headerCopy: {
     flex: 1,
     minWidth: 0,
-    paddingRight: 4,
+    paddingRight: spacing.xs,
   },
-  dashboardTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontSize: 20,
-  },
-  dashboardSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginTop: 4,
+  subtitle: {
+    marginTop: space.titleSub,
   },
   statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: radius.chip,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs,
     flexShrink: 0,
     alignSelf: "flex-start",
   },
   statusBadgeText: {
-    fontSize: 12,
     fontWeight: "700",
   },
-  dashboardGrid: {
+  grid: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -178,12 +176,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
   },
   statIconWrapper: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -191,36 +189,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValueBig: {
-    fontFamily: "Outfit-Bold",
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.text.title,
     lineHeight: 28,
-  },
-  statLabelSmall: {
-    fontSize: 10,
-    color: theme.colors.text.disabled,
-    fontWeight: "500",
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: theme.colors.library.gray[300],
-    marginHorizontal: 8,
+    marginHorizontal: spacing.sm,
+  },
+  footerDivider: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
   },
   footerRow: {
-    marginTop: 18,
-    gap: 6,
+    gap: spacing.xs,
   },
   footerTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
     textTransform: "uppercase",
     letterSpacing: 1,
     fontWeight: "700",
-  },
-  footerText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
   },
 });

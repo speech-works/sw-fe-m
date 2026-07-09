@@ -1,30 +1,24 @@
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect } from "react";
-import {
-  Animated,
-  Dimensions,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect, useRef } from "react";
+import { View } from "react-native";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
   ExploreStackNavigationProp,
   ExploreStackParamList,
 } from "../../../../navigators/stacks/ExploreStack/types";
 import { useMoodCheckStore } from "../../../../stores/mood";
-import { theme } from "../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+  Sheet,
+  Text,
+  useTheme,
+  makeStyles,
+  spacing,
+  space,
+  radius,
+} from "../../../../design-system";
+import PressableScale from "../../../../components/PressableScale";
 
-// Animated Faces
+// Animated Faces (protected sw-faces — rendered byte-identical).
 import AngryFace from "../../../../assets/mood-check/AngryFace";
 import CalmFace from "../../../../assets/mood-check/CalmFace";
 import HappyFace from "../../../../assets/mood-check/HappyFace";
@@ -32,50 +26,35 @@ import SadFace from "../../../../assets/mood-check/SadFace";
 
 import { getLocalTodayDateString } from "../../../../util/functions/date";
 
-const emotions = [
-  {
-    id: MoodType.ANGRY,
-    name: "Angry",
-    icon: AngryFace,
-    tint: theme.colors.moodcheck.angry, // #FFF1F2 (Soft Red)
-    border: "#FECACA", // Red 200
-  },
-  {
-    id: MoodType.CALM,
-    name: "Calm",
-    icon: CalmFace,
-    tint: theme.colors.moodcheck.calm, // #ECFDF5 (Soft Mint)
-    border: "#A7F3D0", // Green 200
-  },
-  {
-    id: MoodType.HAPPY,
-    name: "Happy",
-    icon: HappyFace,
-    tint: theme.colors.moodcheck.happy, // #FFF7ED (Soft Orange)
-    border: "#FED7AA", // Orange 200
-  },
-  {
-    id: MoodType.SAD,
-    name: "Sad",
-    icon: SadFace,
-    tint: theme.colors.moodcheck.sad, // #EFF6FF (Soft Blue)
-    border: "#BFDBFE", // Blue 200
-  },
+// The mood-name text sits on `surface.default`. The bright accent BASE hue fails
+// AA there on the light "paper" canvas (1.2–1.8:1), so the label uses the darker
+// `feedback.*Text` cut (≥5.2:1 both schemes). The tile edge no longer carries the
+// accent (below 3:1 on light) — it's a neutral `border.default` resting frame.
+type FeedbackTextKey = "successText" | "warningText" | "dangerText" | "infoText";
+
+const emotions: {
+  id: MoodType;
+  name: string;
+  icon: React.ComponentType<any>;
+  textKey: FeedbackTextKey;
+}[] = [
+  { id: MoodType.ANGRY, name: "Angry", icon: AngryFace, textKey: "dangerText" },
+  { id: MoodType.CALM, name: "Calm", icon: CalmFace, textKey: "successText" },
+  { id: MoodType.HAPPY, name: "Happy", icon: HappyFace, textKey: "warningText" },
+  { id: MoodType.SAD, name: "Sad", icon: SadFace, textKey: "infoText" },
 ];
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-
 const MoodCheckPopup = () => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { hasRecordedToday, lastPopupDate, setPopupShown, _hasHydrated } =
     useMoodCheckStore();
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const [visible, setVisible] = React.useState(false);
-  const [canAnimate, setCanAnimate] = React.useState(false);
-
-  const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const opacityAnim = React.useRef(new Animated.Value(0)).current;
-  const [isMounted, setIsMounted] = React.useState(false);
+  // Deferred nav: the sheet closes first, then navigates on full dismissal so it
+  // never stacks over the pushed FollowUp screen.
+  const pendingMoodRef = useRef<MoodType | null>(null);
 
   useEffect(() => {
     // Wait for hydration
@@ -96,215 +75,85 @@ const MoodCheckPopup = () => {
     }
   }, [hasRecordedToday, lastPopupDate, _hasHydrated]);
 
-  useEffect(() => {
-    if (visible) {
-      setIsMounted(true);
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setCanAnimate(true);
-      });
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: SCREEN_HEIGHT,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIsMounted(false);
-        setCanAnimate(false);
-      });
-    }
-  }, [visible]);
-
   const handleSkip = () => {
     setPopupShown(); // Mark as shown for today
     setVisible(false);
   };
 
   const handleSelectMood = (mood: MoodType) => {
-    setVisible(false);
+    pendingMoodRef.current = mood;
     setPopupShown();
-    // @ts-expect-error — nested navigator param types aren't propagated to this screen's nav prop
-    exploreNavigation.navigate("ExploreStack", {
-      screen: "MoodCheckStack",
-      params: {
-        screen: "FollowUpStack",
-        params: { mood },
-      },
-    });
+    setVisible(false);
   };
 
-  if (!isMounted) return null;
-
   return (
-    <Modal
-      transparent
-      visible={isMounted}
-      animationType="none"
-      onRequestClose={handleSkip}
-      statusBarTranslucent
+    <Sheet
+      visible={visible}
+      onClose={handleSkip}
+      onDismissed={() => {
+        const mood = pendingMoodRef.current;
+        pendingMoodRef.current = null;
+        if (mood) {
+          // @ts-expect-error — nested navigator param types aren't propagated to this screen's nav prop
+          exploreNavigation.navigate("ExploreStack", {
+            screen: "MoodCheckStack",
+            params: { screen: "FollowUpStack", params: { mood } },
+          });
+        }
+      }}
     >
-      <View style={styles.overlay}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: "rgba(0,0,0,0.5)", opacity: opacityAnim },
-          ]}
-        >
-          <Pressable style={{ flex: 1 }} onPress={handleSkip} />
-        </Animated.View>
-        <Animated.View
-          style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.library.orange[100],
-              theme.colors.library.orange[200],
-            ]}
-            style={styles.gradientContainer}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.handle} />
-            
-            <TouchableOpacity onPress={handleSkip} style={styles.closeBtn}>
-              <MaterialCommunityIcons
-                name="close"
-                size={18}
-                color={theme.colors.library.gray[500]}
-              />
-            </TouchableOpacity>
+      <View style={styles.content}>
+        <Text variant="h2" color="primary">
+          How do you feel today?
+        </Text>
 
-            <View style={styles.header}>
-              <Text style={styles.title}>How do you feel today?</Text>
-            </View>
-
-            <View style={styles.grid}>
-              {emotions.map((emo) => (
-                <TouchableOpacity
-                  key={emo.id}
-                  activeOpacity={0.8}
-                  onPress={() => handleSelectMood(emo.id)}
-                  style={styles.cardWrapper}
-                >
-                  <LinearGradient
-                    // Pearlescent Gradient: White -> Tint
-                    colors={["#FFFFFF", emo.tint]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.card, { borderColor: emo.border }]}
-                  >
-                    <emo.icon
-                      width={80}
-                      height={80}
-                      shouldAnimate={canAnimate}
-                    />
-                    <Text style={styles.moodName}>{emo.name}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </LinearGradient>
-        </Animated.View>
+        <View style={styles.grid}>
+          {emotions.map((emo) => (
+            <PressableScale
+              key={emo.id}
+              onPress={() => handleSelectMood(emo.id)}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.surface.default,
+                  borderColor: colors.border.default,
+                },
+              ]}
+            >
+              <emo.icon width={80} height={80} shouldAnimate={visible} />
+              <Text variant="title" color={colors.feedback[emo.textKey]}>
+                {emo.name}
+              </Text>
+            </PressableScale>
+          ))}
+        </View>
       </View>
-    </Modal>
+    </Sheet>
   );
 };
 
 export default React.memo(MoodCheckPopup);
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "transparent",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  container: {
-    backgroundColor: "transparent",
-    borderTopLeftRadius: 32, // More curve
-    borderTopRightRadius: 32,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  gradientContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 50,
-  },
-  handle: {
-    position: "absolute",
-    top: 12,
-    alignSelf: "center",
-    width: 48,
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.1)", // Softer handle
-    borderRadius: 3,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2), // Larger title
-    color: theme.colors.library.orange[800],
-    fontSize: 24,
-  },
-  closeBtn: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    zIndex: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+const useStyles = makeStyles(() => ({
+  content: {
+    gap: space.sectionGap,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: space.groupGap,
     justifyContent: "space-between",
   },
-  cardWrapper: {
-    width: (Dimensions.get("window").width - 48 - 16) / 2,
-    aspectRatio: 1,
-    // ...parseShadowStyle(theme.shadow.elevation1), // Shadow removed as requested
-  },
+  // Solid tile (was a washed accent tint) so the colourful faces pop against it;
+  // the accent border frames it crisply and carries the mood identity.
   card: {
-    flex: 1,
-    borderRadius: 28,
-    borderWidth: 1.5,
+    width: "47%",
+    aspectRatio: 1,
+    borderRadius: radius.card,
+    borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
+    padding: spacing.md,
   },
-  moodName: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "600",
-    color: theme.colors.library.gray[700],
-    marginTop: 4,
-  },
-});
+}));

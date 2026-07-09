@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Dimensions,
@@ -7,13 +8,10 @@ import {
   Linking,
   Platform,
   StyleSheet,
-  Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
 
-import { theme } from "../../Theme/tokens";
 import {
   COMPANY_NAME,
   COMPANY_SLOGAN,
@@ -24,9 +22,12 @@ import {
 import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
+// Brand marks (google/apple) have no Fluent/registry glyph — scoped brand
+// exception, mirroring the DS Icon's own FontAwesome5 brand fallback.
+import { FontAwesome5 } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { handleOAuthCallback, loginUser } from "../../api";
-import Button from "../../components/Button";
+import PressableScale from "../../components/PressableScale";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
@@ -34,7 +35,17 @@ import { attachInviteCode } from "../../api/buddies";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { handleLinkPress } from "../../util/functions/externalLinks";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  borderWidth,
+  radius,
+  SchemeStatusBar,
+  size,
+  space,
+  spacing,
+  Text,
+  TextField,
+  useTheme,
+} from "../../design-system";
 import LoginBackground from "./components/LoginBackground";
 
 // Define the providers to display
@@ -56,6 +67,7 @@ WebBrowser.maybeCompleteAuthSession();
 const { height } = Dimensions.get("window");
 
 const LoginScreen = () => {
+  const { colors } = useTheme();
   const { height } = useWindowDimensions();
   const isSmallDevice = height < 700;
 
@@ -102,6 +114,10 @@ const LoginScreen = () => {
   const onPressOAuth = async (provider: string) => {
     if (loadingProvider) return;
     setLoadingProvider(provider);
+
+    // App-global Linking listener — must be removed on EVERY exit path
+    // (finally below), or each failed attempt stacks another live handler.
+    let subscription: { remove: () => void } | undefined;
 
     try {
       const redirectUri = AuthSession.makeRedirectUri({
@@ -150,7 +166,7 @@ const LoginScreen = () => {
 
 
       console.log("[OAuth 3] Registering Linking listener & opening browser...");
-      const subscription = Linking.addEventListener("url", handleRedirect);
+      subscription = Linking.addEventListener("url", handleRedirect);
 
       if (Platform.OS === "ios") {
         // Both openBrowserAsync (SafariViewService crash: code 4099) and
@@ -203,12 +219,12 @@ const LoginScreen = () => {
         }
       }
 
-      subscription.remove();
-
     } catch (err: any) {
       console.error("[OAuth] ❌ Unhandled error:", err.message || err);
       showError(err.message || "Login failed. Please try again.");
       setLoadingProvider(null);
+    } finally {
+      subscription?.remove();
     }
   };
 
@@ -263,7 +279,8 @@ const LoginScreen = () => {
   const providers = getDisplayProviders();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
+      <SchemeStatusBar />
       <LoginBackground />
 
       {/*
@@ -290,11 +307,16 @@ const LoginScreen = () => {
             /> */}
           </Animated.View>
           <Animated.View style={{ opacity: logoFadeAnim }}>
-            <Text style={styles.companyName}>{COMPANY_NAME}</Text>
+            {/* Brand wordmark — text.link is the scheme-correct orange ink
+                (deep orange on paper, bright orange on the dark canvas). */}
+            <Text variant="screenTitle" color="link" center>
+              {COMPANY_NAME}
+            </Text>
             <Text
-              style={
-                isSmallDevice ? styles.captionTextSmall : styles.captionText
-              }
+              variant={isSmallDevice ? "bodySm" : "h3"}
+              color="secondary"
+              center
+              style={styles.captionText}
             >
               {COMPANY_SLOGAN}
             </Text>
@@ -318,8 +340,10 @@ const LoginScreen = () => {
         >
           {/* Header of Sheet */}
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Let's get started</Text>
-            <Text style={styles.sheetSubtitle}>
+            <Text variant="h2" center style={styles.sheetTitle}>
+              Let's get started
+            </Text>
+            <Text variant="body" color="secondary" center>
               Login to continue your progress
             </Text>
           </View>
@@ -328,59 +352,61 @@ const LoginScreen = () => {
           <View style={styles.loginButtons}>
             {providers.map((provider) => {
               const isLoading = loadingProvider === provider;
+              const label = `Continue with ${
+                provider.charAt(0).toUpperCase() + provider.slice(1)
+              }`;
 
-              let btnBg =
-                theme.colors.background[
-                  provider as keyof typeof theme.colors.background
-                ];
-              let btnText =
-                theme.colors.text[provider as keyof typeof theme.colors.text];
-              let btnBorderWidth = 0;
-              let btnBorderColor = "transparent";
-
-              if (provider === "google") {
-                btnBg = "#FFFFFF";
-                btnText = "#1F2937";
-                btnBorderWidth = 1;
-                btnBorderColor = theme.colors.border.default;
-              }
-
+              // OAuth-branded buttons: a bright inverse disc on the canvas with
+              // near-black label/glyph (surface.inverse + text.onInverse) — the
+              // AA-correct pairing on both schemes.
               return (
-                <Button
+                <PressableScale
                   key={provider}
-                  text={`Continue with ${
-                    provider.charAt(0).toUpperCase() + provider.slice(1)
-                  }`}
                   onPress={() => onPressOAuth(provider)}
-                  leftIcon={provider}
                   disabled={isLoading}
-                  loading={isLoading}
-                  buttonColor={btnBg}
-                  textColor={btnText}
-                  elevation={provider === "google" ? 1 : undefined} // Flat look for others
-                  style={{
-                    borderWidth: btnBorderWidth,
-                    borderColor: btnBorderColor,
-                    marginBottom: isSmallDevice ? 12 : 16, // Adaptive spacing
-                    height: isSmallDevice ? 50 : 56, // Adaptive height
-                    paddingVertical: isSmallDevice ? 8 : 16, // Prevent icon clipping
-                  }}
-                />
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ disabled: isLoading, busy: isLoading }}
+                  style={[
+                    styles.oauthButton,
+                    {
+                      backgroundColor: colors.surface.inverse,
+                      borderColor: colors.border.default,
+                      marginBottom: isSmallDevice ? spacing.md : spacing.lg, // Adaptive spacing
+                      height: isSmallDevice ? 50 : 56, // Adaptive height
+                    },
+                  ]}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={colors.text.onInverse} />
+                  ) : (
+                    <>
+                      <FontAwesome5
+                        name={provider as any}
+                        size={size.icon}
+                        color={colors.text.onInverse}
+                        brand
+                      />
+                      <Text variant="title" color={colors.text.onInverse} numberOfLines={1}>
+                        {label}
+                      </Text>
+                    </>
+                  )}
+                </PressableScale>
               );
             })}
           </View>
 
           {/* Optional invite code */}
           <View style={styles.inviteWrap}>
-            <TextInput
+            <TextField
               value={inviteCode}
               onChangeText={(t) => setInviteCode(t.toUpperCase())}
               placeholder="Have an invite code? (optional)"
-              placeholderTextColor={theme.colors.text.disabled}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={12}
-              style={styles.inviteInput}
+              textAlign="center"
             />
           </View>
 
@@ -388,23 +414,25 @@ const LoginScreen = () => {
           <View
             style={[
               styles.legalContainer,
-              { marginBottom: isSmallDevice ? 24 : 20 },
+              { marginBottom: isSmallDevice ? spacing["2xl"] : spacing.xl },
             ]}
           >
-            <Text style={styles.legalText}>
+            <Text variant="caption" color="tertiary" center>
               By continuing, you agree to our{" "}
               <Text
-                style={styles.linkText}
+                variant="caption"
+                color="link"
                 onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
               >
                 Terms & Privacy Policy
               </Text>
             </Text>
-            <View style={{ height: 16 }} />
-            <Text style={styles.legalText}>
+            <View style={{ height: spacing.lg }} />
+            <Text variant="caption" color="tertiary" center>
               Need help?{" "}
               <Text
-                style={styles.linkText}
+                variant="caption"
+                color="link"
                 onPress={() => handleLinkPress(SUPPORT_URL)}
               >
                 Contact Support
@@ -419,14 +447,14 @@ const LoginScreen = () => {
 
 export default LoginScreen;
 
+// Geometry only — every color is read from useTheme() at render time.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.library.orange[100], // Match top bg color
   },
   // Top Section
   topSection: {
-    flex: 0.4, // Reduced from 0.45
+    flex: 0.4,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
@@ -436,15 +464,8 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 10, // Reduced from 20
-    gap: 8, // Reduced from 16
-  },
-  companyName: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 42,
-    fontWeight: "800",
-    color: "#EA580C", // Deep, vibrant orange
-    textAlign: "center",
+    paddingBottom: spacing.sm + 2,
+    gap: spacing.sm,
   },
   logoWrapper: {
     // Large logo area
@@ -458,83 +479,51 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   captionText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#475569", // Slate-600 for contrast
-    opacity: 1,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  captionTextSmall: {
-    ...parseTextStyle(theme.typography.Label),
-    color: "#475569",
-    opacity: 1,
-    textAlign: "center",
-    marginTop: 2,
+    marginTop: spacing.xs,
   },
 
   // Bottom Sheet
   bottomSheet: {
-    flex: 0.6, // Increased from 0.55
+    flex: 0.6,
     backgroundColor: "transparent",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     overflow: "hidden",
-  },
-  blurAbsolute: {
-    ...StyleSheet.absoluteFillObject,
   },
   sheetContent: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24, // Reduced from 40
+    paddingHorizontal: space.screenX,
+    paddingTop: spacing["2xl"],
     justifyContent: "flex-start",
   },
   sheetHeader: {
-    marginBottom: 16, // Reduced from 32
+    marginBottom: space.groupGap,
     alignItems: "center",
   },
   sheetTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    marginBottom: 4, // Reduced from 8
-  },
-  sheetSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    marginBottom: space.titleSub,
   },
 
   loginButtons: {
     width: "100%",
-    marginBottom: 12, // Reduced from 24
+    marginBottom: space.rowGap,
+  },
+  oauthButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.iconText,
+    borderRadius: radius.pill,
+    borderWidth: borderWidth.thin,
+    paddingHorizontal: spacing["2xl"],
   },
   inviteWrap: {
     width: "100%",
-    marginBottom: 12,
-  },
-  inviteInput: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    backgroundColor: "#FFFFFF",
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    letterSpacing: 1,
+    marginBottom: space.rowGap,
   },
 
   legalContainer: {
     alignItems: "center",
     marginTop: "auto",
-  },
-  legalText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.disabled,
-  },
-  linkText: {
-    fontWeight: "600",
-    color: theme.colors.actionPrimary.default,
   },
 });

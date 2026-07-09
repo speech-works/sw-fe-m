@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../Theme/tokens";
+import { useTheme } from "../design-system";
 
 export const SHADOW_BUFFER = 5;
 
@@ -34,6 +34,7 @@ interface CustomScrollViewProps {
   onEndReached?: () => void;
   /** Distance (px) from the bottom at which `onEndReached` fires. Defaults to 320. */
   onEndReachedThreshold?: number;
+  outerScrollY?: Animated.SharedValue<number>;
   [key: string]: any;
 }
 
@@ -51,10 +52,13 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       showScrollButtons = false,
       onEndReached,
       onEndReachedThreshold = 320,
+      onScrollY,
+      outerScrollY,
       ...rest
     },
     ref,
   ) => {
+    const { colors } = useTheme();
     // Internal ref for Reanimated scrollTo
     const internalRef = useAnimatedRef<Animated.ScrollView>();
 
@@ -62,6 +66,8 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     const scrollY = useSharedValue(0);
     const contentHeight = useSharedValue(0);
     const layoutHeight = useSharedValue(0);
+    // Last vertical offset reported to JS via onScrollY (px-bucketed to throttle).
+    const lastReportedY = useSharedValue(0);
     // Guards onEndReached so it fires once per entry into the bottom zone,
     // re-arming only after the user scrolls back out of it.
     const canFireEndReached = useSharedValue(true);
@@ -71,8 +77,17 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       {
         onScroll: (event) => {
           scrollY.value = event.contentOffset.y;
+          if (outerScrollY) {
+            outerScrollY.value = event.contentOffset.y;
+          }
           contentHeight.value = event.contentSize.height;
           layoutHeight.value = event.layoutMeasurement.height;
+
+          // Report vertical offset to JS, bucketed to ~6px so we don't spam the bridge.
+          if (onScrollY && Math.abs(event.contentOffset.y - lastReportedY.value) > 6) {
+            lastReportedY.value = event.contentOffset.y;
+            runOnJS(onScrollY)(event.contentOffset.y);
+          }
 
           if (onEndReached) {
             const distanceFromBottom =
@@ -89,7 +104,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
           }
         },
       },
-      [onEndReached, onEndReachedThreshold],
+      [onEndReached, onEndReachedThreshold, onScrollY],
     );
 
     // Helper to sync external ref if provided (optional/advanced, avoiding for simplicity unless needed)
@@ -150,7 +165,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
           style={[{ flex: 1, overflow: "hidden" }, style]}
           contentContainerStyle={[
             styles.scrollContent,
-            {
+            showScrollButtons && {
               padding: SHADOW_BUFFER,
               paddingBottom: BUTTON_AREA_HEIGHT,
             },
@@ -175,11 +190,11 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             >
               <TouchableOpacity
                 onPress={handleScrollToTop}
-                style={styles.touchableButton}
+                style={[styles.touchableButton, { backgroundColor: colors.surface.control }]}
               >
                 <Icon
                   name="chevron-up"
-                  style={[styles.baseIcon, buttonIconStyle]}
+                  style={[styles.baseIcon, { color: colors.text.accent }, buttonIconStyle]}
                 />
               </TouchableOpacity>
             </Animated.View>
@@ -195,11 +210,11 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             >
               <TouchableOpacity
                 onPress={handleScrollToBottom}
-                style={styles.touchableButton}
+                style={[styles.touchableButton, { backgroundColor: colors.surface.control }]}
               >
                 <Icon
                   name="chevron-down"
-                  style={[styles.baseIcon, buttonIconStyle]}
+                  style={[styles.baseIcon, { color: colors.text.accent }, buttonIconStyle]}
                 />
               </TouchableOpacity>
             </Animated.View>
@@ -226,7 +241,6 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.9)", // Added BG for visibility
     borderRadius: 30,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -236,7 +250,6 @@ const styles = StyleSheet.create({
   },
   baseIcon: {
     fontSize: 20,
-    color: theme.colors.actionPrimary.default,
   },
   topButton: {
     bottom: 120,

@@ -10,10 +10,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
-import { theme } from "../Theme/tokens";
-import { parseShadowStyle } from "../util/functions/parseStyles";
 import { navigationRef } from "../util/functions/navigation";
 import { PAYMENTS_ENABLED } from "../constants/features";
+// Deliberately the DARK elevation set: the premium card is gold-on-slate in both
+// schemes, so its inner shadows stay dark-tuned (see design-system/elevation.ts).
+import { elevationDark } from "../design-system/elevation";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Animated, {
@@ -96,12 +97,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "rgba(255,255,255,0.15)",
   },
   heroContainer: {
     alignItems: "center",
@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
   },
   buyProCtaGradient: {
     paddingVertical: 20,
@@ -422,7 +421,7 @@ const UpsellModal = () => {
           onPress={() => setModalVisible(false)}
           style={styles.backButton}
         >
-          <Icon name="close" size={20} color="#000" />
+          <Icon name="close" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -503,7 +502,7 @@ const UpsellModal = () => {
               navigationRef.navigate("PremiumModal" as never);
             }, 300);
           }}
-          style={styles.buyProCtaButton}
+          style={[styles.buyProCtaButton, elevationDark.e2]}
         >
           <LinearGradient
             colors={["#D4AF37", "#B8860B", "#996515"]}

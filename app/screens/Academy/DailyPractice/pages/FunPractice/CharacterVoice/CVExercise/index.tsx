@@ -1,26 +1,10 @@
-// FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../../components/ScreenView";
+import { StyleSheet, View } from "react-native";
 import {
   CharacterVoiceFDPStackNavigationProp,
   CharacterVoiceFDPStackParamList,
 } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
-import { theme } from "../../../../../../../Theme/tokens";
 import { getFunPracticeById } from "../../../../../../../api/dailyPractice";
 
 import {
@@ -34,20 +18,27 @@ import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
+  Page,
+  Button,
+  Text,
+  useTheme,
+  spacing,
+} from "../../../../../../../design-system";
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../../components/DonePractice";
 
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import { ReadingStage } from "../../../ReadingPractice/shared/ReadingStage";
 
 const CVExercise = () => {
   const navigation =
     useNavigation<CharacterVoiceFDPStackNavigationProp<"CVExercise">>();
-  const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
+  const { colors } = useTheme();
+  // Character Voice = the "purple" accent from the Fun Practice list; the whole
+  // practice inherits that identity (stage, dock, tips, save + done screens).
+  const accentColor = colors.accent.purple;
+  const onAccentColor = colors.accentOn.purple;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext, practiceActivity, from } = route.params;
@@ -100,7 +91,6 @@ const CVExercise = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
-  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
 
   const toggleIndex = () => {
     if (texts && texts.length > 0) {
@@ -191,8 +181,7 @@ const CVExercise = () => {
   }, [navigation]);
 
   // --- Render Helpers ---
-
-  const bottomPadding = 400; // Space for the dock
+ // Space for the dock
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
   const { exitSheet } = useConfirmOnExit({
@@ -200,6 +189,7 @@ const CVExercise = () => {
     activityId: currentActivityId,
     isCompleted: isDone,
     onSave: onDonePress,
+    accentColor,
     family: "Fun",
     from,
     packContext,
@@ -211,6 +201,8 @@ const CVExercise = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="character voice exercise"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -231,7 +223,7 @@ const CVExercise = () => {
     );
   }
 
-  // 1. Pre-Practice (Tips) View
+  // 1. Pre-Practice (Tips) View — DETAIL recipe on the dark canvas.
   if (!currentActivityId) {
     const tipsArray = effectiveCvData?.hints || [
       "Get into character and have fun.",
@@ -240,533 +232,179 @@ const CVExercise = () => {
     ];
 
     return (
-      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
-        <View style={styles.container}>
-          <BlurView
-            intensity={80}
-            tint="light"
-            style={[
-              styles.topNavigationContainer,
-              {
-                paddingTop: insets.top + 10,
-                height: HEADER_HEIGHT + insets.top,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() =>
-                from === "MOOD_CHECK"
-                  ? navigation.navigate("Root" as any, { screen: "HOME" })
-                  : navigation.goBack()
+      <Page
+        title="Character Voice"
+        description="Express yourself by adopting fun personas and practicing different vocal styles."
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        footer={
+          <Button
+            label="Start Practice"
+            onPress={async () => {
+              setIsStarting(true);
+              try {
+                await markActivityStart();
+              } finally {
+                setIsStarting(false);
               }
-              style={styles.backButton}
-            >
-              <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Voice Practice</Text>
-            <View style={{ width: 32 }} />
-          </BlurView>
-
-          <View style={styles.container}>
-            <ScrollView
-              key="tips-scroll"
-              contentContainerStyle={{
-                paddingHorizontal: 24,
-                paddingTop: HEADER_HEIGHT + insets.top + 20,
-                paddingBottom: 120,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.heroSection}>
-                <Text style={styles.heroTitle}>Character Voice</Text>
-                <Text style={styles.heroDescription}>
-                  Express yourself by adopting fun personas and practicing different vocal styles.
-                </Text>
-              </View>
-
-              <View style={styles.timelineSection}>
-                <Text style={styles.sectionHeader}>Tips</Text>
-                <View style={styles.timelineContainer}>
-                  {tipsArray.map((tip, index, arr) => (
-                    <View key={index} style={styles.timelineItem}>
-                      <View style={styles.timelineTrack}>
-                        <View style={styles.timelineDot} />
-                        {index !== arr.length - 1 && (
-                          <View style={styles.timelineLine} />
-                        )}
-                      </View>
-                      <View style={styles.timelineContent}>
-                        <Text style={styles.timelineText}>{tip}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Fixed Start Button at bottom */}
-            <View
-              style={[
-                styles.bottomActionContainer,
-                { paddingBottom: insets.bottom || 24 },
-              ]}
-            >
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={async () => {
-                  setIsStarting(true);
-                  try {
-                    await markActivityStart();
-                  } finally {
-                    setIsStarting(false);
-                  }
-                }}
-                disabled={isStarting}
-                style={styles.startButton}
-              >
-                <LinearGradient
-                  colors={[
-                    theme.colors.library.orange[400],
-                    theme.colors.library.orange[500],
+            }}
+            loading={isStarting}
+            disabled={isStarting}
+            style={isStarting ? undefined : { backgroundColor: accentColor }}
+          />
+        }
+      >
+        {/* Tips — a dot timeline on the dark canvas. */}
+        <View>
+          <Text variant="h3" color="primary" style={styles.tipsHeading}>
+            Tips
+          </Text>
+          {tipsArray.map((tip, index, arr) => (
+            <View key={index} style={styles.tipRow}>
+              <View style={styles.tipTrack}>
+                <View
+                  style={[
+                    styles.tipDot,
+                    { backgroundColor: accentColor },
                   ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.startButtonGradient}
-                >
-                  <Text style={styles.startButtonText}>Start Practice</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                />
+                {index !== arr.length - 1 && (
+                  <View
+                    style={[
+                      styles.tipLine,
+                      { backgroundColor: colors.border.default },
+                    ]}
+                  />
+                )}
+              </View>
+              <Text variant="body" color="secondary" style={styles.tipText}>
+                {tip}
+              </Text>
             </View>
-          </View>
+          ))}
         </View>
-      </ScreenView>
+      </Page>
     );
   }
 
-  // 2. Active Practice View
+  // 2. Active Practice View — the shared "Clean Focus" reading stage (purple accent).
   return (
-    <ScreenView style={styles.screenView}>
-      <LinearGradient
-        colors={["#FFF7ED", "#FFEDD5", "#FFF"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0.6 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.container}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
+    <>
+      <ReadingStage
+        title="Voice Practice"
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        category="VOICE"
+        accent={accentColor}
+        onNext={toggleIndex}
+        dock={
+          <SmartRecorder
+            onRecorded={setVoiceRecordingUri}
+            prevRecordingUri={voiceRecordingUri || undefined}
+            onToggle={toggleIndex}
+            onSubmit={async () => {
+              setIsLoading(true);
+              try {
+                await onDonePress();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            onDiscard={() => {
+              setVoiceRecordingUri(null);
+            }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
+          />
+        }
+      >
+        <View style={styles.readingBlock}>
+          <View style={styles.charHead}>
+            <Text variant="h2" color="primary" center>
+              {effectiveName}
+            </Text>
+            <AudioPlaybackButton
+              audioUrl={effectiveCvData?.exampleAudioUrl}
+              iconSize={14}
+              activeColor={accentColor}
+              style={[
+                styles.playbackButton,
+                { backgroundColor: colors.surface.control },
+              ]}
             />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Voice Practice</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
-
-        <View style={styles.container}>
-          <CustomScrollView
-            key="practice-scroll"
-            contentContainerStyle={[
-              styles.scrollContent,
-              {
-                paddingTop: HEADER_HEIGHT + insets.top + 10,
-                paddingBottom: bottomPadding,
-              },
-            ]}
-          >
-            <View style={styles.cardContainer}>
-              {/* 1. Warm Gradient Header */}
-              <LinearGradient
-                colors={["#2DD4BF", "#0F766E"]} // Teal 400 -> Teal 700 (Matching Character Voice Theme)
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardHeaderGradient}
-              >
-                <View style={styles.headerTopRow}>
-                  <View style={styles.categoryPill}>
-                    <Icon name="microphone-alt" size={12} color="#115E59" />
-                    <Text style={styles.categoryPillText}>VOICE</Text>
-                  </View>
-
-                  {/* Glassy Next Button */}
-                  <TouchableOpacity
-                    onPress={toggleIndex}
-                    style={styles.glassButton}
-                  >
-                    <Text style={styles.glassButtonText}>Next</Text>
-                    <Icon name="chevron-right" size={12} color="#FFF" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.titleContainer}>
-                  <Text style={styles.articleTitle}>{effectiveName}</Text>
-                  <AudioPlaybackButton
-                    audioUrl={effectiveCvData?.exampleAudioUrl}
-                    iconSize={14}
-                    activeColor="#FFF"
-                    style={styles.playbackButton}
-                  />
-                </View>
-
-                {/* Watermark */}
-                <View style={styles.headerWatermark}>
-                  <Icon
-                    name="microphone-alt"
-                    size={96}
-                    color="rgba(255,255,255,0.15)"
-                  />
-                </View>
-              </LinearGradient>
-
-              {/* 2. White Sheet Content */}
-              <View style={styles.cardBodySheet}>
-                {/* Internal Watermark */}
-                <View style={styles.sheetWatermarkContainer}>
-                  <Icon
-                    name={effectiveCvData?.icon || "user"}
-                    size={120}
-                    color={theme.colors.library.orange[200]}
-                  />
-                </View>
-
-                <View style={styles.textArea}>
-                  <Text style={styles.readingText}>{texts[currentIndex]}</Text>
-                </View>
-              </View>
-            </View>
-          </CustomScrollView>
+          </View>
+          <Text variant="h2" color="primary" style={styles.readingText}>
+            {texts[currentIndex]}
+          </Text>
         </View>
-      </View>
-
-      {/* Action Dock (Fixed Bottom) */}
-      <View style={styles.actionDockWrapper}>
-        <SmartRecorder
-          onRecorded={setVoiceRecordingUri}
-          prevRecordingUri={voiceRecordingUri || undefined}
-          onToggle={toggleIndex}
-          onSubmit={async () => {
-            setIsLoading(true);
-            try {
-              await onDonePress();
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          onDiscard={() => {
-            setVoiceRecordingUri(null);
-          }}
-        />
-      </View>
+      </ReadingStage>
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
 export default CVExercise;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-    backgroundColor: "#FFFFFF",
+  readingBlock: {
+    width: "100%",
+    alignItems: "center",
+    gap: spacing["2xl"],
   },
-  container: {
-    flex: 1,
-  },
-  tipsScrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 32,
-  },
-  scrollContent: {
-    paddingVertical: SHADOW_BUFFER,
-    paddingHorizontal: 24,
-    // Bottom padding inserted dynamically via style prop
-  },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+  charHead: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  headerRight: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerHardModeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerHardModeActive: {
-    backgroundColor: "#FFF7ED",
-    borderColor: "rgba(234, 88, 12, 0.3)",
-  },
-  activeDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#EA580C",
-    borderWidth: 1.5,
-    borderColor: "#FFF",
+    gap: spacing.md,
   },
   // Card Styles
-  cardContainer: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden", // Clip the sheet
-    minHeight: 450,
-  },
-  cardHeaderGradient: {
-    padding: 24,
-    paddingBottom: 48, // Space for overlap
-    position: "relative",
-    height: 180,
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#115E59",
-    letterSpacing: 1,
-  },
-  glassButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  glassButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 24,
-    gap: 12,
-    zIndex: 1,
-  },
-  articleTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFF",
-    fontSize: 26,
-    zIndex: 1,
-  },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -10,
-    opacity: 0.15,
-    transform: [{ rotate: "-15deg" }],
-  },
-  cardBodySheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -40, // Overlap
-    padding: 24,
-    paddingBottom: 40,
-    minHeight: 300,
-    alignItems: "center",
-    justifyContent: "center", // Center text vertically
-  },
-  sheetWatermarkContainer: {
-    position: "absolute",
-    top: 40,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.6,
-    zIndex: 0,
-  },
-  textArea: {
-    marginTop: 16,
-    alignItems: "center",
-    zIndex: 1,
-  },
   playbackButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
     justifyContent: "center",
     alignItems: "center",
     padding: 0, // Override default padding
   },
   readingText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.default,
     lineHeight: 36,
-    fontSize: 24,
     textAlign: "center",
   },
-
-  tipsScroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  startButton: {
-    marginTop: 20,
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontWeight: "700",
-  },
   // Recorder Dock
-  actionDockWrapper: {},
-  bottomActionContainer: {
-    paddingHorizontal: 24,
+  // Pre-practice tips (dark)
+  tipsHeading: {
+    marginBottom: spacing.lg,
   },
-  // Timeline & Hero Styles
-  heroSection: {
-    marginBottom: 32,
+  tipRow: {
+    flexDirection: "row",
   },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 40,
-    color: '#111827',
-    marginBottom: 12,
-    letterSpacing: -1,
-    lineHeight: 48,
-  },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#4B5563',
-    lineHeight: 24,
-  },
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
+  tipTrack: {
+    alignItems: "center",
     width: 20,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
-  timelineDot: {
+  tipDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.library.blue[500],
     marginTop: 7,
-    zIndex: 2,
   },
-  timelineLine: {
+  tipLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
     marginTop: 4,
     marginBottom: -4,
-    zIndex: 1,
   },
-  timelineContent: {
+  tipText: {
     flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151',
+    paddingBottom: spacing["2xl"],
     lineHeight: 24,
   },
 });

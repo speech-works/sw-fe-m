@@ -4,8 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { theme } from "../Theme/tokens";
-import { parseShadowStyle } from "../util/functions/parseStyles";
+import { useTheme } from "../design-system";
 
 interface AnimatedToggleProps {
   value: boolean;
@@ -19,9 +18,12 @@ const AnimatedToggle: React.FC<AnimatedToggleProps> = ({
   value,
   onValueChange,
   disabled = false,
-  activeColor = theme.colors.actionPrimary.default,
-  inactiveColor = "#E2E8F0",
+  activeColor,
+  inactiveColor,
 }) => {
+  const { colors } = useTheme();
+  const active = activeColor ?? colors.action.primary;
+  const inactive = inactiveColor ?? colors.surface.control;
   const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -39,7 +41,7 @@ const AnimatedToggle: React.FC<AnimatedToggleProps> = ({
 
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [inactiveColor, activeColor],
+    outputRange: [inactive, active],
   });
 
   return (
@@ -58,6 +60,7 @@ const AnimatedToggle: React.FC<AnimatedToggleProps> = ({
         <Animated.View
           style={[
             styles.thumb,
+            { backgroundColor: colors.surface.inverse },
             { transform: [{ translateX }] },
           ]}
         />
@@ -78,8 +81,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
 });
 

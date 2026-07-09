@@ -1,10 +1,9 @@
 import Slider from "@react-native-community/slider";
 import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import { makeStyles, Text, useTheme } from "../../design-system";
 
 interface OnboardingOption {
   id: string;
@@ -35,6 +34,8 @@ const OnboardingQuestion = ({
   values = [],
   onChange,
 }: Props) => {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const isSlider = questionType === "SLIDER";
   const isMulti = questionType === "MULTI";
 
@@ -74,7 +75,7 @@ const OnboardingQuestion = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.question}>
+      <Text variant="display" color="primary" style={styles.question}>
         {sequence ? `${sequence}. ` : ""}
         {question}
       </Text>
@@ -82,7 +83,11 @@ const OnboardingQuestion = ({
       {/* SLIDER RENDERING BLOCK */}
       {isSlider ? (
         <View>
-          {description && <Text style={styles.description}>{description}</Text>}
+          {description && (
+            <Text variant="body" color="secondary" style={styles.description}>
+              {description}
+            </Text>
+          )}
           <View style={styles.sliderBlock}>
             <Slider
               style={styles.slider}
@@ -116,15 +121,17 @@ const OnboardingQuestion = ({
 
                 onChange(id, score.toString());
               }}
-              minimumTrackTintColor={theme.colors.actionPrimary.default}
-              maximumTrackTintColor="#E6E6E6"
-              thumbTintColor={theme.colors.actionPrimary.default}
+              minimumTrackTintColor={colors.action.primary}
+              maximumTrackTintColor={colors.surface.control}
+              thumbTintColor={colors.action.primary}
             />
             <View style={styles.sliderMeta}>
-              <Text style={styles.sliderText}>
+              <Text variant="body" color="primary">
                 {options[Math.round(tempValue)]?.answer ?? ""}
               </Text>
-              <Text style={styles.sliderPercent}>{percentage}%</Text>
+              <Text variant="title" color="primary">
+                {percentage}%
+              </Text>
             </View>
           </View>
         </View>
@@ -132,7 +139,11 @@ const OnboardingQuestion = ({
         // NON-SLIDER RENDERING BLOCK
         <View style={styles.nonSliderBlock}>
           {description && (
-            <Text style={[styles.description, { marginBottom: 4 }]}>
+            <Text
+              variant="body"
+              color="secondary"
+              style={[styles.description, { marginBottom: 4 }]}
+            >
               {description}
             </Text>
           )}
@@ -161,16 +172,20 @@ const OnboardingQuestion = ({
                       <Icon
                         name="check"
                         size={14}
-                        color={theme.colors.actionPrimary.default}
+                        color={colors.text.accent}
                       />
                     ) : (
                       <View style={styles.radioInner} />
                     ))}
                 </View>
                 <View style={styles.textWrap}>
-                  <Text style={styles.answer}>{opt.answer}</Text>
+                  <Text variant="body" color="primary">
+                    {opt.answer}
+                  </Text>
                   {opt.description && (
-                    <Text style={styles.sub}>{opt.description}</Text>
+                    <Text variant="bodySm" color="secondary">
+                      {opt.description}
+                    </Text>
                   )}
                 </View>
               </TouchableOpacity>
@@ -184,23 +199,19 @@ const OnboardingQuestion = ({
 
 export default OnboardingQuestion;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   container: {
-    gap: 32, // Increase gap between Title and content
-    paddingVertical: 12,
+    gap: t.spacing["3xl"], // Increase gap between Title and content
+    paddingVertical: t.spacing.md,
   },
   question: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
     lineHeight: 42,
   },
   description: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
     lineHeight: 24,
   },
   sliderBlock: {
-    marginTop: 12,
+    marginTop: t.spacing.md,
   },
   slider: {
     width: "100%",
@@ -211,32 +222,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 6,
   },
-  sliderText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-  },
-  sliderPercent: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    color: theme.colors.text.title,
-  },
   nonSliderBlock: {
-    gap: 20, // Clearer separation between description and options
+    gap: t.spacing.xl, // Clearer separation between description and options
   },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: t.spacing.lg,
     paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 16,
+    paddingHorizontal: t.spacing.xl,
+    borderRadius: t.radius.input,
     borderWidth: 1.5,
     borderStyle: "solid",
-    borderColor: theme.colors.border.default,
+    borderColor: c.border.default,
   },
   optionSelected: {
-    borderColor: theme.colors.actionPrimary.default,
-    backgroundColor: theme.colors.background.default,
+    borderColor: c.action.primary,
+    backgroundColor: c.action.primaryTint,
   },
   controlOuter: {
     width: 22,
@@ -246,26 +248,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderStyle: "solid",
-    borderColor: theme.colors.border.default,
+    borderColor: c.border.default,
   },
-  radioOuter: { borderRadius: 100 },
+  radioOuter: { borderRadius: t.radius.full },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 10,
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: c.action.primary,
   },
   checkboxOuter: { borderRadius: 6 },
   controlOuterActive: {
-    borderColor: theme.colors.actionPrimary.default,
+    borderColor: c.action.primary,
   },
-  textWrap: { flex: 1, gap: 4, display: "flex", flexDirection: "column" },
-  answer: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-  },
-  sub: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-});
+  textWrap: { flex: 1, gap: t.spacing.xs, display: "flex", flexDirection: "column" },
+}));

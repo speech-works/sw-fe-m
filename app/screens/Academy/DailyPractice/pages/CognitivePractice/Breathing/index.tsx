@@ -3,27 +3,10 @@ import {
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import ScreenView from "../../../../../../components/ScreenView";
-import { theme } from "../../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
+import { StyleSheet, View } from "react-native";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import { BreathingHalo } from "./components/BreathingHalo";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import { BlurView } from "expo-blur";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
@@ -34,10 +17,6 @@ import {
   abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import Button from "../../../../../../components/Button";
-import {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import { useActivityStore } from "../../../../../../stores/activity";
@@ -49,6 +28,15 @@ import {
   validateVitals,
 } from "../../../../../../utils/vitals";
 import DonePractice from "../../../components/DonePractice";
+import {
+  Page,
+  Button,
+  Text,
+  useTheme,
+  spacing,
+  space,
+  Sheet,
+} from "../../../../../../design-system";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/ExploreStack/types";
@@ -56,15 +44,18 @@ import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/
 const Breathing = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Breathing">>();
   const route = useRoute<CDPStackRouteProp<"BreathingPractice">>();
-  const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
+  const { colors } = useTheme();
+  // Guided Breathing = the "danger" (rose) accent from the Cognitive Practice
+  // list; the flow inherits it (Start, tips, save + done screens).
+  const accentColor = colors.accent.danger;
+  const onAccentColor = colors.accentOn.danger;
 
   const passedActivity = route.params?.practiceActivity;
   const packContext = route.params?.packContext;
   const from = route.params?.from;
 
   // single “mute” state that mutes both breath sounds + background
-  const [mute, setMute] = useState(false);
+  const [mute] = useState(false);
   // State to track elapsed seconds for the session
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
@@ -100,6 +91,7 @@ const Breathing = () => {
     activityId: currentActivityId,
     isCompleted: isDone || showVitalsModal,
     onSave: () => setShowVitalsModal(true),
+    accentColor,
     family: "Cognitive",
     from,
     packContext,
@@ -278,7 +270,7 @@ const Breathing = () => {
 
   const confirmEarlyExit = () => {
     setShowEarlyExitPrompt(false);
-    // Allow the BottomSheetModal to fully animate out (300ms) before
+    // Allow the Sheet to fully animate out (300ms) before
     // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
     setTimeout(() => {
       handleAbort();
@@ -417,7 +409,7 @@ const Breathing = () => {
           "Breathing Screen - Using passed activity mode (wait for start)",
         );
         setCognitivePracticeId(passedActivity.id);
-        
+
         if (packContext?.alreadyStarted) {
           console.log("Breathing Screen - Autostarting since already started by pack");
           setCurrentActivityId(passedActivity.id);
@@ -453,47 +445,34 @@ const Breathing = () => {
     rethrowErrors: true,
   });
 
+  // ── IMMERSIVE MODE (dark canvas + preserved breathing halo) ─────────────────
   if (currentActivityId && !isDone) {
+    const sessionComplete = elapsedSeconds >= totalSessionDurationInSeconds;
     return (
-      <View style={styles.immersiveContainer}>
-        {/* Warm Gradient Background */}
-        <LinearGradient
-          colors={["#000000", "#020617", "#0F172A"]} // Black -> Slate-950 -> Slate-900
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-
+      <View
+        style={[styles.immersiveContainer, { backgroundColor: colors.background.canvas }]}
+      >
         <View style={styles.immersiveContent}>
           {/* Timer Display */}
           <Text
-            style={[
-              styles.timerText,
-              { marginTop: 60 },
-              elapsedSeconds >= totalSessionDurationInSeconds && {
-                color: "#4ADE80",
-              },
-            ]}
+            variant="h2"
+            color={sessionComplete ? colors.feedback.successText : "secondary"}
+            style={styles.timerText}
           >
             {`${displayMinutes.toString().padStart(2, "0")}:${displaySeconds
               .toString()
               .padStart(2, "0")}`}
           </Text>
 
-          {/* Centered Halo */}
+          {/* Centered Halo (preserved animation) */}
           <BreathingHalo inhale={4} hold={4} exhale={4} repeat mute={mute} />
         </View>
 
         {/* Bottom Controls */}
         <View style={styles.immersiveControls}>
           <Button
-            text="End Session"
-            variant="ghost" // Ghost/Subtle button style if available, or just standard
-            style={{
-              backgroundColor: "rgba(255,255,255,0.1)",
-              borderColor: "rgba(255,255,255,0.1)",
-            }}
-            textColor="#F8FAFC"
+            label="End Session"
+            variant="secondary"
             onPress={handleCompletePress}
             disabled={isLoading}
           />
@@ -505,57 +484,38 @@ const Breathing = () => {
           onSubmit={handleVitalsSubmit}
           onSkip={handleVitalsSkip}
           showAccuracy={showAccuracy}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
         />
 
         {/* Early Exit Prompt Bottom Sheet */}
-        <BottomSheetModal
+        <Sheet
           visible={showEarlyExitPrompt}
           onClose={() => setShowEarlyExitPrompt(false)}
-          showCloseButton={true}
-          fitContent={true}
         >
-          <LinearGradient
-            colors={["#EFF6FF", "#DBEAFE"]}
-            style={[styles.skipModalContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}
-          >
-            <View style={styles.skipModalWatermark} pointerEvents="none">
-              <Icon
-                name="clock"
-                solid
-                size={180}
-                color={theme.colors.library.blue[200]}
-                style={{ opacity: 0.2, transform: [{ rotate: "15deg" }] }}
-              />
-            </View>
-            <Text style={styles.skipModalTitle}>Finish early?</Text>
-            <Text style={styles.skipModalDesc}>
+          <View style={styles.skipModal}>
+            <Text variant="h2" center>
+              Finish early?
+            </Text>
+            <Text variant="body" color="secondary" center>
               We recommend at least 5 minutes of practice for the best results. Are you sure you want to end your session early?
             </Text>
             <View style={styles.skipModalActions}>
-              <TouchableOpacity
-                style={styles.skipModalPrimaryButton}
+              <Button
+                label="End Session"
+                variant="primary"
                 onPress={confirmEarlyExit}
-                activeOpacity={0.9}
-              >
-                <LinearGradient
-                  colors={[theme.colors.library.blue[500], theme.colors.library.blue[600]]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.skipModalButtonGradient}
-                >
-                  <Text style={styles.skipModalPrimaryButtonText}>End Session</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.skipModalSecondaryButton}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
+              />
+              <Button
+                label="Continue Practice"
+                variant="secondary"
                 onPress={() => setShowEarlyExitPrompt(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.skipModalSecondaryButtonText}>Continue Practice</Text>
-              </TouchableOpacity>
+              />
             </View>
-          </LinearGradient>
-        </BottomSheetModal>
+          </View>
+        </Sheet>
 
         {exitSheet}
       </View>
@@ -568,6 +528,8 @@ const Breathing = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="breathing exercise"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={undefined}
         isAborted={isAborted}
         from={from}
@@ -575,80 +537,25 @@ const Breathing = () => {
     );
   }
 
+  // ── INTRO MODE (Tips) ───────────────────────────────────────────────────────
+  const tips = [
+    "Take deep breaths before starting. Feel your diaphragm expand.",
+    "Maintain a relaxed facial posture. Release jaw tension.",
+    "It's okay to take your time. Focus on smooth transitions.",
+  ];
+
   return (
-    <ScreenView style={styles.screenView}>
-      {/* ── STANDARD MODE (Intro) ────────────────────────────────────────────── */}
-      <View style={styles.container}>
-        {/* ── Top Bar with Back + Mute Button ──────────────────────────────────────── */}
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Breathing</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
-
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-            flexGrow: 1,
-            justifyContent: "flex-start",
-            paddingBottom: 24,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.timelineSection}>
-            <Text style={styles.sectionHeader}>Tips</Text>
-            <View style={styles.timelineContainer}>
-              {[
-                "Take deep breaths before starting. Feel your diaphragm expand.",
-                "Maintain a relaxed facial posture. Release jaw tension.",
-                "It's okay to take your time. Focus on smooth transitions.",
-              ].map((tip, index, arr) => (
-                <View key={index} style={styles.timelineItem}>
-                  <View style={styles.timelineTrack}>
-                    <View style={styles.timelineDot} />
-                    {index !== arr.length - 1 && (
-                      <View style={styles.timelineLine} />
-                    )}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineText}>{tip}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Fixed Start Button at the bottom */}
-        <View
-          style={[
-            styles.bottomActionContainer,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-          ]}
-        >
+    <>
+      <Page
+        title="Breathing"
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        footer={
           <Button
-            text="Start Exercise"
+            label="Start Exercise"
             onPress={async () => {
               try {
                 await markActivityStart();
@@ -657,10 +564,35 @@ const Breathing = () => {
                 // Global stamina modal will be handled by the API layer event
               }
             }}
-            style={styles.startButton}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
+        }
+      >
+        {/* Tips — a dot timeline on the dark canvas. */}
+        <View>
+          <Text variant="h3" color="primary" style={styles.tipsHeading}>
+            Tips
+          </Text>
+          {tips.map((tip, index, arr) => (
+            <View key={index} style={styles.tipRow}>
+              <View style={styles.tipTrack}>
+                <View
+                  style={[styles.tipDot, { backgroundColor: accentColor }]}
+                />
+                {index !== arr.length - 1 && (
+                  <View
+                    style={[styles.tipLine, { backgroundColor: colors.border.default }]}
+                  />
+                )}
+              </View>
+              <Text variant="body" color="secondary" style={styles.tipText}>
+                {tip}
+              </Text>
+            </View>
+          ))}
         </View>
-      </View>
+      </Page>
 
       {/* Vitals Feedback Modal */}
       <VitalsFeedbackModal
@@ -668,246 +600,19 @@ const Breathing = () => {
         onSubmit={handleVitalsSubmit}
         onSkip={handleVitalsSkip}
         showAccuracy={showAccuracy}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
 export default Breathing;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-    backgroundColor: '#FAFAFA',
-  },
-  container: {
-    gap: 32,
-    flex: 1,
-  },
-  scrollContainer: {
-    gap: 32,
-    padding: SHADOW_BUFFER,
-    flexGrow: 1,
-  },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  haloContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 36,
-  },
-  heroSection: {
-    marginBottom: 40,
-  },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 34,
-    color: '#111827', // Gray 900
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 17,
-    color: '#4B5563', // Gray 600
-    lineHeight: 26,
-  },
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
-    width: 20,
-    marginRight: 16,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#3B82F6',
-    marginTop: 7,
-    zIndex: 2,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: '#E5E7EB',
-    marginTop: 4,
-    marginBottom: -4,
-    zIndex: 1,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151', // Gray 700
-    lineHeight: 24,
-  },
-  startButton: {
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontWeight: "700",
-  },
-  progressContainer: {
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    padding: 24,
-    gap: 16,
-  },
-  progressTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  progressTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  progressDescText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  exerciseContainer: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-around",
-    height: "100%",
-  },
-  actionContainer: {
-    gap: 20,
-  },
-  bottomActionContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  skipModalContainer: {
-    padding: 32,
-    alignItems: "center",
-    paddingBottom: 48,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    position: "relative",
-    overflow: "hidden",
-  },
-  skipModalWatermark: {
-    position: "absolute",
-    left: -50,
-    top: -30,
-    zIndex: 0,
-  },
-  skipModalTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#1E3A8A", // Blue-900
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 16,
-    zIndex: 1,
-  },
-  skipModalDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#1E3A8A",
-    opacity: 0.8,
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
-    zIndex: 1,
-  },
-  skipModalActions: {
-    width: "100%",
-    gap: 12,
-    zIndex: 1,
-  },
-  skipModalPrimaryButton: {
-    width: "100%",
-    borderRadius: 20,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  skipModalButtonGradient: {
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipModalPrimaryButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  skipModalSecondaryButton: {
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(30,58,138,0.1)", // Border matching text blue
-  },
-  skipModalSecondaryButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#1E3A8A",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  // Immersive Styles
+  // Immersive
   immersiveContainer: {
     flex: 1,
     justifyContent: "space-between",
@@ -920,13 +625,62 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   immersiveControls: {
-    paddingBottom: 48,
+    paddingBottom: spacing["5xl"],
   },
   timerText: {
-    ...parseTextStyle(theme.typography.Heading2),
     fontVariant: ["tabular-nums"],
-    color: "#E2E8F0", // Slate-200
-    marginBottom: 48,
-    opacity: 0.9,
+    marginTop: spacing["6xl"],
+    marginBottom: spacing["5xl"],
+  },
+  // Early-exit sheet
+  skipModal: {
+    alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
+  },
+  skipModalContainer: {
+    padding: spacing["3xl"],
+    alignItems: "center",
+    paddingBottom: spacing["5xl"],
+  },
+  skipModalTitle: {
+    marginBottom: space.groupGap,
+  },
+  skipModalDesc: {
+    marginBottom: spacing["3xl"],
+    lineHeight: 24,
+  },
+  skipModalActions: {
+    width: "100%",
+    gap: space.rowGap,
+  },
+  // Intro tips (dark)
+  tipsHeading: {
+    marginBottom: space.groupGap,
+  },
+  tipRow: {
+    flexDirection: "row",
+  },
+  tipTrack: {
+    alignItems: "center",
+    width: 20,
+    marginRight: space.groupGap,
+  },
+  tipDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 7,
+  },
+  tipLine: {
+    width: 2,
+    flex: 1,
+    marginTop: 4,
+    marginBottom: -4,
+  },
+  tipText: {
+    flex: 1,
+    paddingBottom: spacing["3xl"],
+    lineHeight: 24,
   },
 });

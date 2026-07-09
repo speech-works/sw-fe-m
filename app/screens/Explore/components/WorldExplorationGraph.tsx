@@ -1,14 +1,14 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import {
   getDailyActivityStatsForTheWeek,
   getWeeklyReport,
@@ -19,27 +19,55 @@ import {
   WeeklyStat,
 } from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
 import { getFlowBenchmarkCopy } from "../../../util/flowBenchmark";
+import PressableScale from "../../../components/PressableScale";
+import {
+  useTheme,
+  spacing,
+  radius,
+  fonts,
+  borderWidth,
+  duration,
+  easing,
+  Text,
+  Icon,
+  icons,
+  AnimatedNumber,
+  Skeleton,
+} from "../../../design-system";
 
 interface WorldExplorationGraphProps {
   onLayoutCapture?: (event: any) => void;
+  /** Bumped by the parent on any tap/scroll outside a day cell — clears the selection. */
+  deselectSignal?: number;
 }
+
+// Height of each day cell; cells stretch to fill their column so the strip
+// spans the full width and its edges align with the title + stat cards.
+const CELL_HEIGHT = 32;
+
+// A day's practice minutes, phrased for the header readout / accessibility label.
+const formatDayMinutes = (minutes: number): string => {
+  if (minutes <= 0) return "Rest day";
+  if (minutes < 1) return "<1 min";
+  return `${Math.round(minutes)} min`;
+};
 
 const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   onLayoutCapture,
+  deselectSignal,
 }) => {
+  const { colors } = useTheme();
+
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
   const [weeklySummary, setWeeklySummary] =
     useState<WeeklyReportResponse["summary"] | null>(null);
   const [minutesComparison, setMinutesComparison] =
     useState<FlowComparisonSummary | null>(null);
-  const [comparisonLabel, setComparisonLabel] = useState(
-    "This week so far • benchmarked against last week",
-  );
   const [loading, setLoading] = useState<boolean>(true);
+  // Which day's peek chip is open (null = none). Presentational only.
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // Configuration
   const DAILY_TARGET_MINUTES = 10;
@@ -54,7 +82,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           setWeeklyData([]);
           setWeeklySummary(null);
           setMinutesComparison(null);
-          setComparisonLabel("This week so far • benchmarked against last week");
           setLoading(false);
           return;
         }
@@ -80,7 +107,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         if (weeklyResult.status === "fulfilled") {
           setWeeklySummary(weeklyResult.value.summary);
           setMinutesComparison(weeklyResult.value.summary.practiceTimeComparison);
-          setComparisonLabel(weeklyResult.value.comparisonLabel);
         } else {
           console.error("Explore weekly report error:", weeklyResult.reason);
         }
@@ -105,49 +131,12 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     weeklySummary?.totalDaysActive ??
     weeklyData.filter((d) => d.totalTime > 0).length;
 
-  const minutesBenchmark = getFlowBenchmarkCopy(
-    minutesComparison,
-    "minutes",
-    { compact: true },
-  );
-  const minutesBenchmarkSummary = useMemo(() => {
-    if (!minutesBenchmark.secondary) {
-      return minutesBenchmark.primary;
-    }
-
-    const compactSecondary = minutesBenchmark.secondary
-      .replace(" of last week", "")
-      .replace(" of last week's total", "");
-
-    return `${minutesBenchmark.primary} • ${compactSecondary}`;
-  }, [minutesBenchmark.primary, minutesBenchmark.secondary]);
-
   const totalPracticeSummary =
     totalWeeklyMinutes < 60
       ? Number.isInteger(totalWeeklyMinutes)
         ? `${totalWeeklyMinutes}m`
         : `${totalWeeklyMinutes.toFixed(1)}m`
       : `${(totalWeeklyMinutes / 60).toFixed(1)}h`;
-  const comparisonSubtitle = useMemo(() => {
-    const fallbackLabel = "Benchmarked against last week";
-
-    if (!comparisonLabel) {
-      return fallbackLabel;
-    }
-
-    const trimmedParts = comparisonLabel
-      .split("•")
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    const mostRelevantPart = trimmedParts[trimmedParts.length - 1];
-
-    if (!mostRelevantPart) {
-      return fallbackLabel;
-    }
-
-    return mostRelevantPart.charAt(0).toUpperCase() + mostRelevantPart.slice(1);
-  }, [comparisonLabel]);
   // Empty State Detection
   const hasAnyActivity = totalWeeklyMinutes > 0;
 
@@ -169,6 +158,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
       const dateKey = format(dayDate, "yyyy-MM-dd");
       return {
         dayLabel: format(dayDate, "EEEEE"),
+        dayName: format(dayDate, "EEEE"),
         minutes: dataMap.get(dateKey) || 0,
         isToday: isSameDay(dayDate, today),
       };
@@ -180,223 +170,176 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     DAILY_TARGET_MINUTES * 1.3,
   );
 
+  // Plain, full-referent last-week comparison for the header line — e.g. "0.7 min
+  // to match last week" / "0.7 min ahead of last week" / "Matched last week". The
+  // compact copy ("0.7m to match • 50%") was cryptic on a glanceable card, so the
+  // stat card is labelled simply ("this week") and the comparison lives here in words.
+  const benchmarkLine = minutesComparison?.hasBenchmark
+    ? getFlowBenchmarkCopy(minutesComparison, "minutes").primary
+    : loading
+      ? "This week so far"
+      : "Your first week here";
+
+  // --- Header readout ---
+  // Tapping a day relabels the (already single-line, truncating) subtitle to
+  // "Wednesday · 12 min"; deselecting reverts to the benchmark line. Reusing that
+  // slot makes collision / clipping / wrapping structurally impossible.
+  const selectedRhythm = selectedDay == null ? null : rhythmData[selectedDay];
+  const headerLine = selectedRhythm
+    ? `${selectedRhythm.dayName} · ${formatDayMinutes(selectedRhythm.minutes)}`
+    : benchmarkLine;
+
+  const reduceMotion = useReducedMotion();
+  const captionOpacity = useSharedValue(1);
+  const [shownCaption, setShownCaption] = useState(benchmarkLine);
+
+  // Crossfade the caption on change: fade out (fast/in), swap the string at the
+  // trough, fade in (reveal/out). Reassigning captionOpacity cancels an in-flight
+  // fade, so its callback fires with finished=false — a stale tap never lands.
+  useEffect(() => {
+    if (shownCaption === headerLine) return;
+    if (reduceMotion) {
+      setShownCaption(headerLine);
+      return;
+    }
+    captionOpacity.value = withTiming(
+      0,
+      { duration: duration.fast, easing: easing.in },
+      (finished) => {
+        if (finished) {
+          runOnJS(setShownCaption)(headerLine);
+          captionOpacity.value = withTiming(1, {
+            duration: duration.reveal,
+            easing: easing.out,
+          });
+        }
+      },
+    );
+  }, [headerLine, shownCaption, reduceMotion, captionOpacity]);
+
+  // Clear a held selection when the week's data is refetched, so the readout and
+  // ring can never point at a stale day.
+  useEffect(() => {
+    setSelectedDay(null);
+  }, [weeklyData]);
+
+  // Clear the selection when the parent signals a tap/scroll outside a day cell.
+  useEffect(() => {
+    setSelectedDay(null);
+  }, [deselectSignal]);
+
+  const captionStyle = useAnimatedStyle(() => ({ opacity: captionOpacity.value }));
+
   return (
     <View
       onLayout={(event) => {
         if (onLayoutCapture) onLayoutCapture(event);
       }}
-      style={styles.shadowContainer}
-      shouldRasterizeIOS={true}
       accessible={true}
       accessibilityLabel={`Weekly progress: ${totalWeeklyMinutes} minutes practiced across ${daysActive} days this week`}
     >
-      <LinearGradient
-        colors={[
-          theme.colors.library.red[300],
-          theme.colors.library.orange[400],
-        ]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        {/* Watermark Bubbles */}
-        <View style={styles.bubbleTopRight} />
-        <View style={styles.bubbleBottomLeft} />
+      {/* Header — title + caption, both flush-left so the whole section shares one
+          left edge. The caption doubles as the per-day readout (crossfades on tap). */}
+      <View style={styles.header}>
+        <Text variant="h3" color="primary">This Week</Text>
+        <Animated.View style={captionStyle}>
+          <Text variant="caption" color="secondary" numberOfLines={1} ellipsizeMode="tail">
+            {shownCaption}
+          </Text>
+        </Animated.View>
+      </View>
 
-        {/* World Icon Watermark */}
-        <View style={styles.worldWatermark}>
-          <Icon name="globe" size={140} color="rgba(255,255,255,0.08)" />
+      {/* Week rhythm — a compact strip of day cells, lit for days you practiced. */}
+      {!hasAnyActivity ? (
+        <View style={styles.emptyState}>
+          <Icon name={icons.weekly} size={36} color={colors.text.secondary} />
+          <Text variant="bodySm" color="secondary" center style={styles.emptyText}>
+            No practice yet this week — start today to build your rhythm.
+          </Text>
         </View>
-
-        {/* Content Layer */}
-        <View style={styles.contentLayer}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerTextBlock}>
-              <Text style={styles.headerLabel}>WEEKLY UPDATE</Text>
-              <Text
-                style={styles.comparisonBasisText}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {comparisonSubtitle}
-              </Text>
-            </View>
-          </View>
-
-          {/* Hero: Chart or Empty State */}
-          {!hasAnyActivity ? (
-            // Empty State
-            <View style={styles.emptyState}>
-              <Icon
-                name="calendar-check"
-                size={40}
-                color="rgba(255,255,255,0.3)"
-              />
-              <Text style={styles.emptyText}>No practice this week yet</Text>
-              <Text style={styles.emptySubtext}>
-                Start today to build your rhythm.
-              </Text>
-            </View>
+      ) : (
+        <View style={styles.rhythmRow}>
+          {loading ? (
+            Array.from({ length: 7 }).map((_, i) => (
+              <View key={i} style={styles.dayCol}>
+                <Skeleton width="100%" height={CELL_HEIGHT} radius={radius.md} />
+              </View>
+            ))
           ) : (
-            // Regular Chart
-            <View style={styles.chartContainer}>
-              <View style={styles.chartRow}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  rhythmData.map((d, index) => {
-                    const actualPercent = Math.min(
-                      100,
-                      (d.minutes / maxMinutes) * 100,
-                    );
-                    const targetPercent = Math.min(
-                      100,
-                      (DAILY_TARGET_MINUTES / maxMinutes) * 100,
-                    );
+            rhythmData.map((d, index) => {
+              const hasData = d.minutes > 0;
+              // Busier days glow brighter; the floor keeps even a light day clearly lit.
+              const intensity = 0.6 + 0.4 * Math.min(1, d.minutes / maxMinutes);
+              const isSelected = selectedDay === index;
 
-                    const isTargetReached = d.minutes >= DAILY_TARGET_MINUTES;
-                    // Improved Contrast: 0.85 opacity for better readability
-                    const actualColor = isTargetReached
-                      ? "#FFFFFF"
-                      : "rgba(255,255,255,0.85)";
-                    const targetColor = "rgba(255,255,255,0.15)";
-                    const isSkipped = d.minutes === 0;
-
-                    // Smart label: "99+" for large, "<1m" for sub-minute, otherwise rounded
-                    const minuteDisplay =
-                      d.minutes >= 100
-                        ? "99+"
-                        : d.minutes > 0 && d.minutes < 1
-                          ? "<1m"
-                          : `${Math.round(d.minutes)}m`;
-
-                    // Label should be above the taller of actual or target bar
-                    const topBarPercent = Math.max(
-                      actualPercent,
-                      targetPercent,
-                    );
-
-                    return (
-                      <View key={index} style={styles.barColumn}>
-                        {/* Bar and Label Container */}
-                        <View style={styles.barWrapper}>
-                          {/* Minute Label (2px above whichever bar is taller) */}
-                          {!isSkipped && (
-                            <Text
-                              style={[
-                                styles.minuteLabel,
-                                {
-                                  position: "absolute",
-                                  bottom: `${topBarPercent}%`,
-                                  left: 0,
-                                  right: 0,
-                                  marginBottom: 2, // 2px gap above bar
-                                },
-                              ]}
-                            >
-                              {minuteDisplay}
-                            </Text>
-                          )}
-
-                          {/* Bar Stack Container */}
-                          <View style={styles.barStackArea}>
-                            {/* Target Bar */}
-                            <View
-                              style={[
-                                styles.targetBar,
-                                {
-                                  height: `${targetPercent}%`,
-                                  backgroundColor: targetColor,
-                                },
-                              ]}
-                            />
-
-                            {/* Actual Bar */}
-                            {isSkipped ? (
-                              <View
-                                style={[
-                                  styles.dotSkipped,
-                                  { bottom: 0, position: "absolute" },
-                                ]}
-                              />
-                            ) : (
-                              <View
-                                style={[
-                                  styles.actualBar,
-                                  {
-                                    height: `${actualPercent}%`,
-                                    backgroundColor: actualColor,
-                                    zIndex: 2,
-                                  },
-                                ]}
-                              />
-                            )}
-                          </View>
-                        </View>
-
-                        {/* Day Label */}
-                        <View style={d.isToday ? styles.todayContainer : null}>
-                          <Text
-                            style={[
-                              styles.dayLabel,
-                              d.isToday && styles.todayLabel,
-                            ]}
-                          >
-                            {d.dayLabel}
-                          </Text>
-                        </View>
+              return (
+                // Tapping a day reveals its minutes in the header readout above.
+                <PressableScale
+                  key={index}
+                  style={styles.dayCol}
+                  scaleTo={0.95}
+                  haptic={false}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${d.dayName}, ${formatDayMinutes(d.minutes).toLowerCase()}`}
+                  onPress={() => setSelectedDay((prev) => (prev === index ? null : index))}
+                >
+                  {/* One cell per day — lit orange for days you practiced, quiet grey for rest days. */}
+                  <View
+                    style={[
+                      styles.cell,
+                      hasData
+                        ? {
+                            backgroundColor: colors.gamification.streak,
+                            // Selecting brightens the day to full so its ring reads crisply.
+                            opacity: isSelected ? 1 : intensity,
+                          }
+                        : { backgroundColor: colors.surface.control },
+                      isSelected && {
+                        borderWidth: borderWidth.thick,
+                        borderColor: colors.border.strong,
+                      },
+                    ]}
+                  />
+                  {/* Day label — today sits inside a small rounded accent chip. */}
+                  <View style={styles.dayLabelRow}>
+                    {d.isToday ? (
+                      <View style={[styles.todayChip, { backgroundColor: colors.action.primary }]}>
+                        <Text variant="caption" color={colors.action.onPrimary} style={styles.todayLabel}>
+                          {d.dayLabel}
+                        </Text>
                       </View>
-                    );
-                  })
-                )}
-              </View>
-            </View>
+                    ) : (
+                      <Text variant="caption" color={colors.text.tertiary}>{d.dayLabel}</Text>
+                    )}
+                  </View>
+                </PressableScale>
+              );
+            })
           )}
+        </View>
+      )}
 
-          {/* Footer: Stats Badges */}
-          <View style={styles.footerStats}>
-            {/* Streak Badge */}
-            <View style={[styles.statBadge, styles.activityBadge]}>
-              <View style={styles.watermarkIconContainer}>
-                <Icon name="fire" size={72} color="#FFF" />
-              </View>
-              <View style={styles.badgeContentCol}>
-                <Text
-                  style={styles.badgeMainValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.7}
-                >
-                  {daysActive}
-                </Text>
-                <Text style={styles.badgeSubValue} numberOfLines={1}>
-                  {daysActive === 1 ? "active day" : "active days"}
-                </Text>
-              </View>
-            </View>
-
-            {/* Total Badge */}
-            <View style={[styles.statBadge, styles.minutesBadge]}>
-              <View style={styles.watermarkIconContainer}>
-                <Icon name="stopwatch" size={72} color="#FFF" />
-              </View>
-              <View style={styles.badgeContentCol}>
-                <Text
-                  style={styles.badgeMainValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.7}
-                >
-                  {totalPracticeSummary}
-                </Text>
-                <Text style={styles.badgeSubValue} numberOfLines={2}>
-                  {minutesBenchmarkSummary}
-                </Text>
-              </View>
-            </View>
+      {/* Summary stat cards below the chart */}
+      <View style={styles.statRow}>
+        <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
+          <AnimatedNumber value={daysActive} variant="h2" color="primary" />
+          <View style={styles.statLabelRow}>
+            <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
+            <Text variant="caption" color="secondary">
+              {`active ${daysActive === 1 ? "day" : "days"}`}
+            </Text>
           </View>
         </View>
-      </LinearGradient>
+        <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
+          <Text variant="h2" color="primary">{totalPracticeSummary}</Text>
+          <View style={styles.statLabelRow}>
+            <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
+            <Text variant="caption" color="secondary" numberOfLines={1} style={styles.statLabel}>
+              this week
+            </Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 };
@@ -404,228 +347,78 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
 export default React.memo(WorldExplorationGraph);
 
 const styles = StyleSheet.create({
-  shadowContainer: {
-    borderRadius: 24,
-    shadowColor: theme.colors.actionPrimary.default,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 8,
-    backgroundColor: theme.colors.library.red[100],
-    marginBottom: 24,
-    overflow: "hidden",
-  },
-  gradient: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24,
-    minHeight: 320,
-    position: "relative",
-  },
-  // Watermark Bubbles
-  bubbleTopRight: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -50,
-    left: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  worldWatermark: {
-    position: "absolute",
-    right: -40,
-    top: -40,
-    opacity: 0.6,
-  },
-  contentLayer: {
-    flex: 1,
-    gap: 20,
-    zIndex: 1,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerTextBlock: {
-    gap: 6,
-    paddingRight: 56,
-  },
-  headerLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  comparisonBasisText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.84)",
-    fontSize: 13,
+  header: {
+    gap: spacing.xxs,
   },
   // Empty State
   emptyState: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    minHeight: 160,
+    justifyContent: "center",
+    paddingVertical: spacing["3xl"],
+    gap: spacing.sm,
   },
   emptyText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 17,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.9)",
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: "center",
+    paddingHorizontal: spacing.xl,
   },
-  emptySubtext: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 13,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
-  },
-  // Chart
-  chartContainer: {
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 180,
-  },
-  chartRow: {
+  // Week-rhythm row — one cell per day, spanning the full width so its edges
+  // align with the title and stat cards (floats directly on the page, no container).
+  rhythmRow: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: "flex-end",
-    height: 140, // Slightly reduced for better balance
     width: "100%",
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
-  barColumn: {
+  dayCol: {
     flex: 1,
-    alignItems: "center",
-    maxWidth: 40,
+    gap: spacing.sm,
   },
-  barWrapper: {
-    flex: 1,
+  // One day cell — fills its column; lit for a practiced day, quiet grey for a rest day.
+  cell: {
     width: "100%",
-    position: "relative",
-    marginBottom: 6,
+    height: CELL_HEIGHT,
+    borderRadius: radius.md,
   },
-  minuteLabel: {
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  barStackArea: {
-    height: "100%",
-    width: 18,
-    justifyContent: "flex-end",
+  dayLabelRow: {
+    height: 28,
+    width: "100%",
     alignItems: "center",
-    position: "relative",
-    marginLeft: "auto",
-    marginRight: "auto",
+    justifyContent: "center",
   },
-  targetBar: {
-    width: 18,
-    position: "absolute",
-    bottom: 0,
-    borderRadius: 6,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-  },
-  actualBar: {
-    width: 18,
-    position: "absolute",
-    bottom: 0,
-    borderRadius: 6,
-  },
-  dotSkipped: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    marginBottom: 4,
-  },
-  dayLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 11, // Increased from 10px
-    fontWeight: "600",
-  },
-  todayContainer: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+  // Today's letter sits inside a small rounded accent chip.
+  todayChip: {
+    minWidth: 26,
+    height: 24,
+    paddingHorizontal: spacing.xxs,
+    borderRadius: radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
   todayLabel: {
-    color: "#FFF",
-    fontWeight: "800",
-    fontSize: 11,
-    textShadowColor: "rgba(255,255,255,0.3)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
+    fontFamily: fonts.bold,
   },
-  // Footer
-  // Footer
-  footerStats: {
+  // Stat cards below the chart
+  statRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: "auto",
-    paddingTop: 12,
+    gap: spacing.md,
   },
-  statBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
-    overflow: "hidden",
-    position: "relative",
-  },
-  activityBadge: {
-    flex: 3.5,
-  },
-  minutesBadge: {
-    flex: 6.5,
-  },
-  watermarkIconContainer: {
-    position: "absolute",
-    right: -14,
-    bottom: -16,
-    opacity: 0.1,
-    transform: [{ rotate: "-15deg" }],
-  },
-  badgeContentCol: {
+  statCard: {
     flex: 1,
-    justifyContent: "center",
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
-  badgeMainValue: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#FFF",
-    letterSpacing: -0.4,
+  statLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
-  badgeSubValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.75)",
-    letterSpacing: -0.1,
-    lineHeight: 18,
-    marginTop: 4,
+  statDot: {
+    width: 6,
+    height: 6,
+    borderRadius: radius.full,
+  },
+  statLabel: {
+    flex: 1,
   },
 });

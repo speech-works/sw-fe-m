@@ -1,6 +1,6 @@
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { Audio } from "expo-av";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { AppState, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { PostHogProvider } from "posthog-react-native";
@@ -12,6 +12,17 @@ import ErrorFallback from "./app/components/ErrorFallback";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
 import FontLoader from "./app/util/components/FontLoader";
+import { ThemeProvider, useTheme } from "./app/design-system";
+import { DevPreview } from "./app/design-system/_DevPreview";
+import { runSchemeAudit } from "./app/design-system/utils/schemeAudit";
+
+// Dev-only: verify every canonical text-on-surface pairing in BOTH schemes
+// clears WCAG AA (warns a table of failures; silent in prod builds).
+if (__DEV__) runSchemeAudit();
+
+// TEMP (Phase B visual review only): renders the design-system preview overlay.
+// Revert to false / remove before shipping.
+const SHOW_DS_PREVIEW = false;
 // import Toast from "react-native-toast-message";
 // import toastConfig from "./app/util/config/toastConfig";
 import * as SecureStore from "expo-secure-store";
@@ -87,6 +98,50 @@ WebBrowser.maybeCompleteAuthSession();
 // Initialize PostHog once at module scope before any component renders.
 // Disabled automatically in __DEV__ mode (see initAnalytics).
 const posthogClient = initAnalytics();
+
+/**
+ * NavigationContainer with its underlay/transition colors driven by the active
+ * scheme (kills the white/black flash on push/pop in the "wrong" mode). Must
+ * render INSIDE ThemeProvider; keeps the ref + analytics wiring here so the
+ * container itself stays untouched.
+ */
+const ThemedNavRoot: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { colors, scheme } = useTheme();
+  const navTheme = useMemo(() => {
+    const base = scheme === "dark" ? DarkTheme : DefaultTheme; // v7 base keeps required `fonts`
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background.canvas,
+        card: colors.background.raised,
+        text: colors.text.primary,
+        primary: colors.action.primary,
+        border: colors.border.default,
+        notification: colors.nav.badge,
+      },
+    };
+  }, [colors, scheme]);
+  return (
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      onStateChange={() => {
+        const currentRoute = navigationRef.getCurrentRoute();
+        if (currentRoute?.name) {
+          trackScreen(
+            currentRoute.name,
+            currentRoute.params
+              ? { params: currentRoute.params as Record<string, any> }
+              : undefined,
+          );
+        }
+      }}
+    >
+      {children}
+    </NavigationContainer>
+  );
+};
 
 // Reflect the persisted analytics opt-out onto PostHog once the consent store
 // hydrates (and immediately if it already has).
@@ -228,6 +283,18 @@ const App: React.FC = () => {
 
   // if (!ready) return <LoadingScreen />;
 
+  // TEMP (Phase B): show only the design-system preview for visual review.
+
+  if (__DEV__ && SHOW_DS_PREVIEW) {
+    return (
+      <SafeAreaProvider style={{ flex: 1 }}>
+        <ThemeProvider>
+          <DevPreview />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <Sentry.ErrorBoundary
       fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}
@@ -241,21 +308,15 @@ const App: React.FC = () => {
               edges={["left", "right"]}
             >
               <FontLoader />
-              <NavigationContainer
-                ref={navigationRef}
-                onStateChange={() => {
-                  const currentRoute = navigationRef.getCurrentRoute();
-                  if (currentRoute?.name) {
-                    trackScreen(currentRoute.name, currentRoute.params ? { params: currentRoute.params as Record<string, any> } : undefined);
-                  }
-                }}
-              >
-                <MainNavigator />
-                <UpsellModal />
-                <OutcomeModal />
-                <StaminaVignetteOverlay />
-                <GlobalStaminaController />
-              </NavigationContainer>
+              <ThemeProvider>
+                <ThemedNavRoot>
+                  <MainNavigator />
+                  <UpsellModal />
+                  <OutcomeModal />
+                  <StaminaVignetteOverlay />
+                  <GlobalStaminaController />
+                </ThemedNavRoot>
+              </ThemeProvider>
             </SafeAreaView>
           </SafeAreaProvider>
         </AuthProvider>

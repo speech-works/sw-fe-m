@@ -1,0 +1,249 @@
+import React, { useState } from "react";
+import {
+  View,
+  ScrollView,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  ListRenderItem,
+  RefreshControlProps,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ScreenView from "../../components/ScreenView";
+import { useTheme } from "../useTheme";
+import { spacing, space, size, zIndex } from "../primitives/scale";
+import { PageHeader } from "./PageHeader";
+import { Gradient } from "./Gradient";
+
+/** FlatList body config — forwarded to a single FlatList that owns the page body. */
+export interface PageListConfig {
+  data: ReadonlyArray<any>;
+  renderItem: ListRenderItem<any>;
+  keyExtractor: (item: any, index: number) => string;
+  ListEmptyComponent?: React.ReactElement | null;
+  extraData?: unknown;
+}
+
+export interface PageProps {
+  /** Large left-aligned screen title (h1). Omit only when passing a custom `hero`. */
+  title?: string;
+  /** Optional secondary line under the title. */
+  description?: string;
+  onBack?: () => void;
+  /** Trailing slot in the back bar (e.g. an action IconButton). */
+  right?: React.ReactNode;
+  /** Custom identity block rendered IN PLACE OF the h1 title header — e.g. Home's
+   * two-line `screenTitle` greeting that `PageHeader` can't express. When set,
+   * `title`/`description`/back bar are not rendered. */
+  hero?: React.ReactNode;
+  /** Pull-to-refresh element for the scroll/list body (e.g. `<RefreshControl …>`). */
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+  /** Pinned bottom action (e.g. a primary Button). */
+  footer?: React.ReactNode;
+  /** Full-bleed layer rendered BEHIND the body (above the opaque canvas) — for an
+   * ambient background (e.g. a weather/flame effect). Non-interactive. */
+  background?: React.ReactNode;
+  /** Wrap the body in KeyboardAvoidingView (forms). */
+  keyboardAvoiding?: boolean;
+  /** Scroll the body (default true). Ignored when `list` is set. */
+  scroll?: boolean;
+  /** Gap between stacked children (default space.groupGap). */
+  contentGap?: number;
+  /** Render the body as a FlatList instead of children (title becomes the list header). */
+  list?: PageListConfig;
+  /** Tab-ROOT screens (where the floating CustomTabBar shows) set this so the
+   * scroll body clears the dock and bottom content stays reachable. */
+  tabBarSafe?: boolean;
+  children?: React.ReactNode;
+}
+
+const FOOTER_RESERVE = 96; // space kept clear at the bottom when a footer is pinned
+
+/**
+ * The single product-screen scaffold. Owns the standard dark canvas, the
+ * large-title header (back bar + h1 + optional description), screen gutters, and
+ * the title→content rhythm — so screens never hand-roll wrapper/header/scroll/
+ * padding (which is how layout drifts). Body can be scrolling children, a
+ * FlatList (`list`), or a fixed View (`scroll={false}`).
+ */
+export const Page: React.FC<PageProps> = ({
+  title,
+  description,
+  onBack,
+  right,
+  hero,
+  refreshControl,
+  footer,
+  background,
+  keyboardAvoiding,
+  scroll = true,
+  contentGap,
+  list,
+  tabBarSafe,
+  children,
+}) => {
+  const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Measured at runtime so the scroll body reserves the footer's REAL height
+  // (varies by content) and the last element always clears the pinned footer.
+  const [footerH, setFooterH] = useState(FOOTER_RESERVE);
+
+  const topPad = insets.top + space.inlineGap; // safe area + 8, matches Header
+  const tabPad = tabBarSafe ? size.tabBarSafe : 0;
+  const bottomPad =
+    (footer ? footerH + space.sectionGap : insets.bottom + space.screenX) + tabPad;
+  const gap = contentGap ?? space.groupGap;
+
+  // No own horizontal padding — the container applies space.screenX so the title
+  // and the content (and list rows) all share one gutter. The back bar only
+  // renders when there's a back button or a right action — otherwise (tab-root
+  // screens) the title sits near the top instead of below a phantom 44px bar.
+  // One source of truth for the header — shared with custom-layout screens. A
+  // custom `hero` (e.g. Home's screenTitle greeting) replaces the h1 header block.
+  const titleBlock = hero ?? (
+    <PageHeader title={title ?? ""} description={description} onBack={onBack} right={right} />
+  );
+
+  let body: React.ReactNode;
+  if (list) {
+    body = (
+      <FlatList
+        data={list.data as any[]}
+        renderItem={list.renderItem}
+        keyExtractor={list.keyExtractor}
+        ListEmptyComponent={list.ListEmptyComponent ?? undefined}
+        extraData={list.extraData}
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1, backgroundColor: colors.background.canvas }}
+        ListHeaderComponent={
+          <View style={{ paddingTop: topPad }}>
+            {titleBlock}
+            <View style={{ height: space.titleGap }} />
+          </View>
+        }
+        contentContainerStyle={{
+          paddingHorizontal: space.screenX,
+          paddingBottom: bottomPad,
+          flexGrow: 1,
+        }}
+      />
+    );
+  } else if (scroll) {
+    body = (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
+        style={{ flex: 1, backgroundColor: colors.background.canvas }}
+        contentContainerStyle={{
+          paddingTop: topPad,
+          paddingHorizontal: space.screenX,
+          paddingBottom: bottomPad,
+          flexGrow: 1,
+        }}
+      >
+        {titleBlock}
+        <View style={{ marginTop: space.titleGap, gap }}>{children}</View>
+      </ScrollView>
+    );
+  } else {
+    body = (
+      <View style={{ flex: 1, paddingTop: topPad, paddingHorizontal: space.screenX }}>
+        {titleBlock}
+        <View style={{ flex: 1, marginTop: space.titleGap, gap }}>{children}</View>
+      </View>
+    );
+  }
+
+  if (keyboardAvoiding) {
+    body = (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        {body}
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return (
+    <ScreenView style={{ backgroundColor: colors.background.canvas }}>
+      {/* Solid dark canvas behind everything — covers the legacy light `BgWrapper`
+       * gradient so an overscroll bounce (top/bottom) never flashes white. Matches
+       * the hand-rolled cover on Explore; non-interactive. */}
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background.canvas }]}
+        pointerEvents="none"
+      />
+      {/* Scheme-matched status-bar glyphs (light glyphs on the dark canvas,
+       * dark glyphs on paper), drawn edge-to-edge over the app canvas.
+       * Overrides BgWrapper's legacy hardcoded style. */}
+      <StatusBar
+        barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+        translucent
+        backgroundColor="transparent"
+      />
+      {body}
+      {/* Opaque status-bar cap — hides scrolled content behind the system clock/
+       * battery instead of letting the title collide with them. */}
+      {insets.top > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: colors.background.canvas,
+            zIndex: zIndex.sticky,
+          }}
+        />
+      ) : null}
+      {/* Ambient background (e.g. the Focus lamp) sits ABOVE the body AND the status
+       * cap, so it can dim/illuminate the screen edge-to-edge from the very top;
+       * it's non-interactive and below the footer, so a pinned CTA stays crisp.
+       * Renders only when a `background` is passed — pages without one are wholly
+       * unaffected (their top bars never change). */}
+      {background ? (
+        <View style={[StyleSheet.absoluteFill, { zIndex: zIndex.sticky + 1 }]} pointerEvents="none">
+          {background}
+        </View>
+      ) : null}
+      {footer ? (
+        <View
+          pointerEvents="box-none"
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: zIndex.sticky + 2 }}
+        >
+          {/* Bottom fade — scrolling content dissolves into the canvas before it
+           * reaches the floating action, so nothing stays hidden behind an opaque
+           * band (matches the recorder-dock treatment). */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: -space.sectionGap,
+            }}
+          >
+            <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+          </View>
+
+          <View
+            pointerEvents="box-none"
+            onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}
+            style={{
+              paddingHorizontal: space.screenX,
+              paddingTop: space.sectionGap,
+              paddingBottom: Math.max(insets.bottom + space.rowGap, spacing["3xl"]),
+            }}
+          >
+            {footer}
+          </View>
+        </View>
+      ) : null}
+    </ScreenView>
+  );
+};

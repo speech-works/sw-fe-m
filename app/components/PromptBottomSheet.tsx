@@ -1,10 +1,17 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import BottomSheetModal from "./BottomSheetModal";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle, parseShadowStyle } from "../util/functions/parseStyles";
+import {
+  Sheet,
+  Text,
+  Button,
+  useTheme,
+  radius,
+  spacing,
+  withAlpha,
+  darkenForContrast,
+  mix,
+} from "../design-system";
 
 interface PromptBottomSheetProps {
   visible: boolean;
@@ -22,138 +29,97 @@ interface PromptBottomSheetProps {
     label: string;
     onPress: () => void;
   };
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
+/**
+ * Shared confirmation prompt on the design-system `Sheet`, so every prompt across
+ * the app shares one chrome: grab handle + backdrop-tap dismiss (NO cross button),
+ * with a centred body (accent icon disc → title → message → stacked action
+ * buttons) matching `OutcomeModal`. Callers pass only content.
+ */
 const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
   visible,
   onClose,
   title,
   message,
   icon = "alert-circle-outline",
-  iconColor = theme.colors.actionPrimary.default,
+  iconColor,
   primaryButton,
   secondaryButton,
+  accentColor,
+  onAccentColor,
 }) => {
+  const { colors } = useTheme();
+  const accent = accentColor ?? iconColor ?? colors.action.primary;
+  // The header icon + ghost-button label are colored foreground on the sheet —
+  // darken the caller's hue to clear AA on paper (a no-op on dark). Keep bright
+  // `accent` for the icon-disc wash fill; the primary Button computes its own ink.
+  const accentFg = darkenForContrast(accent, mix(colors.surface.elevated, accent, 0.14));
+
   return (
-    <BottomSheetModal 
-      visible={visible} 
-      onClose={onClose} 
-      fitContent 
-      showHandle 
-      showCloseButton
-      hasBottomSafePadding
-    >
+    <Sheet visible={visible} onClose={onClose}>
       <View style={styles.container}>
-        {/* Watermark Icon */}
-        <View style={styles.watermark}>
-          <MaterialCommunityIcons name={icon as any} size={120} color={iconColor} />
+        <View style={[styles.iconDisc, { backgroundColor: withAlpha(accent, 0.14) }]}>
+          <MaterialCommunityIcons name={icon as any} size={28} color={accentFg} />
         </View>
 
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
+        <Text variant="h2" center>
+          {title}
+        </Text>
+        <Text variant="bodySm" color="secondary" center>
+          {message}
+        </Text>
 
-        <View style={styles.buttonContainer}>
+        <View style={styles.buttons}>
           {primaryButton && (
-            <TouchableOpacity 
-              style={styles.primaryButton} 
+            <Button
+              label={primaryButton.label}
+              variant={primaryButton.destructive ? "danger" : "primary"}
+              accentColor={primaryButton.destructive ? undefined : accentColor}
+              onAccentColor={primaryButton.destructive ? undefined : onAccentColor}
               onPress={() => {
                 primaryButton.onPress();
                 onClose();
               }}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={primaryButton.destructive ? ["#EF4444", "#DC2626"] : [theme.colors.actionPrimary.default, "#E06B00"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradient}
-              >
-                <Text style={styles.primaryButtonText}>{primaryButton.label}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            />
           )}
 
           {secondaryButton && (
-            <TouchableOpacity 
-              style={styles.secondaryButton} 
+            <Button
+              label={secondaryButton.label}
+              variant="ghost"
+              onColor={accentFg}
               onPress={() => {
                 secondaryButton.onPress();
                 onClose();
               }}
-              activeOpacity={0.6}
-            >
-              <Text style={styles.secondaryButtonText}>{secondaryButton.label}</Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       </View>
-    </BottomSheetModal>
+    </Sheet>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 48,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
     alignItems: "center",
-    position: "relative",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
-  watermark: {
-    position: "absolute",
-    bottom: -20,
-    right: -20,
-    opacity: 0.08,
-    transform: [{ rotate: "-15deg" }],
-    zIndex: 0,
+  iconDisc: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  title: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 12,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  message: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#64748B",
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  buttonContainer: {
+  buttons: {
     width: "100%",
-    gap: 12,
-  },
-  primaryButton: {
-    height: 56,
-    borderRadius: 16,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  gradient: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  secondaryButton: {
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#64748B",
-    fontWeight: "700",
-    fontSize: 16,
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

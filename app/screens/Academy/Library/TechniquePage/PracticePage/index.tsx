@@ -1,48 +1,52 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  LayoutAnimation,
-  Platform,
-  ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 
 import { getAllExerciseItems } from "../../../../../api/library";
 import {
   ExerciseItem,
   TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
-import { theme } from "../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
 import { speakText } from "../../../../../util/functions/speak";
+import CustomScrollView from "../../../../../components/CustomScrollView";
 
 // Components
 import { ToolType } from "../../../../../api/tools/types";
-import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import { DAFTool, useDAF } from "../../../Tools/DAF";
 import { VoiceHover } from "../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import Metronome, { useMetronome } from "../components/Metronome";
-import SmartRecorder from "./components/SmartRecorder";
+import SmartRecorder from "../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
+import RecorderTools from "../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/RecorderTools";
+import {
+  Text,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+  space,
+  Sheet,
+} from "../../../../../design-system";
 
 interface PracticePageProps {
   techniqueId: TECHNIQUES_ENUM;
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
+  header?: React.ReactNode;
+  outerScrollY?: Animated.SharedValue<number>;
 }
 
 const PracticePage = ({
   techniqueId,
   setActiveStageIndex,
+  header,
+  outerScrollY,
 }: PracticePageProps) => {
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   // Data State
   const [exerciseItems, setExerciseItems] = useState<ExerciseItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -56,7 +60,6 @@ const PracticePage = ({
   const [voiceRecordingUri, setVoiceRecordingUri] = useState<string | null>(
     null,
   );
-  const [isLoading, setIsLoading] = useState(false);
 
   // VoiceHover Config
   const [vhRate, setVhRate] = useState(1.0);
@@ -214,107 +217,69 @@ const PracticePage = ({
     <View style={styles.container}>
       {/* Main Content Area */}
       <View style={{ flex: 1 }}>
-        <ScrollView
+        <CustomScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          outerScrollY={outerScrollY}
         >
-          <View style={styles.cardContainer}>
-            {/* 1. Header Gradient */}
-            <LinearGradient
-              colors={["#EA580C", "#F97316"]} // Burnt Orange -> Orange 500
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardHeaderGradient}
-            >
-              <View style={styles.headerTopRow}>
-                <View style={styles.categoryPill}>
-                  <Icon name="dumbbell" size={10} color="#9A3412" />
-                  <Text style={styles.categoryPillText}>PRACTICE</Text>
-                </View>
+          {header}
+          <View style={styles.stage}>
+            <Text variant="label" color={colors.accentText.info} style={styles.eyebrow}>
+              PRACTICE
+            </Text>
 
-                <View style={styles.progressPill}>
-                  <Text style={styles.progressText}>
-                    {completedItems.length} Completed
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.headerWatermark}>
-                <Icon name="shapes" size={96} color="rgba(255,255,255,0.15)" />
-              </View>
-            </LinearGradient>
-
-            {/* 2. Body Sheet */}
-            <View style={styles.cardBodySheet}>
-              {/* Word Display */}
-              <View style={styles.wordDisplayContainer}>
-                <Text style={styles.descText}>Read Aloud</Text>
-
-                {/* VoiceHover Overlay or Static Text */}
-                <View style={styles.wordWrapper}>
-                  {selectedPracticeTool === ToolType.CHORUS && (
-                    <View
-                      style={{
-                        position: "absolute",
-                        opacity: 0,
-                        width: "100%",
-                        height: "100%",
-                      }}
-                    >
-                      <VoiceHover
-                        text={currentItem?.itemText || ""}
-                        rate={vhRate}
-                        prePause={vhPrePause}
-                        gap={vhGap}
-                        isPlaying={vhIsPlaying}
-                        onComplete={() => setVhIsPlaying(false)}
-                      />
-                    </View>
-                  )}
-
-                  <Text style={styles.mainWordText}>
-                    {currentItem?.itemText || "Loading..."}
-                  </Text>
-                </View>
-
-                {/* Phonetics / Speaker */}
-                <TouchableOpacity
-                  style={styles.phoneticContainer}
-                  onPress={() => speakText(currentItem?.itemText)}
+            <View style={styles.wordWrapper}>
+              {selectedPracticeTool === ToolType.CHORUS && (
+                <View
+                  style={{
+                    position: "absolute",
+                    opacity: 0,
+                    width: "100%",
+                    height: "100%",
+                  }}
                 >
-                  <Icon
-                    name="volume-up"
-                    size={16}
-                    color={theme.colors.actionPrimary.default}
+                  <VoiceHover
+                    text={currentItem?.itemText || ""}
+                    rate={vhRate}
+                    prePause={vhPrePause}
+                    gap={vhGap}
+                    isPlaying={vhIsPlaying}
+                    onComplete={() => setVhIsPlaying(false)}
                   />
-                  <Text style={styles.phoneticText}>
-                    {currentItem?.itemPhonetics
-                      ? `/${currentItem?.itemPhonetics}/`
-                      : ""}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.divider} />
-
-              {/* Navigation Row */}
-              <View style={styles.navigationRow}>
-                <TouchableOpacity
-                  onPress={handleNext}
-                  style={styles.skipButton}
-                >
-                  <Text style={styles.skipButtonText}>Skip Word</Text>
-                </TouchableOpacity>
-
-                <View style={styles.paginationDots}>
-                  <Text style={styles.paginationText}>
-                    Item {selectedIndex + 1} of {exerciseItems.length || "?"}
-                  </Text>
                 </View>
-              </View>
+              )}
+              <Text variant="h1" color="primary" style={styles.mainWordText}>
+                {currentItem?.itemText || "Loading..."}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.phoneticContainer,
+                { backgroundColor: colors.surface.control },
+              ]}
+              onPress={() => speakText(currentItem?.itemText)}
+            >
+              <Icon name={icons.volume} size={16} color={colors.text.accent} />
+              <Text variant="body" color="secondary" style={styles.phoneticText}>
+                {currentItem?.itemPhonetics
+                  ? `/${currentItem?.itemPhonetics}/`
+                  : ""}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.navigationRow}>
+              <TouchableOpacity onPress={handleNext} style={styles.skipButton}>
+                <Text variant="title" color="secondary">
+                  Skip Word
+                </Text>
+              </TouchableOpacity>
+              <Text variant="bodySm" color="secondary">
+                Item {selectedIndex + 1} of {exerciseItems.length || "?"} · {completedItems.length} done
+              </Text>
             </View>
           </View>
-        </ScrollView>
+        </CustomScrollView>
       </View>
 
       {/* Dock (Fixed Bottom) */}
@@ -325,73 +290,29 @@ const PracticePage = ({
           onSubmit={handleNext}
           onDiscard={() => setVoiceRecordingUri(null)}
           renderTools={() => (
-            <View style={styles.dockTools}>
-              {[
-                { id: ToolType.DAF, icon: "headphones", label: "DAF" },
-                { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
-                { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
-              ].map((tool) => {
-                const isActive =
-                  (tool.id === ToolType.DAF &&
-                    selectedPracticeTool === tool.id &&
-                    dafState.isDAFActive) ||
-                  (tool.id === ToolType.CHORUS &&
-                    selectedPracticeTool === tool.id &&
-                    vhIsPlaying) ||
-                  (tool.id === ToolType.METRONOME &&
-                    selectedPracticeTool === tool.id &&
-                    metronomeState.isPlaying);
-                return (
-                  <TouchableOpacity
-                    key={tool.id}
-                    style={[styles.dockItem, isActive && styles.dockItemActive]}
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut,
-                      );
-                      handleToolSelect(tool.id);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Icon
-                      name={tool.icon}
-                      size={20}
-                      color={isActive ? "#FFF" : "#94A3B8"}
-                    />
-                    {isActive && (
-                      <Text style={styles.dockItemLabel} numberOfLines={1}>
-                        {tool.label}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <RecorderTools
+              activeToolId={selectedPracticeTool}
+              isDafActive={dafState.isDAFActive}
+              isGuideActive={vhIsPlaying}
+              isTempoActive={metronomeState.isPlaying}
+              onSelect={handleToolSelect}
+            />
           )}
         />
       </View>
 
       {/* Settings Modal */}
-      <BottomSheetModal
+      <Sheet
         visible={!!activeToolSheet}
         onClose={() => setActiveToolSheet(null)}
-        showCloseButton={true}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.sheetContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sheetTitle}>
-            {activeToolSheet === ToolType.CHORUS
-              ? "Guide Settings"
-              : `${activeToolSheet} Settings`}
-          </Text>
-          {renderToolSheetContent()}
-        </ScrollView>
-      </BottomSheetModal>
+        <Text variant="h2" center style={styles.sheetTitle}>
+          {activeToolSheet === ToolType.CHORUS
+            ? "Guide Settings"
+            : `${activeToolSheet} Settings`}
+        </Text>
+        {renderToolSheetContent()}
+      </Sheet>
     </View>
   );
 };
@@ -404,123 +325,47 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   scrollContent: {
-    paddingBottom: 40,
-    gap: 24,
+    flexGrow: 1,
+    paddingHorizontal: space.screenX,
+    paddingBottom: spacing["4xl"],
+  },
+  stage: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing["2xl"],
+    paddingVertical: spacing["3xl"],
+  },
+  eyebrow: {
+    letterSpacing: 1.2,
   },
 
   // Card Styles
-  cardContainer: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden",
-    minHeight: 420,
-  },
-  cardHeaderGradient: {
-    padding: 24,
-    paddingBottom: 48, // Overlap space
-    position: "relative",
-    minHeight: 140,
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    zIndex: 2,
-  },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#9A3412",
-    letterSpacing: 1,
-  },
-  progressPill: {
-    backgroundColor: "rgba(0,0,0,0.1)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  progressText: {
-    color: "#FFF",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    zIndex: 0,
-    transform: [{ rotate: "-15deg" }],
-  },
 
   // Body Sheet
-  cardBodySheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -32, // Negative margin to pull up
-    padding: 32,
-    flex: 1,
-    alignItems: "center",
-  },
 
-  wordDisplayContainer: {
-    alignItems: "center",
-    gap: 16,
-    width: "100%",
-    paddingVertical: 20,
-  },
-  descText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    fontSize: 11,
-    fontWeight: "600",
-  },
   wordWrapper: {
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
   },
   mainWordText: {
-    ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
-    color: theme.colors.text.title,
     fontSize: 42,
     lineHeight: 52,
   },
   phoneticContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    padding: 8,
-    backgroundColor: theme.colors.surface.default,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
   },
   phoneticText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }), // Monospace for phonetics
+    fontVariant: ["tabular-nums"],
   },
 
-  divider: {
-    height: 1,
-    width: "100%",
-    backgroundColor: theme.colors.border.default,
-    marginVertical: 24,
-  },
 
   navigationRow: {
     flexDirection: "row",
@@ -529,65 +374,16 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   skipButton: {
-    padding: 8,
-  },
-  skipButtonText: {
-    color: theme.colors.text.disabled,
-    fontWeight: "600",
-  },
-  paginationDots: {},
-  paginationText: {
-    color: theme.colors.text.default,
-    fontSize: 12,
-  },
-
-  completeLink: {
-    alignSelf: "center",
-    padding: 16,
-  },
-  completeLinkText: {
-    color: theme.colors.actionPrimary.default,
-    fontWeight: "600",
+    padding: spacing.sm,
   },
 
   // Dock
   dockWrapper: {
-    paddingTop: 16,
-  },
-  dockTools: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 4,
-  },
-  dockItem: {
-    paddingVertical: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-    flexDirection: "row",
-    flex: 1,
-  },
-  dockItemActive: {
-    backgroundColor: theme.colors.library.orange[400],
-    paddingHorizontal: 12,
-    flex: 2.5,
-  },
-  dockItemLabel: {
-    marginLeft: 6,
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 13,
+    paddingTop: spacing.lg,
   },
 
   // Sheet
-  sheetContent: {
-    padding: 24,
-  },
   sheetTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    marginBottom: 20,
-    textAlign: "center",
+    marginBottom: spacing.xl,
   },
 });

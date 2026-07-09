@@ -13,10 +13,9 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { spring } from "../design-system/motion";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-const SPRING = { mass: 0.4, damping: 14, stiffness: 240 } as const;
 
 interface PressableScaleProps extends Omit<PressableProps, "style"> {
   /** Scale to shrink to while pressed (default 0.97). */
@@ -50,13 +49,13 @@ const PressableScale = ({
   }));
 
   const handlePressIn = (e: GestureResponderEvent) => {
-    if (!reduceMotion) scale.value = withSpring(scaleTo, SPRING);
+    if (!reduceMotion) scale.value = withSpring(scaleTo, spring.press);
     if (haptic && !disabled) Vibration.vibrate(8);
     onPressIn?.(e);
   };
 
   const handlePressOut = (e: GestureResponderEvent) => {
-    if (!reduceMotion) scale.value = withSpring(1, SPRING);
+    if (!reduceMotion) scale.value = withSpring(1, spring.press);
     onPressOut?.(e);
   };
 

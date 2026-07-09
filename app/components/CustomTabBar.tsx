@@ -1,341 +1,132 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Animated, {
-  Easing,
-  interpolate,
-  interpolateColor,
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming,
-} from "react-native-reanimated";
-import { theme } from "../Theme/tokens";
+import { TabDock, TabDockItem, icons, type IconName, haptics } from "../design-system";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 import { useInboxStore } from "../stores/inbox";
-const { width } = Dimensions.get("window");
+import { useCommunityDock } from "../stores/communityDock";
 
-const CustomTabBar = ({
-  state,
-  descriptors,
-  navigation,
-}: BottomTabBarProps) => {
+const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const { isTabBarVisible } = useUIStore();
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const hasBuddy = useInboxStore((s) => s.hasBuddy);
 
+  // Community owns this dock while focused — it morphs into the Us/Timeline switcher.
+  const dockActive = useCommunityDock((s) => s.active);
+  const dockEnabled = useCommunityDock((s) => s.enabled);
+  const dockMode = useCommunityDock((s) => s.mode);
+  const dockView = useCommunityDock((s) => s.view);
+  const setDockMode = useCommunityDock((s) => s.setMode);
+  const setDockView = useCommunityDock((s) => s.setView);
+
   const focusedRoute = state.routes[state.index];
-  const focusedDescriptor = descriptors[focusedRoute.key];
-  const focusedOptions = focusedDescriptor.options;
+  const focusedOptions = descriptors[focusedRoute.key].options;
 
   if ((focusedOptions.tabBarStyle as any)?.display === "none") {
     return null;
   }
-
   if (!isTabBarVisible) return null;
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
+  const onCommunity = focusedRoute.name === ROUTE_NAMES.COMMUNITY;
+  // Only morph when Community is focused AND paired (the invite screen has no tabs).
+  const communityOwnsDock = dockActive && dockEnabled && onCommunity;
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
+  // ── TABS mode: the same capsule, now the Us/Timeline switcher. ──
+  if (communityOwnsDock && dockMode === "tabs") {
+    const tabItems: TabDockItem[] = [
+      { key: "menu", label: "Menu", icon: icons.menu },
+      { key: "us", label: "Us", icon: icons.community },
+      { key: "timeline", label: "Timeline", icon: icons.timeline, badge: unreadCount },
+    ];
+    const onSelectTab = (key: string) => {
+      haptics.selection();
+      if (key === "menu") {
+        setDockMode("nav");
+        return;
+      }
+      setDockView(key as "us" | "timeline");
+    };
+    return (
+      <TabDock
+        items={tabItems}
+        activeKey={dockView}
+        onSelect={onSelectTab}
+        onLongPress={() => {
+          haptics.selection();
+          setDockMode("nav");
+        }}
+        fitContent
+        accessibilityLabel="Community page tabs"
+      />
+    );
+  }
 
-            if (!event.defaultPrevented) {
-              let rootScreen;
-              if (route.name === ROUTE_NAMES.SETTINGS) rootScreen = "Settings";
-              if (route.name === ROUTE_NAMES.HOME) rootScreen = "Home";
-              if (route.name === ROUTE_NAMES.EXPLORE) rootScreen = "Explore";
-              
-              if (rootScreen) {
-                navigation.navigate(route.name, { screen: rootScreen });
-              } else {
-                navigation.navigate(route.name);
-              }
-            }
-          };
+  // ── NAV mode: the standard global menu dock (re-tap Community / scroll to morph). ──
+  const items: TabDockItem[] = state.routes.map((route) => {
+    const { options } = descriptors[route.key];
+    const routeName = route.name;
 
-          const onLongPress = () => {
-            navigation.emit({
-              type: "tabLongPress",
-              target: route.key,
-            });
-          };
+    let icon: IconName = "circle";
+    if (routeName === ROUTE_NAMES.HOME || routeName === "Stats") icon = icons.home;
+    else if (routeName === ROUTE_NAMES.EXPLORE) icon = icons.explore;
+    else if (routeName === ROUTE_NAMES.COMMUNITY)
+      icon = hasBuddy === false ? icons.addPerson : icons.community;
+    else if (routeName === ROUTE_NAMES.SETTINGS) icon = icons.settings;
 
-          // Icon mapping
-          let iconName: any = "circle";
-          const routeName = route.name;
+    const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
 
-          if (routeName === ROUTE_NAMES.HOME || routeName === "Stats")
-            iconName = "home-variant";
-          else if (routeName === ROUTE_NAMES.EXPLORE)
-            iconName = "view-grid-outline";
-          else if (routeName === ROUTE_NAMES.COMMUNITY)
-            iconName = hasBuddy === false ? "account-plus" : "account-group";
-          else if (routeName === ROUTE_NAMES.SETTINGS) iconName = "cog";
+    return {
+      key: route.key,
+      label: (options.tabBarLabel as string) || route.name,
+      icon,
+      badge,
+    };
+  });
 
-          // Color mapping
-          let activeColor = theme.colors.library.orange[400];
-          let activeContentColor = "#FFFFFF";
+  const onSelect = (key: string) => {
+    const route = state.routes.find((r) => r.key === key);
+    if (!route) return;
 
-          const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
-          return (
-            <TabItem
-              key={route.key}
-              isFocused={isFocused}
-              label={(options.tabBarLabel as string) || route.name}
-              iconName={iconName}
-              activeColor={activeColor}
-              activeContentColor={activeContentColor}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              routeName={routeName}
-              badge={badge}
-            />
-          );
-        })}
-      </View>
-    </View>
-  );
-};
+    // Re-tap the active Community pill (while Community owns the dock) → morph to tabs.
+    if (communityOwnsDock && route.key === focusedRoute.key && route.name === ROUTE_NAMES.COMMUNITY) {
+      haptics.selection();
+      setDockMode("tabs");
+      return;
+    }
 
-const TabItem = ({
-  isFocused,
-  label,
-  iconName,
-  onPress,
-  onLongPress,
-  activeColor,
-  activeContentColor,
-  routeName,
-  badge = 0,
-}: any) => {
-  const focusedValue = useDerivedValue(() => {
-    return withTiming(isFocused ? 1 : 0, {
-      duration: 100,
-      easing: Easing.out(Easing.quad),
+    const event = navigation.emit({
+      type: "tabPress",
+      target: route.key,
+      canPreventDefault: true,
     });
-  }, [isFocused]);
 
-  const getLabelWidth = (text: string) => {
-    switch (text) {
-      case "Home":
-        return 42;
-      case "Stats":
-        return 42;
-      case "Explore":
-        return 58;
-      case "Community":
-        return 82;
-      case "Settings":
-        return 65;
-      default:
-        return 60;
+    if (!event.defaultPrevented) {
+      let rootScreen: string | undefined;
+      if (route.name === ROUTE_NAMES.SETTINGS) rootScreen = "Settings";
+      if (route.name === ROUTE_NAMES.HOME) rootScreen = "Home";
+      if (route.name === ROUTE_NAMES.EXPLORE) rootScreen = "Explore";
+
+      if (rootScreen) {
+        navigation.navigate(route.name, { screen: rootScreen });
+      } else {
+        navigation.navigate(route.name);
+      }
     }
   };
-  const labelWidth = getLabelWidth(label);
 
-  const containerStyle = useAnimatedStyle(() => {
-    return {
-      flex: interpolate(focusedValue.value, [0, 1], [1, 2.5]),
-    };
-  });
-
-  const pillStyle = useAnimatedStyle(() => {
-    const backgroundColor = interpolateColor(
-      focusedValue.value,
-      [0, 1],
-      ["transparent", activeColor],
-    );
-    return {
-      backgroundColor,
-      borderRadius: 100,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      height: 48,
-      alignSelf: "center",
-      paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]),
-      borderWidth: 0,
-      borderColor: "transparent",
-    };
-  });
-
-  const gradientStyle = useAnimatedStyle(() => {
-    return {
-      opacity: focusedValue.value,
-    };
-  });
-
-  const textWrapperStyle = useAnimatedStyle(() => {
-    return {
-      width: interpolate(focusedValue.value, [0, 1], [0, labelWidth]),
-      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 8]),
-      overflow: "hidden",
-      opacity: focusedValue.value,
-      justifyContent: "center",
-      alignItems: "center",
-    };
-  });
-
-  const textStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { scale: interpolate(focusedValue.value, [0, 1], [0.85, 1]) },
-      ],
-    };
-  });
-
-  const inactiveIconStyle = useAnimatedStyle(() => ({
-    position: "absolute",
-    opacity: 1 - focusedValue.value,
-  }));
-
-  const activeIconStyle = useAnimatedStyle(() => ({
-    opacity: focusedValue.value,
-  }));
-
-  const badgeAnimatedStyle = useAnimatedStyle(() => {
-    const borderColor = interpolateColor(
-      focusedValue.value,
-      [0, 1],
-      ["#FFFFFF", activeColor]
-    );
-    return {
-      borderColor,
-    };
-  });
+  const onLongPress = (key: string) => {
+    navigation.emit({ type: "tabLongPress", target: key });
+  };
 
   return (
-    <Animated.View style={[styles.tabItemContainer, containerStyle]}>
-      <TouchableOpacity
-        onPress={onPress}
-        onLongPress={onLongPress}
-        activeOpacity={0.7}
-        style={styles.touchable}
-        accessibilityRole="tab"
-        accessibilityState={{ selected: isFocused }}
-        accessibilityLabel={badge > 0 ? `${label}, ${badge} unread` : label}
-      >
-        <Animated.View style={pillStyle}>
-          <View
-            style={{
-              width: 24,
-              height: 24,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Animated.View style={inactiveIconStyle}>
-              <MaterialCommunityIcons
-                name={iconName}
-                size={24}
-                color="#94A3B8"
-              />
-            </Animated.View>
-            <Animated.View style={[activeIconStyle, { position: "absolute" }]}>
-              <MaterialCommunityIcons
-                name={iconName}
-                size={24}
-                color={activeContentColor}
-              />
-            </Animated.View>
-            {badge > 0 ? (
-              <Animated.View style={[styles.badge, badgeAnimatedStyle]}>
-                <Text style={styles.badgeText} numberOfLines={1}>
-                  {badge > 9 ? "9+" : badge}
-                </Text>
-              </Animated.View>
-            ) : null}
-          </View>
-
-          <Animated.View style={textWrapperStyle}>
-            <Animated.Text
-              style={[styles.label, textStyle, { color: activeContentColor }]}
-              numberOfLines={1}
-            >
-              {label}
-            </Animated.Text>
-          </Animated.View>
-        </Animated.View>
-      </TouchableOpacity>
-    </Animated.View>
+    <TabDock
+      items={items}
+      activeKey={focusedRoute.key}
+      onSelect={onSelect}
+      onLongPress={onLongPress}
+      accessibilityLabel="Main navigation"
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    bottom: 30,
-    left: 20,
-    right: 20,
-    alignItems: "center",
-  },
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 35,
-    height: 70,
-    padding: 8,
-    width: "100%",
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-    justifyContent: "space-between",
-  },
-  tabItemContainer: {
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-  },
-  touchable: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-  },
-  badge: {
-    position: "absolute",
-    top: -5,
-    right: -8,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: "#FF3B30",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    zIndex: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-  },
-  badgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
-});
 
 export default CustomTabBar;

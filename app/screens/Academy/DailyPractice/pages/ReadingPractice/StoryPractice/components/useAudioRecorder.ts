@@ -33,6 +33,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const meteringIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // start* have long await chains (permissions, audio-mode delays); if the
+  // screen unmounts mid-flight the cleanup below runs BEFORE the refs are
+  // assigned, so the started recording/sound would live forever (hot mic).
+  // Each await boundary re-checks this flag and releases what it just created.
+  const unmountedRef = useRef(false);
 
   // Track samples in ref to avoid frequent state re-renders during recording loop
   const samplesRef = useRef<number[]>([]);
@@ -40,6 +45,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      unmountedRef.current = true;
       stopMeteringLogic();
       if (recordingRef.current) {
         recordingRef.current.stopAndUnloadAsync().catch(() => {});
@@ -149,6 +155,8 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       // Increased to 500ms for iOS category transition stability
       await new Promise((r) => setTimeout(r, 500));
 
+      if (unmountedRef.current) return;
+
       // 4. Start (Using High Quality Preset for Stability)
       console.log("[useAudioRecorder] Preparing recorder...");
       const recording = new Audio.Recording();
@@ -158,6 +166,10 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
 
       console.log("[useAudioRecorder] Starting Async...");
       await recording.startAsync();
+      if (unmountedRef.current) {
+        await recording.stopAndUnloadAsync().catch(() => {});
+        return;
+      }
       recordingRef.current = recording;
 
       setState("recording");
@@ -231,6 +243,10 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
         },
       );
 
+      if (unmountedRef.current) {
+        await sound.unloadAsync().catch(() => {});
+        return;
+      }
       soundRef.current = sound;
       setState("playback");
       console.log("[useAudioRecorder] Playback started.");

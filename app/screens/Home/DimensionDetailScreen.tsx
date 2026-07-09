@@ -1,27 +1,43 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
-import { parseTextStyle } from "../../util/functions/parseStyles";
-import React, { useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import { Dimensions, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import Animated, {
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useDerivedValue,
+  useReducedMotion,
+  withSpring,
+} from "react-native-reanimated";
 import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Svg, Circle } from "react-native-svg";
-import { theme } from "../../Theme/tokens";
-import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
+  ClinicalDomain,
+  GrowthProfileMetrics,
+} from "../../api/userBehaviorTrends/types";
+import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
+import { buildTrendWeeks } from "../../stores/userBehaviorTrends/selectors";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackRouteProp } from "../../navigators/index";
-import ScreenView from "../../components/ScreenView";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+import {
+  Page,
+  Text,
+  Icon,
+  IconName,
+  icons,
+  TrendLine,
+  AnimatedNumber,
+  haptics,
+  spring,
+  useTheme,
+  useMotion,
+  makeStyles,
+  withAlpha,
+  spacing,
+  space,
+  radius,
+  SemanticColors,
+} from "../../design-system";
 
 type DetailFamily = "combined" | "clinical" | "engagement";
+type AccentKey = keyof SemanticColors["accent"];
 
 type FamilyMetricData = {
   currentScore: number | null;
@@ -31,10 +47,19 @@ type FamilyMetricData = {
   trend: "IMPROVING" | "STABLE" | "WORSENING";
 };
 
-const FAMILY_CONFIG: Record<DetailFamily, { label: string; color: string }> = {
-  combined: { label: "Combined", color: theme.colors.library.orange[500] },
-  clinical: { label: "Clinical", color: theme.colors.library.green[500] },
-  engagement: { label: "Engagement", color: theme.colors.library.blue[500] },
+const FAMILY_ORDER: DetailFamily[] = ["combined", "clinical", "engagement"];
+const FAMILY_LABELS: Record<DetailFamily, string> = {
+  combined: "Combined",
+  clinical: "Clinical",
+  engagement: "Engagement",
+};
+
+const PROFILE_KEYS: Record<ClinicalDomain, keyof GrowthProfileMetrics> = {
+  [ClinicalDomain.AFFECTIVE_DISTRESS]: "confidence",
+  [ClinicalDomain.AVOIDANCE_BEHAVIOR]: "courage",
+  [ClinicalDomain.IMPAIRMENT_STRUGGLE]: "mastery",
+  [ClinicalDomain.FUNCTIONAL_LIMITATION]: "ease",
+  [ClinicalDomain.PARTICIPATION_RESTRICTION]: "social",
 };
 
 const FAMILY_DESCRIPTIONS: Record<
@@ -87,8 +112,8 @@ const DIMENSION_CONFIG: Record<
   ClinicalDomain,
   {
     label: string;
-    color: string;
-    icon: string;
+    accentKey: AccentKey;
+    icon: IconName;
     description: string;
     recommendations: {
       IMPROVING: string;
@@ -99,8 +124,8 @@ const DIMENSION_CONFIG: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#059669",
-    icon: "shield-check",
+    accentKey: "success",
+    icon: icons.confidence,
     description:
       "How confident you feel communicating, even when speech is not perfect.",
     recommendations: {
@@ -114,8 +139,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#E11D48",
-    icon: "fire",
+    accentKey: "danger",
+    icon: icons.courage,
     description:
       "How willing you are to enter speaking moments instead of avoiding them.",
     recommendations: {
@@ -129,8 +154,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery",
-    color: "#0284C7",
-    icon: "target",
+    accentKey: "info",
+    icon: icons.mastery,
     description:
       "How reliably you’re using helpful tools and strategies to manage speech.",
     recommendations: {
@@ -144,8 +169,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease",
-    color: "#8B5CF6",
-    icon: "water",
+    accentKey: "purple",
+    icon: icons.ease,
     description:
       "How manageable and less effortful speaking feels in everyday moments.",
     recommendations: {
@@ -159,8 +184,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#EA580C",
-    icon: "account-group",
+    accentKey: "warning",
+    icon: icons.social,
     description:
       "How much you’re taking part in conversations and speaking situations that matter to you.",
     recommendations: {
@@ -174,337 +199,393 @@ const DIMENSION_CONFIG: Record<
   },
 };
 
-const Gauge = ({ score, color, size = 160 }: { score: number | null; color: string; size?: number }) => {
-  const strokeWidth = 14;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = score === null ? 0 : score / 100;
-  const strokeDashoffset = circumference * (1 - progress);
+/** Growth-family lens icons — collision-free glyphs that denote each tab. */
+const FAMILY_ICONS: Record<DetailFamily, IconName> = {
+  combined: icons.lensCombined,
+  clinical: icons.lensClinical,
+  engagement: icons.lensEngagement,
+};
+
+/**
+ * One family tab — the Community `TabDock` mechanic: icon-only when idle, the label
+ * expands + the accent pill fills in when active, all on the shared `gentle` spring.
+ */
+const FamilyTab: React.FC<{
+  label: string;
+  icon: IconName;
+  active: boolean;
+  accent: string;
+  onAccent: string;
+  onPress: () => void;
+}> = ({ label, icon, active, accent, onAccent, onPress }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const reduced = useReducedMotion();
+  const labelTarget = label.length * 8 + 4; // generous so a glyph run never clips
+  const v = useDerivedValue(
+    () => (reduced ? (active ? 1 : 0) : withSpring(active ? 1 : 0, spring.gentle)),
+    [active, reduced],
+  );
+
+  const pillStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      Math.min(1, Math.max(0, v.value)),
+      [0, 1],
+      ["transparent", accent],
+    ),
+  }));
+  const idleIconStyle = useAnimatedStyle(() => ({ opacity: 1 - v.value }));
+  const activeIconStyle = useAnimatedStyle(() => ({ opacity: v.value }));
+  const labelStyle = useAnimatedStyle(() => ({
+    width: Math.max(0, interpolate(v.value, [0, 1], [0, labelTarget])),
+    marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 6])),
+    opacity: Math.max(0, Math.min(1, v.value)),
+  }));
 
   return (
-    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-      <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#F1F5F9" strokeWidth={strokeWidth} fill="none" />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          fill="none"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      <View style={styles.gaugeContent}>
-        <Text style={styles.gaugeLabel}>CURRENT SCORE</Text>
-        <Text style={[styles.gaugeValue, { color: score === null ? '#94A3B8' : theme.colors.text.title }]}>
-          {score === null ? '--' : Math.round(score)}
-        </Text>
-      </View>
-    </View>
+    <Pressable onPress={onPress}>
+      <Animated.View style={[styles.tabPill, pillStyle]}>
+          <View style={styles.tabIconBox}>
+            <Animated.View style={[styles.tabIconLayer, idleIconStyle]}>
+              <Icon name={icon} size={18} color={colors.text.tertiary} />
+            </Animated.View>
+            <Animated.View style={[styles.tabIconLayer, activeIconStyle]}>
+              <Icon name={icon} size={18} color={onAccent} />
+            </Animated.View>
+          </View>
+        <Animated.View style={[styles.tabLabelWrap, labelStyle]}>
+          <Text
+            variant="bodySm"
+            color={onAccent}
+            numberOfLines={1}
+            style={styles.tabLabelText}
+          >
+            {label}
+          </Text>
+        </Animated.View>
+      </Animated.View>
+    </Pressable>
   );
 };
 
 const DimensionDetailScreen = () => {
   const route = useRoute<HomeStackRouteProp<"DimensionDetail">>();
   const navigation = useNavigation<HomeStackNavigationProp<"DimensionDetail">>();
-  const { domain, familyData: rawFamilyData, comparisonLabel } = route.params;
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const motion = useMotion();
+  const { historyBuckets, overallState } = useUserBehaviorTrendsStore();
+  const { domain, familyData: rawFamilyData } = route.params;
 
   const familyData = rawFamilyData as Record<DetailFamily, FamilyMetricData>;
-
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
-  const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
+  const uncertainty = overallState?.clinical?.domains?.[domain as ClinicalDomain]?.uncertainty ?? 0;
+  const isSettling = uncertainty > 25;
+
+  // Sync tab-tap → scroll position.
+  useEffect(() => {
+    const index = FAMILY_ORDER.indexOf(selectedFamily);
+    if (scrollViewRef.current && contentWidth > 0) {
+      scrollViewRef.current.scrollTo({ x: index * contentWidth, animated: true });
+    }
+  }, [selectedFamily, contentWidth]);
+
+  const profileKey = domain
+    ? PROFILE_KEYS[domain as ClinicalDomain]
+    : "confidence";
 
   if (!domain) return null;
 
   const config = DIMENSION_CONFIG[domain as ClinicalDomain];
-  const activeMetrics = familyData[selectedFamily];
-  const isUnavailable = activeMetrics.currentScore === null;
-  const hasComparison = activeMetrics.previousScore !== null;
-  const trend = activeMetrics.trend;
-  const trendColor = trend === "IMPROVING" ? "#059669" : trend === "WORSENING" ? "#E11D48" : "#64748B";
+  const accentColor = colors.accent[config.accentKey];
+  const onAccentColor = colors.accentOn[config.accentKey];
+  // The trend STROKE and insight ICON are thin/small meaning-bearing marks on
+  // the canvas/card — the bright accent base fails AA on the light "paper"
+  // ground, so use the per-scheme colored-text cut of the dimension's accent
+  // (keeps the family's hue, AA in both schemes).
+  const accentInk = colors.accentText[config.accentKey];
 
   return (
-    <ScreenView style={[styles.screen, { paddingHorizontal: 0 }]}>
-      <View style={styles.globalWatermark}>
-        <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
-      </View>
+    <Page
+      title={config.label}
+      description={config.description}
+      onBack={() => navigation.goBack()}
+    >
+      {/* Family tabs — Community-style morphing pill (label only). */}
+      <Animated.View entering={motion.stagger(0)} style={styles.tabs}>
+        {FAMILY_ORDER.map((family) => (
+          <FamilyTab
+            key={family}
+            label={FAMILY_LABELS[family]}
+            icon={FAMILY_ICONS[family]}
+            active={family === selectedFamily}
+            accent={accentColor}
+            onAccent={onAccentColor}
+            onPress={() => {
+              if (family !== selectedFamily) haptics.selection();
+              setSelectedFamily(family);
+            }}
+          />
+        ))}
+      </Animated.View>
 
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: 60 + insets.top },
-        ]}
+      {/* Horizontal pager — one page per family. Swipe to change tab; tap also works. */}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        style={styles.pager}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w > 0) setContentWidth(w);
+        }}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / contentWidth);
+          const family = FAMILY_ORDER[index];
+          if (family && family !== selectedFamily) setSelectedFamily(family);
+        }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Growth Profile</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+        {FAMILY_ORDER.map((family) => {
+          const metrics = familyData[family];
+          const fScore = metrics.currentScore;
+          const fUnavailable = fScore === null;
+          const fHasComparison = metrics.previousScore !== null;
+          const fTrend = metrics.trend;
+          const fTrendColor =
+            fTrend === "IMPROVING"
+              ? colors.feedback.successText
+              : fTrend === "WORSENING"
+                ? colors.feedback.dangerText
+                : colors.text.tertiary;
+          const fEngagementEmpty = family === "engagement" && fUnavailable;
+          const fTrendValues = buildTrendWeeks(
+            historyBuckets,
+            overallState,
+            (agg) => agg.profile.axes[family]?.[profileKey] ?? null,
+          );
+          const fHasTrendData = fTrendValues.some((w) => w.value != null);
 
-      <ScrollView 
-        style={{ flex: 1, width: '100%' }} 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={[styles.scrollContent, { paddingTop: 60 + insets.top + 16 }]}
-      >
-        <View style={styles.headerContainer}>
-          <View style={styles.headerTopRow}>
-            <Text style={styles.titleText}>{config.label}</Text>
-          </View>
-          <Text style={styles.subtitleText}>{config.description}</Text>
-        </View>
-        <View style={styles.card}>
-          <View style={styles.switcher}>
-            {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
-              const active = f === selectedFamily;
-              return (
-                <TouchableOpacity
-                  key={f}
-                  onPress={() => setSelectedFamily(f)}
-                  style={[
-                    styles.switcherPill,
-                    active && { ...styles.switcherPillActive, backgroundColor: config.color, shadowColor: config.color }
-                  ]}
-                >
-                  <Text style={[styles.switcherText, active && styles.switcherTextActive]}>
-                    {FAMILY_CONFIG[f].label}
+          return (
+            <View key={family} style={[styles.page, { width: contentWidth }]}>
+              <Animated.View entering={motion.stagger(1)}>
+                <Text variant="bodySm" color="secondary" style={styles.familyDesc}>
+                  {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][family]}
+                </Text>
+                {isSettling && (family === "combined" || family === "clinical") && (
+                  <View style={[styles.settlingBanner, { backgroundColor: colors.surface.control }]}>
+                    <Icon name={icons.duration} size={16} color={colors.text.tertiary} />
+                    <Text variant="bodySm" color="tertiary" style={styles.settlingText}>
+                      Still getting to know you. This is an early estimate and will firm up as you check in.
+                    </Text>
+                  </View>
+                )}
+              </Animated.View>
+
+              {/* Score + trend read top-left, the 4-week trajectory flows below them. */}
+              <Animated.View entering={motion.stagger(2)} style={styles.chartHero}>
+                <View style={styles.chartHeader}>
+                  <Text variant="label" color="tertiary">
+                    This week
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
 
-          <Text style={styles.familyDescText}>
-            {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
-          </Text>
+                  {/* Number + trend pill on one line — tight, baseline-grouped. */}
+                  <View style={styles.numberRow}>
+                    {fUnavailable ? (
+                      <Text variant="screenTitle" color="tertiary">—</Text>
+                    ) : (
+                      <AnimatedNumber
+                        key={family}
+                        value={Math.round(fScore)}
+                        variant="screenTitle"
+                        color="primary"
+                      />
+                    )}
 
-          <View style={styles.gaugeWrapper}>
-            <Gauge score={activeMetrics.currentScore} color={config.color} />
-          </View>
+                    {!fUnavailable && fHasComparison && (
+                      <View
+                        style={[
+                          styles.trendPill,
+                          { backgroundColor: withAlpha(fTrendColor, 0.14) },
+                        ]}
+                      >
+                        <Icon
+                          name={
+                            fTrend === "IMPROVING"
+                              ? icons.trend
+                              : fTrend === "WORSENING"
+                                ? icons.trendDown
+                                : "minus"
+                          }
+                          size={15}
+                          color={fTrendColor}
+                        />
+                        <Text variant="title" color={fTrendColor}>
+                          {Math.abs(metrics.percentDelta ?? 0).toFixed(1)}%
+                        </Text>
+                      </View>
+                    )}
 
-          <View style={styles.trendRow}>
-            <MaterialCommunityIcons
-              name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"}
-              size={16}
-              color={trendColor}
-            />
-            <Text style={[styles.trendLabel, { color: trendColor }]}>
-              {!hasComparison
-                ? "Waiting for history"
-                : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
-            </Text>
-          </View>
+                    {!fUnavailable && !fHasComparison && (
+                      <View
+                        style={[styles.trendPill, { backgroundColor: colors.surface.control }]}
+                      >
+                        <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
+                        <Text variant="bodySm" color="tertiary">New baseline</Text>
+                      </View>
+                    )}
+                  </View>
 
-          {hasComparison && (
-            <Text style={styles.previousScoreText}>
-              Previously {Math.round(activeMetrics.previousScore ?? 0)}
-            </Text>
-          )}
+                  {!fUnavailable && fHasComparison && (
+                    <Text variant="caption" color="tertiary">
+                      vs last week · was {Math.round(metrics.previousScore ?? 0)}
+                    </Text>
+                  )}
+                </View>
 
-          <View style={[styles.integratedInsight, { borderTopColor: `${config.color}20` }]}>
-            <MaterialCommunityIcons name="lightning-bolt" size={16} color={config.color} style={styles.insightIcon} />
-            <Text style={styles.integratedInsightText}>
-              {isUnavailable
-                ? "Reflection pending..."
-                : config.recommendations[trend]}
-            </Text>
-          </View>
-        </View>
+                {fHasTrendData ? (
+                  <TrendLine
+                    data={fTrendValues.map((w) => w.value)}
+                    labels={fTrendValues.map((w) => w.label)}
+                    color={accentInk}
+                    height={92}
+                  />
+                ) : (
+                  <Text variant="bodySm" color="tertiary" style={styles.trendEmpty}>
+                    Not enough signal yet — a few weeks of practice will draw your trend.
+                  </Text>
+                )}
+              </Animated.View>
+
+              {/* Insight message — closes the page. */}
+              <Animated.View
+                entering={motion.stagger(3)}
+                style={[styles.insight, { borderTopColor: colors.border.hairline }]}
+              >
+                <Icon
+                  name={icons.energy}
+                  size={16}
+                  color={accentInk}
+                  style={styles.insightIcon}
+                />
+                <Text variant="bodySm" color="secondary" style={styles.insightText}>
+                  {fEngagementEmpty
+                    ? "No engagement signal yet — practice this week to build it."
+                    : fUnavailable
+                      ? "Reflection pending..."
+                      : config.recommendations[fTrend]}
+                </Text>
+              </Animated.View>
+            </View>
+          );
+        })}
       </ScrollView>
-    </ScreenView>
+    </Page>
   );
 };
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-    position: 'relative',
+export default DimensionDetailScreen;
+
+const useStyles = makeStyles((c) => ({
+  // Horizontal pager that holds all three family pages side-by-side.
+  pager: {
+    // Bleed the pager to the screen edges so pages feel full-width,
+    // compensating for the Page's horizontal padding.
+    marginHorizontal: -space.screenX,
   },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+  // Each individual family page inside the pager.
+  page: {
+    paddingHorizontal: space.screenX,
+  },
+  // Hugs its tabs (like the Community dock) instead of filling the width.
+  tabs: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 28,
+    alignSelf: "flex-start",
+    backgroundColor: c.surface.default,
+    borderRadius: radius.pill,
+    padding: 4,
+    gap: 4,
+    marginBottom: space.groupGap,
   },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  globalWatermark: {
-    position: 'absolute',
-    top: 40,
-    right: -150,
-    zIndex: -1,
-    transform: [{ rotate: '-15deg' }],
-  },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 8,
-    paddingBottom: 40, 
-  },
-  headerContainer: {
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+  // Icon-only when idle; the accent fill + label expand in when active.
+  tabPill: {
+    flexDirection: "row",
+    height: 40,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: spacing.md,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  tabIconBox: {
+    width: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  titleText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: theme.colors.text.title,
-    letterSpacing: -0.5,
+  tabIconLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  subtitleText: {
-    fontSize: 15,
-    color: '#64748B',
-    lineHeight: 22,
-    fontWeight: '500',
+  tabLabelWrap: {
+    overflow: "hidden",
+    justifyContent: "center",
   },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-    borderRadius: 36,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 6,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    width: SCREEN_WIDTH - 20, 
-    alignSelf: 'center',
+  tabLabelText: {
+    textAlign: "center",
   },
-  switcher: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 24,
-    padding: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+  familyDesc: {
+    marginBottom: space.sectionGap,
   },
-  switcherPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
-    minWidth: 92,
+  settlingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.md,
+    borderRadius: radius.md,
+    gap: spacing.sm,
+    marginBottom: space.sectionGap,
   },
-  switcherPillActive: {
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+  settlingText: {
+    flex: 1,
   },
-  switcherText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
-    letterSpacing: 0.2,
+  chartHero: {
+    marginBottom: space.groupGap,
   },
-  switcherTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
+  // A tidy left-aligned stack: label → number+pill row → caption; chart below.
+  chartHeader: {
+    alignItems: "flex-start",
+    gap: spacing.xxs,
+    marginBottom: spacing.sm,
   },
-  familyDescText: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 20,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    paddingHorizontal: 12,
-    marginBottom: 24,
+  numberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
-  gaugeWrapper: {
-    marginBottom: 16,
+  trendEmpty: {
+    marginTop: space.groupGap,
   },
-  gaugeContent: {
-    position: 'absolute',
-    alignItems: 'center',
+  trendPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
   },
-  gaugeLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  gaugeValue: {
-    fontSize: 44,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  trendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  trendLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  previousScoreText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-    marginTop: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  integratedInsight: {
-    marginTop: 28,
-    paddingTop: 20,
+  insight: {
+    paddingTop: space.groupGap,
     borderTopWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.rowGap,
   },
   insightIcon: {
     marginTop: 2,
   },
-  integratedInsightText: {
+  insightText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#334155',
-    fontWeight: '600',
-    letterSpacing: -0.1,
   },
-});
-
-export default DimensionDetailScreen;
+}));

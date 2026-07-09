@@ -22,7 +22,7 @@ module.exports = {
   expo: {
     name: "Speechworks",
     slug: "sw-fe-m",
-    version: "1.0.0",
+    version: "1.0.1",
     sdkVersion: "53.0.0",
     // Over-the-air updates (EAS Update): lets us ship JS-only fixes without a
     // Play Store rebuild + review. `runtimeVersion` uses the "appVersion"
@@ -36,7 +36,11 @@ module.exports = {
     },
     orientation: "portrait",
     icon: "./app/assets/icon.png",
-    userInterfaceStyle: "light",
+    // "automatic" lets iOS/Android report the real device appearance so the
+    // in-app Light/Dark/System preference can follow it (System mode reads
+    // useColorScheme()). Requires expo-system-ui on Android. Native change —
+    // needs a rebuild, not OTA-able.
+    userInterfaceStyle: "automatic",
     newArchEnabled: true,
     scheme: "speechworks",
     deeplinks: ["auth/callback"],

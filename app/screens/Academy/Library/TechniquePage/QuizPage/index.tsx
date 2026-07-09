@@ -1,8 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { getQuizByTechnique } from "../../../../../api/library";
 import {
   FinalAnswer,
@@ -15,18 +14,34 @@ import {
   LibStackNavigationProp,
   LibStackParamList,
 } from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
-import { theme } from "../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import {
+  Text,
+  Icon,
+  icons,
+  Button,
+  Surface,
+  Spinner,
+  EmptyState,
+  ProgressBar,
+  useTheme,
+  spacing,
+  space,
+  radius,
+  borderWidth,
+} from "../../../../../design-system";
 
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
   techniqueName: string;
   from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+  header?: React.ReactNode;
+  outerScrollY?: Animated.SharedValue<number>;
 }
 
-const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
+const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: QuizPageProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
+  const { colors } = useTheme();
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedAnsIndex, setSelectedAnsIndex] = useState<number>();
@@ -88,24 +103,20 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading quiz...</Text>
+      <View style={styles.stateContainer}>
+        <Spinner label="Loading quiz..." />
       </View>
     );
   }
 
   if (!quiz || quiz.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <Icon
-          name="clipboard-list"
-          size={48}
-          color={theme.colors.text.default}
+      <View style={styles.stateContainer}>
+        <EmptyState
+          icon={icons.checklist}
+          title="No Quiz Available"
+          message="This technique doesn't have a quiz yet."
         />
-        <Text style={styles.emptyTitle}>No Quiz Available</Text>
-        <Text style={styles.emptyText}>
-          This technique doesn't have a quiz yet.
-        </Text>
       </View>
     );
   }
@@ -113,50 +124,52 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
   const currentQuestion = quiz[selectedIndex];
   if (!currentQuestion) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading question...</Text>
+      <View style={styles.stateContainer}>
+        <Spinner label="Loading question..." />
       </View>
     );
   }
 
+  const isNextDisabled = selectedAnsIndex === undefined || isSubmitting;
+
   return (
-    <CustomScrollView contentContainerStyle={styles.scrollContent}>
+    <CustomScrollView contentContainerStyle={styles.scrollContent} outerScrollY={outerScrollY}>
+      {header}
       <View style={styles.innerContainer}>
         {/* Progress Indicator */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressText}>
+            <Text variant="bodySm" color="secondary">
               Question {selectedIndex + 1} of {quiz.length}
             </Text>
-            <Text style={styles.progressPercent}>
+            <Text variant="bodySm" color="primary">
               {Math.round(progress * 100)}%
             </Text>
           </View>
-          <View style={styles.progressBarContainer}>
-            <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.orange[500],
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
-            />
-          </View>
+          <ProgressBar value={progress} color={colors.action.primary} height={8} />
         </View>
 
         {/* Quiz Card */}
-        <View style={styles.quizContainer}>
+        <Surface level="default" rounded="card" bordered style={styles.quizContainer}>
           <View style={styles.questionSection}>
             <View style={styles.questionHeader}>
-              <View style={styles.questionNumberBadge}>
-                <Text style={styles.questionNumberText}>
+              <View
+                style={[
+                  styles.questionNumberBadge,
+                  { backgroundColor: colors.action.primaryTint },
+                ]}
+              >
+                <Text variant="title" color="primary">
                   {selectedIndex + 1}
                 </Text>
               </View>
-              <Text style={styles.quizTitle}>Assessment Question</Text>
+              <Text variant="label" color="tertiary">
+                ASSESSMENT QUESTION
+              </Text>
             </View>
-            <Text style={styles.qText}>{currentQuestion.text}</Text>
+            <Text variant="h3" color="primary" style={styles.qText}>
+              {currentQuestion.text}
+            </Text>
           </View>
 
           {/* Answer Options */}
@@ -166,31 +179,47 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
               return (
                 <TouchableOpacity
                   key={i}
-                  style={[styles.ansRow, isSelected && styles.selectedAnsRow]}
                   onPress={() => {
                     selectOption(i);
                   }}
                   activeOpacity={0.7}
+                  style={[
+                    styles.ansRow,
+                    {
+                      backgroundColor: isSelected
+                        ? colors.action.primaryTint
+                        : colors.surface.control,
+                      borderColor: isSelected
+                        ? colors.border.selected
+                        : colors.border.default,
+                    },
+                  ]}
                 >
                   <View style={styles.ansRowContent}>
                     {/* Radio Button */}
                     <View
                       style={[
                         styles.radioOuter,
-                        isSelected && styles.radioOuterSelected,
+                        {
+                          borderColor: isSelected
+                            ? colors.action.primary
+                            : colors.border.strong,
+                          backgroundColor: isSelected
+                            ? colors.action.primary
+                            : "transparent",
+                        },
                       ]}
                     >
                       {isSelected && (
-                        <Icon name="check" size={12} color="#FFF" />
+                        <Icon name="check" size={12} color={colors.action.onPrimary} />
                       )}
                     </View>
 
                     {/* Answer Text */}
                     <Text
-                      style={[
-                        styles.ansText,
-                        isSelected && styles.ansTextSelected,
-                      ]}
+                      variant="body"
+                      color={isSelected ? "primary" : "secondary"}
+                      style={styles.ansText}
                     >
                       {opt.text}
                     </Text>
@@ -201,15 +230,20 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
           </View>
 
           {/* Footer with Navigation */}
-          <View style={styles.quizFooter}>
-            <TouchableOpacity
+          <View style={[styles.quizFooter, { borderTopColor: colors.border.default }]}>
+            <Button
               key={`next-btn-${selectedIndex}`}
-              disabled={selectedAnsIndex === undefined || isSubmitting}
-              style={[
-                styles.nextQButton,
-                (selectedAnsIndex === undefined || isSubmitting) &&
-                  styles.nextQButtonDisabled,
-              ]}
+              label={
+                isSubmitting
+                  ? "Submitting..."
+                  : selectedIndex + 1 === quiz.length
+                    ? "Submit Quiz"
+                    : "Next Question"
+              }
+              size="md"
+              fullWidth={false}
+              loading={isSubmitting}
+              disabled={isNextDisabled}
               onPress={async () => {
                 if (selectedAnsIndex === undefined) return;
 
@@ -266,33 +300,26 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
                   setIsSubmitting(false);
                 }
               }}
-            >
-              <Text
-                style={[
-                  styles.nextQText,
-                  (selectedAnsIndex === undefined || isSubmitting) &&
-                    styles.nextQTextDisabled,
-                ]}
-              >
-                {isSubmitting
-                  ? "Submitting..."
-                  : selectedIndex + 1 === quiz.length
-                    ? "Submit Quiz"
-                    : "Next Question"}
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
-        </View>
+        </Surface>
 
         {/* Info Banner */}
-        <View style={styles.quizInfo}>
+        <View
+          style={[
+            styles.quizInfo,
+            {
+              backgroundColor: colors.accentTint.info,
+              borderColor: colors.border.default,
+            },
+          ]}
+        >
           <Icon
-            solid
             size={18}
-            name="info-circle"
-            color={theme.colors.library.blue[400]}
+            name="info"
+            color={colors.feedback.infoText}
           />
-          <Text style={styles.quizInfoText}>
+          <Text variant="bodySm" color="secondary" style={styles.quizInfoText}>
             Practice will be marked complete after quiz submission
           </Text>
         </View>
@@ -304,244 +331,98 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
 export default QuizPage;
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  stateContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
-    gap: 16,
-  },
-  loadingText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  emptyTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-    marginTop: 16,
-  },
-  emptyText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
+    padding: spacing["4xl"],
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: space.screenX,
+    paddingBottom: spacing["2xl"],
     flexGrow: 1,
   },
   innerContainer: {
-    gap: 20,
+    gap: spacing.xl,
   },
   // Progress Section
   progressSection: {
-    gap: 12,
-    paddingHorizontal: 4,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  progressText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  progressPercent: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.orange[500],
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  progressBarContainer: {
-    height: 8,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: "rgba(0,0,0,0.06)",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 8,
-  },
-  // Quiz Container - Modern Gradient Card
+  // Quiz Container
   quizContainer: {
-    gap: 28,
-    padding: 28,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    position: "relative",
-    shadowColor: theme.colors.library.orange[300],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
+    gap: spacing["2xl"],
+    padding: spacing["2xl"],
   },
   questionSection: {
-    gap: 18,
-    zIndex: 1,
+    gap: spacing.lg,
   },
   questionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: spacing.md,
   },
   questionNumberBadge: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: theme.colors.library.orange[500],
+    borderRadius: radius.md,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: theme.colors.library.orange[500],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-    transform: [{ rotate: "3deg" }],
-  },
-  questionNumberText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#FFFFFF",
-    fontWeight: "900",
-    fontSize: 18,
-  },
-  quizTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.orange[500],
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    fontSize: 11,
   },
   qText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    lineHeight: 32,
-    fontWeight: "700",
-    fontSize: 22,
-    letterSpacing: -0.5,
+    lineHeight: 30,
   },
-  // Answers - Premium Card Style
+  // Answers
   answers: {
-    gap: 14,
-    zIndex: 1,
+    gap: spacing.md,
   },
   ansRow: {
-    padding: 20,
-    borderWidth: 2,
-    borderRadius: 16,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FAFAFA",
-    position: "relative",
-  },
-  selectedAnsRow: {
-    borderColor: theme.colors.library.orange[400],
-    backgroundColor: "#FFF7ED",
-    borderWidth: 2.5,
-    shadowColor: theme.colors.library.orange[400],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
+    padding: spacing.lg,
+    borderWidth: borderWidth.thick,
+    borderRadius: radius.input,
   },
   ansRowContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    zIndex: 1,
+    gap: spacing.lg,
   },
   radioOuter: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    borderWidth: 2.5,
-    borderColor: "#D1D5DB",
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thick,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  radioOuterSelected: {
-    borderColor: theme.colors.library.orange[500],
-    backgroundColor: theme.colors.library.orange[500],
   },
   ansText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#374151",
     flex: 1,
     lineHeight: 24,
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  ansTextSelected: {
-    color: "#111827",
-    fontWeight: "700",
   },
   // Footer
   quizFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.06)",
-    marginTop: 4,
-    zIndex: 1,
+    paddingTop: spacing.lg,
+    borderTopWidth: borderWidth.hairline,
   },
-  nextQButton: {
-    backgroundColor: theme.colors.library.orange[500],
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    margin: 4,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  nextQButtonDisabled: {
-    backgroundColor: "#F3F4F6",
-    borderColor: "#E5E7EB",
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  nextQText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 15,
-    letterSpacing: 0.5,
-  },
-  nextQTextDisabled: {
-    color: "#9CA3AF",
-  },
-  // Info Banner - Subtle Modern Style
+  // Info Banner
   quizInfo: {
     flexDirection: "row",
     alignItems: "flex-start",
-    padding: 16,
-    gap: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(59, 130, 246, 0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(59, 130, 246, 0.1)",
+    padding: spacing.lg,
+    gap: spacing.md,
+    borderRadius: radius.input,
+    borderWidth: borderWidth.hairline,
   },
   quizInfoText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#64748B",
     flexShrink: 1,
     lineHeight: 22,
-    fontSize: 14,
-    fontWeight: "600",
   },
 });

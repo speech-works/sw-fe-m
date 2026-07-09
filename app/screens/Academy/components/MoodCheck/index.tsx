@@ -1,5 +1,4 @@
 import { useNavigation, useIsFocused } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useState } from "react";
 import {
   Animated,
@@ -7,7 +6,6 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -17,20 +15,26 @@ import Reanimated, {
   runOnJS,
   clamp,
 } from "react-native-reanimated";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
   ExploreStackNavigationProp,
   ExploreStackParamList,
 } from "../../../../navigators/stacks/ExploreStack/types";
-import { theme } from "../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+  SchemeStatusBar,
+  Button,
+  Gradient,
+  IconButton,
+  Text,
+  icons,
+  radius,
+  spacing,
+  useTheme,
+  withAlpha,
+} from "../../../../design-system";
+import type { SemanticColors } from "../../../../design-system";
 
 import AngryFace from "../../../../assets/mood-check/AngryFace";
 import CalmFace from "../../../../assets/mood-check/CalmFace";
@@ -39,35 +43,38 @@ import SadFace from "../../../../assets/mood-check/SadFace";
 
 const { width, height } = Dimensions.get("window");
 
-// Data
+type AccentKey = keyof SemanticColors["accent"];
+type FeedbackTextKey = keyof SemanticColors["feedback"];
+
+// Emotion → DS accent mapping: angry→danger, calm→success, happy→warning, sad→info.
 const emotions = [
   {
     id: MoodType.ANGRY,
     name: "Angry",
     icon: AngryFace,
-    color: theme.colors.moodcheck.angry,
-    primaryColor: "#F43F5E", // Rose 500
+    accentKey: "danger" as AccentKey,
+    feedbackTextKey: "dangerText" as FeedbackTextKey,
   },
   {
     id: MoodType.CALM,
     name: "Calm",
     icon: CalmFace,
-    color: theme.colors.moodcheck.calm,
-    primaryColor: "#10B981", // Emerald 500
+    accentKey: "success" as AccentKey,
+    feedbackTextKey: "successText" as FeedbackTextKey,
   },
   {
     id: MoodType.HAPPY,
     name: "Happy",
     icon: HappyFace,
-    color: theme.colors.moodcheck.happy,
-    primaryColor: "#F59E0B", // Amber 500
+    accentKey: "warning" as AccentKey,
+    feedbackTextKey: "warningText" as FeedbackTextKey,
   },
   {
     id: MoodType.SAD,
     name: "Sad",
     icon: SadFace,
-    color: theme.colors.moodcheck.sad,
-    primaryColor: "#3B82F6", // Blue 500
+    accentKey: "info" as AccentKey,
+    feedbackTextKey: "infoText" as FeedbackTextKey,
   },
 ];
 
@@ -133,6 +140,7 @@ const MoodItem = React.memo(
 );
 
 const RulerTicks = React.memo(() => {
+  const { colors } = useTheme();
   return (
     <>
       {Array.from({ length: 40 }).map((_, i) => (
@@ -140,7 +148,10 @@ const RulerTicks = React.memo(() => {
           key={i}
           style={[
             styles.rulerLine,
-            i % 5 === 0 ? { height: 24, backgroundColor: "#CBD5E1" } : {},
+            { backgroundColor: colors.border.default },
+            i % 5 === 0
+              ? { height: 24, backgroundColor: colors.border.strong }
+              : {},
           ]}
         />
       ))}
@@ -149,6 +160,7 @@ const RulerTicks = React.memo(() => {
 });
 
 const MoodCheck = () => {
+  const { colors } = useTheme();
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -216,34 +228,36 @@ const MoodCheck = () => {
     });
   };
 
+  const currentEmotion = emotions[currentIndex];
+  const currentAccentKey = currentEmotion.accentKey;
+
   return (
-    <View style={styles.container}>
-      {/* Background Gradient */}
-      <LinearGradient
-        colors={[emotions[currentIndex].color, "#FFFFFF"]}
-        style={StyleSheet.absoluteFillObject}
+    <View
+      style={[styles.container, { backgroundColor: colors.background.canvas }]}
+    >
+      <SchemeStatusBar />
+
+      {/* Background glow — subtle top wash of the current mood accent on the dark canvas */}
+      <Gradient
+        colors={[
+          withAlpha(colors.accent[currentAccentKey], 0.16),
+          colors.background.canvas,
+        ]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.6 }}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
       />
 
-      {/* Header */}
-      <BlurView
-        intensity={80}
-        tint="light"
+      {/* Header — standard back button, no title (matches every other screen). */}
+      <View
         style={[
           styles.header,
           { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
         ]}
       >
-        <TouchableOpacity
-          onPress={() => exploreNavigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Daily Log</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+        <IconButton name={icons.back} onPress={() => exploreNavigation.goBack()} />
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -254,7 +268,9 @@ const MoodCheck = () => {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <Text style={styles.questionText}>How are you feeling{"\n"}today?</Text>
+        <Text variant="h1" color="primary" center style={styles.questionText}>
+          How are you feeling{"\n"}today?
+        </Text>
 
         {/* Carousel */}
         <View style={styles.carouselContainer}>
@@ -286,14 +302,11 @@ const MoodCheck = () => {
 
         {/* Indicator Text */}
         <View style={styles.feedbackContainer}>
-          <Text style={styles.feedbackLabel}>I'm Feeling</Text>
-          <Text
-            style={[
-              styles.feedbackValue,
-              { color: emotions[currentIndex].primaryColor },
-            ]}
-          >
-            {emotions[currentIndex].name}
+          <Text variant="body" color="secondary">
+            I'm Feeling
+          </Text>
+          <Text variant="title" color={colors.feedback[currentEmotion.feedbackTextKey]}>
+            {currentEmotion.name}
           </Text>
         </View>
 
@@ -306,7 +319,7 @@ const MoodCheck = () => {
               style={[
                 styles.activeIndicator,
                 {
-                  backgroundColor: emotions[currentIndex].primaryColor,
+                  backgroundColor: colors.accent[currentAccentKey],
                 },
                 rIndicatorStyle,
               ]}
@@ -321,7 +334,12 @@ const MoodCheck = () => {
 
         {/* Bottom Tabs/Button */}
         <View style={styles.bottomControls}>
-          <View style={styles.pillContainer}>
+          <View
+            style={[
+              styles.pillContainer,
+              { backgroundColor: colors.surface.control },
+            ]}
+          >
             {emotions.map((emo, index) => (
               <TouchableOpacity
                 key={emo.id}
@@ -335,18 +353,17 @@ const MoodCheck = () => {
                 style={[
                   styles.moodPill,
                   index === currentIndex && {
-                    backgroundColor: emo.primaryColor,
+                    backgroundColor: colors.accent[emo.accentKey],
                   },
                 ]}
               >
                 <Text
-                  style={[
-                    styles.pillText,
-                    index === currentIndex && {
-                      color: "white",
-                      fontWeight: "700",
-                    },
-                  ]}
+                  variant={index === currentIndex ? "label" : "bodySm"}
+                  color={
+                    index === currentIndex
+                      ? colors.accentOn[emo.accentKey]
+                      : "secondary"
+                  }
                 >
                   {emo.name}
                 </Text>
@@ -356,16 +373,14 @@ const MoodCheck = () => {
         </View>
 
         {/* Main CTA */}
-        <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            { backgroundColor: emotions[currentIndex].primaryColor },
-          ]}
-          onPress={handleSelect}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.confirmButtonText}>Submit</Text>
-        </TouchableOpacity>
+        <View style={styles.confirmButton}>
+          <Button
+            label="Submit"
+            onPress={handleSelect}
+            accentColor={colors.accent[currentAccentKey]}
+            onAccentColor={colors.accentOn[currentAccentKey]}
+          />
+        </View>
       </ScrollView>
     </View>
   );
@@ -376,14 +391,13 @@ export default MoodCheck;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: spacing.lg,
   },
   header: {
     position: "absolute",
@@ -392,32 +406,17 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: spacing.lg,
   },
   headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
     marginTop: 2,
   },
   questionText: {
-    ...parseTextStyle(theme.typography.Heading1),
-    textAlign: "center",
-    color: theme.colors.text.title,
     marginBottom: height * 0.02,
     lineHeight: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   carouselContainer: {
     height: CAROUSEL_HEIGHT,
@@ -429,17 +428,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
     marginBottom: height * 0.015,
-  },
-  feedbackLabel: {
-    fontSize: Math.min(width * 0.045, 18),
-    color: theme.colors.text.title,
-    fontWeight: "500",
-  },
-  feedbackValue: {
-    fontSize: Math.min(width * 0.05, 20),
-    fontWeight: "800",
   },
   rulerContainer: {
     height: 60,
@@ -453,13 +443,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     alignItems: "flex-end",
     height: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
     position: "relative",
   },
   rulerLine: {
     width: 2,
     height: 12,
-    backgroundColor: "#E2E8F0",
     borderRadius: 1,
   },
   activeIndicator: {
@@ -477,8 +466,7 @@ const styles = StyleSheet.create({
   },
   pillContainer: {
     flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 30,
+    borderRadius: radius.pill,
     padding: 4,
     gap: 4,
     flexWrap: "wrap",
@@ -486,26 +474,12 @@ const styles = StyleSheet.create({
     maxWidth: width - 40,
   },
   moodPill: {
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     paddingHorizontal: Math.max(width * 0.035, 12),
-    borderRadius: 24,
-  },
-  pillText: {
-    fontSize: Math.min(width * 0.033, 13),
-    color: theme.colors.text.default,
-    fontWeight: "500",
+    borderRadius: radius.card,
   },
   confirmButton: {
     marginHorizontal: 32,
-    paddingVertical: Math.max(height * 0.018, 14),
-    borderRadius: 20,
-    alignItems: "center",
     marginTop: height * 0.02,
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  confirmButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
   },
 });
