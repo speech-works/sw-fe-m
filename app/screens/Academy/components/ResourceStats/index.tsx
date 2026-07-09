@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.xl,
     paddingTop: 0,
-    paddingBottom: spacing["2xl"],
+    paddingBottom: 0,
     position: "relative",
     overflow: "hidden",
   },

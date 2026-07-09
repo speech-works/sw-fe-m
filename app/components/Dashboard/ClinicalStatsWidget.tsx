@@ -431,23 +431,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           ))}
         </View>
 
-        <TouchableOpacity
-          onPress={onRefresh}
-          disabled={isRefreshing}
-          activeOpacity={0.7}
-          style={styles.syncLink}
-        >
-          <Animated.View style={isRefreshing ? refreshIconStyle : null}>
-            <Icon name={icons.refresh} size={16} color={colors.text.tertiary} />
-          </Animated.View>
-          <Text variant="caption" color="tertiary" style={styles.syncText}>
-            {isRefreshing
-              ? "Syncing data..."
-              : `Last synced at ${new Date(
-                  overallState.profile.meta.computedAt,
-                ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
-          </Text>
-        </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -457,13 +441,10 @@ const useStyles = makeStyles((c) => ({
   container: {
     borderRadius: radius.card,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing["3xl"],
-    paddingBottom: spacing["2xl"],
+    paddingTop: 0,
+    paddingBottom: 0,
     marginVertical: 0,
-    backgroundColor: c.surface.default,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: c.border.hairline,
   },
   mainWatermarkContainer: {
     position: "absolute",
