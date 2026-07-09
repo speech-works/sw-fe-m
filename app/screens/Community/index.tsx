@@ -553,7 +553,7 @@ const Community = () => {
               <Icon 
                 name={copied ? icons.success : icons.copy} 
                 size={20} 
-                color={copied ? colors.feedback.success : colors.text.accent} 
+                color={copied ? colors.feedback.successText : colors.text.accent} 
                 style={{ marginRight: space.iconText }} 
               />
               <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
