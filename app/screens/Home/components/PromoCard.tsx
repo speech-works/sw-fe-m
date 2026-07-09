@@ -69,7 +69,8 @@ export const PromoCard: React.FC<PromoCardProps> = ({
   progress,
   style,
 }) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const v = VARIANTS[variant];
   const fill = colors.accent[v.accentKey];
   const ink = colors.accentOn[v.accentKey];
@@ -124,10 +125,10 @@ export const PromoCard: React.FC<PromoCardProps> = ({
             </View>
           ) : null}
 
-          {/* Primary action = a solid dark island on the bright fill. */}
-          <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
-            <Icon name={icons.play} size={14} color={colors.action.onSecondary} />
-            <Text variant="title" color={colors.action.onSecondary}>
+          {/* Primary action = a solid dark island on the bright fill (or pure white in light mode). */}
+          <View style={[styles.cta, { backgroundColor: isDark ? colors.action.secondary : colors.surface.inverse }]}>
+            <Icon name={icons.play} size={14} color={isDark ? colors.action.onSecondary : colors.text.primary} />
+            <Text variant="title" color={isDark ? colors.action.onSecondary : colors.text.primary}>
               {v.cta}
             </Text>
           </View>

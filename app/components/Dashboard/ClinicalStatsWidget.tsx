@@ -365,7 +365,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
           <View style={styles.textContainer}>
             <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.xs }}>
-              <Text variant="h1" color="primary">
+              <Text variant="h1" color="primary" style={{ paddingRight: 4 }}>
                 Growth Profile
               </Text>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text.link, shadowColor: colors.text.link, shadowOpacity: 0.8, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }} />
