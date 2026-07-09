@@ -62,23 +62,23 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
             ]}
           />
 
-          <View style={styles.content}>
-            <View style={styles.textContainer}>
-              <Text variant="h2" color={ink}>Video Tutorials</Text>
-              <Text variant="bodySm" color={ink}>
-                Master speech techniques with our curated video collection.
-              </Text>
-            </View>
-
-            <View style={[styles.iconCircle, { backgroundColor: colors.surface.default }]}>
-              <Icon name={icons.play} size={24} color={colors.text.primary} style={styles.playGlyph} />
-            </View>
+          <View>
+            <Text variant="h2" color={ink} style={styles.title}>
+              Video Tutorials
+            </Text>
+            <Text variant="body" color={ink}>
+              Master speech techniques with our curated video collection.
+            </Text>
           </View>
 
-          {/* Tag / Badge — dark surface chip with a vivid glyph (in-app chip pattern). */}
-          <View style={[styles.badge, { backgroundColor: colors.surface.default }]}>
-            <Icon name={icons.play} size={12} color={colors.text.primary} />
-            <Text variant="caption" color="primary">Recorded Lessons</Text>
+          <View style={styles.actions}>
+            {/* Primary action = a solid dark island on the bright fill. */}
+            <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
+              <Icon name={icons.play} size={14} color={colors.action.onSecondary} />
+              <Text variant="title" color={colors.action.onSecondary}>
+                Recorded Lessons
+              </Text>
+            </View>
           </View>
         </View>
       </PressableScale>
@@ -109,34 +109,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderRadius: radius.full,
   },
-  content: {
+  title: {
+    marginBottom: space.titleSub,
+  },
+  actions: {
+    gap: space.groupGap,
+  },
+  cta: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-  },
-  textContainer: {
-    flex: 1,
-    paddingRight: spacing.lg,
-    gap: spacing.xs,
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.input,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  playGlyph: {
-    marginLeft: 4,
-  },
-  badge: {
-    flexDirection: "row",
     alignSelf: "flex-start",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    gap: space.inlineGap,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    marginTop: spacing.md,
   },
 });
