@@ -31,6 +31,7 @@ import {
   useMotion,
 } from "../../design-system";
 import type { IconName } from "../../design-system/components/Icon";
+import { Gradient } from "../../design-system/components/Gradient";
 import PressableScale from "../PressableScale";
 import SkeletonLoader from "../SkeletonLoader";
 import ErrorStateCard from "./ErrorStateCard";
@@ -363,10 +364,13 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           )}
 
           <View style={styles.textContainer}>
-            <Text variant="h2" color="primary">
-              Growth Profile
-            </Text>
-            <Text variant="body" color="secondary">
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.xs }}>
+              <Text variant="screenTitle" color="primary">
+                Growth Profile
+              </Text>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text.link, shadowColor: colors.text.link, shadowOpacity: 0.8, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }} />
+            </View>
+            <Text variant="body" color="secondary" style={{ marginTop: spacing.xs, fontWeight: "500", fontSize: 16 }}>
               {dynamicSubtitle}
             </Text>
           </View>
@@ -438,13 +442,24 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 };
 
 const useStyles = makeStyles((c) => ({
+  gradientBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  gradientBadgeText: {
+    color: "#111111", // Deep dark text "cut out" of the gradient
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    fontSize: 11,
+    fontWeight: "800",
+  },
   container: {
-    borderRadius: radius.card,
     paddingHorizontal: spacing.xl,
     paddingTop: 0,
     paddingBottom: 0,
-    marginVertical: 0,
-    overflow: "hidden",
+    marginTop: spacing.xl,
   },
   mainWatermarkContainer: {
     position: "absolute",
@@ -454,6 +469,7 @@ const useStyles = makeStyles((c) => ({
     transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
   header: {
+    marginLeft: -spacing.xl,
     marginBottom: space.groupGap,
     zIndex: 1,
   },
@@ -476,13 +492,15 @@ const useStyles = makeStyles((c) => ({
   hero: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    gap: spacing.md,
     zIndex: 1,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   heroMeta: {
-    alignItems: "flex-end",
-    gap: space.inlineGap,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   heroDelta: {
     flexDirection: "row",
