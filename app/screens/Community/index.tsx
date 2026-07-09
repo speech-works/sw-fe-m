@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Clipboard from "expo-clipboard";
+import Toast from "react-native-toast-message";
 // Exception: the bond-stage glyph is SERVER-DRIVEN as a MaterialCommunityIcons name,
 // so it must render via MCI until the backend emits DS/Lucide names (see bondStageIcon).
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -48,6 +50,9 @@ import {
   staggerEntering,
   bestForeground,
   zIndex,
+  Page,
+  ListItem,
+  Surface,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -224,6 +229,7 @@ const Community = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [copied, setCopied] = useState(false);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
@@ -475,8 +481,15 @@ const Community = () => {
   // below the fixed header.
   const headerPlaceholder = <View style={{ height: headerHeight }} />;
 
+  const handleCopyCode = async () => {
+    if (!summary?.referralCode) return;
+    await Clipboard.setStringAsync(summary.referralCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const renderInvite = () => (
-    <View style={styles.inviteCardWrapper}>
+    <View style={{ marginTop: space.groupGap, gap: space.groupGap, paddingBottom: 100 }}>
       <View style={styles.howItWorksSection}>
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
@@ -498,7 +511,7 @@ const Community = () => {
           </View>
         </View>
 
-        <View style={styles.stepItem}>
+        <View style={[styles.stepItem, { marginBottom: 0 }]}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
             <Icon name={icons.launch} size={24} color={colors.text.accent} />
           </View>
@@ -509,9 +522,7 @@ const Community = () => {
         </View>
       </View>
 
-      <View style={{ flexGrow: 1, minHeight: spacing["4xl"] }} />
-
-      <View style={[styles.inviteCard, { backgroundColor: colors.surface.elevated }, elevation.e2]}>
+      <Surface level="elevated" style={styles.inviteCard}>
         {/* Watermark Layer */}
         <View style={styles.watermarkLayer} pointerEvents="none">
           <Icon name={icons.gift} size={260} color={colors.action.primary} style={styles.watermarkIcon} />
@@ -534,12 +545,20 @@ const Community = () => {
               <Text variant="caption" color="accent" style={styles.bold}>Waiting for them to join…</Text>
             </View>
           )}
-          <View style={[styles.codeBox, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}>
+          <PressableScale
+            onPress={handleCopyCode}
+            style={[styles.codeBox, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}
+          >
             <View style={styles.codeRow}>
-              <Icon name={icons.copy} size={20} color={colors.text.accent} style={{ marginRight: space.iconText }} />
+              <Icon 
+                name={copied ? icons.success : icons.copy} 
+                size={20} 
+                color={copied ? colors.feedback.success : colors.text.accent} 
+                style={{ marginRight: space.iconText }} 
+              />
               <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
             </View>
-          </View>
+          </PressableScale>
           <PressableScale
             onPress={handleShare}
             disabled={!summary?.referralCode}
@@ -578,7 +597,7 @@ const Community = () => {
             </PressableScale>
           </View>
         </View>
-      </View>
+      </Surface>
     </View>
   );
 
@@ -810,6 +829,45 @@ const Community = () => {
     );
   };
 
+  if (!isPaired && !loading && !error) {
+    return (
+      <>
+        <Page title="Community" description="Practice sticks when someone's in it with you." tabBarSafe>
+          {renderInvite()}
+        </Page>
+        {/* ── Buddy Welcome Modal ── */}
+        <WatermarkModal
+          visible={showWelcome}
+          onClose={() => setShowWelcome(false)}
+          watermarkIcon={icons.pairing}
+          watermarkColor={colors.action.primary}
+          tag="BUDDY CONNECTED"
+          tagColor={colors.action.primary}
+          title="You're now paired!"
+          message="Share your journey, support each other, and grow together."
+          ctaLabel="Let's Go!"
+          ctaColor={colors.action.primary}
+          ctaTextColor={colors.action.onPrimary}
+        />
+
+        {/* ── Invalid Code Error Modal ── */}
+        <WatermarkModal
+          visible={showError}
+          onClose={() => setShowError(false)}
+          watermarkIcon={icons.warning}
+          watermarkColor={colors.feedback.danger}
+          tag="INVALID CODE"
+          tagColor={colors.feedback.dangerText}
+          title="Couldn't Connect"
+          message={errorMessage}
+          ctaLabel="Try Again"
+          ctaColor={colors.feedback.danger}
+          ctaTextColor={colors.accentOn.danger}
+        />
+      </>
+    );
+  }
+
   return (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       <SchemeStatusBar />
@@ -832,13 +890,9 @@ const Community = () => {
               <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
             </PressableScale>
           </View>
-        ) : isPaired ? (
+        ) : (
           <View style={{ flex: 1 }}>
-            {/* Horizontal pager of two INDEPENDENT vertical scrolls. Each page owns
-                its own CustomScrollView so its content scrolls clear of the floating
-                dock (paddingBottom). Do NOT collapse this into one vertical scroll
-                wrapping a horizontal pager — a horizontal ScrollView clips vertical
-                overflow, which traps each page's bottom content behind the dock. */}
+            {/* Horizontal pager of two INDEPENDENT vertical scrolls. */}
             <ScrollView
               ref={scrollViewRef}
               horizontal
@@ -902,8 +956,7 @@ const Community = () => {
               </View>
             </ScrollView>
 
-            {/* Screen-level sticky compose control — shown only on the Timeline tab
-                (kept from the restructure; independent of the scroll nesting). */}
+            {/* Screen-level sticky compose control — shown only on the Timeline tab */}
             {view === "timeline" && (
               <FloatingControls
                 items={[
@@ -916,26 +969,6 @@ const Community = () => {
               />
             )}
           </View>
-        ) : (
-          <CustomScrollView
-            contentContainerStyle={[
-              styles.scrollView,
-              { paddingBottom: 130 },
-              { flexGrow: 1 },
-            ]}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.action.primary}
-                colors={[colors.action.primary]}
-                progressViewOffset={insets.top + 8}
-              />
-            }
-          >
-            {headerPlaceholder}
-            {renderInvite()}
-          </CustomScrollView>
         )}
       </View>
 
@@ -1201,16 +1234,14 @@ const styles = StyleSheet.create({
   actionTextWrap: { flex: 1, paddingRight: spacing.sm },
 
   // Invite Referral Card
-  inviteCardWrapper: {
-    marginHorizontal: space.screenX,
-    flexGrow: 1,
-  },
+  // Invite Referral Card
   inviteCard: {
     width: "100%",
     borderRadius: radius.sheet,
     paddingTop: spacing["3xl"],
     paddingBottom: spacing["2xl"],
     paddingHorizontal: spacing["2xl"],
+    marginTop: spacing.xl,
     alignItems: "center",
     zIndex: 1,
   },
@@ -1237,20 +1268,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   bottomBlock: { alignItems: "center", width: "100%", gap: spacing.lg },
+
   howItWorksSection: {
-    paddingHorizontal: spacing.xs,
-    paddingTop: spacing.md,
+    // Free floating, no extra container padding needed.
   },
   stepItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing["2xl"],
+    marginBottom: spacing.xl,
     gap: spacing.lg,
   },
   stepIconBox: {
     width: 52,
     height: 52,
-    borderRadius: radius.input,
+    borderRadius: radius.card,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1260,10 +1291,10 @@ const styles = StyleSheet.create({
   },
   codeBox: {
     width: "100%",
+    height: 58,
     borderWidth: borderWidth.thick,
     borderStyle: "dashed",
-    borderRadius: radius.input,
-    paddingVertical: 14,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1280,8 +1311,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    paddingVertical: spacing.lg,
-    borderRadius: radius.input,
+    height: 58,
+    borderRadius: radius.pill,
   },
   pendingPillImm: {
     flexDirection: "row",
@@ -1309,7 +1340,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     width: "100%",
     height: 58,
-    borderRadius: 18,
+    borderRadius: radius.pill,
     borderWidth: borderWidth.thin,
     paddingHorizontal: 6,
     alignItems: "center",
@@ -1325,7 +1356,7 @@ const styles = StyleSheet.create({
   submitCodeBtn: {
     height: 46,
     width: 46,
-    borderRadius: 14,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

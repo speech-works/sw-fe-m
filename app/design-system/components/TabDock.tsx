@@ -133,10 +133,10 @@ const DockItem: React.FC<DockItemProps> = ({
 
   const [labelWidth, setLabelWidth] = useState(0);
   // Estimate until the real width is measured, so the active label never pops in at 0.
-  // +2 headroom so the exact-width wrapper can never hairline-clip the glyphs.
+  // +12 headroom so the exact-width wrapper can never hairline-clip the glyphs or show ellipsis.
   const targetWidth = labelWidth
-    ? labelWidth + 2
-    : Math.round(label.length * 8.2);
+    ? labelWidth + 12
+    : Math.round(label.length * 10);
 
   const v = useDerivedValue(
     () => (reduceMotion ? (isFocused ? 1 : 0) : withSpring(isFocused ? 1 : 0, DOCK_SPRING)),
@@ -200,7 +200,7 @@ const DockItem: React.FC<DockItemProps> = ({
 
           <Animated.View style={[styles.textWrapper, textWrapperStyle]}>
             <Animated.View style={textStyle}>
-              <Text variant="bodySm" color={activeContentColor} numberOfLines={1} style={styles.label}>
+              <Text variant="bodySm" color={activeContentColor} numberOfLines={1} ellipsizeMode="clip" style={styles.label}>
                 {label}
               </Text>
             </Animated.View>
