@@ -1,6 +1,11 @@
-import React, { useRef, useEffect, useState } from "react";
-import { Dimensions, ScrollView, View } from "react-native";
-import Animated from "react-native-reanimated";
+import React, { useEffect, useState } from "react";
+import { View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  Directions,
+  Gesture,
+  GestureDetector,
+} from "react-native-gesture-handler";
 import {
   ClinicalDomain,
   GrowthProfileMetrics,
@@ -13,6 +18,7 @@ import {
 } from "../../stores/userBehaviorTrends/selectors";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackRouteProp } from "../../navigators/index";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import {
   Page,
   Text,
@@ -20,17 +26,17 @@ import {
   IconName,
   icons,
   TrendLine,
-  AnimatedNumber,
   TabDock,
+  Sheet,
   Surface,
+  IconButton,
   haptics,
   useTheme,
-  useMotion,
   makeStyles,
-  withAlpha,
   spacing,
   space,
   radius,
+  borderWidth,
   SemanticColors,
 } from "../../design-system";
 
@@ -42,6 +48,30 @@ const FAMILY_LABELS: Record<DetailFamily, string> = {
   combined: "Combined",
   clinical: "Clinical",
   engagement: "Engagement",
+};
+
+/** Plain-language definitions grounded in the `/overall-state` contract:
+ *  clinical comes from assessment domains, engagement from recent practice and
+ *  check-ins, and combined brings those two time-scales together. */
+const FAMILY_EXPLANATIONS: Record<
+  DetailFamily,
+  { title: string; description: string }
+> = {
+  combined: {
+    title: "A balanced view",
+    description:
+      "Brings your assessment baseline together with recent practice and check-in signals.",
+  },
+  clinical: {
+    title: "Your steadier baseline",
+    description:
+      "Built from validated assessment responses, so it changes more gradually.",
+  },
+  engagement: {
+    title: "Your recent signal",
+    description:
+      "Drawn from practice and check-ins, so it responds sooner to what’s changing.",
+  },
 };
 
 const PROFILE_KEYS: Record<ClinicalDomain, keyof GrowthProfileMetrics> = {
@@ -58,43 +88,43 @@ const FAMILY_DESCRIPTIONS: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     combined:
-      "Overall view combining your steadier baseline with how communication has felt lately.",
+      "Balances your assessment baseline with recent confidence, anxiety, and stress check-ins.",
     clinical:
-      "Steadier baseline based on validated clinical responses about confidence and speech impact.",
+      "Focuses on assessment responses about confidence and speech impact.",
     engagement:
-      "Short-term signal from recent check-ins about confidence, anxiety, and stress.",
+      "Uses recent confidence, anxiety, and stress check-ins.",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     combined:
-      "Overall view combining your steadier baseline with how much you have been approaching speaking lately.",
+      "Balances your avoidance baseline with recent approach and avoidance signals.",
     clinical:
-      "Steadier baseline based on validated clinical responses related to avoidance.",
+      "Focuses on assessment responses about avoidance.",
     engagement:
-      "Short-term signal from recent check-ins about your urge to avoid speaking moments.",
+      "Uses recent avoidance-urge check-ins and approach activity.",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     combined:
-      "Overall view combining your steadier baseline with recent signs of how manageable speech has felt.",
+      "Balances your speech-management baseline with recent tool and reflection signals.",
     clinical:
-      "Steadier baseline based on validated clinical responses about speech struggle and control.",
+      "Focuses on assessment responses about speech struggle and control.",
     engagement:
-      "Short-term signal from recent secondary-behavior patterns. It does not capture all of your skill use on its own.",
+      "Uses recent reflection and secondary-behavior patterns; it cannot see every tool you use.",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     combined:
-      "Overall view combining your steadier baseline with how manageable speaking has felt lately.",
+      "Balances your everyday-speaking baseline with recent comfort and tension signals.",
     clinical:
-      "Steadier baseline based on validated clinical responses about everyday speaking impact.",
+      "Focuses on assessment responses about everyday speaking effort and impact.",
     engagement:
-      "Short-term signal from recent check-ins about tension, body awareness, and comfort.",
+      "Uses recent tension, body-awareness, and comfort check-ins.",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     combined:
-      "Overall view combining your steadier baseline with your recent participation activity.",
+      "Balances your participation baseline with recent exposure and speaking activity.",
     clinical:
-      "Steadier baseline based on validated clinical responses about participation and social impact.",
+      "Focuses on assessment responses about participation and social impact.",
     engagement:
-      "Short-term signal from recent exposure practice activity. It is not a full measure of your social life yet.",
+      "Uses recent exposure practice; it is not a measure of your whole social life.",
   },
 };
 
@@ -122,14 +152,14 @@ const DIMENSION_CONFIG: Record<
     description:
       "How confident you feel communicating, even when speech is not perfect.",
     firstLook:
-      "This is your starting point. Keep choosing speaking moments that feel meaningful — your trend will build from here.",
+      "Start with one meaningful speaking moment; your trend will build from here.",
     recommendations: {
       IMPROVING:
-        "Confidence seems to be building. Keep choosing speaking moments that feel meaningful and manageable.",
+        "Keep choosing meaningful speaking moments that feel manageable.",
       STABLE:
-        "A steady week still matters. One small speaking win can help strengthen trust in your voice.",
+        "Choose one small speaking win to strengthen trust in your voice.",
       WORSENING:
-        "If confidence dips, step back to a simpler speaking situation and rebuild from there.",
+        "Return to a simpler speaking situation and rebuild from there.",
     },
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
@@ -139,14 +169,14 @@ const DIMENSION_CONFIG: Record<
     description:
       "How willing you are to enter speaking moments instead of avoiding them.",
     firstLook:
-      "This is your starting point. Small, repeatable approaches will shape your trend over the next few weeks.",
+      "Start with one small approach; repeat it to build your trend.",
     recommendations: {
       IMPROVING:
-        "You’re approaching more speaking moments. Keep the next step small, specific, and repeatable.",
+        "Keep your next speaking step small, specific, and repeatable.",
       STABLE:
-        "A steady stretch can still be progress. Pick one speaking moment next that is slightly outside your comfort zone.",
+        "Choose one speaking moment just beyond your comfort zone.",
       WORSENING:
-        "If avoidance is growing, shrink the challenge rather than stopping. Smaller, supported reps help rebuild momentum.",
+        "Shrink the challenge and try one smaller, supported speaking rep.",
     },
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
@@ -156,14 +186,14 @@ const DIMENSION_CONFIG: Record<
     description:
       "How reliably you’re using helpful tools and strategies to manage speech.",
     firstLook:
-      "This is your starting point. Practicing your tools in real moments will shape your trend from here.",
+      "Use one helpful tool in a real speaking moment to start your trend.",
     recommendations: {
       IMPROVING:
-        "Your tools seem to be helping more reliably. Keep practicing them in real situations, not just drills.",
+        "Keep using the tools that help in real situations, not only drills.",
       STABLE:
-        "A steady week is a good time to sharpen one dependable strategy instead of changing everything at once.",
+        "Sharpen one dependable strategy before adding another.",
       WORSENING:
-        "If speech feels harder to manage, return to one dependable strategy and practice it in a lower-pressure setting.",
+        "Return to one dependable strategy in a lower-pressure setting.",
     },
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
@@ -173,14 +203,14 @@ const DIMENSION_CONFIG: Record<
     description:
       "How manageable and less effortful speaking feels in everyday moments.",
     firstLook:
-      "This is your starting point. Regular, low-pressure practice will let comfort build and your trend take shape.",
+      "Start with regular, low-pressure practice and let comfort build.",
     recommendations: {
       IMPROVING:
-        "Speaking seems to be feeling a little easier. Keep your practice regular and low-pressure so that comfort can carry over.",
+        "Keep practice regular and low-pressure so comfort carries over.",
       STABLE:
-        "Steady ease still counts. Gentle repetition can help comfort build over time.",
+        "Use gentle repetition to help speaking feel easier over time.",
       WORSENING:
-        "If speaking feels harder lately, lower the pressure and pair speaking with a calming routine that works for you.",
+        "Lower the pressure and pair speaking with a calming routine.",
     },
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
@@ -190,14 +220,14 @@ const DIMENSION_CONFIG: Record<
     description:
       "How much you’re taking part in conversations and speaking situations that matter to you.",
     firstLook:
-      "This is your starting point. Taking part in conversations that matter to you will shape your trend from here.",
+      "Take part in one conversation that matters to start your trend.",
     recommendations: {
       IMPROVING:
-        "You’re participating more. Keep choosing speaking moments that matter to you, not just more moments.",
+        "Keep choosing speaking moments that matter, not simply more moments.",
       STABLE:
-        "A steady week can still be a foundation. One small initiation or response can help widen participation.",
+        "Make one small initiation or response to widen participation.",
       WORSENING:
-        "If participation is shrinking, start with safer conversations and build outward from there.",
+        "Start with safer conversations, then build outward.",
     },
   },
 };
@@ -214,23 +244,38 @@ const DimensionDetailScreen = () => {
   const navigation = useNavigation<HomeStackNavigationProp<"DimensionDetail">>();
   const { colors } = useTheme();
   const styles = useStyles();
-  const motion = useMotion();
   const { historyBuckets, overallState } = useUserBehaviorTrendsStore();
   const { domain, familyData: rawFamilyData } = route.params;
 
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
+  const [aboutSheetVisible, setAboutSheetVisible] = useState(false);
   const uncertainty = overallState?.clinical?.domains?.[domain as ClinicalDomain]?.uncertainty ?? 0;
   const isSettling = uncertainty > 25;
 
-  // Sync tab-tap → scroll position.
+  // Explain the unfamiliar score model once, then leave the same information
+  // available on demand from the score header's info control. The sheet itself
+  // owns the occasional entrance motion and reduced-motion behavior.
   useEffect(() => {
-    const index = FAMILY_ORDER.indexOf(selectedFamily);
-    if (scrollViewRef.current && contentWidth > 0) {
-      scrollViewRef.current.scrollTo({ x: index * contentWidth, animated: true });
-    }
-  }, [selectedFamily, contentWidth]);
+    let active = true;
+
+    AsyncStorage.getItem(ASYNC_KEYS_NAME.SW_GROWTH_PROFILE_DETAIL_INTRO_SEEN)
+      .then((seen) => {
+        if (!active || seen === "true") return;
+        setAboutSheetVisible(true);
+        return AsyncStorage.setItem(
+          ASYNC_KEYS_NAME.SW_GROWTH_PROFILE_DETAIL_INTRO_SEEN,
+          "true",
+        );
+      })
+      .catch(() => {
+        // Storage availability should never block the explanation in-session.
+        if (active) setAboutSheetVisible(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const profileKey = domain
     ? PROFILE_KEYS[domain as ClinicalDomain]
@@ -242,20 +287,81 @@ const DimensionDetailScreen = () => {
   // rare case the store is empty on entry.
   const familyData: Record<DetailFamily, FamilyMetricData> = overallState
     ? {
-        combined: buildFamilyMetric(overallState, "combined", profileKey),
-        clinical: buildFamilyMetric(overallState, "clinical", profileKey),
-        engagement: buildFamilyMetric(overallState, "engagement", profileKey),
-      }
+      combined: buildFamilyMetric(overallState, "combined", profileKey),
+      clinical: buildFamilyMetric(overallState, "clinical", profileKey),
+      engagement: buildFamilyMetric(overallState, "engagement", profileKey),
+    }
     : (rawFamilyData as Record<DetailFamily, FamilyMetricData>);
 
   if (!domain) return null;
 
   const config = DIMENSION_CONFIG[domain as ClinicalDomain];
-  // The trend STROKE and insight ICON are thin/small meaning-bearing marks on
-  // the canvas/card — the bright accent base fails AA on the light "paper"
-  // ground, so use the per-scheme colored-text cut of the dimension's accent
-  // (keeps the family's hue, AA in both schemes).
   const accentInk = colors.accentText[config.accentKey];
+  const metrics = familyData[selectedFamily];
+  const score = metrics.currentScore;
+  const isUnavailable = score === null;
+  const hasComparison = metrics.previousScore !== null;
+  const trend = metrics.trend;
+  const trendColor =
+    trend === "IMPROVING"
+      ? colors.feedback.successText
+      : trend === "WORSENING"
+        ? colors.feedback.dangerText
+        : colors.text.tertiary;
+  const isEngagementEmpty = selectedFamily === "engagement" && isUnavailable;
+  const isEarlyEstimate =
+    isSettling &&
+    (selectedFamily === "combined" || selectedFamily === "clinical");
+  const trendValues = buildTrendWeeks(
+    historyBuckets,
+    overallState,
+    (aggregate) =>
+      aggregate.profile.axes[selectedFamily]?.[profileKey] ?? null,
+  );
+  const hasTrendData = trendValues.some((week) => week.value != null);
+  const lensExplanation = FAMILY_EXPLANATIONS[selectedFamily];
+
+  const insightText = isEngagementEmpty
+    ? "Complete one practice or check-in to start building this signal."
+    : isUnavailable
+      ? selectedFamily === "clinical"
+        ? "Complete more of your profile assessment to reveal this view."
+        : "Your view will appear as assessment and practice data build."
+      : !hasComparison
+        ? config.firstLook
+        : config.recommendations[trend];
+
+  const selectFamily = (family: DetailFamily) => {
+    if (family === selectedFamily) return;
+    haptics.selection();
+    setSelectedFamily(family);
+  };
+
+  const moveFamily = (step: -1 | 1) => {
+    const currentIndex = FAMILY_ORDER.indexOf(selectedFamily);
+    const nextIndex = Math.max(
+      0,
+      Math.min(FAMILY_ORDER.length - 1, currentIndex + step),
+    );
+    const nextFamily = FAMILY_ORDER[nextIndex];
+    if (nextFamily) selectFamily(nextFamily);
+  };
+
+  // A horizontal fling changes the lens while the screen structure stays put.
+  // Frequent tab changes do not trigger decorative page transitions; the dock's
+  // own spring is enough feedback and remains interruptible.
+  const lensSwipe = Gesture.Race(
+    Gesture.Fling()
+      .direction(Directions.LEFT)
+      .numberOfPointers(1)
+      .runOnJS(true)
+      .onEnd(() => moveFamily(1)),
+    Gesture.Fling()
+      .direction(Directions.RIGHT)
+      .numberOfPointers(1)
+      .runOnJS(true)
+      .onEnd(() => moveFamily(-1)),
+  );
 
   return (
     <View style={styles.root}>
@@ -263,263 +369,134 @@ const DimensionDetailScreen = () => {
         title={config.label}
         description={config.description}
         onBack={() => navigation.goBack()}
+        right={
+          <IconButton
+            name={icons.info}
+            onPress={() => setAboutSheetVisible(true)}
+          />
+        }
         tabBarSafe
       >
-        {/* Horizontal pager — the bottom dock controls the same selected lens,
-            and swiping remains available as a direct gesture. */}
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={styles.pager}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0) setContentWidth(w);
-          }}
-          onMomentumScrollEnd={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / contentWidth);
-            const family = FAMILY_ORDER[index];
-            if (family && family !== selectedFamily) setSelectedFamily(family);
-          }}
-        >
-          {FAMILY_ORDER.map((family) => {
-            const metrics = familyData[family];
-            const fScore = metrics.currentScore;
-            const fUnavailable = fScore === null;
-            const fHasComparison = metrics.previousScore !== null;
-            const fTrend = metrics.trend;
-            const fTrendColor =
-              fTrend === "IMPROVING"
-                ? colors.feedback.successText
-                : fTrend === "WORSENING"
-                  ? colors.feedback.dangerText
-                  : colors.text.tertiary;
-            const fEngagementEmpty = family === "engagement" && fUnavailable;
-            const fTrendValues = buildTrendWeeks(
-              historyBuckets,
-              overallState,
-              (agg) => agg.profile.axes[family]?.[profileKey] ?? null,
-            );
-            const fHasTrendData = fTrendValues.some((w) => w.value != null);
+        <View style={styles.detailCanvas}>
+          {/* Home's Growth Profile uses a quiet oversized glyph behind the data.
+              The same move gives this screen identity without another card. */}
+          <View pointerEvents="none" style={styles.watermark}>
+            <Icon
+              name={config.icon}
+              size={240}
+              color={accentInk}
+              style={styles.watermarkIcon}
+            />
+          </View>
 
-            // Insight line, in priority order:
-            //  - engagement with no signal → practice nudge
-            //  - clinical/combined unavailable → point at the right input
-            //    (NOT "reflection pending" — a null clinical score is about the
-            //    assessment, not a reflection)
-            //  - available but no prior week → first-look copy (no trend implied)
-            //  - available with a comparison → trend-based recommendation
-            const insightText = fEngagementEmpty
-              ? "No engagement signal yet — practice this week to build it."
-              : fUnavailable
-                ? family === "clinical"
-                  ? "Answer more of your profile assessment to see this."
-                  : "This unlocks as your profile and practice data build."
-                : !fHasComparison
-                  ? config.firstLook
-                  : config.recommendations[fTrend];
-
-            return (
-              <View key={family} style={[styles.page, { width: contentWidth }]}>
-                {/* Lens overview: the selected data source and its full supporting
-                    explanation stay together as one readable editorial block. */}
-                <Animated.View entering={motion.stagger(0)}>
-                <Surface
-                  level="default"
-                  rounded="card"
-                  bordered
-                  style={styles.overviewCard}
-                >
-                  <View style={styles.overviewMain}>
-                    <View
-                      style={[
-                        styles.overviewIcon,
-                        { backgroundColor: colors.accentTint[config.accentKey] },
-                      ]}
-                    >
-                      <Icon
-                        name={FAMILY_ICONS[family]}
-                        size={20}
-                        color={accentInk}
+          <GestureDetector gesture={lensSwipe}>
+            <View style={styles.detailContent}>
+              <View style={styles.scoreSection}>
+                <View style={styles.scoreMetaRow}>
+                  <Text variant="label" color="tertiary">
+                    THIS WEEK
+                  </Text>
+                  {isEarlyEstimate ? (
+                    <View style={styles.estimateStatus}>
+                      <View
+                        style={[
+                          styles.statusDot,
+                          { backgroundColor: accentInk },
+                        ]}
                       />
-                    </View>
-                    <View style={styles.overviewCopy}>
-                      <Text variant="label" color={accentInk}>
-                        {FAMILY_LABELS[family].toUpperCase()} LENS
-                      </Text>
-                      <Text variant="bodySm" color="secondary" style={styles.overviewDescription}>
-                        {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][family]}
+                      <Text variant="caption" color={accentInk}>
+                        Early estimate
                       </Text>
                     </View>
-                  </View>
+                  ) : null}
+                </View>
 
-                  {isSettling && (family === "combined" || family === "clinical") && (
-                    <View
-                      style={[
-                        styles.settlingRow,
-                        { borderTopColor: colors.border.hairline },
-                      ]}
-                    >
-                      <Icon name={icons.duration} size={16} color={colors.text.tertiary} />
-                      <Text variant="bodySm" color="tertiary" style={styles.settlingText}>
-                        Still getting to know you. This is an early estimate and will firm up as you check in.
+                <View style={styles.numberRow}>
+                  <Text
+                    variant="screenTitle"
+                    color={isUnavailable ? "tertiary" : "primary"}
+                  >
+                    {isUnavailable ? "—" : Math.round(score)}
+                  </Text>
+
+                  {!isUnavailable && hasComparison ? (
+                    <View style={styles.trendDelta}>
+                      {trend !== "STABLE" ? (
+                        <Icon
+                          name={trend === "IMPROVING" ? icons.trend : icons.trendDown}
+                          size={15}
+                          color={trendColor}
+                        />
+                      ) : null}
+                      <Text variant="title" color={trendColor}>
+                        {Math.abs(metrics.percentDelta ?? 0).toFixed(1)}%
                       </Text>
                     </View>
+                  ) : !isUnavailable ? (
+                    <Text variant="bodySm" color="tertiary">
+                      New baseline
+                    </Text>
+                  ) : (
+                    <Text variant="bodySm" color="tertiary">
+                      No signal yet
+                    </Text>
                   )}
-                </Surface>
-              </Animated.View>
+                </View>
 
-              {/* The weekly score is the page's visual anchor. Comparison and
-                  trajectory remain attached to it as one coherent data story. */}
-              <Animated.View entering={motion.stagger(1)}>
-                <Surface
-                  level="default"
-                  rounded="card"
-                  bordered
-                  elevate="e1"
-                  style={styles.scoreCard}
-                >
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.accentOrb,
-                      { backgroundColor: colors.accentTint[config.accentKey] },
-                    ]}
-                  />
-
-                  <View style={styles.scoreCardHeader}>
-                    <View
-                      style={[
-                        styles.dimensionIcon,
-                        { backgroundColor: colors.accentTint[config.accentKey] },
-                      ]}
-                    >
-                      <Icon name={config.icon} size={20} color={accentInk} />
-                    </View>
-                    <View style={styles.scoreCardHeading}>
-                      <Text variant="label" color={accentInk}>
-                        THIS WEEK
-                      </Text>
-                      <Text variant="caption" color="tertiary">
-                        {FAMILY_LABELS[family]} score
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.scoreSummary}>
-                    <View>
-                      <View style={styles.numberRow}>
-                        {fUnavailable ? (
-                          <Text variant="screenTitle" color="tertiary">—</Text>
-                        ) : (
-                          <AnimatedNumber
-                            key={family}
-                            value={Math.round(fScore)}
-                            variant="screenTitle"
-                            color="primary"
-                          />
-                        )}
-
-                        {!fUnavailable && fHasComparison && (
-                          <View
-                            style={[
-                              styles.trendPill,
-                              { backgroundColor: withAlpha(fTrendColor, 0.14) },
-                            ]}
-                          >
-                            <Icon
-                              name={
-                                fTrend === "IMPROVING"
-                                  ? icons.trend
-                                  : fTrend === "WORSENING"
-                                    ? icons.trendDown
-                                    : "minus"
-                              }
-                              size={15}
-                              color={fTrendColor}
-                            />
-                            <Text variant="title" color={fTrendColor}>
-                              {Math.abs(metrics.percentDelta ?? 0).toFixed(1)}%
-                            </Text>
-                          </View>
-                        )}
-
-                        {!fUnavailable && !fHasComparison && (
-                          <View
-                            style={[
-                              styles.trendPill,
-                              { backgroundColor: colors.surface.control },
-                            ]}
-                          >
-                            <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
-                            <Text variant="bodySm" color="tertiary">New baseline</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {!fUnavailable && fHasComparison && (
-                        <Text variant="caption" color="tertiary" style={styles.comparisonText}>
-                          vs last week · was {Math.round(metrics.previousScore ?? 0)}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.chartPanel,
-                      { backgroundColor: colors.surface.control },
-                    ]}
-                  >
-                    <View style={styles.chartPanelHeader}>
-                      <Text variant="caption" color="tertiary">
-                        4-WEEK VIEW
-                      </Text>
-                      <Icon name={icons.trend} size={15} color={accentInk} />
-                    </View>
-                    {fHasTrendData ? (
-                      <TrendLine
-                        data={fTrendValues.map((w) => w.value)}
-                        labels={fTrendValues.map((w) => w.label)}
-                        color={accentInk}
-                        height={104}
-                      />
-                    ) : (
-                      <Text variant="bodySm" color="tertiary" style={styles.trendEmpty}>
-                        Not enough signal yet — a few weeks of practice will draw your trend.
-                      </Text>
-                    )}
-                  </View>
-                </Surface>
-              </Animated.View>
-
-              {/* The takeaway is a distinct destination after the data, with a
-                  semantic accent tile that works in both color schemes. */}
-              <Animated.View entering={motion.stagger(2)}>
-                <Surface level="control" rounded="card" style={styles.insightCard}>
-                  <View
-                    style={[
-                      styles.insightIcon,
-                      { backgroundColor: colors.accentTint[config.accentKey] },
-                    ]}
-                  >
-                    <Icon name={icons.energy} size={18} color={accentInk} />
-                  </View>
-                  <View style={styles.insightCopy}>
-                    <Text variant="label" color="primary">
-                      YOUR NEXT STEP
-                    </Text>
-                    <Text variant="bodySm" color="secondary" style={styles.insightText}>
-                      {insightText}
-                    </Text>
-                  </View>
-                </Surface>
-              </Animated.View>
+                {!isUnavailable && hasComparison ? (
+                  <Text variant="caption" color="tertiary">
+                    was {Math.round(metrics.previousScore ?? 0)} last week
+                  </Text>
+                ) : null}
               </View>
-            );
-          })}
-        </ScrollView>
+
+              <View style={styles.trendSection}>
+                <Text variant="caption" color="tertiary">
+                  LAST 4 WEEKS
+                </Text>
+                {hasTrendData ? (
+                  <TrendLine
+                    data={trendValues.map((week) => week.value)}
+                    labels={trendValues.map((week) => week.label)}
+                    color={colors.text.link}
+                    height={120}
+                    animate={false}
+                  />
+                ) : (
+                  <View style={styles.trendEmpty}>
+                    <Icon
+                      name={icons.growthSeed}
+                      size={24}
+                      color={colors.text.tertiary}
+                    />
+                    <Text variant="bodySm" color="secondary">
+                      Practice and check-ins will shape this trend.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Surface level="control" rounded="card" style={styles.insightCard}>
+                <View
+                  style={[
+                    styles.insightIcon,
+                    { backgroundColor: colors.accentTint[config.accentKey] },
+                  ]}
+                >
+                  <Icon name={icons.energy} size={18} color={accentInk} />
+                </View>
+                <View style={styles.insightCopy}>
+                  <Text variant="label" color="primary">
+                    NEXT STEP
+                  </Text>
+                  <Text variant="bodySm" color="secondary">
+                    {insightText}
+                  </Text>
+                </View>
+              </Surface>
+            </View>
+          </GestureDetector>
+        </View>
       </Page>
 
       {/* Preserve the original floating bottom position. Page.tabBarSafe keeps
@@ -532,12 +509,80 @@ const DimensionDetailScreen = () => {
           icon: FAMILY_ICONS[family],
         }))}
         activeKey={selectedFamily}
-        onSelect={(key) => {
-          if (key !== selectedFamily) haptics.selection();
-          setSelectedFamily(key as DetailFamily);
-        }}
+        onSelect={(key) => selectFamily(key as DetailFamily)}
         accessibilityLabel="Growth profile lenses"
       />
+
+      <Sheet
+        visible={aboutSheetVisible}
+        onClose={() => setAboutSheetVisible(false)}
+        title={`${FAMILY_LABELS[selectedFamily]} lens`}
+        right={
+          <IconButton
+            name={icons.close}
+            onPress={() => setAboutSheetVisible(false)}
+          />
+        }
+        exclusive
+      >
+        <View style={styles.sheetContent}>
+          <View style={styles.sheetHero}>
+            <View
+              style={[
+                styles.sheetIcon,
+                { backgroundColor: colors.accentTint[config.accentKey] },
+              ]}
+            >
+              <Icon
+                name={FAMILY_ICONS[selectedFamily]}
+                size={22}
+                color={accentInk}
+              />
+            </View>
+            <View style={styles.sheetHeroCopy}>
+              <Text variant="h3">{lensExplanation.title}</Text>
+              <Text variant="bodySm" color="secondary" style={styles.sheetHeroDescription}>
+                {lensExplanation.description}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.sheetDivider,
+              { backgroundColor: colors.border.hairline },
+            ]}
+          />
+
+          <View style={styles.sheetDimension}>
+            <Text variant="label" color={accentInk}>
+              FOR {config.label.toUpperCase()}
+            </Text>
+            <Text variant="body" color="secondary">
+              {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
+            </Text>
+          </View>
+
+          {isEarlyEstimate ? (
+            <View
+              style={[
+                styles.sheetEstimate,
+                { borderTopColor: colors.border.hairline },
+              ]}
+            >
+              <Icon name={icons.duration} size={18} color={accentInk} />
+              <View style={styles.sheetEstimateCopy}>
+                <Text variant="label" color="primary">EARLY ESTIMATE</Text>
+                <Text variant="bodySm" color="secondary" style={styles.sheetEstimateText}>
+                  {selectedFamily === "clinical"
+                    ? "It becomes steadier as your assessment history grows."
+                    : "It becomes steadier as assessment and check-in history grow."}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </Sheet>
     </View>
   );
 };
@@ -545,117 +590,62 @@ const DimensionDetailScreen = () => {
 export default DimensionDetailScreen;
 
 const useStyles = makeStyles(() => ({
-  // Horizontal pager that holds all three family pages side-by-side.
-  pager: {
-    // Bleed the pager to the screen edges so pages feel full-width,
-    // compensating for the Page's horizontal padding.
-    marginHorizontal: -space.screenX,
-  },
-  // Each individual family page inside the pager.
-  page: {
-    paddingHorizontal: space.screenX,
-    gap: space.groupGap,
-  },
   root: {
     flex: 1,
   },
-  overviewCard: {
-    overflow: "hidden",
+  detailCanvas: {
+    position: "relative",
   },
-  overviewMain: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: space.cardPad,
-    gap: space.iconText,
+  watermark: {
+    position: "absolute",
+    top: -20,
+    right: -88,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
-  overviewIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
+  watermarkIcon: {
+    opacity: 0.07,
   },
-  overviewCopy: {
-    flex: 1,
+  detailContent: {
+    gap: space.sectionGap,
+    zIndex: 1,
   },
-  overviewDescription: {
-    marginTop: spacing.xs,
-  },
-  settlingRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: space.rowGap,
-    borderTopWidth: 1,
-    paddingHorizontal: space.cardPad,
-    paddingVertical: spacing.md,
-  },
-  settlingText: {
-    flex: 1,
-  },
-  scoreCard: {
-    padding: space.cardPad,
-    overflow: "hidden",
+  scoreSection: {
     gap: spacing.sm,
   },
-  accentOrb: {
-    position: "absolute",
-    width: 160,
-    height: 160,
-    borderRadius: radius.full,
-    top: -92,
-    right: -56,
-  },
-  scoreCardHeader: {
+  scoreMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: space.iconText,
+    gap: space.rowGap,
   },
-  dimensionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
+  estimateStatus: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: spacing.sm,
   },
-  scoreCardHeading: {
-    gap: spacing.xxs,
-  },
-  scoreSummary: {
-    paddingTop: spacing.xs,
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: radius.full,
   },
   numberRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
   },
-  comparisonText: {
-    marginTop: spacing.xs,
-  },
-  trendEmpty: {
-    minHeight: 104,
-    paddingHorizontal: spacing.sm,
-    textAlignVertical: "center",
-  },
-  trendPill: {
+  trendDelta: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.inlineGap,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
   },
-  chartPanel: {
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    marginTop: spacing.sm,
+  trendSection: {
+    gap: spacing.sm,
   },
-  chartPanelHeader: {
+  trendEmpty: {
+    minHeight: 120,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.xs,
+    gap: space.iconText,
   },
   insightCard: {
     flexDirection: "row",
@@ -674,7 +664,45 @@ const useStyles = makeStyles(() => ({
     flex: 1,
     gap: spacing.xs,
   },
-  insightText: {
+  sheetContent: {
+    gap: space.groupGap,
+  },
+  sheetHero: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.iconText,
+  },
+  sheetIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetHeroCopy: {
     flex: 1,
+  },
+  sheetHeroDescription: {
+    marginTop: spacing.xs,
+  },
+  sheetDivider: {
+    width: "100%",
+    height: borderWidth.hairline,
+  },
+  sheetDimension: {
+    gap: spacing.sm,
+  },
+  sheetEstimate: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.iconText,
+    borderTopWidth: borderWidth.hairline,
+    paddingTop: space.groupGap,
+  },
+  sheetEstimateCopy: {
+    flex: 1,
+  },
+  sheetEstimateText: {
+    marginTop: spacing.xs,
   },
 }));

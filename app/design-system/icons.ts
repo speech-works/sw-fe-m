@@ -47,6 +47,7 @@ export const icons = {
   warning: "circle-alert", // caution / error state
   danger: "triangle-alert", // severe warning
   seen: "eye", // seen / viewed
+  info: "info", // contextual explanation / learn more
 
   // ── Community · buddy · support ──
   share: "share-2",

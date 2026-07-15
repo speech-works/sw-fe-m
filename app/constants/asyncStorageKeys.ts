@@ -17,6 +17,8 @@ export const ASYNC_KEYS_NAME = {
   SW_ZSTORE_STAMINA_NOTIFICATION: "SW_ZSTORE_STAMINA_NOTIFICATION",
   SW_ZSTORE_TOOL_CONSENT: "SW_ZSTORE_TOOL_CONSENT",
   SW_ZSTORE_AI_CALL_CONSENT: "SW_ZSTORE_AI_CALL_CONSENT",
+  // One-time orientation sheet for Growth Profile dimension details.
+  SW_GROWTH_PROFILE_DETAIL_INTRO_SEEN: "@growthProfile:dimensionDetailIntroSeen",
   // User's chosen reading-guide voice/accent for the Voice Hover tool.
   SW_ZSTORE_VOICE_PREFERENCE: "SW_ZSTORE_VOICE_PREFERENCE",
   // Mirror Work reflection wording-rotation cursor (per-category last-used index).
