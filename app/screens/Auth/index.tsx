@@ -7,6 +7,7 @@ import {
   Easing,
   Linking,
   Platform,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -336,109 +337,118 @@ const LoginScreen = () => {
       >
         <SafeAreaView
           edges={["bottom", "left", "right"]}
-          style={styles.sheetContent}
+          style={styles.sheetSafeArea}
         >
-          {/* Header of Sheet */}
-          <View style={styles.sheetHeader}>
-            <Text variant="h2" center style={styles.sheetTitle}>
-              Let's get started
-            </Text>
-            <Text variant="body" color="secondary" center>
-              Login to continue your progress
-            </Text>
-          </View>
-
-          {/* Social Buttons */}
-          <View style={styles.loginButtons}>
-            {providers.map((provider) => {
-              const isLoading = loadingProvider === provider;
-              const label = `Continue with ${
-                provider.charAt(0).toUpperCase() + provider.slice(1)
-              }`;
-
-              // OAuth-branded buttons: a bright inverse disc on the canvas with
-              // near-black label/glyph (surface.inverse + text.onInverse) — the
-              // AA-correct pairing on both schemes.
-              return (
-                <PressableScale
-                  key={provider}
-                  onPress={() => onPressOAuth(provider)}
-                  disabled={isLoading}
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                  accessibilityState={{ disabled: isLoading, busy: isLoading }}
-                  style={[
-                    styles.oauthButton,
-                    {
-                      backgroundColor: colors.surface.inverse,
-                      borderColor: colors.border.default,
-                      marginBottom: isSmallDevice ? spacing.md : spacing.lg, // Adaptive spacing
-                      height: isSmallDevice ? 50 : 56, // Adaptive height
-                    },
-                  ]}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color={colors.text.onInverse} />
-                  ) : (
-                    <>
-                      <FontAwesome5
-                        name={provider as any}
-                        size={size.icon}
-                        color={colors.text.onInverse}
-                        brand
-                      />
-                      <Text variant="title" color={colors.text.onInverse} numberOfLines={1}>
-                        {label}
-                      </Text>
-                    </>
-                  )}
-                </PressableScale>
-              );
-            })}
-          </View>
-
-          {/* Optional invite code */}
-          <View style={styles.inviteWrap}>
-            <TextField
-              value={inviteCode}
-              onChangeText={(t) => setInviteCode(t.toUpperCase())}
-              placeholder="Have an invite code? (optional)"
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={12}
-              textAlign="center"
-            />
-          </View>
-
-          {/* Footer / Legal */}
-          <View
-            style={[
-              styles.legalContainer,
-              { marginBottom: isSmallDevice ? spacing["2xl"] : spacing.xl },
-            ]}
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text variant="caption" color="tertiary" center>
-              By continuing, you agree to our{" "}
-              <Text
-                variant="caption"
-                color="link"
-                onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
-              >
-                Terms & Privacy Policy
+            {/* Header of Sheet */}
+            <View style={styles.sheetHeader}>
+              <Text variant="h2" center style={styles.sheetTitle}>
+                Let's get started
               </Text>
-            </Text>
-            <View style={{ height: spacing.lg }} />
-            <Text variant="caption" color="tertiary" center>
-              Need help?{" "}
-              <Text
-                variant="caption"
-                color="link"
-                onPress={() => handleLinkPress(SUPPORT_URL)}
-              >
-                Contact Support
+              <Text variant="body" color="secondary" center>
+                Login to continue your progress
               </Text>
-            </Text>
-          </View>
+            </View>
+
+            {/* Social Buttons */}
+            <View style={styles.loginButtons}>
+              {providers.map((provider) => {
+                const isLoading = loadingProvider === provider;
+                const label = `Continue with ${
+                  provider.charAt(0).toUpperCase() + provider.slice(1)
+                }`;
+
+                // OAuth-branded buttons: a bright inverse disc on the canvas with
+                // near-black label/glyph (surface.inverse + text.onInverse) — the
+                // AA-correct pairing on both schemes.
+                return (
+                  <PressableScale
+                    key={provider}
+                    onPress={() => onPressOAuth(provider)}
+                    disabled={isLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel={label}
+                    accessibilityState={{ disabled: isLoading, busy: isLoading }}
+                    style={[
+                      styles.oauthButton,
+                      {
+                        backgroundColor: colors.surface.inverse,
+                        borderColor: colors.border.default,
+                        marginBottom: isSmallDevice ? spacing.md : spacing.lg,
+                        height: isSmallDevice ? 50 : 56,
+                        paddingHorizontal: isSmallDevice ? spacing.lg : spacing["2xl"],
+                      },
+                    ]}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color={colors.text.onInverse} />
+                    ) : (
+                      <>
+                        <FontAwesome5
+                          name={provider as any}
+                          size={size.icon}
+                          color={colors.text.onInverse}
+                          brand
+                        />
+                        <Text
+                          variant="title"
+                          color={colors.text.onInverse}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          {label}
+                        </Text>
+                      </>
+                    )}
+                  </PressableScale>
+                );
+              })}
+            </View>
+
+            {/* Optional invite code */}
+            <View style={styles.inviteWrap}>
+              <TextField
+                value={inviteCode}
+                onChangeText={(t) => setInviteCode(t.toUpperCase())}
+                placeholder="Have an invite code? (optional)"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={12}
+                textAlign="center"
+              />
+            </View>
+
+            {/* Footer / Legal */}
+            <View style={styles.legalContainer}>
+              <Text variant="caption" color="tertiary" center>
+                By continuing, you agree to our{" "}
+                <Text
+                  variant="caption"
+                  color="link"
+                  onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+                >
+                  Terms & Privacy Policy
+                </Text>
+              </Text>
+              <View style={{ height: spacing.lg }} />
+              <Text variant="caption" color="tertiary" center>
+                Need help?{" "}
+                <Text
+                  variant="caption"
+                  color="link"
+                  onPress={() => handleLinkPress(SUPPORT_URL)}
+                >
+                  Contact Support
+                </Text>
+              </Text>
+            </View>
+          </ScrollView>
         </SafeAreaView>
       </Animated.View>
     </View>
@@ -452,9 +462,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Top Section
+  // Top Section — fixed min-height so it never collapses on small screens
+  // but also doesn't crowd the sheet on large screens.
   topSection: {
-    flex: 0.4,
+    minHeight: "35%" as any,
+    maxHeight: "42%" as any,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
@@ -482,19 +494,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 
-  // Bottom Sheet
+  // Bottom Sheet — flex:1 fills all remaining space after the top section
   bottomSheet: {
-    flex: 0.6,
+    flex: 1,
     backgroundColor: "transparent",
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
     overflow: "hidden",
   },
-  sheetContent: {
+  sheetSafeArea: {
     flex: 1,
+  },
+  sheetScroll: {
+    flex: 1,
+  },
+  sheetContent: {
+    flexGrow: 1,
     paddingHorizontal: space.screenX,
     paddingTop: spacing["2xl"],
-    justifyContent: "flex-start",
+    paddingBottom: spacing["2xl"],
   },
   sheetHeader: {
     marginBottom: space.groupGap,
@@ -524,6 +542,6 @@ const styles = StyleSheet.create({
 
   legalContainer: {
     alignItems: "center",
-    marginTop: "auto",
+    paddingTop: spacing.lg,
   },
 });

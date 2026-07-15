@@ -12,7 +12,10 @@
         "buildType": "apk"
       },
       "env": {
-        "API_BASE_URL": "https://api.speechworks.in"
+        "API_BASE_URL": "https://api.speechworks.in",
+        "PAYMENTS_ENABLED": "false",
+        "REVENUECAT_ANDROID_API_KEY": "",
+        "REVENUECAT_IOS_API_KEY": ""
       }
     },
     "preview": {
@@ -21,7 +24,10 @@
       "env": {
         "API_BASE_URL": "https://api.speechworks.in",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_wFqhyXAxiNUrLp6uMaLSSkVoLAEk6Rzf6awp8SPoEXKx",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com"
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com",
+        "PAYMENTS_ENABLED": "false",
+        "REVENUECAT_ANDROID_API_KEY": "",
+        "REVENUECAT_IOS_API_KEY": ""
       }
     },
     "preview-apk": {
@@ -37,7 +43,10 @@
       "env": {
         "API_BASE_URL": "https://api.speechworks.in",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_wFqhyXAxiNUrLp6uMaLSSkVoLAEk6Rzf6awp8SPoEXKx",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com"
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com",
+        "PAYMENTS_ENABLED": "false",
+        "REVENUECAT_ANDROID_API_KEY": "",
+        "REVENUECAT_IOS_API_KEY": ""
       }
     }
   },

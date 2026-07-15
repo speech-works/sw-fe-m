@@ -1,8 +1,43 @@
 import {
   OverallStateHistoryBucket,
   UserOverallStateAggregate,
+  ProfileFamily,
+  GrowthProfileAxisKey,
 } from "../../api/overallState/types";
 import { GrowthProfileMetrics } from "../../api/userBehaviorTrends/types";
+
+export type FamilyMetricData = {
+  currentScore: number | null;
+  previousScore: number | null;
+  percentDelta: number | null;
+  absoluteDelta: number | null;
+  trend: "IMPROVING" | "STABLE" | "WORSENING";
+};
+
+/**
+ * Derive one family's metric (current score + week-over-week deltas) for a
+ * single domain axis, straight from a live snapshot. Shared by the Home
+ * widget's chips AND the Dimension detail screen so the number they show can
+ * never drift: the detail screen re-derives from the SAME live `overallState`
+ * the trend line reads, which keeps the hero "This week" number and the
+ * trend's "Now" point pinned to one value.
+ */
+export const buildFamilyMetric = (
+  overallState: UserOverallStateAggregate,
+  family: ProfileFamily,
+  profileKey: GrowthProfileAxisKey,
+): FamilyMetricData => {
+  const familyAxes = overallState.profile.axes[family];
+  const familyDelta =
+    overallState.profile.comparison.deltas[family][profileKey];
+  return {
+    currentScore: familyAxes[profileKey],
+    previousScore: familyDelta.previous,
+    percentDelta: familyDelta.percentDelta,
+    absoluteDelta: familyDelta.absoluteDelta,
+    trend: familyDelta.trend,
+  };
+};
 
 /** Overall growth = mean of the 5 combined axes (the same "Profile score" the
  *  Progress Report's WeeklyGrowthCard computes). */

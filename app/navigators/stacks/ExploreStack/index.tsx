@@ -21,6 +21,7 @@ import PoemPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPr
 import QuotePractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
 import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 import Explore from "../../../screens/Explore";
+import ProgramsScreen from "../../../screens/Programs";
 import PaymentStackNavigator from "../PaymentStack";
 import DPStackNavigator from "./DailyPracticeStack";
 import LibStackNavigator from "./LibraryStack";
@@ -36,6 +37,7 @@ export default function ExploreStackNavigator() {
       <Stack.Screen name="DailyPracticeStack" component={DPStackNavigator} />
       <Stack.Screen name="LibraryStack" component={LibStackNavigator} />
       <Stack.Screen name="ProgressDetail" component={ProgressDetail} />
+      <Stack.Screen name="Programs" component={ProgramsScreen} />
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
       <Stack.Screen name="PackModule" component={PackModuleScreen} />
       <Stack.Screen name="PackForm" component={PackFormScreen} />

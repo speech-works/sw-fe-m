@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { handleLinkPress } from "../../util/functions/externalLinks";
+import { getCrisisResource, CrisisResource } from "../../api/crisis";
 import {
   useTheme,
   spacing,
@@ -44,7 +45,11 @@ const SUPPORT: ResourceItem[] = [
   },
 ];
 
-const CRISIS: ResourceItem[] = [
+// US-only. Used ONLY as a fallback if the country-aware GET /crisis-resources
+// fetch fails — most of this screen's audience is India-first, where these
+// numbers don't work at all (see getCrisisResource / CrisisResources.ts on
+// the backend, which resolves Tele-MANAS for IN).
+const FALLBACK_CRISIS: ResourceItem[] = [
   {
     label: "988 Crisis Helpline",
     desc: "Call or text 988 — free and confidential, 24/7.",
@@ -59,9 +64,37 @@ const CRISIS: ResourceItem[] = [
   },
 ];
 
+function toResourceItem(resource: CrisisResource): ResourceItem {
+  return {
+    label: resource.helplineName,
+    desc: resource.description,
+    icon: "phone-call",
+    action: resource.phone ? `tel:${resource.phone}` : undefined,
+    url: resource.phone ? undefined : resource.url,
+  };
+}
+
 const Resources = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const [crisisItems, setCrisisItems] = useState<ResourceItem[]>(FALLBACK_CRISIS);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCrisisResource()
+      .then((resource) => {
+        if (!cancelled) setCrisisItems([toResourceItem(resource)]);
+      })
+      .catch(() => {
+        // Fetch failed — keep the hardcoded fallback so this section is
+        // never empty. Logged, not surfaced: this screen must never look
+        // broken to someone who's struggling.
+        console.warn("[Resources] Failed to fetch country-aware crisis resource; using fallback.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const open = (item: ResourceItem) => {
     if (item.url) handleLinkPress(item.url);
@@ -101,7 +134,7 @@ const Resources = () => {
           If you're struggling
         </Text>
         <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
-          {CRISIS.map(renderRow)}
+          {crisisItems.map(renderRow)}
         </View>
       </View>
 

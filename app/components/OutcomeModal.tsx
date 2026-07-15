@@ -16,9 +16,9 @@ import {
 } from "../design-system";
 
 /** Global success/error confirmation. Rendered once at the app root; driven by the
- *  event store. Now a dark DS Sheet (valence accent disc + "Got it"). NOTE: never show
- *  this while another Sheet/Modal is open — close that first, then fire the event
- *  (two stacked native Modals wedge touch handling on iOS). */
+ *  event store. Now a dark DS Sheet (valence accent disc + "Got it"). It is marked
+ *  `exclusive`, so if it fires while another native Sheet/Modal is open it DEFERS
+ *  until that closes (two stacked native Modals wedge touch handling on iOS). */
 const OutcomeModal = () => {
   const { colors } = useTheme();
   const { events, clear } = useEventStore();
@@ -69,7 +69,7 @@ const OutcomeModal = () => {
   const discStyle = useSuccessPop(visible, { celebrate: success });
 
   return (
-    <Sheet visible={visible} onClose={() => setVisible(false)}>
+    <Sheet visible={visible} onClose={() => setVisible(false)} exclusive>
       <View style={styles.body}>
         <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
           <Icon name={success ? icons.success : icons.danger} size={28} color={accentOn} />

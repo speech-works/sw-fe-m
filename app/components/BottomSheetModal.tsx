@@ -17,6 +17,7 @@ import Animated, {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme, relativeLuminance } from "../design-system";
+import { useRegisterNativeModal } from "../stores/nativeModal";
 
 interface BottomSheetModalProps {
   visible: boolean;
@@ -80,6 +81,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [isMounted, setIsMounted] = useState(visible);
+  useRegisterNativeModal(isMounted);
 
   // Default to the dark sheet surface; derive the handle/close chrome from the
   // background's luminance so it reads on both dark and (legacy) light sheets.

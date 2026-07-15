@@ -257,7 +257,10 @@ const FollowUp = () => {
         try {
           console.log("[Debug] Fetching suggestions for mood:", mood);
           const data = await getPracticeSuggestions(mood);
-          setRecommendations(data);
+          // Real Life Challenges (activityType "CHALLENGE") only work when
+          // launched from a pack — the standalone screen never starts/records
+          // the activity. Hide them from recommendations so RLC stays pack-only.
+          setRecommendations(data.filter((r) => r.activityType !== "CHALLENGE"));
         } catch (error) {
           console.error("Failed to fetch recommendations", error);
         } finally {

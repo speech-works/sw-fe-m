@@ -10,8 +10,10 @@ import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySu
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
 import { SchemeStatusBar, useTheme, useMotion, spacing, space, radius, size, PageHeader } from "../../design-system";
+import { PAYMENTS_ENABLED } from "../../constants/features";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
+import ProgramsEntryCard from "./components/ProgramsEntryCard";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
 
 
@@ -148,8 +150,14 @@ const Explore = () => {
             <PracticeGrid isScrolling={isScrolling} />
           </Animated.View>
 
+          {PAYMENTS_ENABLED ? (
+            <Animated.View entering={m.stagger(2)} style={styles.section}>
+              <ProgramsEntryCard />
+            </Animated.View>
+          ) : null}
+
           {/* Inline Library Section */}
-          <Animated.View entering={m.stagger(2)} style={styles.section}>
+          <Animated.View entering={m.stagger(PAYMENTS_ENABLED ? 3 : 2)} style={styles.section}>
             <LibrarySection onLayoutCapture={() => {}} />
           </Animated.View>
         </Pressable>

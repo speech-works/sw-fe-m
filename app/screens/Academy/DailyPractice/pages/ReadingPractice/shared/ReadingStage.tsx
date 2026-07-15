@@ -31,6 +31,7 @@ import {
   FloatingControlItem,
   floatingControlSurface,
   FLOATING_CONTROL_SIZE,
+  IconButton,
 } from "../../../../../../design-system";
 import { FocusConfig, FocusControl } from "./FocusControl";
 import FocusLamp from "../../../components/FocusLamp";
@@ -244,18 +245,9 @@ export function ReadingStage({
         onScrollY={onScrollY}
       >
         <View style={styles.header}>
-          <PressableScale
-            onPress={onBack}
-            style={[
-              styles.backButton,
-              {
-                backgroundColor: colors.surface.control,
-                borderColor: colors.border.strong,
-              },
-            ]}
-          >
-            <Icon name="arrow-left" size={20} color={colors.text.primary} />
-          </PressableScale>
+          <View style={{ alignSelf: "flex-start" }}>
+            <IconButton name="arrow-left" onPress={onBack} />
+          </View>
           <Text variant="h1" color={foregroundColor} style={styles.title}>
             {title}
           </Text>

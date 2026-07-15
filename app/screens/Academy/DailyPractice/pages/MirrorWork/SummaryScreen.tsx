@@ -11,6 +11,7 @@ import { MirrorWorkFeedbackModal } from './components/MirrorWorkFeedbackModal';
 import { FaceRegion } from './types';
 import { completeMirrorWorkActivity, getMirrorWorkComparison } from '../../../../../api/practiceActivities';
 import { useUserStore } from '../../../../../stores/user';
+import { useRegisterNativeModal } from '../../../../../stores/nativeModal';
 import DonePractice from '../../components/DonePractice';
 import { Gradient, Text } from '../../../../../design-system';
 import {
@@ -97,6 +98,7 @@ export const SummaryScreen: React.FC = () => {
 
   const { user, fetchUser } = useUserStore();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  useRegisterNativeModal(showFeedbackModal);
   const [isDone, setIsDone] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -3,10 +3,12 @@ import { Modal, View } from "react-native";
 import { useSessionStore } from "../stores/session";
 import LoadingScreen from "./Loading";
 import { makeStyles } from "../design-system";
+import { useRegisterNativeModal } from "../stores/nativeModal";
 
 const SyncLoader: React.FC = () => {
   const isSyncing = useSessionStore((state) => state.isSyncing);
   const styles = useStyles();
+  useRegisterNativeModal(isSyncing);
 
   return (
     <Modal

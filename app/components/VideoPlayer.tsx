@@ -36,6 +36,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Video, { VideoRef } from "react-native-video";
 import { typography, useTheme } from "../design-system";
+import { useRegisterNativeModal } from "../stores/nativeModal";
 import Button from "./Button";
 import SkeletonLoader from "./SkeletonLoader";
 
@@ -126,6 +127,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [tempSeekTime, setTempSeekTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  // The fullscreen player is a native <Modal>; register it so exclusive modals defer.
+  useRegisterNativeModal(isFullScreen);
   const [volume, setVolume] = useState(1.0);
   const controlsVisibleRef = useRef(false);
   const [controlsVisible, setControlsVisible] = useState(false);

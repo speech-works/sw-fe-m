@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { navigationRef } from "../util/functions/navigation";
-import { useFreeActivityNotificationStore } from "../stores/freeActivityNotification";
 import { useStaminaNotificationStore } from "../stores/staminaNotification";
 import { useUserStore } from "../stores/user";
-import LowFreeActivityModal from "./LowFreeActivityModal";
 import LowStaminaModal from "./LowStaminaModal";
 
 /**
@@ -39,9 +37,7 @@ const SAFE_SCREENS = new Set([
  * during that re-mount window caused the modal to fire multiple times.
  */
 const GlobalStaminaController: React.FC = () => {
-  const [activeModal, setActiveModal] = useState<
-    "stamina" | "freeActivity" | null
-  >(null);
+  const [activeModal, setActiveModal] = useState<"stamina" | null>(null);
 
   useEffect(() => {
     if (!navigationRef.isReady()) return;
@@ -53,13 +49,8 @@ const GlobalStaminaController: React.FC = () => {
         setStaminaModalQueued,
         resetAll: resetStaminaNotification,
       } = useStaminaNotificationStore.getState();
-      const {
-        freeActivityModalQueued,
-        setFreeActivityModalQueued,
-        resetAll: resetFreeActivityNotification,
-      } = useFreeActivityNotificationStore.getState();
 
-      if (!staminaModalQueued && !freeActivityModalQueued) return;
+      if (!staminaModalQueued) return;
 
       const currentRoute = navigationRef.getCurrentRoute();
       if (!currentRoute) return;
@@ -69,27 +60,10 @@ const GlobalStaminaController: React.FC = () => {
 
       const user = useUserStore.getState().user;
 
-      if (freeActivityModalQueued) {
-        if (!user || user.isPaid || user.freeTasksRemaining !== 1) {
-          console.log(
-            "[FreeActivityAlert] Free activity state changed — cancelling queued modal",
-          );
-          resetFreeActivityNotification();
-          return;
-        }
-
-        console.log(
-          "[FreeActivityAlert] Showing LowFreeActivityModal on safe screen:",
-          routeName,
-        );
-        setFreeActivityModalQueued(false);
-        setActiveModal("freeActivity");
-        return;
-      }
-
-      // We're on a safe screen — check if stamina actually warrants the modal
+      // Stamina is the single gating concept for everyone now (§6.10) — this
+      // modal applies to free and paid users alike (free = the small bar).
       if (
-        user?.isPaid &&
+        user &&
         user.currentStamina !== undefined &&
         user.maxStaminaCap
       ) {
@@ -132,16 +106,10 @@ const GlobalStaminaController: React.FC = () => {
   };
 
   return (
-    <>
-      <LowStaminaModal
-        visible={activeModal === "stamina"}
-        onClose={handleClose}
-      />
-      <LowFreeActivityModal
-        visible={activeModal === "freeActivity"}
-        onClose={handleClose}
-      />
-    </>
+    <LowStaminaModal
+      visible={activeModal === "stamina"}
+      onClose={handleClose}
+    />
   );
 };
 

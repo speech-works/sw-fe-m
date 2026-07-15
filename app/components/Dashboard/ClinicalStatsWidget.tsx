@@ -16,6 +16,7 @@ import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import {
   buildTrendWeeks,
   overallOf,
+  buildFamilyMetric,
 } from "../../stores/userBehaviorTrends/selectors";
 import {
   Icon,
@@ -109,7 +110,7 @@ const MetricChip: React.FC<{
   index: number;
   onPress: (domain: ClinicalDomain) => void;
 }> = ({ item, index, onPress }) => {
-  const { colors } = useTheme();
+  const { colors, elevation, scheme } = useTheme();
   const styles = useStyles();
   const motion = useMotion();
 
@@ -133,7 +134,12 @@ const MetricChip: React.FC<{
       <PressableScale
         scaleTo={0.96}
         onPress={() => onPress(item.domain)}
-        style={[styles.chip, isSettling && { opacity: 0.65 }]}
+        style={[
+          styles.chip,
+          { backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.inverse },
+          scheme !== "dark" && elevation.e3,
+          isSettling && { opacity: 0.65 }
+        ]}
       >
         <View style={styles.chipHeader}>
           <Icon name={item.config.icon} size={16} color={accent} />
@@ -163,7 +169,7 @@ const MetricChip: React.FC<{
 };
 
 const ClinicalStatsWidget = ({ style }: { style?: any }) => {
-  const { colors } = useTheme();
+  const { colors, elevation, scheme } = useTheme();
   const styles = useStyles();
   const motion = useMotion();
   const { overallState, historyBuckets, fetchAllTrends, loading, error } =
@@ -180,28 +186,16 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     if (!overallState) return;
 
     const profileKey = METRIC_CONFIG[domain].profileKey;
-    const buildFamilyData = (
-      family: "combined" | "clinical" | "engagement",
-    ) => {
-      const familyAxes = overallState.profile.axes[family];
-      const familyDelta =
-        overallState.profile.comparison.deltas[family][profileKey];
-      return {
-        currentScore: familyAxes[profileKey],
-        previousScore: familyDelta.previous,
-        percentDelta: familyDelta.percentDelta,
-        absoluteDelta: familyDelta.absoluteDelta,
-        trend: familyDelta.trend,
-      };
-    };
 
     navigation.navigate("DimensionDetail", {
       domain,
       accentKey: METRIC_CONFIG[domain].accentKey,
+      // Passed as a fallback only — the detail screen re-derives from the live
+      // store so its number stays synced with its trend line (buildFamilyMetric).
       familyData: {
-        combined: buildFamilyData("combined"),
-        clinical: buildFamilyData("clinical"),
-        engagement: buildFamilyData("engagement"),
+        combined: buildFamilyMetric(overallState, "combined", profileKey),
+        clinical: buildFamilyMetric(overallState, "clinical", profileKey),
+        engagement: buildFamilyMetric(overallState, "engagement", profileKey),
       },
       comparisonLabel: overallState.profile.comparison.comparisonLabel,
     });
@@ -401,7 +395,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
             )}
             {momentumState && (
               <View
-                style={[styles.momentumPill, { backgroundColor: colors.surface.control }]}
+                style={[
+                  styles.momentumPill,
+                  { backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.default },
+                  scheme !== "dark" && elevation.e1
+                ]}
               >
                 <Text variant="label" color="secondary">
                   {MOMENTUM_LABEL[momentumState]}

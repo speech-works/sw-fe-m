@@ -8,10 +8,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Line } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
+import { estimateStaminaRecharge } from "../../../../util/functions/stamina";
 import {
   useTheme,
   spacing,
@@ -53,7 +52,7 @@ const ResourceStats = ({
   refreshing?: boolean;
   style?: any;
 }) => {
-  const { colors } = useTheme();
+  const { colors, elevation, scheme } = useTheme();
   const { width } = useWindowDimensions();
   const { user, fetchUser } = useUserStore();
   const isFocused = useIsFocused();
@@ -100,7 +99,6 @@ const ResourceStats = ({
     (levelStage?.nextLevelXpCeiling || 100) -
     (levelStage?.currentLevelXpFloor || 0),
   );
-  const xpRemaining = xpForNextLevel - xpIntoLevel;
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -151,34 +149,22 @@ const ResourceStats = ({
     }
 
     const updateTimerAndEstimation = () => {
-      const now = new Date().getTime();
-      const lastUpdate = new Date(user.lastStaminaUpdate!).getTime();
-      const RECHARGE_MS = user.staminaRegenRateMs || 18 * 60 * 1000;
-
-      // Calculate how many points were recharged since lastUpdate
-      const msPassed = now - lastUpdate;
-      const pointsRecharged = Math.floor(msPassed / RECHARGE_MS);
-      const newEstimation = Math.min(
-        currentMaxStamina,
-        (user.currentStamina ?? 0) + pointsRecharged,
-      );
+      // Estimation math is shared with the out-of-energy modal (single source of
+      // truth); this meter renders it live with seconds-precision countdown.
+      const {
+        estimatedStamina: newEstimation,
+        msUntilFull,
+        isFull,
+      } = estimateStaminaRecharge(user, new Date().getTime());
 
       setEstimatedStamina((prev) => (prev !== newEstimation ? newEstimation : prev));
 
-      if (newEstimation >= currentMaxStamina) {
+      if (isFull) {
         setRechargeTimeLeft((prev) => (prev !== "" ? "" : prev));
         return;
       }
 
-      // Time for VERY NEXT point
-      const msUntilNextPoint = RECHARGE_MS - (msPassed % RECHARGE_MS);
-
-      // Time until FULL
-      const pointsToFull = currentMaxStamina - newEstimation;
-      const totalMsUntilFull =
-        (pointsToFull - 1) * RECHARGE_MS + msUntilNextPoint;
-
-      const totalSeconds = Math.floor(totalMsUntilFull / 1000);
+      const totalSeconds = Math.floor(msUntilFull / 1000);
       const h = Math.floor(totalSeconds / 3600);
       const m = Math.floor((totalSeconds % 3600) / 60);
       const s = totalSeconds % 60;
@@ -193,11 +179,6 @@ const ResourceStats = ({
   }, [user?.currentStamina, user?.lastStaminaUpdate, user?.isPaid, isFocused]);
 
   const gridOriginY = React.useRef(0);
-
-  // Derived Values for Bars
-  const tasksRemaining = Math.min(user?.freeTasksRemaining || 0, 5);
-  const tasksTotal = 5;
-  const taskPercentage = (tasksRemaining / tasksTotal) * 100;
 
   return (
     <View style={[styles.container, style]}>
@@ -234,7 +215,7 @@ const ResourceStats = ({
             <ProgressBar
               percentage={staminaPercentage}
               color={colors.action.primary}
-              trackColor={colors.surface.control}
+              trackColor={scheme === "dark" ? colors.surface.control : colors.surface.inverse}
             />
 
             <View style={styles.energyFooter}>
@@ -275,59 +256,13 @@ const ResourceStats = ({
                 width < 320 && { flex: 0, width: "100%" },
               ]}
             >
-              {/* Task Card */}
-              <View style={[styles.bigCard, { backgroundColor: colors.surface.control }]}>
-                {/* Watermark Icon */}
-                <View
-                  style={[
-                    styles.watermarkContainer,
-                    { transform: [{ rotate: "-20deg" }] },
-                  ]}
-                  pointerEvents="none"
-                >
-                  <Icon name={icons.success} size={90} color={colors.accent.success} style={{ opacity: 0.08 }} />
-                </View>
-
-                <View style={styles.cardHeader}>
-                  <Text variant="title" color="primary">
-                    Free Activity
-                  </Text>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text variant="display" color="primary">
-                    {tasksRemaining}
-                  </Text>
-                  <Text variant="title" color="secondary">
-                    / {tasksTotal}
-                  </Text>
-                </View>
-                {/* Mini Bar */}
-                <View style={[styles.miniTrack, { backgroundColor: colors.accentTint.success }]}>
-                  <View
-                    style={{
-                      height: "100%",
-                      backgroundColor: colors.accent.success,
-                      borderRadius: radius.xs,
-                      width: `${taskPercentage}%`,
-                    }}
-                  />
-                </View>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.tileWrapper,
-                width < 320 && { flex: 0, width: "100%" },
-              ]}
-            >
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate("ProgressDetail", {
                     scrollTo: "achievements",
                   })
                 }
-                style={[styles.bigCard, { backgroundColor: colors.surface.control }]}
+                style={[styles.bigCard, { backgroundColor: colors.surface.default }, elevation.e2]}
               >
                 {/* Watermark Icon */}
                 <View

@@ -14,13 +14,15 @@ import {
   useTheme,
   spacing,
   radius,
+  borderWidth,
   hitTarget,
   Page,
-  Segmented,
+  TabDock,
   TextField,
   Button,
   Dialog,
   Text,
+  icons,
 } from "../../../design-system";
 
 const CATEGORY_LABELS: Record<ReminderCategory, string> = {
@@ -53,7 +55,7 @@ const getFormattedDate = (date: Date) => {
 export default function ConfigureReminder() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
 
   const reminderId = route.params?.reminderId;
   const initialCategory = (route.params?.category as ReminderCategory) || "DAILY_PRACTICE";
@@ -202,10 +204,16 @@ export default function ConfigureReminder() {
         footer={<Button label="Save Reminder" onPress={handleSave} />}
       >
         {/* One-time vs routine */}
-        <Segmented
-          options={["One Time", "Routine"]}
-          value={reminderType === "ONE_TIME" ? "One Time" : "Routine"}
-          onChange={(v) => setReminderType(v === "One Time" ? "ONE_TIME" : "ROUTINE")}
+        <TabDock
+          inline
+          fitContent
+          accessibilityLabel="Reminder type"
+          items={[
+            { key: "ONE_TIME", label: "One Time", icon: icons.oneTime },
+            { key: "ROUTINE", label: "Routine", icon: icons.routine },
+          ]}
+          activeKey={reminderType}
+          onSelect={(k) => setReminderType(k as StoreReminderType)}
         />
 
         {/* Title */}
@@ -232,7 +240,7 @@ export default function ConfigureReminder() {
                   value={selectedDate}
                   mode="date"
                   display="default"
-                  themeVariant="dark"
+                  themeVariant={scheme === "dark" ? "dark" : "light"}
                   onChange={(_, d) => d && setSelectedDate(d)}
                   minimumDate={new Date()}
                 />
@@ -271,7 +279,7 @@ export default function ConfigureReminder() {
                 value={selectedTime}
                 mode="time"
                 display="spinner"
-                themeVariant="dark"
+                themeVariant={scheme === "dark" ? "dark" : "light"}
                 onChange={(_, d) => d && setSelectedTime(d)}
                 style={styles.iosTimeSpinner}
               />
@@ -313,7 +321,14 @@ export default function ConfigureReminder() {
                     key={i}
                     style={[
                       styles.dayButton,
-                      { backgroundColor: isActive ? colors.action.primary : colors.surface.control },
+                      {
+                        backgroundColor: isActive
+                          ? colors.action.primary
+                          : colors.surface.control,
+                        borderColor: isActive
+                          ? colors.border.selected
+                          : colors.border.default,
+                      },
                     ]}
                     onPress={() => toggleDay(i)}
                   >
@@ -393,7 +408,8 @@ const styles = StyleSheet.create({
   dayButton: {
     width: hitTarget.min,
     height: hitTarget.min,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thin,
     alignItems: "center",
     justifyContent: "center",
   },

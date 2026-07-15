@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import {
   Modal,
   View,
@@ -15,6 +15,10 @@ import { useReducedMotion } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
 import { radius, space, size, spacing } from "../primitives/scale";
 import { duration } from "../motion";
+import {
+  hasOpenModalExcept,
+  useNativeModalStore,
+} from "../../stores/nativeModal";
 import { relativeLuminance } from "../utils/contrast";
 import { Text } from "./Text";
 import { Gradient } from "./Gradient";
@@ -27,7 +31,7 @@ export interface SheetProps {
   visible: boolean;
   onClose: () => void;
   children: React.ReactNode;
-  /** Optional header title (left), floats above the card on the backdrop. */
+  /** Optional header title (left-aligned), floats above the card on the backdrop. */
   title?: string;
   /** Optional header actions (right) — typically one or two <IconButton>s. */
   right?: React.ReactNode;
@@ -41,6 +45,12 @@ export interface SheetProps {
    *  it is still visible leaves it on top of (or lingering over) the new screen. */
   onDismissed?: () => void;
   contentStyle?: ViewStyle;
+  /**
+   * Defer presenting until no other native modal is open, to avoid the iOS
+   * two-native-Modal touch freeze. Use for root-mounted sheets that fire on
+   * events (e.g. OutcomeModal). Default false = present immediately (unchanged).
+   */
+  exclusive?: boolean;
 }
 
 /** Bottom-sheet modal: opaque backdrop that fades in place (never slides), the
@@ -55,9 +65,11 @@ export const Sheet: React.FC<SheetProps> = ({
   gradientColors,
   onDismissed,
   contentStyle,
+  exclusive = false,
 }) => {
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
+  const sheetId = useId();
   const hasHeader = !!(title || right);
 
   // Keep the latest callback in a ref so the exit-animation effect never needs it
@@ -71,7 +83,7 @@ export const Sheet: React.FC<SheetProps> = ({
   const handleColor =
     relativeLuminance(surface) > 0.18 ? colors.text.onInverse : colors.border.strong;
 
-  const [mounted, setMounted] = useState(visible);
+  const [mounted, setMounted] = useState(visible && !exclusive);
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   // Reduced motion: keep the backdrop opacity fade, drop the slide (the sheet appears
@@ -85,26 +97,51 @@ export const Sheet: React.FC<SheetProps> = ({
   // engine-boundary exception (cf. the count-up rAF in AnimatedNumber).
   useEffect(() => {
     if (visible) {
-      setMounted(true);
-      if (reduced) translateY.setValue(0);
-      Animated.parallel([
-        Animated.timing(backdrop, {
-          toValue: 1,
-          duration: duration.fast,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        ...(reduced
-          ? []
-          : [
-              Animated.timing(translateY, {
-                toValue: 0,
-                duration: duration.sheetIn,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
-              }),
-            ]),
-      ]).start();
+      let cancelled = false;
+      let unsub: (() => void) | undefined;
+
+      const present = () => {
+        if (cancelled) return;
+        unsub?.();
+        unsub = undefined;
+        // Register synchronously before mounting so a second pending exclusive
+        // modal, notified in the same registry update, sees us as open and waits.
+        useNativeModalStore.getState().register(sheetId);
+        setMounted(true);
+        if (reduced) translateY.setValue(0);
+        Animated.parallel([
+          Animated.timing(backdrop, {
+            toValue: 1,
+            duration: duration.fast,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          ...(reduced
+            ? []
+            : [
+                Animated.timing(translateY, {
+                  toValue: 0,
+                  duration: duration.sheetIn,
+                  easing: Easing.out(Easing.cubic),
+                  useNativeDriver: true,
+                }),
+              ]),
+        ]).start();
+      };
+
+      if (exclusive && hasOpenModalExcept(sheetId)) {
+        // Another native modal is open — wait for the registry to clear.
+        unsub = useNativeModalStore.subscribe(() => {
+          if (!cancelled && !hasOpenModalExcept(sheetId)) present();
+        });
+      } else {
+        present();
+      }
+
+      return () => {
+        cancelled = true;
+        unsub?.();
+      };
     } else {
       Animated.parallel([
         Animated.timing(backdrop, {
@@ -131,7 +168,16 @@ export const Sheet: React.FC<SheetProps> = ({
         }
       });
     }
-  }, [visible, backdrop, translateY, reduced]);
+  }, [visible, backdrop, translateY, reduced, exclusive, sheetId]);
+
+  // Deregister once the native Modal is gone (exit finished, or unmount).
+  useEffect(() => {
+    if (!mounted) useNativeModalStore.getState().unregister(sheetId);
+  }, [mounted, sheetId]);
+  useEffect(
+    () => () => useNativeModalStore.getState().unregister(sheetId),
+    [sheetId],
+  );
 
   if (!mounted) return null;
 
@@ -176,7 +222,7 @@ export const Sheet: React.FC<SheetProps> = ({
         <Animated.View style={{ transform: [{ translateY }] }}>
           {hasHeader ? (
             <View style={styles.header}>
-              {title ? <Text variant="h2">{title}</Text> : <View />}
+              {title ? <Text variant="h2">{title}</Text> : <View style={{ flex: 1 }} />}
               {right ? <View style={styles.actions}>{right}</View> : null}
             </View>
           ) : null}

@@ -32,7 +32,8 @@ export {
     deleteRecordingsByUser, getRecordingById,
     getRecordings
 } from "./recordings";
-export { deleteUserById, deleteMe, getUserById, updateUserById } from "./users";
+export { deleteUserById, deleteMe, getUserById, updateUserById, getWallet, getOffers, createPurchaseIntent } from "./users";
+export type { Wallet, Offers, OfferItem, PurchaseIntentResponse, EntitlementKey } from "./users";
 
 // Form Submission API (for exposure feedback, pack reflections, etc.)
 export { submitFormResponse } from "./forms";

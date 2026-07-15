@@ -49,7 +49,7 @@ const SmartRecorder: React.FC<Props> = ({
   accentColor,
   onAccentColor,
 }) => {
-  const { colors } = useTheme();
+  const { colors, scheme, elevation } = useTheme();
   const styles = useStyles();
   const accent = accentColor ?? colors.action.primary;
   // The review play icon is colored foreground on the elevated dock — darken the
@@ -211,7 +211,14 @@ const SmartRecorder: React.FC<Props> = ({
         {/* Play Button for Review (Center) - Only if hasRecording and NOT playing/recording */}
         {hasRecording && !isPlaying && !isRecording && (
           <View style={styles.centerSection}>
-            <PressableScale style={styles.playButton} onPress={handlePlay}>
+            <PressableScale
+              style={[
+                styles.playButton,
+                { backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.inverse },
+                scheme !== "dark" && elevation.e2,
+              ]}
+              onPress={handlePlay}
+            >
               <Icon
                 name="play"
                 size={size.icon}
@@ -234,16 +241,26 @@ const SmartRecorder: React.FC<Props> = ({
         {/* RIGHT SECTION: Stop/Submit */}
         <View style={styles.rightSection}>
           {isRecording ? (
-            <PressableScale style={styles.stopButtonRecording} onPress={handleStopRecording}>
+            <PressableScale
+              style={[styles.stopButtonRecording, scheme !== "dark" && elevation.e2]}
+              onPress={handleStopRecording}
+            >
               <Icon name="square" size={size.iconSm} color={colors.accentOn.danger} />
             </PressableScale>
           ) : isPlaying ? (
-            <PressableScale style={styles.stopButton} onPress={handleStopPlay}>
+            <PressableScale
+              style={[
+                styles.stopButton,
+                { backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.inverse },
+                scheme !== "dark" && elevation.e2
+              ]}
+              onPress={handleStopPlay}
+            >
               <Icon name="square" size={size.iconSm} color={colors.text.primary} />
             </PressableScale>
           ) : hasRecording ? (
             <PressableScale
-              style={[styles.submitButton, { backgroundColor: accent }]}
+              style={[styles.submitButton, { backgroundColor: accent }, scheme !== "dark" && elevation.e2]}
               onPress={handleSubmitPress}
             >
               <Icon name="check" size={size.icon} color={onAccent} />
@@ -255,6 +272,7 @@ const SmartRecorder: React.FC<Props> = ({
                 styles.mainMicButton,
                 { backgroundColor: accent },
                 (isPreparing || disabled) && styles.mainMicButtonPreparing,
+                scheme !== "dark" && elevation.e2,
               ]}
               onPress={handleStartRecording}
               disabled={isPreparing || disabled}

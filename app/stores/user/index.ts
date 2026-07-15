@@ -6,11 +6,11 @@ import { User } from "../../api/users";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { reviveDatesInObject } from "../../util/functions/date";
-import { useFreeActivityNotificationStore } from "../freeActivityNotification";
 import { useStaminaNotificationStore } from "../staminaNotification";
 import { EVENT_NAMES } from "../events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
 import { identifyUser } from "../../util/analytics/postHog";
+import { loginPurchasesUser } from "../../services/purchases";
 
 interface UserState {
   /** The current user object, or null if not loaded/logged in */
@@ -39,7 +39,6 @@ function identifyUserInAnalytics(user: User): void {
     // Subscription & access
     isPaid:              user.isPaid ?? null,
     isVerified:          user.isVerified ?? null,
-    freeTasksRemaining:  user.freeTasksRemaining ?? null,
     // Onboarding
     hasOnboarded:        user.hasCompletedOnboarding ?? null,
     // Progression
@@ -57,18 +56,19 @@ function identifyUserInAnalytics(user: User): void {
 }
 
 /**
- * Low Stamina Threshold Detection (phone-battery style, paid only).
+ * Low Stamina Threshold Detection (phone-battery style). Stamina is the single
+ * gating concept for ALL users now (SPEECHWORKS-STRATEGY.md §6.10) — free users
+ * have a small bar too, so this fires for everyone, not just paid.
  *
  * Fires a one-shot alert when stamina crosses below 10%.
  * Re-arms when stamina recovers above 10%.
- * Clears stale notification state for non-paid or missing-stamina users.
+ * Clears stale notification state for missing-stamina users.
  *
  * Bug Fix #2: Waits for the persisted notification store to finish
  * loading from AsyncStorage before reading lowStaminaNotified.
  */
 function handleStaminaAlerts(user: User): void {
   if (
-    user.isPaid &&
     user.currentStamina !== undefined &&
     user.maxStaminaCap
   ) {
@@ -128,64 +128,6 @@ function handleStaminaAlerts(user: User): void {
 }
 
 /**
- * Low Free Activity Threshold Detection (free users only).
- *
- * Fires a one-shot alert when freeTasksRemaining drops to 1.
- * Re-arms when it recovers above 1.
- * Clears stale notification state for paid or undefined-count users.
- */
-function handleFreeActivityAlerts(user: User): void {
-  if (!user.isPaid && user.freeTasksRemaining !== undefined) {
-    if (!useFreeActivityNotificationStore.persist.hasHydrated()) {
-      console.log(
-        "[FreeActivityAlert] Notification store not yet hydrated — deferring detection",
-      );
-      return;
-    }
-
-    const {
-      lowFreeActivityNotified,
-      freeActivityModalQueued,
-      setLowFreeActivityNotified,
-      setFreeActivityModalQueued,
-      resetAll,
-    } = useFreeActivityNotificationStore.getState();
-
-    if (user.freeTasksRemaining === 1 && !lowFreeActivityNotified) {
-      console.log(
-        "[FreeActivityAlert] Free activity dropped to 1 → queueing warning",
-      );
-      setLowFreeActivityNotified(true);
-      setFreeActivityModalQueued(true);
-      dispatchCustomEvent(EVENT_NAMES.FREE_ACTIVITY_ALERT_TRIGGERED);
-    }
-
-    if (
-      user.freeTasksRemaining > 1 &&
-      (lowFreeActivityNotified || freeActivityModalQueued)
-    ) {
-      console.log(
-        "[FreeActivityAlert] Free activity recovered above warning threshold → re-arming",
-      );
-      resetAll();
-    }
-  } else if (useFreeActivityNotificationStore.persist.hasHydrated()) {
-    const {
-      lowFreeActivityNotified,
-      freeActivityModalQueued,
-      resetAll,
-    } = useFreeActivityNotificationStore.getState();
-
-    if (lowFreeActivityNotified || freeActivityModalQueued) {
-      console.log(
-        "[FreeActivityAlert] Clearing stale free activity notification state",
-      );
-      resetAll();
-    }
-  }
-}
-
-/**
  * `persist` saves the user data is saved to AsyncStorage.
  */
 export const useUserStore = create<UserState>()(
@@ -231,7 +173,10 @@ export const useUserStore = create<UserState>()(
 
           identifyUserInAnalytics(user);
           handleStaminaAlerts(user);
-          handleFreeActivityAlerts(user);
+          // Best-effort — links this device's RevenueCat session to our own
+          // userId so purchase webhooks carry the right app_user_id. Never
+          // blocks user hydration on a purchases-SDK hiccup.
+          void loginPurchasesUser(user.id);
         } catch (error) {
           console.error("UserStore fetchUser error:", error);
         } finally {

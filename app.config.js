@@ -246,6 +246,11 @@ module.exports = {
       PAYMENTS_ENABLED: process.env.PAYMENTS_ENABLED ?? "false",
       ALLOW_SIMULATOR_HEADSET_BYPASS:
         process.env.ALLOW_SIMULATOR_HEADSET_BYPASS ?? "false",
+      // RevenueCat public SDK keys (PAYMENTS-PLAN.md) — safe to expose
+      // client-side (they're publishable keys, not secrets). Empty until the
+      // founder creates the RevenueCat project and Play/App Store apps.
+      REVENUECAT_ANDROID_API_KEY: process.env.REVENUECAT_ANDROID_API_KEY ?? "",
+      REVENUECAT_IOS_API_KEY: process.env.REVENUECAT_IOS_API_KEY ?? "",
       eas: {
         projectId: "da01d434-2a75-41bb-b7cc-19fd2f720aa5",
       },

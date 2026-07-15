@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated, // <-- IMPORTED
   Easing, // <-- IMPORTED
+  Linking,
   Modal,
   Platform,
   Text,
@@ -33,10 +34,24 @@ import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { makeStyles, useTheme, withAlpha, radius } from "../design-system";
 import { isHeadsetConnected } from "../util/functions/headset";
+import { useRegisterNativeModal } from "../stores/nativeModal";
 
 type CallExitPayload = {
   reason: string | null;
   shouldComplete: boolean;
+};
+
+// Mirrors CrisisResource in sw-be-2/src/config/CrisisResources.ts — the
+// backend resolves this by country and sends it over the `crisis_resources`
+// WS event when a crisis phrase is detected mid-call (see index.ts's crisis
+// interception block). `phone` may be empty and `url` is optional — the
+// DEFAULT (unknown-country) resource has no phone, only a url.
+type CrisisResource = {
+  countryCode: string;
+  helplineName: string;
+  phone: string;
+  description: string;
+  url?: string;
 };
 
 type CallEndAcknowledgementPayload = {
@@ -450,14 +465,37 @@ const CallingWidget: React.FC<Props> = ({
   const [idleWarningVisible, setIdleWarningVisible] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState<number | null>(null);
   const [callEndReason, setCallEndReason] = useState<string | null>(null);
+  // Crisis support resource (backend's `crisis_resources` WS event — sent
+  // just before `call_ended: {reason:"crisis"}`). Gated ONLY on this being
+  // non-null, deliberately NOT on `isCalling`/`callEndReason` — the resource
+  // must stay visible through and after the call ending, not disappear the
+  // instant the socket closes. Cleared only by the user dismissing it.
+  const [crisisResource, setCrisisResource] = useState<CrisisResource | null>(
+    null,
+  );
   const [maxCallDurationMs, setMaxCallDurationMs] = useState<number | null>(null);
   const [, setIsAgentAudioPlaying] = useState(false);
   const [isCallEndAckInProgress, setIsCallEndAckInProgress] = useState(false);
+  // --- ⬇️ Take-your-time mode + presence heartbeat (Phase D — SPEECHWORKS-
+  // STRATEGY.md §6.2/CALL-INTEGRITY-PLAN.md workstream A). The backend has
+  // fully supported both since before this UI existed (obj.takeYourTime at
+  // join, WsEventType.PRESENCE/END_OF_TURN) — this wires the app up to
+  // actually send them. ⬇️ ---
+  const [takeYourTime, setTakeYourTime] = useState(false);
+  // --- ⬆️ END take-your-time state ⬆️ ---
+
+  // Register each native <Modal> this widget can present so app-level exclusive
+  // modals defer instead of stacking (two live native Modals freeze iOS touch).
+  useRegisterNativeModal(showHeadsetPrompt);
+  useRegisterNativeModal(idleWarningVisible);
+  useRegisterNativeModal(callEndReason !== null && !isCalling);
+  useRegisterNativeModal(crisisResource !== null);
   const [missedSpeechCueVisible, setMissedSpeechCueVisible] = useState(false);
   const [missedSpeechCueCount, setMissedSpeechCueCount] = useState(0);
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
+  const presenceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const componentMountedRef = useRef(true);
   const callPlaybackStateRef = useRef<CallPlaybackState>("connecting");
   const visualCallStateRef = useRef<CallPlaybackState>("connecting");
@@ -1774,8 +1812,22 @@ const CallingWidget: React.FC<Props> = ({
           practiceActivityId: startedId, // Use the ID returned from onCallStart
           clientTimezone: timezone,
           authToken,
+          takeYourTime,
         }),
       );
+
+      // Presence heartbeat (Phase D): tells the backend this call screen is
+      // foregrounded with a live mic, so a silent block reads as "present,
+      // just slow" rather than "stepped away" (PhoneCallConfig's
+      // presence-aware idle windows — already built server-side, this is
+      // the piece that makes isUserPresent() ever return true). ~10s cadence
+      // matches PhoneCallConfig.PRESENCE_TTL_MS's 20s window with margin.
+      if (presenceIntervalRef.current) clearInterval(presenceIntervalRef.current);
+      presenceIntervalRef.current = setInterval(() => {
+        try {
+          ws.current?.send(JSON.stringify({ type: "presence" }));
+        } catch {}
+      }, 10000);
     };
 
     ws.current.onmessage = async (msg) => {
@@ -1902,6 +1954,11 @@ const CallingWidget: React.FC<Props> = ({
     }
     // --- END NEW Timer ---
 
+    if (presenceIntervalRef.current) {
+      clearInterval(presenceIntervalRef.current);
+      presenceIntervalRef.current = null;
+    }
+
     stopRingTone();
     setIsCalling(false);
     const endReason = callEndReasonRef.current;
@@ -1921,7 +1978,15 @@ const CallingWidget: React.FC<Props> = ({
       endReason === "limit_reached" ||
       (agentAudioStartedRef.current &&
         endReason !== "technical_difficulty" &&
-        endReason !== "idle_timeout");
+        endReason !== "idle_timeout" &&
+        // A crisis-ended call is never "completed" — showing the effort/
+        // accuracy rating modal right after a self-harm disclosure would be
+        // tone-deaf, and the backend already refunds this call's credit
+        // unconditionally (WalletService "crisis_refund"). This also routes
+        // it through the SAME abort path as technical_difficulty below
+        // (reason !== "technical_difficulty" && reason !== null means the FE
+        // won't ask for a second refund — the backend's is authoritative).
+        endReason !== "crisis");
     void Promise.resolve(
       onCallEnd?.({
         reason: endReason,
@@ -2303,6 +2368,18 @@ const CallingWidget: React.FC<Props> = ({
         break;
       }
 
+      case "crisis_resources": {
+        // Sent once, right before call_ended{reason:"crisis"}. Must be
+        // captured and shown — previously this event was silently discarded
+        // here, so the AI would say "I've shared a support resource with
+        // you" while nothing ever appeared on screen.
+        callDebugLog("[Crisis] crisis_resources received");
+        if (data.resource) {
+          setCrisisResource(data.resource);
+        }
+        break;
+      }
+
       case "idle_warning": {
         callDebugLog(
           `[Cost Control] idle_warning received, timeout: ${data.timeout_seconds}s`,
@@ -2377,6 +2454,24 @@ const CallingWidget: React.FC<Props> = ({
       setShowNotificationDot(false);
     }
     setShowTips((prev) => !prev);
+  };
+
+  // Take-your-time toggle: only meaningful BEFORE a call starts (it's sent
+  // once, in the join payload) — mid-call it's display-only, since the
+  // backend reads it exactly once at join.
+  const toggleTakeYourTime = () => {
+    if (isCalling) return;
+    setTakeYourTime((prev) => !prev);
+  };
+
+  // "I'm done" — the explicit hand-over the backend needs in take-your-time
+  // mode, where silence never ends a turn on its own (PhoneCallConfig /
+  // index.ts's takeYourTimeMode branch reads WsEventType.END_OF_TURN).
+  const sendEndOfTurn = () => {
+    try {
+      ws.current?.send(JSON.stringify({ type: "end_of_turn" }));
+      callDebugLog("[WS] Sent end_of_turn");
+    } catch {}
   };
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
@@ -2995,6 +3090,32 @@ const CallingWidget: React.FC<Props> = ({
               color={showTips ? colors.text.primary : colors.text.secondary}
             />
           </TouchableOpacity>
+
+          {/* Take-your-time toggle (Phase D): set before starting the call —
+              silence never ends a turn while it's on. Dimmed once the call
+              is live since the backend only reads it at join. */}
+          <TouchableOpacity
+            style={[
+              styles.glassControlBtn,
+              takeYourTime && styles.glassControlBtnActive,
+              isCalling && { opacity: 0.5 },
+            ]}
+            onPress={toggleTakeYourTime}
+            accessibilityLabel="Take your time — silence won't end the call"
+          >
+            <FAIcon
+              name="hourglass-half"
+              size={20}
+              color={takeYourTime ? colors.text.primary : colors.text.secondary}
+            />
+          </TouchableOpacity>
+
+          {/* "I'm done" — only meaningful in take-your-time mode, mid-call */}
+          {takeYourTime && isCalling && (
+            <TouchableOpacity style={styles.glassControlBtn} onPress={sendEndOfTurn}>
+              <Icon name="check" size={22} color={colors.text.primary} />
+            </TouchableOpacity>
+          )}
           {showNotificationDot && (
             <Animated.View
               style={[
@@ -3053,8 +3174,17 @@ const CallingWidget: React.FC<Props> = ({
       </Modal>
 
       {/* --- CALL ENDED MODAL --- */}
+      {/* Gated on `crisisResource === null` so it is NEVER shown at the same
+          time as the crisis-support modal below. On a crisis-ended call the
+          backend sends `crisis_resources` (sets crisisResource) and then
+          `call_ended{reason:"crisis"}` (sets callEndReason) — without this
+          guard BOTH native <Modal>s would mount at once, which wedges all
+          touch input on iOS (see app/stores/nativeModal invariant) and would
+          trap a distressed user unable to tap the helpline. The crisis modal
+          shows first; closing it (sets crisisResource=null) then reveals this
+          supportive "You matter" end screen. */}
       <Modal
-        visible={callEndReason !== null && !isCalling}
+        visible={callEndReason !== null && !isCalling && crisisResource === null}
         transparent={true}
         animationType="fade"
         statusBarTranslucent={true}
@@ -3065,7 +3195,9 @@ const CallingWidget: React.FC<Props> = ({
               name={
                 callEndReason === "limit_reached"
                   ? "trophy"
-                  : callEndReason === "technical_difficulty"
+                  : callEndReason === "crisis"
+                    ? "heart"
+                    : callEndReason === "technical_difficulty"
                     ? "exclamation-triangle"
                     : callEndReason === "user_ended"
                       ? "check-circle"
@@ -3079,6 +3211,8 @@ const CallingWidget: React.FC<Props> = ({
             <Text style={styles.promptTitle}>
               {callEndReason === "limit_reached"
                 ? "Great practice!"
+                : callEndReason === "crisis"
+                  ? "You matter"
                 : callEndReason === "technical_difficulty"
                   ? "Call unavailable"
                 : callEndReason === "user_ended"
@@ -3088,6 +3222,8 @@ const CallingWidget: React.FC<Props> = ({
             <Text style={styles.promptText}>
               {callEndReason === "limit_reached"
                 ? "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
+                : callEndReason === "crisis"
+                  ? "We've paused the call and shared a support resource with you. Please reach out to someone you trust, or use the resource above."
                 : callEndReason === "technical_difficulty"
                   ? "We hit a technical problem and ended the call. This attempt will not count as completed."
                 : callEndReason === "user_ended"
@@ -3126,6 +3262,66 @@ const CallingWidget: React.FC<Props> = ({
                       ? "Done"
                       : "Got it"}
                 </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- CRISIS SUPPORT RESOURCE --- */}
+      <Modal
+        visible={crisisResource !== null}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+      >
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptGlassBox}>
+            <FAIcon
+              name="hand-holding-heart"
+              size={36}
+              color={colors.text.accent}
+              solid
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.promptTitle}>
+              {crisisResource?.helplineName || "Support is available"}
+            </Text>
+            <Text style={styles.promptText}>
+              {crisisResource?.description ||
+                "If you're going through something difficult, you don't have to face it alone."}
+            </Text>
+            <View style={styles.promptButtonRow}>
+              {crisisResource?.phone ? (
+                <TouchableOpacity
+                  style={styles.promptButtonPrimary}
+                  onPress={() => {
+                    Linking.openURL(`tel:${crisisResource.phone}`).catch(
+                      () => {},
+                    );
+                  }}
+                >
+                  <Text style={styles.promptButtonTextPri}>
+                    Call {crisisResource.phone}
+                  </Text>
+                </TouchableOpacity>
+              ) : crisisResource?.url ? (
+                <TouchableOpacity
+                  style={styles.promptButtonPrimary}
+                  onPress={() => {
+                    Linking.openURL(crisisResource.url as string).catch(
+                      () => {},
+                    );
+                  }}
+                >
+                  <Text style={styles.promptButtonTextPri}>Get help</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={styles.promptButtonSecondary}
+                onPress={() => setCrisisResource(null)}
+              >
+                <Text style={styles.promptButtonTextPri}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -8,6 +8,7 @@ import UpsellModal from "./app/components/UpsellModal";
 import OutcomeModal from "./app/components/OutcomeModal";
 import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
 import GlobalStaminaController from "./app/components/GlobalStaminaController";
+import OutOfStaminaController from "./app/components/OutOfStaminaController";
 import ErrorFallback from "./app/components/ErrorFallback";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
@@ -31,6 +32,7 @@ import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
 import { useMoodCheckStore } from "./app/stores/mood";
 import { useReminderStore } from "./app/stores/reminders";
 import { useUserStore } from "./app/stores/user";
+import { configurePurchases } from "./app/services/purchases";
 import { navigationRef } from "./app/util/functions/navigation";
 import {
   registerForNotifications,
@@ -161,6 +163,12 @@ const APPSTATE_FETCH_DEBOUNCE_MS = 5_000;
 let lastAppStateFetchTime = 0;
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // No-ops until PAYMENTS_ENABLED + a real RevenueCat key are set; safe to
+    // call unconditionally at boot (configurePurchases() self-guards).
+    configurePurchases();
+  }, []);
+
   useEffect(() => {
     // reset mood log on frontend
     useMoodCheckStore.getState().checkAndResetIfNeeded();
@@ -315,6 +323,7 @@ const App: React.FC = () => {
                   <OutcomeModal />
                   <StaminaVignetteOverlay />
                   <GlobalStaminaController />
+                  <OutOfStaminaController />
                 </ThemedNavRoot>
               </ThemeProvider>
             </SafeAreaView>

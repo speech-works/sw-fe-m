@@ -9,6 +9,7 @@ import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
 import { unregisterPushToken } from "../util/functions/notifications";
 import { clearAllPersistedUserState } from "../util/functions/clearUserState";
+import { logoutPurchasesUser } from "../services/purchases";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -34,7 +35,11 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null | undefined>(null);
+  // Start UNDEFINED (not null) so the loading screen shows until SecureStore
+  // resolves. If it started null, the very first render would be token=null →
+  // isLoggedIn=false → the login screen would flash on every cold start for an
+  // already-logged-in user until loadToken() resolves.
+  const [token, setToken] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     // On app startup, try loading token from SecureStore
@@ -51,10 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadToken();
   }, []);
 
-  if (token === undefined) {
-    return <Text>Loading..</Text>; // A simple loading screen
-  }
-
   const updateToken = (newToken: string) => {
     setToken(newToken);
   };
@@ -62,6 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setUpdateTokenFn(updateToken);
   }, [updateToken]);
+
+  // Loading guard AFTER all hooks — never return before a hook has run, or the
+  // hook count differs between renders (rules-of-hooks violation → crash). The
+  // functions below are plain closures, not hooks, so gating them is safe.
+  if (token === undefined) {
+    return <Text>Loading..</Text>; // A simple loading screen
+  }
 
   const login = async (newToken: string) => {
     // Save to SecureStore
@@ -89,6 +97,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Reset PostHog identity so subsequent anonymous events don't link to this user
     resetAnalyticsIdentity();
+
+    // Same reasoning, for money: unlink the RevenueCat identity, or the next
+    // person to sign in on this device has their purchases webhooked under the
+    // PREVIOUS user's id — granting the pack to the wrong account and giving
+    // the person who actually paid nothing.
+    await logoutPurchasesUser();
 
     setToken(null);
   };

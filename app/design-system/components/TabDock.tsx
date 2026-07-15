@@ -62,7 +62,7 @@ export const TabDock: React.FC<TabDockProps> = ({
   inline = false,
   accessibilityLabel,
 }) => {
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
   const reduceMotion = useReducedMotion();
   return (
     <View style={inline ? styles.containerInline : styles.container} pointerEvents="box-none">
@@ -81,6 +81,7 @@ export const TabDock: React.FC<TabDockProps> = ({
           styles.bar,
           fitContent ? styles.barFit : styles.barFull,
           { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+          !inline && elevation.e3,
         ]}
         accessibilityRole="tablist"
         accessibilityLabel={accessibilityLabel}
@@ -243,10 +244,6 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     height: 70,
     padding: 8,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 10,
   },
   barFull: {
     width: "100%",

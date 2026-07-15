@@ -25,7 +25,7 @@ interface SmartRecommendationCardProps {
 }
 
 const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const styles = useStyles();
   const exploreNavigation = useNavigation<any>();
   const [recommendation, setRecommendation] =
@@ -289,7 +289,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                   You have completed all your tasks for this pack. Keep going!
                 </Text>
               </View>
-              <View style={styles.actionBar}>
+              <View style={[styles.actionBar, { backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.inverse }]}>
                 {isRefreshing ? (
                   <Spinner size="small" color={colors.action.primary} />
                 ) : (
@@ -313,7 +313,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                     {nextModuleDisplay.description}
                   </Text>
                 </View>
-                <View style={styles.actionBar}>
+                <View style={[styles.actionBar, { backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.inverse }]}>
                   <Text variant="label" color="accent">
                     {actionButtonText}
                   </Text>

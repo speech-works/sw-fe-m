@@ -25,8 +25,14 @@ export async function clearAllPersistedUserState(): Promise<void> {
     console.warn("[clearUserState] multiRemove failed:", e);
   }
 
-  // 2) Reset in-memory state for stores with session-visible data. Dynamic
-  //    imports avoid load-order / circular-dependency issues.
+  // 2) Reset in-memory state for EVERY store that holds user-scoped,
+  //    session-visible data — otherwise the previous user's data lingers in
+  //    memory until app restart (log out → log in as a different account in
+  //    the same session → transiently see the prior user's mood/activities/
+  //    assessment answers). Dynamic imports avoid load-order / circular-import
+  //    issues. Each reset runs independently so one failing store never skips
+  //    the rest.
+  const resets: Array<[string, () => unknown | Promise<unknown>]> = [];
   try {
     const [
       { useUserStore },
@@ -36,8 +42,13 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useProgressReportStore },
       { usePracticeCategorySummaryStore },
       { useStaminaNotificationStore },
-      { useFreeActivityNotificationStore },
       { useVoicePreferenceStore },
+      { useSessionStore },
+      { useMoodCheckStore },
+      { useActivityStore },
+      { useReminderStore },
+      { useOnboardingStore },
+      { useImpactAssessmentStore },
     ] = await Promise.all([
       import("../../stores/user"),
       import("../../stores/toolConsent"),
@@ -46,19 +57,40 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/progressReport"),
       import("../../stores/practiceCategorySummary"),
       import("../../stores/staminaNotification"),
-      import("../../stores/freeActivityNotification"),
       import("../../stores/voicePreference"),
+      import("../../stores/session"),
+      import("../../stores/mood"),
+      import("../../stores/activity"),
+      import("../../stores/reminders"),
+      import("../../stores/onboarding"),
+      import("../../stores/impactAssessment"),
     ]);
-    useUserStore.getState().clearUser();
-    useToolConsentStore.getState().reset();
-    useAICallConsentStore.getState().reset();
-    useUserBehaviorTrendsStore.getState().clearTrends();
-    useProgressReportStore.getState().clearProgressReport();
-    usePracticeCategorySummaryStore.getState().clearSummary();
-    useStaminaNotificationStore.getState().resetAll();
-    useFreeActivityNotificationStore.getState().resetAll();
-    useVoicePreferenceStore.getState().reset();
+    resets.push(
+      ["user", () => useUserStore.getState().clearUser()],
+      ["toolConsent", () => useToolConsentStore.getState().reset()],
+      ["aiCallConsent", () => useAICallConsentStore.getState().reset()],
+      ["userBehaviorTrends", () => useUserBehaviorTrendsStore.getState().clearTrends()],
+      ["progressReport", () => useProgressReportStore.getState().clearProgressReport()],
+      ["practiceCategorySummary", () => usePracticeCategorySummaryStore.getState().clearSummary()],
+      ["staminaNotification", () => useStaminaNotificationStore.getState().resetAll()],
+      ["voicePreference", () => useVoicePreferenceStore.getState().reset()],
+      ["session", () => useSessionStore.getState().clearSession()],
+      ["mood", () => useMoodCheckStore.getState().clearMood()],
+      ["activity", () => useActivityStore.getState().clearActivities()],
+      // removeAll also cancels the OS-scheduled notifications so a logged-out
+      // user's reminders can't fire for the next account on a shared device.
+      ["reminders", () => useReminderStore.getState().removeAll()],
+      ["onboarding", () => useOnboardingStore.getState().resetOnboarding()],
+      ["impactAssessment", () => useImpactAssessmentStore.getState().resetImpactAssessment()],
+    );
   } catch (e) {
-    console.warn("[clearUserState] in-memory reset failed:", e);
+    console.warn("[clearUserState] loading stores for reset failed:", e);
+  }
+  for (const [name, reset] of resets) {
+    try {
+      await reset();
+    } catch (e) {
+      console.warn(`[clearUserState] reset for store "${name}" failed:`, e);
+    }
   }
 }

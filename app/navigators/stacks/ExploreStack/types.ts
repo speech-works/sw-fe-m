@@ -10,6 +10,7 @@ export type ExploreStackParamList = {
   LibraryStack: undefined;
   ProgressDetail: { scrollTo?: "achievements" } | undefined;
   PaymentStack: undefined;
+  Programs: undefined;
   PackModule: {
     module?: PackModule;
     packId: string;

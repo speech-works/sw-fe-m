@@ -78,6 +78,8 @@ export const icons = {
   milestone: "trophy", // milestone reached
   tip: "lightbulb", // a tip
   reminder: "bell", // set/schedule a practice reminder
+  oneTime: "calendar", // a single, one-off scheduled reminder
+  routine: "refresh-cw", // a repeating/recurring reminder
   affirmation: "message-square", // an affirmation
   prompt: "message-circle-question-mark", // a shared question/prompt
   challenge: "flag", // a shared challenge

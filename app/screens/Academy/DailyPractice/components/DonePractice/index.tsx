@@ -124,7 +124,7 @@ const DonePractice = ({
               variant="secondary"
               label="Share this session"
               leftIcon={icons.share}
-              style={accentColor ? { borderColor: controlBorder } : undefined}
+              style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
               onPress={() =>
                 navigation.navigate("PracticeComposer", {
                   activityId,
@@ -144,7 +144,7 @@ const DonePractice = ({
               variant="secondary"
               label="Invite a Practice Buddy"
               leftIcon={icons.addPerson}
-              style={accentColor ? { borderColor: controlBorder } : undefined}
+              style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
               onPress={() =>
                 navigation.navigate("Root", {
                   screen: ROUTE_NAMES.COMMUNITY,
@@ -162,7 +162,7 @@ const DonePractice = ({
                   variant="secondary"
                   label="Set Reminder"
                   leftIcon={icons.reminder}
-                  style={accentColor ? { borderColor: controlBorder } : undefined}
+                  style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
                   onPress={onOpen}
                 />
               )}
@@ -176,7 +176,7 @@ const DonePractice = ({
                 variant="secondary"
                 label="Explore More"
                 leftIcon={icons.explore}
-                style={accentColor ? { borderColor: controlBorder } : undefined}
+                style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
                 onPress={() => {
                   navigation.navigate("Root", {
                     screen: ROUTE_NAMES.EXPLORE,

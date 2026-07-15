@@ -1,16 +1,13 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Platform,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import PressableScale from "../../../../../components/PressableScale";
 import {
   useTheme,
@@ -20,14 +17,17 @@ import {
   Text,
   Icon,
   icons,
+  IconButton,
   Button,
-  Segmented,
+  TabDock,
   TextField,
+  Sheet,
 } from "../../../../../design-system";
 import {
   type Reminder,
   useReminderStore,
 } from "../../../../../stores/reminders";
+import { showSuccessBottomSheet } from "../../../../../util/functions/bottomSheet";
 import { requestNotificationPermissionWithFallback } from "../../../../../util/functions/notifications";
 import {
   REMINDER_TEMPLATES,
@@ -62,9 +62,6 @@ const allCategories = [
   CUSTOM_CATEGORY,
 ];
 
-const ONE_TIME_LABEL = "One Time";
-const ROUTINE_LABEL = "Routine";
-
 const ReminderModal = ({
   onReminderSet,
   renderTrigger,
@@ -73,8 +70,7 @@ const ReminderModal = ({
   isOpen,
   onClose: onCloseProp,
 }: ReminderProps) => {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, scheme } = useTheme();
   const addReminder = useReminderStore((state) => state.addReminder);
   const updateReminder = useReminderStore((state) => state.updateReminder);
   const canAddMore = useReminderStore((state) => state.canAddMore);
@@ -96,6 +92,12 @@ const ReminderModal = ({
   const [reminderBody, setReminderBody] = useState("");
 
   const isEditing = !!editReminder;
+
+  // Success feedback is deferred until the sheet has fully dismissed. The success
+  // toast is the global OutcomeModal (a native Modal); firing it while this Sheet
+  // (also a native Modal) is still up stacks two native modals and freezes touch on
+  // iOS. We stash the message here and fire it from the Sheet's onDismissed.
+  const pendingSuccessRef = useRef<{ title: string; message: string } | null>(null);
 
   const getFormattedDate = (date: Date) => {
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -194,6 +196,15 @@ const ReminderModal = ({
     }
   };
 
+  // Fires once the sheet has fully animated out — safe to show the success toast now.
+  const firePendingSuccess = () => {
+    const pending = pendingSuccessRef.current;
+    if (pending) {
+      pendingSuccessRef.current = null;
+      showSuccessBottomSheet(pending.title, pending.message);
+    }
+  };
+
   const handleSaveReminder = async () => {
     const hasPermissions = await requestNotificationPermissionWithFallback();
     if (!hasPermissions) {
@@ -244,12 +255,20 @@ const ReminderModal = ({
     try {
       if (isEditing && editReminder) {
         await updateReminder(editReminder.id, reminderData);
-        Alert.alert("Updated", "Your reminder has been updated!");
+        pendingSuccessRef.current = {
+          title: "Reminder Updated",
+          message: "Your changes have been saved.",
+        };
       } else {
         await addReminder(reminderData);
-        Alert.alert("Success", "Your reminder has been set!");
+        pendingSuccessRef.current = {
+          title: "Reminder Set",
+          message: "We'll remind you at the time you picked.",
+        };
       }
       if (onReminderSet) onReminderSet();
+      // Close first; the success toast fires from the Sheet's onDismissed (avoids
+      // stacking two native modals, which freezes touch on iOS).
       closeModal();
     } catch (error: any) {
       console.error("Failed to save reminder:", error);
@@ -305,8 +324,26 @@ const ReminderModal = ({
   };
 
   // ─── Category Picker (Step 1) ─────────────────────────────
+  const getCategoryAccent = (cat: ReminderCategory): keyof typeof colors.accent => {
+    switch (cat) {
+      case "DAILY_PRACTICE":
+        return "warning";
+      case "BREATHING":
+        return "info";
+      case "READING":
+        return "purple";
+      case "CHALLENGE":
+        return "danger";
+      case "MOOD_CHECKIN":
+        return "success";
+      case "CUSTOM":
+      default:
+        return "lime";
+    }
+  };
+
   const renderCategoryPicker = () => (
-    <View style={styles.categoryContainer}>
+    <View>
       <View style={styles.modalTitleContainer}>
         <Text variant="h2" color="primary" center>
           What would you like
@@ -315,102 +352,61 @@ const ReminderModal = ({
           to be reminded about?
         </Text>
       </View>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.categoryList}
-        showsVerticalScrollIndicator={false}
-      >
-        {allCategories.map((cat) => (
-          <PressableScale
-            key={cat.category}
-            scaleTo={0.98}
-            onPress={() => handleCategorySelect(cat.category)}
-            style={[
-              styles.categoryCard,
-              {
-                backgroundColor: colors.surface.default,
-                borderColor: colors.border.default,
-              },
-            ]}
-          >
-            <View
-              style={[styles.categoryIconContainer, { backgroundColor: cat.bgColor }]}
+      <View style={styles.categoryList}>
+        {allCategories.map((cat) => {
+          const accent = getCategoryAccent(cat.category);
+          const bg = colors.accent[accent];
+          const on = colors.accentOn[accent];
+
+          return (
+            <PressableScale
+              key={cat.category}
+              scaleTo={0.98}
+              onPress={() => handleCategorySelect(cat.category)}
+              style={[
+                styles.categoryCard,
+                { backgroundColor: bg },
+              ]}
             >
-              {/* Category glyphs are MaterialCommunityIcons names from the reminder
-                  constants (not DS registry keys) — rendered via the vendor set,
-                  keeping the exact per-category icon. */}
-              <MaterialCommunityIcons
-                name={cat.icon as any}
-                size={22}
-                color={cat.color}
-              />
-            </View>
-            <View style={styles.categoryTextContainer}>
-              <Text variant="title" color="primary">
-                {cat.label}
-              </Text>
-              <Text variant="bodySm" color="secondary">
-                {cat.description}
-              </Text>
-            </View>
-            <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
-          </PressableScale>
-        ))}
-      </ScrollView>
+              <View style={styles.categoryIconContainer}>
+                <MaterialCommunityIcons
+                  name={cat.icon as any}
+                  size={28}
+                  color={on}
+                />
+              </View>
+              <View style={styles.categoryTextContainer}>
+                <Text variant="title" color={on}>
+                  {cat.label}
+                </Text>
+                <Text variant="bodySm" color={on} style={{ opacity: 0.85 }}>
+                  {cat.description}
+                </Text>
+              </View>
+              <Icon name={icons.chevronRight} size={20} color={on} />
+            </PressableScale>
+          );
+        })}
+      </View>
     </View>
   );
 
   // ─── Configure Form (Step 2) ──────────────────────────────
   const renderConfigureForm = () => (
-    <View style={styles.modalContent}>
-      {/* Header with category badge */}
-      {selectedTemplate && (
-        <View style={styles.configHeader}>
-          {!isEditing && (
-            <TouchableOpacity
-              onPress={() => setStep("pick")}
-              style={[styles.backChip, { backgroundColor: colors.surface.control }]}
-            >
-              <Icon name={icons.back} size={18} color={colors.text.primary} />
-            </TouchableOpacity>
-          )}
-          <View
-            style={[
-              styles.headerCategoryBadge,
-              { backgroundColor: selectedTemplate.bgColor },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={selectedTemplate.icon as any}
-              size={16}
-              color={selectedTemplate.color}
-            />
-            <Text variant="label" color={selectedTemplate.color}>
-              {selectedTemplate.label}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.toggleContainer}>
-        <Segmented
-          options={[ONE_TIME_LABEL, ROUTINE_LABEL]}
-          value={reminderType === "ONE_TIME" ? ONE_TIME_LABEL : ROUTINE_LABEL}
-          onChange={(opt) =>
-            setReminderType(opt === ONE_TIME_LABEL ? "ONE_TIME" : "ROUTINE")
-          }
-        />
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        nestedScrollEnabled={true}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingBottom: Math.max(insets.bottom, 40) },
+    <View style={styles.formContainer}>
+      <TabDock
+        inline
+        fitContent
+        accessibilityLabel="Reminder type"
+        items={[
+          { key: "ONE_TIME", label: "One Time", icon: icons.oneTime },
+          { key: "ROUTINE", label: "Routine", icon: icons.routine },
         ]}
-      >
+        activeKey={reminderType}
+        onSelect={(k) => setReminderType(k as StoreReminderType)}
+      />
+
+      <View style={styles.formFields}>
         {/* Title Input (Mandatory) */}
         <TextField
           label="TITLE"
@@ -441,7 +437,7 @@ const ReminderModal = ({
                   value={selectedDate}
                   mode="date"
                   display="inline"
-                  themeVariant="dark"
+                  themeVariant={scheme === "dark" ? "dark" : "light"}
                   accentColor={colors.action.primary}
                   onChange={onChangeDate}
                   minimumDate={new Date()}
@@ -480,7 +476,7 @@ const ReminderModal = ({
                 mode="time"
                 display="spinner"
                 is24Hour={true}
-                themeVariant="dark"
+                themeVariant={scheme === "dark" ? "dark" : "light"}
                 accentColor={colors.action.primary}
                 onChange={onChangeTime}
                 style={styles.timePicker}
@@ -555,7 +551,7 @@ const ReminderModal = ({
             onPress={handleSaveReminder}
           />
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 
@@ -569,16 +565,24 @@ const ReminderModal = ({
           <Button label="Set Reminder" onPress={handleOpen} />
         ))}
 
-      <BottomSheetModal
+      <Sheet
         visible={isVisible}
         onClose={closeModal}
-        maxHeight="85%"
-        showCloseButton={true}
-        fitContent={false}
-        backgroundColor={colors.surface.elevated}
+        onDismissed={firePendingSuccess}
+        title={step === "configure" && selectedTemplate ? selectedTemplate.label : undefined}
+        right={
+          step === "configure" && !isEditing ? (
+            <>
+              <IconButton name={icons.back} onPress={() => setStep("pick")} />
+              <IconButton name={icons.close} onPress={closeModal} />
+            </>
+          ) : (
+            <IconButton name={icons.close} onPress={closeModal} />
+          )
+        }
       >
         {step === "pick" ? renderCategoryPicker() : renderConfigureForm()}
-      </BottomSheetModal>
+      </Sheet>
     </React.Fragment>
   );
 };
@@ -587,37 +591,25 @@ export default ReminderModal;
 
 const styles = StyleSheet.create({
   // ─── Category Picker ────────────────────────
-  categoryContainer: {
-    flex: 1,
-    paddingTop: spacing.md,
-  },
   modalTitleContainer: {
     marginTop: spacing["2xl"],
     marginBottom: spacing["3xl"],
     alignItems: "center",
-    paddingHorizontal: spacing["2xl"],
-  },
-  scrollView: {
-    flex: 1,
   },
   categoryList: {
     gap: spacing.sm,
-    paddingHorizontal: spacing["2xl"],
-    paddingBottom: spacing["4xl"],
   },
   categoryCard: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
-    borderRadius: radius.chip,
+    borderRadius: radius.card,
     gap: spacing.lg,
-    borderWidth: borderWidth.thin,
   },
   categoryIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -627,41 +619,11 @@ const styles = StyleSheet.create({
   },
 
   // ─── Configure Form ─────────────────────────
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: spacing["2xl"],
-    paddingTop: spacing.md,
-    width: "100%",
+  formContainer: {
+    gap: spacing.xl,
   },
-  configHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-    marginTop: spacing.sm,
-  },
-  backChip: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCategoryBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.chip,
-  },
-  scrollContainer: {
+  formFields: {
     gap: spacing["2xl"],
-    paddingBottom: spacing["4xl"],
-  },
-  toggleContainer: {
-    width: "100%",
-    marginBottom: spacing.lg,
   },
   pickerSection: {
     width: "100%",

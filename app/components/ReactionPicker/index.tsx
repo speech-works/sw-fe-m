@@ -21,6 +21,7 @@ import { REACTIONS } from "../../constants/reactions";
 import { ReactionType } from "../../api/threads/types";
 import { useTheme, radius, fonts, space, Text, duration, easing, spring } from "../../design-system";
 import { AnimatedReaction } from "../AnimatedReactions";
+import { useRegisterNativeModal } from "../../stores/nativeModal";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -81,6 +82,7 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
   const reduced = useReducedMotion();
   // Keep the Modal mounted through the close animation, then unmount.
   const [mounted, setMounted] = useState(visible);
+  useRegisterNativeModal(mounted);
   const progress = useSharedValue(0); // 0 = hidden, 1 = shown
 
   useEffect(() => {

@@ -30,8 +30,6 @@ export interface User {
 
   totalXp?: number;
   xpLogs?: XPLog[];
-  freeTasksRemaining?: number;
-  lastFreeReset?: Date;
   isPaid?: boolean;
   level?: number;
   currentStamina?: number;
@@ -68,6 +66,13 @@ export interface User {
   toolNudge?: ToolNudgeDirective | null;
 
   vacationMode?: boolean;
+
+  // Consent (production-readiness pass, WS5) — server-side record so a
+  // reinstall doesn't silently re-collect consent that was already given.
+  aiCallConsentAt?: Date | null;
+  researchConsent?: boolean;
+  researchConsentAt?: Date | null;
+  consentVersion?: string | null;
 }
 
 export interface LevelStage {
@@ -184,6 +189,33 @@ export async function dismissToolNudge(tool: ToolType): Promise<void> {
   }
 }
 
+/**
+ * Record server-side that the user acknowledged the AI-call consent modal
+ * (production-readiness pass, WS5). Fire-and-forget — the FE gate itself
+ * relies on the local `useAICallConsentStore` for the offline/first-run case.
+ */
+export async function postAiCallConsent(consentVersion?: string): Promise<void> {
+  try {
+    await axiosClient.post("/users/me/consent/ai-call", { consentVersion });
+  } catch (error) {
+    console.error("Error recording AI-call consent:", error);
+    throw error;
+  }
+}
+
+/**
+ * Set (or revoke) the optional, opt-in research-use consent (WS5).
+ */
+export async function postResearchConsent(enabled: boolean): Promise<{ researchConsent: boolean }> {
+  try {
+    const response = await axiosClient.post("/users/me/consent/research", { enabled });
+    return response.data;
+  } catch (error) {
+    console.error("Error setting research consent:", error);
+    throw error;
+  }
+}
+
 // Get level stage details for current user
 export async function getLevelStage(): Promise<LevelStage> {
   try {
@@ -191,6 +223,105 @@ export async function getLevelStage(): Promise<LevelStage> {
     return response.data;
   } catch (error) {
     console.error("Error getting level stage:", error);
+    throw error;
+  }
+}
+
+// Mirrors backend EntitlementKey (src/models/Entitlement.ts) — kept in sync
+// manually. Pack keys are `pack:<slug>` (any pack in the server catalog).
+export type EntitlementKey = `pack:${string}` | "membership" | "founderCohort";
+
+export interface Wallet {
+  balance: number;
+  entitlements: EntitlementKey[];
+  founderCohort: boolean;
+}
+
+// One purchasable pack from GET /users/me/offers. The store `tierProductId`
+// and price are display hints; the authoritative price is re-resolved by the
+// backend when a purchase intent is created (SPEECHWORKS-STRATEGY.md §6.14).
+export interface OfferItem {
+  key: string;
+  title: string;
+  shelf: "small" | "regular" | "deep";
+  tierProductId: string;
+  priceInr: number;
+  priceUsd: number;
+  owned: boolean;
+}
+
+/**
+ * The two FIXED store products (no purchase intent — they're unambiguous).
+ * Ids and prices are served by the backend so the app never hardcodes either.
+ */
+export interface TopupOffer {
+  productId: string;
+  credits: number;
+  priceInr: number;
+  priceUsd: number;
+}
+
+export interface MembershipOffer {
+  productId: string;
+  priceInr: number;
+  priceUsd: number;
+  annualProductId: string;
+  annualPriceInr: number;
+  annualPriceUsd: number;
+}
+
+export interface Offers {
+  isFounderCohort: boolean;
+  showMembershipOffer: boolean;
+  items: OfferItem[];
+  topup: TopupOffer;
+  membership: MembershipOffer;
+}
+
+// Response of POST /users/me/purchase-intent — the store tier to buy for a pack.
+export interface PurchaseIntentResponse {
+  intentId: string;
+  tierProductId: string;
+  priceInr: number;
+  priceUsd: number;
+}
+
+// GET /users/me/wallet — call-credit balance + active entitlements
+// (PAYMENTS-PLAN.md §2). Lazily triggers a RevenueCat reconcile server-side.
+export async function getWallet(): Promise<Wallet> {
+  try {
+    const response = await axiosClient.get("/users/me/wallet");
+    return response.data;
+  } catch (error) {
+    console.error("Error getting wallet:", error);
+    throw error;
+  }
+}
+
+// GET /users/me/offers — the available packs with resolved tier/price, plus
+// whether the membership offer should be surfaced.
+export async function getOffers(): Promise<Offers> {
+  try {
+    const response = await axiosClient.get("/users/me/offers");
+    return response.data;
+  } catch (error) {
+    console.error("Error getting offers:", error);
+    throw error;
+  }
+}
+
+// POST /users/me/purchase-intent — tell the backend which pack the user wants;
+// it returns the store tier SKU to purchase (the authoritative price decision).
+export async function createPurchaseIntent(
+  catalogItemKey: string,
+): Promise<PurchaseIntentResponse> {
+  try {
+    const response = await axiosClient.post("/users/me/purchase-intent", {
+      catalogItemKey,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating purchase intent:", error);
     throw error;
   }
 }

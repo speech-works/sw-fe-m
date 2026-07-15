@@ -14,6 +14,8 @@ import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
 import { getLevelStage, LevelStage } from "../../api/users";
+import { PAYMENTS_ENABLED } from "../../constants/features";
+import { restorePurchasesAndReconcile } from "../../services/purchases";
 import {
   useTheme,
   useMotion,
@@ -88,8 +90,29 @@ const Settings = () => {
     }
   };
 
+  const [restoring, setRestoring] = useState(false);
+
   const onViewProfile = () => {
     setIsVisible(true);
+  };
+
+  const handleRestorePurchases = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      const wallet = await restorePurchasesAndReconcile();
+      await useUserStore.getState().fetchUser();
+      if (wallet) {
+        showSuccessBottomSheet(
+          "Purchases restored",
+          `Your account now shows ${wallet.balance} call credit${wallet.balance === 1 ? "" : "s"} and any active entitlements.`,
+        );
+      }
+    } catch (error) {
+      console.error("Error restoring purchases:", error);
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const closeModal = () => {
@@ -128,6 +151,16 @@ const Settings = () => {
       desc: "Stuttering organizations & crisis support",
       onClick: () => navigation.navigate("Resources"),
     },
+    ...(PAYMENTS_ENABLED
+      ? [
+          {
+            icon: "refresh-cw" as IconName,
+            text: "Restore Purchases",
+            desc: "Recover past purchases on this account",
+            onClick: handleRestorePurchases,
+          },
+        ]
+      : []),
   ];
 
   useEffect(() => {

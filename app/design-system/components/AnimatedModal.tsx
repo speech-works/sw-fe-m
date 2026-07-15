@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { Modal, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
   interpolate,
@@ -12,6 +12,10 @@ import Animated, {
 import { duration, easing, spring } from "../motion";
 import { radius, spacing } from "../primitives/scale";
 import { useTheme } from "../useTheme";
+import {
+  hasOpenModalExcept,
+  useNativeModalStore,
+} from "../../stores/nativeModal";
 
 export interface AnimatedModalProps {
   visible: boolean;
@@ -25,6 +29,13 @@ export interface AnimatedModalProps {
   contentStyle?: StyleProp<ViewStyle>;
   /** Render children raw — no card background / padding / elevation. */
   bare?: boolean;
+  /**
+   * Defer presenting until no other native modal is open, to avoid the iOS
+   * two-native-Modal touch freeze. Use for root-mounted modals that fire on
+   * events (they can appear over any open screen sheet). Default false = present
+   * immediately (unchanged behavior).
+   */
+  exclusive?: boolean;
 }
 
 /**
@@ -42,19 +53,46 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
   maxWidth = 340,
   contentStyle,
   bare,
+  exclusive = false,
 }) => {
   const { colors, elevation } = useTheme();
   const reduced = useReducedMotion();
+  const modalId = useId();
   // Keep the native Modal mounted through the exit animation, then unmount.
-  const [mounted, setMounted] = useState(visible);
+  const [mounted, setMounted] = useState(visible && !exclusive);
   const progress = useSharedValue(0); // 0 = hidden, 1 = shown
 
   useEffect(() => {
     if (visible) {
-      setMounted(true);
-      progress.value = reduced
-        ? withTiming(1, { duration: duration.base })
-        : withSpring(1, spring.gentle);
+      let cancelled = false;
+      let unsub: (() => void) | undefined;
+
+      const present = () => {
+        if (cancelled) return;
+        unsub?.();
+        unsub = undefined;
+        // Register synchronously BEFORE mounting so a second pending exclusive
+        // modal, notified in the same registry update, sees us as open and waits.
+        useNativeModalStore.getState().register(modalId);
+        setMounted(true);
+        progress.value = reduced
+          ? withTiming(1, { duration: duration.base })
+          : withSpring(1, spring.gentle);
+      };
+
+      if (exclusive && hasOpenModalExcept(modalId)) {
+        // Another native modal is open — wait for the registry to clear.
+        unsub = useNativeModalStore.subscribe(() => {
+          if (!cancelled && !hasOpenModalExcept(modalId)) present();
+        });
+      } else {
+        present();
+      }
+
+      return () => {
+        cancelled = true;
+        unsub?.();
+      };
     } else if (mounted) {
       progress.value = withTiming(
         0,
@@ -64,7 +102,16 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
         },
       );
     }
-  }, [visible, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, reduced, exclusive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deregister once the native Modal is gone (exit finished, or unmount).
+  useEffect(() => {
+    if (!mounted) useNativeModalStore.getState().unregister(modalId);
+  }, [mounted, modalId]);
+  useEffect(
+    () => () => useNativeModalStore.getState().unregister(modalId),
+    [modalId],
+  );
 
   const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
   const cardStyle = useAnimatedStyle(() => ({

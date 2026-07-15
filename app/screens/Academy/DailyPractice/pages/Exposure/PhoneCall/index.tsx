@@ -19,6 +19,8 @@ import {
   PhoneCallScenario,
 } from "../../../../../../api/dailyPractice/types";
 import CallingWidget from "../../../../../../components/CallingWidget";
+import WalletChip from "../../../../../../components/WalletChip";
+import ExhaustionSheet from "../../../../../../components/ExhaustionSheet";
 import {
   PhoneCallEDPStackNavigationProp,
   PhoneCallEDPStackParamList,
@@ -27,6 +29,7 @@ import {
 import { useUserStore } from "../../../../../../stores/user";
 import { useAICallConsentStore } from "../../../../../../stores/aiCallConsent";
 import AICallConsentModal from "../../../../../../components/AICallConsentModal";
+import { postAiCallConsent } from "../../../../../../api/users";
 import {
   Text,
   Icon,
@@ -37,7 +40,10 @@ import {
   spacing,
   radius,
 } from "../../../../../../design-system";
-import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
+import {
+  showErrorBottomSheet,
+  showSuccessBottomSheet,
+} from "../../../../../../util/functions/bottomSheet";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
@@ -84,6 +90,21 @@ const PhoneCall = () => {
     return unsub;
   }, []);
 
+  // Local mark keeps the offline/first-run gate working; the server POST is
+  // best-effort so a reinstall/re-login doesn't re-prompt someone who already
+  // consented (production-readiness pass, WS5).
+  const handleAiCallConsentAcknowledge = () => {
+    markAICallConsented();
+    postAiCallConsent().catch(() => {});
+  };
+
+  // Consent is affirmative-only: declining (backdrop tap, back, or "Not now")
+  // must NOT record consent and must take the user out of the AI-call flow —
+  // no consent, no call (production-readiness hardening).
+  const handleAiCallConsentDecline = () => {
+    navigation.goBack();
+  };
+
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
   const { packContext, practiceActivity, from } = (route.params as any) || {};
@@ -124,6 +145,8 @@ const PhoneCall = () => {
   const [reportDismissed, setReportDismissed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [showExhaustionSheet, setShowExhaustionSheet] = useState(false);
+  const [walletRefreshKey, setWalletRefreshKey] = useState(0);
   const closeModal = () => setIsModalVisible(false);
 
   const markActivityStart = useMarkActivityStart({
@@ -136,7 +159,35 @@ const PhoneCall = () => {
     setActivityId: setTrackedActivityId,
     navigation,
     logTag: "PhoneCall",
+    // Rethrow so handleCallStart below can tell a 402 NO_CREDITS apart from
+    // any other start failure and show the right UI for each.
+    rethrowErrors: true,
   });
+
+  // Calls are the one activity type gated on call credits (SPEECHWORKS-STRATEGY.md
+  // §6.2, PAYMENTS-PLAN.md). A 402 here means the wallet's out of credits and
+  // the weekly free taster is on cooldown — show the top-up sheet instead of
+  // the generic error toast.
+  const handleCallStart = async (): Promise<string | null> => {
+    try {
+      return await markActivityStart();
+    } catch (error) {
+      if (
+        axios.isAxiosError(error) &&
+        error.response?.status === 402 &&
+        error.response?.data?.errorCode === "NO_CREDITS"
+      ) {
+        setShowExhaustionSheet(true);
+        return null;
+      }
+      console.error("[PhoneCall] Failed to start activity", error);
+      showErrorBottomSheet(
+        "Try Later",
+        "Something went wrong starting the call. Please try again.",
+      );
+      return null;
+    }
+  };
 
   const markActivityComplete = async (vitals?: {
     effortScore: number;
@@ -367,8 +418,7 @@ const PhoneCall = () => {
               />
             </View>
           </TouchableOpacity>
-          {/* Placeholder for settings/tips or balance */}
-          <View style={{ width: 44 }} />
+          <WalletChip refreshKey={walletRefreshKey} />
         </View>
 
         {/* Main Calling UI Place */}
@@ -384,7 +434,7 @@ const PhoneCall = () => {
               selectedScenario?.phoneCallData?.agentDesignation || "Assistant"
             }
             ringtoneAsset={RINGING_SOUND_FILE}
-            onCallStart={markActivityStart}
+            onCallStart={handleCallStart}
             onCallEnd={handleCallEnd}
             onCallEndAcknowledged={handleCallEndAcknowledged}
           />
@@ -463,8 +513,22 @@ const PhoneCall = () => {
       />
 
       <AICallConsentModal
-        visible={consentHydrated && !aiConsented}
-        onAcknowledge={markAICallConsented}
+        visible={consentHydrated && !aiConsented && !user?.aiCallConsentAt}
+        onAcknowledge={handleAiCallConsentAcknowledge}
+        onDecline={handleAiCallConsentDecline}
+      />
+
+      <ExhaustionSheet
+        visible={showExhaustionSheet}
+        onClose={() => setShowExhaustionSheet(false)}
+        onResolved={() => {
+          setShowExhaustionSheet(false);
+          setWalletRefreshKey((k) => k + 1);
+          showSuccessBottomSheet(
+            "You're all set",
+            "Tap the call button again to start.",
+          );
+        }}
       />
 
       {exitSheet}

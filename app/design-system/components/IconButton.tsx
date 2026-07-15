@@ -21,25 +21,28 @@ export const IconButton: React.FC<IconButtonProps> = ({
   size = sizes.backBtn,
   color,
 }) => {
-  const { colors } = useTheme();
+  const { colors, scheme, elevation } = useTheme();
   const isControl = variant === "control";
   return (
     <PressableScale
       onPress={onPress}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: isControl ? colors.surface.control : "transparent",
-        // A defined hairline edge so the control reads as a distinct, tappable
-        // object — load-bearing on the light canvas (where the fill is near the
-        // surface), crisp-but-subtle on dark. Ghost stays edgeless.
-        ...(isControl
-          ? { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.strong }
-          : null),
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        isControl
+          ? {
+              backgroundColor: scheme === "dark" ? colors.surface.control : colors.surface.inverse,
+              ...(scheme === "dark"
+                ? { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.strong }
+                : elevation.e2),
+            }
+          : { backgroundColor: "transparent" },
+      ]}
     >
       <Icon name={name} size={20} color={color ?? colors.text.primary} />
     </PressableScale>

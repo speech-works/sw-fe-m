@@ -12,23 +12,32 @@ import {
 
 interface AICallConsentModalProps {
   visible: boolean;
-  /** Called when the user taps "Got it" — caller persists consent + proceeds. */
+  /** Called ONLY when the user taps the explicit accept button — caller persists consent + proceeds. */
   onAcknowledge: () => void;
+  /**
+   * Called when the user declines — taps "Not now" OR dismisses the sheet
+   * (backdrop tap / Android back). Consent must be an affirmative act, so a
+   * dismissal is a decline, never an implied "yes". The caller should take the
+   * user out of the AI-call flow (e.g. navigate back).
+   */
+  onDecline: () => void;
 }
 
 /**
  * One-time disclosure shown before the user's first AI conversation, explaining
- * that their voice is streamed to a third-party AI partner during the call.
- * On the design-system `Sheet` (dark, grab handle, backdrop-tap dismiss, no X).
+ * that their voice is streamed to third-party AI providers during the call.
+ * Consent is affirmative-only: it is recorded solely via the accept button;
+ * dismissing the sheet (backdrop/back) or tapping "Not now" is a decline.
  */
 export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
   visible,
   onAcknowledge,
+  onDecline,
 }) => {
   const { colors } = useTheme();
 
   return (
-    <Sheet visible={visible} onClose={onAcknowledge}>
+    <Sheet visible={visible} onClose={onDecline}>
       <View style={styles.container}>
         <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
           <MaterialCommunityIcons
@@ -42,14 +51,15 @@ export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
           Before your first AI conversation
         </Text>
         <Text variant="bodySm" color="secondary" center>
-          Your voice is streamed in real time to our AI partner so it can respond
-          to you and transcribe your speech during the call. It is used only for
-          this practice session and is not saved on your device — you can end the
-          call anytime.
+          Your voice is streamed in real time to our AI providers — Deepgram
+          transcribes your speech, and Groq generates the AI's responses — so
+          it can have a conversation with you during the call. It's used only
+          for this practice session; you can end the call anytime.
         </Text>
 
         <View style={styles.buttons}>
-          <Button label="Got it — let's start" onPress={onAcknowledge} />
+          <Button label="I agree — let's start" onPress={onAcknowledge} />
+          <Button label="Not now" variant="ghost" onPress={onDecline} />
         </View>
       </View>
     </Sheet>
