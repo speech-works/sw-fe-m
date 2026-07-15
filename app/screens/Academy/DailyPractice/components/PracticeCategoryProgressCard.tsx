@@ -5,8 +5,6 @@ import {
   Surface,
   Divider,
   Text,
-  Icon,
-  icons,
   useTheme,
   spacing,
   space,
@@ -87,9 +85,6 @@ const PracticeCategoryProgressCard = ({
 
       <View style={styles.grid}>
         <View style={styles.statItem}>
-          <View style={[styles.statIconWrapper, { backgroundColor: accentTint }]}>
-            <Icon name={icons.success} size={18} color={accentText} />
-          </View>
           <View style={styles.statCopy}>
             <Text variant="h3" color="primary" style={styles.statValueBig}>
               {summary?.weekly.completedCount ?? 0}
@@ -105,9 +100,6 @@ const PracticeCategoryProgressCard = ({
         />
 
         <View style={styles.statItem}>
-          <View style={[styles.statIconWrapper, { backgroundColor: accentTint }]}>
-            <Icon name={icons.duration} size={18} color={accentText} />
-          </View>
           <View style={styles.statCopy}>
             <Text variant="h3" color="primary" style={styles.statValueBig}>
               {formatMinutesCompact(summary?.weekly.totalMinutes ?? 0)}
@@ -178,13 +170,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  statIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
   statCopy: {
     flex: 1,
   },
