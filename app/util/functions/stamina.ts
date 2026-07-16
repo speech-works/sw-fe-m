@@ -16,9 +16,9 @@ export interface StaminaRechargeEstimate {
 /**
  * Pure, client-side ESTIMATE of stamina regen — mirrors the backend's
  * "1 point every `staminaRegenRateMs`" model. Never writes back; used only for
- * display (the Energy Tank meter and the out-of-energy modal). Callers pass
- * `nowMs` so the live-ticking meter (ResourceStats) and one-shot callers (the
- * modal) share the exact same math.
+ * display (the Home energy meter and the out-of-energy modal). Callers pass
+ * `nowMs` so the live-ticking meter (Home's useStaminaEstimate) and one-shot
+ * callers (the modal) share the exact same math.
  */
 export function estimateStaminaRecharge(
   user: User | null | undefined,

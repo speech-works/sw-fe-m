@@ -21,7 +21,7 @@ import { useUserStore } from "../../stores/user";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { getLocalTodayDateString } from "../../util/functions/date";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
-import ResourceStats from "../Academy/components/ResourceStats";
+import { IdentityBlock } from "./components/IdentityBlock";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import Toast from "react-native-toast-message";
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
@@ -240,7 +240,7 @@ const Home = () => {
           type: "info",
           text1: "Level adjusted",
           text2:
-            "Your level has shifted based on recent activity. Keep practising to climb back!",
+            "Your level settled after a sync — every practice grows it again.",
         });
       }
 
@@ -339,7 +339,7 @@ const Home = () => {
           />
         }
       >
-        <ResourceStats refreshing={refreshing} />
+        <IdentityBlock />
 
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
