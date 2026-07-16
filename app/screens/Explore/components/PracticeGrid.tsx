@@ -6,6 +6,10 @@ import {
   PracticeIcon,
   haloAccentFor,
 } from "../../../assets/practice-icons/PracticeIcon";
+import { AnimatedFunIcon } from "../../../assets/practice-icons/AnimatedFunIcon";
+import { AnimatedReadingIcon } from "../../../assets/practice-icons/AnimatedReadingIcon";
+import { AnimatedCognitiveIcon } from "../../../assets/practice-icons/AnimatedCognitiveIcon";
+import { AnimatedExposureIcon } from "../../../assets/practice-icons/AnimatedExposureIcon";
 import { usePracticeCategorySummaryStore } from "../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../stores/user";
 import {
@@ -21,10 +25,10 @@ import PressableScale from "../../../components/PressableScale";
 type RootStackParamList = {
   DailyPracticeStack: {
     screen:
-      | "ReadingPracticeStack"
-      | "FunPracticeStack"
-      | "CognitivePracticeStack"
-      | "ExposureStack";
+    | "ReadingPracticeStack"
+    | "FunPracticeStack"
+    | "CognitivePracticeStack"
+    | "ExposureStack";
   };
 };
 
@@ -144,11 +148,33 @@ const PracticeGrid = (_props: { isScrolling?: boolean }) => {
                 </View>
                 <View style={styles.iconWrapper} pointerEvents="none">
                   {/* Halo contrasts the card fill so the icon never vanishes into it. */}
-                  <PracticeIcon
-                    name={p.iconKey}
-                    size={64}
-                    housing={colors.accent[haloAccentFor(p.accent)]}
-                  />
+                  {p.iconKey === "fun" ? (
+                    <AnimatedFunIcon
+                      size={64}
+                      housing={colors.accent[haloAccentFor(p.accent)]}
+                    />
+                  ) : p.iconKey === "reading" ? (
+                    <AnimatedReadingIcon
+                      size={64}
+                      housing={colors.accent[haloAccentFor(p.accent)]}
+                    />
+                  ) : p.iconKey === "cognitive" ? (
+                    <AnimatedCognitiveIcon
+                      size={64}
+                      housing={colors.accent[haloAccentFor(p.accent)]}
+                    />
+                  ) : p.iconKey === "exposure" ? (
+                    <AnimatedExposureIcon
+                      size={64}
+                      housing={colors.accent[haloAccentFor(p.accent)]}
+                    />
+                  ) : (
+                    <PracticeIcon
+                      name={p.iconKey}
+                      size={64}
+                      housing={colors.accent[haloAccentFor(p.accent)]}
+                    />
+                  )}
                 </View>
               </View>
 

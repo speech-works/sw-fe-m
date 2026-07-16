@@ -5,6 +5,7 @@ import {
   PracticeIcon,
   haloAccentFor,
 } from "../../../../../assets/practice-icons/PracticeIcon";
+import { AnimatedRoleplayIcon } from "../../../../../assets/practice-icons/AnimatedRoleplayIcon";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -115,11 +116,18 @@ const FunPractice = () => {
                   <View style={styles.iconContainer} pointerEvents="none">
                     <View style={styles.iconWrapper}>
                       {/* Halo contrasts the card fill so the icon stays visible. */}
-                      <PracticeIcon
-                        name={item.iconName}
-                        size={80}
-                        housing={colors.accent[haloAccentFor(item.accent)]}
-                      />
+                      {item.iconName === "fun-roleplay" ? (
+                        <AnimatedRoleplayIcon
+                          size={80}
+                          housing={colors.surface.default}
+                        />
+                      ) : (
+                        <PracticeIcon
+                          name={item.iconName}
+                          size={80}
+                          housing={colors.accent[haloAccentFor(item.accent)]}
+                        />
+                      )}
                     </View>
                   </View>
                 </View>

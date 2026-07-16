@@ -32,7 +32,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check": "tsc -p tsconfig.check.json --noEmit",
-    "check:store-compliance": "bash scripts/check-store-compliance.sh"
+    "check:store-compliance": "bash scripts/check-store-compliance.sh",
+    "icons:check": "node scripts/gen-practice-icons.js --check"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",

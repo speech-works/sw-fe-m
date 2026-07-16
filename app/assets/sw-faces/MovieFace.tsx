@@ -174,3 +174,4 @@ const MovieFace = ({
 };
 
 export default React.memo(MovieFace);
+

@@ -13,12 +13,18 @@ type CardAccent = "info" | "warning" | "danger" | "purple" | "success";
  * which always sat on a contrasting plate (green on the blue Reading card,
  * purple on the yellow Fun card, …).
  */
+/* Pairs verified numerically (WCAG relative luminance on the palette bases):
+ * every card→halo pair must clear ≥1.4:1 so the plate survives for
+ * red-green colorblind users. Current ratios: info→success 1.54,
+ * warning→purple 2.15, danger→warning 1.93, purple→warning 2.15,
+ * success→purple 1.90. (danger→purple and success→warning were ~1.1 — the
+ * halo vanished; never reintroduce a pair without recomputing.) */
 const HALO_ACCENT: Record<CardAccent, CardAccent> = {
-  info: "success", // blue card    → green halo
-  warning: "purple", // yellow card  → purple halo
-  danger: "purple", // red card     → lavender halo
-  purple: "warning", // purple card  → amber halo
-  success: "warning", // green card   → amber halo
+  info: "success", // blue card    → green halo   (1.54)
+  warning: "purple", // yellow card  → purple halo  (2.15)
+  danger: "warning", // red card     → amber halo   (1.93)
+  purple: "warning", // purple card  → amber halo   (2.15)
+  success: "purple", // green card   → purple halo  (1.90)
 };
 
 export const haloAccentFor = (cardAccent: string): CardAccent =>

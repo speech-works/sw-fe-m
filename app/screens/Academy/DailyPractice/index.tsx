@@ -59,9 +59,9 @@ const DailyPractice = () => {
     icon: React.ReactNode;
     accent: HubAccent;
   }> = [
-    // Show the structured daily assessment only after onboarding is complete
-    ...(hasCompletedOnboarding
-      ? [
+      // Show the structured daily assessment only after onboarding is complete
+      ...(hasCompletedOnboarding
+        ? [
           {
             title: "Daily Check-in",
             description: "Complete your 7-Day Pulse",
@@ -76,7 +76,7 @@ const DailyPractice = () => {
             accent: "info" as HubAccent,
           },
         ]
-      : [
+        : [
           // Otherwise show "Complete Profile" to nudge them to finish onboarding
           {
             title: "Complete Profile",
@@ -92,35 +92,35 @@ const DailyPractice = () => {
             accent: "info" as HubAccent,
           },
         ]),
-    {
-      title: "Fun Activities",
-      description: "Playful speech practice",
-      onPress: moveToFunPractice,
-      icon: <MovieFace size={52} />,
-      accent: "success",
-    },
-    {
-      title: "Reading Practice",
-      description: "Guided reading exercises",
-      onPress: moveToReadingPractice,
-      icon: <ReaderFace size={52} />,
-      accent: "warning",
-    },
-    {
-      title: "Cognitive Therapy",
-      description: "Mental exercises & techniques",
-      onPress: moveToCognitiveTherapy,
-      icon: <BreathingFace size={52} />,
-      accent: "purple",
-    },
-    {
-      title: "Exposure",
-      description: "Real-world speaking scenarios",
-      onPress: moveToExposure,
-      icon: <ExposureFace size={52} />,
-      accent: "danger",
-    },
-  ];
+      {
+        title: "Fun Activities",
+        description: "Playful speech practice",
+        onPress: moveToFunPractice,
+        icon: <MovieFace size={52} />,
+        accent: "success",
+      },
+      {
+        title: "Reading Practice",
+        description: "Guided reading exercises",
+        onPress: moveToReadingPractice,
+        icon: <ReaderFace size={52} />,
+        accent: "warning",
+      },
+      {
+        title: "Cognitive Therapy",
+        description: "Mental exercises & techniques",
+        onPress: moveToCognitiveTherapy,
+        icon: <BreathingFace size={52} />,
+        accent: "purple",
+      },
+      {
+        title: "Exposure",
+        description: "Real-world speaking scenarios",
+        onPress: moveToExposure,
+        icon: <ExposureFace size={52} />,
+        accent: "danger",
+      },
+    ];
 
   return (
     <Page title="Daily Practice" onBack={() => navigation.goBack()}>

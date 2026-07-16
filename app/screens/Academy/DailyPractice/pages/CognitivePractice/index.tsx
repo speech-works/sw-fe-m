@@ -1,10 +1,19 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withDelay,
+  interpolate,
+} from "react-native-reanimated";
 import {
   PracticeIcon,
   haloAccentFor,
 } from "../../../../../assets/practice-icons/PracticeIcon";
+import { AnimatedMirrorWorkIcon } from "../../../../../assets/practice-icons/AnimatedMirrorWorkIcon";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -19,6 +28,8 @@ import {
   Icon,
   icons,
   useTheme,
+  useMotion,
+  easing,
   spacing,
   radius,
 } from "../../../../../design-system";
@@ -26,6 +37,54 @@ import {
 /** Vivid accent role per sub-category — keeps each card distinct while the whole
  *  list lives on the dark canvas (the PracticeGrid solid-accent recipe). */
 type CognitiveAccent = "info" | "success" | "warning" | "purple" | "danger";
+
+const Ripple = ({ color, size, loop, offset }: { color: string; size: number; loop: any; offset: number }) => {
+  const style = useAnimatedStyle(() => {
+    const progress = (loop.value + offset) % 1;
+    // Ease out the scale slightly by interpolating it non-linearly, or just keep linear. Linear looks good for ripples.
+    return {
+      transform: [{ scale: interpolate(progress, [0, 1], [1, 2.8]) }],
+      opacity: interpolate(progress, [0, 0.7, 1], [0.6, 0.1, 0]),
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          borderRadius: size / 2,
+          borderWidth: 2,
+          borderColor: color,
+        },
+        style,
+      ]}
+      pointerEvents="none"
+    />
+  );
+};
+
+const RippleBackground = ({ color, size }: { color: string; size: number }) => {
+  const { reduced } = useMotion();
+  const loop = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (reduced) return;
+    loop.value = withRepeat(
+      withTiming(1, { duration: 3000, easing: easing.linear }),
+      -1,
+      false
+    );
+  }, [reduced, loop]);
+
+  return (
+    <View style={{ position: "absolute", top: 0, left: 0, width: size, height: size, zIndex: -1 }}>
+      <Ripple color={color} size={size} loop={loop} offset={0} />
+      <Ripple color={color} size={size} loop={loop} offset={0.33} />
+      <Ripple color={color} size={size} loop={loop} offset={0.66} />
+    </View>
+  );
+};
 
 const CognitivePractice = () => {
   const navigation =
@@ -125,11 +184,25 @@ const CognitivePractice = () => {
                   <View style={styles.iconContainer} pointerEvents="none">
                     <View style={styles.iconWrapper}>
                       {/* Halo contrasts the card fill so the icon stays visible. */}
-                      <PracticeIcon
-                        name={item.iconName}
-                        size={80}
-                        housing={colors.accent[haloAccentFor(item.accent)]}
-                      />
+                      {/* Halo contrasts the card fill so the icon stays visible. */}
+                      {item.iconName === "cognitive-guided-meditation" && (
+                        <RippleBackground
+                          color={colors.accent[haloAccentFor(item.accent)]}
+                          size={80}
+                        />
+                      )}
+                      {item.iconName === "cognitive-mirror-work" ? (
+                        <AnimatedMirrorWorkIcon
+                          size={80}
+                          housing={colors.accent[haloAccentFor(item.accent)]}
+                        />
+                      ) : (
+                        <PracticeIcon
+                          name={item.iconName}
+                          size={80}
+                          housing={colors.accent[haloAccentFor(item.accent)]}
+                        />
+                      )}
                     </View>
                   </View>
                 </View>

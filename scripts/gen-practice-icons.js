@@ -1,12 +1,22 @@
 /* Generates app/assets/practice-icons/registry.ts from the .svg sources so the
- * app can render them via <SvgXml> without an svg-file loader. Re-run after
- * updating any .svg: `node scripts/gen-practice-icons.js`. */
+ * app can render them via <SvgXml> without an svg-file loader.
+ *
+ *   node scripts/gen-practice-icons.js          # (re)write registry.ts
+ *   node scripts/gen-practice-icons.js --check  # verify registry matches the
+ *                                               # SVGs; exit 1 + name stale
+ *                                               # files (drift guard, also as
+ *                                               # `npm run icons:check`)
+ *
+ * Re-run after editing any .svg — the registry is the only thing the app ships.
+ */
 const fs = require("fs");
 const path = require("path");
 
 const base = path.join(__dirname, "..", "app", "assets", "practice-icons");
-const out = {};
+const registryPath = path.join(base, "registry.ts");
+const checkMode = process.argv.includes("--check");
 
+const out = {};
 for (const sub of ["categories", "items"]) {
   const dir = path.join(base, sub);
   for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".svg"))) {
@@ -23,6 +33,36 @@ const body =
   JSON.stringify(out, null, 2) +
   ";\n\nexport type PracticeIconKey = keyof typeof PRACTICE_ICON_XML;\n";
 
-fs.writeFileSync(path.join(base, "registry.ts"), body);
+if (checkMode) {
+  const current = fs.existsSync(registryPath)
+    ? fs.readFileSync(registryPath, "utf8")
+    : "";
+  if (current === body) {
+    console.log(`icons:check OK — registry matches ${Object.keys(out).length} SVGs`);
+    process.exit(0);
+  }
+  // Name the stale keys so the fix is obvious. (Slice from the assignment,
+  // not the first "{" — the header comment contains "{categories,items}".)
+  const assignAt = current.indexOf("= {");
+  const currentJson = current.slice(assignAt + 2, current.lastIndexOf("};") + 1);
+  let stale = [];
+  try {
+    const existing = JSON.parse(currentJson);
+    stale = [
+      ...Object.keys(out).filter((k) => existing[k] !== out[k]),
+      ...Object.keys(existing).filter((k) => !(k in out)).map((k) => `${k} (removed)`),
+    ];
+  } catch {
+    stale = ["<registry unparseable>"];
+  }
+  console.error(
+    "icons:check FAILED — registry.ts is stale vs the .svg sources.\n" +
+      `Out of sync: ${stale.join(", ") || "<formatting drift>"}\n` +
+      "Fix: node scripts/gen-practice-icons.js",
+  );
+  process.exit(1);
+}
+
+fs.writeFileSync(registryPath, body);
 console.log("wrote registry.ts with", Object.keys(out).length, "icons:");
 console.log(Object.keys(out).join(", "));
