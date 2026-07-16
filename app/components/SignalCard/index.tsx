@@ -87,9 +87,9 @@ const statForField = (
     case "showedUp":
       return payload.showedUp ? { icon: icons.success, label: "Showed up" } : null;
     case "streakDays":
-      return payload.streakDays ? { icon: icons.streak, label: `${payload.streakDays}-day streak` } : null;
+      return payload.streakDays ? { icon: icons.streak, label: `${payload.streakDays} days in a row` } : null;
     case "xpEarned":
-      return payload.xpEarned ? { icon: icons.xp, label: `+${payload.xpEarned} XP` } : null;
+      return payload.xpEarned ? { icon: icons.xp, label: `+${payload.xpEarned} growth` } : null;
     case "leveledUp":
       return payload.leveledUp ? { icon: icons.levelUp, label: "Leveled up" } : null;
     case "levelStageTitle":

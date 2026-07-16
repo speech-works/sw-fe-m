@@ -6,6 +6,7 @@ import type { MirrorWorkComparison } from "../../screens/Academy/DailyPractice/p
 
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
+import { useCelebrationStore } from "../../stores/celebration";
 
 interface GetActivitiesBySessionIdReq {
   sessionId: string;
@@ -191,6 +192,10 @@ export async function completePracticeActivity({
   toolsUsed?: ToolType[];
 }): Promise<PracticeActivity> {
   try {
+    // Snapshot pre-completion XP/level so DonePractice can diff a fresh
+    // /users/me into a "+N growth" celebration (XP is awarded server-side).
+    useCelebrationStore.getState().capture();
+
     const requestBody: any = {
       userId,
       ...vitals, // Spread vitals if provided
@@ -256,6 +261,10 @@ export async function completeMirrorWorkActivity(
   userId: string,
   mirrorWorkPayload: MirrorWorkCompletionApiPayload,
 ): Promise<PracticeActivity> {
+  // Same pre-completion snapshot as completePracticeActivity — Mirror Work has
+  // its own dedicated endpoint but the same "+N growth" celebration on Done.
+  useCelebrationStore.getState().capture();
+
   console.log('>> API: Completing Mirror Work Activity', { id, mirrorWorkPayload });
   const response = await axiosClient.post(
     `/practice-activities/${id}/complete-mirror-work`,

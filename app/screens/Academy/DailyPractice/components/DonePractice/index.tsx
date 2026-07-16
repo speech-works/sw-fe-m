@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -23,6 +23,9 @@ import { mapPracticeToCategory } from "../../../../../constants/reminderTemplate
 import { getMyBuddy } from "../../../../../api/buddies";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
+import { useMotion } from "../../../../../design-system/useMotion";
+import { useCompletionCelebration } from "./useCompletionCelebration";
+import { LevelUpTakeover } from "./LevelUpTakeover";
 
 interface DonePracticeProps {
   practiceName?: string;
@@ -60,6 +63,28 @@ const DonePractice = ({
   // Subtle entrance for the status disc — bouncy celebration when completed,
   // a gentler settle when the session was ended early. Reduced-motion aware.
   const discPop = useSuccessPop(true, { celebrate: !isAborted });
+  const { reduced } = useMotion();
+
+  // Routine completions stay a plain warm screen (they happen many times a
+  // day). Only a real level-up — rare, genuinely exciting — earns a moment.
+  const celebration = useCompletionCelebration({ enabled: !isAborted });
+  const [showTakeover, setShowTakeover] = useState(false);
+  const takeoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Arm the level-up takeover a beat after the success screen settles; reduced
+  // motion arms it sooner. Navigating away before it arms simply loses it —
+  // Home shows the new level.
+  useEffect(() => {
+    if (celebration.leveledUp) {
+      takeoverTimer.current = setTimeout(
+        () => setShowTakeover(true),
+        reduced ? 400 : 900,
+      );
+    }
+    return () => {
+      if (takeoverTimer.current) clearTimeout(takeoverTimer.current);
+    };
+  }, [celebration.leveledUp, reduced]);
 
   useEffect(() => {
     if (isAborted) return;
@@ -75,8 +100,9 @@ const DonePractice = ({
       {/* Dark canvas (replaces the legacy light gradient background). */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: pageColor }]} />
 
-      {/* Confetti (Only if completed) — bright saturated hues read on the dark canvas. */}
-      {!isAborted && <ConfettiAnimation />}
+      {/* Confetti (Only if completed) — bright saturated hues read on the dark canvas.
+          Gated on reduced motion here: ConfettiAnimation does not self-gate. */}
+      {!isAborted && !reduced && <ConfettiAnimation />}
 
       <View style={styles.content}>
         {/* Status disc — green success on completion, a calm neutral disc when aborted. */}
@@ -223,6 +249,16 @@ const DonePractice = ({
           )}
         </View>
       </View>
+
+      {/* Level-up celebration — exclusive AnimatedModal, defers while any other
+          native modal (e.g. the Reminder sheet) is up. onClose is the Phase-5
+          reward-grant chaining seam. */}
+      <LevelUpTakeover
+        visible={showTakeover}
+        newLevel={celebration.newLevel}
+        stageTitle={celebration.stageTitle}
+        onClose={() => setShowTakeover(false)}
+      />
     </ScreenView>
   );
 };

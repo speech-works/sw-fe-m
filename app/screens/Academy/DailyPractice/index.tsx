@@ -94,7 +94,7 @@ const DailyPractice = () => {
         ]),
     {
       title: "Fun Activities",
-      description: "Interactive speech games",
+      description: "Playful speech practice",
       onPress: moveToFunPractice,
       icon: <MovieFace size={52} />,
       accent: "success",

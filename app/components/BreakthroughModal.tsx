@@ -65,7 +65,7 @@ export const BreakthroughModal: React.FC<BreakthroughModalProps> = ({
 
         <View style={[styles.deltaChip, { backgroundColor: accent }]}>
           <Text variant="title" color={onAccent}>
-            +{data.delta} Points
+            {axisTitle} +{data.delta}
           </Text>
         </View>
 
@@ -77,7 +77,7 @@ export const BreakthroughModal: React.FC<BreakthroughModalProps> = ({
           style={[styles.scoreRow, { borderTopColor: colors.border.hairline }]}
         >
           <Text variant="bodySm" color="secondary">
-            New Score
+            Now at
           </Text>
           <Text variant="h3" color="primary">
             {data.newScore}
@@ -86,7 +86,7 @@ export const BreakthroughModal: React.FC<BreakthroughModalProps> = ({
 
         <View style={styles.actions}>
           <Button
-            label="Acknowledged"
+            label="Got it"
             accentColor={accent}
             onAccentColor={onAccent}
             onPress={onClose}

@@ -16,7 +16,6 @@ import {
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
-import Toast from "react-native-toast-message";
 // Exception: the bond-stage glyph is SERVER-DRIVEN as a MaterialCommunityIcons name,
 // so it must render via MCI until the backend emits DS/Lucide names (see bondStageIcon).
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -51,7 +50,6 @@ import {
   bestForeground,
   zIndex,
   Page,
-  ListItem,
   Surface,
 } from "../../design-system";
 import {
@@ -633,9 +631,6 @@ const Community = () => {
       );
 
     // Cooperative figures — server-computed, cumulative, never a contest.
-    const bondCeil = team?.bondXpCeiling ?? 1;
-    const bondXpVal = team?.bondXp ?? 0;
-    const bondToNext = Math.max(0, bondCeil - bondXpVal);
     const daysTogether =
       team?.daysTogether ?? daysBetween(link?.activatedAt ?? link?.createdAt);
     const momentumLine = team?.buddyLastPracticeAt
@@ -706,16 +701,13 @@ const Community = () => {
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text variant="h3" color={colors.accentOn.warning}>{team?.bondStageTitle ?? "Kindred"}</Text>
-                  <Text variant="bodySm" color={colors.accentOn.warning}>Bond Level {team?.bondLevel ?? 1}</Text>
-                </View>
-                <View style={[styles.bondXpBadge, { backgroundColor: colors.surface.default }]}>
-                  <Text variant="caption" color="primary" style={styles.bold}>{bondXpVal.toLocaleString()} XP</Text>
+                  <Text variant="bodySm" color={colors.accentOn.warning}>Chapter {team?.bondLevel ?? 1} together</Text>
                 </View>
               </View>
               <Text variant="caption" color={colors.accentOn.warning}>
-                {bondToNext.toLocaleString()} XP to Bond Level {(team?.bondLevel ?? 1) + 1}
+                Growing toward chapter {(team?.bondLevel ?? 1) + 1}
                 {team && !team.buddyShares
-                  ? ` · ${buddyFirstName}'s XP joins once they share`
+                  ? ` · grows faster when ${buddyFirstName} shares too`
                   : ""}
               </Text>
               {momentumLine ? (
@@ -740,7 +732,7 @@ const Community = () => {
                   />
                 </View>
                 <AnimatedNumber value={team?.combinedXpThisWeek ?? 0} color={colors.accentOn.purple} />
-                <Text variant="caption" color={colors.accentOn.purple} style={[styles.statTileLabel]}>XP THIS WEEK</Text>
+                <Text variant="caption" color={colors.accentOn.purple} style={[styles.statTileLabel]}>GROWTH THIS WEEK</Text>
               </View>
               <View style={[styles.statTile, { backgroundColor: colors.accent.info }]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
@@ -774,7 +766,7 @@ const Community = () => {
               ) : team?.bothActiveThisWeek ? (
                 <View style={[styles.liveRow, { borderTopColor: colors.accentOn.danger }]}>
                   <Icon name={icons.streak} size={16} color={colors.accentOn.danger} />
-                  <Text variant="caption" color={colors.accentOn.danger} style={styles.liveText}>You hit this week's goal together!</Text>
+                  <Text variant="caption" color={colors.accentOn.danger} style={styles.liveText}>You both showed up this week!</Text>
                 </View>
               ) : null}
             </View>
@@ -792,7 +784,7 @@ const Community = () => {
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Share my progress</Text>
-                <Text variant="bodySm" color="secondary">Let {buddyFirstName} see your XP and level.</Text>
+                <Text variant="bodySm" color="secondary">Let {buddyFirstName} see your progress.</Text>
               </View>
               <Toggle value={iShare} />
             </PressableScale>
@@ -1161,12 +1153,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 14,
   },
-  bondXpBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-  },
-
   // Live freshness row (momentum)
   liveRow: {
     flexDirection: "row",

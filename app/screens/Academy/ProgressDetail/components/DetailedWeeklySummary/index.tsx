@@ -267,13 +267,13 @@ const DetailedWeeklySummary = ({
         </>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text variant="h2">Build Your Streak</Text>
+          <Text variant="h2">Your Growth Starts Here</Text>
           <Text variant="bodySm" color="secondary">
             Start practicing to track your stats.
           </Text>
           <View style={[styles.tipPill, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
             <Icon name={icons.tip} size={12} color={colors.feedback.warningText} />
-            <Text variant="caption" color="secondary">Tip: Consistency is king.</Text>
+            <Text variant="caption" color="secondary">Tip: Little and often beats all-at-once.</Text>
           </View>
         </View>
       )}

@@ -67,7 +67,7 @@ const LifetimeJourneyCard = ({
         {stat(formatMinutes(journey.totalPracticeMinutes), "Practice time")}
         {stat(journey.totalCompletedPractices, "Practices")}
         {stat(journey.totalPracticeDays, "Practice days")}
-        {stat(`L${journey.level} • ${journey.totalXp} XP`, "Level • XP")}
+        {stat(`Level ${journey.level}`, "Level")}
       </View>
     </View>
   );
