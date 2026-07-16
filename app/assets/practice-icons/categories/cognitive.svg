@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Cognitive</title>
+  <desc id="desc">A dark squircle wearer with calming over-ear headphones.</desc>
+  <defs>
+    <clipPath id="cognitive-clip"><circle cx="24" cy="24" r="24"/></clipPath>
+      <radialGradient id="cognitive-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cognitive-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#cognitive-clip)">
+    <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#cognitive-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#cognitive-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+    <path fill="#171420" d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"/>
+    <path d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0" fill="none" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="1.3" stroke-linecap="round"/>
+    <!-- Band: symmetric about the head's true centre (24.675); apex y=7 with
+         stroke-width 4 spans y 5–9, so its lower edge overlaps the crown (y=8)
+         and it visibly RESTS on the head instead of hovering. Drawn before the
+         cups so its ends tuck cleanly under them. -->
+    <path d="M8.075 22C8.075 12 15 7 24.675 7 34.35 7 41.275 12 41.275 22" fill="none" stroke="#A9F0D1" stroke-width="4" stroke-linecap="round"/>
+    <!-- Cups straddle the head's real side edges at ear height (head spans
+         x 6.07→43.27 at y=24), so each grips the silhouette rather than
+         floating on the face. Centres at 24.675 ∓ 16.6. -->
+    <rect x="4.375" y="20.1" width="7.4" height="14.2" rx="3.7" fill="#A9F0D1"/>
+    <rect x="37.575" y="20.1" width="7.4" height="14.2" rx="3.7" fill="#A9F0D1"/>
+    <path d="M8.075 23.3v7.8M41.275 23.3v7.8" stroke="#3D9C7C" stroke-width="2" stroke-linecap="round"/>
+      <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(40.2 9.6) rotate(15)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(33.5 16.2)"/>
+  </g>
+</svg>

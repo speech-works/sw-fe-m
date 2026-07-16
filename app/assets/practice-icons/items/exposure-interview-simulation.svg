@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Interview Simulation</title>
+  <desc id="desc">A crisp necktie representing interview practice.</desc>
+  <defs>
+    <radialGradient id="exposure-interview-simulation-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="exposure-interview-simulation-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#exposure-interview-simulation-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#exposure-interview-simulation-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <path d="m8 7 11.4 3.2L24 17l4.6-6.8L40 7l-6.3 14.5-4.3-4.2L34 38.9 24 45l-10-6.1 4.6-21.6-4.3 4.2L8 7Z" fill="#5D45B8"/>
+  <path d="m8 4 11.4 3.2L24 14l4.6-6.8L40 4l-6.3 14.5-4.3-4.2L34 35.9 24 42l-10-6.1 4.6-21.6-4.3 4.2L8 4Z" fill="#FFF4D8"/>
+  <path d="m21.1 14 2.9-4.2 2.9 4.2-1.7 4.4h-2.4L21.1 14Zm1.7 4.4h2.4l4 15.7-5.2 3.2-5.2-3.2 4-15.7Z" fill="#FF8D72"/>
+  <path d="m19.5 32.1 4.5 2.8 4.5-2.8" fill="none" stroke="#D4555E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(9.9 31.4) rotate(-14)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(38.4 29.6)"/>
+</svg>

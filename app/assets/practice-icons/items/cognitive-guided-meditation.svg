@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Guided Meditation</title>
+  <desc id="desc">A calm stack of rounded zen stones.</desc>
+  <defs>
+    <radialGradient id="cognitive-guided-meditation-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cognitive-guided-meditation-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#cognitive-guided-meditation-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#cognitive-guided-meditation-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <path d="M7 38.2c0-5 4.1-9.1 9.1-9.1h15.8c5 0 9.1 4.1 9.1 9.1H7Z" fill="#A03F52"/>
+  <path d="M9 35.2c0-5 4.1-9.1 9.1-9.1h11.8c5 0 9.1 4.1 9.1 9.1H9Z" fill="#A9F0D1"/>
+  <path d="M14.3 24.7c0-4 3.2-7.2 7.2-7.2h5c4 0 7.2 3.2 7.2 7.2H14.3Z" fill="#FFF4D8"/>
+  <path d="M18.2 16.2c0-3.2 2.6-5.8 5.8-5.8s5.8 2.6 5.8 5.8H18.2Z" fill="#A9F0D1"/>
+  <path d="M15 31.1h18M20.3 21.1h7.4" stroke="#65BE9A" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(9.4 13.5) rotate(-14)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(39.6 15.3)"/>
+</svg>

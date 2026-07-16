@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 940" role="img" aria-labelledby="title desc">
+  <title id="title">Speechworks practice icon system</title>
+  <desc id="desc">Four category icons and fifteen item icons grouped by practice category.</desc>
+  <rect width="960" height="940" rx="36" fill="#101014"/>
+  <g font-family="Inter, Arial, sans-serif" fill="#FFFDF7">
+    <text x="48" y="66" font-size="30" font-weight="700">Speechworks practice icons</text>
+    <text x="48" y="96" font-size="16" fill="#AAA6B2">Category wearables + item objects · 48×48 source SVGs</text>
+
+    <text x="48" y="145" font-size="15" font-weight="700" letter-spacing="2" fill="#AAA6B2">CATEGORIES</text>
+    <g font-size="15" font-weight="650" text-anchor="middle">
+      <g transform="translate(48 166)"><rect width="192" height="184" rx="24" fill="#1B1A21"/><image href="categories/reading.svg" x="36" y="18" width="120" height="120"/><text x="96" y="163">Reading</text></g>
+      <g transform="translate(272 166)"><rect width="192" height="184" rx="24" fill="#1B1A21"/><image href="categories/fun.svg" x="36" y="18" width="120" height="120"/><text x="96" y="163">Fun</text></g>
+      <g transform="translate(496 166)"><rect width="192" height="184" rx="24" fill="#1B1A21"/><image href="categories/cognitive.svg" x="36" y="18" width="120" height="120"/><text x="96" y="163">Cognitive</text></g>
+      <g transform="translate(720 166)"><rect width="192" height="184" rx="24" fill="#1B1A21"/><image href="categories/exposure.svg" x="36" y="18" width="120" height="120"/><text x="96" y="163">Exposure</text></g>
+    </g>
+
+    <text x="48" y="400" font-size="15" font-weight="700" letter-spacing="2" fill="#AAA6B2">ITEMS</text>
+    <g font-size="12.5" font-weight="600" text-anchor="middle">
+      <g transform="translate(48 422)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/reading-words.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Words</text><circle cx="76" cy="135" r="3" fill="#5B9DF9"/></g>
+      <g transform="translate(216 422)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/reading-phrases.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Phrases</text><circle cx="76" cy="135" r="3" fill="#5B9DF9"/></g>
+      <g transform="translate(384 422)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/reading-quotes.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Quotes</text><circle cx="76" cy="135" r="3" fill="#5B9DF9"/></g>
+      <g transform="translate(552 422)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/reading-poems.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Poems</text><circle cx="76" cy="135" r="3" fill="#5B9DF9"/></g>
+      <g transform="translate(720 422)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/reading-stories.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Stories</text><circle cx="76" cy="135" r="3" fill="#5B9DF9"/></g>
+
+      <g transform="translate(48 584)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/fun-tongue-twisters.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Tongue</tspan><tspan x="76" dy="15">Twisters</tspan></text><circle cx="76" cy="137" r="3" fill="#F5C64E"/></g>
+      <g transform="translate(216 584)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/fun-roleplay.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Roleplay</text><circle cx="76" cy="135" r="3" fill="#F5C64E"/></g>
+      <g transform="translate(384 584)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/fun-character-voice.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Character</tspan><tspan x="76" dy="15">Voice</tspan></text><circle cx="76" cy="137" r="3" fill="#F5C64E"/></g>
+      <g transform="translate(552 584)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/cognitive-guided-breathing.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Guided</tspan><tspan x="76" dy="15">Breathing</tspan></text><circle cx="76" cy="137" r="3" fill="#F06B6B"/></g>
+      <g transform="translate(720 584)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/cognitive-guided-meditation.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Guided</tspan><tspan x="76" dy="15">Meditation</tspan></text><circle cx="76" cy="137" r="3" fill="#F06B6B"/></g>
+
+      <g transform="translate(48 746)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/cognitive-reframe-thoughts.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Reframe</tspan><tspan x="76" dy="15">Thoughts</tspan></text><circle cx="76" cy="137" r="3" fill="#F06B6B"/></g>
+      <g transform="translate(216 746)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/cognitive-mirror-work.svg" x="36" y="14" width="80" height="80"/><text x="76" y="121">Mirror Work</text><circle cx="76" cy="135" r="3" fill="#F06B6B"/></g>
+      <g transform="translate(384 746)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/exposure-social-challenges.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Social</tspan><tspan x="76" dy="15">Challenges</tspan></text><circle cx="76" cy="137" r="3" fill="#9B87F5"/></g>
+      <g transform="translate(552 746)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/exposure-interview-simulation.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">Interview</tspan><tspan x="76" dy="15">Simulation</tspan></text><circle cx="76" cy="137" r="3" fill="#9B87F5"/></g>
+      <g transform="translate(720 746)"><rect width="152" height="146" rx="20" fill="#1B1A21"/><image href="items/exposure-ai-phone-calls.svg" x="36" y="14" width="80" height="80"/><text x="76" y="116"><tspan x="76">AI Phone</tspan><tspan x="76" dy="15">Calls</tspan></text><circle cx="76" cy="137" r="3" fill="#9B87F5"/></g>
+    </g>
+  </g>
+</svg>

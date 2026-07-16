@@ -1,15 +1,11 @@
-import {
-  useFocusEffect,
-  useIsFocused,
-  useNavigation,
-} from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import ReaderFace from "../../../assets/mood-check/ReaderFace";
-import WarriorFace from "../../../assets/mood-check/WarriorFace";
-import BreathingFace from "../../../assets/sw-faces/BreathingFace";
-import MovieFace from "../../../assets/sw-faces/MovieFace";
+import {
+  PracticeIcon,
+  haloAccentFor,
+} from "../../../assets/practice-icons/PracticeIcon";
 import { usePracticeCategorySummaryStore } from "../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../stores/user";
 import {
@@ -37,17 +33,17 @@ type Practice = {
   subtitle: string;
   weeklyCount: number;
   badge?: string;
-  faceType: "reader" | "movie" | "breathing" | "warrior";
+  /** Practice-icon registry key (the face-free object system). */
+  iconKey: "reading" | "fun" | "cognitive" | "exposure";
   route: string;
   /** Vivid energy accent — keys of `colors.accent`/`colors.accentOn` (Community-card pattern).
    *  Chosen distinct + to contrast each card's avatar plate. */
   accent: "info" | "warning" | "danger" | "purple";
 };
 
-const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
+const PracticeGrid = (_props: { isScrolling?: boolean }) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const isFocused = useIsFocused();
   const { colors, elevation } = useTheme();
   const { user } = useUserStore();
   const { categories, fetchSummary } = usePracticeCategorySummaryStore();
@@ -80,7 +76,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Reading",
         subtitle: "Read Aloud",
         weeklyCount: getCount("READING_PRACTICE"),
-        faceType: "reader",
+        iconKey: "reading",
         route: "ReadingPracticeStack",
         accent: "info",
       },
@@ -88,7 +84,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Fun",
         subtitle: "Expression",
         weeklyCount: getCount("FUN_PRACTICE"),
-        faceType: "movie",
+        iconKey: "fun",
         route: "FunPracticeStack",
         accent: "warning",
       },
@@ -96,8 +92,9 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Cognitive",
         subtitle: "Focus",
         weeklyCount: getCount("COGNITIVE_PRACTICE"),
-        badge: "FREE",
-        faceType: "breathing",
+        // No category-level FREE badge: only Breathing + Meditation are free;
+        // Reframe and Mirror Work cost stamina. Item-level badges stay accurate.
+        iconKey: "cognitive",
         route: "CognitivePracticeStack",
         accent: "danger",
       },
@@ -105,30 +102,13 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Exposure",
         subtitle: "Courage",
         weeklyCount: getCount("EXPOSURE_PRACTICE"),
-        faceType: "warrior",
+        iconKey: "exposure",
         route: "ExposureStack",
         accent: "purple",
       },
     ],
     [getCount],
   );
-
-  const shouldAnimate = isFocused && !isScrolling;
-
-  const renderFace = (faceType: string) => {
-    switch (faceType) {
-      case "reader":
-        return <ReaderFace size={64} shouldAnimate={shouldAnimate} loop />;
-      case "movie":
-        return <MovieFace size={64} shouldAnimate={shouldAnimate} loop />;
-      case "breathing":
-        return <BreathingFace size={64} shouldAnimate={shouldAnimate} loop />;
-      case "warrior":
-        return <WarriorFace size={64} shouldAnimate={shouldAnimate} loop />;
-      default:
-        return null;
-    }
-  };
 
   const handlePress = (route: string) => {
     // @ts-ignore - Simple navigation wrapper
@@ -163,7 +143,12 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
                   <Text variant="h3" color={on}>{p.name}</Text>
                 </View>
                 <View style={styles.iconWrapper} pointerEvents="none">
-                  {renderFace(p.faceType)}
+                  {/* Halo contrasts the card fill so the icon never vanishes into it. */}
+                  <PracticeIcon
+                    name={p.iconKey}
+                    size={64}
+                    housing={colors.accent[haloAccentFor(p.accent)]}
+                  />
                 </View>
               </View>
 

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Social Challenges</title>
+  <desc id="desc">Two overlapping speech bubbles representing conversation.</desc>
+  <defs>
+    <radialGradient id="exposure-social-challenges-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="exposure-social-challenges-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#exposure-social-challenges-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#exposure-social-challenges-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <path d="M18.2 18.2h24.1v17.5h-6v6l-7.4-6H18.2V18.2Z" fill="#5D45B8"/>
+  <path d="M18.2 15.2h24.1v17.5h-6v6l-7.4-6H18.2V15.2Z" fill="#FF8D72"/>
+  <path d="M5.7 8.2h25.8v18.4H19.6l-7.9 6v-6h-6V8.2Z" fill="#FFF4D8"/>
+  <path d="M11.4 14.5h14.4M11.4 20.1h9.1M24.2 23.5h11.2" fill="none" stroke="#5D45B8" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(40.9 9.4) rotate(12)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(7.9 33.6)"/>
+</svg>

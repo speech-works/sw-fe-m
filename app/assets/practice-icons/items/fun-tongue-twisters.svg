@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Tongue Twisters</title>
+  <desc id="desc">A friendly smiling mouth speaking two playful winding phrase lines.</desc>
+  <defs>
+    <radialGradient id="fun-tongue-twisters-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fun-tongue-twisters-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#fun-tongue-twisters-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#fun-tongue-twisters-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <!-- Winding phrase lines communicate the challenge without an anatomical tongue. -->
+  <path d="M7.8 10.8c3.2-3.5 6.4-3.5 9.6 0s6.4 3.5 9.6 0 6.4-3.5 9.6 0" fill="none" stroke="#B53B51" stroke-width="5.2" stroke-linecap="round"/>
+  <path d="M7.8 8.8c3.2-3.5 6.4-3.5 9.6 0s6.4 3.5 9.6 0 6.4-3.5 9.6 0" fill="none" stroke="#FFF4D8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M12 18.5c2.5-2.7 5-2.7 7.5 0s5 2.7 7.5 0 5-2.7 7.5 0" fill="none" stroke="#B53B51" stroke-width="4.4" stroke-linecap="round"/>
+  <path d="M12 16.8c2.5-2.7 5-2.7 7.5 0s5 2.7 7.5 0 5-2.7 7.5 0" fill="none" stroke="#A9F0D1" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Compact smiling mouth with a small, contained tongue. -->
+  <path d="M9 31.5c3.7-5.9 8.2-7.9 15-4.3 6.8-3.6 11.3-1.6 15 4.3-2.7 7.7-8 11.5-15 11.5S11.7 39.2 9 31.5Z" fill="#B53B51" transform="translate(0 2.2)"/>
+  <path d="M9 29.3c3.7-5.9 8.2-7.9 15-4.3 6.8-3.6 11.3-1.6 15 4.3-2.7 7.7-8 11.5-15 11.5S11.7 37 9 29.3Z" fill="#FF6B6B"/>
+  <path d="M13.2 29.9c3.4-2.5 7-2.8 10.8-.8 3.8-2 7.4-1.7 10.8.8-2.7 4.7-6.3 6.8-10.8 6.8s-8.1-2.1-10.8-6.8Z" fill="#171420"/>
+  <path d="M15.1 29.4c3-1.4 6-1.4 8.9.1 2.9-1.5 5.9-1.5 8.9-.1-2.7 2.2-5.7 3.2-8.9 3.2s-6.2-1-8.9-3.2Z" fill="#FFF4D8"/>
+  <path d="M18.2 35.3c1.8-1.1 3.7-1.3 5.8-.3 2.1-1 4-.8 5.8.3-1.5 2.1-3.4 3.1-5.8 3.1s-4.3-1-5.8-3.1Z" fill="#FFAF98"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(41.2 22.7) rotate(15)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(7.5 39.2)"/>
+</svg>

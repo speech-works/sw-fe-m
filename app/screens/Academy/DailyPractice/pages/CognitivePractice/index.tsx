@@ -1,10 +1,10 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingFace";
-import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
-import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
-import SparkleMirrorFace from "../../../../../assets/sw-faces/SparkleMirrorFace";
+import {
+  PracticeIcon,
+  haloAccentFor,
+} from "../../../../../assets/practice-icons/PracticeIcon";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -50,42 +50,41 @@ const CognitivePractice = () => {
     title: string;
     subtitle: string;
     onPress: () => void;
-    icon: React.ReactNode;
+    iconName: string;
     accent: CognitiveAccent;
     badge?: string;
   }> = [
-    {
-      title: "Guided Breathing",
-      subtitle: "Breathing exercise",
-      onPress: () => navigation.navigate("BreathingPractice"),
-      icon: <GuidedBreathingFace size={80} shouldAnimate={false} />,
-      accent: "danger", // pink/rose
-      badge: "FREE",
-    },
-    {
-      title: "Guided Meditation",
-      subtitle: "Mindfulness",
-      onPress: () => navigation.navigate("MeditationPractice"),
-      icon: <MeditationFace size={80} />,
-      accent: "purple", // violet
-      badge: "FREE",
-    },
-    {
-      title: "Reframe Thoughts",
-      subtitle: "Transform negative to positive",
-      onPress: () => navigation.navigate("ReframePractice"),
-      icon: <RewiringFace size={80} />,
-      accent: "info", // indigo → blue
-    },
-    {
-      title: "Mirror Work",
-      subtitle: "Secondary behavior & Feedback",
-      onPress: () => navigation.navigate("MirrorWorkPrep", { practiceData: {} }),
-      icon: <SparkleMirrorFace size={80} />,
-      accent: "success", // blue → next-closest distinct role
-      badge: "NEW",
-    },
-  ];
+      {
+        title: "Guided Breathing",
+        subtitle: "Breathing exercise",
+        onPress: () => navigation.navigate("BreathingPractice"),
+        iconName: "cognitive-guided-breathing",
+        accent: "danger", // pink/rose
+        badge: "FREE",
+      },
+      {
+        title: "Guided Meditation",
+        subtitle: "Mindfulness",
+        onPress: () => navigation.navigate("MeditationPractice"),
+        iconName: "cognitive-guided-meditation",
+        accent: "purple", // violet
+        badge: "FREE",
+      },
+      {
+        title: "Reframe Thoughts",
+        subtitle: "Transform negative to positive",
+        onPress: () => navigation.navigate("ReframePractice"),
+        iconName: "cognitive-reframe-thoughts",
+        accent: "info", // indigo → blue
+      },
+      {
+        title: "Mirror Work",
+        subtitle: "Secondary behavior",
+        onPress: () => navigation.navigate("MirrorWorkPrep", { practiceData: {} }),
+        iconName: "cognitive-mirror-work",
+        accent: "success", // blue → next-closest distinct role
+      },
+    ];
 
   const summary = categories.find(
     (category) => category.contentType === "COGNITIVE_PRACTICE",
@@ -124,7 +123,14 @@ const CognitivePractice = () => {
                     </Text>
                   </View>
                   <View style={styles.iconContainer} pointerEvents="none">
-                    <View style={styles.iconWrapper}>{item.icon}</View>
+                    <View style={styles.iconWrapper}>
+                      {/* Halo contrasts the card fill so the icon stays visible. */}
+                      <PracticeIcon
+                        name={item.iconName}
+                        size={80}
+                        housing={colors.accent[haloAccentFor(item.accent)]}
+                      />
+                    </View>
                   </View>
                 </View>
 

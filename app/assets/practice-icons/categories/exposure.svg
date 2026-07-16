@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Exposure</title>
+  <desc id="desc">A dark squircle wearer with a confident tied headband.</desc>
+  <defs>
+    <clipPath id="exposure-clip"><circle cx="24" cy="24" r="24"/></clipPath>
+      <radialGradient id="exposure-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="exposure-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#exposure-clip)">
+    <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#exposure-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#exposure-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+    <path fill="#171420" d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"/>
+    <path d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0" fill="none" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="1.3" stroke-linecap="round"/>
+    <!-- Knot drawn BEFORE the band so its base tucks under it and only the tail
+         emerges past the band's right edge (43.05) — reads as tied at the side. -->
+    <path fill="#C84C4C" d="M41.5 16.5c2 .3 3.8 1.4 5 3.1l-3.1 1.3 1.8 2.8c-2-.3-3.8-1.4-4.9-3l1.2-4.2Z"/>
+    <!-- Band spans the head's TRUE edges at forehead height (head spans
+         x 6.24→43.11 at y=20), centred on 24.675, so it wraps the head instead
+         of stopping short and reading as paint on the face. -->
+    <path fill="#FF8D72" d="M6.3 14c11-3.4 25.75-3.4 36.75 0v7.2c-11-2.7-25.75-2.7-36.75 0V14Z"/>
+    <path d="M9.5 15.8c8.2-2 22.15-2 30.35 0" fill="none" stroke="#FFC1A6" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(13.2 5.4) rotate(-12)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(31.8 4.6)"/>
+  </g>
+</svg>

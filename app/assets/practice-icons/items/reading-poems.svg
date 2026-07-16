@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Poems</title>
+  <desc id="desc">A finished dark quill with a bright central shaft.</desc>
+  <defs>
+    <radialGradient id="reading-poems-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="reading-poems-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#reading-poems-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#reading-poems-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <!-- One closed silhouette makes the full feather legible instead of sketch-like. -->
+  <path d="M9.4 41.8c2.2-11 6.7-21.6 15.7-30.4C30.2 6.3 36.4 4.3 42 5.5c.8 5.7-1.2 11.8-6.4 16.9-5 4.8-11.3 7.6-18.5 8.6-2.4 3.7-4.5 7.5-6.1 11.5l-1.6-.7Z" fill="#306FC8"/>
+  <path d="M8 39.8c2.2-11 6.7-21.6 15.7-30.4C28.8 4.3 35 2.3 40.6 3.5c.8 5.7-1.2 11.8-6.4 16.9-5 4.8-11.3 7.6-18.5 8.6-2.4 3.7-4.5 7.5-6.1 11.5L8 39.8Z" fill="#171420"/>
+  <path d="M9.2 40.2C15.7 25.6 24.6 14 36.8 6.3" fill="none" stroke="#FFF4D8" stroke-width="2.1" stroke-linecap="round"/>
+  <path d="M16.3 27.8 15.6 20M20.6 22.1l-.2-7.3M25 17.3l.5-6.2M20.7 22.1l8.7-.8M25 17.2l8.2-1.5M29.2 12.9l7.2-2" fill="none" stroke="#FFF4D8" stroke-width="1.7" stroke-linecap="round" opacity="0.86"/>
+  <path d="M8.1 40.1 6.7 44l4-2.6" fill="#A03F52"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(40.2 35.8) rotate(12)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(8.6 10.7)"/>
+</svg>

@@ -1,9 +1,10 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
-import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
-import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
+import {
+  PracticeIcon,
+  haloAccentFor,
+} from "../../../../../assets/practice-icons/PracticeIcon";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -49,28 +50,28 @@ const FunPractice = () => {
     title: string;
     subtitle: string;
     onPress: () => void;
-    icon: React.ReactNode;
+    iconName: string;
     accent: FunAccent;
   }> = [
     {
       title: "Tongue Twisters",
       subtitle: "Fun speech challenges",
       onPress: () => navigation.navigate("TwisterPracticeStack"),
-      icon: <TongueTwisterFace size={80} />,
+      iconName: "fun-tongue-twisters",
       accent: "success", // emerald/green
     },
     {
       title: "Role Play",
       subtitle: "Practice situational speech",
       onPress: () => navigation.navigate("RoleplayPracticeStack"),
-      icon: <MaskedFace size={80} />,
+      iconName: "fun-roleplay",
       accent: "info", // blue
     },
     {
       title: "Character Voice",
       subtitle: "Fun voice effects",
       onPress: () => navigation.navigate("CharacterVoicePracticeStack"),
-      icon: <HappyScreamFace size={80} />,
+      iconName: "fun-character-voice",
       accent: "purple", // teal → next-closest distinct cool role
     },
   ];
@@ -112,7 +113,14 @@ const FunPractice = () => {
                     </Text>
                   </View>
                   <View style={styles.iconContainer} pointerEvents="none">
-                    <View style={styles.iconWrapper}>{item.icon}</View>
+                    <View style={styles.iconWrapper}>
+                      {/* Halo contrasts the card fill so the icon stays visible. */}
+                      <PracticeIcon
+                        name={item.iconName}
+                        size={80}
+                        housing={colors.accent[haloAccentFor(item.accent)]}
+                      />
+                    </View>
                   </View>
                 </View>
 

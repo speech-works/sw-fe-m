@@ -1,9 +1,10 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import InterviewFace from "../../../../../assets/sw-faces/InterviewFace";
-import RoboticPhoneFace from "../../../../../assets/sw-faces/RoboticPhoneFace";
-import WiseFace from "../../../../../assets/sw-faces/WiseFace";
+import {
+  PracticeIcon,
+  haloAccentFor,
+} from "../../../../../assets/practice-icons/PracticeIcon";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -49,7 +50,7 @@ const Exposure = () => {
     title: string;
     subtitle: string;
     onPress: () => void;
-    icon: React.ReactNode;
+    iconName: string;
     accent: ExposureAccent;
     disabled: boolean;
   }> = [
@@ -57,7 +58,7 @@ const Exposure = () => {
       title: "Social Challenges",
       subtitle: "Practice uneasy conversations",
       onPress: () => navigation.navigate("SocialChallengeStack"),
-      icon: <WiseFace size={80} />,
+      iconName: "exposure-social-challenges",
       accent: "warning", // amber
       disabled: false,
     },
@@ -65,7 +66,7 @@ const Exposure = () => {
       title: "Interview Simulation",
       subtitle: "AI-powered practice",
       onPress: () => navigation.navigate("InterviewSimulationStack"),
-      icon: <InterviewFace size={80} />,
+      iconName: "exposure-interview-simulation",
       accent: "danger", // rose/red
       disabled: false,
     },
@@ -73,7 +74,7 @@ const Exposure = () => {
       title: "AI Phone Calls",
       subtitle: "Speak freely, without hesitation",
       onPress: () => navigation.navigate("PhoneCallStack"),
-      icon: <RoboticPhoneFace size={80} />,
+      iconName: "exposure-ai-phone-calls",
       accent: "purple", // pink → next-closest distinct role
       disabled: false,
     },
@@ -117,7 +118,14 @@ const Exposure = () => {
                     </Text>
                   </View>
                   <View style={styles.iconContainer} pointerEvents="none">
-                    <View style={styles.iconWrapper}>{item.icon}</View>
+                    <View style={styles.iconWrapper}>
+                      {/* Halo contrasts the card fill so the icon stays visible. */}
+                      <PracticeIcon
+                        name={item.iconName}
+                        size={80}
+                        housing={colors.accent[haloAccentFor(item.accent)]}
+                      />
+                    </View>
                   </View>
                 </View>
 

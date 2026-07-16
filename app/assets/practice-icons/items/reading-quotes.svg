@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Quotes</title>
+  <desc id="desc">A bold pair of quotation marks.</desc>
+  <defs>
+    <radialGradient id="reading-quotes-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="reading-quotes-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#reading-quotes-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#reading-quotes-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <path fill="#306FC8" d="M8.2 22.7c0-7.2 3.6-11.7 10.5-13.7l2 4.3c-3.8 1.6-5.7 3.8-5.9 6.7h6.4v15.3h-13V22.7Zm19 0c0-7.2 3.6-11.7 10.5-13.7l2 4.3c-3.8 1.6-5.7 3.8-5.9 6.7h6.4v15.3h-13V22.7Z"/>
+  <path fill="#FFF4D8" d="M8.2 19.7C8.2 12.5 11.8 8 18.7 6l2 4.3c-3.8 1.6-5.7 3.8-5.9 6.7h6.4v15.3h-13V19.7Zm19 0C27.2 12.5 30.8 8 37.7 6l2 4.3c-3.8 1.6-5.7 3.8-5.9 6.7h6.4v15.3h-13V19.7Z"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(42.4 20.5) rotate(15)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(9 41)"/>
+</svg>

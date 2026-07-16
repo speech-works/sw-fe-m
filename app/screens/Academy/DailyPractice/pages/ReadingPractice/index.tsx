@@ -1,11 +1,10 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
-import PoetFace from "../../../../../assets/sw-faces/PoetFace";
-import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
-import LetterOFace from "../../../../../assets/sw-faces/LetterOFace";
-import GliderFace from "../../../../../assets/sw-faces/GliderFace";
+import {
+  PracticeIcon,
+  haloAccentFor,
+} from "../../../../../assets/practice-icons/PracticeIcon";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -48,42 +47,42 @@ const ReadingPractice = () => {
     title: string;
     subtitle: string;
     onPress: () => void;
-    icon: React.ReactNode;
+    iconName: string;
     accent: ReadingAccent;
   }> = [
     {
       title: "Words",
       subtitle: "Focus on single words",
       onPress: () => navigation.navigate("WordPractice"),
-      icon: <LetterOFace size={80} />,
+      iconName: "reading-words",
       accent: readingPracticeAccents.word,
     },
     {
       title: "Phrases",
       subtitle: "Glide effortlessly on the airflow",
       onPress: () => navigation.navigate("PhrasePractice"),
-      icon: <GliderFace size={80} />,
+      iconName: "reading-phrases",
       accent: readingPracticeAccents.phrase,
     },
     {
       title: "Quotes",
       subtitle: "Inspirational quotes",
       onPress: () => navigation.navigate("QuotePractice"),
-      icon: <AuthorFace size={80} />,
+      iconName: "reading-quotes",
       accent: readingPracticeAccents.quote,
     },
     {
       title: "Poems",
       subtitle: "Verses & rhymes",
       onPress: () => navigation.navigate("PoemPractice"),
-      icon: <PoetFace size={80} />,
+      iconName: "reading-poems",
       accent: readingPracticeAccents.poem,
     },
     {
       title: "Stories",
       subtitle: "Short stories & tales",
       onPress: () => navigation.navigate("StoryPractice"),
-      icon: <StorytellerFace size={80} />,
+      iconName: "reading-stories",
       accent: readingPracticeAccents.story,
     },
   ];
@@ -125,7 +124,14 @@ const ReadingPractice = () => {
                     </Text>
                   </View>
                   <View style={styles.iconContainer} pointerEvents="none">
-                    <View style={styles.iconWrapper}>{item.icon}</View>
+                    <View style={styles.iconWrapper}>
+                      {/* Halo contrasts the card fill so the icon stays visible. */}
+                      <PracticeIcon
+                        name={item.iconName}
+                        size={80}
+                        housing={colors.accent[haloAccentFor(item.accent)]}
+                      />
+                    </View>
                   </View>
                 </View>
 

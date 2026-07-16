@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Guided Breathing</title>
+  <desc id="desc">A lotus surrounded by expanding breath rings.</desc>
+  <defs>
+    <radialGradient id="cognitive-guided-breathing-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cognitive-guided-breathing-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <circle cx="24" cy="24" r="24" fill="url(#cognitive-guided-breathing-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#cognitive-guided-breathing-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.2"/>
+  <circle cx="24" cy="23" r="16" fill="none" stroke="#A03F52" stroke-width="3"/>
+  <circle cx="24" cy="23" r="11" fill="none" stroke="#A9F0D1" stroke-width="3"/>
+  <path d="M24 37.2c-7 0-12.8-4.2-14.3-10 5.2-.5 9.2 1.2 11.8 5.1-.8-6.2.1-10.7 2.5-13.7 2.4 3 3.3 7.5 2.5 13.7 2.6-3.9 6.6-5.6 11.8-5.1-1.5 5.8-7.3 10-14.3 10Z" fill="#FFF4D8"/>
+  <path d="M24 35.9c-2.5-3.9-2.5-7.8 0-11.8 2.5 4 2.5 7.9 0 11.8Z" fill="#A03F52"/>
+    <path d="M0 -2.9 L0.82 -0.82 L2.9 0 L0.82 0.82 L0 2.9 L-0.82 0.82 L-2.9 0 L-0.82 -0.82 Z" fill="#FFF4D8" opacity="0.95" transform="translate(40.9 38.5) rotate(15)"/>
+    <path d="M0 -1.7 L0.5 -0.5 L1.7 0 L0.5 0.5 L0 1.7 L-0.5 0.5 L-1.7 0 L-0.5 -0.5 Z" fill="#FFFFFF" opacity="0.6" transform="translate(8.2 9.2)"/>
+</svg>
