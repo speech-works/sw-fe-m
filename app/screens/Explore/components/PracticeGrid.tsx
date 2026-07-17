@@ -45,7 +45,9 @@ type Practice = {
   accent: "info" | "warning" | "danger" | "purple";
 };
 
-const PracticeGrid = (_props: { isScrolling?: boolean }) => {
+/* Icons are static SVGs (SvgXml memoizes its parse), so the grid has no
+ * scroll-dependent work — it takes no props and stays memoized across scrolls. */
+const PracticeGrid = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { colors, elevation } = useTheme();

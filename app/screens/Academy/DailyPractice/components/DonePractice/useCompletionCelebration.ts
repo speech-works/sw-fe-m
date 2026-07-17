@@ -20,7 +20,9 @@ import { useUserStore } from "../../../../../stores/user";
  * - Every failure degrades silently to no celebration.
  */
 
-const SNAPSHOT_MAX_AGE_MS = 5 * 60_000;
+/** A snapshot older than this can't belong to the completion we're reporting.
+ *  Kept tight: the success screen mounts within a second of the POST. */
+const SNAPSHOT_MAX_AGE_MS = 90_000;
 const XP_RETRY_DELAY_MS = 1200;
 
 export interface CompletionCelebration {
@@ -31,7 +33,17 @@ export interface CompletionCelebration {
 
 const NONE: CompletionCelebration = { leveledUp: false, newLevel: 1, stageTitle: null };
 
-export function useCompletionCelebration({ enabled }: { enabled: boolean }): CompletionCelebration {
+export function useCompletionCelebration({
+  enabled,
+  activityId,
+}: {
+  enabled: boolean;
+  /** The activity this success screen is reporting. When both this and the
+   *  snapshot carry an id they MUST match — that binding is what stops a reused
+   *  success screen from firing another completion's level-up. Mirror Work
+   *  passes none, and falls back to the staleness window. */
+  activityId?: string;
+}): CompletionCelebration {
   const [result, setResult] = useState<CompletionCelebration>(NONE);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,6 +59,12 @@ export function useCompletionCelebration({ enabled }: { enabled: boolean }): Com
 
     const snap = useCelebrationStore.getState().consume();
     if (!snap || Date.now() - snap.capturedAt > SNAPSHOT_MAX_AGE_MS) {
+      setResult(NONE);
+      return;
+    }
+    // Only celebrate the completion this snapshot was captured for. Skipped
+    // when either side lacks an id (Mirror Work) — staleness still guards those.
+    if (activityId && snap.activityId && snap.activityId !== activityId) {
       setResult(NONE);
       return;
     }
@@ -109,7 +127,7 @@ export function useCompletionCelebration({ enabled }: { enabled: boolean }): Com
       if (retryTimer.current) clearTimeout(retryTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
+  }, [enabled, activityId]);
 
   return result;
 }

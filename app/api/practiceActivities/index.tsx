@@ -193,8 +193,9 @@ export async function completePracticeActivity({
 }): Promise<PracticeActivity> {
   try {
     // Snapshot pre-completion XP/level so DonePractice can diff a fresh
-    // /users/me into a "+N growth" celebration (XP is awarded server-side).
-    useCelebrationStore.getState().capture();
+    // /users/me and celebrate a level-up (XP is awarded server-side). Bound to
+    // this activity's id so only THIS completion's success screen can consume it.
+    useCelebrationStore.getState().capture(id);
 
     const requestBody: any = {
       userId,
@@ -262,8 +263,10 @@ export async function completeMirrorWorkActivity(
   mirrorWorkPayload: MirrorWorkCompletionApiPayload,
 ): Promise<PracticeActivity> {
   // Same pre-completion snapshot as completePracticeActivity — Mirror Work has
-  // its own dedicated endpoint but the same "+N growth" celebration on Done.
-  useCelebrationStore.getState().capture();
+  // its own dedicated endpoint but the same level-up celebration on Done.
+  // (Mirror Work's success screen passes no activityId, so its snapshot is
+  // guarded by the staleness window alone — see useCompletionCelebration.)
+  useCelebrationStore.getState().capture(id);
 
   console.log('>> API: Completing Mirror Work Activity', { id, mirrorWorkPayload });
   const response = await axiosClient.post(

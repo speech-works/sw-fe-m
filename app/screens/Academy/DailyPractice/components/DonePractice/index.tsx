@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -67,15 +67,41 @@ const DonePractice = ({
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
-  const celebration = useCompletionCelebration({ enabled: !isAborted });
+  // `activityId` binds the celebration to THIS completion's snapshot.
+  const celebration = useCompletionCelebration({ enabled: !isAborted, activityId });
   const [showTakeover, setShowTakeover] = useState(false);
   const takeoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The takeover is a once-per-screen moment: never re-arm after it has been
+   *  shown (otherwise an OS reduce-motion toggle re-runs the effect and the
+   *  celebration re-appears after the user dismissed it). */
+  const armedRef = useRef(false);
+
+  const dismissTakeover = useCallback(() => {
+    if (takeoverTimer.current) {
+      clearTimeout(takeoverTimer.current);
+      takeoverTimer.current = null;
+    }
+    setShowTakeover(false);
+  }, []);
+
+  /** Leaving the screen: kill any pending takeover FIRST. Most exits unmount
+   *  this screen (cleanup handles it), but the pack `onDone` fallback
+   *  (`navigate("PackModule")` when the back stack is empty) leaves it mounted —
+   *  a still-armed timer would then pop the modal over the next screen. */
+  const leaveScreen = useCallback(
+    (go: () => void) => {
+      dismissTakeover();
+      go();
+    },
+    [dismissTakeover],
+  );
 
   // Arm the level-up takeover a beat after the success screen settles; reduced
   // motion arms it sooner. Navigating away before it arms simply loses it —
   // Home shows the new level.
   useEffect(() => {
-    if (celebration.leveledUp) {
+    if (celebration.leveledUp && !armedRef.current) {
+      armedRef.current = true;
       takeoverTimer.current = setTimeout(
         () => setShowTakeover(true),
         reduced ? 400 : 900,
@@ -203,12 +229,14 @@ const DonePractice = ({
                 label="Explore More"
                 leftIcon={icons.explore}
                 style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
-                onPress={() => {
-                  navigation.navigate("Root", {
-                    screen: ROUTE_NAMES.EXPLORE,
-                    params: { screen: "Explore", params: { scrollToJumpIn: true } },
-                  });
-                }}
+                onPress={() =>
+                  leaveScreen(() =>
+                    navigation.navigate("Root", {
+                      screen: ROUTE_NAMES.EXPLORE,
+                      params: { screen: "Explore", params: { scrollToJumpIn: true } },
+                    }),
+                  )
+                }
               />
               <Button
                 variant="primary"
@@ -216,11 +244,13 @@ const DonePractice = ({
                 rightIcon={icons.home}
                 accentColor={primaryFill}
                 onAccentColor={primaryInk}
-                onPress={() => {
-                  navigation.navigate("Root", {
-                    screen: ROUTE_NAMES.HOME,
-                  });
-                }}
+                onPress={() =>
+                  leaveScreen(() =>
+                    navigation.navigate("Root", {
+                      screen: ROUTE_NAMES.HOME,
+                    }),
+                  )
+                }
               />
             </>
           ) : onDone ? (
@@ -230,7 +260,7 @@ const DonePractice = ({
               rightIcon={icons.success}
               accentColor={primaryFill}
               onAccentColor={primaryInk}
-              onPress={onDone}
+              onPress={() => leaveScreen(onDone)}
             />
           ) : (
             <Button
@@ -239,12 +269,14 @@ const DonePractice = ({
               rightIcon={icons.explore}
               accentColor={primaryFill}
               onAccentColor={primaryInk}
-              onPress={() => {
-                navigation.navigate("Root", {
-                  screen: ROUTE_NAMES.EXPLORE,
-                  params: { screen: "Explore", params: { scrollToJumpIn: true } },
-                });
-              }}
+              onPress={() =>
+                leaveScreen(() =>
+                  navigation.navigate("Root", {
+                    screen: ROUTE_NAMES.EXPLORE,
+                    params: { screen: "Explore", params: { scrollToJumpIn: true } },
+                  }),
+                )
+              }
             />
           )}
         </View>
@@ -257,7 +289,7 @@ const DonePractice = ({
         visible={showTakeover}
         newLevel={celebration.newLevel}
         stageTitle={celebration.stageTitle}
-        onClose={() => setShowTakeover(false)}
+        onClose={dismissTakeover}
       />
     </ScreenView>
   );

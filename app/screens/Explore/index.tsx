@@ -31,7 +31,6 @@ const Explore = () => {
   const [jumpInY, setJumpInY] = useState(400); // Default rough height
 
   // --- Scroll State for pausing animations ---
-  const [isScrolling, setIsScrolling] = useState(false);
   // ----------------------------------------
 
   // Bumped on any tap/scroll outside a day cell so "This Week" clears its selection.
@@ -110,20 +109,7 @@ const Explore = () => {
         refreshControl={refreshControl}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={() => {
-          setIsScrolling(true);
-          dismissDaySelection();
-        }}
-        onMomentumScrollBegin={() => setIsScrolling(true)}
-        onScrollEndDrag={(e: any) => {
-          const hasMomentum =
-            e.nativeEvent?.velocity &&
-            Math.abs(e.nativeEvent.velocity.y) > 0.1;
-          if (!hasMomentum) {
-            setIsScrolling(false);
-          }
-        }}
-        onMomentumScrollEnd={() => setIsScrolling(false)}
+        onScrollBeginDrag={dismissDaySelection}
       >
         {/* Tap target behind the content: tapping anywhere that isn't a day cell (or
             another pressable) clears the "This Week" day selection. */}
@@ -147,7 +133,7 @@ const Explore = () => {
             style={styles.section}
             onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}
           >
-            <PracticeGrid isScrolling={isScrolling} />
+            <PracticeGrid />
           </Animated.View>
 
           {PAYMENTS_ENABLED ? (

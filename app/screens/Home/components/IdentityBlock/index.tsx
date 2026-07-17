@@ -60,8 +60,7 @@ export const IdentityBlock: React.FC = () => {
     (levelStage?.nextLevelXpCeiling || 100) - (levelStage?.currentLevelXpFloor || 0),
   );
 
-  const { estimatedStamina, staminaPercentage, rechargeTimeLeft, currentMaxStamina } =
-    useStaminaEstimate(user ?? null);
+  const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
 
   return (
     <View style={styles.container}>
@@ -82,9 +81,11 @@ export const IdentityBlock: React.FC = () => {
             {staminaPercentage}%
           </Text>
         </View>
+        {/* Fed the SAME rounded value as the % label, so the fill and the
+            number can never disagree (e.g. 79/80 → "99%" over a 98.75% bar). */}
         <ProgressBar
-          value={estimatedStamina}
-          max={currentMaxStamina}
+          value={staminaPercentage}
+          max={100}
           color={colors.action.primary}
           height={24}
         />
@@ -93,6 +94,8 @@ export const IdentityBlock: React.FC = () => {
             <PressableScale
               haptic={false}
               onPress={() => navigation.navigate("PremiumModal")}
+              accessibilityRole="button"
+              accessibilityLabel="Upgrade energy"
             >
               <Text variant="caption" color={colors.text.link}>
                 Upgrade Energy
@@ -145,7 +148,15 @@ export const IdentityBlock: React.FC = () => {
             </View>
             <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
           </View>
-          <ProgressBar value={xpIntoLevel} max={xpForNextLevel} height={8} />
+          {/* Gated on levelStage: until it resolves, xpForNextLevel falls back
+              to 100 while xpIntoLevel is the FULL totalXp, so the bar would
+              paint 100% and then snap backwards — while the title still reads
+              "Syncing…". Show an empty track instead. */}
+          <ProgressBar
+            value={levelStage ? xpIntoLevel : 0}
+            max={xpForNextLevel}
+            height={8}
+          />
         </PressableScale>
       </View>
     </View>
