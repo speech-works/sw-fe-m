@@ -14,6 +14,7 @@ import {
   ProgressBar,
 } from "../../../../design-system";
 import { useStaminaEstimate } from "./useStaminaEstimate";
+import { UserAvatar } from "../../../../components/UserAvatar";
 
 /**
  * Home's top identity block — the original arrangement: the big ENERGY meter
@@ -113,50 +114,77 @@ export const IdentityBlock: React.FC = () => {
         </View>
       </View>
 
-      {/* 2. Level card (below energy) — taps through to the Achievements detail.
-          The grid row leaves room for a sibling card beside it. */}
+      {/* 2. Level card + avatar card (below energy) — the two-card identity row. */}
       <View style={styles.grid}>
         <PressableScale
           onPress={() =>
             navigation.navigate("ProgressDetail", { scrollTo: "achievements" })
           }
-          style={[styles.card, { backgroundColor: colors.surface.default }, elevation.e2]}
+          style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default, borderWidth: 1 }]}
           accessibilityRole="button"
           accessibilityLabel={`Level ${userLevel}${
             levelStage?.title ? `, ${levelStage.title}` : ""
           }. View achievements.`}
         >
           <View style={styles.cardHeader}>
-            <View style={styles.identityLeft}>
-              {/* The app's level language: an orange numbered badge (mirrors
-                  <Avatar level> in Settings). Becomes the real avatar later. */}
-              <View style={[styles.levelBadge, { backgroundColor: colors.action.primary }]}>
-                <Text variant="title" color={colors.action.onPrimary} numberOfLines={1}>
-                  {userLevel}
-                </Text>
-              </View>
-              <Text
-                variant="h3"
-                color="primary"
-                numberOfLines={1}
-                style={styles.levelTitle}
-              >
-                {isLoadingLevel && !levelStage
-                  ? "Syncing…"
-                  : levelStage?.title ?? `Level ${userLevel}`}
+            <View style={[styles.levelBadge, { backgroundColor: colors.action.primary }]}>
+              <Text variant="h3" color={colors.action.onPrimary} numberOfLines={1}>
+                {userLevel}
               </Text>
             </View>
             <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
           </View>
-          {/* Gated on levelStage: until it resolves, xpForNextLevel falls back
-              to 100 while xpIntoLevel is the FULL totalXp, so the bar would
-              paint 100% and then snap backwards — while the title still reads
-              "Syncing…". Show an empty track instead. */}
-          <ProgressBar
-            value={levelStage ? xpIntoLevel : 0}
-            max={xpForNextLevel}
-            height={8}
-          />
+          
+          <View style={styles.cardContent}>
+            <Text
+              variant="body"
+              color="primary"
+              numberOfLines={1}
+              style={{ fontFamily: "Inter-SemiBold" }}
+            >
+              {isLoadingLevel && !levelStage
+                ? "Syncing…"
+                : levelStage?.title ?? `Level ${userLevel}`}
+            </Text>
+            <ProgressBar
+              value={levelStage ? xpIntoLevel : 0}
+              max={xpForNextLevel}
+              height={6}
+            />
+          </View>
+        </PressableScale>
+
+        {/* Avatar card — the character the user owns. Always shows a REAL
+            avatar (null manifest renders the default), never an empty slot;
+            the caption carries the create-vs-edit state instead. */}
+        <PressableScale
+          onPress={() => navigation.navigate("AvatarStudio")}
+          style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default, borderWidth: 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            user?.avatarManifest
+              ? "Your avatar. Open the avatar studio."
+              : "Create your avatar."
+          }
+        >
+          <View style={styles.cardHeader}>
+            <UserAvatar manifest={user?.avatarManifest} size={32} />
+            <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
+          </View>
+          
+          <View style={styles.cardContent}>
+            <Text
+              variant="body"
+              color="primary"
+              numberOfLines={1}
+              style={{ fontFamily: "Inter-SemiBold" }}
+            >
+              Avatar
+            </Text>
+            <Text variant="caption" color="secondary" numberOfLines={1}>
+              {user?.avatarManifest ? "View profile" : "Create yours"}
+            </Text>
+          </View>
         </PressableScale>
       </View>
     </View>
@@ -199,24 +227,18 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    padding: spacing.lg,
+    padding: spacing.xl,
     borderRadius: radius.card,
-    gap: spacing.md,
+    gap: spacing.lg,
     overflow: "hidden",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
-  identityLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    flex: 1,
-  },
-  levelTitle: {
-    flex: 1,
+  cardContent: {
+    gap: spacing.xs,
   },
   levelBadge: {
     width: 32,

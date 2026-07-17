@@ -68,8 +68,11 @@ through as soon as the field exists):
 ```
 
 Server responsibilities:
-- Validate part IDs against the server-side catalog → `400` on unknown IDs.
-- Validate colors as hex strings; `version` for forward migrations.
+- **MVP — validate the manifest STRUCTURALLY only** (SHIPPED): `version === 1`,
+  `parts` values `string(1..64) | null` (≤16 entries), `colors` as `#RRGGBB`
+  (≤8 entries), ≤4 KB total → `400` on shape violations. The part catalog is
+  FE-owned; unknown IDs are stored verbatim and render as nothing. Catalog /
+  ownership validation arrives with A.3 grants (Phase E).
 - **Never strip ownership**: if a user equips a part they own, it must persist;
   removing catalog items must not corrupt stored manifests (FE renders unknown
   IDs as nothing, by design).

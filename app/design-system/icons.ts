@@ -112,6 +112,17 @@ export const icons = {
   // fallback (as Meditation's hand-rolled toggle already does). Keyed here so
   // mapping it later is one edit, not a hunt for raw glyph names.
   mute: "volume-x",
+
+  // ── Avatar Studio · slot tabs ──
+  // Chosen from glyphs NOT claimed by another concept (eye/sparkles/smile/crown
+  // are seen/xp/mood/pro). droplet/scissors/compass/feather/map-pin render via
+  // the Feather fallback until Fluent glyphs are mapped (same interim as mute).
+  avatarSkin: "droplet", // skin tone swatches
+  avatarHair: "scissors", // hair style + color
+  avatarHeadgear: "umbrella", // headgear (closest free overhead-cover glyph; Fluent "hat" when mapped)
+  avatarEyewear: "aperture", // eyewear (a lens; Fluent "glasses" when mapped)
+  avatarProp: "feather", // held props
+  avatarBackdrop: "image", // backdrop color
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)
   headphones: "headphones",
   focus: "target", // focus mode — zero in on your feared sounds

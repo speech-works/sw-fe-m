@@ -7,6 +7,7 @@ import ExploreStackNavigator from "./stacks/ExploreStack";
 import PracticeComposer from "../screens/PracticeComposer";
 import Resources from "../screens/Resources";
 import ShareMomentScreen from "../screens/ShareMoment";
+import AvatarStudio from "../screens/AvatarStudio";
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +44,9 @@ export default function AppNavigator() {
         name="ShareMoment"
         component={ShareMomentScreen}
       />
+      {/* The avatar editor — root-registered so Home's identity card (and later
+          Settings) reach it by name from any stack. */}
+      <Stack.Screen name="AvatarStudio" component={AvatarStudio} />
     </Stack.Navigator>
   );
 }

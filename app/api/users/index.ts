@@ -2,6 +2,7 @@ import axiosClient from "../axiosClient";
 import { XPLog } from "../userXP/types";
 import { ToolNudgeDirective } from "../tools/types";
 import { ToolType } from "../tools/types";
+import { AvatarManifest } from "../../types/avatar";
 
 export interface User {
   id: string;
@@ -64,6 +65,11 @@ export interface User {
    * nudge is due (below threshold, within frequency cap, or insufficient data).
    */
   toolNudge?: ToolNudgeDirective | null;
+
+  /** User-owned avatar (Phase D). Null until the first Save in the Avatar
+   *  Studio; the client renders the default avatar for null. Mirrors the
+   *  backend's `AvatarManifestData` and flows through `updateMyUser`. */
+  avatarManifest?: AvatarManifest | null;
 
   vacationMode?: boolean;
 

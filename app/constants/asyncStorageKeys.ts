@@ -25,4 +25,6 @@ export const ASYNC_KEYS_NAME = {
   SW_MIRROR_REFLECTION_ROTATION: "@mirrorReflection:lastUsedIndices",
   // Mirror Work prompts already used to OPEN a session (for fresh-opener rotation).
   SW_MIRROR_PROMPT_SEEN: "@mirrorPrompts:seenOpeners",
+  // Avatar Studio work-in-progress (survives an app kill mid-edit; cleared on save).
+  SW_ZSTORE_AVATAR_DRAFT: "SW_ZSTORE_AVATAR_DRAFT",
 };
