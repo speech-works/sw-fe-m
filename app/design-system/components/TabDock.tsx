@@ -45,6 +45,8 @@ export interface TabDockProps {
   /** Screen-reader label for the whole dock (e.g. "Main navigation" /
    *  "Community page tabs"). Announced politely when it changes. */
   accessibilityLabel?: string;
+  /** Override the dock's background capsule color (e.g., when placed inside a Sheet). */
+  surfaceColor?: string;
 }
 
 /**
@@ -61,6 +63,7 @@ export const TabDock: React.FC<TabDockProps> = ({
   fitContent = false,
   inline = false,
   accessibilityLabel,
+  surfaceColor,
 }) => {
   const { colors, elevation } = useTheme();
   const reduceMotion = useReducedMotion();
@@ -80,7 +83,7 @@ export const TabDock: React.FC<TabDockProps> = ({
         style={[
           styles.bar,
           fitContent ? styles.barFit : styles.barFull,
-          { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+          { backgroundColor: surfaceColor ?? colors.surface.elevated, shadowColor: colors.shadow },
           !inline && elevation.e3,
         ]}
         accessibilityRole="tablist"

@@ -184,7 +184,6 @@ export const Sheet: React.FC<SheetProps> = ({
   const contentPad = {
     paddingHorizontal: space.screenX,
     paddingTop: hasHeader ? space.screenX : spacing.md,
-    paddingBottom: Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
   };
   const innerContent = (
     <>
@@ -200,7 +199,13 @@ export const Sheet: React.FC<SheetProps> = ({
           }}
         />
       ) : null}
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
+        }}
+      >
         {children}
       </ScrollView>
     </>

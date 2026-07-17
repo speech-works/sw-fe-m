@@ -208,6 +208,7 @@ export default function ConfigureReminder() {
           inline
           fitContent
           accessibilityLabel="Reminder type"
+          surfaceColor={colors.surface.control}
           items={[
             { key: "ONE_TIME", label: "One Time", icon: icons.oneTime },
             { key: "ROUTINE", label: "Routine", icon: icons.routine },

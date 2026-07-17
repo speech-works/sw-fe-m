@@ -94,9 +94,32 @@ export enum CognitivePracticeType {
   MIRROR_WORK = "MIRROR_WORK",
 }
 
+/**
+ * One step of a breathing pattern. Mirrors `BreathPhaseSchema` in the backend —
+ * keep the two in sync.
+ *
+ * A technique is an ORDERED LIST of these, not a fixed inhale/hold/exhale
+ * triple: a triple can't express an asymmetric hold (4-7-8 would run 4-7-8-7)
+ * or Reset's double inhale.
+ *
+ * `to` is target lung fullness at the END of the phase (0 = empty, 1 = full).
+ * Defaults: inhale → 1, exhale → 0, hold → carries the previous value. It's set
+ * only where a phase stops short — Reset inhales to 0.8, then tops up to 1.
+ */
+export interface BreathPhase {
+  kind: "inhale" | "hold" | "exhale";
+  seconds: number;
+  to?: number;
+  label?: string;
+}
+
 export interface GuidedBreathingData {
   tips: Array<string>;
   durationMinutes: number;
+  /** Absent on records seeded before the phase list — callers fall back. */
+  phases?: Array<BreathPhase>;
+  /** When NOT to use this one. Shown to the user; don't silently drop it. */
+  caution?: string;
 }
 
 export interface GuidedMeditationData {

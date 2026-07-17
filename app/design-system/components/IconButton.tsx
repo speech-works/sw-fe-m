@@ -11,6 +11,10 @@ export interface IconButtonProps {
   variant?: "control" | "ghost";
   size?: number; // diameter (default 44)
   color?: string;
+  /** What the button DOES ("Mute breathing sounds"), not what it depicts. An
+   *  icon-only button has no text to announce, so without this a screen reader
+   *  reads nothing at all. */
+  accessibilityLabel?: string;
 }
 
 /** Round, ≥44 tap-target icon button (e.g. header back). */
@@ -20,12 +24,15 @@ export const IconButton: React.FC<IconButtonProps> = ({
   variant = "control",
   size = sizes.backBtn,
   color,
+  accessibilityLabel,
 }) => {
   const { colors, scheme, elevation } = useTheme();
   const isControl = variant === "control";
   return (
     <PressableScale
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       style={[
         {
           width: size,

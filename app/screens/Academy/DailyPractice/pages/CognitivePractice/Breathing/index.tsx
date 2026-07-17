@@ -11,7 +11,14 @@ import { BreathingHalo } from "./components/BreathingHalo";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
-import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
+import {
+  CognitivePractice,
+  CognitivePracticeType,
+} from "../../../../../../api/dailyPractice/types";
+import {
+  DEFAULT_BREATHING_TECHNIQUE_ID,
+  FALLBACK_BREATH_PHASES,
+} from "../../../../../../constants/breathing";
 import {
   completePracticeActivity,
   abortPracticeActivity,
@@ -31,12 +38,20 @@ import DonePractice from "../../../components/DonePractice";
 import {
   Page,
   Button,
+  IconButton,
+  Icon,
+  icons,
+  Surface,
   Text,
   useTheme,
   spacing,
   space,
+  borderWidth,
   Sheet,
 } from "../../../../../../design-system";
+import PressableScale from "../../../../../../components/PressableScale";
+import BreathingCard from "./components/BreathingCard";
+import { patternLabel } from "../../../../../../constants/breathing";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/ExploreStack/types";
@@ -54,13 +69,19 @@ const Breathing = () => {
   const packContext = route.params?.packContext;
   const from = route.params?.from;
 
-  // single “mute” state that mutes both breath sounds + background
-  const [mute] = useState(false);
+  // single “mute” state that mutes both breath sounds + background.
+  // The setter was missing, so this was pinned false and no UI could reach it.
+  const [mute, setMute] = useState(false);
+  /** The technique library sheet (mirrors Meditation's scenario picker). */
+  const [showLibrary, setShowLibrary] = useState(false);
   // State to track elapsed seconds for the session
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
     null,
   );
+  /** Every GUIDED_BREATHING record. The screen used to fetch these and throw all
+   *  but one away, then pace 4-4-4 regardless of which one it had "chosen". */
+  const [techniques, setTechniques] = useState<CognitivePractice[]>([]);
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
@@ -70,6 +91,26 @@ const Breathing = () => {
   const [currentActivity, setCurrentActivity] = useState<any>(null);
 
   const totalSessionDurationInSeconds = 5 * 60; // 5 minutes converted to seconds
+
+  /**
+   * The technique being paced. In pack/passed-activity mode the record comes
+   * hydrated on the activity; standalone it's the one picked from `techniques`.
+   */
+  const selectedTechnique: CognitivePractice | null =
+    techniques.find((t) => t.id === cognitivePracticeId) ??
+    passedActivity?.cognitivePractice ??
+    null;
+
+  /**
+   * What the pacer runs. This is the fix for the bug that mattered: the screen
+   * saved a technique's `contentId` and then hardcoded 4-4-4, so a session
+   * logged as "5-4-7 Diaphragmatic" actually paced box breathing. The rhythm
+   * now comes from the same record the activity is filed under.
+   */
+  const breathPhases =
+    selectedTechnique?.guidedBreathingData?.phases?.length
+      ? selectedTechnique.guidedBreathingData.phases
+      : FALLBACK_BREATH_PHASES;
 
   // background hook (load, toggle, stop)
   const { loadBackground, toggleBackground, stopBackground } =
@@ -393,7 +434,15 @@ const Breathing = () => {
       const cp = await getCognitivePracticeByType(
         CognitivePracticeType.GUIDED_BREATHING,
       );
-      const defaultId = cp[0]?.id || null;
+      setTechniques(cp);
+      // Open on Steady deliberately — it's the calm-but-alert one, the only
+      // technique that's safe right before speaking. This used to be `cp[0]`,
+      // and the endpoint has no guaranteed order, so "first" was arbitrary:
+      // the same user could land on a different exercise run to run.
+      const defaultId =
+        cp.find((t) => t.id === DEFAULT_BREATHING_TECHNIQUE_ID)?.id ??
+        cp[0]?.id ??
+        null;
       console.log("Breathing Screen - Fetched default ID:", defaultId);
 
       const recommendedId = (route.params as any)?.id;
@@ -465,11 +514,19 @@ const Breathing = () => {
           </Text>
 
           {/* Centered Halo (preserved animation) */}
-          <BreathingHalo inhale={4} hold={4} exhale={4} repeat mute={mute} />
+          <BreathingHalo phases={breathPhases} repeat mute={mute} />
         </View>
 
-        {/* Bottom Controls */}
+        {/* Bottom Controls — mute mirrors Meditation's toggle; it silences the
+            breath cues and the background bed together. */}
         <View style={styles.immersiveControls}>
+          <IconButton
+            name={mute ? icons.mute : icons.volume}
+            variant="ghost"
+            onPress={() => setMute((m) => !m)}
+            color={colors.text.secondary}
+            accessibilityLabel={mute ? "Unmute breathing sounds" : "Mute breathing sounds"}
+          />
           <Button
             label="End Session"
             variant="secondary"
@@ -537,12 +594,19 @@ const Breathing = () => {
     );
   }
 
-  // ── INTRO MODE (Tips) ───────────────────────────────────────────────────────
-  const tips = [
+  // ── INTRO MODE (technique + tips) ───────────────────────────────────────────
+  // Every technique ships its own tips (how to do THAT pattern); these generic
+  // three are the fallback for a record that has none. They used to be the only
+  // tips shown, so the record's own guidance never reached anyone.
+  const genericTips = [
     "Take deep breaths before starting. Feel your diaphragm expand.",
     "Maintain a relaxed facial posture. Release jaw tension.",
     "It's okay to take your time. Focus on smooth transitions.",
   ];
+  const tips = selectedTechnique?.guidedBreathingData?.tips?.length
+    ? selectedTechnique.guidedBreathingData.tips
+    : genericTips;
+  const caution = selectedTechnique?.guidedBreathingData?.caution;
 
   return (
     <>
@@ -569,6 +633,25 @@ const Breathing = () => {
           />
         }
       >
+        {/* The chosen technique, and the way into the library. */}
+        {selectedTechnique ? (
+          <BreathingCard
+            technique={selectedTechnique}
+            onPress={() => setShowLibrary(true)}
+          />
+        ) : null}
+
+        {/* When NOT to use this one. It's a structured field precisely so it
+            can't get quietly dropped — an honest limit is the point. */}
+        {caution ? (
+          <View style={styles.cautionRow}>
+            <Icon name={icons.info} size={16} color={colors.text.tertiary} />
+            <Text variant="bodySm" color="tertiary" style={styles.cautionText}>
+              {caution}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Tips — a dot timeline on the dark canvas. */}
         <View>
           <Text variant="h3" color="primary" style={styles.tipsHeading}>
@@ -593,6 +676,70 @@ const Breathing = () => {
           ))}
         </View>
       </Page>
+
+      {/* Technique library — mirrors Meditation's scenario sheet. Selecting
+          repoints `apiContentId`, so the activity is filed under the technique
+          the user actually breathed. */}
+      <Sheet visible={showLibrary} onClose={() => setShowLibrary(false)}>
+        <View style={styles.libraryHeader}>
+          <Text variant="h2" color="primary">
+            Breathing Library
+          </Text>
+          <Text variant="body" color="secondary" style={styles.librarySubtitle}>
+            Different breaths for different moments. Each one settles your body —
+            none of them are about your speech.
+          </Text>
+        </View>
+
+        <View style={styles.libraryList}>
+          {techniques.map((t) => {
+            const isSelected = t.id === cognitivePracticeId;
+            const phases = t.guidedBreathingData?.phases;
+            return (
+              <PressableScale
+                key={t.id}
+                onPress={() => {
+                  setCognitivePracticeId(t.id);
+                  setApiContentId(t.id);
+                  setShowLibrary(false);
+                }}
+              >
+                <Surface
+                  level={isSelected ? "elevated" : "control"}
+                  rounded="card"
+                  bordered={!isSelected}
+                  style={[
+                    styles.libraryCard,
+                    isSelected && {
+                      borderWidth: borderWidth.hairline,
+                      borderColor: accentColor,
+                    },
+                  ]}
+                >
+                  <View style={styles.libraryCardText}>
+                    <View style={styles.libraryCardHeader}>
+                      <Text variant="h3" color="primary">
+                        {t.name}
+                      </Text>
+                      {phases?.length ? (
+                        <Text variant="caption" color="tertiary">
+                          {patternLabel(phases)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text variant="bodySm" color="secondary">
+                      {t.description}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Icon name={icons.success} size={20} color={colors.feedback.dangerText} />
+                  )}
+                </Surface>
+              </PressableScale>
+            );
+          })}
+        </View>
+      </Sheet>
 
       {/* Vitals Feedback Modal */}
       <VitalsFeedbackModal
@@ -626,6 +773,47 @@ const styles = StyleSheet.create({
   },
   immersiveControls: {
     paddingBottom: spacing["5xl"],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.groupGap,
+  },
+  // Intro: the honest limit, sitting under the technique card.
+  cautionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.iconText,
+    marginTop: space.groupGap,
+  },
+  cautionText: {
+    flex: 1,
+  },
+  // Technique library sheet
+  libraryHeader: {
+    gap: space.titleSub,
+    marginBottom: space.sectionGap,
+  },
+  librarySubtitle: {
+    marginTop: space.titleSub,
+  },
+  libraryList: {
+    gap: space.groupGap,
+  },
+  libraryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.iconText,
+    padding: spacing["2xl"],
+  },
+  libraryCardText: {
+    flex: 1,
+    gap: space.titleSub,
+  },
+  libraryCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
   },
   timerText: {
     fontVariant: ["tabular-nums"],

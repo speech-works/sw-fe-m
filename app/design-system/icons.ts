@@ -108,6 +108,10 @@ export const icons = {
   play: "play",
   stop: "square",
   volume: "volume-2",
+  // No Fluent glyph is mapped for this yet, so it renders via the Feather
+  // fallback (as Meditation's hand-rolled toggle already does). Keyed here so
+  // mapping it later is one edit, not a hunt for raw glyph names.
+  mute: "volume-x",
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)
   headphones: "headphones",
   focus: "target", // focus mode — zero in on your feared sounds
