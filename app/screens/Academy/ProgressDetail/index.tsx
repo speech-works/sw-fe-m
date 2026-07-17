@@ -150,7 +150,6 @@ const ProgressDetail = () => {
       return (
         <ErrorStateCard
           onRetry={() => loadActiveReport("weekly", true)}
-          variant="dark"
           title={currentEmptyState.title}
           message={currentEmptyState.message}
           style={styles.errorCard}
@@ -181,7 +180,6 @@ const ProgressDetail = () => {
       return (
         <ErrorStateCard
           onRetry={() => loadActiveReport("lifetime", true)}
-          variant="dark"
           title={currentEmptyState.title}
           message={currentEmptyState.message}
           style={styles.errorCard}

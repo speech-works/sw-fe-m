@@ -38,7 +38,7 @@ import {
   abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
+import { MeditationAura } from "./components/MeditationAura";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
@@ -636,9 +636,9 @@ const Meditation = () => {
               .padStart(2, "0")}`}
           </Text>
 
-          {/* Large Meditation Face (preserved) */}
+          {/* Ambient aura — purely atmosphere, as the face was. */}
           <View>
-            <MeditationFace size={240} />
+            <MeditationAura size={240} />
           </View>
         </View>
 
@@ -654,10 +654,11 @@ const Meditation = () => {
         {/* Bottom Controls */}
         <View style={styles.immersiveControls}>
           <IconButton
-            name={mute ? "volume-x" : "volume-2"}
+            name={mute ? icons.mute : icons.volume}
             variant="ghost"
             onPress={() => setMute(!mute)}
             color={colors.text.secondary}
+            accessibilityLabel={mute ? "Unmute meditation audio" : "Mute meditation audio"}
           />
 
           <Button

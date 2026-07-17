@@ -184,7 +184,6 @@ const PhoneCallReport: React.FC<Props> = ({
               : "We couldn't build your report.\nTry again, or skip for now."
           }
           onRetry={load}
-          variant="dark"
         />
         <TouchableOpacity style={styles.skipBtn} onPress={onContinue}>
           <Text variant="title" color="secondary">

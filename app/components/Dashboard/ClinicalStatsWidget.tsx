@@ -282,7 +282,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     return (
       <ErrorStateCard
         onRetry={fetchAllTrends}
-        variant="dark"
         style={{ marginVertical: 16 }}
       />
     );

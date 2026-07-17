@@ -1,147 +1,133 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
-import { useTheme, withAlpha } from "../../../design-system";
-import VoidFace from "../../../assets/sw-faces/VoidFace";
+import React, { useEffect } from "react";
+import { Dimensions, StyleSheet, View } from "react-native";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import {
+  radius,
+  easing,
+  useTheme,
+  useMotion,
+  withAlpha,
+} from "../../../design-system";
 
 const { width, height } = Dimensions.get("window");
 
+/** Bespoke ambient loop periods — deliberately mismatched so the orbs never
+ *  line up into one pulsing rhythm. */
+const FLOAT_PERIOD_1 = 6000;
+const FLOAT_PERIOD_2 = 7000;
+const FLOAT_PERIOD_3 = 8000;
+
+/**
+ * Ambient backdrop for the auth screens: soft brand-tinted orbs drifting behind
+ * a glass wash.
+ *
+ * Was three legacy `Animated` loops that ran regardless of the OS reduce-motion
+ * preference, one near-invisible face watermark, and — in the bottom-right slot
+ * — a 300×300 view whose only child was commented out, so it drifted around
+ * animating nothing at all. Now: reanimated, gated, and every orb is real.
+ */
 const LoginBackground = () => {
   const { colors } = useTheme();
+  const { reduced } = useMotion();
 
-  // Animation values (0 to 1) for floating effect
-  const floatAnim1 = useRef(new Animated.Value(0)).current;
-  const floatAnim2 = useRef(new Animated.Value(0)).current;
-  const floatAnim3 = useRef(new Animated.Value(0)).current;
+  const float1 = useSharedValue(0);
+  const float2 = useSharedValue(0);
+  const float3 = useSharedValue(0);
 
   useEffect(() => {
-    const currentAnimations: Animated.CompositeAnimation[] = [];
-
-    const startFloat = (anim: Animated.Value, duration: number) => {
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: duration,
-            useNativeDriver: true, // we can use native driver with transform
-            easing: Easing.inOut(Easing.ease),
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: duration,
-            useNativeDriver: true,
-            easing: Easing.inOut(Easing.ease),
-          }),
-        ]),
-      );
-
-      currentAnimations.push(loop);
-      loop.start();
-    };
-
-    startFloat(floatAnim1, 6000);
-    startFloat(floatAnim2, 7000);
-    startFloat(floatAnim3, 8000);
-
+    if (reduced) {
+      // Pure ambience — it goes fully quiet, and the orbs simply sit still.
+      [float1, float2, float3].forEach((v) => {
+        cancelAnimation(v);
+        v.value = 0;
+      });
+      return;
+    }
+    const loop = (v: typeof float1, period: number) =>
+      withRepeat(withTiming(1, { duration: period, easing: easing.loop }), -1, true);
+    float1.value = loop(float1, FLOAT_PERIOD_1);
+    float2.value = loop(float2, FLOAT_PERIOD_2);
+    float3.value = loop(float3, FLOAT_PERIOD_3);
     return () => {
-      currentAnimations.forEach((a) => a.stop());
+      [float1, float2, float3].forEach(cancelAnimation);
     };
-  }, []);
+  }, [reduced, float1, float2, float3]);
 
-  // Interpolate 0-1 to X/Y offsets
-  const getOrbStyle = (
-    anim: Animated.Value,
-    baseX: number,
-    baseY: number,
-    rangeX: number,
-    rangeY: number,
-  ) => {
-    return {
-      transform: [
-        { translateX: baseX },
-        { translateY: baseY },
-        {
-          translateX: anim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, rangeX],
-          }),
-        },
-        {
-          translateY: anim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, rangeY],
-          }),
-        },
-      ],
-    };
-  };
+  const orb1Style = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: -100 + float1.value * 30 },
+      { translateY: -80 + float1.value * 40 },
+    ],
+  }));
+  const orb2Style = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: width - 200 + float2.value * -40 },
+      { translateY: height - 250 + float2.value * 20 },
+    ],
+  }));
+  const orb3Style = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: -50 + float3.value * 20 },
+      { translateY: height - 200 + float3.value * -30 },
+    ],
+  }));
 
   return (
     <View style={StyleSheet.absoluteFill}>
       {/* Base canvas — the scheme's own ground (replaces the legacy cream gradient). */}
       <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background.canvas }]}
+      />
+
+      {/* Top-left presence — where the face watermark used to sit. A warm brand
+          wash reads the same at a glance and costs nothing to render. */}
+      <Animated.View
         style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: colors.background.canvas },
+          styles.orb,
+          {
+            width: 340,
+            height: 340,
+            backgroundColor: withAlpha(colors.action.primary, 0.1),
+          },
+          orb1Style,
         ]}
       />
 
-      {/* Orb 1: Top Left - Face Watermark (inks derived from scheme roles so the
-          watermark stays a whisper on both the dark canvas and warm paper). */}
+      {/* Bottom-right — a cool counterweight so the backdrop has depth rather
+          than one orange note. */}
       <Animated.View
         style={[
           styles.orb,
           {
             width: 300,
             height: 300,
-            opacity: 0.7, // Vibrant but integrated
-            ...getOrbStyle(floatAnim1, -100, -80, 30, 40),
+            backgroundColor: withAlpha(colors.accent.purple, 0.09),
           },
+          orb2Style,
         ]}
-      >
-        <VoidFace
-          size={500}
-          transparentBg
-          skinColor={withAlpha(colors.surface.inverse, 0.05)}
-          inkColor={withAlpha(colors.text.primary, 0.15)}
-        />
-      </Animated.View>
+      />
 
-      {/* Orb 2: Bottom Right - Butterfly Watermark */}
+      {/* Bottom-left brand glow — the subtle orange wash that keeps the canvas
+          warm now that the cream gradient is gone. */}
       <Animated.View
         style={[
           styles.orb,
           {
-            width: 300,
-            height: 300,
-            opacity: 0.8, // Vibrant but integrated
-            justifyContent: "center",
-            alignItems: "center",
-            ...getOrbStyle(floatAnim2, width - 200, height - 250, -40, 20),
-          },
-        ]}
-      >
-        {/* <Butterfly2Face
-          size={260}
-          transparentBg
-        /> */}
-      </Animated.View>
-
-      {/* Orb 3: Soft brand glow — the subtle 12% orange wash that keeps the
-          canvas warm now that the cream gradient is gone. */}
-      <Animated.View
-        style={[
-          styles.orb,
-          {
-            backgroundColor: colors.action.primaryTint,
             width: 350,
             height: 350,
-            borderRadius: 175,
-            ...getOrbStyle(floatAnim3, -50, height - 200, 20, -30),
+            backgroundColor: colors.action.primaryTint,
           },
+          orb3Style,
         ]}
       />
 
-      {/* Glass Overlay to smooth everything out */}
+      {/* Glass overlay to smooth everything out */}
       <View
         style={[
           StyleSheet.absoluteFill,
@@ -155,12 +141,10 @@ const LoginBackground = () => {
 const styles = StyleSheet.create({
   orb: {
     position: "absolute",
-    borderRadius: 999,
-    // Add heavy blur to "mesh" them together
-    // Note: 'blurRadius' prop exists on Image, but for View we rely on abstract layout or opacity.
-    // React Native doesn't support CSS 'filter: blur()' natively on Views without libraries like Expo BlurView (which blurs content BEHIND).
-    // To achieve the blurred blob look, strictly native views usually use high opacity and overlapping,
-    // or we can use images. For now, pure shapes with low opacity work well for this clean, airy aesthetic.
+    borderRadius: radius.full,
+    // RN has no CSS blur for Views (expo-blur blurs what's BEHIND a view, not
+    // the view itself), so the soft-blob look comes from low-alpha fills
+    // overlapping under the glass wash.
   },
 });
 

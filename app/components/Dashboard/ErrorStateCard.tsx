@@ -1,154 +1,181 @@
 import React, { useEffect } from "react";
-import {
-  StyleProp,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-} from "react-native";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
-  Easing,
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 
-import ErrorFace from "../../assets/sw-faces/ErrorFace";
-
-export type ErrorStateVariant = "light" | "dark";
+import {
+  Text,
+  Button,
+  Icon,
+  icons,
+  useTheme,
+  useMotion,
+  spacing,
+  space,
+  radius,
+  easing,
+  mix,
+  withAlpha,
+} from "../../design-system";
 
 interface ErrorStateCardProps {
   title?: string;
   message?: string;
   onRetry: () => void;
-  variant?: ErrorStateVariant;
   style?: StyleProp<ViewStyle>;
 }
 
+/** Bespoke ambient loop periods — slow drift, and a ripple that reads as a
+ *  signal going out rather than something urgent. */
+const FLOAT_PERIOD = 4000;
+const RIPPLE_PERIOD = 2600;
+
+const MOTIF_SIZE = 130;
+
+/**
+ * The failed-to-load card (reports, trends, recommendations).
+ *
+ * Rebuilt on tokens. It previously hardcoded twelve colour literals behind a
+ * `variant` prop, of which only "dark" was ever passed — so the light half was
+ * dead code that also happened to be the app's only defence against light mode,
+ * where the card would have rendered a near-black panel on cream. Reading the
+ * scheme from `useTheme` deletes both problems.
+ *
+ * The face is gone; a ripple around a dark glyph carries the "signal lost" idea
+ * without one. The distinctive shape — flat header, convex hill overlapping it,
+ * motif straddling the seam — is kept, since that's the card's identity.
+ */
 const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
   title = "Uh oh.",
   message = "Something weird happened.\nKeep calm and try again.",
   onRetry,
-  variant = "light",
   style,
 }) => {
-  const isDark = variant === "dark";
+  const { colors, elevation } = useTheme();
+  const { reduced } = useMotion();
 
-  // -- Colors --
-  // Light Theme (Illustration based)
-  const lightCardBg = "#FFFFFF";
-  const lightCurveBg = "#FFEBF0"; // Matches image top curve
-  const lightTitleColor = "#2A3C46"; // Dark Slate
-  const lightMessageColor = "#5F7B8C"; // Medium Slate
-  const lightButtonBg = "#F87171"; // Reddish Pink
+  const cardBg = colors.surface.elevated;
+  // An opaque tint rather than a wash: a 12% accentTint over the card is nearly
+  // the card, and the header needs to read as its own band in both schemes.
+  const headerBg = mix(cardBg, colors.accent.danger, 0.16);
 
-  // Dark Theme (Matches user's request for premium Dark Red theme)
-  const darkCardBg = "#1A050B";
-  const darkCurveBg = "#4C0519";
-  const darkTitleColor = "#FFFFFF";
-  const darkMessageColor = "rgba(255, 255, 255, 0.7)";
-  const darkButtonBg = "#E11D48";
+  const float = useSharedValue(0);
+  const ripple = useSharedValue(0);
 
-  const cardBg = isDark ? darkCardBg : lightCardBg;
-  const curveBg = isDark ? darkCurveBg : lightCurveBg;
-  const titleColor = isDark ? darkTitleColor : lightTitleColor;
-  const messageColor = isDark ? darkMessageColor : lightMessageColor;
-  const buttonBg = isDark ? darkButtonBg : lightButtonBg;
-
-  // -- Dark Theme Background Animations --
-  const floatAnim = useSharedValue(0);
   useEffect(() => {
-    if (isDark) {
-      floatAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        true,
-      );
+    if (reduced) {
+      // Nothing here carries meaning, so ambient motion stops entirely. The
+      // original looped regardless of the OS preference.
+      cancelAnimation(float);
+      cancelAnimation(ripple);
+      float.value = 0;
+      ripple.value = 0;
+      return;
     }
-  }, [isDark]);
+    float.value = withRepeat(
+      withTiming(1, { duration: FLOAT_PERIOD, easing: easing.loop }),
+      -1,
+      true,
+    );
+    ripple.value = withRepeat(
+      withTiming(1, { duration: RIPPLE_PERIOD, easing: easing.out }),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(float);
+      cancelAnimation(ripple);
+    };
+  }, [reduced, float, ripple]);
 
   const orbStyle1 = useAnimatedStyle(() => ({
     transform: [
-      { translateY: floatAnim.value * 10 },
-      { translateX: floatAnim.value * 8 },
+      { translateY: float.value * 10 },
+      { translateX: float.value * 8 },
     ],
   }));
-
   const orbStyle2 = useAnimatedStyle(() => ({
     transform: [
-      { translateY: floatAnim.value * -15 },
-      { translateX: floatAnim.value * -10 },
+      { translateY: float.value * -15 },
+      { translateX: float.value * -10 },
     ],
   }));
 
-  return (
-    <View style={[styles.container, { backgroundColor: cardBg }, style]}>
-      {/* 
-        To recreate the precise curved background from the image:
-        The curve is bowing UPWARDS in the center. This means the top part is flat Pink,
-        and the bottom part is a White circle that overlaps the Pink.
-      */}
+  // Two rings half a period apart, so the signal keeps going out.
+  const ringOuter = useAnimatedStyle(() => ({
+    transform: [{ scale: 0.55 + ripple.value * 0.65 }],
+    opacity: (1 - ripple.value) * 0.4,
+  }));
+  const ringInner = useAnimatedStyle(() => {
+    const p = (ripple.value + 0.5) % 1;
+    return {
+      transform: [{ scale: 0.55 + p * 0.65 }],
+      opacity: (1 - p) * 0.4,
+    };
+  });
 
-      {/* 1. Flat Header Base */}
-      <View style={[styles.headerBg, { backgroundColor: curveBg }]}>
-        {isDark && (
-          <View style={StyleSheet.absoluteFill}>
-            <Animated.View
-              style={[
-                styles.orb,
-                {
-                  backgroundColor: "rgba(225, 29, 72, 0.2)",
-                  top: -20,
-                  left: -20,
-                },
-                orbStyle1,
-              ]}
-            />
-            <Animated.View
-              style={[
-                styles.orb,
-                {
-                  backgroundColor: "rgba(159, 18, 57, 0.3)",
-                  bottom: -20,
-                  right: -10,
-                },
-                orbStyle2,
-              ]}
-            />
-          </View>
-        )}
+  return (
+    <View
+      style={[styles.container, { backgroundColor: cardBg }, elevation.e2, style]}
+    >
+      {/* 1. Flat header band */}
+      <View style={[styles.headerBg, { backgroundColor: headerBg }]}>
+        <View style={StyleSheet.absoluteFill}>
+          <Animated.View
+            style={[
+              styles.orb,
+              { backgroundColor: withAlpha(colors.accent.danger, 0.2), top: -20, left: -20 },
+              orbStyle1,
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.orb,
+              { backgroundColor: withAlpha(colors.accent.danger, 0.3), bottom: -20, right: -10 },
+              orbStyle2,
+            ]}
+          />
+        </View>
       </View>
 
-      {/* 2. The Overlapping Convex Hill Background */}
+      {/* 2. The overlapping convex hill */}
       <View style={[styles.hillShape, { backgroundColor: cardBg }]} />
 
-      {/* 3. Foreground Content */}
+      {/* 3. Foreground content */}
       <View style={styles.content}>
-        {/* Error Face Graphic positioned exactly halfway */}
-        <View style={styles.iconContainer}>
-          <ErrorFace size={130} shouldAnimate={true} />
+        <View style={styles.motifContainer}>
+          <Animated.View
+            style={[
+              styles.ring,
+              { borderColor: colors.feedback.dangerText },
+              ringOuter,
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.ring,
+              { borderColor: colors.feedback.dangerText },
+              ringInner,
+            ]}
+          />
+          <View style={[styles.motifDisc, { backgroundColor: colors.accent.danger }]}>
+            <Icon name={icons.danger} size={34} color={colors.accentOn.danger} />
+          </View>
         </View>
 
-        <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
+        <Text variant="h2" color="primary" center>
+          {title}
+        </Text>
+        <Text variant="body" color="secondary" center style={styles.message}>
+          {message}
+        </Text>
 
-        <Text style={[styles.message, { color: messageColor }]}>{message}</Text>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={onRetry}
-          style={[
-            styles.button,
-            { backgroundColor: buttonBg, shadowColor: buttonBg },
-          ]}
-        >
-          <Text style={styles.buttonText}>TRY AGAIN</Text>
-        </TouchableOpacity>
+        <Button label="Try again" onPress={onRetry} fullWidth={false} />
       </View>
     </View>
   );
@@ -156,13 +183,8 @@ const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 20,
+    borderRadius: radius.card,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
     position: "relative",
   },
   headerBg: {
@@ -170,64 +192,54 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 180, // Height of the flat curve back
+    height: 180, // height of the flat band behind the hill
     overflow: "hidden",
   },
   hillShape: {
     position: "absolute",
-    top: 140, // Drops down to give the header 140px space, then curves upwards
-    left: "-50%", // Centers the massive circle
-    width: "200%", // Massive width for subtle convex curve
+    top: 140, // leaves the header 140px, then curves up over it
+    left: "-50%", // centres the oversized circle
+    width: "200%", // wide enough that the arc reads as a subtle convex hill
     height: 600,
     borderRadius: 1000,
   },
   content: {
-    padding: 30,
+    padding: spacing["3xl"],
     alignItems: "center",
-    zIndex: 1, // On top of backgrounds
+    gap: space.titleSub,
+    zIndex: 1,
   },
-  iconContainer: {
-    marginTop: 40,
-    marginBottom: 20,
-    height: 130,
+  motifContainer: {
+    marginTop: spacing["4xl"],
+    marginBottom: spacing.xl,
+    height: MOTIF_SIZE,
+    width: MOTIF_SIZE,
     justifyContent: "center",
     alignItems: "center",
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
+  ring: {
+    position: "absolute",
+    width: MOTIF_SIZE,
+    height: MOTIF_SIZE,
+    borderRadius: radius.full,
+    borderWidth: 2,
+  },
+  motifDisc: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   message: {
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: "center",
-    marginBottom: 35,
-    paddingHorizontal: 10,
-    fontWeight: "400",
+    marginBottom: spacing["2xl"],
   },
-  button: {
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "800",
-    fontSize: 14,
-    letterSpacing: 0.5,
-  },
+  // Soft blobs drifting behind the header band.
   orb: {
     position: "absolute",
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: radius.full,
   },
 });
 

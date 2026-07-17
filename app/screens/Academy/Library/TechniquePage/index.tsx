@@ -3,7 +3,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, ScrollView, Dimensions, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
-import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 import {
   LibStackNavigationProp,
   LibStackParamList,
@@ -13,6 +12,9 @@ import {
   Text,
   Button,
   Divider,
+  Gradient,
+  Icon,
+  icons,
   spacing,
   radius,
   Sheet,
@@ -241,9 +243,12 @@ const TechniquePage = () => {
       {/* Info Modal (dark) */}
       <Sheet visible={isModalVisible} onClose={closeModal}>
         <View style={styles.modalContent}>
-          {/* Therapist Face */}
+          {/* Decorative brand disc — same 120px slot the therapist face held.
+              Dark glyph on a bright fill, per the on-bright contrast rule. */}
           <View style={styles.modalFaceContainer}>
-            <TherapistFace width={120} height={120} />
+            <Gradient token="brandSoft" style={styles.modalDisc}>
+              <Icon name={icons.info} size={44} color={colors.action.onPrimary} />
+            </Gradient>
           </View>
 
           <Text variant="h2" color="primary" center style={styles.modalTitle}>
@@ -284,6 +289,13 @@ const styles = StyleSheet.create({
   },
   modalFaceContainer: {
     marginBottom: spacing.xl,
+  },
+  modalDisc: {
+    width: 120,
+    height: 120,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalTitle: {
     marginBottom: spacing.lg,

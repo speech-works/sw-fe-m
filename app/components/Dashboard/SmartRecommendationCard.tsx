@@ -103,7 +103,6 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
     return (
       <ErrorStateCard
         onRetry={handleFindNext}
-        variant="dark"
         style={{ marginVertical: spacing.lg }}
       />
     );
