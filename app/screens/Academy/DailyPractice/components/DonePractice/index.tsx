@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -51,6 +51,13 @@ const DonePractice = ({
 }: DonePracticeProps) => {
   const { colors } = useTheme();
   const navigation = useNavigation<any>();
+  /** Whether this screen is the one the user is looking at. The takeover is
+   *  gated on it so a celebration can NEVER surface over another screen — the
+   *  pack `onDone` fallback (`navigate("PackModule")`) leaves DonePractice
+   *  mounted but unfocused, and a late-firing arm timer would otherwise pop the
+   *  modal on top of PackModule. Focus is an event, so this holds for every exit
+   *  path — present and future — without per-button timer bookkeeping. */
+  const isFocused = useIsFocused();
   const [hasBuddy, setHasBuddy] = useState(false);
   const [hasShared, setHasShared] = useState(false);
   const pageColor = accentColor ?? colors.background.canvas;
@@ -84,10 +91,8 @@ const DonePractice = ({
     setShowTakeover(false);
   }, []);
 
-  /** Leaving the screen: kill any pending takeover FIRST. Most exits unmount
-   *  this screen (cleanup handles it), but the pack `onDone` fallback
-   *  (`navigate("PackModule")` when the back stack is empty) leaves it mounted —
-   *  a still-armed timer would then pop the modal over the next screen. */
+  /** Leaving the screen still clears the pending timer eagerly — the focus gate
+   *  below is the real guarantee, this is just tidiness (no orphan timer). */
   const leaveScreen = useCallback(
     (go: () => void) => {
       dismissTakeover();
@@ -111,6 +116,21 @@ const DonePractice = ({
       if (takeoverTimer.current) clearTimeout(takeoverTimer.current);
     };
   }, [celebration.leveledUp, reduced]);
+
+  // Blur (the screen stops being focused — e.g. the pack fallback navigates to
+  // PackModule over this still-mounted screen) cancels a pending arm. This is
+  // the evented cleanup: a navigation event, not a per-exit-button call, so it
+  // covers every way off the screen. Rendering is also gated on `isFocused`, so
+  // even a timer that already fired can't surface the modal off-screen.
+  useEffect(() => {
+    const unsub = navigation.addListener("blur", () => {
+      if (takeoverTimer.current) {
+        clearTimeout(takeoverTimer.current);
+        takeoverTimer.current = null;
+      }
+    });
+    return unsub;
+  }, [navigation]);
 
   useEffect(() => {
     if (isAborted) return;
@@ -286,7 +306,7 @@ const DonePractice = ({
           native modal (e.g. the Reminder sheet) is up. onClose is the Phase-5
           reward-grant chaining seam. */}
       <LevelUpTakeover
-        visible={showTakeover}
+        visible={showTakeover && isFocused}
         newLevel={celebration.newLevel}
         stageTitle={celebration.stageTitle}
         onClose={dismissTakeover}
