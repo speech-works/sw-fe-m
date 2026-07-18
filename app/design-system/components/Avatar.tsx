@@ -10,6 +10,9 @@ export interface AvatarProps {
   glyph?: string;
   /** A photo URI — takes precedence over `glyph` (photo mode). */
   image?: string;
+  /** A custom node (e.g. a UserAvatar) — takes precedence over image/glyph,
+   *  rendered centered in the `size` box. Keeps the level-badge frame. */
+  content?: React.ReactNode;
   size?: number;
   /** `circle` (default) or `rounded` square. */
   shape?: "circle" | "rounded";
@@ -19,11 +22,12 @@ export interface AvatarProps {
   level?: number;
 }
 
-/** Avatar primitive — a bright disc with a centered glyph, OR a photo. Either
- * shape (`circle` | `rounded` square), with an optional level badge. */
+/** Avatar primitive — a bright disc with a centered glyph, a photo, or a custom
+ * node. Either shape (`circle` | `rounded` square), with an optional level badge. */
 export const Avatar: React.FC<AvatarProps> = ({
   glyph,
   image,
+  content,
   size = 48,
   shape = "circle",
   bg,
@@ -33,7 +37,13 @@ export const Avatar: React.FC<AvatarProps> = ({
   const borderRadius = shape === "circle" ? size / 2 : Math.round(size * 0.28);
 
   let face: React.ReactNode;
-  if (image) {
+  if (content) {
+    face = (
+      <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+        {content}
+      </View>
+    );
+  } else if (image) {
     face = (
       <Image
         source={{ uri: image }}

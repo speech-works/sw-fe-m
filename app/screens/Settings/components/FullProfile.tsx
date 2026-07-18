@@ -13,15 +13,17 @@ import {
   Icon,
   icons,
   IconName,
-  Avatar,
   SectionHeader,
 } from "../../../design-system";
+import { AvatarButton } from "../../../components/AvatarButton";
 
 interface FullProfileProps {
   levelStage?: LevelStage | null;
+  /** Tapping the avatar opens the avatar studio (the sheet closes first). */
+  onEditAvatar: () => void;
 }
 
-const FullProfile = ({ levelStage }: FullProfileProps) => {
+const FullProfile = ({ levelStage, onEditAvatar }: FullProfileProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
 
@@ -49,11 +51,11 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
     <View style={styles.root}>
       {/* Identity header — free-floating on the sheet, no card wrapper */}
       <View style={styles.profileInfo}>
-        <Avatar
-          image={user?.profilePictureUrl}
+        <AvatarButton
           shape="rounded"
           size={80}
           level={levelStage?.level || user?.level || 1}
+          onPress={onEditAvatar}
         />
         <View style={styles.profileDetails}>
           <Text variant="h3">{user?.name}</Text>

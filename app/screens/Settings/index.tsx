@@ -27,11 +27,11 @@ import {
   ListItem,
   Button,
   IconButton,
-  Avatar,
   Text,
   Icon,
   IconName,
 } from "../../design-system";
+import { AvatarButton } from "../../components/AvatarButton";
 import FullProfile from "./components/FullProfile";
 import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
@@ -53,6 +53,10 @@ const Settings = () => {
   // so we defer it until the sheet's own Modal has fully dismissed (see onDismissed).
   // Stacking two native modals freezes touch handling app-wide on iOS.
   const [pendingSuccess, setPendingSuccess] = useState(false);
+  // Same deferral for opening the avatar studio from the profile sheet: close
+  // the sheet first, then navigate once its native Modal is gone (never push a
+  // screen behind a live Modal).
+  const [pendingAvatarNav, setPendingAvatarNav] = useState(false);
   const editRef = useRef<EditProfileHandle>(null);
 
   // Ambient avatar float — a slow, gentle rise/fall (8s round trip). Disabled entirely
@@ -202,11 +206,11 @@ const Settings = () => {
           style={[styles.profileSection, { backgroundColor: colors.surface.elevated }]}
         >
           <Reanimated.View style={[styles.avatarWrap, avatarFloatStyle]}>
-            <Avatar
-              image={user?.profilePictureUrl}
+            <AvatarButton
               shape="rounded"
               size={88}
               level={levelStage?.level || user?.level || 1}
+              onPress={() => navigation.navigate("AvatarStudio")}
             />
           </Reanimated.View>
 
@@ -287,6 +291,10 @@ const Settings = () => {
               "Your changes have been saved successfully.",
             );
           }
+          if (pendingAvatarNav) {
+            setPendingAvatarNav(false);
+            navigation.navigate("AvatarStudio");
+          }
         }}
         title={profileMode === "view" ? "My Profile" : "Edit Profile"}
         right={
@@ -309,7 +317,13 @@ const Settings = () => {
         }
       >
         {profileMode === "view" ? (
-          <FullProfile levelStage={levelStage} />
+          <FullProfile
+            levelStage={levelStage}
+            onEditAvatar={() => {
+              setPendingAvatarNav(true);
+              setIsVisible(false);
+            }}
+          />
         ) : (
           <EditProfile
             ref={editRef}
