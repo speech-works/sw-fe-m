@@ -26,6 +26,8 @@ export type ExtraIconName =
   | "hourglass" | "medal" | "mic-vocal" | "layout-grid" | "history" | "whatsapp"
   | "layer" | "clipboard-pulse" | "chat" | "graduation-cap" | "person-star"
   | "brightness" | "contrast" | "glasses"
+  | "drop" | "emoji-meh" | "cut" | "backpack" | "arrow-repeat-all" | "arrow-sync"
+  | "arrow-trending" | "arrow-trending-down" | "speaker-off"
   // hand-authored (see CUSTOM in fluentPaths.ts — Fluent ships no beard/hat)
   | "beard" | "hat";
 

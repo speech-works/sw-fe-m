@@ -80,15 +80,15 @@ export const icons = {
   tip: "lightbulb", // a tip
   reminder: "bell", // set/schedule a practice reminder
   oneTime: "calendar", // a single, one-off scheduled reminder
-  routine: "refresh-cw", // a repeating/recurring reminder
+  routine: "arrow-repeat-all", // a repeating routine (distinct from a refresh action)
   affirmation: "message-square", // an affirmation
   prompt: "message-circle-question-mark", // a shared question/prompt
   challenge: "flag", // a shared challenge
   mood: "smile", // mood
-  trend: "trending-up", // trend
-  trendDown: "trending-down", // trend, downward
+  trend: "arrow-trending", // trend
+  trendDown: "arrow-trending-down", // trend, downward
   chartPie: "chart-pie", // pie/breakdown chart
-  refresh: "refresh-cw", // sync / refresh
+  refresh: "arrow-sync", // sync / refresh
   // Growth-profile radar domains (ClinicalStatsWidget)
   confidence: "sun", // confidence — owning your voice
   mastery: "graduation-cap", // mastery / skill level
@@ -108,22 +108,19 @@ export const icons = {
   play: "play",
   stop: "square",
   volume: "volume-2",
-  // No Fluent glyph is mapped for this yet, so it renders via the Feather
-  // fallback (as Meditation's hand-rolled toggle already does). Keyed here so
-  // mapping it later is one edit, not a hunt for raw glyph names.
-  mute: "volume-x",
+  mute: "speaker-off",
 
   // ── Avatar Studio · slot tabs ──
   // Chosen from glyphs NOT claimed by another concept (eye/sparkles/smile/crown
-  // are seen/xp/mood/pro). droplet/scissors/compass/feather/map-pin render via
-  // the Feather fallback until Fluent glyphs are mapped (same interim as mute).
-  avatarSkin: "droplet", // skin tone swatches
-  avatarFace: "meh", // expression (eyes + mouth combos of the one brand face)
-  avatarHair: "scissors", // hair style + color
+  // are seen/xp/mood/pro). All eight resolve to a real filled glyph — beard and
+  // hat are hand-authored (see CUSTOM in fluentPaths.ts); the rest are Fluent.
+  avatarSkin: "drop", // skin tone swatches
+  avatarFace: "emoji-meh", // expression (eyes + mouth combos of the one brand face)
+  avatarHair: "cut", // hair style + color
   avatarBeard: "beard", // facial hair — hand-authored glyph (Fluent ships none)
   avatarHeadgear: "hat", // headgear — hand-authored fedora (Fluent ships none)
   avatarEyewear: "glasses", // eyewear — real Fluent glasses-24-filled
-  avatarProp: "feather", // held props
+  avatarProp: "backpack", // the gear the avatar carries (mic/book/camera/compass/lantern/flag)
   avatarBackdrop: "image", // backdrop color
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)
   headphones: "headphones",
