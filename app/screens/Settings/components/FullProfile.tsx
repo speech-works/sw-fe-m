@@ -51,11 +51,13 @@ const FullProfile = ({ levelStage, onEditAvatar }: FullProfileProps) => {
     <View style={styles.root}>
       {/* Identity header — free-floating on the sheet, no card wrapper */}
       <View style={styles.profileInfo}>
-        <AvatarButton
-          size={80}
-          level={levelStage?.level || user?.level || 1}
-          onPress={onEditAvatar}
-        />
+        <View style={{ paddingTop: 6, paddingLeft: 6, marginRight: -6 }}>
+          <AvatarButton
+            size={80}
+            level={levelStage?.level || user?.level || 1}
+            onPress={onEditAvatar}
+          />
+        </View>
         <View style={styles.profileDetails}>
           <Text variant="h3">{user?.name}</Text>
           <Text variant="bodySm" color="secondary">
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
   profileInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   profileDetails: {
     flex: 1,
