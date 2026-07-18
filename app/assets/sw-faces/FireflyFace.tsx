@@ -21,9 +21,7 @@ import Svg, {
   SvgProps,
 } from "react-native-svg";
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const FACE_PATH =
   "M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736";

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
   Easing,
   Linking,
   Platform,
@@ -64,8 +63,6 @@ const getDisplayProviders = () => {
 
 // Required to ensure the WebBrowser closes correctly on Android redirects
 WebBrowser.maybeCompleteAuthSession();
-
-const { height } = Dimensions.get("window");
 
 const LoginScreen = () => {
   const { colors } = useTheme();

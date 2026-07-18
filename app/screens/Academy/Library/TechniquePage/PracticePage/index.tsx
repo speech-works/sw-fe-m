@@ -41,8 +41,6 @@ interface PracticePageProps {
 }
 
 const PracticePage = ({
-  techniqueId,
-  setActiveStageIndex,
   header,
   outerScrollY,
 }: PracticePageProps) => {

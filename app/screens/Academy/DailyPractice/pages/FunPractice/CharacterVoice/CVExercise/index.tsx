@@ -43,7 +43,7 @@ const CVExercise = () => {
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext, practiceActivity, from } = route.params;
 
-  const [loading, setLoading] = React.useState(
+  const [, setLoading] = React.useState(
     !cvData && !practiceActivity?.funPractice?.characterVoiceData,
   );
   const [data, setData] = React.useState({
@@ -83,7 +83,7 @@ const CVExercise = () => {
     useRecordedVoice(user?.id);
 
   const [isDone, setIsDone] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
   const [texts, setTexts] = useState<string[]>([]);

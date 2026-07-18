@@ -19,7 +19,7 @@ export function useSpeechDetection() {
     return (Date.now() - lastSpeechTimeRef.current) > thresholdMs;
   }, [isRecording]);
 
-  useSpeechRecognitionEvent('result', (event) => {
+  useSpeechRecognitionEvent('result', () => {
     // Whenever we get a result (interim or final), speech is happening
     lastSpeechTimeRef.current = Date.now();
   });

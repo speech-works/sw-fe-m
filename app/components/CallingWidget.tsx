@@ -433,9 +433,7 @@ const CallingWidget: React.FC<Props> = ({
   onCallEndAcknowledged,
   ringtoneAsset,
   ringtoneUri,
-  scenarioId,
   scenarioIcon,
-  practiceActivityId, // <-- ADDED
 }) => {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -447,7 +445,7 @@ const CallingWidget: React.FC<Props> = ({
     useState<CallPlaybackState>("connecting");
   const [visualCallState, setVisualCallState] =
     useState<CallPlaybackState>("connecting");
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [, setSound] = useState<Audio.Sound | null>(null);
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false,
   );

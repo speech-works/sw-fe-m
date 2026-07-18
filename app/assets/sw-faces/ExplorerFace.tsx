@@ -177,11 +177,6 @@ const ExcitedTouristMapFace = ({
     ] as any,
   }));
 
-  const eyeWhiteProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
-    originY: 23.5,
-  }));
-
   const eyePupilProps = useAnimatedProps(() => ({
     transform: [
       { translateX: eyeT.value.ox },

@@ -460,7 +460,7 @@ const UpsellModal = () => {
             style={styles.carousel}
             contentContainerStyle={styles.carouselContent}
           >
-            {orderedBenefits.map((benefit, i) => (
+            {orderedBenefits.map((benefit) => (
               <View key={benefit.id} style={styles.carouselSlide}>
                 <View style={styles.slideInner}>
                   <View style={styles.slideIconContainer}>

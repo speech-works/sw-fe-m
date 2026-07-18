@@ -13,7 +13,6 @@ import Animated, {
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;

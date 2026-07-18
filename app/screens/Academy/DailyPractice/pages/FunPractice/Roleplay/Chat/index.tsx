@@ -97,7 +97,7 @@ const Chat = () => {
   const dialogues = useMemo(() => stage?.dialogues, [stage]);
 
   const [isDone, setIsDone] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);

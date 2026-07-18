@@ -151,11 +151,6 @@ const OnboardingQuestionScreen: React.FC = () => {
     }
   };
 
-  const handleComplete = async () => {
-    // Tell MainNavigator to return to app flow
-    emit(EVENT_NAMES.STOP_ONBOARDING);
-  };
-
   // -----------------------------------------------------
   // NEXT BUTTON
   // -----------------------------------------------------

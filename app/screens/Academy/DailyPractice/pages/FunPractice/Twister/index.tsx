@@ -221,7 +221,7 @@ const Twister = () => {
     null,
   );
   const [isStarting, setIsStarting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [hardMode, setHardMode] = useState(false);

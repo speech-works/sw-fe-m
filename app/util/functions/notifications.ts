@@ -55,27 +55,6 @@ const buildRoutineTrigger = (
   };
 };
 
-const buildDailyTrigger = (
-  hour: number,
-  minute: number,
-): Notifications.SchedulableNotificationTriggerInput => {
-  if (Platform.OS === "android") {
-    return {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-      channelId: DEFAULT_REMINDER_CHANNEL_ID,
-    };
-  }
-
-  return {
-    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-    hour,
-    minute,
-    repeats: true,
-  };
-};
-
 // --- New Global Listener for handling notification interactions ---
 // This should be set up once, typically in your App.tsx or a top-level component.
 // It should be moved out of this file if this file is meant purely for scheduling functions.

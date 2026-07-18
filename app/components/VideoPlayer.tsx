@@ -29,7 +29,6 @@ if (
 
 import Slider from "@react-native-community/slider";
 
-const volumeThumbImage = require("../assets/images/volume_thumb.png");
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";

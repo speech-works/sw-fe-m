@@ -46,7 +46,7 @@ const Chat = () => {
   );
   const [isDone, setIsDone] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);

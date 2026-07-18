@@ -15,7 +15,7 @@ import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 const ImpactAssessmentIntro = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const setDailyBatch = useImpactAssessmentStore((state) => state.setDailyBatch);
 
   useEffect(() => {

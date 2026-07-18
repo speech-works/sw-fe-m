@@ -35,7 +35,6 @@ interface TutorialPageProps {
 
 const TutorialPage = ({
   techniqueId,
-  setActiveStageIndex,
   header,
   outerScrollY,
 }: TutorialPageProps) => {

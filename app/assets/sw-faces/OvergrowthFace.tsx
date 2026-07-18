@@ -22,7 +22,6 @@ import Svg, {
   SvgProps,
 } from "react-native-svg";
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 

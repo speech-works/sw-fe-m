@@ -55,7 +55,7 @@ const Home = () => {
     totalDays: number;
     totalRemaining: number;
   } | null>(null);
-  const [loadingImpactAssessment, setLoadingImpactAssessment] = useState(true);
+  const [, setLoadingImpactAssessment] = useState(true);
   const [forceShowOnboarding, setForceShowOnboarding] = useState(false);
 
   // Resume Modal State

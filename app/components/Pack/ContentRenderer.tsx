@@ -84,7 +84,6 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   block,
   packId,
   moduleId,
-  isMandatory,
   isCompleted,
   blockIndex,
   onActivityCreated,

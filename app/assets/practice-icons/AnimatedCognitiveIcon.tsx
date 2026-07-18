@@ -2,12 +2,9 @@ import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   cancelAnimation,
-  interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { SvgXml } from "react-native-svg";

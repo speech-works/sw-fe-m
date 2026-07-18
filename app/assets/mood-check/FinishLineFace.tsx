@@ -22,7 +22,6 @@ import Svg, {
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;

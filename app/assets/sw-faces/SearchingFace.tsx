@@ -20,8 +20,6 @@ import Svg, {
   SvgProps,
 } from "react-native-svg";
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedG = Animated.createAnimatedComponent(G);
 
 export interface SearchingFaceProps extends SvgProps {

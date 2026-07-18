@@ -190,7 +190,7 @@ const MoodCheck = () => {
   };
 
   // Mood Intensity State (0-100)
-  const [moodIntensity, setMoodIntensity] = useState(50);
+  const [, setMoodIntensity] = useState(50);
   const rulerWidth = width - 40; // Approx ruler track width (paddingHorizontal: 20 * 2)
 
   // Reanimated shared values

@@ -49,11 +49,11 @@ const LoginBackground = () => {
       });
       return;
     }
-    const loop = (v: typeof float1, period: number) =>
+    const loop = (period: number) =>
       withRepeat(withTiming(1, { duration: period, easing: easing.loop }), -1, true);
-    float1.value = loop(float1, FLOAT_PERIOD_1);
-    float2.value = loop(float2, FLOAT_PERIOD_2);
-    float3.value = loop(float3, FLOAT_PERIOD_3);
+    float1.value = loop(FLOAT_PERIOD_1);
+    float2.value = loop(FLOAT_PERIOD_2);
+    float3.value = loop(FLOAT_PERIOD_3);
     return () => {
       [float1, float2, float3].forEach(cancelAnimation);
     };

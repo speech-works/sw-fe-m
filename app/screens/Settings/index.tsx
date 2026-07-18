@@ -44,7 +44,7 @@ const Settings = () => {
   const { logout, deleteAccount } = useContext(AuthContext);
   const { user } = useUserStore();
 
-  const [sessionCount, setSessionCount] = useState<number>(0);
+  const [, setSessionCount] = useState<number>(0);
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);

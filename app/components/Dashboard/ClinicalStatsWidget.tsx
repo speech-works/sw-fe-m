@@ -1,12 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { TouchableOpacity, View } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import React, { useMemo } from "react";
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   ClinicalDomain,
   GrowthProfileMetrics,
@@ -32,15 +26,11 @@ import {
   useMotion,
 } from "../../design-system";
 import type { IconName } from "../../design-system/components/Icon";
-import { Gradient } from "../../design-system/components/Gradient";
 import PressableScale from "../PressableScale";
 import SkeletonLoader from "../SkeletonLoader";
 import ErrorStateCard from "./ErrorStateCard";
 import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp } from "../../navigators/index";
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
 
 type MetricAccentKey = "success" | "danger" | "info" | "purple" | "warning";
 type MomentumState = "ACTIVE" | "QUIET" | "SLIPPING";
@@ -171,7 +161,6 @@ const MetricChip: React.FC<{
 const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   const { colors, elevation, scheme } = useTheme();
   const styles = useStyles();
-  const motion = useMotion();
   const { overallState, historyBuckets, fetchAllTrends, loading, error } =
     useUserBehaviorTrendsStore();
 
@@ -202,32 +191,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   };
 
   // --- Refresh Handler ---
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const rotationAnim = useSharedValue(0);
-
-  const onRefresh = async () => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
-    rotationAnim.value = withRepeat(
-      withTiming(360, { duration: 1000, easing: Easing.linear }),
-      -1,
-      false,
-    );
-    try {
-      await fetchAllTrends();
-    } catch (err) {
-      console.error("Failed to refresh:", err);
-    } finally {
-      rotationAnim.value = withTiming(0, { duration: 200 });
-      setIsRefreshing(false);
-    }
-  };
-
-  const refreshIconStyle = useAnimatedStyle(
-    () => ({ transform: [{ rotate: rotationAnim.value + "deg" }] }),
-    [],
-  );
-
   const metricChips = useMemo<MetricChipItem[]>(() => {
     if (!overallState?.profile) return [];
     const combinedAxes = overallState.profile.axes.combined;
@@ -336,23 +299,16 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
         {/* Header — title + subtitle, no eyebrow. Momentum chip only when slipping. */}
         <View style={styles.header}>
-          {(isRefreshing || isMomentumSlipping) && (
+          {isMomentumSlipping && (
             <View style={styles.headerTopRow}>
-              {isRefreshing ? (
-                <SkeletonLoader width={80} height={22} style={{ borderRadius: 20 }} />
-              ) : (
-                <View
-                  style={[
-                    styles.chipBadge,
-                    { backgroundColor: colors.surface.control },
-                  ]}
-                >
-                  <Icon name={icons.warning} size={12} color={colors.text.tertiary} />
-                  <Text variant="label" color="secondary">
-                    Slipping Momentum
-                  </Text>
-                </View>
-              )}
+              <View
+                style={[styles.chipBadge, { backgroundColor: colors.surface.control }]}
+              >
+                <Icon name={icons.warning} size={12} color={colors.text.tertiary} />
+                <Text variant="label" color="secondary">
+                  Slipping Momentum
+                </Text>
+              </View>
             </View>
           )}
 
