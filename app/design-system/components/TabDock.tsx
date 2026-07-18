@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   FadeIn,
   LinearTransition,
@@ -42,6 +42,10 @@ export interface TabDockProps {
   fitContent?: boolean;
   /** Render in normal flow (e.g. inside a header) instead of floating at the bottom. */
   inline?: boolean;
+  /** Horizontally scroll the tabs and keep the SELECTED tab centered — for docks
+   *  with more tabs than fit on screen (e.g. the avatar studio's 8 slots), so no
+   *  tab is ever stranded at the edge. Opt-in; the bottom nav never sets it. */
+  scrollable?: boolean;
   /** Screen-reader label for the whole dock (e.g. "Main navigation" /
    *  "Community page tabs"). Announced politely when it changes. */
   accessibilityLabel?: string;
@@ -62,48 +66,100 @@ export const TabDock: React.FC<TabDockProps> = ({
   onLongPress,
   fitContent = false,
   inline = false,
+  scrollable = false,
   accessibilityLabel,
   surfaceColor,
 }) => {
   const { colors, elevation } = useTheme();
   const reduceMotion = useReducedMotion();
+
+  // Center-the-selected-tab scroller. Each item reports its centre within the
+  // bar (onLayout); the content is padded by half the viewport so ANY tab —
+  // first or last — can sit dead-centre. scrollTo(centre) lands it there.
+  const scrollRef = useRef<ScrollView>(null);
+  const centersRef = useRef<Record<string, number>>({});
+  const [viewport, setViewport] = useState(0);
+
+  const centerOn = (key: string, animated = true) => {
+    const c = centersRef.current[key];
+    if (c != null && viewport > 0) {
+      scrollRef.current?.scrollTo({ x: Math.max(0, c), animated: animated && !reduceMotion });
+    }
+  };
+
+  // Re-centre on selection, and once the viewport width is known (first layout).
+  useEffect(() => {
+    if (scrollable) centerOn(activeKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey, viewport, scrollable]);
+
+  const bar = (
+    <Animated.View
+      // The capsule resizes (hug content / nav↔tabs morph) on the SAME spring as
+      // the active pill, so they stay locked together.
+      layout={
+        reduceMotion
+          ? undefined
+          : LinearTransition.springify()
+            .damping(DOCK_SPRING.damping)
+            .stiffness(DOCK_SPRING.stiffness)
+            .mass(DOCK_SPRING.mass)
+      }
+      style={[
+        styles.bar,
+        fitContent ? styles.barFit : styles.barFull,
+        { backgroundColor: surfaceColor ?? colors.surface.elevated, shadowColor: colors.shadow },
+        !inline && elevation.e3,
+      ]}
+      accessibilityRole="tablist"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityLiveRegion="polite"
+    >
+      {items.map((item) => (
+        <DockItem
+          key={item.key}
+          isFocused={activeKey === item.key}
+          label={item.label}
+          iconName={item.icon}
+          badge={item.badge ?? 0}
+          fitContent={fitContent}
+          reduceMotion={reduceMotion}
+          onPress={() => onSelect(item.key)}
+          onLongPress={onLongPress ? () => onLongPress(item.key) : undefined}
+          onItemLayout={
+            scrollable
+              ? (x, w) => {
+                  centersRef.current[item.key] = x + w / 2;
+                  // As the active pill grows/shrinks its layout settles here —
+                  // re-centre on the FINAL position so scroll + pill land together.
+                  if (item.key === activeKey) centerOn(item.key);
+                }
+              : undefined
+          }
+        />
+      ))}
+    </Animated.View>
+  );
+
+  if (scrollable) {
+    return (
+      <View style={styles.scrollContainer} pointerEvents="box-none">
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          onLayout={(e) => setViewport(e.nativeEvent.layout.width)}
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: viewport / 2 }]}
+        >
+          {bar}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={inline ? styles.containerInline : styles.container} pointerEvents="box-none">
-      <Animated.View
-        // The capsule resizes (hug content / nav↔tabs morph) on the SAME spring as
-        // the active pill, so they stay locked together.
-        layout={
-          reduceMotion
-            ? undefined
-            : LinearTransition.springify()
-                .damping(DOCK_SPRING.damping)
-                .stiffness(DOCK_SPRING.stiffness)
-                .mass(DOCK_SPRING.mass)
-        }
-        style={[
-          styles.bar,
-          fitContent ? styles.barFit : styles.barFull,
-          { backgroundColor: surfaceColor ?? colors.surface.elevated, shadowColor: colors.shadow },
-          !inline && elevation.e3,
-        ]}
-        accessibilityRole="tablist"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityLiveRegion="polite"
-      >
-        {items.map((item) => (
-          <DockItem
-            key={item.key}
-            isFocused={activeKey === item.key}
-            label={item.label}
-            iconName={item.icon}
-            badge={item.badge ?? 0}
-            fitContent={fitContent}
-            reduceMotion={reduceMotion}
-            onPress={() => onSelect(item.key)}
-            onLongPress={onLongPress ? () => onLongPress(item.key) : undefined}
-          />
-        ))}
-      </Animated.View>
+      {bar}
     </View>
   );
 };
@@ -117,6 +173,8 @@ interface DockItemProps {
   reduceMotion: boolean;
   onPress: () => void;
   onLongPress?: () => void;
+  /** Reports this item's x + width within the bar (for the centering scroller). */
+  onItemLayout?: (x: number, width: number) => void;
 }
 
 const DockItem: React.FC<DockItemProps> = ({
@@ -128,6 +186,7 @@ const DockItem: React.FC<DockItemProps> = ({
   reduceMotion,
   onPress,
   onLongPress,
+  onItemLayout,
 }) => {
   const { colors } = useTheme();
   const activeColor = colors.nav.activePill;
@@ -175,6 +234,7 @@ const DockItem: React.FC<DockItemProps> = ({
     <Animated.View
       style={[styles.itemContainer, containerStyle]}
       entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}
+      onLayout={onItemLayout ? (e) => onItemLayout(e.nativeEvent.layout.x, e.nativeEvent.layout.width) : undefined}
     >
       <TouchableOpacity
         onPress={onPress}
@@ -241,6 +301,13 @@ const styles = StyleSheet.create({
   },
   containerInline: {
     alignItems: "flex-start",
+  },
+  scrollContainer: {
+    alignSelf: "stretch",
+  },
+  scrollContent: {
+    // Half-viewport padding on each side lets the first/last tab reach centre.
+    alignItems: "center",
   },
   bar: {
     flexDirection: "row",

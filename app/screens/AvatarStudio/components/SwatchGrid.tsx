@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "center",
     gap: spacing.md,
   },
   // 44pt hit target; the visible swatch sits inside so the selection ring has

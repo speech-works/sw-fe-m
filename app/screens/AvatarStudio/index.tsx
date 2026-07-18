@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
+import { Directions, Gesture, GestureDetector } from "react-native-gesture-handler";
 import { updateMyUser } from "../../api/users";
 import { useUserStore } from "../../stores/user";
 import { useAvatarDraftStore } from "../../stores/avatarDraft";
@@ -108,6 +109,22 @@ const AvatarStudio = () => {
     return unsub;
   }, [navigation, saving]);
 
+  // Horizontal fling on the panel pages between slots (next/prev), so the whole
+  // content area is swipeable — not just the dock. Functional setState reads the
+  // latest tab; clamps at the ends. A fling coexists with the vertical scroll
+  // and taps (it's a distinct flick), matching the app's lens-swipe convention.
+  const goTab = (dir: 1 | -1) =>
+    setTab((cur) => {
+      const idx = SLOT_TABS.findIndex((t) => t.key === cur);
+      const next = Math.min(SLOT_TABS.length - 1, Math.max(0, idx + dir));
+      return SLOT_TABS[next].key;
+    });
+
+  const tabSwipe = Gesture.Race(
+    Gesture.Fling().direction(Directions.LEFT).numberOfPointers(1).runOnJS(true).onEnd(() => goTab(1)),
+    Gesture.Fling().direction(Directions.RIGHT).numberOfPointers(1).runOnJS(true).onEnd(() => goTab(-1)),
+  );
+
   const showToast = (message: string, icon?: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ message, icon });
@@ -157,6 +174,7 @@ const AvatarStudio = () => {
           <TabDock
             inline
             fitContent
+            scrollable
             accessibilityLabel="Avatar slots"
             items={SLOT_TABS.map((t) => ({ key: t.key, label: t.label, icon: t.icon as any }))}
             activeKey={tab}
@@ -164,6 +182,7 @@ const AvatarStudio = () => {
           />
         </View>
 
+        <GestureDetector gesture={tabSwipe}>
         <View style={styles.panel}>
           {tab === "skin" && (
             <SwatchGrid
@@ -185,6 +204,18 @@ const AvatarStudio = () => {
 
           {tab === "hair" && (
             <>
+              {/* Colour first (it's shown on top), then the styles below. */}
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Colour
+              </Text>
+              <SwatchGrid
+                swatches={HAIR_COLORS}
+                selectedHex={draft.colors.hair}
+                onSelect={(hex) => setColor("hair", hex)}
+              />
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Style
+              </Text>
               <PartGrid
                 slot="hair"
                 ids={["hair.crop", "hair.swoop", "hair.curls", "hair.waves", "hair.long"]}
@@ -192,14 +223,6 @@ const AvatarStudio = () => {
                 stage={stage}
                 onSelect={(id) => setPart("hair", id)}
                 allowNone
-              />
-              <Text variant="label" color="tertiary" style={styles.subLabel}>
-                Hair color
-              </Text>
-              <SwatchGrid
-                swatches={HAIR_COLORS}
-                selectedHex={draft.colors.hair}
-                onSelect={(hex) => setColor("hair", hex)}
               />
             </>
           )}
@@ -285,6 +308,7 @@ const AvatarStudio = () => {
             />
           )}
         </View>
+        </GestureDetector>
       </Page>
 
       {/* Inline result toast (EditProfile precedent — never the global modal). */}
@@ -319,6 +343,7 @@ const styles = StyleSheet.create({
   subLabel: {
     marginTop: space.sectionGap,
     marginBottom: spacing.sm,
+    textAlign: "center",
   },
   toastWrap: {
     position: "absolute",
