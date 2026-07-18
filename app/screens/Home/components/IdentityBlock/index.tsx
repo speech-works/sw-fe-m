@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import PressableScale from "../../../../components/PressableScale";
 import { useUserStore } from "../../../../stores/user";
@@ -11,21 +12,96 @@ import {
   Text,
   Icon,
   icons,
-  Gradient,
   fonts,
 } from "../../../../design-system";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
-import { normalizeManifest } from "../../../../types/avatar";
 
 /**
- * Home's top identity block — the original arrangement: the big ENERGY meter
- * floats on the canvas up top ("can I practice now?" is the actionable signal),
- * and the LEVEL sits in a card below it (with room for a sibling card beside
- * it). Horizontal bars only (no rings). Raw XP numbers live one tap away on the
- * Achievements detail (progressive disclosure). Level + stamina data flow is
- * ported verbatim from the legacy ResourceStats.
+ * Home's identity block — two sibling cards, one visual grammar:
+ *
+ *     [ ringed anchor ] LABEL          [ ringed avatar ]  ›
+ *     Hero name                        Hero name
+ *     status              pct          status              pct
+ *
+ * The LEVEL card rings its number; the AVATAR card rings the character with the
+ * user's ENERGY. That merge is deliberate: energy used to be a full-width bar
+ * above these cards, which shouted its most boring value (100%) all day. As a
+ * ring it stays glanceable, costs no vertical space, and can ESCALATE — the
+ * stroke turns amber at or below `LOW_ENERGY` — so it's quiet when you're fine
+ * and loud when you're not. Prominence tracks urgency instead of being fixed.
+ *
+ * Both rings are the same shape but not the same weight: energy takes the
+ * saturated `action.primary` (live, actionable), level the soft `text.accent`
+ * (ambient progression). One hue family, separated by lightness — which is also
+ * why nothing here competes with the solid-orange practice CTA below.
+ *
+ * This is the deliberate exception to the program's "horizontal bars, no rings"
+ * rule (user directive). Raw XP numbers still live one tap away on Achievements.
+ * Level + stamina data flow is ported verbatim from the legacy ResourceStats.
  */
+
+const LEVEL_RING = { size: 34, stroke: 3 };
+const ENERGY_RING = { size: 62, stroke: 3 };
+/** Sized to leave ~5px inside the ring — the avatar's idle float is ±2px, so a
+ *  tighter fit would let the character graze its own energy ring. */
+const AVATAR_SIZE = 46;
+/** At or below this %, the energy ring switches to the caution hue. */
+const LOW_ENERGY = 25;
+
+/**
+ * Shared progress ring — used for both level and energy so the two cards can't
+ * drift apart. Fills clockwise from 12 o'clock.
+ *
+ * Deliberately STATIC. An earlier revision drove `strokeDashoffset` through
+ * Reanimated `useAnimatedProps` so the ring would count to its value; the
+ * animated props never reached the SVG and both rings rendered stuck at 0%.
+ * If the count-in is worth revisiting, verify it on a device BEFORE relying on
+ * it — a ring that silently reads 0 is far worse than one that doesn't animate.
+ */
+const ProgressRing: React.FC<{
+  pct: number;
+  size: number;
+  stroke: number;
+  color: string;
+  children?: React.ReactNode;
+}> = ({ pct, size, stroke, color, children }) => {
+  const { colors } = useTheme();
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const filled = Math.min(100, Math.max(0, pct));
+
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={colors.surface.control}
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - filled / 100)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.ringCenter} pointerEvents="none">
+        {children}
+      </View>
+    </View>
+  );
+};
+
 export const IdentityBlock: React.FC = () => {
   const { colors, elevation } = useTheme();
   const navigation = useNavigation<any>();
@@ -68,73 +144,22 @@ export const IdentityBlock: React.FC = () => {
     : 0;
 
   const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
+  const isLow = staminaPercentage <= LOW_ENERGY;
+  const energyHue = isLow ? colors.accent.warning : colors.action.primary;
 
-  // The avatar's own backdrop colour tints its card — each user's identity card
-  // glows in their world. (+ alpha suffix = a low-opacity wash, not a fill.)
-  const avatarBg = useMemo(
-    () => normalizeManifest(user?.avatarManifest).colors.bg,
-    [user?.avatarManifest],
-  );
+  const hasAvatar = !!user?.avatarManifest;
+  const energyLabel = hasAvatar
+    ? staminaPercentage === 100
+      ? "Charged"
+      : rechargeTimeLeft
+        ? `~${rechargeTimeLeft} to full`
+        : "Recharging…"
+    : "Create yours";
 
   return (
     <View style={styles.container}>
-      {/* 1. Energy — ambient status, deliberately QUIET: it floats on the canvas
-          (no card/glow) so it never competes with the practice CTA below, which
-          is the screen's real hero. The craft lives in the slim gradient meter,
-          not in visual weight. */}
-      <View style={styles.energy}>
-        <View style={styles.rowHeader}>
-          <View style={styles.energyHeaderLeft}>
-            <View style={[styles.energyDisc, { backgroundColor: colors.action.primaryTint }]}>
-              <Icon name={icons.energy} size={14} color={colors.text.accent} />
-            </View>
-            <Text variant="body" color="secondary">
-              Energy
-            </Text>
-          </View>
-          <Text variant="body" color="accent" style={styles.energyPct}>
-            {staminaPercentage}%
-          </Text>
-        </View>
-
-        {/* Slim gradient meter with a hairline gloss — fed the SAME rounded
-            value as the % label so fill and number can never disagree. */}
-        <View style={[styles.meterTrack, { backgroundColor: colors.surface.control }]}>
-          <View style={[styles.meterFill, { width: `${staminaPercentage}%` }]}>
-            <Gradient token="brand" style={StyleSheet.absoluteFill} pointerEvents="none" />
-            <Gradient token="sheen" style={styles.meterGloss} pointerEvents="none" />
-          </View>
-        </View>
-
-        <View style={styles.energyFooter}>
-          {!user?.isPaid ? (
-            <PressableScale
-              haptic={false}
-              onPress={() => navigation.navigate("PremiumModal")}
-              accessibilityRole="button"
-              accessibilityLabel="Upgrade energy"
-            >
-              <Text variant="caption" color={colors.text.link}>
-                Upgrade Energy
-              </Text>
-            </PressableScale>
-          ) : staminaPercentage === 100 ? (
-            <Text variant="caption" color="tertiary">
-              Fully Charged
-            </Text>
-          ) : (
-            <Text variant="caption" color="tertiary">
-              {rechargeTimeLeft ? `~${rechargeTimeLeft} until full` : "Recharging…"}
-            </Text>
-          )}
-        </View>
-      </View>
-
-      {/* 2. Level card + avatar card (below energy) — the two-card identity row.
-          Each card layers an ambient tinted glow (depth + immersion) under its
-          content, lifted with the DS elevation scale and finished with a top
-          sheen for a "lit from above" edge. */}
       <View style={styles.grid}>
+        {/* ── Level card ── */}
         <PressableScale
           onPress={() =>
             navigation.navigate("ProgressDetail", { scrollTo: "achievements" })
@@ -147,21 +172,27 @@ export const IdentityBlock: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={`Level ${userLevel}${
             levelStage?.title ? `, ${levelStage.title}` : ""
-          }. View achievements.`}
+          }. ${levelPct}% to level ${userLevel + 1}. View achievements.`}
         >
-          {/* warm progression glow + top sheen */}
-          <Gradient token="brand" style={[styles.glow, styles.glowWarm]} pointerEvents="none" />
-          <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
-
           <View style={styles.cardInner}>
-            {/* top anchor: the level as a gradient chip ("9 · LEVEL") */}
-            <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
-              <Gradient token="brand" style={styles.chipBadge} pointerEvents="none">
-                <Text variant="caption" color={colors.action.onPrimary} style={styles.chipNum} numberOfLines={1}>
+            {/* top anchor: the level number wrapped in its own progress ring */}
+            <View style={styles.levelAnchor}>
+              <ProgressRing
+                pct={levelPct}
+                size={LEVEL_RING.size}
+                stroke={LEVEL_RING.stroke}
+                color={colors.text.accent}
+              >
+                <Text
+                  variant="body"
+                  color="primary"
+                  style={styles.ringNumText}
+                  numberOfLines={1}
+                >
                   {userLevel}
                 </Text>
-              </Gradient>
-              <Text variant="label" color="accent" style={styles.chipLabel}>
+              </ProgressRing>
+              <Text variant="label" color="accent" style={styles.anchorLabel}>
                 LEVEL
               </Text>
             </View>
@@ -177,25 +208,18 @@ export const IdentityBlock: React.FC = () => {
                 <Text variant="caption" color="tertiary" numberOfLines={1}>
                   Level {userLevel + 1} next
                 </Text>
-                <Text variant="caption" style={[styles.pct, { color: colors.gamification.xp }]}>
+                <Text variant="caption" color="accent" style={styles.pct}>
                   {levelPct}%
                 </Text>
               </View>
             </View>
           </View>
-
-          {/* full-bleed progress bar hugging the bottom edge — structural, glowing */}
-          <View style={[styles.fbTrack, { backgroundColor: colors.surface.control }]}>
-            <View style={[styles.fbFillWrap, { width: `${levelPct}%` }]}>
-              <Gradient token="meadow" style={StyleSheet.absoluteFill} pointerEvents="none" />
-            </View>
-          </View>
         </PressableScale>
 
-        {/* Avatar card — the character the user owns. Always shows a REAL
-            avatar (null manifest renders the default), never an empty slot;
-            the caption carries the create-vs-edit state instead. The card glows
-            in the avatar's own backdrop colour, and the character gently floats. */}
+        {/* ── Avatar card, which is ALSO the energy meter ──
+            The character the user owns, ringed by their energy. Always shows a
+            REAL avatar (null manifest renders the default), never an empty slot;
+            the status line carries create-vs-energy state instead. */}
         <PressableScale
           onPress={() => navigation.navigate("AvatarStudio")}
           style={[
@@ -204,51 +228,58 @@ export const IdentityBlock: React.FC = () => {
             elevation.e2,
           ]}
           accessibilityRole="button"
-          accessibilityLabel={
-            user?.avatarManifest
-              ? "Your avatar. Open the avatar studio."
-              : "Create your avatar."
-          }
+          accessibilityLabel={`${
+            hasAvatar ? "Your avatar" : "Create your avatar"
+          }. Energy ${staminaPercentage} percent, ${energyLabel}. Opens the avatar studio.`}
         >
-          <Gradient
-            colors={[`${avatarBg}4D`, `${avatarBg}00`]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.glow}
-            pointerEvents="none"
-          />
-          <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
-
           <View style={styles.cardInner}>
-            {/* top anchor: the character portrait (hero) + an edit affordance */}
-            <View style={styles.avatarRow}>
-              <UserAvatar manifest={user?.avatarManifest} size={52} animate />
+            {/* top anchor: the character, ringed by energy, + an edit affordance */}
+            <View style={styles.anchorRow}>
+              <ProgressRing
+                pct={staminaPercentage}
+                size={ENERGY_RING.size}
+                stroke={ENERGY_RING.stroke}
+                color={energyHue}
+              >
+                <UserAvatar manifest={user?.avatarManifest} size={AVATAR_SIZE} animate />
+              </ProgressRing>
               <View style={[styles.affordance, { backgroundColor: colors.surface.control }]}>
                 <Icon name={icons.chevronRight} size={16} color={colors.text.secondary} />
               </View>
             </View>
 
-            {/* nameplate */}
+            {/* nameplate + the energy readout */}
             <View style={styles.heroBlock}>
               <Text variant="h2" color="primary" numberOfLines={1} style={styles.heroName}>
                 Avatar
               </Text>
-              <Text variant="caption" color="secondary" numberOfLines={1}>
-                {user?.avatarManifest ? "View profile" : "Create yours"}
-              </Text>
+              <View style={styles.baseline}>
+                {/* Free users keep their upgrade path: the status line itself is
+                    a tap target, so the card can still open the studio. */}
+                {hasAvatar && !user?.isPaid ? (
+                  <PressableScale
+                    haptic={false}
+                    onPress={() => navigation.navigate("PremiumModal")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Upgrade energy"
+                  >
+                    <Text variant="caption" color={colors.text.link} numberOfLines={1}>
+                      Upgrade
+                    </Text>
+                  </PressableScale>
+                ) : (
+                  <Text variant="caption" color="tertiary" numberOfLines={1}>
+                    {energyLabel}
+                  </Text>
+                )}
+                <View style={styles.energyReadout}>
+                  <Icon name={icons.energy} size={11} color={energyHue} />
+                  <Text variant="caption" style={[styles.pct, { color: energyHue }]}>
+                    {staminaPercentage}%
+                  </Text>
+                </View>
+              </View>
             </View>
-          </View>
-
-          {/* full-bleed accent strip in the avatar's own colour — mirrors the
-              level card's progress bar so the pair reads as siblings. */}
-          <View style={styles.fbTrack}>
-            <Gradient
-              colors={[avatarBg, `${avatarBg}00`]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
           </View>
         </PressableScale>
       </View>
@@ -260,110 +291,49 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.lg,
   },
-  // Energy floats on the canvas (no card) — ambient status, low visual weight.
-  energy: {
-    gap: spacing.sm,
-  },
-  rowHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  energyHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  energyFooter: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-  energyDisc: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  energyPct: {
-    fontFamily: fonts.bold,
-  },
-  meterTrack: {
-    height: 8,
-    borderRadius: radius.full,
-    overflow: "hidden",
-  },
-  meterFill: {
-    height: "100%",
-    borderRadius: radius.full,
-    overflow: "hidden",
-  },
-  // hairline gloss along the top of the fill — craft without weight
-  meterGloss: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-  },
-  // Grid row that holds the level card — flex children so a sibling card can
-  // slot in beside it (each becomes half-width) without any restyle.
+  // Grid row holding the two identity cards — each takes half the width.
   grid: {
     flexDirection: "row",
     gap: spacing.lg,
   },
   card: {
     flex: 1,
-    minHeight: 128,
+    minHeight: 138,
     padding: spacing.lg,
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
-  // Ambient tinted wash behind the card content (immersion + depth).
-  glow: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  glowWarm: {
-    opacity: 0.13,
-  },
-  // "Lit from above" top edge — a very soft white sheen.
-  sheen: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 54,
-  },
-  // The content column: top anchor pinned up top, hero/nameplate at the bottom.
+  // The content column: anchor pinned up top, hero/nameplate at the bottom.
   cardInner: {
     flex: 1,
     justifyContent: "space-between",
   },
-  // ── level card ──
-  chip: {
+  // Avatar card: ringed character on the left, edit affordance pushed right.
+  anchorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  // Level card: ring and its label read as one object, so they stay adjacent.
+  levelAnchor: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    borderRadius: radius.full,
-    paddingRight: spacing.sm,
-    paddingLeft: 3,
-    paddingVertical: 3,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  chipBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: radius.full,
+  anchorLabel: {
+    letterSpacing: 0.6,
+    flexShrink: 1,
+  },
+  // Whatever sits inside a ring (number, avatar) is centred on it.
+  ringCenter: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
-  chipNum: {
+  ringNumText: {
     fontFamily: fonts.extrabold,
-  },
-  chipLabel: {
-    letterSpacing: 0.6,
   },
   heroBlock: {
     gap: spacing.xs,
@@ -375,28 +345,16 @@ const styles = StyleSheet.create({
   baseline: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "baseline",
+    alignItems: "center",
   },
   pct: {
     fontFamily: fonts.bold,
   },
-  // full-bleed accent hugging the card's bottom edge (5px, rounded with the card)
-  fbTrack: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 5,
-    overflow: "hidden",
-  },
-  fbFillWrap: {
-    height: "100%",
-  },
-  // ── avatar card ──
-  avatarRow: {
+  // bolt + % — one object, so it never wraps apart
+  energyReadout: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: 2,
   },
   affordance: {
     width: 28,
