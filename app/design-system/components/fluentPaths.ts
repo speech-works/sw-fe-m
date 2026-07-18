@@ -109,4 +109,35 @@ export const FLUENT: Record<string, FluentPath[]> = {
   "bot": [{"d":"M17.753 14a2.25 2.25 0 0 1 2.25 2.25v.904A3.75 3.75 0 0 1 18.696 20c-1.565 1.344-3.806 2-6.696 2s-5.128-.656-6.69-2a3.75 3.75 0 0 1-1.306-2.843v-.908A2.25 2.25 0 0 1 6.254 14zM11.9 2.006L12 2a.75.75 0 0 1 .743.648l.007.102l-.001.749h3.5a2.25 2.25 0 0 1 2.25 2.25v4.505a2.25 2.25 0 0 1-2.25 2.25h-8.5a2.25 2.25 0 0 1-2.25-2.25V5.75A2.25 2.25 0 0 1 7.75 3.5l3.5-.001V2.75a.75.75 0 0 1 .649-.743L12 2zM9.749 6.5a1.25 1.25 0 1 0 0 2.498a1.25 1.25 0 0 0 0-2.498m4.493 0a1.25 1.25 0 1 0 0 2.498a1.25 1.25 0 0 0 0-2.498"}],
   "map": [{"d":"M8.5 4.358v12.465l-4.32 3.038a.75.75 0 0 1-1.174-.509l-.007-.104V8.615a.75.75 0 0 1 .238-.548l.08-.065zm12.494.29l.007.104v10.633a.75.75 0 0 1-.238.548l-.08.065L15.5 19.64V7.174l4.32-3.035a.75.75 0 0 1 1.174.509M10 4.359l4 2.812v12.467l-4-2.814z"}],
   "square-check": [{"d":"M6.707 3.293a1 1 0 0 0-1.414 0L4 4.586l-.293-.293a1 1 0 0 0-1.414 1.414l1 1a1 1 0 0 0 1.414 0l2-2a1 1 0 0 0 0-1.414m14.296 13.7H10L9.883 17A1 1 0 0 0 10 18.993h11.003l.117-.006a1 1 0 0 0-.117-1.994m0-5.993H10l-.117.007A1 1 0 0 0 10 13h11.003l.117-.007A1 1 0 0 0 21.003 11m0-6H10l-.117.007A1 1 0 0 0 10 7h11.003l.117-.007A1 1 0 0 0 21.003 5M6.707 16.293a1 1 0 0 0-1.414 0L4 17.586l-.293-.293a1 1 0 0 0-1.414 1.414l1 1a1 1 0 0 0 1.414 0l2-2a1 1 0 0 0 0-1.414m-1.414-6.5a1 1 0 0 1 1.414 1.414l-2 2a1 1 0 0 1-1.414 0l-1-1a1 1 0 1 1 1.414-1.414l.293.293z"}],
+  // Avatar Studio slot tabs — from @iconify-json/fluent (glasses-24-filled).
+  "glasses": [{"d":"M7.909 5h.841a.75.75 0 0 1 .102 1.493L8.75 6.5h-.841a.75.75 0 0 0-.477.17l-.075.073l-2.074 2.256h3.466a2.25 2.25 0 0 1 2.237 2.005h2.027A2.25 2.25 0 0 1 15.25 9l3.477-.001l-2.083-2.258a.75.75 0 0 0-.448-.234l-.104-.007h-.842a.75.75 0 0 1-.102-1.493L15.25 5h.843a2.25 2.25 0 0 1 1.52.592l.133.132l3.642 3.947q.075.083.122.178c.306.384.489.871.489 1.4v3.497a3.25 3.25 0 0 1-3.25 3.25H16.25a3.25 3.25 0 0 1-3.25-3.25l-.001-2.242h-2.001v2.242a3.25 3.25 0 0 1-3.25 3.25H5.25A3.25 3.25 0 0 1 2 14.746V11.25c0-.562.206-1.076.546-1.47l.038-.055l.044-.052l3.624-3.945a2.25 2.25 0 0 1 1.469-.72zh.841z"}],
+};
+
+/**
+ * HAND-AUTHORED glyphs — not from Iconify, and deliberately kept out of the
+ * generated map above so regenerating it can never silently drop them.
+ *
+ * Why they exist: the Fluent set ships no `beard` and no `hat` glyph (checked
+ * against all 19,972 icons in @iconify-json/fluent). The Avatar Studio's Beard
+ * and Headgear tabs were falling back to `user` and `umbrella`, which read as
+ * "profile" and "rain" — wrong enough that users noticed.
+ *
+ * Drawn on the same 24×24 grid in the same filled style. Both were rastered and
+ * reviewed at their REAL 20px tab size before landing, not just at preview size:
+ * earlier attempts looked fine large and collapsed into a shield / a bowtie
+ * small. If you edit these, re-check at 20px — that is the size that ships.
+ */
+export const CUSTOM: Record<string, FluentPath[]> = {
+  // moustache over a beard mass — the pairing is what reads as facial hair;
+  // either shape alone degrades into an abstract blob at tab size.
+  "beard": [
+    {"d":"M12 9.5c-1.2-1.3-2.9-2.1-4.7-2.1-1.4 0-2.4.8-2.4 1.9 0 1.3 1.1 2.2 2.6 2.2 1.6 0 3.1-.7 4.5-1.9 1.4 1.2 2.9 1.9 4.5 1.9 1.5 0 2.6-.9 2.6-2.2 0-1.1-1-1.9-2.4-1.9-1.8 0-3.5.8-4.7 2.1Z"},
+    {"d":"M6 13.4c-.6 0-1.1.5-1 1.1.5 3.5 3 6 7 6s6.5-2.5 7-6c.1-.6-.4-1.1-1-1.1-1.5 0-2.6 1.5-6 1.5s-4.5-1.5-6-1.5Z"},
+  ],
+  // fedora: domed crown + wide brim. The brim's width is what makes it a hat
+  // rather than a bell at small sizes.
+  "hat": [
+    {"d":"M7 11c0-4.5 1.8-7 5-7s5 2.5 5 7Z"},
+    {"d":"M5 10.6h14c1.1 0 2.4.7 2.4 1.8 0 1.5-4.2 3.1-9.4 3.1s-9.4-1.6-9.4-3.1c0-1.1 1.3-1.8 2.4-1.8Z"},
+  ],
 };

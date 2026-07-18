@@ -120,9 +120,9 @@ export const icons = {
   avatarSkin: "droplet", // skin tone swatches
   avatarFace: "meh", // expression (eyes + mouth combos of the one brand face)
   avatarHair: "scissors", // hair style + color
-  avatarBeard: "user", // facial hair (a face/person glyph; Fluent "beard" when mapped)
-  avatarHeadgear: "umbrella", // headgear (closest free overhead-cover glyph; Fluent "hat" when mapped)
-  avatarEyewear: "aperture", // eyewear (a lens; Fluent "glasses" when mapped)
+  avatarBeard: "beard", // facial hair — hand-authored glyph (Fluent ships none)
+  avatarHeadgear: "hat", // headgear — hand-authored fedora (Fluent ships none)
+  avatarEyewear: "glasses", // eyewear — real Fluent glasses-24-filled
   avatarProp: "feather", // held props
   avatarBackdrop: "image", // backdrop color
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)

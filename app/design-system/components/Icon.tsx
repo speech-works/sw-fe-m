@@ -3,7 +3,7 @@ import { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../useTheme";
-import { FLUENT } from "./fluentPaths";
+import { CUSTOM, FLUENT } from "./fluentPaths";
 
 /**
  * The design-system icon set is **Fluent (Microsoft Fluent UI System Icons, filled)**.
@@ -25,7 +25,9 @@ export type ExtraIconName =
   | "route" | "chart-pie" | "square-check" | "party-popper" | "hand-helping"
   | "hourglass" | "medal" | "mic-vocal" | "layout-grid" | "history" | "whatsapp"
   | "layer" | "clipboard-pulse" | "chat" | "graduation-cap" | "person-star"
-  | "brightness" | "contrast";
+  | "brightness" | "contrast" | "glasses"
+  // hand-authored (see CUSTOM in fluentPaths.ts — Fluent ships no beard/hat)
+  | "beard" | "hat";
 
 export type IconName = FeatherName | ExtraIconName;
 
@@ -65,7 +67,9 @@ export const Icon: React.FC<IconProps> = ({ name, size = 20, color, style }) => 
     return <FontAwesome5 name={brand as any} size={size} color={resolved} brand style={style} />;
   }
 
-  const paths = FLUENT[name];
+  // Generated Fluent glyphs first, then the hand-authored ones (beard/hat, which
+  // Fluent simply doesn't ship). Both render identically — same grid, same style.
+  const paths = FLUENT[name] ?? CUSTOM[name];
   if (paths) {
     const inset = OPTICAL_INSET[name] ?? 0;
     const viewBox = inset
