@@ -78,33 +78,26 @@ export const IdentityBlock: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* 1. Energy — the hero card of the identity block (same elevated + glow +
-          sheen language as the level/avatar pair, but full-width and primary). */}
-      <View
-        style={[
-          styles.energyCard,
-          { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
-          elevation.e2,
-        ]}
-      >
-        <Gradient token="brand" style={[styles.glow, styles.glowWarm]} pointerEvents="none" />
-        <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
-
+      {/* 1. Energy — ambient status, deliberately QUIET: it floats on the canvas
+          (no card/glow) so it never competes with the practice CTA below, which
+          is the screen's real hero. The craft lives in the slim gradient meter,
+          not in visual weight. */}
+      <View style={styles.energy}>
         <View style={styles.rowHeader}>
           <View style={styles.energyHeaderLeft}>
-            <Gradient token="brand" style={styles.energyDisc} pointerEvents="none">
-              <Icon name={icons.energy} size={16} color={colors.action.onPrimary} />
-            </Gradient>
-            <Text variant="title" color="primary">
+            <View style={[styles.energyDisc, { backgroundColor: colors.action.primaryTint }]}>
+              <Icon name={icons.energy} size={14} color={colors.text.accent} />
+            </View>
+            <Text variant="body" color="secondary">
               Energy
             </Text>
           </View>
-          <Text variant="h2" color="accent">
+          <Text variant="body" color="accent" style={styles.energyPct}>
             {staminaPercentage}%
           </Text>
         </View>
 
-        {/* Gradient meter with a glossy top highlight — fed the SAME rounded
+        {/* Slim gradient meter with a hairline gloss — fed the SAME rounded
             value as the % label so fill and number can never disagree. */}
         <View style={[styles.meterTrack, { backgroundColor: colors.surface.control }]}>
           <View style={[styles.meterFill, { width: `${staminaPercentage}%` }]}>
@@ -267,13 +260,9 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.lg,
   },
-  // Energy hero card — the identity block's primary, full-width surface.
-  energyCard: {
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-    gap: spacing.md,
+  // Energy floats on the canvas (no card) — ambient status, low visual weight.
+  energy: {
+    gap: spacing.sm,
   },
   rowHeader: {
     flexDirection: "row",
@@ -290,15 +279,17 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   energyDisc: {
-    width: 34,
-    height: 34,
+    width: 28,
+    height: 28,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+  },
+  energyPct: {
+    fontFamily: fonts.bold,
   },
   meterTrack: {
-    height: 18,
+    height: 8,
     borderRadius: radius.full,
     overflow: "hidden",
   },
@@ -307,13 +298,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     overflow: "hidden",
   },
-  // glossy top highlight on the fill — the "charged" sheen
+  // hairline gloss along the top of the fill — craft without weight
   meterGloss: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 7,
+    height: 3,
   },
   // Grid row that holds the level card — flex children so a sibling card can
   // slot in beside it (each becomes half-width) without any restyle.
