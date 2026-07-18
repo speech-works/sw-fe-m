@@ -124,7 +124,9 @@ export const lightColors: SemanticColors = {
     fun: p.category.fun.on,
     realLife: p.category.realLife.on,
   },
-  gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.info.base, gold: p.warning.base },
+  // See the note in dark.ts — `stamina` tracks the hue Energy actually renders
+  // (brand orange), not the blue it used to claim. Kept in sync across schemes.
+  gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.orange[400], gold: p.warning.base },
   premium: {
     gold: p.premium.gold,
     goldDeep: p.premium.goldDeep,

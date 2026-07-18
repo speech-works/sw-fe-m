@@ -1,7 +1,6 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import PressableScale from "../../../../components/PressableScale";
 import { useUserStore } from "../../../../stores/user";
@@ -13,6 +12,7 @@ import {
   Icon,
   icons,
   fonts,
+  ProgressRing,
 } from "../../../../design-system";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
@@ -50,57 +50,19 @@ const AVATAR_SIZE = 46;
 const LOW_ENERGY = 25;
 
 /**
- * Shared progress ring — used for both level and energy so the two cards can't
- * drift apart. Fills clockwise from 12 o'clock.
+ * Both rings are the DS `ProgressRing` (its `progress` is 0..1), so level and
+ * energy share one implementation and neither re-derives the arc maths.
  *
- * Deliberately STATIC. An earlier revision drove `strokeDashoffset` through
+ * `trackColor` is passed explicitly because the DS default is `surface.row`,
+ * which resolves to the same value as `surface.elevated` — these cards' own
+ * background — so the track would be invisible here.
+ *
+ * Both are STATIC. An earlier revision drove `strokeDashoffset` through
  * Reanimated `useAnimatedProps` so the ring would count to its value; the
  * animated props never reached the SVG and both rings rendered stuck at 0%.
  * If the count-in is worth revisiting, verify it on a device BEFORE relying on
  * it — a ring that silently reads 0 is far worse than one that doesn't animate.
  */
-const ProgressRing: React.FC<{
-  pct: number;
-  size: number;
-  stroke: number;
-  color: string;
-  children?: React.ReactNode;
-}> = ({ pct, size, stroke, color, children }) => {
-  const { colors } = useTheme();
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const filled = Math.min(100, Math.max(0, pct));
-
-  return (
-    <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={colors.surface.control}
-          strokeWidth={stroke}
-          fill="none"
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - filled / 100)}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      <View style={styles.ringCenter} pointerEvents="none">
-        {children}
-      </View>
-    </View>
-  );
-};
 
 export const IdentityBlock: React.FC = () => {
   const { colors, elevation } = useTheme();
@@ -145,7 +107,9 @@ export const IdentityBlock: React.FC = () => {
 
   const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
   const isLow = staminaPercentage <= LOW_ENERGY;
-  const energyHue = isLow ? colors.accent.warning : colors.action.primary;
+  // Named via the gamification token (not action.primary) so Energy's hue is
+  // semantically labelled — one edit moves it everywhere if it ever diverges.
+  const energyHue = isLow ? colors.accent.warning : colors.gamification.stamina;
 
   const hasAvatar = !!user?.avatarManifest;
   const energyLabel = hasAvatar
@@ -178,10 +142,11 @@ export const IdentityBlock: React.FC = () => {
             {/* top anchor: the level number wrapped in its own progress ring */}
             <View style={styles.levelAnchor}>
               <ProgressRing
-                pct={levelPct}
+                progress={levelPct / 100}
                 size={LEVEL_RING.size}
-                stroke={LEVEL_RING.stroke}
+                strokeWidth={LEVEL_RING.stroke}
                 color={colors.text.accent}
+                trackColor={colors.surface.control}
               >
                 <Text
                   variant="body"
@@ -236,10 +201,11 @@ export const IdentityBlock: React.FC = () => {
             {/* top anchor: the character, ringed by energy, + an edit affordance */}
             <View style={styles.anchorRow}>
               <ProgressRing
-                pct={staminaPercentage}
+                progress={staminaPercentage / 100}
                 size={ENERGY_RING.size}
-                stroke={ENERGY_RING.stroke}
+                strokeWidth={ENERGY_RING.stroke}
                 color={energyHue}
+                trackColor={colors.surface.control}
               >
                 <UserAvatar manifest={user?.avatarManifest} size={AVATAR_SIZE} animate />
               </ProgressRing>
@@ -325,12 +291,6 @@ const styles = StyleSheet.create({
   anchorLabel: {
     letterSpacing: 0.6,
     flexShrink: 1,
-  },
-  // Whatever sits inside a ring (number, avatar) is centred on it.
-  ringCenter: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
   },
   ringNumText: {
     fontFamily: fonts.extrabold,

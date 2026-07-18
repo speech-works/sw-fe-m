@@ -113,7 +113,11 @@ export const darkColors: SemanticColors = {
     fun: p.category.fun.on,
     realLife: p.category.realLife.on,
   },
-  gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.info.base, gold: p.warning.base },
+  // `streak` and `stamina` share the brand orange with `action.primary` on
+  // purpose — distinct concepts, same hue today, free to diverge later. Keep
+  // `stamina` pointed at what Energy actually renders: it was `info.base`
+  // (blue) while every Energy surface drew orange, so the token was lying.
+  gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.orange[400], gold: p.warning.base },
   premium: {
     gold: p.premium.gold,
     goldDeep: p.premium.goldDeep,
