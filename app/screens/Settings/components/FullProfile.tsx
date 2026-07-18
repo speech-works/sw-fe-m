@@ -52,7 +52,6 @@ const FullProfile = ({ levelStage, onEditAvatar }: FullProfileProps) => {
       {/* Identity header — free-floating on the sheet, no card wrapper */}
       <View style={styles.profileInfo}>
         <AvatarButton
-          shape="rounded"
           size={80}
           level={levelStage?.level || user?.level || 1}
           onPress={onEditAvatar}

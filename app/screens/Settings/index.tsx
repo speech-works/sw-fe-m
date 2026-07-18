@@ -207,7 +207,6 @@ const Settings = () => {
         >
           <Reanimated.View style={[styles.avatarWrap, avatarFloatStyle]}>
             <AvatarButton
-              shape="rounded"
               size={88}
               level={levelStage?.level || user?.level || 1}
               onPress={() => navigation.navigate("AvatarStudio")}

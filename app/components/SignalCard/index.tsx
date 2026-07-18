@@ -16,6 +16,9 @@ import { getMoment } from "../../constants/momentMessages";
 import { getPostTemplate } from "../../constants/postTemplates";
 import { getReaction } from "../../constants/reactions";
 import { useTheme, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
+import { useUserStore } from "../../stores/user";
+import { UserAvatar } from "../UserAvatar";
+import { normalizeManifest } from "../../types/avatar";
 import type { SemanticColors } from "../../design-system/semantic/roles";
 
 import ReactionPicker from "../ReactionPicker";
@@ -154,6 +157,7 @@ const SignalCard = ({
   isLast = false,
 }: SignalCardProps) => {
   const { colors } = useTheme();
+  const currentUser = useUserStore((s) => s.user);
   const authorName = signal.authorIsMe ? "You" : signal.author?.name ?? "Your buddy";
   const initials = (signal.author?.name ?? "?").substring(0, 1).toUpperCase();
   const interactive = variant === "feed" && !signal.authorIsMe;
@@ -452,7 +456,11 @@ const SignalCard = ({
       <View style={styles.axisCol}>
         <View style={[styles.axisLineTop, { backgroundColor: colors.border.strong }, isFirst && styles.hidden]} />
         <View style={styles.timelineAvatarWrap}>
-          {signal.author?.profilePictureUrl ? (
+          {signal.authorIsMe ? (
+            <View style={[styles.timelineAvatar, styles.timelineSelfClip, { borderColor: tone.accent, backgroundColor: normalizeManifest(currentUser?.avatarManifest).colors.bg }]}>
+              <UserAvatar manifest={currentUser?.avatarManifest} size={42} />
+            </View>
+          ) : signal.author?.profilePictureUrl ? (
             <Image source={{ uri: signal.author.profilePictureUrl }} style={[styles.timelineAvatar, { borderColor: tone.accent }]} />
           ) : (
             <View style={[styles.timelineAvatarFallback, { backgroundColor: tone.accent }]}>
@@ -526,6 +534,11 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: borderWidth.thick,
+  },
+  timelineSelfClip: {
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   timelineAvatarFallback: {
     width: 32,

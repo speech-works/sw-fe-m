@@ -16,6 +16,9 @@ interface AvatarButtonProps {
   onPress: () => void;
 }
 
+// Circular by default — the character's tile is itself a circle, so a round
+// container reads as "the actual avatar" with no corner gaps.
+
 /**
  * The user's owned avatar as a tappable identity disc (Settings hero, My
  * Profile). Reads the manifest straight from the user store, so a save in the
@@ -26,7 +29,7 @@ interface AvatarButtonProps {
 export const AvatarButton: React.FC<AvatarButtonProps> = ({
   size,
   level,
-  shape = "rounded",
+  shape = "circle",
   onPress,
 }) => {
   const { user } = useUserStore();

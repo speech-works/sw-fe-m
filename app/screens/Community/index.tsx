@@ -65,6 +65,8 @@ import {
 import { Signal, Thread, getThread } from "../../api/threads";
 import { getLevelStage, LevelStage } from "../../api/users";
 import { useUserStore } from "../../stores/user";
+import { UserAvatar } from "../../components/UserAvatar";
+import { normalizeManifest } from "../../types/avatar";
 import { useInboxStore } from "../../stores/inbox";
 import { useCommunityDock } from "../../stores/communityDock";
 import { shareBuddyInvite } from "../../util/functions/share";
@@ -621,8 +623,14 @@ const Community = () => {
       active: relativeAgo(report?.lastPracticeAt) ?? "—",
     };
 
-    const renderAvatar = (url?: string | null, initials?: string) =>
-      url ? (
+    // `isSelf` → the current user's owned avatar (never their photo). Buddies
+    // keep photo/initials until buddy manifests arrive (Phase E).
+    const renderAvatar = (url?: string | null, initials?: string, isSelf?: boolean) =>
+      isSelf ? (
+        <View style={[styles.pAvatarImg, styles.pAvatarClip, { backgroundColor: normalizeManifest(user?.avatarManifest).colors.bg }]}>
+          <UserAvatar manifest={user?.avatarManifest} size={85} />
+        </View>
+      ) : url ? (
         <Image source={{ uri: url }} style={[styles.pAvatarImg, { backgroundColor: colors.surface.control }]} />
       ) : (
         <View style={[styles.pAvatarFallback, { backgroundColor: colors.surface.control }]}>
@@ -646,7 +654,7 @@ const Community = () => {
           <View style={[styles.partnerInner, { backgroundColor: colors.action.primary }]}>
             <View style={styles.overlappingAvatars}>
               <View style={[styles.avatarWrapper, { zIndex: 2, borderColor: colors.action.primary }]}>
-                {renderAvatar(user?.profilePictureUrl, myInitials)}
+                {renderAvatar(undefined, myInitials, true)}
               </View>
               <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -spacing.xl, borderColor: colors.action.primary }]}>
                 {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
@@ -1096,6 +1104,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: radius.full,
+  },
+  pAvatarClip: {
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   pAvatarFallback: {
     width: 64,
