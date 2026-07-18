@@ -432,11 +432,21 @@ const Reframe = () => {
                     await markActivityStart();
                   } catch (error: any) {
                     console.error("Error starting reframe practice:", error);
-                    if (
-                      error?.response?.data?.errorCode === "INSUFFICIENT_STAMINA" ||
-                      error?.response?.status === 402
-                    ) {
+                    // Branch on errorCode ONLY. A bare `status === 402` used to
+                    // live here and it could never be right: the backend maps
+                    // InsufficientStaminaError to 400, and 402 exclusively to
+                    // the PURCHASE errors (PACK_NOT_OWNED / NO_CREDITS). So the
+                    // 402 arm only ever fired on the wrong errors — a user with
+                    // full energy, blocked by an unowned pack, was told they'd
+                    // run out of energy.
+                    const errorCode = error?.response?.data?.errorCode;
+                    if (errorCode === "INSUFFICIENT_STAMINA") {
                       dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
+                    } else if (errorCode === "PACK_NOT_OWNED") {
+                      showErrorBottomSheet(
+                        "Part of a program",
+                        "This exercise belongs to a program you haven't joined yet. Open it from the program to get started.",
+                      );
                     } else {
                       showErrorBottomSheet(
                         "Failed to start",
