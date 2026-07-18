@@ -11,7 +11,6 @@ import {
   Text,
   Icon,
   icons,
-  ProgressBar,
   Gradient,
   fonts,
 } from "../../../../design-system";
@@ -79,15 +78,23 @@ export const IdentityBlock: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* 1. Energy — the big meter, floating on top. */}
-      <View style={styles.energy}>
+      {/* 1. Energy — the hero card of the identity block (same elevated + glow +
+          sheen language as the level/avatar pair, but full-width and primary). */}
+      <View
+        style={[
+          styles.energyCard,
+          { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
+          elevation.e2,
+        ]}
+      >
+        <Gradient token="brand" style={[styles.glow, styles.glowWarm]} pointerEvents="none" />
+        <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
+
         <View style={styles.rowHeader}>
           <View style={styles.energyHeaderLeft}>
-            <View
-              style={[styles.iconCircle, { backgroundColor: colors.action.primaryTint }]}
-            >
-              <Icon name={icons.energy} size={16} color={colors.text.accent} />
-            </View>
+            <Gradient token="brand" style={styles.energyDisc} pointerEvents="none">
+              <Icon name={icons.energy} size={16} color={colors.action.onPrimary} />
+            </Gradient>
             <Text variant="title" color="primary">
               Energy
             </Text>
@@ -96,14 +103,16 @@ export const IdentityBlock: React.FC = () => {
             {staminaPercentage}%
           </Text>
         </View>
-        {/* Fed the SAME rounded value as the % label, so the fill and the
-            number can never disagree (e.g. 79/80 → "99%" over a 98.75% bar). */}
-        <ProgressBar
-          value={staminaPercentage}
-          max={100}
-          color={colors.action.primary}
-          height={24}
-        />
+
+        {/* Gradient meter with a glossy top highlight — fed the SAME rounded
+            value as the % label so fill and number can never disagree. */}
+        <View style={[styles.meterTrack, { backgroundColor: colors.surface.control }]}>
+          <View style={[styles.meterFill, { width: `${staminaPercentage}%` }]}>
+            <Gradient token="brand" style={StyleSheet.absoluteFill} pointerEvents="none" />
+            <Gradient token="sheen" style={styles.meterGloss} pointerEvents="none" />
+          </View>
+        </View>
+
         <View style={styles.energyFooter}>
           {!user?.isPaid ? (
             <PressableScale
@@ -256,10 +265,15 @@ export const IdentityBlock: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.xl,
+    gap: spacing.lg,
   },
-  energy: {
-    gap: spacing.sm,
+  // Energy hero card — the identity block's primary, full-width surface.
+  energyCard: {
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    gap: spacing.md,
   },
   rowHeader: {
     flexDirection: "row",
@@ -275,12 +289,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
   },
-  iconCircle: {
-    width: 32,
-    height: 32,
+  energyDisc: {
+    width: 34,
+    height: 34,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  meterTrack: {
+    height: 18,
+    borderRadius: radius.full,
+    overflow: "hidden",
+  },
+  meterFill: {
+    height: "100%",
+    borderRadius: radius.full,
+    overflow: "hidden",
+  },
+  // glossy top highlight on the fill — the "charged" sheen
+  meterGloss: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 7,
   },
   // Grid row that holds the level card — flex children so a sibling card can
   // slot in beside it (each becomes half-width) without any restyle.
