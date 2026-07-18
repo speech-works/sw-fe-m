@@ -2,11 +2,9 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { StyleSheet, View, Animated, Dimensions, ScrollView } from "react-native";
 import { useUserStore } from "../../../../../stores/user";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
-import SeekerFace from "../../../../../assets/sw-faces/SeekerFace";
-import PathfinderFace from "../../../../../assets/sw-faces/PathfinderFace";
-import VanguardFace from "../../../../../assets/sw-faces/VanguardFace";
-import CatalystFace from "../../../../../assets/sw-faces/CatalystFace";
-import BeaconFace from "../../../../../assets/sw-faces/BeaconFace";
+import { UserAvatar } from "../../../../../components/UserAvatar";
+import { manifestWithStageKit } from "../../../../../assets/avatar/registry";
+import { normalizeManifest, StageIndex } from "../../../../../types/avatar";
 import {
   useTheme,
   spacing,
@@ -23,20 +21,6 @@ const { width: windowWidth } = Dimensions.get("window");
 const SLIDE_GAP = 12;
 const CARD_PAD = spacing["2xl"]; // card horizontal padding (for edge-to-edge carousel math)
 
-type LevelFaceComp = React.ComponentType<{
-  size?: number;
-  shouldAnimate?: boolean;
-  transparentBg?: boolean;
-}>;
-
-const LEVEL_FACES: Record<string, LevelFaceComp> = {
-  seeker: SeekerFace,
-  pathfinder: PathfinderFace,
-  vanguard: VanguardFace,
-  catalyst: CatalystFace,
-  beacon: BeaconFace,
-};
-
 type AchievementsProps = {
   stageData?: LevelStage | null;
 };
@@ -44,6 +28,12 @@ type AchievementsProps = {
 const Achievements = ({ stageData }: AchievementsProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
+  // The user's own avatar (their identity — skin/hair/face stay theirs); each
+  // stage card overrides only the gear slots with that stage's kit.
+  const baseManifest = useMemo(
+    () => normalizeManifest(user?.avatarManifest),
+    [user?.avatarManifest],
+  );
   const [stage, setStage] = useState<LevelStage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -179,11 +169,15 @@ const Achievements = ({ stageData }: AchievementsProps) => {
             onScroll={scrollHandler}
             scrollEventThrottle={16}
           >
-            {stage.stages.map((s) => {
+            {stage.stages.map((s, i) => {
               const isUnlocked = stage.level >= s.minLevel;
               const isCurrent =
                 stage.level >= s.minLevel && (s.maxLevel === null || stage.level <= s.maxLevel);
-              const StageFace = LEVEL_FACES[s.title?.toLowerCase().split(" ")[0] ?? ""];
+              // YOUR avatar wearing this stage's kit (index-keyed, so it can
+              // never mis-map a server title — the old title→face lookup wrongly
+              // locked Voyager/North Star). Only the current stage animates.
+              const stageIndex = Math.min(i, 4) as StageIndex;
+              const kitManifest = manifestWithStageKit(baseManifest, stageIndex);
 
               return (
                 <View
@@ -203,13 +197,21 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                   ) : null}
 
                   <View style={styles.stageHeader}>
-                    {StageFace && isUnlocked ? (
-                      <StageFace size={60} shouldAnimate />
-                    ) : (
-                      <View style={[styles.lockCircle, { backgroundColor: colors.surface.control }]}>
-                        <Icon name={icons.locked} size={20} color={colors.text.tertiary} />
+                    <View style={styles.stageAvatar}>
+                      <View style={!isUnlocked ? styles.dimmed : undefined}>
+                        <UserAvatar
+                          manifest={kitManifest}
+                          size={60}
+                          animate={isCurrent}
+                          accessibilityLabel={`Your avatar as ${s.title}`}
+                        />
                       </View>
-                    )}
+                      {!isUnlocked ? (
+                        <View style={[styles.lockBadge, { backgroundColor: colors.surface.control, borderColor: colors.border.default }]}>
+                          <Icon name={icons.locked} size={12} color={colors.text.tertiary} />
+                        </View>
+                      ) : null}
+                    </View>
                     <View style={styles.flex1}>
                       <Text variant="h3" style={!isUnlocked ? styles.locked : undefined}>{s.title}</Text>
                       <Text variant="caption" color="tertiary" style={[styles.stageBounds, !isUnlocked && styles.locked]}>
@@ -323,10 +325,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
-  lockCircle: {
+  stageAvatar: {
     width: 60,
     height: 60,
+    position: "relative",
+  },
+  dimmed: { opacity: 0.45 },
+  lockBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 20,
+    height: 20,
     borderRadius: radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: "center",
     alignItems: "center",
   },
