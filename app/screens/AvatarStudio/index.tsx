@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Directions, Gesture, GestureDetector } from "react-native-gesture-handler";
 import { updateMyUser } from "../../api/users";
 import { useUserStore } from "../../stores/user";
@@ -19,6 +19,7 @@ import {
   TabDock,
   Text,
   Toast,
+  Dialog,
   useTheme,
   spacing,
   space,
@@ -68,6 +69,9 @@ const AvatarStudio = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; icon?: string } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The pending navigation action captured by the unsaved-changes guard — its
+  // presence drives the DS confirm Dialog (no native Alert).
+  const [pendingLeave, setPendingLeave] = useState<unknown>(null);
 
   const stage = stageIndexForLevel(user?.level ?? 1);
 
@@ -86,28 +90,24 @@ const AvatarStudio = () => {
   );
 
   // Unsaved-changes guard — navigation events, not exit-button bookkeeping.
+  // Preventing the leave and stashing the action lets the DS confirm Dialog
+  // decide; discarding resets the draft (→ not dirty) and re-dispatches, which
+  // the guard then waves through.
   useEffect(() => {
     const unsub = navigation.addListener("beforeRemove", (e: any) => {
       if (!useAvatarDraftStore.getState().isDirty() || saving) return;
       e.preventDefault();
-      Alert.alert(
-        "Keep editing?",
-        "Your avatar has unsaved changes.",
-        [
-          { text: "Keep editing", style: "cancel" },
-          {
-            text: "Discard",
-            style: "destructive",
-            onPress: () => {
-              useAvatarDraftStore.getState().reset();
-              navigation.dispatch(e.data.action);
-            },
-          },
-        ],
-      );
+      setPendingLeave(e.data.action);
     });
     return unsub;
   }, [navigation, saving]);
+
+  const confirmDiscard = () => {
+    const action = pendingLeave;
+    setPendingLeave(null);
+    useAvatarDraftStore.getState().reset();
+    if (action) navigation.dispatch(action as any);
+  };
 
   // Horizontal fling on the panel pages between slots (next/prev), so the whole
   // content area is swipeable — not just the dock. Functional setState reads the
@@ -321,6 +321,19 @@ const AvatarStudio = () => {
           />
         </View>
       ) : null}
+
+      {/* Unsaved-changes confirm — the DS Dialog, not a native Alert. Closing
+          (backdrop / "Keep editing") is the safe default; "Discard" leaves. */}
+      <Dialog
+        visible={pendingLeave != null}
+        onClose={() => setPendingLeave(null)}
+        title="Keep editing?"
+        message="Your avatar has unsaved changes."
+        confirmLabel="Discard"
+        destructive
+        onConfirm={confirmDiscard}
+        cancelLabel="Keep editing"
+      />
     </>
   );
 };
