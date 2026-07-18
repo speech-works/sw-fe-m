@@ -33,11 +33,22 @@ export interface UserAvatarProps {
  * change can never corrupt a stored manifest, and Phase E grant ids slot in
  * without touching this renderer.
  *
- * Layer order (fixed): backdrop tile → head plate → HAIR → face → eyewear →
- * headgear, all masked to the tile circle — then the prop, unmasked, so it
- * lives beside the avatar rather than painted on it. Hair sits UNDER the face
- * so the eyes read on top of it; headgear sits ON TOP of eyewear so a hat brim
- * covers the top of the glasses instead of the glasses drawing over the brim.
+ * LAYER TABLE (fixed, bottom → top — the same discipline Reddit encodes as
+ * numeric z-suffixes on its asset ids, _30 body … _70 hair … _80 hat):
+ *
+ *   L0 backdrop tile   — colors.bg fill
+ *   L1 hair BACK       — the drape, behind the head (long/waves); hangs at the
+ *                        sides/shoulders and shows below a hat brim
+ *   L2 head plate      — skin
+ *   L3 hair FRONT      — the crown, on the head — what a hat covers
+ *   L4 beard           — facial hair on the lower face, UNDER the mouth
+ *   L5 face            — eyes + mouth, over the crown/fringe + beard
+ *   L6 eyewear         — over the face
+ *   L7 headgear        — topmost ON the head: opaque, so it COVERS the crown
+ *                        (never cut) and a brim covers the glasses' top
+ *   L8 prop            — unmasked, beside the avatar (outside the tile circle)
+ *
+ * L0–L7 are masked to the tile circle; the prop alone escapes it.
  */
 export const UserAvatar = React.memo<UserAvatarProps>(
   ({ manifest, size, animate = false, accessibilityLabel }) => {
@@ -72,6 +83,15 @@ export const UserAvatar = React.memo<UserAvatarProps>(
       return Component ? <Component colors={m.colors} /> : null;
     };
 
+    /** Hair renders in two passes — the back drape (behind the head) and the
+     *  front crown (on it). A style with no drape returns null for "back". */
+    const hair = (layer: "back" | "front") => {
+      const id = m.parts.hair;
+      if (!id) return null;
+      const Component = PART_REGISTRY.hair[id];
+      return Component ? <Component colors={m.colors} layer={layer} /> : null;
+    };
+
     return (
       <Animated.View
         style={floatStyle}
@@ -82,8 +102,10 @@ export const UserAvatar = React.memo<UserAvatarProps>(
           <AvatarDefs />
           <G mask="url(#av-circ)">
             <Path d={TILE} fill={m.colors.bg} />
+            {hair("back")}
             {part("head")}
-            {part("hair")}
+            {hair("front")}
+            {part("beard")}
             {part("face")}
             {part("eyewear")}
             {part("headgear")}

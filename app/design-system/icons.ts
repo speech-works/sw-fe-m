@@ -118,7 +118,9 @@ export const icons = {
   // are seen/xp/mood/pro). droplet/scissors/compass/feather/map-pin render via
   // the Feather fallback until Fluent glyphs are mapped (same interim as mute).
   avatarSkin: "droplet", // skin tone swatches
+  avatarFace: "meh", // expression (eyes + mouth combos of the one brand face)
   avatarHair: "scissors", // hair style + color
+  avatarBeard: "user", // facial hair (a face/person glyph; Fluent "beard" when mapped)
   avatarHeadgear: "umbrella", // headgear (closest free overhead-cover glyph; Fluent "hat" when mapped)
   avatarEyewear: "aperture", // eyewear (a lens; Fluent "glasses" when mapped)
   avatarProp: "feather", // held props

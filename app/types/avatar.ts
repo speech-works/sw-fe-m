@@ -15,6 +15,7 @@ export type AvatarSlot =
   | "head"
   | "face"
   | "hair"
+  | "beard"
   | "headgear"
   | "eyewear"
   | "prop";
@@ -42,6 +43,7 @@ export const DEFAULT_MANIFEST: AvatarManifest = {
     head: "head.classic",
     face: "face.brand", // the one face (one-face rule)
     hair: "hair.swoop",
+    beard: null, // clean-shaven by default
     headgear: null,
     eyewear: null,
     prop: null,
@@ -56,6 +58,7 @@ const ALL_SLOTS: AvatarSlot[] = [
   "head",
   "face",
   "hair",
+  "beard",
   "headgear",
   "eyewear",
   "prop",

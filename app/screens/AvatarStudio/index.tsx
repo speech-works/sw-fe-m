@@ -26,11 +26,21 @@ import {
 import { SwatchGrid } from "./components/SwatchGrid";
 import { PartGrid } from "./components/PartGrid";
 
-type SlotTab = "skin" | "hair" | "headgear" | "eyewear" | "prop" | "backdrop";
+type SlotTab =
+  | "skin"
+  | "face"
+  | "hair"
+  | "beard"
+  | "headgear"
+  | "eyewear"
+  | "prop"
+  | "backdrop";
 
 const SLOT_TABS: { key: SlotTab; label: string; icon: string }[] = [
   { key: "skin", label: "Skin", icon: icons.avatarSkin },
+  { key: "face", label: "Expression", icon: icons.avatarFace },
   { key: "hair", label: "Hair", icon: icons.avatarHair },
+  { key: "beard", label: "Beard", icon: icons.avatarBeard },
   { key: "headgear", label: "Headgear", icon: icons.avatarHeadgear },
   { key: "eyewear", label: "Eyewear", icon: icons.avatarEyewear },
   { key: "prop", label: "Prop", icon: icons.avatarProp },
@@ -163,11 +173,21 @@ const AvatarStudio = () => {
             />
           )}
 
+          {tab === "face" && (
+            <PartGrid
+              slot="face"
+              ids={["face.brand", "face.smile", "face.joy", "face.wink", "face.wow"]}
+              draft={draft}
+              stage={stage}
+              onSelect={(id) => setPart("face", id)}
+            />
+          )}
+
           {tab === "hair" && (
             <>
               <PartGrid
                 slot="hair"
-                ids={["hair.crop", "hair.swoop", "hair.curls", "hair.waves"]}
+                ids={["hair.crop", "hair.swoop", "hair.curls", "hair.waves", "hair.long"]}
                 draft={draft}
                 stage={stage}
                 onSelect={(id) => setPart("hair", id)}
@@ -184,6 +204,25 @@ const AvatarStudio = () => {
             </>
           )}
 
+          {tab === "beard" && (
+            <PartGrid
+              slot="beard"
+              ids={[
+                "beard.stubble",
+                "beard.mustache",
+                "beard.handlebar",
+                "beard.horseshoe",
+                "beard.walrus",
+                "beard.goatee",
+                "beard.full",
+              ]}
+              draft={draft}
+              stage={stage}
+              onSelect={(id) => setPart("beard", id)}
+              allowNone
+            />
+          )}
+
           {tab === "headgear" && (
             <PartGrid
               slot="headgear"
@@ -193,7 +232,7 @@ const AvatarStudio = () => {
                 "headgear.headphones",
                 "headgear.tourist",
                 "headgear.explorer",
-                "headgear.explorer-star",
+                "headgear.cowboy",
               ]}
               draft={draft}
               stage={stage}
@@ -205,7 +244,14 @@ const AvatarStudio = () => {
           {tab === "eyewear" && (
             <PartGrid
               slot="eyewear"
-              ids={["eyewear.round", "eyewear.square", "eyewear.aviator"]}
+              ids={[
+                "eyewear.round",
+                "eyewear.square",
+                "eyewear.wayfarer",
+                "eyewear.roundshades",
+                "eyewear.lime",
+                "eyewear.aviator",
+              ]}
               draft={draft}
               stage={stage}
               onSelect={(id) => setPart("eyewear", id)}

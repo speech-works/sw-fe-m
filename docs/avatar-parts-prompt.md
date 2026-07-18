@@ -189,7 +189,7 @@ Free wardrobe:
 Earned "journey" gear (this is the story — make them charming and distinct):
 4. **`headgear.tourist`** (earned first) — a soft bucket/sun hat, the look of an eager beginner traveller.
 5. **`headgear.explorer`** (earned next) — a wide-brim adventurer's hat (safari / pathfinder feel), a step up in confidence from the tourist hat.
-6. **`headgear.explorer-star`** (final) — the explorer hat with a small **gold star** on the front, marking a guide who's reached the summit.
+6. **`headgear.cowboy`** (final) — a cowboy hat: creased tall crown, brim with upswept side curls, dark band, and a **gold four-point star** on the crown — the North Star badge for a guide who's reached the summit.
 
 ### Eyewear — 3 pieces (lenses centred exactly on the eyes at (16,22) and (32,22))
 1. **`eyewear.round`** — thin metal-rim round lenses + bridge + temple arms.
