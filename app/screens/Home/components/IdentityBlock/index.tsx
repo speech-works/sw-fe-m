@@ -1,5 +1,5 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import PressableScale from "../../../../components/PressableScale";
@@ -12,9 +12,11 @@ import {
   Icon,
   icons,
   ProgressBar,
+  Gradient,
 } from "../../../../design-system";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
+import { normalizeManifest } from "../../../../types/avatar";
 
 /**
  * Home's top identity block — the original arrangement: the big ENERGY meter
@@ -62,6 +64,13 @@ export const IdentityBlock: React.FC = () => {
   );
 
   const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
+
+  // The avatar's own backdrop colour tints its card — each user's identity card
+  // glows in their world. (+ alpha suffix = a low-opacity wash, not a fill.)
+  const avatarBg = useMemo(
+    () => normalizeManifest(user?.avatarManifest).colors.bg,
+    [user?.avatarManifest],
+  );
 
   return (
     <View style={styles.container}>
@@ -114,33 +123,45 @@ export const IdentityBlock: React.FC = () => {
         </View>
       </View>
 
-      {/* 2. Level card + avatar card (below energy) — the two-card identity row. */}
+      {/* 2. Level card + avatar card (below energy) — the two-card identity row.
+          Each card layers an ambient tinted glow (depth + immersion) under its
+          content, lifted with the DS elevation scale and finished with a top
+          sheen for a "lit from above" edge. */}
       <View style={styles.grid}>
         <PressableScale
           onPress={() =>
             navigation.navigate("ProgressDetail", { scrollTo: "achievements" })
           }
-          style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default, borderWidth: 1 }]}
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
+            elevation.e2,
+          ]}
           accessibilityRole="button"
           accessibilityLabel={`Level ${userLevel}${
             levelStage?.title ? `, ${levelStage.title}` : ""
           }. View achievements.`}
         >
+          {/* warm progression glow + top sheen */}
+          <Gradient token="brand" style={[styles.glow, styles.glowWarm]} pointerEvents="none" />
+          <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
+
           <View style={styles.cardHeader}>
-            <View style={[styles.levelBadge, { backgroundColor: colors.action.primary }]}>
+            {/* the level badge is itself a gradient disc — earned, not flat */}
+            <Gradient token="brand" style={styles.levelBadge} pointerEvents="none">
               <Text variant="h3" color={colors.action.onPrimary} numberOfLines={1}>
                 {userLevel}
               </Text>
-            </View>
+            </Gradient>
             <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
           </View>
-          
+
           <View style={styles.cardContent}>
             <Text
               variant="body"
               color="primary"
               numberOfLines={1}
-              style={{ fontFamily: "Inter-SemiBold" }}
+              style={styles.cardTitle}
             >
               {isLoadingLevel && !levelStage
                 ? "Syncing…"
@@ -156,10 +177,15 @@ export const IdentityBlock: React.FC = () => {
 
         {/* Avatar card — the character the user owns. Always shows a REAL
             avatar (null manifest renders the default), never an empty slot;
-            the caption carries the create-vs-edit state instead. */}
+            the caption carries the create-vs-edit state instead. The card glows
+            in the avatar's own backdrop colour, and the character gently floats. */}
         <PressableScale
           onPress={() => navigation.navigate("AvatarStudio")}
-          style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default, borderWidth: 1 }]}
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
+            elevation.e2,
+          ]}
           accessibilityRole="button"
           accessibilityLabel={
             user?.avatarManifest
@@ -167,17 +193,26 @@ export const IdentityBlock: React.FC = () => {
               : "Create your avatar."
           }
         >
+          <Gradient
+            colors={[`${avatarBg}4D`, `${avatarBg}00`]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.glow}
+            pointerEvents="none"
+          />
+          <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
+
           <View style={styles.cardHeader}>
-            <UserAvatar manifest={user?.avatarManifest} size={32} />
+            <UserAvatar manifest={user?.avatarManifest} size={48} animate />
             <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
           </View>
-          
+
           <View style={styles.cardContent}>
             <Text
               variant="body"
               color="primary"
               numberOfLines={1}
-              style={{ fontFamily: "Inter-SemiBold" }}
+              style={styles.cardTitle}
             >
               Avatar
             </Text>
@@ -229,8 +264,24 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.xl,
     borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: spacing.lg,
     overflow: "hidden",
+  },
+  // Ambient tinted wash behind the card content (immersion + depth).
+  glow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glowWarm: {
+    opacity: 0.13,
+  },
+  // "Lit from above" top edge — a very soft white sheen.
+  sheen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 54,
   },
   cardHeader: {
     flexDirection: "row",
@@ -240,11 +291,15 @@ const styles = StyleSheet.create({
   cardContent: {
     gap: spacing.xs,
   },
+  cardTitle: {
+    fontFamily: "Inter-SemiBold",
+  },
   levelBadge: {
     width: 32,
     height: 32,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
 });
