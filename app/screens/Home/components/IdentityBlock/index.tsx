@@ -13,6 +13,7 @@ import {
   icons,
   ProgressBar,
   Gradient,
+  fonts,
 } from "../../../../design-system";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
@@ -62,6 +63,10 @@ export const IdentityBlock: React.FC = () => {
     1,
     (levelStage?.nextLevelXpCeiling || 100) - (levelStage?.currentLevelXpFloor || 0),
   );
+  // % progress (not raw XP — those stay one tap away) + the next-level teaser.
+  const levelPct = levelStage
+    ? Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
+    : 0;
 
   const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
 
@@ -146,32 +151,42 @@ export const IdentityBlock: React.FC = () => {
           <Gradient token="brand" style={[styles.glow, styles.glowWarm]} pointerEvents="none" />
           <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
 
-          <View style={styles.cardHeader}>
-            {/* the level badge is itself a gradient disc — earned, not flat */}
-            <Gradient token="brand" style={styles.levelBadge} pointerEvents="none">
-              <Text variant="h3" color={colors.action.onPrimary} numberOfLines={1}>
-                {userLevel}
+          <View style={styles.cardInner}>
+            {/* top anchor: the level as a gradient chip ("9 · LEVEL") */}
+            <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
+              <Gradient token="brand" style={styles.chipBadge} pointerEvents="none">
+                <Text variant="caption" color={colors.action.onPrimary} style={styles.chipNum} numberOfLines={1}>
+                  {userLevel}
+                </Text>
+              </Gradient>
+              <Text variant="label" color="accent" style={styles.chipLabel}>
+                LEVEL
               </Text>
-            </Gradient>
-            <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
+            </View>
+
+            {/* hero: the stage identity */}
+            <View style={styles.heroBlock}>
+              <Text variant="h2" color="primary" numberOfLines={1} style={styles.heroName}>
+                {isLoadingLevel && !levelStage
+                  ? "Syncing…"
+                  : levelStage?.title ?? `Level ${userLevel}`}
+              </Text>
+              <View style={styles.baseline}>
+                <Text variant="caption" color="tertiary" numberOfLines={1}>
+                  Level {userLevel + 1} next
+                </Text>
+                <Text variant="caption" style={[styles.pct, { color: colors.gamification.xp }]}>
+                  {levelPct}%
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.cardContent}>
-            <Text
-              variant="body"
-              color="primary"
-              numberOfLines={1}
-              style={styles.cardTitle}
-            >
-              {isLoadingLevel && !levelStage
-                ? "Syncing…"
-                : levelStage?.title ?? `Level ${userLevel}`}
-            </Text>
-            <ProgressBar
-              value={levelStage ? xpIntoLevel : 0}
-              max={xpForNextLevel}
-              height={6}
-            />
+          {/* full-bleed progress bar hugging the bottom edge — structural, glowing */}
+          <View style={[styles.fbTrack, { backgroundColor: colors.surface.control }]}>
+            <View style={[styles.fbFillWrap, { width: `${levelPct}%` }]}>
+              <Gradient token="meadow" style={StyleSheet.absoluteFill} pointerEvents="none" />
+            </View>
           </View>
         </PressableScale>
 
@@ -202,23 +217,36 @@ export const IdentityBlock: React.FC = () => {
           />
           <Gradient token="sheen" style={styles.sheen} pointerEvents="none" />
 
-          <View style={styles.cardHeader}>
-            <UserAvatar manifest={user?.avatarManifest} size={48} animate />
-            <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
+          <View style={styles.cardInner}>
+            {/* top anchor: the character portrait (hero) + an edit affordance */}
+            <View style={styles.avatarRow}>
+              <UserAvatar manifest={user?.avatarManifest} size={52} animate />
+              <View style={[styles.affordance, { backgroundColor: colors.surface.control }]}>
+                <Icon name={icons.chevronRight} size={16} color={colors.text.secondary} />
+              </View>
+            </View>
+
+            {/* nameplate */}
+            <View style={styles.heroBlock}>
+              <Text variant="h2" color="primary" numberOfLines={1} style={styles.heroName}>
+                Avatar
+              </Text>
+              <Text variant="caption" color="secondary" numberOfLines={1}>
+                {user?.avatarManifest ? "View profile" : "Create yours"}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.cardContent}>
-            <Text
-              variant="body"
-              color="primary"
-              numberOfLines={1}
-              style={styles.cardTitle}
-            >
-              Avatar
-            </Text>
-            <Text variant="caption" color="secondary" numberOfLines={1}>
-              {user?.avatarManifest ? "View profile" : "Create yours"}
-            </Text>
+          {/* full-bleed accent strip in the avatar's own colour — mirrors the
+              level card's progress bar so the pair reads as siblings. */}
+          <View style={styles.fbTrack}>
+            <Gradient
+              colors={[avatarBg, `${avatarBg}00`]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
           </View>
         </PressableScale>
       </View>
@@ -262,10 +290,10 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    padding: spacing.xl,
+    minHeight: 128,
+    padding: spacing.lg,
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
-    gap: spacing.lg,
     overflow: "hidden",
   },
   // Ambient tinted wash behind the card content (immersion + depth).
@@ -283,23 +311,74 @@ const styles = StyleSheet.create({
     right: 0,
     height: 54,
   },
-  cardHeader: {
-    flexDirection: "row",
+  // The content column: top anchor pinned up top, hero/nameplate at the bottom.
+  cardInner: {
+    flex: 1,
     justifyContent: "space-between",
-    alignItems: "flex-start",
   },
-  cardContent: {
+  // ── level card ──
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderRadius: radius.full,
+    paddingRight: spacing.sm,
+    paddingLeft: 3,
+    paddingVertical: 3,
     gap: spacing.xs,
   },
-  cardTitle: {
-    fontFamily: "Inter-SemiBold",
-  },
-  levelBadge: {
-    width: 32,
-    height: 32,
+  chipBadge: {
+    width: 20,
+    height: 20,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  chipNum: {
+    fontFamily: fonts.extrabold,
+  },
+  chipLabel: {
+    letterSpacing: 0.6,
+  },
+  heroBlock: {
+    gap: spacing.xs,
+  },
+  heroName: {
+    letterSpacing: -0.3,
+    fontFamily: fonts.extrabold,
+  },
+  baseline: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+  },
+  pct: {
+    fontFamily: fonts.bold,
+  },
+  // full-bleed accent hugging the card's bottom edge (5px, rounded with the card)
+  fbTrack: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 5,
+    overflow: "hidden",
+  },
+  fbFillWrap: {
+    height: "100%",
+  },
+  // ── avatar card ──
+  avatarRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  affordance: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
