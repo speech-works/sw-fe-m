@@ -333,8 +333,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   dock: {
-    alignItems: "center",
     marginTop: space.sectionGap,
+    // This dock alone bleeds past the Page's screenX gutter so the scrollable
+    // tabs run edge-to-edge — the scroll clips at the true screen edge instead
+    // of looking cut by the page padding. The half-viewport content padding
+    // inside TabDock still keeps the selected tab centered on screen.
+    marginHorizontal: -space.screenX,
   },
   panel: {
     marginTop: space.groupGap,
