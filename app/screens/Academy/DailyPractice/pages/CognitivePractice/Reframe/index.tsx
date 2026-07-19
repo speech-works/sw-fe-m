@@ -21,14 +21,20 @@ import {
   Surface,
   Text,
   Icon,
+  icons,
   PageHeader,
   Gradient,
   FloatingControls,
+  Sheet,
   useTheme,
   spacing,
   space,
   radius,
+  borderWidth,
 } from "../../../../../../design-system";
+import {
+  DEFAULT_REFRAME_SERIES_ID,
+} from "../../../../../../constants/reframe";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
@@ -76,6 +82,9 @@ const Reframe = () => {
     [],
   );
   const [selectedScenarioIndex, setSelectedScenarioIndex] = useState<number>(0);
+  /** Every series the user may open. Non-owners never receive the paid one. */
+  const [allSeries, setAllSeries] = useState<any[]>([]);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
     null,
   );
@@ -232,12 +241,23 @@ const Reframe = () => {
         CognitivePracticeType.REFRAMING_THOUGHTS,
       );
 
+      setAllSeries(rs);
+
+      // Reframing is now several themed series rather than one 61-scenario
+      // row, so "which one" is a real question. Order of preference:
+      //   1. an explicit recommendation passed in (mood follow-up, pack block)
+      //   2. the pinned default
+      //   3. whatever came back first — only reachable if the default series
+      //      is missing from this user's catalogue
+      //
+      // rs[0] used to be the whole logic. Harmless with one row; with nine it
+      // silently opens whichever the endpoint sorts first, which is the
+      // SHORTEST series for a non-owner.
       const recommendedId = (route.params as any)?.id;
-      let targetScenario = rs[0];
-      if (recommendedId) {
-        const found = rs.find(s => s.id === recommendedId);
-        if (found) targetScenario = found;
-      }
+      const targetScenario =
+        (recommendedId && rs.find((s) => s.id === recommendedId)) ||
+        rs.find((s) => s.id === DEFAULT_REFRAME_SERIES_ID) ||
+        rs[0];
 
       setScenarios(targetScenario?.reframingThoughtsData?.scenarios || []);
       setCognitivePracticeId(targetScenario?.id || null);
@@ -420,6 +440,32 @@ const Reframe = () => {
               Learn to identify negative thoughts and replace them with
               empowering ones.
             </Text>
+
+            {/* Which series — and the way to change it. Reframing used to be a
+                single 61-scenario row, so there was nothing to pick; now the
+                user should see what they're about to work on rather than being
+                dropped into whichever series happened to sort first. */}
+            {allSeries.length > 1 ? (
+              <PressableScale
+                onPress={() => setShowLibrary(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Change reframe series"
+                style={styles.seriesRow}
+              >
+                <View style={styles.seriesText}>
+                  <Text variant="caption" color="tertiary">
+                    Working on
+                  </Text>
+                  <Text variant="body" color="primary" numberOfLines={1}>
+                    {allSeries.find((x) => x.id === cognitivePracticeId)?.name ??
+                      "Choose a series"}
+                  </Text>
+                </View>
+                <Text variant="caption" style={{ color: accentColor }}>
+                  Change
+                </Text>
+              </PressableScale>
+            ) : null}
             <View style={styles.startButtons}>
               <Button
                 label="Start Exercise"
@@ -469,6 +515,76 @@ const Reframe = () => {
         </View>
       )}
 
+      {/* Series library — mirrors the Breathing technique sheet. Selecting
+          repoints cognitivePracticeId, so the activity is filed under the
+          series the user actually worked on. Non-owners never receive the paid
+          series here; the backend filters it out of the listing entirely. */}
+      <Sheet visible={showLibrary} onClose={() => setShowLibrary(false)}>
+        <View style={styles.libraryHeader}>
+          <Text variant="h2" color="primary">
+            Reframe Series
+          </Text>
+          <Text variant="body" color="secondary" style={styles.librarySubtitle}>
+            Different thoughts get in the way at different times. Pick the one
+            that sounds like this week.
+          </Text>
+        </View>
+
+        <View style={styles.libraryList}>
+          {allSeries.map((serie) => {
+            const isSelected = serie.id === cognitivePracticeId;
+            const count = serie.reframingThoughtsData?.scenarios?.length ?? 0;
+            return (
+              <PressableScale
+                key={serie.id}
+                onPress={() => {
+                  setCognitivePracticeId(serie.id);
+                  setScenarios(serie.reframingThoughtsData?.scenarios || []);
+                  // Reset position AND any in-progress answer: the old index
+                  // points into a different series' scenario list.
+                  setSelectedScenarioIndex(0);
+                  setSelectedReframe(null);
+                  setWrittenReframe("");
+                  setShowLibrary(false);
+                }}
+              >
+                <Surface
+                  level={isSelected ? "elevated" : "control"}
+                  rounded="card"
+                  bordered={!isSelected}
+                  style={[
+                    styles.libraryCard,
+                    isSelected && {
+                      borderWidth: borderWidth.hairline,
+                      borderColor: accentColor,
+                    },
+                  ]}
+                >
+                  <View style={styles.libraryCardText}>
+                    <View style={styles.libraryCardHeader}>
+                      <Text variant="h3" color="primary">
+                        {serie.name}
+                      </Text>
+                      {count ? (
+                        <Text variant="caption" color="tertiary">
+                          {count} thoughts
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text variant="bodySm" color="secondary">
+                      {serie.description}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Icon name={icons.success} size={20} color={accentColor} />
+                  )}
+                </Surface>
+              </PressableScale>
+            );
+          })}
+        </View>
+      </Sheet>
+
       <VitalsFeedbackModal
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
@@ -485,6 +601,47 @@ const Reframe = () => {
 export default Reframe;
 
 const styles = StyleSheet.create({
+  // --- series picker (start gate) ---
+  seriesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  seriesText: {
+    flexShrink: 1,
+    gap: 2,
+  },
+  // --- series library sheet ---
+  libraryHeader: {
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  librarySubtitle: {
+    marginTop: spacing.xs,
+  },
+  libraryList: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  libraryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  libraryCardText: {
+    flexShrink: 1,
+    gap: spacing.xs,
+  },
+  libraryCardHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   root: { flex: 1 },
 
   scroll: {
