@@ -130,9 +130,38 @@ export interface GuidedMeditationData {
   icon: string;
 }
 
+/** Two-sided philosophy comparison attached to some mechanisms — the "AHA" layer. */
+export interface ReframeContrast {
+  title: string;
+  viewA: { label: string; text: string };
+  viewB: { label: string; text: string };
+  takeaway: string;
+  source: string;
+  sourceUrl?: string;
+}
+
+/**
+ * Evidence resolved server-side from the option's mechanismKey. The backend
+ * registry (activities/ReframeMechanisms.ts) is the source of truth — the
+ * client only renders what arrives.
+ */
+export interface ReframeEvidence {
+  principle: string;
+  mechanism: string;
+  source: string;
+  sourceUrl?: string;
+  contrast?: ReframeContrast;
+}
+
+export interface ReframeOptionData {
+  text: string;
+  mechanismKey?: string;
+  evidence?: ReframeEvidence;
+}
+
 export interface ReframingThoughtScenarioData {
   negativeThought: string;
-  reframedThoughts: string[];
+  reframedThoughts: ReframeOptionData[];
 }
 
 export interface ReframingThoughtsData {

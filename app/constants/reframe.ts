@@ -24,6 +24,14 @@ export const REFRAME_SERIES_ID = {
   MAKE_THE_CALL: "30000000-0000-4000-8000-000000000108",
   /** Exclusive to the paid Interview Ready pack — absent for non-owners. */
   INTERVIEW_SPECIAL: "30000000-0000-4000-8000-000000000109",
+  /**
+   * "What You Were Told" — beliefs about what stuttering IS. Every scenario
+   * opens a philosophy contrast, which is why it is a series a user picks
+   * deliberately rather than material that appears mid-exercise.
+   *
+   * Jumps to ...010A because ...0103 belongs to a motor activity.
+   */
+  WHAT_YOU_WERE_TOLD: "30000000-0000-4000-8000-00000000010A",
 } as const;
 
 /**

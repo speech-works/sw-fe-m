@@ -15,6 +15,8 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import { useSessionStore } from "../../../../../../stores/session";
 import PressableScale from "../../../../../../components/PressableScale";
 import TextArea from "../../../../../../components/TextArea";
+import * as WebBrowser from "expo-web-browser";
+import { toSafeExternalUrl } from "../../../../../../util/functions/url";
 import {
   SchemeStatusBar,
   Button,
@@ -56,6 +58,27 @@ import { dispatchCustomEvent } from "../../../../../../util/functions/events";
 import SyncLoader from "../../../../../../components/SyncLoader";
 import ReframeWeather from "./components/ReframeWeather";
 
+/**
+ * Opens a cited source in the in-app browser.
+ *
+ * We show real citations rather than asking users to take our word for it —
+ * the app makes clinical claims, so it owes a way to check them. In-app
+ * rather than Safari is deliberate: kicking out mid-exercise loses the
+ * practice, which is the actual UX cost of citing sources. `toSafeExternalUrl`
+ * restricts to http/https even though every URL is authored by us, because
+ * this content arrives from the backend and should never be able to launch
+ * an arbitrary scheme.
+ */
+const openSource = async (url?: string) => {
+  const safe = toSafeExternalUrl(url);
+  if (!safe) return;
+  try {
+    await WebBrowser.openBrowserAsync(safe);
+  } catch (e) {
+    console.error("Failed to open source", e);
+  }
+};
+
 const Reframe = () => {
   const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
   const { packContext, practiceActivity, from } = route.params || {};
@@ -78,6 +101,11 @@ const Reframe = () => {
   const { user } = useUserStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
+  /**
+   * "Two schools of thought" disclosure inside the evidence card. Collapsed on
+   * every new selection so the card always opens at its short form.
+   */
+  const [showContrast, setShowContrast] = React.useState(false);
   const [scenarios, setScenarios] = useState<ReframingThoughtScenarioData[]>(
     [],
   );
@@ -109,6 +137,7 @@ const Reframe = () => {
       );
       setSelectedReframe(null);
       setWrittenReframe("");
+      setShowContrast(false);
     }
   };
 
@@ -281,6 +310,13 @@ const Reframe = () => {
 
   const currentScenario = scenarios[selectedScenarioIndex];
   const started = !!currentActivityId;
+  // The evidence card belongs to the CHOSEN reframe — selection is the
+  // teaching moment ("why does the one I picked work?"), so nothing shows
+  // until a pick is made. Written-own reframes carry no evidence by design.
+  const selectedOption = selectedReframe
+    ? currentScenario?.reframedThoughts.find((o) => o.text === selectedReframe)
+    : undefined;
+  const evidence = selectedOption?.evidence;
 
   return (
     <View style={styles.root}>
@@ -331,11 +367,14 @@ const Reframe = () => {
 
             <View style={styles.optionsList}>
               {currentScenario?.reframedThoughts.map((item, index) => {
-                const isSelected = selectedReframe === item;
+                const isSelected = selectedReframe === item.text;
                 return (
                   <PressableScale
                     key={index}
-                    onPress={() => setSelectedReframe(item)}
+                    onPress={() => {
+                      setSelectedReframe(item.text);
+                      setShowContrast(false);
+                    }}
                     style={[
                       styles.optionCard,
                       {
@@ -352,12 +391,147 @@ const Reframe = () => {
                       center
                       style={styles.optionText}
                     >
-                      {item}
+                      {item.text}
                     </Text>
                   </PressableScale>
                 );
               })}
             </View>
+
+            {/* Evidence card — the "why this works" layer behind the chosen
+                reframe. Inline, NOT a modal: this flow already mounts the
+                vitals modal and the series sheet, and stacking native Modals
+                freezes touch app-wide on iOS. Server resolves mechanismKey →
+                evidence; unmapped reframes simply show nothing. */}
+            {evidence && (
+              <View
+                style={[
+                  styles.evidenceCard,
+                  {
+                    backgroundColor: colors.surface.elevated,
+                    borderColor: colors.border.hairline,
+                  },
+                ]}
+              >
+                <View style={styles.evidenceLabelRow}>
+                  <Icon name="lightbulb" size={14} color={colors.feedback.infoText} />
+                  <Text variant="label" color={colors.feedback.infoText}>
+                    WHY THIS WORKS
+                  </Text>
+                </View>
+                <Text variant="body" color="primary" style={styles.evidencePrinciple}>
+                  {evidence.principle}
+                </Text>
+                <Text variant="bodySm" color="secondary" style={styles.evidenceMechanism}>
+                  {evidence.mechanism}
+                </Text>
+                {/* Source is tappable when we have a link. Opening in the
+                    in-app browser (not Safari) keeps the practice one tap
+                    away — leaving the app mid-exercise is the real UX cost,
+                    not the citation itself. Users must be able to check us. */}
+                {evidence.sourceUrl ? (
+                  <PressableScale
+                    onPress={() => openSource(evidence.sourceUrl)}
+                    style={styles.sourceRow}
+                    accessibilityRole="link"
+                    accessibilityLabel={`Open source: ${evidence.source}`}
+                  >
+                    <Text
+                      variant="bodySm"
+                      color={colors.feedback.infoText}
+                      style={styles.evidenceSource}
+                    >
+                      {evidence.source}
+                    </Text>
+                    <Icon
+                      name="external-link"
+                      size={12}
+                      color={colors.feedback.infoText}
+                    />
+                  </PressableScale>
+                ) : (
+                  <Text variant="bodySm" color="tertiary" style={styles.evidenceSource}>
+                    {evidence.source}
+                  </Text>
+                )}
+
+                {/* Two schools of thought — collapsed by default so the card
+                    stays scannable; the comparison is the deep-dive. */}
+                {evidence.contrast && (
+                  <>
+                    <PressableScale
+                      onPress={() => setShowContrast((v) => !v)}
+                      style={[
+                        styles.contrastToggle,
+                        { borderTopColor: colors.border.hairline },
+                      ]}
+                    >
+                      <Icon
+                        name="graduation-cap"
+                        size={14}
+                        color={colors.text.secondary}
+                      />
+                      <Text
+                        variant="bodySm"
+                        color="secondary"
+                        style={styles.contrastToggleLabel}
+                      >
+                        {evidence.contrast.title}
+                      </Text>
+                      <Icon
+                        name={showContrast ? "chevron-up" : "chevron-down"}
+                        size={14}
+                        color={colors.text.tertiary}
+                      />
+                    </PressableScale>
+                    {showContrast && (
+                      <View style={styles.contrastBody}>
+                        <Text variant="label" color="tertiary">
+                          {evidence.contrast.viewA.label.toUpperCase()}
+                        </Text>
+                        <Text variant="bodySm" color="secondary" style={styles.contrastText}>
+                          {evidence.contrast.viewA.text}
+                        </Text>
+                        <Text variant="label" color="tertiary" style={styles.contrastSideGap}>
+                          {evidence.contrast.viewB.label.toUpperCase()}
+                        </Text>
+                        <Text variant="bodySm" color="secondary" style={styles.contrastText}>
+                          {evidence.contrast.viewB.text}
+                        </Text>
+                        <Text variant="bodySm" color="primary" style={styles.contrastTakeaway}>
+                          {evidence.contrast.takeaway}
+                        </Text>
+                        {evidence.contrast.sourceUrl ? (
+                          <PressableScale
+                            onPress={() => openSource(evidence.contrast!.sourceUrl)}
+                            style={styles.sourceRow}
+                            accessibilityRole="link"
+                            accessibilityLabel={`Open source: ${evidence.contrast.source}`}
+                          >
+                            <Text
+                              variant="bodySm"
+                              color={colors.feedback.infoText}
+                              style={styles.evidenceSource}
+                            >
+                              {evidence.contrast.source}
+                            </Text>
+                            <Icon
+                              name="external-link"
+                              size={12}
+                              color={colors.feedback.infoText}
+                            />
+                          </PressableScale>
+                        ) : (
+                          <Text variant="bodySm" color="tertiary" style={styles.evidenceSource}>
+                            {evidence.contrast.source}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            )}
 
             {/* Write your own */}
             <View style={styles.writeOwnContainer}>
@@ -545,6 +719,7 @@ const Reframe = () => {
                   setSelectedScenarioIndex(0);
                   setSelectedReframe(null);
                   setWrittenReframe("");
+                  setShowContrast(false);
                   setShowLibrary(false);
                 }}
               >
@@ -700,6 +875,63 @@ const styles = StyleSheet.create({
   optionText: {
     flex: 1,
     lineHeight: 26,
+  },
+  // Evidence card — sits between the options and "write your own".
+  evidenceCard: {
+    marginTop: space.sectionGap,
+    padding: space.sectionGap,
+    borderRadius: radius.card,
+    borderWidth: 1,
+  },
+  evidenceLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+    marginBottom: space.rowGap,
+  },
+  evidencePrinciple: {
+    fontWeight: "600",
+    marginBottom: space.rowGap,
+  },
+  evidenceMechanism: {
+    lineHeight: 20,
+    marginBottom: space.rowGap,
+  },
+  evidenceSource: {
+    fontStyle: "italic",
+    flexShrink: 1,
+  },
+  sourceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+  },
+  contrastToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+    borderTopWidth: 1,
+    marginTop: space.rowGap,
+    paddingTop: space.rowGap,
+  },
+  contrastToggleLabel: {
+    flex: 1,
+  },
+  contrastBody: {
+    marginTop: space.rowGap,
+  },
+  contrastText: {
+    lineHeight: 20,
+    marginTop: 2,
+  },
+  contrastSideGap: {
+    marginTop: space.rowGap,
+  },
+  contrastTakeaway: {
+    lineHeight: 20,
+    marginTop: space.rowGap,
+    marginBottom: space.rowGap,
+    fontWeight: "500",
   },
   writeOwnContainer: {
     marginTop: spacing.xl,
