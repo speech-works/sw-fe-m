@@ -66,8 +66,16 @@ const iconContainerStyle: ViewStyle = {
  * match a reframe id any more. It used to: `...0109` was BOTH
  * TECH_MOTOR_LIGHT_CONSONANTS and the PAID TECH_REFRAME_INTERVIEW_SPECIAL.
  *
- * The mapping is approximate by design — several activities legitimately share
- * one technique page (see the Box Breathing note below).
+ * Read ONLY by the EXPOSURE_PRACTICE branch below, so only exposure ids belong
+ * here. The mapping is approximate by design — several activities legitimately
+ * share one technique page.
+ *
+ * A destination must be a technique that is actually SEEDED, not merely a member
+ * of TECHNIQUES_ENUM. The Library screen filters its groups down to whatever the
+ * API returned, so an unseeded technique quietly disappears there; this screen
+ * navigates straight to TechniquePage and cannot, so it surfaces
+ * "Tutorial unavailable" instead. Backend guard:
+ * sw-be-2/src/tests/techniqueLibrary.seed.test.ts.
  */
 const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   // Motor / Fluency
@@ -91,11 +99,13 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   // breathing activity) — a light-consonant-contact drill was opening a
   // breathing page. Routed to the matching contact technique instead.
   "30000000-0000-4000-8000-000000000109": "LIGHT_ARTICULATORY_CONTACT",
-  "30000000-0000-4000-8000-000000000007": "DIAPHRAGMATIC_BREATHING",
-  "30000000-0000-4000-8000-000000000008": "DIAPHRAGMATIC_BREATHING", // Fallback for Box Breathing to same page for now
-  // Cognitive / Relaxation
-  "30000000-0000-4000-8000-000000000010": "COGNITIVE_RESTRUCTURING",
   "30000000-0000-4000-8000-000000000105": "SELF_DISCLOSURE",
+  // Entries for ...0007 / ...0008 (breathing) and ...0010 (reframing) were
+  // removed: those are COGNITIVE_PRACTICE rows, and the cognitive branch passes
+  // only `id`, never a techniqueId — so they could never be read here. They were
+  // not harmless dead code. They made DIAPHRAGMATIC_BREATHING look like a live
+  // destination during an audit, when no technique row for it has ever been
+  // seeded. Only EXPOSURE_PRACTICE ids belong in this map.
 };
 
 // Map mood to content and activities. `accentKey` resolves the mood tint via the
