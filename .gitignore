@@ -99,3 +99,10 @@ web-build/
 tour-guide-meta.md
 
 .env.local
+
+# Internal docs — kept locally, never in version control
+docs/
+DESIGN.md
+SECRETS.md
+app/screens/Academy/DailyPractice/pages/MirrorWork/REBUILD_SPEC.md
+app/util/analytics/analytics-tracking-map.md
