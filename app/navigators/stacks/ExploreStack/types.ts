@@ -11,6 +11,7 @@ export type ExploreStackParamList = {
   ProgressDetail: { scrollTo?: "achievements" } | undefined;
   PaymentStack: undefined;
   Programs: undefined;
+  ProgramDetail: { catalogKey: string; packId: string | null };
   PackModule: {
     module?: PackModule;
     packId: string;

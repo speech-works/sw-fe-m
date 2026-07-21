@@ -254,6 +254,13 @@ export interface OfferItem {
   priceInr: number;
   priceUsd: number;
   owned: boolean;
+  /**
+   * The pack this offer sells, for opening GET /packs/{id}/brochure.
+   * Null means the catalog advertises something no pack delivers — a config
+   * mistake the backend's catalog:verify and boot-time drift check both flag.
+   * Treat null as "not openable" rather than assuming a pack exists.
+   */
+  packId: string | null;
 }
 
 /**

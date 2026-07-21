@@ -133,14 +133,15 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   if (!recommendation.pack) {
     const ink = colors.accentOn.success;
     return (
+      // "Explore the library while you wait" was a dead end: this card only
+      // appears once there is no pack with work left, so the library is the
+      // thing they have just exhausted — and once every pack is paid, a brand
+      // new user lands here too. Point at what actually comes next instead.
       <PressableScale
         scaleTo={0.98}
         style={[styles.container, { shadowColor: colors.shadow }, style]}
         onPress={() =>
-          exploreNavigation.navigate("ExploreStack", {
-            screen: "LibraryStack",
-            params: { screen: "Library", params: { from: "HOME" } },
-          })
+          exploreNavigation.navigate("ExploreStack", { screen: "Programs" })
         }
       >
         <View style={[styles.gradient, styles.gradientCentered, { backgroundColor: colors.accent.success }]}>
@@ -150,17 +151,17 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 
           <View style={styles.caughtUpContent}>
             <Text variant="h2" color={ink} center>
-              All Caught Up!
+              Today&apos;s work is done
             </Text>
             <Text variant="body" color={ink} center style={styles.caughtUpBody}>
               {recommendation.reason ||
-                "Great work on your recommended pack! We're currently curating your next set of recovery goals based on your progress. Explore the library while you wait."}
+                "You've finished what was waiting for you. Here's what you could take on next."}
             </Text>
 
             <View style={[styles.cta, { borderColor: ink }]}>
               <Icon name={icons.explore} size={14} color={ink} />
               <Text variant="title" color={ink}>
-                Browse Library
+                See what&apos;s next
               </Text>
             </View>
           </View>

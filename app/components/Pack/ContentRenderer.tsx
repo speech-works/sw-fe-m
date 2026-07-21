@@ -218,13 +218,33 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             console.error("Error data:", error.response.data);
           }
 
-          // Only show toast for non-stamina errors (stamina errors are handled by GlobalModal)
           const errorCode = error?.response?.data?.errorCode;
-          if (errorCode !== "INSUFFICIENT_STAMINA") {
-            showErrorBottomSheet(
-              "Something went wrong",
-              "We had trouble loading that activity. Please try again.",
-            );
+
+          // Every one of these used to collapse into "Something went wrong.
+          // Please try again." — advice that is actively false for the paywall
+          // cases, where retrying can never succeed. Name the real reason.
+          const message: { title: string; body: string } | null =
+            errorCode === "INSUFFICIENT_STAMINA"
+              ? // Handled by GlobalModal — stay out of its way.
+                null
+              : errorCode === "PACK_NOT_OWNED"
+                ? {
+                    title: "Part of a paid program",
+                    body: "This activity belongs to a program you haven't bought yet. You can see what's included from the Programs page.",
+                  }
+                : errorCode === "PACK_DAY_LOCKED"
+                  ? {
+                      // Owned already — a wait, not a purchase.
+                      title: "Not yet",
+                      body: "This day of the programme opens later. Today's work is waiting on the pack page.",
+                    }
+                  : {
+                      title: "Something went wrong",
+                      body: "We had trouble loading that activity. Please try again.",
+                    };
+
+          if (message) {
+            showErrorBottomSheet(message.title, message.body);
           }
         } finally {
           setLoading(false);
