@@ -37,12 +37,30 @@ export const startModule = async (
   }
 };
 
+/**
+ * `skipBreakdown` carries WHY the user skipped any exposure challenges in this
+ * module — `tooChallenging` (avoidance), `notNow` (no time / not in the mood,
+ * NOT avoidance) or `eased` (took the gentler challenge and did it, which is an
+ * approach). It ends up on the Courage approach rate.
+ *
+ * Omit it entirely when the user wasn't asked or dismissed the question. Do NOT
+ * send `{}`: the backend metric branches on truthiness, so an empty object
+ * reads as "zero avoidance" instead of "unknown", which is worse than no data.
+ */
 export const completeModule = async (
   packId: string,
-  moduleId: string
+  moduleId: string,
+  skipBreakdown?: {
+    tooChallenging?: number;
+    notNow?: number;
+    eased?: number;
+  } | null
 ): Promise<void> => {
   try {
-    await axiosClient.post(`/packs/${packId}/modules/${moduleId}/complete`);
+    await axiosClient.post(
+      `/packs/${packId}/modules/${moduleId}/complete`,
+      skipBreakdown ? { skipBreakdown } : {}
+    );
   } catch (error) {
     throw error;
   }

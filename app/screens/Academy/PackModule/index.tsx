@@ -70,6 +70,31 @@ const PackModuleScreen = () => {
   const [dayLocked, setDayLocked] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
+  /**
+   * Why this user skipped exposure challenges in THIS module, tallied as they
+   * go and sent once on completion. Accumulated rather than sent per skip
+   * because the backend records exposures per module, not per activity — and
+   * because a half-finished module that is abandoned should leave no trace.
+   *
+   * Stays null until they actually answer. Sending `{}` would read as "zero
+   * avoidance" on the backend rather than "unknown", which is worse than
+   * sending nothing at all.
+   */
+  const [skipTally, setSkipTally] = useState<{
+    tooChallenging?: number;
+    notNow?: number;
+    eased?: number;
+  } | null>(null);
+
+  const recordSkip = (reason: "tooChallenging" | "notNow") => {
+    setSkipTally((prev) => ({
+      ...(prev ?? {}),
+      [reason]: ((prev?.[reason] as number | undefined) ?? 0) + 1,
+    }));
+    setShowSkipConfirmation(false);
+    // Defer so the sheet's close animation doesn't collide with navigation.
+    setTimeout(() => proceedToNext(), 350);
+  };
 
   // Wizard State - Initialize with passed index or 0
   const [currentBlockIndex, setCurrentBlockIndex] = useState(
@@ -389,7 +414,9 @@ const PackModuleScreen = () => {
     if (!module) return;
     try {
       setIsCompleting(true);
-      await completeModule(packId, module.id);
+      // skipTally is null unless they answered the "why" question, and null is
+      // the honest signal for "unknown" -- see completeModule.
+      await completeModule(packId, module.id, skipTally);
 
       // Check for next module
       try {
@@ -685,22 +712,35 @@ const PackModuleScreen = () => {
           </View>
 
           <Text variant="h2" center>
-            Skip Recommended Activity?
+            Skipping this one?
           </Text>
 
+          {/*
+            ASK WHY — the answer changes what this means clinically.
+
+            The Courage approach rate is completed / (completed + avoidance).
+            With no answer the backend has to count EVERY skip as avoidance, so
+            "I'm on a train" scored exactly like "that felt too frightening".
+            These two buttons are the only thing that can tell them apart.
+
+            Neither option is framed as failure, and there is no "Skip Anyway"
+            any more: the question is what happened, not whether they should
+            feel bad. "Not right now" is explicitly NOT counted against them.
+          */}
           <Text variant="body" color="secondary" center>
-            This exercise is recommended for your progress. Skipping this
-            activity may affect the accuracy of your insights.
+            No problem — it just helps to know why, so your progress reflects
+            what actually happened.
           </Text>
 
           <View style={styles.skipModalActions}>
             <Button
-              label="Skip Anyway"
-              onPress={() => {
-                setShowSkipConfirmation(false);
-                // Defer to next frame so the modal close doesn't collide
-                setTimeout(() => proceedToNext(), 350);
-              }}
+              label="It felt too hard"
+              onPress={() => recordSkip("tooChallenging")}
+            />
+            <Button
+              label="Not right now"
+              variant="secondary"
+              onPress={() => recordSkip("notNow")}
             />
             <Button
               label="Go Back"
