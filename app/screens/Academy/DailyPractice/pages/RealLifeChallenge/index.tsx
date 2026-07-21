@@ -2,7 +2,11 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, TextInput } from "react-native";
-import { getCognitivePracticeById, getExposurePracticeById } from "../../../../../api/dailyPractice";
+import {
+  getCognitivePracticeById,
+  getEasierExposureVariant,
+  getExposurePracticeById,
+} from "../../../../../api/dailyPractice";
 import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
@@ -104,6 +108,43 @@ const RealLifeChallenge = () => {
 
   // Always start with Instructions for Real Life Challenges
   const initialStep = ChallengeStep.INSTRUCTION;
+
+  /**
+   * "idle" — the swap is offered; "loading" — fetching; "none" — the backend
+   * says this is already the gentlest of its kind, so the offer is replaced by
+   * a plain statement rather than a button that would do nothing.
+   */
+  const [easierState, setEasierState] = useState<"idle" | "loading" | "none">(
+    "idle",
+  );
+
+  const handleTryEasier = async () => {
+    const sourceId = practiceActivityState?.exposurePractice?.id;
+    if (!sourceId) return;
+
+    setEasierState("loading");
+    const easier = await getEasierExposureVariant(sourceId);
+
+    if (!easier) {
+      // Already the gentlest rung, or the only easier options are locked behind
+      // a pack. Either way there is nothing to offer, and saying so plainly is
+      // kinder than a button that silently fails.
+      setEasierState("none");
+      return;
+    }
+
+    // Swap in place rather than pushing a new screen: the user asked for THIS
+    // challenge to be gentler, so landing them back on a briefing for the same
+    // step — with the easier challenge in it — keeps their place in the flow.
+    setPracticeActivityState({
+      id: undefined,
+      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+      exposurePractice: easier,
+    } as any);
+    setCurrentActivityId(null);
+    setCurrentStep(ChallengeStep.INSTRUCTION);
+    setEasierState("idle");
+  };
 
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
   const [reflectionText, setReflectionText] = useState("");
@@ -354,6 +395,43 @@ const RealLifeChallenge = () => {
               {challengeData.encouragement}
             </Text>
           </Surface>
+
+          {/*
+            GO AT YOUR OWN PACE.
+
+            The Stuttering Foundation's warning is that facing a feared
+            situation and FAILING repeatedly makes the fear worse, not better —
+            the remedy is starting smaller. Until now the app had no smaller: it
+            offered the same challenge again the next day, and not one of the
+            103 exposure activities said anywhere that stepping down was allowed.
+
+            Deliberately plain and always visible, rather than a prompt that
+            appears after a skip. Someone deciding whether to attempt this at all
+            should be able to see the gentler option BEFORE they fail at this
+            one — offering it only afterwards makes it a consolation prize.
+          */}
+          <View style={styles.pacingRow}>
+            <Text variant="bodySm" color="tertiary" center>
+              Go at your own pace. Starting smaller is a real choice, not a
+              step backwards.
+            </Text>
+            {easierState === "none" ? (
+              <Text variant="label" color="tertiary" center>
+                This is already the gentlest challenge of its kind.
+              </Text>
+            ) : (
+              <Button
+                label={
+                  easierState === "loading"
+                    ? "Finding something easier…"
+                    : "Try something easier"
+                }
+                variant="secondary"
+                disabled={easierState === "loading"}
+                onPress={handleTryEasier}
+              />
+            )}
+          </View>
         </Page>
 
         <VitalsFeedbackModal
@@ -440,6 +518,10 @@ const RealLifeChallenge = () => {
 };
 
 const styles = StyleSheet.create({
+  pacingRow: {
+    gap: spacing.md,
+    marginTop: spacing.xl,
+  },
   stepBadge: {
     gap: spacing.sm,
   },

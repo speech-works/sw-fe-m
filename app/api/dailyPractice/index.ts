@@ -142,3 +142,32 @@ export async function getPhoneCallScenarios(): Promise<PhoneCallScenario[]> {
     throw error;
   }
 }
+
+/**
+ * One rung down the exposure ladder — a gentler challenge of the same kind.
+ *
+ * Resolves to `null` when there is nothing easier (the activity is already the
+ * gentlest of its kind). That is a normal answer, not an error: the caller must
+ * say "this is already the gentlest" rather than surface a failure to someone
+ * who has just said they are struggling. The backend also returns null rather
+ * than dangle a challenge locked behind a pack the user hasn't bought.
+ */
+export async function getEasierExposureVariant(
+  id: string,
+): Promise<ExposurePractice | null> {
+  try {
+    const response = await axiosClient.get(`/exposure-practice/${id}/easier`);
+    const practice = response.data?.activity;
+    if (!practice) return null;
+    return {
+      ...practice,
+      practiceData:
+        practice.interviewPracticeData || practice.socialChallengeData,
+    };
+  } catch (error) {
+    // Never block the challenge screen on this — the user still has the
+    // challenge in front of them, they just don't get a gentler option.
+    console.error("Failed to fetch an easier exposure variant", error);
+    return null;
+  }
+}
