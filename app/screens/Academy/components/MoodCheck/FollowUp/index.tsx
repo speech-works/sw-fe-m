@@ -74,7 +74,17 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   "30000000-0000-4000-8000-000000000101": "EASY_ONSET",
   "30000000-0000-4000-8000-000000000102": "LIGHT_ARTICULATORY_CONTACT",
   "30000000-0000-4000-8000-000000000107": "PULL_OUTS",
-  "30000000-0000-4000-8000-000000000110": "CANCELLATIONS",
+  // ...0110 is the "Connected Speech Drill" — its own description is "linking
+  // words to maintain continuous phonation". It pointed at CANCELLATIONS, a
+  // stuttering-MODIFICATION technique for recovering after a block, which is a
+  // different thing at a different moment. It matters more than a wrong link:
+  // TechniquePage takes its header from `techniqueName` (the activity title)
+  // but its tutorial, practice and quiz from `techniqueId`, so the screen read
+  // "Connected Speech Drill" while teaching and quizzing Cancellations, with
+  // nothing on screen to reveal the mismatch.
+  // No activity teaches cancellations, so nothing routes there from mood check;
+  // the page is still reachable by browsing the Library directly.
+  "30000000-0000-4000-8000-000000000110": "CONTINUOUS_PHONATION",
   "30000000-0000-4000-8000-000000000118": "CONTINUOUS_PHONATION",
   // ...0109 is TECH_MOTOR_LIGHT_CONSONANTS. It pointed at PASSIVE_AIRFLOW,
   // which appears to have been a mix-up with ...0011 (the cyclic-sigh /
