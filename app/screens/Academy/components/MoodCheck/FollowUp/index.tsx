@@ -59,6 +59,16 @@ const iconContainerStyle: ViewStyle = {
   borderRadius: 24,
 };
 
+/**
+ * Recommended activity id -> the technique page to open. These are all
+ * TECH_MOTOR_* / TECH_COGNITIVE_* ids on group-4 `8000`; the reframe series
+ * moved to `9000` (see constants/reframe.ts), so nothing here can accidentally
+ * match a reframe id any more. It used to: `...0109` was BOTH
+ * TECH_MOTOR_LIGHT_CONSONANTS and the PAID TECH_REFRAME_INTERVIEW_SPECIAL.
+ *
+ * The mapping is approximate by design — several activities legitimately share
+ * one technique page (see the Box Breathing note below).
+ */
 const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   // Motor / Fluency
   "30000000-0000-4000-8000-000000000101": "EASY_ONSET",
@@ -66,7 +76,11 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   "30000000-0000-4000-8000-000000000107": "PULL_OUTS",
   "30000000-0000-4000-8000-000000000110": "CANCELLATIONS",
   "30000000-0000-4000-8000-000000000118": "CONTINUOUS_PHONATION",
-  "30000000-0000-4000-8000-000000000109": "PASSIVE_AIRFLOW",
+  // ...0109 is TECH_MOTOR_LIGHT_CONSONANTS. It pointed at PASSIVE_AIRFLOW,
+  // which appears to have been a mix-up with ...0011 (the cyclic-sigh /
+  // breathing activity) — a light-consonant-contact drill was opening a
+  // breathing page. Routed to the matching contact technique instead.
+  "30000000-0000-4000-8000-000000000109": "LIGHT_ARTICULATORY_CONTACT",
   "30000000-0000-4000-8000-000000000007": "DIAPHRAGMATIC_BREATHING",
   "30000000-0000-4000-8000-000000000008": "DIAPHRAGMATIC_BREATHING", // Fallback for Box Breathing to same page for now
   // Cognitive / Relaxation
