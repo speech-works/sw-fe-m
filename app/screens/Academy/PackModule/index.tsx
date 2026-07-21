@@ -10,11 +10,10 @@ import { StatusBar, StyleSheet, View } from "react-native";
 import {
   completeModule,
   getModule,
-  getPack,
   getPackProgress,
   startModule,
 } from "../../../api/packs";
-import { ContentBlockType, Pack, PackModule } from "../../../api/packs/types";
+import { ContentBlockType, PackModule } from "../../../api/packs/types";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
@@ -63,6 +62,12 @@ const PackModuleScreen = () => {
   // If we have initialModule, use it. If not, use undefined (will fetch).
   const [module, setModule] = useState<PackModule | undefined>(initialModule);
   const [loading, setLoading] = useState(true);
+  /**
+   * Owned, but this day of the arc hasn't opened yet (403 PACK_DAY_LOCKED).
+   * Kept distinct from "not owned" on purpose: this user has already paid, so
+   * showing them a purchase prompt would be both wrong and insulting.
+   */
+  const [dayLocked, setDayLocked] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
@@ -205,16 +210,45 @@ const PackModuleScreen = () => {
         }
 
         console.log("Fetching module full content via getModule API...");
+        // NO FALLBACK. This used to catch every error and retry with getPack,
+        // which returned modules WITHOUT blocks — so a "you haven't bought
+        // this" refusal rendered as a real pack title, a progress bar reading
+        // "1 of 1" (nothing to count), and "No content available". A paywall
+        // that looks like a broken screen is worse than either. getPack is now
+        // owners-only server-side, so there is nothing to fall back to.
         let fullModule;
         try {
           fullModule = await getModule(packId, targetModuleId);
         } catch (apiError: any) {
-          console.warn(
-            "getModule failed (possibly 404), falling back to getPack",
-            apiError.message,
-          );
-          const packData: Pack = await getPack(packId);
-          fullModule = packData.modules.find((m) => m.id === targetModuleId);
+          const status = apiError?.response?.status;
+          const errorCode = apiError?.response?.data?.errorCode;
+
+          // 402: they don't own the pack. Send them where they can buy it —
+          // Programs lives in the Explore tab's stack, reached through the
+          // parent navigator the same way navigateToHomeFallback does.
+          if (status === 402 || errorCode === "PACK_NOT_OWNED") {
+            const appNavigation = navigation.getParent();
+            if (appNavigation) {
+              (appNavigation.navigate as any)("Root", {
+                screen: ROUTE_NAMES.EXPLORE,
+                params: { screen: "Programs" },
+              });
+            } else {
+              navigation.navigate("Explore" as never);
+            }
+            return;
+          }
+
+          // 403: they DO own it, this day just hasn't unlocked yet. Different
+          // situation, different answer — never a purchase prompt.
+          if (status === 403 || errorCode === "PACK_DAY_LOCKED") {
+            setDayLocked(true);
+            return;
+          }
+
+          // Anything else is a genuine failure and must surface as one rather
+          // than as an empty screen.
+          throw apiError;
         }
 
         if (fullModule) {
@@ -440,6 +474,33 @@ const PackModuleScreen = () => {
         <StatusBar barStyle="light-content" />
         <View style={styles.centerFill}>
           <Spinner label="Loading content..." />
+        </View>
+      </ScreenView>
+    );
+  }
+
+  // Owned, but this day hasn't opened yet. NOT a purchase prompt — they have
+  // already paid; the only thing between them and the content is the calendar.
+  if (dayLocked) {
+    return (
+      <ScreenView style={{ backgroundColor: colors.background.canvas }}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.centerFill}>
+          <Text variant="h2" color="primary" center>
+            Not yet
+          </Text>
+          <Text variant="body" color="secondary" center>
+            This day of the programme opens later. Today&apos;s work is waiting
+            for you on the pack page.
+          </Text>
+          <Button
+            label="Back to the pack"
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigateToHomeFallback()
+            }
+          />
         </View>
       </ScreenView>
     );

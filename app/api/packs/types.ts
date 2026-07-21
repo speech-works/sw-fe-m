@@ -188,3 +188,36 @@ export interface PackProgress {
   completedAt: Date | string | null;
   modules: ModuleProgress[];
 }
+
+/**
+ * The SALES projection of a pack — what GET /packs/{id}/brochure returns.
+ * Mirrors PackBrochure in sw-be-2/src/types/packBrochure.types.ts.
+ *
+ * Deliberately carries NO blocks (that is the whole point of the split), no
+ * clinical scoring internals, and no price — a price comes only from
+ * GET /users/me/offers, so it can never be shown from two sources that
+ * disagree.
+ */
+export interface PackBrochureModule {
+  id: string;
+  title: string;
+  orderIndex: number;
+  dayIndex: number | null;
+  isMandatory: boolean;
+  estimatedDurationMin: number | null;
+}
+
+export interface PackBrochure {
+  id: string;
+  title: string;
+  description: string;
+  coverImage: string | null;
+  category: PackCategory;
+  intensity: PackIntensity;
+  philosophy: PackPhilosophy;
+  targetGoals: string[];
+  arcDays: number | null;
+  catalogKey: string | null;
+  moduleCount: number;
+  modules: PackBrochureModule[];
+}

@@ -1,5 +1,10 @@
 import axiosClient from "../axiosClient";
-import { PackModule, PackProgress, PackRecommendation } from "./types";
+import {
+  PackBrochure,
+  PackModule,
+  PackProgress,
+  PackRecommendation,
+} from "./types";
 
 export const getRecommendedPack = async (): Promise<PackRecommendation> => {
   try {
@@ -43,9 +48,30 @@ export const completeModule = async (
   }
 };
 
+/**
+ * OWNERS ONLY — 402 PACK_NOT_OWNED for anyone else. Use `getPackBrochure` for
+ * a pack the user may not have bought. This must never be used as a fallback
+ * when a gated call fails: doing that is what produced a real pack title over
+ * an empty module with a "1 of 1" progress bar.
+ */
 export const getPack = async (packId: string): Promise<any> => {
   try {
     const response = await axiosClient.get(`/packs/${packId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * The SALES view — safe for any signed-in user, owned or not. Pitch, arc
+ * length and the module outline; never blocks. Identical for everyone.
+ */
+export const getPackBrochure = async (
+  packId: string
+): Promise<PackBrochure> => {
+  try {
+    const response = await axiosClient.get(`/packs/${packId}/brochure`);
     return response.data;
   } catch (error) {
     throw error;

@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import { StyleProp, View, ViewStyle } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { getPack, getPackProgress, getRecommendedPack } from "../../api/packs";
+import { getPackBrochure, getPackProgress, getRecommendedPack } from "../../api/packs";
 import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import PressableScale from "../PressableScale";
 import ErrorStateCard from "./ErrorStateCard";
@@ -31,6 +31,13 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const [recommendation, setRecommendation] =
     useState<PackRecommendation | null>(null);
   const [progress, setProgress] = useState<PackProgress | null>(null);
+  /**
+   * Module outline from the brochure, used only when the recommendation itself
+   * arrived without modules. Titles, ordering and count — never block content.
+   */
+  const [moduleOutline, setModuleOutline] = useState<
+    { id: string; orderIndex: number; title: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -54,12 +61,22 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
         (!rec.pack.modules || rec.pack.modules.length === 0)
       ) {
         try {
-          const fullPack = await getPack(rec.pack.id);
-          if (fullPack && fullPack.modules) {
-            rec.pack.modules = fullPack.modules;
+          // The BROCHURE, not getPack. This card only needs the module count
+          // and ordering to draw a progress ratio, and getPack is owners-only
+          // now — calling it here would 402 for exactly the users a
+          // recommendation is meant to reach.
+          //
+          // Kept in its own state rather than assigned onto `rec.pack.modules`:
+          // a brochure module has no `description` and no `blocks`, so pushing
+          // it into a PackModule[] would be a cast that quietly claims content
+          // is present. Anything that later reached for `.blocks` would find
+          // undefined at runtime while the types said otherwise.
+          const brochure = await getPackBrochure(rec.pack.id);
+          if (brochure?.modules) {
+            setModuleOutline(brochure.modules);
           }
         } catch (err) {
-          console.error("Failed to fetch full pack fallback", err);
+          console.error("Failed to fetch pack brochure outline", err);
         }
       }
 
@@ -155,8 +172,19 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const { pack } = recommendation;
 
   // Calculate Progress
-  // Safely access modules (backend might return undefined modules list)
-  const modules = pack.modules || [];
+  // The recommendation normally carries its modules; when it doesn't, fall back
+  // to the brochure outline fetched above. Only `id` and `orderIndex` are read
+  // below, which is exactly what both shapes have in common.
+  // `description` is optional because the brochure deliberately doesn't carry
+  // it — the outline sells the shape of the arc, not its contents. It is only
+  // ever missing on this fallback path, where the sub-line renders empty rather
+  // than wrong.
+  const modules: {
+    id: string;
+    orderIndex: number;
+    title: string;
+    description?: string;
+  }[] = pack.modules && pack.modules.length > 0 ? pack.modules : moduleOutline;
 
   const completedModules =
     progress?.modules.filter((m) => m.status === "COMPLETED") || [];
