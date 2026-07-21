@@ -81,7 +81,17 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   // Motor / Fluency
   "30000000-0000-4000-8000-000000000101": "EASY_ONSET",
   "30000000-0000-4000-8000-000000000102": "LIGHT_ARTICULATORY_CONTACT",
-  "30000000-0000-4000-8000-000000000107": "PULL_OUTS",
+  // ...0108 is "Vowel Onsets" — "easy, breathy starts for vowel-initial words",
+  // which is the Easy Onset technique applied to vowels. It is suggested on the
+  // ANGRY mood but had NO entry here, so techniqueId fell back to `rec.id` (a
+  // raw uuid), and TechniquePage asked the API for a tutorial belonging to an
+  // activity id. That 404s — a live dead end on a real recommendation.
+  "30000000-0000-4000-8000-000000000108": "EASY_ONSET",
+  // ...0107 (The Pull-Out Drill) previously routed to PULL_OUTS. That technique
+  // is deliberately unseeded — its video has not been commissioned — and the
+  // rule is that nothing without a video ships. It is not in the suggestion
+  // seed either, so nothing reaches it; the entry only guaranteed a dead end if
+  // it ever were. Restore it in the same change that ships the video.
   // ...0110 is the "Connected Speech Drill" — its own description is "linking
   // words to maintain continuous phonation". It pointed at CANCELLATIONS, a
   // stuttering-MODIFICATION technique for recovering after a block, which is a
