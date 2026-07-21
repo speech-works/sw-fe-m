@@ -14,6 +14,7 @@ import {
   startModule,
 } from "../../../api/packs";
 import { ContentBlockType, PackModule } from "../../../api/packs/types";
+import { classifyPackError } from "../../../util/packs/packErrors";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
@@ -245,13 +246,14 @@ const PackModuleScreen = () => {
         try {
           fullModule = await getModule(packId, targetModuleId);
         } catch (apiError: any) {
-          const status = apiError?.response?.status;
-          const errorCode = apiError?.response?.data?.errorCode;
+          // Shared classifier, so this screen and ContentRenderer cannot drift
+          // apart on what a refusal means. Tested in util/packs/__tests__.
+          const kind = classifyPackError(apiError);
 
-          // 402: they don't own the pack. Send them where they can buy it —
+          // They don't own the pack. Send them where they can buy it —
           // Programs lives in the Explore tab's stack, reached through the
           // parent navigator the same way navigateToHomeFallback does.
-          if (status === 402 || errorCode === "PACK_NOT_OWNED") {
+          if (kind === "NOT_OWNED") {
             const appNavigation = navigation.getParent();
             if (appNavigation) {
               (appNavigation.navigate as any)("Root", {
@@ -264,9 +266,9 @@ const PackModuleScreen = () => {
             return;
           }
 
-          // 403: they DO own it, this day just hasn't unlocked yet. Different
+          // They DO own it, this day just hasn't unlocked yet. Different
           // situation, different answer — never a purchase prompt.
-          if (status === 403 || errorCode === "PACK_DAY_LOCKED") {
+          if (kind === "DAY_LOCKED") {
             setDayLocked(true);
             return;
           }

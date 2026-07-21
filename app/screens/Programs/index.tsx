@@ -13,6 +13,7 @@ import {
   Spinner,
 } from "../../design-system";
 import PressableScale from "../../components/PressableScale";
+import { groupByShelf } from "../../util/packs/offers";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
 
 /**
@@ -164,20 +165,22 @@ const ProgramsScreen = () => {
           </Text>
         </View>
       ) : (
-        SHELF_SECTIONS.map((section) => {
-          const sectionItems = items.filter((i) => i.shelf === section.shelf);
-          // A shelf with nothing on it is not rendered at all, so the shop never
-          // shows an empty "Deep work" heading with a gap under it.
-          if (sectionItems.length === 0) return null;
+        // Grouping lives in util/packs/offers so it is testable: empty shelves
+        // are dropped (no heading above a gap) and an unrecognised shelf is
+        // dropped rather than silently filed under a default that would
+        // misdescribe the product.
+        groupByShelf(items).map((group) => {
+          const section = SHELF_SECTIONS.find((s) => s.shelf === group.shelf);
+          if (!section) return null;
           return (
-            <View key={section.shelf} style={styles.section}>
+            <View key={group.shelf} style={styles.section}>
               <Text variant="h3" color="primary">
                 {section.title}
               </Text>
               <Text variant="bodySm" color="tertiary" style={styles.blurb}>
                 {section.blurb}
               </Text>
-              {sectionItems.map(renderCard)}
+              {group.items.map(renderCard)}
             </View>
           );
         })

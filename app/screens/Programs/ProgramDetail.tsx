@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getOffers, type OfferItem } from "../../api";
 import { getPackBrochure } from "../../api/packs";
+import { selectOffer } from "../../util/packs/offers";
 import { PackBrochure } from "../../api/packs/types";
 import { purchaseCatalogItem, pollWalletUntil } from "../../services/purchases";
 import {
@@ -56,7 +57,7 @@ const ProgramDetailScreen = () => {
         // Matched by key with NO fallback. The old screen fell through to
         // `?? items[0]`, which would render a different product under this
         // one's heading and price. Missing means missing.
-        const match = offers.items.find((i) => i.key === catalogKey) ?? null;
+        const match = selectOffer(offers.items, catalogKey);
         setOffer(match);
         setIsFounder(offers.isFounderCohort);
         setOwned(match?.owned ?? false);

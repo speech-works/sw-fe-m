@@ -35,6 +35,10 @@ import { SimpleMarkdown } from "./SimpleMarkdown";
 import { useActivityStore } from "../../stores/activity";
 import { useUserStore } from "../../stores/user";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import {
+  classifyPackError,
+  packErrorMessage,
+} from "../../util/packs/packErrors";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 import { VideoPlayer } from "../VideoPlayer";
@@ -218,31 +222,10 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             console.error("Error data:", error.response.data);
           }
 
-          const errorCode = error?.response?.data?.errorCode;
-
-          // Every one of these used to collapse into "Something went wrong.
-          // Please try again." — advice that is actively false for the paywall
-          // cases, where retrying can never succeed. Name the real reason.
-          const message: { title: string; body: string } | null =
-            errorCode === "INSUFFICIENT_STAMINA"
-              ? // Handled by GlobalModal — stay out of its way.
-                null
-              : errorCode === "PACK_NOT_OWNED"
-                ? {
-                    title: "Part of a paid program",
-                    body: "This activity belongs to a program you haven't bought yet. You can see what's included from the Programs page.",
-                  }
-                : errorCode === "PACK_DAY_LOCKED"
-                  ? {
-                      // Owned already — a wait, not a purchase.
-                      title: "Not yet",
-                      body: "This day of the programme opens later. Today's work is waiting on the pack page.",
-                    }
-                  : {
-                      title: "Something went wrong",
-                      body: "We had trouble loading that activity. Please try again.",
-                    };
-
+          // Classification and copy live in util/packs/packErrors so the same
+          // decision cannot drift between this screen and PackModule — and so
+          // it can be tested without rendering a React Native tree.
+          const message = packErrorMessage(classifyPackError(error));
           if (message) {
             showErrorBottomSheet(message.title, message.body);
           }
