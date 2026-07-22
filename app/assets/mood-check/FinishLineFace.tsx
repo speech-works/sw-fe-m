@@ -109,8 +109,11 @@ const FinishLineCoolFace = ({
     ] as any,
   }));
 
-  // Confetti: Cascading down
-  const getConfettiProps = (offset: number, speedMult: number) =>
+  // Confetti: Cascading down.
+  // Named `use*` because it IS a custom hook — it calls useAnimatedProps. The
+  // three call sites below are unconditional and in fixed order, so hook order
+  // is stable; the old name just hid that from the linter.
+  const useConfettiProps = (offset: number, speedMult: number) =>
     useAnimatedProps(() => {
       const progress = (confettiTime.value * speedMult + offset) % 1;
       return {
@@ -121,9 +124,9 @@ const FinishLineCoolFace = ({
       };
     });
 
-  const c1Props = getConfettiProps(0.1, 1.2);
-  const c2Props = getConfettiProps(0.4, 0.9);
-  const c3Props = getConfettiProps(0.7, 1.1);
+  const c1Props = useConfettiProps(0.1, 1.2);
+  const c2Props = useConfettiProps(0.4, 0.9);
+  const c3Props = useConfettiProps(0.7, 1.1);
 
   return (
     <View

@@ -68,6 +68,8 @@ const TextArea = forwardRef<TextInput, TextAreaProps>(
   }
 );
 
+TextArea.displayName = "TextArea";
+
 export default TextArea;
 
 const useStyles = makeStyles((c, t) => ({

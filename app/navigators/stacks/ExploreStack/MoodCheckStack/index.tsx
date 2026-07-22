@@ -17,6 +17,12 @@ export default function MoodCheckStackNavigator() {
         <Stack.Screen name="CheckIn" component={MoodCheck} />
         <Stack.Screen
           name="FollowUpStack"
+          /* `children` as a render prop is React Navigation's own documented
+           * API for an inline screen that needs route params — not the React
+           * anti-pattern this rule targets. Worth revisiting as a named
+           * component one day: an inline arrow changes identity every render,
+           * which can remount the screen and lose its state. */
+          // eslint-disable-next-line react/no-children-prop
           children={({ route }) => {
             // Extract mood from the route params of MoodCheckStackParamList's FollowUpStack
             const { mood } = route.params as { mood: MoodType };

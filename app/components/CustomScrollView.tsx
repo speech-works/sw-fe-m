@@ -225,6 +225,8 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
   },
 );
 
+CustomScrollView.displayName = "CustomScrollView";
+
 export default CustomScrollView;
 
 const styles = StyleSheet.create({

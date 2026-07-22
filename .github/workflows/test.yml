@@ -41,13 +41,20 @@ jobs:
       - name: Typecheck
         run: npm run check
 
+      # Errors fail the build; the 277 remaining warnings do not (eslint exits 0
+      # for warnings). That split is intentional — the warning backlog is
+      # mostly exhaustive-deps and import hygiene, and blocking on it would
+      # push people to disable the gate rather than fix anything.
+      #
+      # This step was NOT added when the workflow was created: lint reported 64
+      # errors, and wiring a red gate would have recreated the exact failure
+      # this repo just spent a day undoing. The errors were triaged instead —
+      # one was a real crash (a conditionally-called hook in Onboarding that
+      # could throw "Rendered more hooks than during the previous render" on
+      # the first screen a new user sees). It was hiding among 35 cosmetic
+      # apostrophe warnings. That is the argument for keeping this at zero.
+      - name: Lint
+        run: npm run lint
+
       - name: Test
         run: npm run test:ci
-
-  # DELIBERATELY NOT WIRED UP YET: `npm run lint` currently reports 64 errors
-  # and 277 warnings, so adding it here would make this workflow red from its
-  # first run — recreating the exact problem this file exists to avoid, where a
-  # permanently-red build trains everyone to ignore the signal.
-  #
-  # Fix the lint errors first, then add the step. A gate nobody trusts is worse
-  # than no gate, because it also hides the failures you DO care about.

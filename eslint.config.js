@@ -43,6 +43,42 @@ module.exports = [
       // Defer unused-var detection to the plugin above (avoid duplicate/competing reports).
       "@typescript-eslint/no-unused-vars": "off",
       "no-unused-vars": "off",
+
+      /**
+       * OFF for this codebase, deliberately — this is React Native, not the DOM.
+       *
+       * The rule guards against HTML ambiguity: a bare `'` or `"` in JSX text
+       * can be confusing in markup destined for a browser. There is no HTML
+       * here; strings render inside <Text>. It accounted for 35 of the 64
+       * errors that kept lint out of CI, every one of them an apostrophe in
+       * user-facing copy.
+       *
+       * "Fixing" them would mean rewriting sentences of carefully-worded
+       * clinical copy into `&apos;` soup — harder to read and review, easy to
+       * typo, and zero safety gained. Turning the rule off is the honest call;
+       * leaving 35 permanent errors in the report is what let a REAL crash
+       * (a conditionally-called hook in Onboarding) hide among them.
+       */
+      "react/no-unescaped-entities": "off",
+    },
+  },
+
+  /**
+   * Node scripts. These run under Node, not Metro, so `__dirname`, `require`
+   * and friends are legitimately defined — without this they report as
+   * `no-undef`, which is a config gap rather than a defect in the script.
+   */
+  {
+    files: ["scripts/**/*.{js,cjs,mjs}", "*.config.js"],
+    languageOptions: {
+      globals: {
+        __dirname: "readonly",
+        __filename: "readonly",
+        require: "readonly",
+        module: "writable",
+        process: "readonly",
+        console: "readonly",
+      },
     },
   },
 ];

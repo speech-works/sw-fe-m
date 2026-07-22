@@ -138,6 +138,7 @@ const MoodItem = React.memo(
     );
   },
 );
+MoodItem.displayName = "MoodItem";
 
 const RulerTicks = React.memo(() => {
   const { colors } = useTheme();
@@ -158,6 +159,7 @@ const RulerTicks = React.memo(() => {
     </>
   );
 });
+RulerTicks.displayName = "RulerTicks";
 
 const MoodCheck = () => {
   const { colors } = useTheme();

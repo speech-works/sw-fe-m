@@ -90,16 +90,18 @@ const OnboardingQuestionScreen: React.FC = () => {
     };
   }, [flow, setFlow]);
 
-  if (!flow) return null;
-
   // -----------------------------------------------------
   // SCROLL HANDLING
   // -----------------------------------------------------
   const scrollRef = React.useRef<any>(null);
 
   // Sync route param → store.currentScreen
-  // Sync route param → store.currentScreen
   useEffect(() => {
+    // Nothing has rendered yet on a flow-less pass, so there is no step to
+    // scroll or to count. This guard replaces the early `return null` that
+    // used to sit ABOVE this hook — see the note before the guard below.
+    if (!flow) return;
+
     // Scroll to top when screen number changes
     if (scrollRef.current) {
       console.log("Scrolling to top for screen:", screenNumber);
@@ -109,7 +111,32 @@ const OnboardingQuestionScreen: React.FC = () => {
     track(ANALYTICS_EVENTS.ONBOARDING_STEP_VIEWED, {
       step: screenNumber,
     });
-  }, [screenNumber]);
+  }, [screenNumber, flow]);
+
+  const insets = useSafeAreaInsets();
+
+  /**
+   * EVERY hook must sit ABOVE this line.
+   *
+   * This guard used to be ~85 lines higher, above `scrollRef`, the effect
+   * above and `useSafeAreaInsets` — so those three hooks ran only on renders
+   * where `flow` was already loaded. `flow` is runtime state: the store
+   * persists it through AsyncStorage, which rehydrates ASYNCHRONOUSLY, and
+   * the effect above this comment exists precisely to fetch it when missing
+   * ("reopened directly", as its original comment put it).
+   *
+   * So the first render after launch could legitimately see `flow == null`,
+   * run six hooks and bail; the next render would see `flow` populated and
+   * run nine. React counts hooks per render and throws "Rendered more hooks
+   * than during the previous render" — a crash, on the first screen a new
+   * user ever sees.
+   *
+   * Hooks now run unconditionally and the guard sits below them, immediately
+   * before the first line that dereferences `flow` (`flow.questions`, next).
+   * Behaviour is otherwise identical: the analytics event still fires only
+   * for a step that actually rendered, via the in-effect guard above.
+   */
+  if (!flow) return null;
 
   const screenQuestions = getCurrentScreenQuestions(screenNumber);
   const totalScreens = Math.max(...flow.questions.map((q) => q.screenNumber));
@@ -174,8 +201,6 @@ const OnboardingQuestionScreen: React.FC = () => {
       screenNumber: screenNumber + 1,
     });
   };
-
-  const insets = useSafeAreaInsets();
 
   return (
     <ScreenView style={styles.screen}>

@@ -266,14 +266,16 @@ const styles = StyleSheet.create({
 
 const UpsellModal = () => {
   // Hidden while monetization is dormant — no upsell prompts until billing ships.
-  // NOTE: `PAYMENTS_ENABLED` is a compile-time constant `false`, so this guard
-  // ALWAYS returns before any hook below runs — hook order is trivially stable and
-  // there is no rules-of-hooks hazard (the lint warnings on the hooks below are
-  // benign for this dormant component). TODO(payments): when billing ships, move
-  // this guard BELOW all hooks (and add `if (!PAYMENTS_ENABLED) return;` inside each
-  // effect) so the hooks run unconditionally and rules-of-hooks is satisfied.
-  if (!PAYMENTS_ENABLED) return null;
-
+  //
+  // The guard that used to sit HERE now sits below the hook block, which is
+  // what the previous TODO on this line asked for. Doing it early rather than
+  // "when billing ships" was the point: 15 of the 64 lint errors that kept
+  // `npm run lint` out of CI came from this one component, and a permanently
+  // red report is how a genuine conditional-hook crash in Onboarding stayed
+  // invisible. `PAYMENTS_ENABLED` is also not the compile-time constant the
+  // old note claimed — it is read from `Constants.expoConfig.extra` at
+  // runtime (app/constants/features.ts). Fixed for the process lifetime, so
+  // the old code was safe in practice, but not for the stated reason.
   const insets = useSafeAreaInsets();
   const { events, clear } = useEventStore();
   const [modalVisible, setModalVisible] = useState(false);
@@ -297,6 +299,7 @@ const UpsellModal = () => {
   }));
 
   useEffect(() => {
+    if (!PAYMENTS_ENABLED) return;
     if (modalVisible) {
       const duration = 350;
       const easing = Easing.bezier(0.33, 1, 0.68, 1);
@@ -314,6 +317,7 @@ const UpsellModal = () => {
   }, [modalVisible]);
 
   useEffect(() => {
+    if (!PAYMENTS_ENABLED) return;
     if (!events || events.length === 0) return;
 
     for (const event of events) {
@@ -385,6 +389,14 @@ const UpsellModal = () => {
       }
     }
   }, [events, clear]);
+
+  /**
+   * EVERY hook must stay ABOVE this line — that is the whole point of moving
+   * it down here. While payments are dormant this still renders nothing, and
+   * both effects above return early, so behaviour is identical to when the
+   * guard sat at the top of the component.
+   */
+  if (!PAYMENTS_ENABLED) return null;
 
   const renderPortalContent = () => (
     <View style={styles.portalContainer}>

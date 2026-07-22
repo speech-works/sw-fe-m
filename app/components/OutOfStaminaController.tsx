@@ -46,15 +46,20 @@ function buildMessage(user: User | null): string {
  * this fires immediately, because the block just happened under the user's tap.
  */
 const OutOfStaminaController: React.FC = () => {
-  // Compile-time constant → hook order below is trivially stable (mirrors the
-  // same guard in UpsellModal). When billing ships, UpsellModal takes over.
-  if (PAYMENTS_ENABLED) return null;
-
+  // The guard now sits below the hooks (mirrors UpsellModal, which got the same
+  // treatment). Note the condition is INVERTED relative to UpsellModal: exactly
+  // one of the two consumes the event, and this one owns it while billing is
+  // off. `PAYMENTS_ENABLED` is read at runtime from `Constants.expoConfig.extra`
+  // — fixed for the process lifetime, so the old top-of-component guard was
+  // safe in practice, but not "compile-time" as the previous note claimed.
   const { events, clear } = useEventStore();
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    // Stays inert when billing ships — UpsellModal takes the event over, and
+    // both must never consume it at once.
+    if (PAYMENTS_ENABLED) return;
     if (!events || events.length === 0) return;
 
     const hit = events.find(
@@ -70,6 +75,9 @@ const OutOfStaminaController: React.FC = () => {
     });
     clear(EVENT_NAMES.SHOW_STAMINA_UPSELL);
   }, [events, clear]);
+
+  // EVERY hook must stay above this line.
+  if (PAYMENTS_ENABLED) return null;
 
   return (
     <OutOfStaminaModal
