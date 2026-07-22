@@ -12,6 +12,7 @@ import {
   completePracticeActivity,
 } from "../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
+import { deriveActivityContent } from "../../../../../util/practice/activityContent";
 import { ExploreStackParamList } from "../../../../../navigators/stacks/ExploreStack/types";
 import { useActivityStore } from "../../../../../stores/activity";
 import { useUserStore } from "../../../../../stores/user";
@@ -151,26 +152,11 @@ const RealLifeChallenge = () => {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIRLModal, setShowIRLModal] = useState(false);
 
-  // Derived from practiceActivityState (the LIVE activity), not from the
-  // `practiceActivity` route param. Two things were broken while these read the
-  // param:
-  //
-  // 1. Entering by id alone — which is how the Home recommendation card opens
-  //    this screen — leaves the param undefined, so contentId was undefined,
-  //    markActivityStart() hit its `if (!contentId)` guard and returned null,
-  //    and the activity was never created. The user completed the challenge and
-  //    nothing was recorded.
-  // 2. After "Try something easier", the swap writes a NEW activity into
-  //    practiceActivityState, but the param still held the original harder
-  //    challenge — so the eased attempt was filed against the challenge the
-  //    user had just stepped away from, corrupting the very signal the graded
-  //    -exposure feature exists to collect.
-  const rlcContentId =
-    practiceActivityState?.cognitivePractice?.id ||
-    practiceActivityState?.exposurePractice?.id;
-  const rlcContentType = practiceActivityState?.cognitivePractice
-    ? PracticeActivityContentType.COGNITIVE_PRACTICE
-    : PracticeActivityContentType.EXPOSURE_PRACTICE;
+  // One derivation, shared by the id, the type and the title — see
+  // util/practice/activityContent.ts for what went wrong when these were three
+  // separate inline reads of the route param. Always the LIVE activity.
+  const { contentId: rlcContentId, contentType: rlcContentType, title } =
+    deriveActivityContent(practiceActivityState);
 
   const markActivityStart = useMarkActivityStart({
     contentType: rlcContentType,
@@ -234,12 +220,6 @@ const RealLifeChallenge = () => {
     "completionCriteria" in challengeData
       ? challengeData.completionCriteria
       : "Reflect on your experience and how it made you feel.";
-
-  // title and description fallback
-  const title =
-    practiceActivity?.cognitivePractice?.name ||
-    practiceActivity?.exposurePractice?.name ||
-    "Real Life Challenge";
 
   // --- Handlers ---
 
