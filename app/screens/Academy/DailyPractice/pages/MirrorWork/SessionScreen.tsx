@@ -129,13 +129,30 @@ export const SessionScreen: React.FC = () => {
   }, [hasPermission, requestPermission]);
 
   // ── Start session when camera + permissions ready ──
+  //
+  // Latched on a ref, NOT on `!session.isSessionActive`. Gating on the negation
+  // meant ending the session re-armed the very effect that starts it:
+  // goToReflection() calls endSession() (isSessionActive true -> false) and then
+  // navigates to MirrorWorkReflection, which is a SIBLING screen in this stack,
+  // so SessionScreen stays mounted. The effect re-ran, saw its condition true
+  // again, and restarted the session — turning the front camera back on,
+  // restarting speech recognition (OS mic indicator lit) and re-arming the
+  // frame processor and 1s timer, all while the user sat on the reflection
+  // screen reading their results. The scores were unaffected (read before the
+  // re-render); the cost was battery, and a camera and microphone running
+  // unannounced during a session about being watched.
+  //
+  // Do NOT "fix" this by adding `session`/`speech` to the deps — they are new
+  // identities every render, which would run this on every render instead.
+  const sessionStartedRef = useRef(false);
   useEffect(() => {
-    if (hasPermission && device && !session.isSessionActive) {
+    if (hasPermission && device && !sessionStartedRef.current) {
+      sessionStartedRef.current = true;
       session.startSession();
       setIsCameraActive(true);
       speech.startListening();
     }
-  }, [hasPermission, device, session.isSessionActive]);
+  }, [hasPermission, device]);
 
   // ── Haptic on calibration complete ──
   const prevIsCalibrating = useRef(true);

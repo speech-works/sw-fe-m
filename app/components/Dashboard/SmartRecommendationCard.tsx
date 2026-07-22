@@ -97,8 +97,21 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 
   useFocusEffect(
     useCallback(() => {
+      // `&& !loading` used to be here and made this throttle DEAD CODE.
+      // fetchRecommendations is useCallback(..., []) — permanently stable — so
+      // this callback was built once, on the first render, capturing `loading`
+      // at its initial `true` forever. `!loading` was therefore always false,
+      // the guard never returned early, and every single focus refetched.
+      //
+      // Two consequences, both live: two API calls on every return to Home for
+      // the whole session, and — because a refetch sets error on failure while
+      // never setting loading back to true — one flaky request silently
+      // replaced a perfectly good recommendation with the error card.
+      //
+      // lastFetchRef starts at 0, so the first focus still fetches (Date.now()
+      // minus 0 dwarfs the threshold). No `loading` needed.
       const timeSinceLastFetch = Date.now() - lastFetchRef.current;
-      if (timeSinceLastFetch < STALE_THRESHOLD_MS && !loading) return;
+      if (timeSinceLastFetch < STALE_THRESHOLD_MS) return;
       fetchRecommendations();
     }, [fetchRecommendations]),
   );

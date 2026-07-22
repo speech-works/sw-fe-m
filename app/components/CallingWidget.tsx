@@ -1282,6 +1282,18 @@ const CallingWidget: React.FC<Props> = ({
         clearInterval(idleCountdownRef.current);
         idleCountdownRef.current = null;
       }
+      // The presence heartbeat was the one timer this teardown missed. It is
+      // started on ws.onopen and otherwise cleared ONLY inside endCall(), so
+      // any unmount that bypasses endCall orphaned it forever: "Save & Finish"
+      // mid-call flips isDone and swaps this widget for the report screen
+      // without ending the call, and so does the limit-reached path. Each
+      // orphan keeps firing every 10s into a closed socket — silently, because
+      // its send() throws into a bare catch — and retains the whole widget
+      // closure graph (audio contexts, sound objects) with it.
+      if (presenceIntervalRef.current) {
+        clearInterval(presenceIntervalRef.current);
+        presenceIntervalRef.current = null;
+      }
     };
   }, []);
   // --- ⬆️ END OF MODIFICATION ⬆️ ---

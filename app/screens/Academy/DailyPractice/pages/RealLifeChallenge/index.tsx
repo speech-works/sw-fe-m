@@ -151,17 +151,38 @@ const RealLifeChallenge = () => {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIRLModal, setShowIRLModal] = useState(false);
 
+  // Derived from practiceActivityState (the LIVE activity), not from the
+  // `practiceActivity` route param. Two things were broken while these read the
+  // param:
+  //
+  // 1. Entering by id alone — which is how the Home recommendation card opens
+  //    this screen — leaves the param undefined, so contentId was undefined,
+  //    markActivityStart() hit its `if (!contentId)` guard and returned null,
+  //    and the activity was never created. The user completed the challenge and
+  //    nothing was recorded.
+  // 2. After "Try something easier", the swap writes a NEW activity into
+  //    practiceActivityState, but the param still held the original harder
+  //    challenge — so the eased attempt was filed against the challenge the
+  //    user had just stepped away from, corrupting the very signal the graded
+  //    -exposure feature exists to collect.
   const rlcContentId =
-    practiceActivity?.cognitivePractice?.id ||
-    practiceActivity?.exposurePractice?.id;
-  const rlcContentType = practiceActivity?.cognitivePractice
+    practiceActivityState?.cognitivePractice?.id ||
+    practiceActivityState?.exposurePractice?.id;
+  const rlcContentType = practiceActivityState?.cognitivePractice
     ? PracticeActivityContentType.COGNITIVE_PRACTICE
     : PracticeActivityContentType.EXPOSURE_PRACTICE;
 
   const markActivityStart = useMarkActivityStart({
     contentType: rlcContentType,
     contentId: rlcContentId,
-    initialActivity: practiceActivity,
+    // Also the live state, for the same reason — and this one bites hardest on
+    // the swap. handleTryEasier sets the new state with `id: undefined` and
+    // clears currentActivityId, so useMarkActivityStart falls back to
+    // `initialActivity?.id`. Pointing that at the route param handed it the
+    // ORIGINAL activity's id, so the eased attempt was recorded against the
+    // harder challenge. Reading live state yields undefined here, which is
+    // what makes it create a fresh activity for the easier one.
+    initialActivity: practiceActivityState,
     packContext,
     currentActivityId,
     setActivityId: setCurrentActivityId,

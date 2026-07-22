@@ -223,9 +223,24 @@ const Meditation = () => {
   }, [meditationScenarios, selectedIndex]);
 
   // When bgMusicUrl changes: stop old, load new
+  // Tracks whether the ambience track actually exists yet.
+  //
+  // Without this, a meditation launched FROM A PACK played no background music
+  // at all, for the whole session. Pack launches arrive with
+  // `alreadyStarted: true`, so `isPlaying` is already true at mount — the focus
+  // effect below therefore fired once, immediately, while the track was still
+  // null, and toggleBackground() returned at its `if (!bg)` guard. Its deps
+  // (isPlaying, mute, toggleBackground) never changed afterwards, so it never
+  // fired again. The narration still played, which is why this looked like
+  // "the music is missing" rather than "audio is broken". The standalone path
+  // was fine only because handleStart flips isPlaying AFTER the load.
+  const [bgLoaded, setBgLoaded] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     if (!bgMusicUrl) return;
+
+    setBgLoaded(false);
 
     (async () => {
       await stopBackground();
@@ -234,7 +249,9 @@ const Meditation = () => {
 
       await loadBackground();
 
-      // No auto-play here, only play when `isPlaying` is true
+      // No auto-play here, only play when `isPlaying` is true — but do announce
+      // that the track now exists, so the focus effect below can act on it.
+      if (!cancelled) setBgLoaded(true);
     })();
 
     return () => {
@@ -255,7 +272,12 @@ const Meditation = () => {
         // Always pause audio when leaving screen
         toggleBackground(false);
       };
-    }, [isPlaying, mute, toggleBackground])
+      // `bgLoaded` is what makes this re-fire once the track finishes loading,
+      // which is the whole fix for pack-launched sessions (see the state
+      // declaration above). It flips false->true exactly once per track, so
+      // this costs one extra run; toggleBackground(true) seeks to 0 first, and
+      // restarting looping ambience from its start is unnoticeable.
+    }, [isPlaying, mute, toggleBackground, bgLoaded])
   );
 
   const markActivityStart = async () => {

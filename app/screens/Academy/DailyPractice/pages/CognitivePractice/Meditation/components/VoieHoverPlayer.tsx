@@ -93,14 +93,23 @@ export default function VoiceHoverPlayer({
         }
       })();
     };
-  }, [voiceHoverUrl, isPlaying, mute]); // Add isPlaying and mute to dependencies
+    // ONLY the url. `isPlaying` and `mute` were deps here, and this effect's
+    // cleanup unloads the sound — so every mute toggle tore down the narration
+    // and re-downloaded the MP3, restarting a guided meditation from the first
+    // line while the on-screen timer read 2:00. On a weak connection it was a
+    // multi-second silence, or a failed reload and no narration at all for the
+    // rest of the session. Play/pause is the next effect's job; this one owns
+    // the sound's lifetime, and its lifetime depends only on which file it is.
+  }, [voiceHoverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When `mute` or `isPlaying` changes, stop or play the hover sound
+  // When `mute` or `isPlaying` changes, pause or resume the hover sound
   useEffect(() => {
     if (!voiceSound.current) return;
     if (mute || !isPlaying) {
-      // If muted OR not playing, stop the sound
-      voiceSound.current.stopAsync().catch(() => {});
+      // pauseAsync, NOT stopAsync: expo-av's stopAsync rewinds to 0:00, so
+      // unmuting replayed the meditation from the beginning even when the
+      // sound had not been unloaded. Pausing keeps the playhead.
+      voiceSound.current.pauseAsync().catch(() => {});
     } else {
       voiceSound.current.playAsync().catch(() => {});
     }
