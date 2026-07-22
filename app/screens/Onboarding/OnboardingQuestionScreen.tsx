@@ -95,12 +95,22 @@ const OnboardingQuestionScreen: React.FC = () => {
   // -----------------------------------------------------
   const scrollRef = React.useRef<any>(null);
 
+  // Depend on WHETHER the flow exists, not on the flow object itself.
+  //
+  // `flow` is an object, so depending on it re-runs this effect whenever its
+  // identity changes — and it can change more than once per mount: the effect
+  // above fetches it when missing, while zustand's AsyncStorage rehydration
+  // may land separately and replace it. Each of those would fire another
+  // ONBOARDING_STEP_VIEWED for the same step and inflate the funnel. A boolean
+  // flips false -> true at most once, so the event fires exactly once per step.
+  const hasFlow = !!flow;
+
   // Sync route param → store.currentScreen
   useEffect(() => {
     // Nothing has rendered yet on a flow-less pass, so there is no step to
     // scroll or to count. This guard replaces the early `return null` that
     // used to sit ABOVE this hook — see the note before the guard below.
-    if (!flow) return;
+    if (!hasFlow) return;
 
     // Scroll to top when screen number changes
     if (scrollRef.current) {
@@ -111,7 +121,7 @@ const OnboardingQuestionScreen: React.FC = () => {
     track(ANALYTICS_EVENTS.ONBOARDING_STEP_VIEWED, {
       step: screenNumber,
     });
-  }, [screenNumber, flow]);
+  }, [screenNumber, hasFlow]);
 
   const insets = useSafeAreaInsets();
 
