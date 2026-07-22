@@ -1,0 +1,53 @@
+name: Tests
+
+# Runs the frontend typecheck and unit suite on every PR and on pushes to main.
+#
+# Until this existed the frontend had NO automated signal at all. A jest runner
+# and the first tests landed in 192e826, but nothing ran them, so they only
+# executed when someone remembered to. That is a worse failure than a red
+# build: a red build is at least visible.
+#
+# Every step below was confirmed green on a runner-like environment BEFORE this
+# file was committed — including with `.env` moved aside, since it is gitignored
+# and therefore never present here. That check is not ceremony: the backend's
+# suite spent its entire life red because seven of its suites needed a
+# gitignored `.env` to even load, and the failure looked like a flake. Anything
+# added here should be verified the same way first.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Typecheck and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # NOT plain `tsc`. The check-scoped project excludes ios/Pods, whose
+      # bundled JS otherwise floods the output and masks real app errors.
+      - name: Typecheck
+        run: npm run check
+
+      - name: Test
+        run: npm run test:ci
+
+  # DELIBERATELY NOT WIRED UP YET: `npm run lint` currently reports 64 errors
+  # and 277 warnings, so adding it here would make this workflow red from its
+  # first run — recreating the exact problem this file exists to avoid, where a
+  # permanently-red build trains everyone to ignore the signal.
+  #
+  # Fix the lint errors first, then add the step. A gate nobody trusts is worse
+  # than no gate, because it also hides the failures you DO care about.
