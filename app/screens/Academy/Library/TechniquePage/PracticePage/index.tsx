@@ -6,9 +6,10 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { getAllExerciseItems } from "../../../../../api/library";
+import { getTechniquePractice } from "../../../../../api/library";
 import {
-  ExerciseItem,
+  PracticeMode,
+  TechniquePracticeItem,
   TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
 import { speakText } from "../../../../../util/functions/speak";
@@ -41,14 +42,21 @@ interface PracticePageProps {
 }
 
 const PracticePage = ({
+  techniqueId,
   header,
   outerScrollY,
 }: PracticePageProps) => {
   const { colors } = useTheme();
   // Data State
-  const [exerciseItems, setExerciseItems] = useState<ExerciseItem[]>([]);
+  const [mode, setMode] = useState<PracticeMode>("READ_ALOUD");
+  const [reflectionPrompt, setReflectionPrompt] = useState<string>("");
+  const [exerciseItems, setExerciseItems] = useState<TechniquePracticeItem[]>(
+    [],
+  );
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [completedItems, setCompletedItems] = useState<Array<ExerciseItem>>([]);
+  const [completedItems, setCompletedItems] = useState<
+    Array<TechniquePracticeItem>
+  >([]);
 
   // Tool State
   const [selectedPracticeTool, setSelectedPracticeTool] = useState<string>("");
@@ -72,12 +80,25 @@ const PracticePage = ({
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
   useEffect(() => {
-    const fetchTutorial = async () => {
-      const items = await getAllExerciseItems();
-      setExerciseItems(items);
+    let cancelled = false;
+    const fetchPractice = async () => {
+      try {
+        const res = await getTechniquePractice(techniqueId);
+        if (cancelled) return;
+        setMode(res.mode);
+        setReflectionPrompt(res.reflectionPrompt ?? "");
+        setExerciseItems(res.items ?? []);
+        setSelectedIndex(0);
+        setCompletedItems([]);
+      } catch (e) {
+        console.error("Failed to load technique practice", e);
+      }
     };
-    fetchTutorial();
-  }, []);
+    fetchPractice();
+    return () => {
+      cancelled = true;
+    };
+  }, [techniqueId]);
 
   const currentItem = exerciseItems[selectedIndex];
 
@@ -211,6 +232,58 @@ const PracticePage = ({
     }
   };
 
+  // Cognitive / acceptance / desensitization techniques: a word drill is
+  // clinically wrong here, so Practice is a single reflection prompt — no
+  // reading list, no mic, no fluency tools (which also honours the
+  // effort-not-fluency guardrail).
+  if (mode === "REFLECTION") {
+    return (
+      <View style={styles.container}>
+        <CustomScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          outerScrollY={outerScrollY}
+        >
+          {header}
+          <View style={styles.stage}>
+            <Text
+              variant="label"
+              color={colors.accentText.info}
+              style={styles.eyebrow}
+            >
+              REFLECT
+            </Text>
+            <View
+              style={[
+                styles.reflectionCard,
+                {
+                  backgroundColor: colors.surface.control,
+                  borderColor: colors.border.default,
+                },
+              ]}
+            >
+              <Icon
+                name={icons.star}
+                size={22}
+                color={colors.text.accent}
+              />
+              <Text
+                variant="h3"
+                color="primary"
+                style={styles.reflectionText}
+              >
+                {reflectionPrompt || "Take a quiet moment with this technique."}
+              </Text>
+            </View>
+            <Text variant="bodySm" color="secondary" style={styles.reflectionHint}>
+              Nothing to record — this one is just for you.
+            </Text>
+          </View>
+        </CustomScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Main Content Area */}
@@ -237,7 +310,7 @@ const PracticePage = ({
                   }}
                 >
                   <VoiceHover
-                    text={currentItem?.itemText || ""}
+                    text={currentItem?.text || ""}
                     rate={vhRate}
                     prePause={vhPrePause}
                     gap={vhGap}
@@ -246,8 +319,12 @@ const PracticePage = ({
                   />
                 </View>
               )}
-              <Text variant="h1" color="primary" style={styles.mainWordText}>
-                {currentItem?.itemText || "Loading..."}
+              <Text
+                variant={currentItem?.type === "WORD" ? "h1" : "h2"}
+                color="primary"
+                style={styles.mainWordText}
+              >
+                {currentItem?.text || "Loading..."}
               </Text>
             </View>
 
@@ -256,20 +333,18 @@ const PracticePage = ({
                 styles.phoneticContainer,
                 { backgroundColor: colors.surface.control },
               ]}
-              onPress={() => speakText(currentItem?.itemText)}
+              onPress={() => speakText(currentItem?.text)}
             >
               <Icon name={icons.volume} size={16} color={colors.text.accent} />
               <Text variant="body" color="secondary" style={styles.phoneticText}>
-                {currentItem?.itemPhonetics
-                  ? `/${currentItem?.itemPhonetics}/`
-                  : ""}
+                Tap to hear
               </Text>
             </TouchableOpacity>
 
             <View style={styles.navigationRow}>
               <TouchableOpacity onPress={handleNext} style={styles.skipButton}>
                 <Text variant="title" color="secondary">
-                  Skip Word
+                  Skip
                 </Text>
               </TouchableOpacity>
               <Text variant="bodySm" color="secondary">
@@ -321,6 +396,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: "relative",
+  },
+  reflectionCard: {
+    marginTop: spacing.xl,
+    padding: spacing.xl,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    gap: spacing.md,
+    alignItems: "flex-start",
+  },
+  reflectionText: {
+    lineHeight: 28,
+  },
+  reflectionHint: {
+    marginTop: spacing.lg,
+    textAlign: "center",
   },
   scrollContent: {
     flexGrow: 1,

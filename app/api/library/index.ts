@@ -5,8 +5,23 @@ import {
     Library,
     QuizQuestion,
     TECHNIQUES_ENUM,
+    TechniquePracticeResponse,
     Tutorial,
 } from "./types";
+
+/**
+ * Technique-relevant Practice content. READ_ALOUD techniques return reading
+ * items chosen for the sound/complexity they drill; cognitive/acceptance
+ * techniques return a REFLECTION prompt instead of a word list.
+ */
+export async function getTechniquePractice(
+  techniqueId: string,
+): Promise<TechniquePracticeResponse> {
+  const response = await axiosClient.get(
+    `/library/techniques/${techniqueId}/practice`,
+  );
+  return response.data;
+}
 
 /**
  * Fetches all techniques and parses them into the Library structure.

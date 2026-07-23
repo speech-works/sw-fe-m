@@ -61,6 +61,29 @@ export interface ExerciseItem {
   difficulty: DifficultyLevel;
 }
 
+export type PracticeMode = "READ_ALOUD" | "REFLECTION";
+
+/** One reading item served for a technique's Practice tab. */
+export interface TechniquePracticeItem {
+  id: string;
+  type: string;
+  text: string;
+  difficulty: DifficultyLevel;
+  dominantPhoneme?: string | null;
+}
+
+/**
+ * What the Practice tab is for a technique. READ_ALOUD returns technique
+ * -relevant reading items; REFLECTION returns a single prompt instead of a
+ * word drill (cognitive/acceptance techniques).
+ */
+export interface TechniquePracticeResponse {
+  mode: PracticeMode;
+  items: TechniquePracticeItem[];
+  reflectionPrompt?: string;
+  note?: string;
+}
+
 export type TransformedTechnique = Omit<Technique, "category">;
 export type Library = {
   category: string;
