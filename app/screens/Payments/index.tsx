@@ -649,12 +649,17 @@ const SubscribeScreen = () => {
                     size={14}
                     color={colors.text.tertiary}
                   />
+                  {/* A subscription can be cancelled anytime via the store, so
+                      this is both accurate and store-compliant. We deliberately
+                      do NOT promise a "no questions asked refund": refunds are
+                      adjudicated by Apple/Google, not us, and advertising refund
+                      terms the platform controls is a store-review risk. */}
                   <DSText
                     variant="caption"
                     color="tertiary"
                     style={styles.guaranteeText}
                   >
-                    Secure Payment • No Questions Asked Refund
+                    Secure Payment • Cancel Anytime
                   </DSText>
                 </View>
               </>
