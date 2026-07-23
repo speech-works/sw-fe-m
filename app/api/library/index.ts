@@ -23,6 +23,39 @@ export async function getTechniquePractice(
   return response.data;
 }
 
+export type TechniqueStage = "learn" | "practice" | "test";
+
+export interface TechniqueProgress {
+  techniqueId: string;
+  learnCompleted: boolean;
+  practiceCompleted: boolean;
+  quizCompleted: boolean;
+  quizScore: number | null;
+}
+
+/** The current user's Learn/Practice/Test completion for a technique. */
+export async function getTechniqueProgress(
+  techniqueId: string,
+): Promise<TechniqueProgress> {
+  const response = await axiosClient.get(
+    `/library/techniques/${techniqueId}/progress`,
+  );
+  return response.data;
+}
+
+/** Mark a stage complete (idempotent). Test accepts an optional quiz score. */
+export async function markTechniqueStage(
+  techniqueId: string,
+  stage: TechniqueStage,
+  quizScore?: number,
+): Promise<TechniqueProgress> {
+  const response = await axiosClient.post(
+    `/library/techniques/${techniqueId}/progress/${stage}`,
+    quizScore !== undefined ? { quizScore } : {},
+  );
+  return response.data;
+}
+
 /**
  * Fetches all techniques and parses them into the Library structure.
  * * RECOMMENDED UPDATE: Add `includeTutorial: true` to params

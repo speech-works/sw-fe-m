@@ -29,6 +29,14 @@ import ScreenView from "../../../../components/ScreenView";
 import PracticePage from "./PracticePage";
 import QuizPage from "./QuizPage";
 import TutorialPage from "./TutorialPage";
+import {
+  getTechniqueProgress,
+  markTechniqueStage,
+  TechniqueProgress,
+  TechniqueStage,
+} from "../../../../api/library";
+
+const STAGE_BY_INDEX: TechniqueStage[] = ["learn", "practice", "test"];
 
 const TechniquePage = () => {
   const { user } = useUserStore();
@@ -42,6 +50,7 @@ const TechniquePage = () => {
     route.params;
 
   const [activeStageIndex, setActiveStageIndex] = useState(0);
+  const [progress, setProgress] = useState<TechniqueProgress | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
@@ -55,9 +64,40 @@ const TechniquePage = () => {
   const isContentAccessible = user?.isPaid || hasFree;
   const closeModal = () => setIsModalVisible(false);
 
+  // A stage counts as done once you leave it (soft, not a gate). Local state
+  // updates immediately so the checkmark appears without waiting on the POST.
+  const markStageDone = (index: number) => {
+    const stage = STAGE_BY_INDEX[index];
+    if (!stage) return;
+    const key =
+      stage === "learn"
+        ? "learnCompleted"
+        : stage === "practice"
+          ? "practiceCompleted"
+          : "quizCompleted";
+    setProgress((p) =>
+      p
+        ? { ...p, [key]: true }
+        : {
+            techniqueId,
+            learnCompleted: stage === "learn",
+            practiceCompleted: stage === "practice",
+            quizCompleted: stage === "test",
+            quizScore: null,
+          },
+    );
+    markTechniqueStage(techniqueId, stage).catch((e) =>
+      console.error("Failed to mark technique stage", e),
+    );
+  };
+
   const handleStepChange = (index: number) => {
     if (index > 0 && !isContentAccessible) {
       return;
+    }
+    // Leaving a stage you actually visited marks it complete.
+    if (index !== activeStageIndex && isContentAccessible) {
+      markStageDone(activeStageIndex);
     }
     setActiveStageIndex(index);
   };
@@ -92,6 +132,38 @@ const TechniquePage = () => {
       }
     }
   }, [stage, isContentAccessible]);
+
+  // Load progress, and — unless a specific stage was requested — land the user
+  // on the first stage they haven't finished (soft guidance toward the path,
+  // never a lock). Learn stays the default for a fresh technique.
+  useEffect(() => {
+    let cancelled = false;
+    getTechniqueProgress(techniqueId)
+      .then((p) => {
+        if (cancelled) return;
+        setProgress(p);
+        if (!stage && isContentAccessible) {
+          const firstIncomplete = !p.learnCompleted
+            ? 0
+            : !p.practiceCompleted
+              ? 1
+              : !p.quizCompleted
+                ? 2
+                : 0;
+          setActiveStageIndex(firstIncomplete);
+        }
+      })
+      .catch((e) => console.error("Failed to load technique progress", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [techniqueId]);
+
+  const stageDone = [
+    !!progress?.learnCompleted,
+    !!progress?.practiceCompleted,
+    !!progress?.quizCompleted,
+  ];
 
   const topPad = insets.top + space.inlineGap;
 
@@ -130,17 +202,27 @@ const TechniquePage = () => {
               {
                 key: "0",
                 label: "Learn",
-                icon: "play",
+                // A completed stage shows a check — the visible spine of the
+                // soft-guided path.
+                icon: stageDone[0] ? "circle-check" : "play",
               },
               {
                 key: "1",
                 label: "Practice",
-                icon: !isContentAccessible ? "lock" : "mic-vocal",
+                icon: !isContentAccessible
+                  ? "lock"
+                  : stageDone[1]
+                    ? "circle-check"
+                    : "mic-vocal",
               },
               {
                 key: "2",
                 label: "Test",
-                icon: !isContentAccessible ? "lock" : "square-check",
+                icon: !isContentAccessible
+                  ? "lock"
+                  : stageDone[2]
+                    ? "circle-check"
+                    : "square-check",
               },
             ]}
             activeKey={activeStageIndex.toString()}
