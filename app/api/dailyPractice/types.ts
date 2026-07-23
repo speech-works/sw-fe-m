@@ -188,6 +188,11 @@ export enum ExposurePracticeType {
   PHONE_CALL_SIMULATION = "PHONE_CALL",
   SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE",
   REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
+  // Private speech-technique drills (Easy Onset, Vowel Onsets, Voluntary
+  // Stuttering, …). Separated from REAL_LIFE_CHALLENGE on the backend so the
+  // graded-exposure ladder stops mixing them in; in packs they still run on
+  // the RealLifeChallenge screen (see packActivityNavigation).
+  TECHNIQUE_DRILL = "TECHNIQUE_DRILL",
   // DATING_CONVERSATION = "DATING_CONVERSATION",
   // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
   // Add other exposure types as needed

@@ -110,6 +110,14 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   // breathing page. Routed to the matching contact technique instead.
   "30000000-0000-4000-8000-000000000109": "LIGHT_ARTICULATORY_CONTACT",
   "30000000-0000-4000-8000-000000000105": "SELF_DISCLOSURE",
+  // Completed the map for the remaining video-backed technique drills so every
+  // one routes to its real Library technique instead of falling back to a raw
+  // activity id (a "tutorial unavailable" dead end). All four map to a seeded
+  // technique that has a video.
+  "30000000-0000-4000-8000-000000000103": "VOLUNTARY_STUTTERING", // Voluntary Stuttering (Mirror)
+  "30000000-0000-4000-8000-000000000104": "PROLONGED_SPEECH", // Voluntary Slide Practice (intentional prolongation)
+  "30000000-0000-4000-8000-000000000111": "LIGHT_ARTICULATORY_CONTACT", // Light Contacts on Names
+  "30000000-0000-4000-8000-000000000114": "EASY_ONSET", // Using Easy Onsets
   // Entries for ...0007 / ...0008 (breathing) and ...0010 (reframing) were
   // removed: those are COGNITIVE_PRACTICE rows, and the cognitive branch passes
   // only `id`, never a techniqueId — so they could never be read here. They were

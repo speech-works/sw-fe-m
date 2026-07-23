@@ -274,6 +274,13 @@ const Library = () => {
     return SLP_GROUPS.map((group) => {
       const techniques = allTechniques
         .filter((t) => group.techniqueIds.includes(t.id as TECHNIQUES_ENUM))
+        // The Library lists ONLY techniques that have a tutorial video. A
+        // technique without one (a placeholder like Pull-Outs, or any not-yet
+        // -filmed entry) would open a "tutorial unavailable" page, so it never
+        // appears here. "Has video" is derived from the tutorial itself — the
+        // single source of truth — not a separate flag. Such techniques still
+        // back their drills inside packs; they're just hidden from browsing.
+        .filter((t) => !!t.tutorial?.fullVideoId)
         .filter(
           (t) =>
             !searchText ||

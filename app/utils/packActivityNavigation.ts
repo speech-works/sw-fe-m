@@ -126,6 +126,10 @@ const navigateToExposure = (
       });
       break;
     case ExposurePracticeType.REAL_LIFE_CHALLENGE:
+    // Technique drills use the SAME instruction/reflect screen as real-life
+    // challenges — the split is a backend classification (keeps the graded
+    // -exposure ladder clean), not a different UI.
+    case ExposurePracticeType.TECHNIQUE_DRILL:
       nav.navigate("RealLifeChallenge", {
         practiceActivity: activity,
         packContext: ctx,

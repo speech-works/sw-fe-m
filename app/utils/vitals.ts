@@ -25,10 +25,15 @@ export const shouldCollectAccuracy = (activity: PracticeActivity): boolean => {
     activity.contentType === "EXPOSURE_PRACTICE" &&
     activity.exposurePractice
   ) {
+    // Accuracy is asked for on technique DRILLS. That used to be encoded as
+    // type REAL_LIFE_CHALLENGE + blob category TECHNIQUE_DRILL; the type now
+    // says TECHNIQUE_DRILL directly. Accept both so the slider keeps showing
+    // whether the row was reseeded to the new type yet or not.
     return (
-      activity.exposurePractice.type === "REAL_LIFE_CHALLENGE" &&
-      activity.exposurePractice.realLifeChallengeData?.category ===
-        "TECHNIQUE_DRILL"
+      activity.exposurePractice.type === "TECHNIQUE_DRILL" ||
+      (activity.exposurePractice.type === "REAL_LIFE_CHALLENGE" &&
+        activity.exposurePractice.realLifeChallengeData?.category ===
+          "TECHNIQUE_DRILL")
     );
   }
 

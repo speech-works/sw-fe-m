@@ -14,7 +14,8 @@ export function parseTechniquesToLibrary(rawData: RawInputData): Library[] {
     {};
 
   rawData.techniques?.forEach((rawTech) => {
-    const { category, id, name, description, level, hasFree } = rawTech;
+    const { category, id, name, description, level, hasFree, tutorial } =
+      rawTech;
     console.log("Processing Technique:", { rawTech });
     if (
       category &&
@@ -27,6 +28,12 @@ export function parseTechniquesToLibrary(rawData: RawInputData): Library[] {
         description,
         level,
         hasFree,
+        // Carry the tutorial through. It was dropped here before, which made
+        // `t.tutorial` undefined everywhere downstream — the Library's
+        // search-by-tutorial-title was dead, and there was no way to tell a
+        // technique with a video from a placeholder without one. The Library
+        // now needs exactly that to hide video-less techniques.
+        tutorial,
       };
       if (!categorizedTechniques[category.name]) {
         categorizedTechniques[category.name] = [];
