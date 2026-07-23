@@ -2,6 +2,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getOffers, type OfferItem } from "../../api";
+import PriceTag from "../../components/PriceTag";
 import {
   Page,
   Text,
@@ -125,9 +126,11 @@ const ProgramsScreen = () => {
             </Text>
           </View>
         ) : (
-          <Text variant="title" color="primary">
-            ₹{item.priceInr}
-          </Text>
+          <PriceTag
+            priceInr={item.priceInr}
+            anchorInr={item.anchorPriceInr}
+            compact
+          />
         )}
       </View>
       <View style={styles.cardFooter}>

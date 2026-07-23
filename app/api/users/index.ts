@@ -253,6 +253,14 @@ export interface OfferItem {
   tierProductId: string;
   priceInr: number;
   priceUsd: number;
+  /**
+   * The pack's standing shelf price. When a discount applies (founder or the
+   * launch offer) this is HIGHER than priceInr/Usd and the app strikes it
+   * through; otherwise it equals the price and no strike is shown. Always a real
+   * store price, never a fabricated "was".
+   */
+  anchorPriceInr: number;
+  anchorPriceUsd: number;
   owned: boolean;
   /**
    * The pack this offer sells, for opening GET /packs/{id}/brochure.
@@ -281,6 +289,9 @@ export interface MembershipOffer {
   annualProductId: string;
   annualPriceInr: number;
   annualPriceUsd: number;
+  /** Annual's honest anchor = 12 × the monthly price. Struck through to show "2 months free". */
+  annualAnchorInr: number;
+  annualAnchorUsd: number;
 }
 
 export interface Offers {

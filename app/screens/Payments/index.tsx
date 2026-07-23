@@ -80,6 +80,10 @@ const SubscribeScreen = () => {
   // offer so the annual savings badge can never disagree with the prices shown.
   const monthlyLabel = membership ? `₹${membership.priceInr}` : "—";
   const annualLabel = membership ? `₹${membership.annualPriceInr}` : "—";
+  // Annual's honest anchor = 12 × monthly, struck through beside the annual price.
+  const annualAnchorLabel = membership ? `₹${membership.annualAnchorInr}` : "—";
+  const annualDiscounted =
+    !!membership && membership.annualAnchorInr > membership.annualPriceInr;
   const annualPerMonthLabel = membership
     ? `₹${Math.round(membership.annualPriceInr / 12)}`
     : "—";
@@ -511,6 +515,15 @@ const SubscribeScreen = () => {
                         color="primary"
                         style={styles.planPrice}
                       >
+                        {annualDiscounted ? (
+                          <DSText
+                            variant="bodySm"
+                            color="tertiary"
+                            style={styles.annualStrike}
+                          >
+                            {annualAnchorLabel}{"  "}
+                          </DSText>
+                        ) : null}
                         {annualLabel}
                         <DSText
                           variant="bodySm"
@@ -995,6 +1008,9 @@ const useStyles = makeStyles((c) => ({
   },
   pricePeriod: {
     // period type styling from variant
+  },
+  annualStrike: {
+    textDecorationLine: "line-through",
   },
   planSubtext: {
     marginTop: spacing.xs,

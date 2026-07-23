@@ -17,6 +17,7 @@ import {
   radius,
   Spinner,
 } from "../../design-system";
+import PriceTag from "../../components/PriceTag";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 import {
   ExploreStackNavigationProp,
@@ -212,26 +213,24 @@ const ProgramDetailScreen = () => {
         </View>
       ) : (
         <>
-          {/* Founder pricing shows the standard price struck through. Both
-              numbers come from the offer, so they can never disagree. */}
-          {isFounder ? (
-            <View style={styles.priceRow}>
-              <Text
-                variant="bodySm"
-                color="tertiary"
-                style={styles.strikethrough}
-              >
-                ₹999
-              </Text>
-              <Text variant="h2" color="primary">
-                ₹{offer.priceInr}
-              </Text>
-            </View>
-          ) : (
-            <Text variant="h2" color="primary" center style={styles.price}>
-              ₹{offer.priceInr}
-            </Text>
-          )}
+          {/* One anchor-driven rule covers BOTH founder and launch-offer
+              discounts: PriceTag strikes anchorPriceInr whenever it exceeds the
+              charged price. All numbers come from the server, so the struck
+              "was" is always a real standing price, never a hardcoded literal. */}
+          <View style={styles.priceRow}>
+            <PriceTag
+              priceInr={offer.priceInr}
+              anchorInr={offer.anchorPriceInr}
+              center
+              note={
+                offer.anchorPriceInr > offer.priceInr
+                  ? isFounder
+                    ? "Founder price"
+                    : "Launch offer"
+                  : undefined
+              }
+            />
+          </View>
 
           <Button
             label={`Get ${offer.title}`}
@@ -279,18 +278,9 @@ const styles = StyleSheet.create({
   moduleTitle: {
     flex: 1,
   },
-  price: {
-    marginBottom: spacing.lg,
-  },
   priceRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "center",
-    gap: spacing.sm,
+    alignItems: "center",
     marginBottom: spacing.lg,
-  },
-  strikethrough: {
-    textDecorationLine: "line-through",
   },
   ownedRow: {
     flexDirection: "row",
