@@ -33,7 +33,7 @@ export {
     getRecordings
 } from "./recordings";
 export { deleteUserById, deleteMe, getUserById, updateUserById, getWallet, getOffers, createPurchaseIntent } from "./users";
-export type { Wallet, Offers, OfferItem, PurchaseIntentResponse, EntitlementKey } from "./users";
+export type { Wallet, Offers, OfferItem, MembershipOffer, TopupOffer, PurchaseIntentResponse, EntitlementKey } from "./users";
 
 // Form Submission API (for exposure feedback, pack reflections, etc.)
 export { submitFormResponse } from "./forms";

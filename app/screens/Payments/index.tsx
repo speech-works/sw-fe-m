@@ -15,10 +15,19 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { SUBSCRIPTION_PRICING } from "../../constants/pricing";
 import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PAYMENTS_ENABLED } from "../../constants/features";
+import { getOffers, type MembershipOffer } from "../../api";
+import {
+  purchaseProductById,
+  pollWalletUntil,
+  purchasesAvailable,
+} from "../../services/purchases";
+import {
+  showSuccessBottomSheet,
+  showErrorBottomSheet,
+} from "../../util/functions/bottomSheet";
 import {
   Text as DSText,
   Icon,
@@ -47,12 +56,45 @@ const SubscribeScreen = () => {
     PAYMENT_PLAN_TYPE.ANNUALLY,
   );
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [membership, setMembership] = useState<MembershipOffer | null>(null);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
+
+  // Prices come from the server (GET /users/me/offers), never a hardcoded
+  // literal — a stale price in a button is how a user ends up charged something
+  // other than what they were shown (the exact class of bug that damaged
+  // competitors' reviews). The membership block carries both product ids.
+  useEffect(() => {
+    let cancelled = false;
+    getOffers()
+      .then((o) => {
+        if (!cancelled) setMembership(o.membership);
+      })
+      .catch((e) => console.error("[Payments] Failed to load offers:", e));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Display strings, INR-first (matching the pack shop). Computed from the live
+  // offer so the annual savings badge can never disagree with the prices shown.
+  const monthlyLabel = membership ? `₹${membership.priceInr}` : "—";
+  const annualLabel = membership ? `₹${membership.annualPriceInr}` : "—";
+  const annualPerMonthLabel = membership
+    ? `₹${Math.round(membership.annualPriceInr / 12)}`
+    : "—";
+  const annualSavingsPct = membership
+    ? Math.max(
+        0,
+        Math.round(
+          (1 - membership.annualPriceInr / (membership.priceInr * 12)) * 100,
+        ),
+      )
+    : 0;
   const selectedPlanSummary =
     paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
-      ? `${SUBSCRIPTION_PRICING.plans.monthly.headline}${SUBSCRIPTION_PRICING.plans.monthly.periodLabel}`
-      : `${SUBSCRIPTION_PRICING.plans.annual.headline}${SUBSCRIPTION_PRICING.plans.annual.periodLabel}, ${SUBSCRIPTION_PRICING.plans.annual.billedYearlyCopy.toLowerCase()}`;
+      ? `${monthlyLabel}/month`
+      : `${annualLabel}/year`;
 
   const sheetTranslateY = useSharedValue(Dimensions.get("window").height);
 
@@ -70,11 +112,55 @@ const SubscribeScreen = () => {
   }, []);
 
   const handlePayment = async () => {
-    // TODO(payments): reconnect billing via Apple In-App Purchase (StoreKit) +
-    // Google Play Billing — NOT a third-party web processor like Razorpay, which
-    // is disallowed for digital goods on the App Store / Play Store. This screen
-    // is dormant and unreachable while PAYMENTS_ENABLED is false.
-    setShowTestModeModal(true);
+    if (!membership) return;
+    // Payments not wired for this build/platform yet (flag off, or no store key
+    // configured): explain gently rather than surface a red error. Billing is
+    // Apple In-App Purchase (StoreKit) + Google Play Billing via RevenueCat —
+    // never a third-party web processor, which stores disallow for digital goods.
+    if (!purchasesAvailable()) {
+      setShowTestModeModal(true);
+      return;
+    }
+
+    const isAnnual = paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY;
+    const productId = isAnnual
+      ? membership.annualProductId
+      : membership.productId;
+
+    setLoading(true);
+    try {
+      const outcome = await purchaseProductById(productId);
+      if (outcome.status === "purchased") {
+        // The entitlement is granted by the RevenueCat webhook, not the purchase
+        // call itself — poll our own backend until "membership" appears.
+        const wallet = await pollWalletUntil((w) =>
+          w.entitlements.includes("membership"),
+        );
+        if (wallet) {
+          showSuccessBottomSheet(
+            "You're in",
+            "Welcome to Premium — your access is active.",
+          );
+          navigation.goBack();
+        } else {
+          showErrorBottomSheet(
+            "Almost there",
+            "Your purchase went through but is still being confirmed. It should appear shortly.",
+          );
+        }
+      } else if (outcome.status === "error") {
+        showErrorBottomSheet("Purchase didn't complete", outcome.message);
+      }
+      // "cancelled" → the user backed out at the store sheet; stay silent.
+    } catch (error) {
+      console.error("[Payments] Purchase failed:", error);
+      showErrorBottomSheet(
+        "Purchase didn't complete",
+        "Nothing has been charged. Please try again in a moment.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -409,27 +495,29 @@ const SubscribeScreen = () => {
                         >
                           Annual Membership
                         </DSText>
-                        <View style={styles.savingsBadge}>
-                          <DSText
-                            variant="caption"
-                            style={styles.savingsText}
-                          >
-                            SAVE {SUBSCRIPTION_PRICING.plans.annual.savingsPercent}%
-                          </DSText>
-                        </View>
+                        {annualSavingsPct > 0 && (
+                          <View style={styles.savingsBadge}>
+                            <DSText
+                              variant="caption"
+                              style={styles.savingsText}
+                            >
+                              SAVE {annualSavingsPct}%
+                            </DSText>
+                          </View>
+                        )}
                       </View>
                       <DSText
                         variant="h3"
                         color="primary"
                         style={styles.planPrice}
                       >
-                        {SUBSCRIPTION_PRICING.plans.annual.headline}
+                        {annualLabel}
                         <DSText
                           variant="bodySm"
                           color="tertiary"
                           style={styles.pricePeriod}
                         >
-                          {SUBSCRIPTION_PRICING.plans.annual.periodLabel}
+                          /year
                         </DSText>
                       </DSText>
                       <DSText
@@ -437,7 +525,7 @@ const SubscribeScreen = () => {
                         color="tertiary"
                         style={styles.planSubtext}
                       >
-                        {SUBSCRIPTION_PRICING.plans.annual.billedYearlyCopy}
+                        Billed annually · {annualPerMonthLabel}/mo
                       </DSText>
                     </View>
                   </View>
@@ -480,13 +568,13 @@ const SubscribeScreen = () => {
                         color="primary"
                         style={styles.planPrice}
                       >
-                        {SUBSCRIPTION_PRICING.plans.monthly.headline}
+                        {monthlyLabel}
                         <DSText
                           variant="bodySm"
                           color="tertiary"
                           style={styles.pricePeriod}
                         >
-                          {SUBSCRIPTION_PRICING.plans.monthly.periodLabel}
+                          /month
                         </DSText>
                       </DSText>
                       <DSText
@@ -494,7 +582,7 @@ const SubscribeScreen = () => {
                         color="tertiary"
                         style={styles.planSubtext}
                       >
-                        {SUBSCRIPTION_PRICING.plans.monthly.supportingCopy}
+                        Billed monthly
                       </DSText>
                     </View>
                   </View>
@@ -510,11 +598,11 @@ const SubscribeScreen = () => {
                 <TouchableOpacity
                   style={[
                     styles.upgradeBtnWrapper,
-                    loading && { opacity: 0.7 },
+                    (loading || !membership) && { opacity: 0.7 },
                   ]}
                   activeOpacity={0.85}
                   onPress={handlePayment}
-                  disabled={loading}
+                  disabled={loading || !membership}
                   accessibilityRole="button"
                   accessibilityLabel="Upgrade to Speechworks Premium"
                 >
@@ -532,8 +620,8 @@ const SubscribeScreen = () => {
                         style={styles.upgradeBtnText}
                       >
                         {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                          ? "Start 7-Day Free Trial"
-                          : "Unlock Full Access"}
+                          ? `Get Premium · ${annualLabel}/yr`
+                          : `Get Premium · ${monthlyLabel}/mo`}
                       </DSText>
                     )}
                     <LinearGradient
