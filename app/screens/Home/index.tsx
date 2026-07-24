@@ -10,6 +10,7 @@ import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
 import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
+import CelebrationPreview from "../../components/Dashboard/__CelebrationPreview";
 import ImpactAssessmentWidget from "../../components/ImpactAssessmentWidget";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
 import { useEventStore } from "../../stores/events";
@@ -342,6 +343,9 @@ const Home = () => {
         <IdentityBlock />
 
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
+
+        {/* ⚠️ TEMPORARY dev preview — remove with __CelebrationPreview. */}
+        <CelebrationPreview />
 
         <ClinicalStatsWidget />
 
