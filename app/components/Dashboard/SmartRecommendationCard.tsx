@@ -6,6 +6,7 @@ import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import { useUserStore } from "../../stores/user";
 import PressableScale from "../PressableScale";
 import PriceTag from "../PriceTag";
+import RecHeroCard from "./RecHeroCard";
 import ErrorStateCard from "./ErrorStateCard";
 import {
   Sheet,
@@ -205,116 +206,53 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 
     // C. No specific suggestion we can stand behind — but NEVER render nothing.
     //
-    // A card that silently disappears is worse than the wrong card: Home just
-    // ends up with a hole in it and no one can tell whether that's a bug or a
-    // state. This branch catches an older backend (one that predates `state`
-    // and `topPick`), a response shape we don't recognise, and the case where
-    // signals exist but nothing scored as a match. It says only what is always
-    // true and points somewhere useful.
+    // A card that silently disappears is worse than the wrong card: Home ends
+    // up with a hole and no one can tell a blank from a bug. This catches an
+    // older backend (predating `state`/`topPick`), an unrecognised shape, and
+    // "signals exist but nothing matched". Same rich shell as the match, minus
+    // the specifics — it says only what is always true and points somewhere.
     if (!pick) {
       return (
-        <PressableScale
-          scaleTo={0.98}
-          style={[styles.container, { shadowColor: colors.shadow }, style]}
+        <RecHeroCard
+          style={style}
+          eyebrow="PROGRAMS"
+          title="Find your next program"
+          subtitle="Guided, day-by-day plans for the situations that feel hardest."
+          ctaLabel="Browse programs"
           onPress={() =>
             exploreNavigation.navigate("ExploreStack", { screen: "Programs" })
           }
-        >
-          <View
-            style={[
-              styles.gradient,
-              styles.gradientCentered,
-              { backgroundColor: colors.surface.elevated },
-            ]}
-          >
-            <View style={styles.watermarkMain} pointerEvents="none">
-              <Icon
-                name={icons.roadmap}
-                size={140}
-                color={withAlpha(colors.text.primary, 0.06)}
-              />
-            </View>
-            <View style={styles.caughtUpContent}>
-              <Text variant="h2" color="primary" center>
-                Find your next program
-              </Text>
-              <Text
-                variant="body"
-                color="secondary"
-                center
-                style={styles.caughtUpBody}
-              >
-                Guided, day-by-day plans for the situations that feel hardest.
-              </Text>
-              <View style={[styles.cta, { borderColor: colors.text.primary }]}>
-                <Icon
-                  name={icons.roadmap}
-                  size={14}
-                  color={colors.text.primary}
-                />
-                <Text variant="title" color="primary">
-                  Browse programs
-                </Text>
-              </View>
-            </View>
-          </View>
-        </PressableScale>
+        />
       );
     }
 
-    // D. A real, signal-backed program to suggest — show it properly.
-    const ink = colors.action.onPrimary;
+    // D. A real, signal-backed program to suggest — the same rich shell, filled
+    // with the match: its reason, and the authoritative price.
     return (
-      <PressableScale
-        scaleTo={0.98}
-        style={[styles.container, { shadowColor: colors.shadow }, style]}
+      <RecHeroCard
+        style={style}
+        eyebrow={
+          recommendation.state === "ALL_COMPLETE"
+            ? "WHAT PAIRS WELL NEXT"
+            : "MATCHED TO YOU"
+        }
+        title={pick.title}
+        subtitle={pick.matchReason ?? pick.blurb}
+        ctaLabel="See the program"
+        priceNode={
+          <PriceTag
+            priceInr={pick.priceInr}
+            anchorInr={pick.anchorPriceInr}
+            compact
+          />
+        }
         onPress={() =>
           exploreNavigation.navigate("ExploreStack", {
             screen: "ProgramDetail",
             params: { catalogKey: pick.catalogKey, packId: pick.packId },
           })
         }
-      >
-        <View style={[styles.gradient, { backgroundColor: colors.action.primary }]}>
-          <View style={styles.watermarkMain} pointerEvents="none">
-            <Icon name={icons.roadmap} size={200} color={withAlpha(ink, 0.1)} />
-          </View>
-
-          <View style={styles.pickContent}>
-            <Text variant="label" color={ink}>
-              {recommendation.state === "ALL_COMPLETE"
-                ? "WHAT PAIRS WELL NEXT"
-                : "MATCHED TO YOU"}
-            </Text>
-            <Text variant="h2" color={ink}>
-              {pick.title}
-            </Text>
-            {pick.matchReason ? (
-              <Text variant="body" color={ink}>
-                {pick.matchReason}
-              </Text>
-            ) : pick.blurb ? (
-              <Text variant="body" color={ink} numberOfLines={2}>
-                {pick.blurb}
-              </Text>
-            ) : null}
-
-            <View style={styles.pickFooter}>
-              <PriceTag
-                priceInr={pick.priceInr}
-                anchorInr={pick.anchorPriceInr}
-                compact
-              />
-              <View style={styles.pickCta}>
-                <Text variant="title" color={ink}>
-                  See the program
-                </Text>
-                <Icon name={icons.chevronRight} size={18} color={ink} />
-              </View>
-            </View>
-          </View>
-        </View>
-      </PressableScale>
+      />
     );
   }
 
@@ -591,32 +529,6 @@ const useStyles = makeStyles((c) => ({
   },
   caughtUpBody: {
     paddingHorizontal: spacing["3xl"],
-  },
-  // Matched-program showcase (the no-packs-owned / what's-next state).
-  pickContent: {
-    gap: space.inlineGap,
-    zIndex: 1,
-  },
-  pickFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: spacing.md,
-  },
-  pickCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.inlineGap,
-  },
-  cta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.inlineGap,
-    borderWidth: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    marginTop: space.inlineGap,
   },
   progressSection: {
     marginTop: space.sectionGap,
