@@ -32,7 +32,6 @@ import TutorialPage from "./TutorialPage";
 import {
   getTechniqueProgress,
   markTechniqueStage,
-  TechniqueProgress,
   TechniqueStage,
 } from "../../../../api/library";
 
@@ -50,7 +49,6 @@ const TechniquePage = () => {
     route.params;
 
   const [activeStageIndex, setActiveStageIndex] = useState(0);
-  const [progress, setProgress] = useState<TechniqueProgress | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
@@ -65,28 +63,12 @@ const TechniquePage = () => {
   const isContentAccessible = user?.isPaid || hasFree;
   const closeModal = () => setIsModalVisible(false);
 
-  // A stage counts as done once you leave it (soft, not a gate). Local state
-  // updates immediately so the checkmark appears without waiting on the POST.
+  // A stage counts as done once you leave it (soft, not a gate). Nothing in the
+  // dock renders completion any more, so this just records it server-side — it
+  // still decides which stage you land on next visit.
   const markStageDone = (index: number) => {
     const stage = STAGE_BY_INDEX[index];
     if (!stage) return;
-    const key =
-      stage === "learn"
-        ? "learnCompleted"
-        : stage === "practice"
-          ? "practiceCompleted"
-          : "quizCompleted";
-    setProgress((p) =>
-      p
-        ? { ...p, [key]: true }
-        : {
-            techniqueId,
-            learnCompleted: stage === "learn",
-            practiceCompleted: stage === "practice",
-            quizCompleted: stage === "test",
-            quizScore: null,
-          },
-    );
     markTechniqueStage(techniqueId, stage).catch((e) =>
       console.error("Failed to mark technique stage", e),
     );
@@ -142,7 +124,6 @@ const TechniquePage = () => {
     getTechniqueProgress(techniqueId)
       .then((p) => {
         if (cancelled) return;
-        setProgress(p);
         if (!stage && isContentAccessible) {
           const firstIncomplete = !p.learnCompleted
             ? 0
@@ -159,12 +140,6 @@ const TechniquePage = () => {
       cancelled = true;
     };
   }, [techniqueId]);
-
-  const stageDone = [
-    !!progress?.learnCompleted,
-    !!progress?.practiceCompleted,
-    !!progress?.quizCompleted,
-  ];
 
   const topPad = insets.top + space.inlineGap;
 
@@ -199,31 +174,21 @@ const TechniquePage = () => {
             inline
             fitContent
             accessibilityLabel="Technique stages"
+            // Each stage keeps its OWN icon at all times — it names the tab, so
+            // swapping it for a generic check on completion makes the dock read as
+            // three identical ticks. Progress still steers the experience: the load
+            // effect below lands you on the first unfinished stage.
             items={[
-              {
-                key: "0",
-                label: "Learn",
-                // A completed stage shows a check — the visible spine of the
-                // soft-guided path.
-                icon: stageDone[0] ? "circle-check" : "play",
-              },
+              { key: "0", label: "Learn", icon: icons.play },
               {
                 key: "1",
                 label: "Practice",
-                icon: !isContentAccessible
-                  ? "lock"
-                  : stageDone[1]
-                    ? "circle-check"
-                    : "mic-vocal",
+                icon: isContentAccessible ? icons.voiceTool : icons.locked,
               },
               {
                 key: "2",
                 label: "Test",
-                icon: !isContentAccessible
-                  ? "lock"
-                  : stageDone[2]
-                    ? "circle-check"
-                    : "square-check",
+                icon: isContentAccessible ? icons.checklist : icons.locked,
               },
             ]}
             activeKey={activeStageIndex.toString()}
