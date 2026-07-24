@@ -3,6 +3,7 @@ import { StyleProp, View, ViewStyle } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getPackBrochure, getPackProgress, getRecommendedPack } from "../../api/packs";
 import { PackProgress, PackRecommendation } from "../../api/packs/types";
+import { useUserStore } from "../../stores/user";
 import PressableScale from "../PressableScale";
 import PriceTag from "../PriceTag";
 import ErrorStateCard from "./ErrorStateCard";
@@ -29,6 +30,13 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const { colors, scheme } = useTheme();
   const styles = useStyles();
   const exploreNavigation = useNavigation<any>();
+  // Whether Home is ALSO showing the onboarding reminder card. We only defer to
+  // it (render nothing) when it is actually there — see the NEEDS_ONBOARDING
+  // branch below. A dev/edge user flagged onboarded but with no signals would
+  // otherwise fall between the two and leave a hole on Home.
+  const reminderCardWillShow = useUserStore(
+    (s) => !!s.user && !s.user.hasCompletedOnboarding,
+  );
   const [recommendation, setRecommendation] =
     useState<PackRecommendation | null>(null);
   const [progress, setProgress] = useState<PackProgress | null>(null);
@@ -151,10 +159,16 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   // people who had done nothing that their work was done, over a CTA wearing
   // the Explore TAB's icon. The server now says which situation this is.
   if (!recommendation.pack) {
-    // A. No onboarding signal — we cannot honestly match anyone, and Home
-    // already shows OnboardingReminderCard. A second CTA here would compete
-    // with it, and a "matched to you" claim would be invented. Say nothing.
-    if (recommendation.state === "NEEDS_ONBOARDING") return null;
+    // A. No onboarding signal — we cannot honestly match anyone. When Home is
+    // showing the onboarding reminder card, defer to it: a second CTA here
+    // would compete with it, and a "matched to you" claim would be invented.
+    // But ONLY defer when that card is actually present — a user flagged
+    // onboarded yet carrying no signals (a dev/edge state) has no reminder
+    // card, so returning null would leave a hole. Fall through to the neutral
+    // browse card instead.
+    if (recommendation.state === "NEEDS_ONBOARDING" && reminderCardWillShow) {
+      return null;
+    }
 
     const pick = recommendation.topPick;
 
@@ -189,10 +203,66 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
       );
     }
 
-    // C. There is a real, signal-backed program to suggest — show it properly
-    // instead of a dead end. Never reached without `matchReason`, because the
-    // server only sends a topPick it can justify.
-    if (!pick) return null;
+    // C. No specific suggestion we can stand behind — but NEVER render nothing.
+    //
+    // A card that silently disappears is worse than the wrong card: Home just
+    // ends up with a hole in it and no one can tell whether that's a bug or a
+    // state. This branch catches an older backend (one that predates `state`
+    // and `topPick`), a response shape we don't recognise, and the case where
+    // signals exist but nothing scored as a match. It says only what is always
+    // true and points somewhere useful.
+    if (!pick) {
+      return (
+        <PressableScale
+          scaleTo={0.98}
+          style={[styles.container, { shadowColor: colors.shadow }, style]}
+          onPress={() =>
+            exploreNavigation.navigate("ExploreStack", { screen: "Programs" })
+          }
+        >
+          <View
+            style={[
+              styles.gradient,
+              styles.gradientCentered,
+              { backgroundColor: colors.surface.elevated },
+            ]}
+          >
+            <View style={styles.watermarkMain} pointerEvents="none">
+              <Icon
+                name={icons.roadmap}
+                size={140}
+                color={withAlpha(colors.text.primary, 0.06)}
+              />
+            </View>
+            <View style={styles.caughtUpContent}>
+              <Text variant="h2" color="primary" center>
+                Find your next program
+              </Text>
+              <Text
+                variant="body"
+                color="secondary"
+                center
+                style={styles.caughtUpBody}
+              >
+                Guided, day-by-day plans for the situations that feel hardest.
+              </Text>
+              <View style={[styles.cta, { borderColor: colors.text.primary }]}>
+                <Icon
+                  name={icons.roadmap}
+                  size={14}
+                  color={colors.text.primary}
+                />
+                <Text variant="title" color="primary">
+                  Browse programs
+                </Text>
+              </View>
+            </View>
+          </View>
+        </PressableScale>
+      );
+    }
+
+    // D. A real, signal-backed program to suggest — show it properly.
     const ink = colors.action.onPrimary;
     return (
       <PressableScale
