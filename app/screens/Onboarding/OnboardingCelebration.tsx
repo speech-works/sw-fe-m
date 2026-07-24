@@ -13,12 +13,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import {
-  CheerBeam,
-  CheerWink,
-  CheerStar,
-  CheerCool,
-} from "../../assets/celebration/cheerSquad";
+import CheerHero from "../../assets/celebration/cheerHero";
 import {
   Text,
   useTheme,
@@ -48,16 +43,8 @@ import {
  *    no shockwave, no confetti, no tap-bounce. Comprehension kept, motion gone.
  */
 
-const CAST = [
-  { key: "reading", accent: "info" as const, Comp: CheerBeam, dy: 6 },
-  { key: "fun", accent: "warning" as const, Comp: CheerWink, dy: -8 },
-  { key: "cognitive", accent: "danger" as const, Comp: CheerStar, dy: -2 },
-  { key: "exposure", accent: "purple" as const, Comp: CheerCool, dy: 8 },
-];
-
-const CHAR_SIZE = 62;
-const STAGE = 220; // stage height that the light layers center within
-const FLOAT_PERIODS = [2600, 3100, 2400, 2900];
+const HERO_SIZE = 120;
+const STAGE = 224; // stage height that the light layers center within
 const BURST_PERIOD = 22000; // one slow god-ray revolution
 
 // ── God-ray sunburst geometry (built once; Math is fine in app code) ────────
@@ -203,14 +190,11 @@ const Sparkle: React.FC<{
   );
 };
 
-const CastCharacter: React.FC<{
-  index: number;
-  reduced: boolean;
-  accent: "info" | "warning" | "danger" | "purple";
-  restY: number;
-  Comp: React.FC<{ size?: number; color: string; ink: string }>;
-}> = ({ index, reduced, accent, restY, Comp }) => {
-  const { colors } = useTheme();
+/** The single celebration hero — pops in over the burst, floats, tap to bounce. */
+const Hero: React.FC<{ reduced: boolean; color: string }> = ({
+  reduced,
+  color,
+}) => {
   const pop = useSharedValue(0);
   const floatV = useSharedValue(0);
   // Tap-to-bounce — the "interactive" bit. A quick squash toward the finger,
@@ -226,27 +210,27 @@ const CastCharacter: React.FC<{
   };
 
   useEffect(() => {
-    const delay = 260 + index * 90; // staggered entrance, after the burst opens
+    const delay = 200; // enters just after the burst opens
     if (reduced) {
       pop.value = withDelay(delay, withTiming(1, { duration: duration.reveal }));
       return;
     }
     pop.value = withDelay(delay, withSpring(1, spring.bouncy));
     floatV.value = withDelay(
-      delay + 260,
+      delay + 320,
       withRepeat(
-        withTiming(1, { duration: FLOAT_PERIODS[index], easing: easing.loop }),
+        withTiming(1, { duration: 3000, easing: easing.loop }),
         -1,
         true,
       ),
     );
     return () => cancelAnimation(floatV);
-  }, [reduced, index, pop, floatV]);
+  }, [reduced, pop, floatV]);
 
   const style = useAnimatedStyle(() => {
     if (reduced) return { opacity: pop.value };
-    const scale = 0.5 + pop.value * 0.5 + tap.value * 0.22;
-    const drift = interpolate(floatV.value, [0, 1], [restY - 5, restY + 5]);
+    const scale = 0.55 + pop.value * 0.45 + tap.value * 0.14;
+    const drift = interpolate(floatV.value, [0, 1], [-5, 5]);
     return {
       opacity: Math.min(1, pop.value * 1.4),
       transform: [{ translateY: drift }, { scale }],
@@ -256,11 +240,7 @@ const CastCharacter: React.FC<{
   return (
     <Pressable onPress={onPoke} accessibilityRole="image">
       <Animated.View style={style}>
-        <Comp
-          size={CHAR_SIZE}
-          color={colors.accent[accent]}
-          ink={colors.accentOn[accent]}
-        />
+        <CheerHero size={HERO_SIZE} color={color} />
       </Animated.View>
     </Pressable>
   );
@@ -319,7 +299,7 @@ const CheerBubble: React.FC<{ reduced: boolean }> = ({ reduced }) => {
   const wiggle = useSharedValue(0);
 
   useEffect(() => {
-    const delay = 260 + CAST.length * 90 + 120;
+    const delay = 520; // lands just after the hero settles
     if (reduced) {
       pop.value = withDelay(delay, withTiming(1, { duration: duration.reveal }));
       return;
@@ -392,18 +372,7 @@ const OnboardingCelebration: React.FC = () => {
       {!reduced ? <Confetti palette={palette} /> : null}
 
       <CheerBubble reduced={reduced} />
-      <View style={styles.castRow}>
-        {CAST.map((c, i) => (
-          <CastCharacter
-            key={c.key}
-            index={i}
-            reduced={reduced}
-            accent={c.accent}
-            restY={c.dy}
-            Comp={c.Comp}
-          />
-        ))}
-      </View>
+      <Hero reduced={reduced} color={gold} />
     </View>
   );
 };
@@ -446,12 +415,6 @@ const styles = StyleSheet.create({
   confetti: {
     position: "absolute",
     borderRadius: 2,
-  },
-  castRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
   },
   bubble: {
     paddingHorizontal: spacing.md,
