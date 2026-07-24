@@ -41,6 +41,7 @@ import {
   PartyHat,
   Crown,
   TopHat,
+  PirateHat,
   HeartGlasses,
   StarGlasses,
   CatEye,
@@ -96,6 +97,7 @@ export const PART_REGISTRY: Record<AvatarSlot, Record<string, PartComponent>> = 
     "headgear.party": PartyHat,
     "headgear.crown": Crown,
     "headgear.tophat": TopHat,
+    "headgear.pirate": PirateHat,
   },
   eyewear: {
     "eyewear.round": RoundGlasses,
@@ -236,6 +238,7 @@ export const PART_LABELS: Record<string, string> = {
   "headgear.party": "Party hat",
   "headgear.crown": "Crown",
   "headgear.tophat": "Top hat",
+  "headgear.pirate": "Pirate hat",
   "eyewear.round": "Round",
   "eyewear.square": "Square",
   "eyewear.wayfarer": "Wayfarers",

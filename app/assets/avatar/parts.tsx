@@ -45,6 +45,16 @@ const Inked: React.FC<{ d: string; fill: string }> = ({ d, fill }) => (
 const Dome = Inked;
 const Sheen = Inked;
 
+/** A rounded gold ball for a crown point tip — filled gold, a fine warm edge,
+ *  and one soft highlight so the tip reads as a jewel bead, not a flat disc. */
+const CrownBall: React.FC<{ x: number; y: number; r: number }> = ({ x, y, r }) => (
+  <>
+    <Circle cx={x} cy={y} r={r} fill={GOLD} />
+    <Circle cx={x} cy={y} r={r} fill="none" stroke="#C88A1A" strokeWidth={0.5} />
+    <Circle cx={x - r * 0.35} cy={y - r * 0.35} r={r * 0.32} fill="#FFFFFF" opacity={0.55} />
+  </>
+);
+
 /** A clean 5-point star (sheriff / cowboy badge) — outer radius s, classic
  *  0.382 inner ratio, thin ink edge so gold reads crisp on a brown hat. */
 const Star5: React.FC<{ x: number; y: number; s: number; fill: string }> = ({ x, y, s, fill }) => (
@@ -794,50 +804,56 @@ export const FlagProp: React.FC<PartProps> = () => (
 
 // ── NEW headgear (compact, tile-fitting) ─────────────────────────────────────
 
-/** A party hat — a FULL-HEAD dome (same coverage silhouette as the other hats,
- *  so no head/hair peeks out) styled festive: gold zig-stripes, a hatline band,
- *  and a pom at the crown. Free (celebration dressing). */
+/** A party hat — a crisp pointed cone whose lower sides FLARE outward to hug the
+ *  head corners (full coverage, so no head/hair peeks out beside it), wrapped in
+ *  even gold stripes with a white pom at the tip. Free (celebration dressing). */
 export const PartyHat: React.FC<PartProps> = () => (
   <>
-    <Dome d="M6 14 C5 5.5 9 2.2 24.675 2.2 C40.35 2.2 44.35 5.5 43.35 14 C36.5 12 29 12.8 24.675 12.8 C20.35 12.8 12.85 12 6 14 Z" fill="#8B6CFF" />
-    {/* zig stripes down the dome */}
+    <Dome
+      d="M5 16 C3.6 10 6.5 4.5 24.675 0.9 C42.85 4.5 45.75 10 44.35 16 C34 14.1 15 14.1 5 16 Z"
+      fill="#8B6CFF"
+    />
+    {/* even diagonal wrap stripes */}
     <Path
-      d="M12.5 12 L17.5 3.6 M20.8 13 L25.4 2.8 M30 13 L34.6 3.6 M38 12 L41.8 5.6"
+      d="M8.8 13 L13.6 6.4 M15.2 13.6 L21 4.4 M22.4 13.8 L27.4 3.6 M30 13.6 L34 6.8 M36.6 12.8 L39.6 8"
       fill="none"
       stroke="#FFD23F"
-      strokeWidth={2}
+      strokeWidth={2.1}
       strokeLinecap="round"
     />
-    {/* hatline band */}
-    <Path d="M6.5 11.6 C15 10.2 34.35 10.2 42.85 11.6 L42.85 14.2 C34.35 12.8 15 12.8 6.5 14.2 Z" fill="#6A4FD0" />
-    {/* pom at the crown */}
-    <Circle cx={24.675} cy={2.4} r={2.1} fill="#FFFFFF" />
-    <Circle cx={24.675} cy={2.4} r={2.1} fill="none" stroke={INK} strokeWidth={0.9} />
+    {/* pom at the tip */}
+    <Circle cx={CX} cy={0.9} r={2.2} fill="#FFFFFF" />
+    <Circle cx={CX} cy={0.9} r={2.2} fill="none" stroke={INK} strokeWidth={0.9} />
   </>
 );
 
-/** A gold crown — a solid dome that FULLY covers the head, with five points
- *  rising from it and a jewelled band (points sit on the dome, so no head shows
- *  between them). */
+/** A gold crown — a solid gold body that FULLY covers the head, five points
+ *  rising into rounded ball tips, over a darker-gold inner rim that fills the
+ *  valleys (so no head shows between the points). A jewelled band carries a
+ *  centre diamond and two side gems. */
 export const Crown: React.FC<PartProps> = () => (
   <>
-    <Dome d="M6.5 15 C5.6 7 9.5 4 24.675 4 C39.85 4 43.75 7 42.85 15 C36 13 29 13.6 24.675 13.6 C20.35 13.6 13 13 6.5 15 Z" fill={GOLD} />
-    {/* five points on top of the dome (their filled base overlaps the dome) */}
-    <Path
-      d="M6.6 8 L9 3.6 L13.2 6.4 L18.4 2.2 L24.675 5.6 L30.95 2.2 L36.15 6.4 L40.35 3.6 L42.75 8 C36 6.6 29 6.3 24.675 6.3 C20.35 6.3 13 6.6 6.6 8 Z"
+    {/* darker inner rim behind the points — covers the head in the valleys */}
+    <Path d="M6 15.5 C5.4 8 9.6 5 24.675 5 C39.75 5 43.95 8 43.35 15.5 C36 13.5 29 14 24.675 14 C20.35 14 13 13.5 6 15.5 Z" fill="#E0A93A" />
+    {/* bright pointed body */}
+    <Dome
+      d="M5.8 16 C5.2 12 5.2 9 6 7.2 L8 4.6 C9.5 8 10.8 9.6 12.2 9.7 C13.6 9.6 15 6 16.3 3.4 C18 6.4 19.4 9.7 20.75 9.8 C22.1 9.7 23.4 3.8 24.675 1.6 C25.95 3.8 27.25 9.7 28.6 9.8 C29.95 9.7 31.4 6.4 33.05 3.4 C34.35 6 35.55 9.6 37.15 9.7 C38.55 9.6 39.7 7.6 41.35 4.6 L43.35 7.2 C44.15 9 44.15 12 43.55 16 C34.5 14 15 14 5.8 16 Z"
       fill={GOLD}
     />
-    <Path
-      d="M6.6 8 L9 3.6 L13.2 6.4 L18.4 2.2 L24.675 5.6 L30.95 2.2 L36.15 6.4 L40.35 3.6 L42.75 8"
-      fill="none"
-      stroke="#E0A93A"
-      strokeWidth={0.6}
-      strokeLinejoin="round"
-    />
-    <Path d="M7 11.4 C15 10.1 34.35 10.1 42.35 11.4 L42.35 14 C34.35 12.7 15 12.7 7 14 Z" fill="#E0A93A" />
-    <Circle cx={24.675} cy={12.6} r={1.5} fill="#E8556B" />
-    <Circle cx={14.3} cy={12.8} r={1.1} fill="#4C8BF0" />
-    <Circle cx={35.05} cy={12.8} r={1.1} fill="#4C8BF0" />
+    {/* band ridges */}
+    <Path d="M6.5 12 C15 10.7 34.35 10.7 42.85 12 M6.6 14.2 C15 12.9 34.35 12.9 42.75 14.2" fill="none" stroke="#D9982E" strokeWidth={0.9} strokeLinecap="round" />
+    {/* ball tips */}
+    <CrownBall x={8} y={4.2} r={2} />
+    <CrownBall x={16.3} y={3} r={2.1} />
+    <CrownBall x={CX} y={1.2} r={2.3} />
+    <CrownBall x={33.05} y={3} r={2.1} />
+    <CrownBall x={41.35} y={4.2} r={2} />
+    {/* centre diamond + side gems */}
+    <Path d="M24.675 9.4 L27 12.4 L24.675 15.4 L22.35 12.4 Z" fill="#E23B4E" />
+    <Path d="M24.675 9.4 L27 12.4 L24.675 15.4 L22.35 12.4 Z" fill="none" stroke="#9E2233" strokeWidth={0.5} strokeLinejoin="round" />
+    <Circle cx={23.9} cy={11.4} r={0.7} fill="#FF8A97" opacity={0.7} />
+    <Ellipse cx={13.4} cy={12.9} rx={1.5} ry={2} fill="#E23B4E" />
+    <Ellipse cx={35.95} cy={12.9} rx={1.5} ry={2} fill="#E23B4E" />
   </>
 );
 
@@ -850,6 +866,39 @@ export const TopHat: React.FC<PartProps> = () => (
     {/* wide stiff brim */}
     <Dome d="M3 14 C2.3 11.2 5.6 11.4 8.2 12.1 C15.5 13.5 24.675 13.7 24.675 13.7 C24.675 13.7 33.85 13.5 41.15 12.1 C43.75 11.4 47.05 11.2 46.35 14 C41.6 17 24.675 17.3 24.675 17.3 C7.75 17 3 14 3 14 Z" fill="#2B2733" />
     <Path d="M12 4.6 C16 3.1 24.675 2.9 24.675 2.9" fill="none" stroke="#FFF" strokeWidth={0.9} strokeLinecap="round" opacity={0.14} />
+  </>
+);
+
+/** A pirate's bicorne — a black crown covering the head under a wide brim swept
+ *  up into two corners, a gold edge trim, and a bone-white skull & crossbones on
+ *  the front. */
+export const PirateHat: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M6 14 C5 5.8 9 2.6 24.675 2.6 C40.35 2.6 44.35 5.8 43.35 14 C36 12 29 12.6 24.675 12.6 C20.35 12.6 13 12 6 14 Z" fill="#26222B" />
+    {/* wide brim swept up into two corners */}
+    <Dome d="M1.8 15.5 C0.6 6.5 2.2 1.8 5.6 2.2 C7.6 4.4 8 8.2 9.2 10.4 C13.4 11.6 18.6 12 24.675 12 C30.75 12 35.95 11.6 40.15 10.4 C41.35 8.2 41.75 4.4 43.75 2.2 C47.15 1.8 48.75 6.5 47.55 15.5 C34 17.9 15 17.9 1.8 15.5 Z" fill="#26222B" />
+    {/* gold edge trim */}
+    <Path d="M3.2 13.6 C2.2 6.8 3.6 3.6 5.9 3.9 C7.7 5.9 8.2 9 9.5 11 C13.7 12.3 18.8 12.7 24.675 12.7 C30.55 12.7 35.65 12.3 39.85 11 C41.15 9 41.65 5.9 43.45 3.9 C45.75 3.6 47.15 6.8 46.15 13.6" fill="none" stroke={GOLD} strokeWidth={0.9} strokeLinecap="round" />
+    {/* crossed bones */}
+    <G stroke="#EDE6D8" strokeWidth={1.6} strokeLinecap="round">
+      <Path d="M20 10.4 L29.35 6.3 M29.35 10.4 L20 6.3" />
+    </G>
+    <G fill="#EDE6D8">
+      <Circle cx={19.6} cy={10.7} r={1.05} />
+      <Circle cx={20.2} cy={9.9} r={1.05} />
+      <Circle cx={29.75} cy={6} r={1.05} />
+      <Circle cx={29.15} cy={6.8} r={1.05} />
+      <Circle cx={29.75} cy={10.7} r={1.05} />
+      <Circle cx={29.15} cy={9.9} r={1.05} />
+      <Circle cx={19.6} cy={6} r={1.05} />
+      <Circle cx={20.2} cy={6.8} r={1.05} />
+    </G>
+    {/* skull */}
+    <Circle cx={CX} cy={8.2} r={3} fill="#EDE6D8" />
+    <Path d="M22.4 10.4 h4.55 v1.25 q0 1.15 -2.275 1.15 q-2.275 0 -2.275 -1.15 Z" fill="#EDE6D8" />
+    <Circle cx={23.25} cy={7.9} r={0.9} fill={INK} />
+    <Circle cx={26.1} cy={7.9} r={0.9} fill={INK} />
+    <Path d="M24.675 9.1 l-0.75 1.2 h1.5 Z" fill={INK} />
   </>
 );
 

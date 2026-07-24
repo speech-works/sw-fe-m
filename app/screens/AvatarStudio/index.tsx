@@ -261,6 +261,7 @@ const AvatarStudio = () => {
                 "headgear.party",
                 "headgear.crown",
                 "headgear.tophat",
+                "headgear.pirate",
               ]}
               draft={draft}
               stage={stage}
