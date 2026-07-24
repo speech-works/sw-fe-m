@@ -150,13 +150,50 @@ export interface Pack {
   completionCount?: number;
 }
 
+/**
+ * A program the user does not own yet, described well enough to show it
+ * honestly on Home. Prices are the SAME authoritative numbers the shop
+ * charges — resolved server-side, never computed in the app.
+ */
+export interface RecommendationTopPick {
+  catalogKey: string;
+  packId: string | null;
+  title: string;
+  blurb: string | null;
+  arcDays: number | null;
+  /** Why this was matched. Absent when the server had no signal to justify one. */
+  matchReason?: string;
+  priceInr: number;
+  anchorPriceInr: number;
+}
+
+/**
+ * Why there is nothing to practise right now. The recommender only ranks packs
+ * the user OWNS, so "no pack" stopped meaning "you're caught up" the moment
+ * every pack became paid — it now usually means "you own nothing yet". The
+ * server says WHICH so the app never has to guess, and never tells someone who
+ * has done nothing that their work is done.
+ */
+export type RecommendationEmptyState =
+  /** No onboarding signal at all — we cannot honestly match anyone. */
+  | "NEEDS_ONBOARDING"
+  /** Owns no programs yet; `topPick` carries a real, signal-backed suggestion. */
+  | "NO_PACKS_OWNED"
+  /** Owns programs and has finished them all. */
+  | "ALL_COMPLETE";
+
 export interface PackRecommendation {
-  pack: Pack;
-  reason: string;
-  tags: string[];
-  strategy: "STABILIZE" | "CHALLENGE" | "MAINTAIN";
-  matchScore: number;
-  isRefresher: boolean;
+  /** Null when there is nothing to practise — read `state` to find out why. */
+  pack: Pack | null;
+  reason?: string;
+  tags?: string[];
+  strategy?: "STABILIZE" | "CHALLENGE" | "MAINTAIN";
+  matchScore?: number;
+  isRefresher?: boolean;
+  /** Present only when `pack` is null. */
+  state?: RecommendationEmptyState;
+  /** Present only when `pack` is null and we have something honest to suggest. */
+  topPick?: RecommendationTopPick | null;
 }
 
 export enum PackStatus {

@@ -4,6 +4,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getPackBrochure, getPackProgress, getRecommendedPack } from "../../api/packs";
 import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import PressableScale from "../PressableScale";
+import PriceTag from "../PriceTag";
 import ErrorStateCard from "./ErrorStateCard";
 import {
   Sheet,
@@ -142,40 +143,104 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
     return null;
   }
 
-  // Empty State: No pack recommended (e.g. "Check back later") — meadow hero.
+  // ── NOTHING TO PRACTISE — but WHY decides what we say ──────────────────
+  //
+  // This card used to render one green "Today's work is done" panel for every
+  // no-pack case. Once every pack became paid, the recommender (which ranks
+  // only OWNED packs) returned nothing for every free user — so the app told
+  // people who had done nothing that their work was done, over a CTA wearing
+  // the Explore TAB's icon. The server now says which situation this is.
   if (!recommendation.pack) {
-    const ink = colors.accentOn.success;
+    // A. No onboarding signal — we cannot honestly match anyone, and Home
+    // already shows OnboardingReminderCard. A second CTA here would compete
+    // with it, and a "matched to you" claim would be invented. Say nothing.
+    if (recommendation.state === "NEEDS_ONBOARDING") return null;
+
+    const pick = recommendation.topPick;
+
+    // B. Owns everything they bought and finished it — genuinely caught up.
+    // This is the ONLY case where "today's work is done" is true.
+    if (recommendation.state === "ALL_COMPLETE" && !pick) {
+      const ink = colors.accentOn.success;
+      return (
+        <View
+          style={[styles.container, { shadowColor: colors.shadow }, style]}
+        >
+          <View
+            style={[
+              styles.gradient,
+              styles.gradientCentered,
+              { backgroundColor: colors.accent.success },
+            ]}
+          >
+            <View style={styles.watermarkMain} pointerEvents="none">
+              <Icon name={icons.success} size={140} color={withAlpha(ink, 0.1)} />
+            </View>
+            <View style={styles.caughtUpContent}>
+              <Text variant="h2" color={ink} center>
+                Today&apos;s work is done
+              </Text>
+              <Text variant="body" color={ink} center style={styles.caughtUpBody}>
+                You&apos;ve been through everything you own. Come back tomorrow.
+              </Text>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // C. There is a real, signal-backed program to suggest — show it properly
+    // instead of a dead end. Never reached without `matchReason`, because the
+    // server only sends a topPick it can justify.
+    if (!pick) return null;
+    const ink = colors.action.onPrimary;
     return (
-      // "Explore the library while you wait" was a dead end: this card only
-      // appears once there is no pack with work left, so the library is the
-      // thing they have just exhausted — and once every pack is paid, a brand
-      // new user lands here too. Point at what actually comes next instead.
       <PressableScale
         scaleTo={0.98}
         style={[styles.container, { shadowColor: colors.shadow }, style]}
         onPress={() =>
-          exploreNavigation.navigate("ExploreStack", { screen: "Programs" })
+          exploreNavigation.navigate("ExploreStack", {
+            screen: "ProgramDetail",
+            params: { catalogKey: pick.catalogKey, packId: pick.packId },
+          })
         }
       >
-        <View style={[styles.gradient, styles.gradientCentered, { backgroundColor: colors.accent.success }]}>
+        <View style={[styles.gradient, { backgroundColor: colors.action.primary }]}>
           <View style={styles.watermarkMain} pointerEvents="none">
-            <Icon name={icons.success} size={140} color={withAlpha(ink, 0.1)} />
+            <Icon name={icons.roadmap} size={200} color={withAlpha(ink, 0.1)} />
           </View>
 
-          <View style={styles.caughtUpContent}>
-            <Text variant="h2" color={ink} center>
-              Today&apos;s work is done
+          <View style={styles.pickContent}>
+            <Text variant="label" color={ink}>
+              {recommendation.state === "ALL_COMPLETE"
+                ? "WHAT PAIRS WELL NEXT"
+                : "MATCHED TO YOU"}
             </Text>
-            <Text variant="body" color={ink} center style={styles.caughtUpBody}>
-              {recommendation.reason ||
-                "You've finished what was waiting for you. Here's what you could take on next."}
+            <Text variant="h2" color={ink}>
+              {pick.title}
             </Text>
-
-            <View style={[styles.cta, { borderColor: ink }]}>
-              <Icon name={icons.explore} size={14} color={ink} />
-              <Text variant="title" color={ink}>
-                See what&apos;s next
+            {pick.matchReason ? (
+              <Text variant="body" color={ink}>
+                {pick.matchReason}
               </Text>
+            ) : pick.blurb ? (
+              <Text variant="body" color={ink} numberOfLines={2}>
+                {pick.blurb}
+              </Text>
+            ) : null}
+
+            <View style={styles.pickFooter}>
+              <PriceTag
+                priceInr={pick.priceInr}
+                anchorInr={pick.anchorPriceInr}
+                compact
+              />
+              <View style={styles.pickCta}>
+                <Text variant="title" color={ink}>
+                  See the program
+                </Text>
+                <Icon name={icons.chevronRight} size={18} color={ink} />
+              </View>
             </View>
           </View>
         </View>
@@ -456,6 +521,22 @@ const useStyles = makeStyles((c) => ({
   },
   caughtUpBody: {
     paddingHorizontal: spacing["3xl"],
+  },
+  // Matched-program showcase (the no-packs-owned / what's-next state).
+  pickContent: {
+    gap: space.inlineGap,
+    zIndex: 1,
+  },
+  pickFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: spacing.md,
+  },
+  pickCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
   },
   cta: {
     flexDirection: "row",
