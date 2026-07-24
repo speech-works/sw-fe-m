@@ -5,7 +5,7 @@ import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { getOffers, type OfferItem } from "../../api";
-import OnboardingCelebration from "./OnboardingCelebration";
+import OnboardingCelebration, { CelebrationConfetti } from "./OnboardingCelebration";
 import {
   Button,
   Icon,
@@ -136,6 +136,11 @@ const OnboardingDone: React.FC = () => {
       <View style={styles.footer}>
         <Button label="Continue" onPress={handleFinish} />
       </View>
+
+      {/* Full-screen confetti, in front of everything (pointerEvents none, so the
+          Continue button stays tappable). Falls from above the top edge to past
+          the bottom on any device. */}
+      <CelebrationConfetti />
     </ScreenView>
   );
 };

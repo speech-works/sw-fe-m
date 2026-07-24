@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -53,16 +53,17 @@ const BURST_PERIOD = 22000; // one slow god-ray revolution
 
 /**
  * The celebration hero is the app's OWN avatar — the circular tile + squircle
- * head everyone recognises — dressed for the party in a joyful face, the party
- * hat and heart fun-glasses. All three are FREE wardrobe parts (not in
- * EARN_STAGE), so nothing here shows off gear a brand-new user hasn't unlocked.
+ * head everyone recognises — dressed as an eager BEGINNER setting out: a joyful
+ * face, the stage-0 tourist bucket hat, and heart fun-glasses. The tourist hat
+ * is the beginner's own kit (STAGE_KITS[0], unlocked at level 1) and the glasses
+ * are free wardrobe, so nothing here shows off gear a brand-new user hasn't got.
  */
 const HERO_MANIFEST: AvatarManifest = {
   ...DEFAULT_MANIFEST,
   parts: {
     ...DEFAULT_MANIFEST.parts,
     face: "face.joy",
-    headgear: "headgear.party",
+    headgear: "headgear.tourist",
     eyewear: "eyewear.heart",
   },
 };
@@ -268,29 +269,44 @@ const Hero: React.FC<{ reduced: boolean }> = ({ reduced }) => {
   );
 };
 
-/** One confetti chip — one-shot fall + drift + spin, then fade. */
-const ConfettiPiece: React.FC<{ index: number; color: string }> = ({
-  index,
-  color,
-}) => {
+// Full-screen confetti — chips travel the WHOLE display, entering above the top
+// edge and falling clear past the bottom. Distances are window-relative, so the
+// end point is always beyond the bottom of whatever device it runs on.
+const CONFETTI_COUNT = 30;
+
+/** One confetti chip — a one-shot fall from above the screen to past its bottom,
+ *  with sideways drift and spin. */
+const ConfettiPiece: React.FC<{
+  index: number;
+  color: string;
+  screenW: number;
+  screenH: number;
+}> = ({ index, color, screenW, screenH }) => {
   const t = useSharedValue(0);
-  const startX = -140 + (index * 41) % 280;
-  const dx = ((index % 5) - 2) * 26;
-  const spin = index % 2 === 0 ? 300 : -260;
+  // Spread evenly across the full width, with a little deterministic jitter.
+  const startX = (index / CONFETTI_COUNT) * (screenW - 16) + (((index * 53) % 60) - 30);
+  const dx = ((index % 5) - 2) * 30; // gentle sideways drift as it falls
+  const spin = index % 2 === 0 ? 420 : -360;
   const size = 7 + (index % 3) * 3;
+  const startY = -40 - (index % 5) * 24; // staggered just above the top edge
+  const endY = screenH + 100; // clears the bottom on THIS device
 
   useEffect(() => {
     t.value = withDelay(
-      (index % 6) * 55,
-      withTiming(1, { duration: 1100 + (index % 4) * 160, easing: easing.out }),
+      (index % 8) * 90,
+      withTiming(1, {
+        duration: 2400 + (index % 5) * 260,
+        easing: easing.linear,
+      }),
     );
+    return () => cancelAnimation(t);
   }, [index, t]);
 
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 0.15, 0.8, 1], [0, 1, 1, 0]),
+    opacity: interpolate(t.value, [0, 0.05, 0.95, 1], [0, 1, 1, 0]),
     transform: [
-      { translateX: startX + dx * t.value },
-      { translateY: -30 + t.value * 240 },
+      { translateX: dx * t.value },
+      { translateY: interpolate(t.value, [0, 1], [startY, endY]) },
       { rotate: `${spin * t.value}deg` },
     ],
   }));
@@ -299,20 +315,44 @@ const ConfettiPiece: React.FC<{ index: number; color: string }> = ({
     <Animated.View
       style={[
         styles.confetti,
-        { width: size, height: size * 1.6, backgroundColor: color },
+        { left: startX, width: size, height: size * 1.6, backgroundColor: color },
         style,
       ]}
     />
   );
 };
 
-const Confetti: React.FC<{ palette: string[] }> = ({ palette }) => (
-  <View style={styles.confettiLayer} pointerEvents="none">
-    {Array.from({ length: 18 }).map((_, i) => (
-      <ConfettiPiece key={i} index={i} color={palette[i % palette.length]} />
-    ))}
-  </View>
-);
+/**
+ * Full-screen confetti rain. Mounted at the SCREEN root (not inside the centred
+ * stage), so it spans the whole display: chips enter above the top edge and fall
+ * clear past the bottom on any device height. Reduced motion → nothing at all.
+ */
+export const CelebrationConfetti: React.FC = () => {
+  const { colors } = useTheme();
+  const reduced = useReducedMotion();
+  const { width, height } = useWindowDimensions();
+  if (reduced) return null;
+  const palette = [
+    colors.accent.info,
+    colors.accent.warning,
+    colors.accent.danger,
+    colors.accent.purple,
+    colors.action.primary,
+  ];
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
+        <ConfettiPiece
+          key={i}
+          index={i}
+          color={palette[i % palette.length]}
+          screenW={width}
+          screenH={height}
+        />
+      ))}
+    </View>
+  );
+};
 
 /** "Let's go!" speech bubble — lands with a bounce, then a tiny idle wiggle. */
 const CheerBubble: React.FC<{ reduced: boolean }> = ({ reduced }) => {
@@ -367,12 +407,6 @@ const OnboardingCelebration: React.FC = () => {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const gold = colors.action.primary;
-  const palette = [
-    colors.accent.info,
-    colors.accent.warning,
-    colors.accent.danger,
-    colors.accent.purple,
-  ];
 
   // Sparkles at fixed offsets from the stage centre (x≈150, y≈110).
   const sparkles = [
@@ -391,7 +425,6 @@ const OnboardingCelebration: React.FC = () => {
       {sparkles.map((s, i) => (
         <Sparkle key={i} index={i} reduced={reduced} {...s} />
       ))}
-      {!reduced ? <Confetti palette={palette} /> : null}
 
       <CheerBubble reduced={reduced} />
       <Hero reduced={reduced} />
@@ -426,16 +459,9 @@ const styles = StyleSheet.create({
   sparkle: {
     position: "absolute",
   },
-  confettiLayer: {
-    position: "absolute",
-    top: 24,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    height: 1,
-  },
   confetti: {
     position: "absolute",
+    top: 0,
     borderRadius: 2,
   },
   bubble: {
