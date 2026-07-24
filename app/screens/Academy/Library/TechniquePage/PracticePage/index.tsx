@@ -9,7 +9,6 @@ import {
   TechniquePracticeItem,
   TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
-import { speakText } from "../../../../../util/functions/speak";
 import PressableScale from "../../../../../components/PressableScale";
 
 // Components
@@ -387,11 +386,6 @@ const PracticePage = ({
           </PressableScale>
         </View>
       ),
-    },
-    {
-      icon: icons.volume,
-      onPress: () => speakText(currentItem?.text),
-      accessibilityLabel: "Hear this item",
     },
   ];
 

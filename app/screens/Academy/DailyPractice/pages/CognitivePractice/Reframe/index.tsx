@@ -24,6 +24,7 @@ import {
   Text,
   Icon,
   icons,
+  Page,
   PageHeader,
   Gradient,
   FloatingControls,
@@ -57,6 +58,7 @@ import { EVENT_NAMES } from "../../../../../../stores/events/constants";
 import { dispatchCustomEvent } from "../../../../../../util/functions/events";
 import SyncLoader from "../../../../../../components/SyncLoader";
 import ReframeWeather from "./components/ReframeWeather";
+import ReframeCard from "./components/ReframeCard";
 
 /**
  * Opens a cited source in the in-app browser.
@@ -310,6 +312,40 @@ const Reframe = () => {
 
   const currentScenario = scenarios[selectedScenarioIndex];
   const started = !!currentActivityId;
+  const selectedSeries = allSeries.find((x) => x.id === cognitivePracticeId);
+
+  const handleStart = async () => {
+    if (!cognitivePracticeId) {
+      console.warn("Missing cognitivePracticeId in Reframe start");
+      return;
+    }
+    try {
+      await markActivityStart();
+    } catch (error: any) {
+      console.error("Error starting reframe practice:", error);
+      // Branch on errorCode ONLY. A bare `status === 402` used to
+      // live here and it could never be right: the backend maps
+      // InsufficientStaminaError to 400, and 402 exclusively to
+      // the PURCHASE errors (PACK_NOT_OWNED / NO_CREDITS). So the
+      // 402 arm only ever fired on the wrong errors — a user with
+      // full energy, blocked by an unowned pack, was told they'd
+      // run out of energy.
+      const errorCode = error?.response?.data?.errorCode;
+      if (errorCode === "INSUFFICIENT_STAMINA") {
+        dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
+      } else if (errorCode === "PACK_NOT_OWNED") {
+        showErrorBottomSheet(
+          "Part of a program",
+          "This exercise belongs to a program you haven't joined yet. Open it from the program to get started.",
+        );
+      } else {
+        showErrorBottomSheet(
+          "Failed to start",
+          "An error occurred while starting the session.",
+        );
+      }
+    }
+  };
   // The evidence card belongs to the CHOSEN reframe — selection is the
   // teaching moment ("why does the one I picked work?"), so nothing shows
   // until a pick is made. Written-own reframes carry no evidence by design.
@@ -317,6 +353,116 @@ const Reframe = () => {
     ? currentScenario?.reframedThoughts.find((o) => o.text === selectedReframe)
     : undefined;
   const evidence = selectedOption?.evidence;
+
+  // Series library — mirrors the Breathing technique sheet. Selecting repoints
+  // cognitivePracticeId, so the activity is filed under the series the user
+  // actually worked on. Non-owners never receive the paid series here; the
+  // backend filters it out of the listing entirely. Shared by the start screen
+  // and the exercise, so switching series is the same interaction wherever you are.
+  const librarySheet = (
+        <Sheet visible={showLibrary} onClose={() => setShowLibrary(false)}>
+          <View style={styles.libraryHeader}>
+            <Text variant="h2" color="primary">
+              Reframe Series
+            </Text>
+            <Text variant="body" color="secondary" style={styles.librarySubtitle}>
+              Different thoughts get in the way at different times. Pick the one
+              that sounds like this week.
+            </Text>
+          </View>
+
+          <View style={styles.libraryList}>
+            {allSeries.map((serie) => {
+              const isSelected = serie.id === cognitivePracticeId;
+              const count = serie.reframingThoughtsData?.scenarios?.length ?? 0;
+              return (
+                <PressableScale
+                  key={serie.id}
+                  onPress={() => {
+                    setCognitivePracticeId(serie.id);
+                    setScenarios(serie.reframingThoughtsData?.scenarios || []);
+                    // Reset position AND any in-progress answer: the old index
+                    // points into a different series' scenario list.
+                    setSelectedScenarioIndex(0);
+                    setSelectedReframe(null);
+                    setWrittenReframe("");
+                    setShowContrast(false);
+                    setShowLibrary(false);
+                  }}
+                >
+                  <Surface
+                    level={isSelected ? "elevated" : "control"}
+                    rounded="card"
+                    bordered={!isSelected}
+                    style={[
+                      styles.libraryCard,
+                      isSelected && {
+                        borderWidth: borderWidth.hairline,
+                        borderColor: accentColor,
+                      },
+                    ]}
+                  >
+                    <View style={styles.libraryCardText}>
+                      <View style={styles.libraryCardHeader}>
+                        <Text variant="h3" color="primary">
+                          {serie.name}
+                        </Text>
+                        {count ? (
+                          <Text variant="caption" color="tertiary">
+                            {count} thoughts
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text variant="bodySm" color="secondary">
+                        {serie.description}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Icon name={icons.success} size={20} color={accentColor} />
+                    )}
+                  </Surface>
+                </PressableScale>
+              );
+            })}
+          </View>
+        </Sheet>
+  );
+
+  // Start screen — same shape as Breathing / Meditation: large title, the subject
+  // as a real card, CTA pinned at the bottom. No weather here: `Page`'s background
+  // slot draws ABOVE the body (it's the Focus-lamp dimmer), so the scene would sit
+  // on top of the text. The rain greets you the moment the exercise starts instead.
+  if (!started) {
+    return (
+      <>
+        <Page
+          title="Reframe Thoughts"
+          description="Learn to identify negative thoughts and replace them with empowering ones."
+          onBack={onBackPress}
+          footer={
+            <Button
+              label="Start Exercise"
+              onPress={handleStart}
+              accentColor={accentColor}
+              onAccentColor={onAccentColor}
+            />
+          }
+        >
+          <ReframeCard
+            name={selectedSeries?.name}
+            description={selectedSeries?.description}
+            count={selectedSeries?.reframingThoughtsData?.scenarios?.length}
+            accentTextColor={colors.feedback.infoText}
+            onPress={
+              allSeries.length > 1 ? () => setShowLibrary(true) : undefined
+            }
+          />
+        </Page>
+        {librarySheet}
+        {exitSheet}
+      </>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -590,175 +736,7 @@ const Reframe = () => {
         />
       ) : null}
 
-      {/* Start gate — dark scrim + card until the exercise begins. */}
-      {!started && (
-        <View
-          style={[
-            styles.startOverlay,
-            {
-              paddingTop: insets.top + 100,
-              backgroundColor: colors.overlay.scrim,
-            },
-          ]}
-        >
-          <Surface
-            level="elevated"
-            rounded="card"
-            padded={spacing["4xl"]}
-            style={styles.startContent}
-          >
-            <Text variant="h2" color="primary" center>
-              Ready to Shift Perspective?
-            </Text>
-            <Text variant="body" color="secondary" center style={styles.startDesc}>
-              Learn to identify negative thoughts and replace them with
-              empowering ones.
-            </Text>
-
-            {/* Which series — and the way to change it. Reframing used to be a
-                single 61-scenario row, so there was nothing to pick; now the
-                user should see what they're about to work on rather than being
-                dropped into whichever series happened to sort first. */}
-            {allSeries.length > 1 ? (
-              <PressableScale
-                onPress={() => setShowLibrary(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Change reframe series"
-                style={styles.seriesRow}
-              >
-                <View style={styles.seriesText}>
-                  <Text variant="caption" color="tertiary">
-                    Working on
-                  </Text>
-                  <Text variant="body" color="primary" numberOfLines={1}>
-                    {allSeries.find((x) => x.id === cognitivePracticeId)?.name ??
-                      "Choose a series"}
-                  </Text>
-                </View>
-                <Text variant="caption" style={{ color: accentColor }}>
-                  Change
-                </Text>
-              </PressableScale>
-            ) : null}
-            <View style={styles.startButtons}>
-              <Button
-                label="Start Exercise"
-                onPress={async () => {
-                  if (!cognitivePracticeId) {
-                    console.warn("Missing cognitivePracticeId in Reframe start");
-                    return;
-                  }
-                  try {
-                    await markActivityStart();
-                  } catch (error: any) {
-                    console.error("Error starting reframe practice:", error);
-                    // Branch on errorCode ONLY. A bare `status === 402` used to
-                    // live here and it could never be right: the backend maps
-                    // InsufficientStaminaError to 400, and 402 exclusively to
-                    // the PURCHASE errors (PACK_NOT_OWNED / NO_CREDITS). So the
-                    // 402 arm only ever fired on the wrong errors — a user with
-                    // full energy, blocked by an unowned pack, was told they'd
-                    // run out of energy.
-                    const errorCode = error?.response?.data?.errorCode;
-                    if (errorCode === "INSUFFICIENT_STAMINA") {
-                      dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
-                    } else if (errorCode === "PACK_NOT_OWNED") {
-                      showErrorBottomSheet(
-                        "Part of a program",
-                        "This exercise belongs to a program you haven't joined yet. Open it from the program to get started.",
-                      );
-                    } else {
-                      showErrorBottomSheet(
-                        "Failed to start",
-                        "An error occurred while starting the session.",
-                      );
-                    }
-                  }
-                }}
-                accentColor={accentColor}
-                onAccentColor={onAccentColor}
-              />
-              <Button
-                label="Go back"
-                variant="ghost"
-                onColor={accentColor}
-                onPress={onBackPress}
-              />
-            </View>
-          </Surface>
-        </View>
-      )}
-
-      {/* Series library — mirrors the Breathing technique sheet. Selecting
-          repoints cognitivePracticeId, so the activity is filed under the
-          series the user actually worked on. Non-owners never receive the paid
-          series here; the backend filters it out of the listing entirely. */}
-      <Sheet visible={showLibrary} onClose={() => setShowLibrary(false)}>
-        <View style={styles.libraryHeader}>
-          <Text variant="h2" color="primary">
-            Reframe Series
-          </Text>
-          <Text variant="body" color="secondary" style={styles.librarySubtitle}>
-            Different thoughts get in the way at different times. Pick the one
-            that sounds like this week.
-          </Text>
-        </View>
-
-        <View style={styles.libraryList}>
-          {allSeries.map((serie) => {
-            const isSelected = serie.id === cognitivePracticeId;
-            const count = serie.reframingThoughtsData?.scenarios?.length ?? 0;
-            return (
-              <PressableScale
-                key={serie.id}
-                onPress={() => {
-                  setCognitivePracticeId(serie.id);
-                  setScenarios(serie.reframingThoughtsData?.scenarios || []);
-                  // Reset position AND any in-progress answer: the old index
-                  // points into a different series' scenario list.
-                  setSelectedScenarioIndex(0);
-                  setSelectedReframe(null);
-                  setWrittenReframe("");
-                  setShowContrast(false);
-                  setShowLibrary(false);
-                }}
-              >
-                <Surface
-                  level={isSelected ? "elevated" : "control"}
-                  rounded="card"
-                  bordered={!isSelected}
-                  style={[
-                    styles.libraryCard,
-                    isSelected && {
-                      borderWidth: borderWidth.hairline,
-                      borderColor: accentColor,
-                    },
-                  ]}
-                >
-                  <View style={styles.libraryCardText}>
-                    <View style={styles.libraryCardHeader}>
-                      <Text variant="h3" color="primary">
-                        {serie.name}
-                      </Text>
-                      {count ? (
-                        <Text variant="caption" color="tertiary">
-                          {count} thoughts
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text variant="bodySm" color="secondary">
-                      {serie.description}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <Icon name={icons.success} size={20} color={accentColor} />
-                  )}
-                </Surface>
-              </PressableScale>
-            );
-          })}
-        </View>
-      </Sheet>
+      {librarySheet}
 
       <VitalsFeedbackModal
         visible={showVitalsModal}
@@ -776,18 +754,6 @@ const Reframe = () => {
 export default Reframe;
 
 const styles = StyleSheet.create({
-  // --- series picker (start gate) ---
-  seriesRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    marginTop: spacing.lg,
-  },
-  seriesText: {
-    flexShrink: 1,
-    gap: 2,
-  },
   // --- series library sheet ---
   libraryHeader: {
     gap: spacing.xs,
@@ -949,25 +915,5 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: space.sectionGap,
-  },
-
-  // Start gate
-  startOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 20,
-    justifyContent: "flex-start",
-    alignItems: "center",
-  },
-  startContent: {
-    alignItems: "center",
-    gap: space.sectionGap,
-    width: "85%",
-  },
-  startDesc: {
-    lineHeight: 24,
-  },
-  startButtons: {
-    width: "100%",
-    gap: spacing.sm,
   },
 });
