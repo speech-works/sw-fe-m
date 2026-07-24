@@ -6,7 +6,7 @@ import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import { useUserStore } from "../../stores/user";
 import PressableScale from "../PressableScale";
 import PriceTag from "../PriceTag";
-import RecHeroCard from "./RecHeroCard";
+import RecHeroCard, { REC_HERO_ACCENT } from "./RecHeroCard";
 import ErrorStateCard from "./ErrorStateCard";
 import {
   Sheet,
@@ -244,6 +244,9 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             priceInr={pick.priceInr}
             anchorInr={pick.anchorPriceInr}
             compact
+            // Dark ink for the RecHeroCard's bright accent fill — single source
+            // so the price ink can't drift from the card's fill color.
+            ink={colors.accentOn[REC_HERO_ACCENT]}
           />
         }
         onPress={() =>

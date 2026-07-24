@@ -35,6 +35,7 @@ type SlotTab =
   | "beard"
   | "headgear"
   | "eyewear"
+  | "collar"
   | "prop"
   | "backdrop";
 
@@ -45,6 +46,7 @@ const SLOT_TABS: { key: SlotTab; label: string; icon: string }[] = [
   { key: "beard", label: "Beard", icon: icons.avatarBeard },
   { key: "headgear", label: "Headgear", icon: icons.avatarHeadgear },
   { key: "eyewear", label: "Eyewear", icon: icons.avatarEyewear },
+  { key: "collar", label: "Collar", icon: icons.avatarCollar },
   { key: "prop", label: "Prop", icon: icons.avatarProp },
   { key: "backdrop", label: "Backdrop", icon: icons.avatarBackdrop },
 ];
@@ -256,6 +258,9 @@ const AvatarStudio = () => {
                 "headgear.tourist",
                 "headgear.explorer",
                 "headgear.cowboy",
+                "headgear.party",
+                "headgear.crown",
+                "headgear.tophat",
               ]}
               draft={draft}
               stage={stage}
@@ -274,10 +279,24 @@ const AvatarStudio = () => {
                 "eyewear.roundshades",
                 "eyewear.lime",
                 "eyewear.aviator",
+                "eyewear.heart",
+                "eyewear.star",
+                "eyewear.cateye",
               ]}
               draft={draft}
               stage={stage}
               onSelect={(id) => setPart("eyewear", id)}
+              allowNone
+            />
+          )}
+
+          {tab === "collar" && (
+            <PartGrid
+              slot="collar"
+              ids={["collar.scarf", "collar.bowtie", "collar.cowl"]}
+              draft={draft}
+              stage={stage}
+              onSelect={(id) => setPart("collar", id)}
               allowNone
             />
           )}

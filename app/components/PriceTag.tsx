@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Text, spacing } from "../design-system";
+import { Text, spacing, withAlpha } from "../design-system";
 
 interface PriceTagProps {
   /** The price actually charged, in INR. */
@@ -16,6 +16,13 @@ interface PriceTagProps {
   center?: boolean;
   /** Compact form for list rows: smaller type to fit a card header. */
   compact?: boolean;
+  /**
+   * Dark-on-bright ink for when the tag sits ON a vivid accent fill (e.g. the
+   * RecHeroCard). When set, the price/strike/note render in this ink (the strike
+   * and note muted) instead of the canvas `primary`/`tertiary` text roles, which
+   * would be light and fail AA on a bright fill. Omit on normal dark surfaces.
+   */
+  ink?: string;
 }
 
 /**
@@ -29,26 +36,31 @@ export const PriceTag = ({
   note,
   center,
   compact,
+  ink,
 }: PriceTagProps) => {
   const discounted = anchorInr > priceInr;
+  // On a bright fill, everything is dark ink — the price at full strength, the
+  // strike/note muted. Off a fill, the canvas text roles carry that hierarchy.
+  const priceColor = ink ?? "primary";
+  const mutedColor = ink ? withAlpha(ink, 0.55) : "tertiary";
   return (
     <View style={center ? styles.wrapCenter : undefined}>
       <View style={[styles.row, center && styles.rowCenter]}>
         {discounted ? (
           <Text
             variant={compact ? "caption" : "bodySm"}
-            color="tertiary"
+            color={mutedColor}
             style={styles.strike}
           >
             ₹{anchorInr}
           </Text>
         ) : null}
-        <Text variant={compact ? "title" : "h2"} color="primary">
+        <Text variant={compact ? "title" : "h2"} color={priceColor}>
           ₹{priceInr}
         </Text>
       </View>
       {note ? (
-        <Text variant="caption" color="tertiary" center={center}>
+        <Text variant="caption" color={mutedColor} center={center}>
           {note}
         </Text>
       ) : null}

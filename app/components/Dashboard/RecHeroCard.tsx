@@ -1,44 +1,37 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
 import PressableScale from "../PressableScale";
 import {
-  Gradient,
   Text,
   Icon,
   icons,
   useTheme,
-  easing,
+  withAlpha,
   spacing,
   space,
   radius,
-  withAlpha,
 } from "../../design-system";
 
 /**
- * The rich hero shell for the Home recommendation card.
+ * The Home recommendation hero — a flat, solid vivid-accent banner in the same
+ * language as the Home `PromoCard` (profile / mood nudges): a single
+ * `colors.accent` fill, AA-correct `accentOn` dark ink, an eyebrow + `h2` title,
+ * subtle ink-circle texture, and a solid dark-island CTA. No gradient, no
+ * illustration — sleek and content-first, so the matched-program showcase reads
+ * as one family with the other Home cards rather than a different tier.
  *
- * One vibrant treatment shared by both orange CTA states — the matched-program
- * showcase and the neutral "browse programs" fallback — so the card always
- * reads as premium and the two never look like different tiers of the app. The
- * MATCH just fills the same shell with more inside it (a reason, a price).
+ * One vibrant treatment shared by both CTA states — the matched-program
+ * showcase and the neutral "browse programs" fallback. The MATCH just fills the
+ * same shell with more inside it (a reason, a price).
  *
- * Vividness comes from the design system, not one-off styling: a `brand`
- * gradient fill, a `sheen` gloss over the top, and a large brand glyph that
- * drifts on a slow ambient loop. Everything on the bright fill is dark ink
- * (`action.onPrimary`) per the dark-on-bright AA rule, and the float is gated
- * on reduced motion (static, opacity kept — never zeroed).
+ * The accent is `REC_HERO_ACCENT` (a cool blue — deliberately distinct from the
+ * warm brand orange and from the gold/purple sibling promos). Callers that place
+ * a node on the fill (the price) read the same `accentOn[REC_HERO_ACCENT]` ink
+ * from this one source, so the on-fill ink can never drift from the fill.
  */
 
-/** Ambient drift period (ms). Deliberately slow — this is atmosphere, not UI. */
-const FLOAT_PERIOD = 3200;
+/** The vivid DS accent this hero fills with. Its dark ink is `accentOn[REC_HERO_ACCENT]`. */
+export const REC_HERO_ACCENT = "info" as const;
 
 export interface RecHeroCardProps {
   /** ALL-CAPS eyebrow — "MATCHED TO YOU" / "PROGRAMS". */
@@ -62,77 +55,52 @@ const RecHeroCard: React.FC<RecHeroCardProps> = ({
   onPress,
   style,
 }) => {
-  const { colors } = useTheme();
-  const ink = colors.action.onPrimary;
-  const reduceMotion = useReducedMotion();
-  const drift = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    // Symmetric breathing drift, mirrored (withRepeat reverse) so it eases at
-    // both ends — the same ambient-loop recipe as PulseDot / the avatar float.
-    drift.value = withRepeat(
-      withTiming(1, { duration: FLOAT_PERIOD, easing: easing.loop }),
-      -1,
-      true,
-    );
-    return () => cancelAnimation(drift);
-  }, [reduceMotion, drift]);
-
-  const watermarkStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: -7 + drift.value * 14 },
-      { rotate: `${-15 + drift.value * 6}deg` },
-    ],
-  }));
+  const { colors, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const fill = colors.accent[REC_HERO_ACCENT];
+  const ink = colors.accentOn[REC_HERO_ACCENT];
+  // Primary action = a solid dark island on the bright fill (pure inverse surface
+  // in light mode). Mirrors PromoCard so the two CTAs are visually identical.
+  const islandBg = isDark ? colors.action.secondary : colors.surface.inverse;
+  const islandInk = isDark ? colors.action.onSecondary : colors.text.primary;
 
   return (
-    <PressableScale
-      scaleTo={0.98}
-      onPress={onPress}
-      style={[styles.container, { shadowColor: colors.shadow }, style]}
-    >
-      <Gradient token="brand" style={StyleSheet.absoluteFill} pointerEvents="none" />
-      {/* Glossy top highlight — reads as depth/elevation on the flat fill. */}
-      <Gradient
-        token="sheen"
-        style={styles.sheen}
-        pointerEvents="none"
-      />
+    <PressableScale scaleTo={0.98} onPress={onPress} style={[styles.card, style]}>
+      <View style={[styles.fill, { backgroundColor: fill }]}>
+        {/* Subtle ink-circle texture (the Explore/PromoCard pattern) — depth without art. */}
+        <View
+          style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}
+          pointerEvents="none"
+        />
+        <View
+          style={[styles.blobB, { backgroundColor: withAlpha(ink, 0.1) }]}
+          pointerEvents="none"
+        />
 
-      <Animated.View
-        style={[styles.watermark, watermarkStyle]}
-        pointerEvents="none"
-      >
-        <Icon name={icons.roadmap} size={190} color={withAlpha(ink, 0.12)} />
-      </Animated.View>
-
-      <View style={styles.content}>
-        <Text variant="label" color={ink}>
-          {eyebrow}
-        </Text>
-        <Text variant="h2" color={ink}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text variant="body" color={ink} style={styles.subtitle}>
-            {subtitle}
+        {/* Message */}
+        <View>
+          <Text variant="label" color={ink}>
+            {eyebrow}
           </Text>
-        ) : null}
+          <Text variant="h2" color={ink} style={styles.title}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text variant="body" color={ink}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
 
+        {/* Footer — price on the leading edge, dark-island CTA trailing (CTA sits
+            alone at the leading edge when there is no price). */}
         <View style={styles.footer}>
           {priceNode ? <View>{priceNode}</View> : null}
-          <View
-            style={[
-              styles.cta,
-              { borderColor: ink, backgroundColor: withAlpha(ink, 0.08) },
-              !priceNode && styles.ctaSolo,
-            ]}
-          >
-            <Text variant="title" color={ink}>
+          <View style={[styles.cta, { backgroundColor: islandBg }]}>
+            <Text variant="title" color={islandInk}>
               {ctaLabel}
             </Text>
-            <Icon name={icons.chevronRight} size={18} color={ink} />
+            <Icon name={icons.chevronRight} size={18} color={islandInk} />
           </View>
         </View>
       </View>
@@ -143,49 +111,48 @@ const RecHeroCard: React.FC<RecHeroCardProps> = ({
 export default RecHeroCard;
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
+    borderRadius: radius.card,
+  },
+  fill: {
     borderRadius: radius.card,
     overflow: "hidden",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
   },
-  sheen: {
+  blobA: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "55%",
+    top: -40,
+    right: -30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
   },
-  watermark: {
+  blobB: {
     position: "absolute",
-    top: -30,
-    right: -46,
+    bottom: -20,
+    right: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
-  content: {
-    padding: spacing.xl,
-    gap: space.inlineGap,
-  },
-  subtitle: {
+  title: {
     marginTop: space.titleSub,
+    marginBottom: space.titleSub,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: spacing.md,
+    marginTop: spacing.xl,
   },
   cta: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.inlineGap,
-    borderWidth: 1,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-  },
-  ctaSolo: {
-    alignSelf: "flex-start",
   },
 });

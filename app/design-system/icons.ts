@@ -120,6 +120,7 @@ export const icons = {
   avatarBeard: "beard", // facial hair — hand-authored glyph (Fluent ships none)
   avatarHeadgear: "hat", // headgear — hand-authored fedora (Fluent ships none)
   avatarEyewear: "glasses", // eyewear — real Fluent glasses-24-filled
+  avatarCollar: "award", // collar / neck apparel — a medal-and-ribbon reads as "worn at the neck"
   avatarProp: "backpack", // the gear the avatar carries (mic/book/camera/compass/lantern/flag)
   avatarBackdrop: "image", // backdrop color
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)

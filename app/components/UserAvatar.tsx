@@ -92,6 +92,15 @@ export const UserAvatar = React.memo<UserAvatarProps>(
       return Component ? <Component colors={m.colors} layer={layer} /> : null;
     };
 
+    /** Collars wrap the neck: the "back" band sits behind the head, the "front"
+     *  drape/knot lands over the chin. Same two-pass idiom as hair. */
+    const collar = (layer: "back" | "front") => {
+      const id = m.parts.collar;
+      if (!id) return null;
+      const Component = PART_REGISTRY.collar[id];
+      return Component ? <Component colors={m.colors} layer={layer} /> : null;
+    };
+
     return (
       <Animated.View
         style={floatStyle}
@@ -102,11 +111,13 @@ export const UserAvatar = React.memo<UserAvatarProps>(
           <AvatarDefs />
           <G mask="url(#av-circ)">
             <Path d={TILE} fill={m.colors.bg} />
+            {collar("back")}
             {hair("back")}
             {part("head")}
             {hair("front")}
             {part("beard")}
             {part("face")}
+            {collar("front")}
             {part("eyewear")}
             {part("headgear")}
           </G>

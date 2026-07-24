@@ -15,7 +15,6 @@ import Animated, {
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
 import { UserAvatar } from "../../components/UserAvatar";
 import { DEFAULT_MANIFEST, type AvatarManifest } from "../../types/avatar";
-import CelebrationGear from "../../assets/celebration/celebrationGear";
 import {
   Text,
   useTheme,
@@ -54,14 +53,18 @@ const BURST_PERIOD = 22000; // one slow god-ray revolution
 
 /**
  * The celebration hero is the app's OWN avatar — the circular tile + squircle
- * head everyone recognises — with just a joyful face. NO wardrobe headgear /
- * eyewear / prop: those are level-gated unlocks a brand-new user hasn't earned.
- * The party hat + heart glasses are bespoke celebration gear (CelebrationGear),
- * layered on top, so nothing here depends on the level system.
+ * head everyone recognises — dressed for the party in a joyful face, the party
+ * hat and heart fun-glasses. All three are FREE wardrobe parts (not in
+ * EARN_STAGE), so nothing here shows off gear a brand-new user hasn't unlocked.
  */
 const HERO_MANIFEST: AvatarManifest = {
   ...DEFAULT_MANIFEST,
-  parts: { ...DEFAULT_MANIFEST.parts, face: "face.joy" },
+  parts: {
+    ...DEFAULT_MANIFEST.parts,
+    face: "face.joy",
+    headgear: "headgear.party",
+    eyewear: "eyewear.heart",
+  },
 };
 
 // ── God-ray sunburst geometry (built once; Math is fine in app code) ────────
@@ -253,15 +256,13 @@ const Hero: React.FC<{ reduced: boolean }> = ({ reduced }) => {
 
   return (
     <Pressable onPress={onPoke} accessibilityRole="image">
-      <Animated.View style={[style, { width: HERO_SIZE, height: HERO_SIZE }]}>
+      <Animated.View style={style}>
         <UserAvatar
           manifest={HERO_MANIFEST}
           size={HERO_SIZE}
           animate={false}
           accessibilityLabel="Your celebration avatar"
         />
-        {/* Bespoke party gear, layered in the avatar's own coordinate space. */}
-        <CelebrationGear size={HERO_SIZE} />
       </Animated.View>
     </Pressable>
   );

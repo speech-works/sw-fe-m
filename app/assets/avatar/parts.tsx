@@ -791,3 +791,153 @@ export const FlagProp: React.FC<PartProps> = () => (
     <Star5 x={48.6} y={12.4} s={1.7} fill={GOLD} />
   </>
 );
+
+// ── NEW headgear (compact, tile-fitting) ─────────────────────────────────────
+
+/** A stubby party hat — a cone that fits inside the circular tile, with gold
+ *  zig-stripes, a brim band, and a pom. Free (celebration dressing). */
+export const PartyHat: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M15.5 15 L26 2 L34.5 14 Z" fill="#8B6CFF" />
+    <Path d="M20 11 L24.4 3.8" stroke="#FFD23F" strokeWidth={2.2} strokeLinecap="round" />
+    <Path d="M24 13 L28.2 5.4" stroke="#FFD23F" strokeWidth={2.2} strokeLinecap="round" />
+    <Path d="M15.5 15 Q25 17.6 34.5 14" stroke="#FFD23F" strokeWidth={2.6} fill="none" strokeLinecap="round" />
+    <Circle cx={26} cy={2} r={2.3} fill="#FFFFFF" />
+    <Circle cx={26} cy={2} r={2.3} fill="none" stroke={INK} strokeWidth={0.9} />
+  </>
+);
+
+/** A gold five-point crown — a jewelled band with triangular spikes. */
+export const Crown: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M6.5 16 L7.6 5.5 L13.8 11 L18.9 3.5 L24.675 10 L30.45 3.5 L35.55 11 L41.75 5.5 L42.85 16 Q24.675 12.8 6.5 16 Z"
+      fill={GOLD}
+    />
+    <Sheen d="M6.5 15.4 Q24.675 12.2 42.85 15.4 L42.85 18 Q24.675 14.8 6.5 18 Z" fill="#E0A93A" />
+    <Circle cx={24.675} cy={9.4} r={1.5} fill="#E8556B" />
+    <Circle cx={14.3} cy={11.4} r={1.2} fill="#4C8BF0" />
+    <Circle cx={35.05} cy={11.4} r={1.2} fill="#4C8BF0" />
+    <Circle cx={19.4} cy={5} r={1} fill="#FFFFFF" opacity={0.85} />
+    <Circle cx={29.95} cy={5} r={1} fill="#FFFFFF" opacity={0.85} />
+  </>
+);
+
+/** A classic top hat — tall cylinder crown (fits the tile) on a wide brim. */
+export const TopHat: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M12.5 4.5 Q12.5 3.2 14 3.2 L35.35 3.2 Q36.85 3.2 36.85 4.5 L36.85 14 Q24.675 12 12.5 14 Z" fill="#2B2733" />
+    {/* band */}
+    <Sheen d="M12.6 11.4 Q24.675 9.6 36.75 11.4 L36.75 14.2 Q24.675 12.4 12.6 14.2 Z" fill="#C0504C" />
+    {/* brim */}
+    <Sheen d="M4.5 14.4 Q24.675 10.6 44.85 14.4 Q42.9 18 24.675 17.3 Q6.45 18 4.5 14.4 Z" fill="#2B2733" />
+    <Path d="M16 5.4 Q16.6 8.6 16.2 11.4" stroke="#4A4552" strokeWidth={0.8} opacity={0.7} />
+  </>
+);
+
+// ── NEW eyewear (at the eyes, cx 16/32 cy 22) ────────────────────────────────
+
+const HEART_LENS =
+  "M0 5 C-4 2 -5 -0.6 -5 -2.6 C-5 -4.6 -3 -5.2 -1.5 -3.5 C-0.7 -2.6 -0.3 -2.1 0 -1.6 C0.3 -2.1 0.7 -2.6 1.5 -3.5 C3 -5.2 5 -4.6 5 -2.6 C5 -0.6 4 2 0 5 Z";
+
+/** Heart fun-glasses — rose heart lenses, an ink frame. Free (celebration). */
+export const HeartGlasses: React.FC<PartProps> = () => (
+  <>
+    <Path d="M10.8 21 L6.9 19.6 M37.2 21 L41.1 19.6" stroke={INK} strokeWidth={1.5} strokeLinecap="round" />
+    <Path d="M21 20.6 Q24.675 22.4 28.35 20.6" fill="none" stroke={INK} strokeWidth={1.5} strokeLinecap="round" />
+    {[16, 32].map((cx) => (
+      <G key={cx} transform={`translate(${cx} 22)`}>
+        <Path d={HEART_LENS} fill="#FF6B9D" fillOpacity={0.92} />
+        <Path d={HEART_LENS} fill="none" stroke={INK} strokeWidth={1.2} />
+        <Ellipse cx={-1.8} cy={-2} rx={1.4} ry={0.9} fill="#FFFFFF" opacity={0.8} />
+      </G>
+    ))}
+  </>
+);
+
+/** Star fun-shades — gold five-point star lenses. */
+export const StarGlasses: React.FC<PartProps> = () => (
+  <>
+    <Path d="M10.4 21 L6.5 19.6 M37.6 21 L41.5 19.6" stroke={INK} strokeWidth={1.5} strokeLinecap="round" />
+    <Path d="M21.4 21.4 H27.95" stroke={INK} strokeWidth={1.5} strokeLinecap="round" />
+    <Star5 x={16} y={22} s={6} fill="#FFD23F" />
+    <Star5 x={32} y={22} s={6} fill="#FFD23F" />
+    <Circle cx={16} cy={21.4} r={1} fill="#FFFFFF" opacity={0.75} />
+    <Circle cx={32} cy={21.4} r={1} fill="#FFFFFF" opacity={0.75} />
+  </>
+);
+
+/** Cat-eye glasses — upswept outer corners in a warm frame. */
+export const CatEye: React.FC<PartProps> = () => {
+  const L = "M10 23.4 Q9.6 18.8 15.4 18.4 Q21 18.1 22.4 20.4 Q23 21.6 20.4 22.6 Q14.4 24.4 10 23.4 Z";
+  const R = "M39.35 23.4 Q39.75 18.8 33.95 18.4 Q28.35 18.1 26.95 20.4 Q26.35 21.6 28.95 22.6 Q34.95 24.4 39.35 23.4 Z";
+  return (
+    <>
+      <Path d={L} fill="#20222B" />
+      <Path d={R} fill="#20222B" />
+      <Path d={L} fill="none" stroke="#E86FA4" strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d={R} fill="none" stroke="#E86FA4" strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d="M22.4 20.6 Q24.675 19.4 26.95 20.6" fill="none" stroke="#E86FA4" strokeWidth={1.5} />
+      <Path d="M9.9 20.6 L6 19.4 M39.45 20.6 L43.35 19.4" stroke="#E86FA4" strokeWidth={1.5} strokeLinecap="round" />
+      <Path d="M13.4 20 L16.4 19.2 M29.4 19.2 L32.4 20" stroke="#FFF" strokeWidth={0.8} strokeLinecap="round" opacity={0.5} />
+    </>
+  );
+};
+
+// ── NEW collar category (two-pass: back band behind the head, front drape) ───
+
+/** Chunky knit scarf wrapped at the neck base, knotted at the front. */
+export const Scarf: React.FC<PartProps> = ({ layer }) => (
+  <>
+    {layer !== "front" && (
+      <Path d="M12 42.6 Q24.675 40.2 37.35 42.6 L37.35 44.4 Q24.675 42 12 44.4 Z" fill="#B85C6E" />
+    )}
+    {layer !== "back" && (
+      <>
+        <Sheen d="M11 44 Q24.675 40.4 38.35 44 Q39 48.8 24.675 49.8 Q10.35 48.8 11 44 Z" fill="#E0748A" />
+        <Path
+          d="M16 44.7 Q16.6 47 16.2 49 M21 43.8 Q21.5 46.4 21.2 49.2 M28.35 43.8 Q27.85 46.4 28.15 49.2 M33.35 44.7 Q32.75 47 33.15 49"
+          fill="none"
+          stroke="#B85C6E"
+          strokeWidth={0.8}
+          opacity={0.7}
+        />
+        <Rect x={21.7} y={44.8} width={6} height={5.8} rx={1.6} fill="#C86479" />
+        <Rect x={21.7} y={44.8} width={6} height={5.8} rx={1.6} fill="none" stroke={INK} strokeWidth={0.9} />
+      </>
+    )}
+  </>
+);
+
+/** A bow tie at the collar. */
+export const Bowtie: React.FC<PartProps> = ({ layer }) => (
+  <>
+    {layer !== "front" && (
+      <Path d="M13 43.4 Q24.675 41.4 36.35 43.4 L36.35 45 Q24.675 43 13 45 Z" fill="#7A2E3A" />
+    )}
+    {layer !== "back" && (
+      <>
+        <Path d="M24.675 45.4 L17.5 42.6 L17.5 48.6 Z" fill="#C43D50" />
+        <Path d="M24.675 45.4 L17.5 42.6 L17.5 48.6 Z" fill="none" stroke={INK} strokeWidth={1} strokeLinejoin="round" />
+        <Path d="M24.675 45.4 L31.85 42.6 L31.85 48.6 Z" fill="#C43D50" />
+        <Path d="M24.675 45.4 L31.85 42.6 L31.85 48.6 Z" fill="none" stroke={INK} strokeWidth={1} strokeLinejoin="round" />
+        <Rect x={22.9} y={43.4} width={3.6} height={4.6} rx={1.1} fill="#9A2F3E" />
+      </>
+    )}
+  </>
+);
+
+/** A rolled turtleneck / cowl standing up around the neck. */
+export const Cowl: React.FC<PartProps> = ({ layer }) => (
+  <>
+    {layer !== "front" && (
+      <Path d="M10 43.5 Q24.675 40.5 39.35 43.5 L39.35 45.5 Q24.675 42.5 10 45.5 Z" fill="#3A6E63" />
+    )}
+    {layer !== "back" && (
+      <>
+        <Sheen d="M9.5 45 Q9.5 40 24.675 39.4 Q39.85 40 39.85 45 Q39.85 49 24.675 49.8 Q9.5 49 9.5 45 Z" fill="#4E9384" />
+        <Path d="M11 44.4 Q24.675 41.6 38.35 44.4" fill="none" stroke="#3A6E63" strokeWidth={1.2} strokeLinecap="round" opacity={0.8} />
+      </>
+    )}
+  </>
+);

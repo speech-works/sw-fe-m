@@ -18,6 +18,7 @@ export type AvatarSlot =
   | "beard"
   | "headgear"
   | "eyewear"
+  | "collar"
   | "prop";
 
 export interface AvatarManifest {
@@ -46,6 +47,7 @@ export const DEFAULT_MANIFEST: AvatarManifest = {
     beard: null, // clean-shaven by default
     headgear: null,
     eyewear: null,
+    collar: null,
     prop: null,
   },
   colors: { skin: "#E8B98A", hair: "#4A362C", bg: "#2E86AB" },
@@ -61,6 +63,7 @@ const ALL_SLOTS: AvatarSlot[] = [
   "beard",
   "headgear",
   "eyewear",
+  "collar",
   "prop",
 ];
 
