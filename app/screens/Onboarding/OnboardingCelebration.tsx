@@ -13,10 +13,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import { AnimatedFunIcon } from "../../assets/practice-icons/AnimatedFunIcon";
-import { AnimatedReadingIcon } from "../../assets/practice-icons/AnimatedReadingIcon";
-import { AnimatedCognitiveIcon } from "../../assets/practice-icons/AnimatedCognitiveIcon";
-import { AnimatedExposureIcon } from "../../assets/practice-icons/AnimatedExposureIcon";
+import {
+  CheerBeam,
+  CheerWink,
+  CheerStar,
+  CheerCool,
+} from "../../assets/celebration/cheerSquad";
 import {
   Text,
   useTheme,
@@ -47,10 +49,10 @@ import {
  */
 
 const CAST = [
-  { key: "reading", accent: "info" as const, Comp: AnimatedReadingIcon, dy: 6 },
-  { key: "fun", accent: "warning" as const, Comp: AnimatedFunIcon, dy: -8 },
-  { key: "cognitive", accent: "danger" as const, Comp: AnimatedCognitiveIcon, dy: -2 },
-  { key: "exposure", accent: "purple" as const, Comp: AnimatedExposureIcon, dy: 8 },
+  { key: "reading", accent: "info" as const, Comp: CheerBeam, dy: 6 },
+  { key: "fun", accent: "warning" as const, Comp: CheerWink, dy: -8 },
+  { key: "cognitive", accent: "danger" as const, Comp: CheerStar, dy: -2 },
+  { key: "exposure", accent: "purple" as const, Comp: CheerCool, dy: 8 },
 ];
 
 const CHAR_SIZE = 62;
@@ -206,7 +208,7 @@ const CastCharacter: React.FC<{
   reduced: boolean;
   accent: "info" | "warning" | "danger" | "purple";
   restY: number;
-  Comp: React.FC<{ size?: number; housing?: string }>;
+  Comp: React.FC<{ size?: number; color: string; ink: string }>;
 }> = ({ index, reduced, accent, restY, Comp }) => {
   const { colors } = useTheme();
   const pop = useSharedValue(0);
@@ -254,7 +256,11 @@ const CastCharacter: React.FC<{
   return (
     <Pressable onPress={onPoke} accessibilityRole="image">
       <Animated.View style={style}>
-        <Comp size={CHAR_SIZE} housing={colors.accent[accent]} />
+        <Comp
+          size={CHAR_SIZE}
+          color={colors.accent[accent]}
+          ink={colors.accentOn[accent]}
+        />
       </Animated.View>
     </Pressable>
   );
