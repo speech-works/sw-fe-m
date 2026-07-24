@@ -48,6 +48,11 @@ import {
   Scarf,
   Bowtie,
   Cowl,
+  PeterPanCollar,
+  MandarinCollar,
+  SailorCollar,
+  WingCollar,
+  ShawlCollar,
   PartProps,
 } from "./parts";
 
@@ -114,6 +119,11 @@ export const PART_REGISTRY: Record<AvatarSlot, Record<string, PartComponent>> = 
     "collar.scarf": Scarf,
     "collar.bowtie": Bowtie,
     "collar.cowl": Cowl,
+    "collar.peterpan": PeterPanCollar,
+    "collar.mandarin": MandarinCollar,
+    "collar.sailor": SailorCollar,
+    "collar.wing": WingCollar,
+    "collar.shawl": ShawlCollar,
   },
   prop: {
     "prop.mic": MicProp,
@@ -210,6 +220,18 @@ export const BG_COLORS: { label: string; hex: string }[] = [
   { label: "Rose", hex: "#B0555F" },
 ];
 
+/** Collar fabric colours — every collar recolors from ONE of these (the studio
+ *  shows this row above the collar styles, like Hair). Secondary tones per
+ *  collar are derived with shade(), so all six read on every style. */
+export const COLLAR_COLORS: { label: string; hex: string }[] = [
+  { label: "White", hex: "#EDEDF0" },
+  { label: "Navy", hex: "#3A5A8C" },
+  { label: "Burgundy", hex: "#8E3B49" },
+  { label: "Forest", hex: "#3E7D63" },
+  { label: "Charcoal", hex: "#3A3A42" },
+  { label: "Camel", hex: "#C08A4E" },
+];
+
 /** Display names for wardrobe rows (registry keys are ids, not copy). */
 export const PART_LABELS: Record<string, string> = {
   "face.brand": "Cheerful",
@@ -251,6 +273,11 @@ export const PART_LABELS: Record<string, string> = {
   "collar.scarf": "Knit scarf",
   "collar.bowtie": "Bow tie",
   "collar.cowl": "Turtleneck",
+  "collar.peterpan": "Peter Pan",
+  "collar.mandarin": "Mandarin",
+  "collar.sailor": "Sailor",
+  "collar.wing": "Wing tip",
+  "collar.shawl": "Shawl",
   "prop.mic": "Mic",
   "prop.book": "Book",
   "prop.camera": "Camera",

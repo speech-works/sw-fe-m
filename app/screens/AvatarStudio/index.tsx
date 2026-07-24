@@ -8,6 +8,7 @@ import { useAvatarDraftStore } from "../../stores/avatarDraft";
 import { stageIndexForLevel } from "../../types/avatar";
 import {
   BG_COLORS,
+  COLLAR_COLORS,
   HAIR_COLORS,
   SKIN_TONES,
   STAGE_NAMES,
@@ -292,14 +293,37 @@ const AvatarStudio = () => {
           )}
 
           {tab === "collar" && (
-            <PartGrid
-              slot="collar"
-              ids={["collar.scarf", "collar.bowtie", "collar.cowl"]}
-              draft={draft}
-              stage={stage}
-              onSelect={(id) => setPart("collar", id)}
-              allowNone
-            />
+            <>
+              {/* Colour first (it recolors whichever style is worn), styles below. */}
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Colour
+              </Text>
+              <SwatchGrid
+                swatches={COLLAR_COLORS}
+                selectedHex={draft.colors.collar}
+                onSelect={(hex) => setColor("collar", hex)}
+              />
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Style
+              </Text>
+              <PartGrid
+                slot="collar"
+                ids={[
+                  "collar.scarf",
+                  "collar.bowtie",
+                  "collar.cowl",
+                  "collar.peterpan",
+                  "collar.mandarin",
+                  "collar.sailor",
+                  "collar.wing",
+                  "collar.shawl",
+                ]}
+                draft={draft}
+                stage={stage}
+                onSelect={(id) => setPart("collar", id)}
+                allowNone
+              />
+            </>
           )}
 
           {tab === "prop" && (

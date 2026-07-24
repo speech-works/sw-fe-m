@@ -238,6 +238,13 @@ export interface PackProgress {
 export interface PackBrochureModule {
   id: string;
   title: string;
+  /**
+   * The one-line hook for this day — selling copy the sales page shows as a
+   * subhead under the title, so each day reads its value instead of just a
+   * terse name. Optional so the app is safe against an older backend that does
+   * not send it yet; render only when non-empty.
+   */
+  description?: string;
   orderIndex: number;
   dayIndex: number | null;
   isMandatory: boolean;

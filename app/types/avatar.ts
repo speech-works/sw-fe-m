@@ -25,9 +25,11 @@ export interface AvatarManifest {
   version: 1;
   /** slot → part id (`slot.name`, e.g. "headgear.tourist") or null = empty. */
   parts: Record<AvatarSlot, string | null>;
-  /** #RRGGBB. Stored as hex (not token keys) — skin/hair/backdrop don't flip
-   *  with the color scheme, and the server validates the hex shape. */
-  colors: { skin: string; hair: string; bg: string };
+  /** #RRGGBB. Stored as hex (not token keys) — skin/hair/backdrop/collar don't
+   *  flip with the color scheme, and the server validates the hex shape. The
+   *  server accepts any color keys (≤8, each a valid hex), so `collar` needs no
+   *  backend change — it's the recolor for whatever collar is worn. */
+  colors: { skin: string; hair: string; bg: string; collar: string };
 }
 
 /**
@@ -50,7 +52,7 @@ export const DEFAULT_MANIFEST: AvatarManifest = {
     collar: null,
     prop: null,
   },
-  colors: { skin: "#E8B98A", hair: "#4A362C", bg: "#2E86AB" },
+  colors: { skin: "#E8B98A", hair: "#4A362C", bg: "#2E86AB", collar: "#3A5A8C" },
 };
 
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
@@ -93,7 +95,7 @@ export function normalizeManifest(input?: unknown): AvatarManifest {
   }
   if (typeof raw.colors === "object" && raw.colors !== null && !Array.isArray(raw.colors)) {
     const colors = raw.colors as Record<string, unknown>;
-    for (const key of ["skin", "hair", "bg"] as const) {
+    for (const key of ["skin", "hair", "bg", "collar"] as const) {
       const v = colors[key];
       if (typeof v === "string" && HEX_RE.test(v)) out.colors[key] = v;
     }

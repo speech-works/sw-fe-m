@@ -9,16 +9,14 @@ import { purchaseCatalogItem, pollWalletUntil } from "../../services/purchases";
 import {
   Page,
   Text,
-  Button,
   Icon,
   icons,
   useTheme,
-  withAlpha,
   spacing,
   radius,
   Spinner,
 } from "../../design-system";
-import PriceTag from "../../components/PriceTag";
+import ProgramSalesFlow from "./ProgramSalesFlow";
 import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
@@ -173,97 +171,37 @@ const ProgramDetailScreen = () => {
   const dayCount = brochure?.arcDays ?? null;
   const moduleCount = brochure?.moduleCount ?? 0;
 
-  return (
-    <Page
-      title={brochure?.title ?? offer.title}
-      description={brochure?.description}
-      onBack={() => navigation.goBack()}
-    >
-      {(dayCount || moduleCount > 0) && (
-        <View style={styles.metaRow}>
-          {dayCount ? (
-            <View style={styles.metaChip}>
-              <Icon name={icons.timeline} size={14} color={colors.text.secondary} />
-              <Text variant="label" color="secondary">
-                {dayCount} days
-              </Text>
-            </View>
-          ) : null}
-          {moduleCount > 0 ? (
-            <View style={styles.metaChip}>
-              <Icon name={icons.checklist} size={14} color={colors.text.secondary} />
-              <Text variant="label" color="secondary">
-                {moduleCount} sessions
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      )}
+  // OWNED — a calm confirmation with the curriculum recap, no buy affordance.
+  // Kept on the standard Page (the sales funnel is only for the buyable state).
+  if (owned) {
+    return (
+      <Page
+        title={brochure?.title ?? offer.title}
+        description={brochure?.description}
+        onBack={() => navigation.goBack()}
+      >
+        {(dayCount || moduleCount > 0) && (
+          <View style={styles.metaRow}>
+            {dayCount ? (
+              <View style={styles.metaChip}>
+                <Icon name={icons.timeline} size={14} color={colors.text.secondary} />
+                <Text variant="label" color="secondary">
+                  {dayCount} days
+                </Text>
+              </View>
+            ) : null}
+            {moduleCount > 0 ? (
+              <View style={styles.metaChip}>
+                <Icon name={icons.checklist} size={14} color={colors.text.secondary} />
+                <Text variant="label" color="secondary">
+                  {moduleCount} sessions
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
 
-      {/* Why we put this in front of them — their own words, when we have
-          them. Absent whenever the backend had no signal to justify a claim. */}
-      {offer.match?.reason && !owned ? (
-        <View
-          style={[
-            styles.matchRow,
-            { backgroundColor: withAlpha(colors.action.primary, 0.12) },
-          ]}
-        >
-          <Icon name={icons.roadmap} size={14} color={colors.action.primary} />
-          <Text
-            variant="bodySm"
-            color={colors.action.primary}
-            style={styles.matchText}
-          >
-            {offer.match.reason}
-          </Text>
-        </View>
-      ) : null}
-
-      {brochure && brochure.modules.length > 0 && (
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.surface.default,
-              borderColor: colors.border.default,
-            },
-          ]}
-        >
-          <Text variant="title" color="primary">
-            What&apos;s inside
-          </Text>
-          {brochure.modules.map((m) => (
-            <View key={m.id} style={styles.moduleRow}>
-              <Text variant="label" color="tertiary" style={styles.dayLabel}>
-                {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
-              </Text>
-              <Text variant="bodySm" color="secondary" style={styles.moduleTitle}>
-                {m.title}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {owned ? (
-        <View style={styles.ownedRow}>
-          <Icon
-            name={icons.success}
-            size={18}
-            color={colors.feedback.successText}
-          />
-          <Text variant="title" color={colors.feedback.successText}>
-            You own this — it&apos;s unlocked.
-          </Text>
-        </View>
-      ) : (
-        <>
-          {/* WHAT YOU ACTUALLY GET — every line server-owned, and the free
-              month appears ONLY when this user is genuinely eligible for it.
-              When they're not, the line is omitted entirely rather than shown
-              greyed or struck: advertising a gift we're withholding is worse
-              than never mentioning it. */}
+        {brochure && brochure.modules.length > 0 && (
           <View
             style={[
               styles.card,
@@ -274,67 +212,45 @@ const ProgramDetailScreen = () => {
             ]}
           >
             <Text variant="title" color="primary">
-              Included
+              What&apos;s inside
             </Text>
-            {dayCount ? (
-              <View style={styles.includeRow}>
-                <Icon name={icons.timeline} size={16} color={colors.action.primary} />
-                <Text variant="bodySm" color="secondary" style={styles.includeText}>
-                  A {dayCount}-day guided arc, one short session a day
+            {brochure.modules.map((m) => (
+              <View key={m.id} style={styles.moduleRow}>
+                <Text variant="label" color="tertiary" style={styles.dayLabel}>
+                  {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
+                </Text>
+                <Text variant="bodySm" color="secondary" style={styles.moduleTitle}>
+                  {m.title}
                 </Text>
               </View>
-            ) : null}
-            {offer.creditGrantAmount > 0 ? (
-              <View style={styles.includeRow}>
-                <Icon name={icons.call} size={16} color={colors.action.primary} />
-                <Text variant="bodySm" color="secondary" style={styles.includeText}>
-                  {offer.creditGrantAmount} AI practice calls, built into the arc
-                </Text>
-              </View>
-            ) : null}
-            {offer.bonusMembershipDays > 0 && bonusEligible ? (
-              <View style={styles.includeRow}>
-                <Icon name={icons.gift} size={16} color={colors.action.primary} />
-                <Text variant="bodySm" color="secondary" style={styles.includeText}>
-                  Your first month of membership free — 4 AI practice calls
-                </Text>
-              </View>
-            ) : null}
-            <View style={styles.includeRow}>
-              <Icon name={icons.lifetime} size={16} color={colors.action.primary} />
-              <Text variant="bodySm" color="secondary" style={styles.includeText}>
-                Buy once, yours to keep
-              </Text>
-            </View>
+            ))}
           </View>
+        )}
 
-          {/* One anchor-driven rule covers BOTH founder and launch-offer
-              discounts: PriceTag strikes anchorPriceInr whenever it exceeds the
-              charged price. All numbers come from the server, so the struck
-              "was" is always a real standing price, never a hardcoded literal. */}
-          <View style={styles.priceRow}>
-            <PriceTag
-              priceInr={offer.priceInr}
-              anchorInr={offer.anchorPriceInr}
-              center
-              note={
-                offer.anchorPriceInr > offer.priceInr
-                  ? isFounder
-                    ? "Founder price"
-                    : "Launch offer"
-                  : undefined
-              }
-            />
-          </View>
+        <View style={styles.ownedRow}>
+          <Icon name={icons.success} size={18} color={colors.feedback.successText} />
+          <Text variant="title" color={colors.feedback.successText}>
+            You own this — it&apos;s unlocked.
+          </Text>
+        </View>
+      </Page>
+    );
+  }
 
-          <Button
-            label={`Get ${offer.title}`}
-            loading={purchasing}
-            onPress={handleBuy}
-          />
-        </>
-      )}
-    </Page>
+  // NOT OWNED — the immersive, conversion-focused sales flow. Every honesty rule
+  // above still holds: the flow only PRESENTS the offer/brochure it's handed and
+  // buys through this screen's `handleBuy`; it computes no price and invents no
+  // proof. The bonus-month gate is threaded through as `bonusEligible`.
+  return (
+    <ProgramSalesFlow
+      brochure={brochure}
+      offer={offer}
+      isFounder={isFounder}
+      bonusEligible={bonusEligible}
+      purchasing={purchasing}
+      onBuy={handleBuy}
+      onBack={() => navigation.goBack()}
+    />
   );
 };
 
@@ -372,30 +288,6 @@ const styles = StyleSheet.create({
   },
   moduleTitle: {
     flex: 1,
-  },
-  matchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.chip,
-    marginBottom: spacing.lg,
-  },
-  matchText: {
-    flex: 1,
-  },
-  includeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  includeText: {
-    flex: 1,
-  },
-  priceRow: {
-    alignItems: "center",
-    marginBottom: spacing.lg,
   },
   ownedRow: {
     flexDirection: "row",

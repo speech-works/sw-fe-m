@@ -24,7 +24,7 @@ import { HEAD, CX, GOLD, INK, shade } from "./avatarKit";
  */
 
 export interface PartProps {
-  colors: { skin: string; hair: string; bg: string };
+  colors: { skin: string; hair: string; bg: string; collar: string };
   /** Hair only: which sub-layer to render. "back" = the drape drawn BEHIND the
    *  head (hangs at the sides/shoulders, shows below a hat brim); "front" = the
    *  crown drawn ON the head (what a hat covers). Undefined = both, in place
@@ -951,60 +951,209 @@ export const CatEye: React.FC<PartProps> = () => {
   );
 };
 
-// ── NEW collar category (two-pass: back band behind the head, front drape) ───
+// ── Collar category — collars that WRAP the neck ─────────────────────────────
+//
+// There is no drawn neck/torso: the head fills the tile below y≈40, so a thin
+// band would just float over the chin. To read as clothing that goes AROUND the
+// neck, each collar has THREE moves:
+//   · a BACK wrap (COLLAR_BACK_WRAP) drawn behind the head that peeks in the
+//     thin slivers beside the jaw (x≈2-6 / 43-46) — the "continues round the
+//     back" cue;
+//   · a FRONT garment body whose neckline CLIMBS the sides (over the outer jaw,
+//     clear of the face features) and dips at centre — fabric hugging up the
+//     neck. Standing collars use COLLAR_BAND_BODY (high), flat collars
+//     COLLAR_SHOULDERS (lower), V-neck collars an inline V body;
+//   · the collar DETAIL (rim, flaps, points, lapels, trim, knot) on top.
+// Everything is masked to the tile circle by UserAvatar, so the shapes run past
+// the tile edge (x −2..52, y→55) and clip to the neckline arc. Every collar
+// recolors from ONE fabric colour `colors.collar`; secondary tones derive via
+// shade(), so all six palette colours read — only GOLD (mandarin) + INK fixed.
 
-/** Chunky knit scarf wrapped at the neck base, knotted at the front. */
-export const Scarf: React.FC<PartProps> = ({ layer }) => (
-  <>
-    {layer !== "front" && (
-      <Path d="M12 42.6 Q24.675 40.2 37.35 42.6 L37.35 44.4 Q24.675 42 12 44.4 Z" fill="#B85C6E" />
-    )}
-    {layer !== "back" && (
-      <>
-        <Sheen d="M11 44 Q24.675 40.4 38.35 44 Q39 48.8 24.675 49.8 Q10.35 48.8 11 44 Z" fill="#E0748A" />
-        <Path
-          d="M16 44.7 Q16.6 47 16.2 49 M21 43.8 Q21.5 46.4 21.2 49.2 M28.35 43.8 Q27.85 46.4 28.15 49.2 M33.35 44.7 Q32.75 47 33.15 49"
-          fill="none"
-          stroke="#B85C6E"
-          strokeWidth={0.8}
-          opacity={0.7}
-        />
-        <Rect x={21.7} y={44.8} width={6} height={5.8} rx={1.6} fill="#C86479" />
-        <Rect x={21.7} y={44.8} width={6} height={5.8} rx={1.6} fill="none" stroke={INK} strokeWidth={0.9} />
-      </>
-    )}
-  </>
-);
+/** Neckline that climbs high on the sides (standing collars sit in it). */
+const COLLAR_BAND_BODY =
+  "M-2 55 L-2 39.2 Q4 35.6 9.6 37 Q15.4 40 24.675 42.2 Q33.95 40 40.35 37 Q45.95 35.6 51.95 39.2 L51.95 55 Z";
+/** A lower scooped neckline (flat collars lie on it). */
+const COLLAR_SHOULDERS =
+  "M-2 55 L-2 40.6 Q4 37.4 9.4 38.6 Q15 41.4 24.675 44.8 Q34.35 41.4 39.95 38.6 Q45.35 37.4 51.35 40.6 L51.35 55 Z";
+/** The band that rises behind the head and peeks beside the jaw. */
+const COLLAR_BACK_WRAP =
+  "M0.6 47 Q0.4 35.2 24.675 34.2 Q48.95 35.2 48.75 47 L48.75 49 Q24.675 38 0.6 49 Z";
 
-/** A bow tie at the collar. */
-export const Bowtie: React.FC<PartProps> = ({ layer }) => (
-  <>
-    {layer !== "front" && (
-      <Path d="M13 43.4 Q24.675 41.4 36.35 43.4 L36.35 45 Q24.675 43 13 45 Z" fill="#7A2E3A" />
-    )}
-    {layer !== "back" && (
-      <>
-        <Path d="M24.675 45.4 L17.5 42.6 L17.5 48.6 Z" fill="#C43D50" />
-        <Path d="M24.675 45.4 L17.5 42.6 L17.5 48.6 Z" fill="none" stroke={INK} strokeWidth={1} strokeLinejoin="round" />
-        <Path d="M24.675 45.4 L31.85 42.6 L31.85 48.6 Z" fill="#C43D50" />
-        <Path d="M24.675 45.4 L31.85 42.6 L31.85 48.6 Z" fill="none" stroke={INK} strokeWidth={1} strokeLinejoin="round" />
-        <Rect x={22.9} y={43.4} width={3.6} height={4.6} rx={1.1} fill="#9A2F3E" />
-      </>
-    )}
-  </>
-);
+/** Turtleneck / cowl — a tall tube the neck rises into, with a rolled rim. */
+export const Cowl: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const rib = shade(c, -0.2);
+  const roll = shade(c, 0.15);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={shade(c, -0.24)} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 55 L-2 38 Q4 34.4 9.6 35.8 Q15.4 38.8 24.675 40.2 Q33.95 38.8 40.35 35.8 Q45.95 34.4 51.95 38 L51.95 55 Z"
+            fill={c}
+          />
+          <Path d="M8 37.6 Q24.675 42.6 41.35 37.6" fill="none" stroke={roll} strokeWidth={1.3} strokeLinecap="round" opacity={0.85} />
+          <Path d="M7.4 40.8 Q24.675 45.8 41.95 40.8" fill="none" stroke={rib} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} />
+        </>
+      )}
+    </>
+  );
+};
 
-/** A rolled turtleneck / cowl standing up around the neck. */
-export const Cowl: React.FC<PartProps> = ({ layer }) => (
-  <>
-    {layer !== "front" && (
-      <Path d="M10 43.5 Q24.675 40.5 39.35 43.5 L39.35 45.5 Q24.675 42.5 10 45.5 Z" fill="#3A6E63" />
-    )}
-    {layer !== "back" && (
-      <>
-        <Sheen d="M9.5 45 Q9.5 40 24.675 39.4 Q39.85 40 39.85 45 Q39.85 49 24.675 49.8 Q9.5 49 9.5 45 Z" fill="#4E9384" />
-        <Path d="M11 44.4 Q24.675 41.6 38.35 44.4" fill="none" stroke="#3A6E63" strokeWidth={1.2} strokeLinecap="round" opacity={0.8} />
-      </>
-    )}
-  </>
-);
+/** Knit scarf — a chunky band wrapped around the neck, knot + tails in front. */
+export const Scarf: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const rib = shade(c, -0.22);
+  const knot = shade(c, -0.1);
+  const tail = shade(c, -0.06);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={shade(c, -0.24)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={COLLAR_BAND_BODY} fill={c} />
+          <Path d="M7 40.4 Q11 38.8 15.4 39.6 M33.95 39.6 Q38.35 38.8 42.35 40.4" fill="none" stroke={rib} strokeWidth={0.85} strokeLinecap="round" opacity={0.65} />
+          <Path d="M8.4 43.6 Q24.675 48.2 40.95 43.6" fill="none" stroke={rib} strokeWidth={0.9} strokeLinecap="round" opacity={0.55} />
+          <Dome d="M20.2 45.4 L29.15 45.4 L27.5 52.6 L21.85 52.6 Z" fill={tail} />
+          <Rect x={21.2} y={43} width={7} height={4.6} rx={1.6} fill={knot} />
+          <Rect x={21.2} y={43} width={7} height={4.6} rx={1.6} fill="none" stroke={INK} strokeWidth={0.9} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Bow tie — an open shirt collar (a V) wrapping the neck + a bow at the throat. */
+export const Bowtie: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const shirt = shade(c, 0.05);
+  const point = shade(c, -0.06);
+  const knot = shade(c, -0.32);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={shade(c, -0.2)} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 55 L-2 39.6 Q4 36.2 9.6 37.6 L24.675 47.4 L39.75 37.6 Q45.35 36.2 51.35 39.6 L51.35 55 Z"
+            fill={shirt}
+          />
+          <Dome d="M9.6 37.6 L24.675 47.4 L20.4 41 Q14.4 38.2 9.6 37.6 Z" fill={point} />
+          <Dome d="M39.75 37.6 L24.675 47.4 L28.95 41 Q34.95 38.2 39.75 37.6 Z" fill={point} />
+          <Dome d="M24.675 45.2 L18 42.2 L18 48.2 Z" fill={c} />
+          <Dome d="M24.675 45.2 L31.35 42.2 L31.35 48.2 Z" fill={c} />
+          <Rect x={22.95} y={43} width={3.45} height={4.4} rx={1.1} fill={knot} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Peter Pan — flat rounded twin flaps lying on the shoulders around the neck. */
+export const PeterPanCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const dk = shade(c, -0.16);
+  const flap = shade(c, 0.05);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={dk} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={COLLAR_SHOULDERS} fill={c} />
+          <Dome d="M24.675 43 Q14.6 41.8 9.4 44.6 Q6.6 46.8 8.2 49.4 Q14.6 51 20 48 Q22.8 46 24.675 45.2 Z" fill={flap} />
+          <Dome d="M24.675 43 Q34.75 41.8 39.95 44.6 Q42.75 46.8 41.15 49.4 Q34.75 51 29.35 48 Q26.55 46 24.675 45.2 Z" fill={flap} />
+          <Circle cx={24.675} cy={45} r={1} fill={dk} stroke={INK} strokeWidth={0.4} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Mandarin — a standing band all the way around the neck, gold trim + studs. */
+export const MandarinCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={shade(c, -0.22)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={COLLAR_BAND_BODY} fill={c} />
+          <Path d="M8.4 38.8 Q24.675 43.6 40.95 38.8" fill="none" stroke={GOLD} strokeWidth={1} strokeLinecap="round" />
+          <Path d="M24.675 42.4 L24.675 47.4" fill="none" stroke={INK} strokeWidth={0.9} />
+          <Circle cx={24.675} cy={43.8} r={0.85} fill={GOLD} />
+          <Circle cx={24.675} cy={45.8} r={0.85} fill={GOLD} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Sailor — a square collar wrapping to the back, striped V + neckerchief tie. */
+export const SailorCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const trim = shade(c, 0.5);
+  const knot = shade(c, -0.16);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={c} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 55 L-2 39 Q4 35.6 9.6 37 L24.675 49 L39.75 37 Q45.35 35.6 51.35 39 L51.35 55 Z"
+            fill={c}
+          />
+          <Path d="M10 38.4 L24.675 47 L39.35 38.4" fill="none" stroke={trim} strokeWidth={1} strokeLinecap="round" />
+          <Path d="M11 40.2 L24.675 48.6 L38.35 40.2" fill="none" stroke={trim} strokeWidth={1} strokeLinecap="round" />
+          <Rect x={22.7} y={45.6} width={3.95} height={2} rx={0.5} fill={knot} stroke={INK} strokeWidth={0.4} />
+          <Dome d="M22.7 47.4 L26.65 47.4 L24.675 52 Z" fill={knot} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Wing tip — a formal upright band around the neck with two folded-down points. */
+export const WingCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const tip = shade(c, -0.14);
+  const roll = shade(c, 0.22);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={shade(c, -0.2)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={COLLAR_BAND_BODY} fill={c} />
+          <Path d="M8.6 38.6 Q24.675 43.4 40.75 38.6" fill="none" stroke={roll} strokeWidth={0.8} strokeLinecap="round" opacity={0.85} />
+          <Dome d="M22.1 41.8 L24.2 42.3 L23.4 45.8 Z" fill={tip} />
+          <Dome d="M27.25 41.8 L25.15 42.3 L25.95 45.8 Z" fill={tip} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Shawl — rolled tuxedo lapels sweeping up both sides of the neck to a V. */
+export const ShawlCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const roll = shade(c, 0.16);
+  const deep = shade(c, -0.18);
+  const sheen = shade(c, 0.34);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK_WRAP} fill={deep} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 55 L-2 39.6 Q4 36 9.6 37.6 L24.675 50 L39.75 37.6 Q45.35 36 51.35 39.6 L51.35 55 Z"
+            fill={deep}
+          />
+          <Dome d="M9.6 37.6 L24.675 50 Q19.6 46.6 16.4 42.8 Q13.4 39.2 9.6 37.6 Z" fill={roll} />
+          <Dome d="M39.75 37.6 L24.675 50 Q29.75 46.6 32.95 42.8 Q35.95 39.2 39.75 37.6 Z" fill={roll} />
+          <Path d="M12 38.8 Q15.4 41.2 20.4 47" fill="none" stroke={sheen} strokeWidth={0.7} strokeLinecap="round" opacity={0.7} />
+          <Path d="M37.35 38.8 Q33.95 41.2 28.95 47" fill="none" stroke={sheen} strokeWidth={0.7} strokeLinecap="round" opacity={0.7} />
+        </>
+      )}
+    </>
+  );
+};
