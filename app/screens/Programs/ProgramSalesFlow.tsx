@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -26,6 +26,7 @@ import {
   Icon,
   IconButton,
   icons,
+  mix,
   radius,
   Sheet,
   size,
@@ -275,13 +276,14 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
           pointerEvents="none"
         />
         <View style={[styles.buyBarInner, { paddingBottom: insets.bottom + spacing.md }]}>
-          <PriceTag
-            priceInr={offer.priceInr}
-            anchorInr={offer.anchorPriceInr}
-            note={priceNote}
-            compact
-            center
-          />
+          <PriceTag priceInr={offer.priceInr} anchorInr={offer.anchorPriceInr} center />
+          {discounted && priceNote ? (
+            // The REAL saving, derived from the two server prices — the honest
+            // loss-aversion line, in the success green that pairs with brand orange.
+            <Text variant="caption" color={colors.feedback.successText} center>
+              {priceNote} · Save ₹{(offer.anchorPriceInr - offer.priceInr).toLocaleString("en-IN")}
+            </Text>
+          ) : null}
           <BuyButton
             label={`Get ${offer.title}`}
             loading={purchasing}
@@ -407,12 +409,9 @@ const BuyButton: React.FC<BuyButtonProps> = ({
         {loading ? (
           <ActivityIndicator color={ink} />
         ) : (
-          <>
-            <Text variant="title" color={ink} numberOfLines={1}>
-              {label}
-            </Text>
-            <Icon name={icons.forward} size={20} color={ink} />
-          </>
+          <Text variant="title" color={ink} numberOfLines={1}>
+            {label}
+          </Text>
         )}
       </View>
     </PressableScale>
@@ -652,6 +651,15 @@ interface PlanPageProps {
 
 const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }) => {
   const { colors } = useTheme();
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+  // The top dissolve reveals only as the list moves — day 1 stays crisp at rest,
+  // then content melts into the canvas under the header as you scroll up.
+  const topFadeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, 40], [0, 1], Extrapolation.CLAMP),
+  }));
   return (
     <View style={[styles.pagePadded, { paddingTop: topPad }]}>
       <Text variant="label" color="tertiary">
@@ -661,10 +669,13 @@ const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }
         {title}
       </Text>
 
-      <ScrollView
+      <View style={styles.planScrollWrap}>
+      <Animated.ScrollView
         style={styles.planScroll}
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: bottomPad, paddingTop: spacing.lg }}
       >
         {modules.map((m, i) => {
@@ -710,7 +721,22 @@ const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }
             </View>
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
+        {/* Top dissolve — the mirror of the buy-dock fade. A tall canvas gradient
+            whose opacity ramps in with scroll, so the list melts into the canvas
+            under the header exactly as it melts into the dock at the bottom. */}
+        <Animated.View
+          style={[styles.planTopFade, topFadeStyle]}
+          pointerEvents="none"
+        >
+          <Gradient
+            colors={[colors.background.canvas, withAlpha(colors.background.canvas, 0)]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
     </View>
   );
 };
@@ -770,33 +796,25 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
   return (
     <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed}>
       <View style={styles.sheetBody}>
-        {/* Identity + the goal (epic meaning) */}
+        {/* Identity — compact on purpose, so the offer and CTA stay above the
+            fold (the single biggest conversion lever on a small screen). */}
         <View>
-          <View style={[styles.sheetEmblem, { backgroundColor: colors.action.primary }]}>
-            <Icon name={icons.roadmap} size={22} color={colors.action.onPrimary} />
-          </View>
           <Text variant="label" color="tertiary">
             {eyebrow}
           </Text>
           <Text variant="h1" color="primary" style={styles.pageTitle}>
             {title}
           </Text>
+          {/* Matched to you — real personalisation, as a slim line, not a box. */}
+          {matchReason ? (
+            <View style={styles.sheetMatched}>
+              <Icon name={icons.roadmap} size={16} color={colors.text.accent} />
+              <Text variant="bodySm" color="secondary" style={styles.flex1}>
+                {matchReason}
+              </Text>
+            </View>
+          ) : null}
         </View>
-
-        {/* Matched to you — real personalisation (relatedness), when present. */}
-        {matchReason ? (
-          <View
-            style={[
-              styles.sheetMatched,
-              { backgroundColor: colors.surface.default, borderColor: colors.border.default },
-            ]}
-          >
-            <Icon name={icons.roadmap} size={16} color={colors.text.accent} />
-            <Text variant="bodySm" color="secondary" style={styles.flex1}>
-              {matchReason}
-            </Text>
-          </View>
-        ) : null}
 
         {/* The offer — one real one-time price, the saving carried by the badge
             + the struck original. Ownership framing, honest anchor. */}
@@ -804,7 +822,9 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
           style={[
             styles.offerCard,
             {
-              backgroundColor: colors.surface.default,
+              // A warm brand-tinted surface (flattened with mix, per the tint
+              // rule) + the orange border = a clearly "selected plan" card.
+              backgroundColor: mix(colors.surface.default, colors.action.primary, 0.1),
               borderColor: colors.action.primary,
             },
           ]}
@@ -824,12 +844,22 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
           <View style={styles.offerPrice}>
             <PriceTag priceInr={priceInr} anchorInr={anchorInr} />
           </View>
+          {discounted ? (
+            <Text
+              variant="bodySm"
+              color={colors.feedback.successText}
+              style={styles.saveLine}
+            >
+              You save ₹{(anchorInr - priceInr).toLocaleString("en-IN")}
+            </Text>
+          ) : null}
           <Text variant="bodySm" color="secondary">
             One payment. Yours to keep — no subscription.
           </Text>
         </View>
 
-        {/* What you get — the value checklist. */}
+        {/* What you get — the value checklist. Ownership already lives in the
+            offer card, so it is not repeated here. */}
         <View style={styles.checkList}>
           {dayCount ? (
             <CheckRow label={`${dayCount}-day guided arc, one session a day`} />
@@ -840,7 +870,6 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
           {showGift ? (
             <CheckRow label="First month of membership, free" gift />
           ) : null}
-          <CheckRow label="Yours to keep — no subscription" />
         </View>
 
         {/* Commit — the premium button, then the risk-reverser, then an easy out. */}
@@ -939,7 +968,7 @@ const styles = StyleSheet.create({
   },
   buyBarInner: {
     paddingHorizontal: space.screenX,
-    gap: space.rowGap,
+    gap: space.inlineGap,
   },
   buyCta: {
     height: 56,
@@ -1041,9 +1070,20 @@ const styles = StyleSheet.create({
     marginTop: space.titleSub,
   },
   // ── Plan / timeline ──
+  planScrollWrap: {
+    flex: 1,
+    marginTop: space.groupGap,
+  },
   planScroll: {
     flex: 1,
-    marginTop: space.titleGap,
+  },
+  planTopFade: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    // Tall + gradual, to match the generous dissolve of the buy-dock fade.
+    height: spacing["6xl"],
   },
   dayRow: {
     flexDirection: "row",
@@ -1104,24 +1144,16 @@ const styles = StyleSheet.create({
   },
   // ── Purchase sheet ──
   sheetBody: {
-    gap: spacing.xl,
-  },
-  sheetEmblem: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: space.groupGap,
+    gap: space.groupGap,
   },
   sheetMatched: {
     flexDirection: "row",
     alignItems: "center",
-    gap: space.iconText,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
-    borderWidth: StyleSheet.hairlineWidth,
+    gap: space.inlineGap,
+    marginTop: space.rowGap,
+  },
+  saveLine: {
+    marginBottom: space.inlineGap,
   },
   sheetActions: {
     gap: space.rowGap,
