@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -11,21 +11,23 @@ import Animated, {
   useDerivedValue,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import PressableScale from "../../components/PressableScale";
 
 import {
   AnimatedNumber,
   borderWidth,
-  Button,
   easing,
   Gradient,
   Icon,
   IconButton,
   icons,
   radius,
+  Sheet,
   size,
   space,
   spacing,
@@ -70,6 +72,11 @@ export interface ProgramSalesFlowProps {
 /** Ambient drift period (ms) for the hero emblem. Slow — atmosphere, not UI. */
 const FLOAT_PERIOD = 3200;
 
+/** Buy-button light sweep: one glide, then a rest, on repeat. Premium, not a nag. */
+const SHIMMER_SWEEP = 1100;
+const SHIMMER_GAP = 2400;
+const SHEEN_W = 84;
+
 /**
  * Normalise a session title for the timeline: strip a leading "Day 3:" /
  * "Module 3:" (the node owns the number) and any wrapping quotes, so a title
@@ -97,14 +104,17 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
 
-  const ink = colors.action.onPrimary; // dark ink for the bright hero fill
-
   const scrollX = useSharedValue(0);
   const [activeIndex, setActiveIndex] = useState(0);
   // Measured pager area — pages must be given an explicit width/height inside a
   // horizontal ScrollView, so we render them only once we know the box.
   const [area, setArea] = useState({ w: 0, h: 0 });
   const [barH, setBarH] = useState(0);
+  // The "Get" button opens a review sheet; the real purchase fires only once
+  // that sheet has fully closed (confirmRef gate + Sheet.onDismissed), so its
+  // success/error sheet never stacks over ours — the iOS two-modal freeze.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const confirmRef = useRef(false);
 
   const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollX.value = e.contentOffset.x;
@@ -134,9 +144,9 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   // insets.top + spacing.sm and are size.backBtn tall) by the app's standard
   // back-bar→title gap — otherwise the header crams right up against them.
   const topPad = insets.top + spacing.sm + size.backBtn + space.titleGap;
-  // The buy bar now floats (inset from the bottom), so content must clear the
-  // dock's height PLUS its bottom offset, not just its height.
-  const bottomPad = (barH || 88) + insets.bottom + spacing.sm + spacing.lg;
+  // Content must clear the full-height buy dock (its measured height already
+  // includes the fade headroom and the safe-area padding).
+  const bottomPad = (barH || 176) + spacing.md;
 
   // ── Build the page list (some pages depend on the data we actually have) ──
   const pages = useMemo(() => {
@@ -148,7 +158,6 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         key="hook"
         topPad={topPad}
         bottomPad={bottomPad}
-        ink={ink}
         eyebrow={dayCount ? `${dayCount}-DAY PROGRAM` : "GUIDED PROGRAM"}
         title={title}
         pitch={pitch}
@@ -156,11 +165,13 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         dayCount={dayCount}
         sessionCount={sessionCount}
         reduceMotion={reduceMotion}
-        hintVisible={activeIndex === 0}
+        hintVisible={activeIndex === 0 && modules.length > 0}
       />,
     );
 
     // 2. THE ARC — the day-by-day timeline (only when we have a curriculum).
+    // The offer + value + confirm now live in the review sheet the "Get" button
+    // opens, so there is no separate paywall page to duplicate them.
     if (modules.length > 0) {
       list.push(
         <PlanPage
@@ -173,29 +184,9 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
       );
     }
 
-    // 3. THE PAYWALL CLOSE — the offer card + value checklist + reassurance,
-    // in the language of a real paywall (a single one-time offer, no invented
-    // tiers). This absorbed the old standalone "what you get" page so value and
-    // price sit together at the decision point.
-    list.push(
-      <ClosePage
-        key="close"
-        topPad={topPad}
-        priceInr={offer.priceInr}
-        anchorInr={offer.anchorPriceInr}
-        note={priceNote}
-        dayCount={dayCount}
-        credits={offer.creditGrantAmount}
-        giftDays={offer.bonusMembershipDays}
-        bonusEligible={bonusEligible}
-        bottomPad={bottomPad}
-      />,
-    );
-
     return list;
   }, [
     topPad,
-    ink,
     dayCount,
     title,
     pitch,
@@ -261,40 +252,172 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         <View style={{ width: size.backBtn }} />
       </View>
 
-      {/* Persistent price + Buy dock — a floating capsule (the app's tab-bar
-          language), so Buy is never hidden and the bar reads as premium. */}
+      {/* Persistent buy dock — the premium paywall pattern: content fades out
+          beneath a centered price and ONE full-width glowing CTA. No container
+          chrome, so the button is the only bright object at the bottom. */}
       <View
         onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
-        style={[
-          styles.buyBar,
-          {
-            backgroundColor: colors.surface.elevated,
-            borderColor: colors.border.default,
-            shadowColor: colors.shadow,
-            bottom: insets.bottom + spacing.sm,
-          },
-        ]}
+        style={styles.buyBar}
+        pointerEvents="box-none"
       >
-        <PriceTag
-          priceInr={offer.priceInr}
-          anchorInr={offer.anchorPriceInr}
-          note={priceNote}
-          compact
+        {/* Transparent → SOLID canvas: the fade completes above the price, so
+            scrolling content dissolves cleanly and never ghosts through it. */}
+        <Gradient
+          colors={[
+            withAlpha(colors.background.canvas, 0),
+            colors.background.canvas,
+            colors.background.canvas,
+          ]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.buyFade}
+          pointerEvents="none"
         />
-        <View style={styles.buyBtn}>
-          <Button
+        <View style={[styles.buyBarInner, { paddingBottom: insets.bottom + spacing.md }]}>
+          <PriceTag
+            priceInr={offer.priceInr}
+            anchorInr={offer.anchorPriceInr}
+            note={priceNote}
+            compact
+            center
+          />
+          <BuyButton
             label={`Get ${offer.title}`}
             loading={purchasing}
-            onPress={onBuy}
-            rightIcon={icons.forward}
+            onPress={() => setSheetOpen(true)}
+            reduceMotion={reduceMotion}
           />
         </View>
       </View>
+
+      <PurchaseSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onDismissed={() => {
+          if (confirmRef.current) {
+            confirmRef.current = false;
+            onBuy();
+          }
+        }}
+        onConfirm={() => {
+          confirmRef.current = true;
+          setSheetOpen(false);
+        }}
+        reduceMotion={reduceMotion}
+        eyebrow={dayCount ? `${dayCount}-DAY PROGRAM` : "GUIDED PROGRAM"}
+        title={title}
+        matchReason={offer.match?.reason ?? null}
+        dayCount={dayCount}
+        credits={offer.creditGrantAmount}
+        giftDays={offer.bonusMembershipDays}
+        bonusEligible={bonusEligible}
+        priceInr={offer.priceInr}
+        anchorInr={offer.anchorPriceInr}
+        note={priceNote}
+      />
     </View>
   );
 };
 
 export default ProgramSalesFlow;
+
+/* ─────────────────────────────── The buy button ───────────────────────── */
+
+interface BuyButtonProps {
+  label: string;
+  loading: boolean;
+  onPress: () => void;
+  reduceMotion: boolean;
+}
+
+/**
+ * The one CTA worth making feel alive: a brand-gradient fill with a glossy top,
+ * a warm orange glow that lifts it off the dock, and a slow light sweep that
+ * says "tap me" without nagging (it glides once, then rests). A purchase CTA is
+ * a rare, high-stakes surface — the one place this much motion earns its keep.
+ * Press-scale + loading are preserved; the sweep is fully reduced-motion gated.
+ */
+const BuyButton: React.FC<BuyButtonProps> = ({
+  label,
+  loading,
+  onPress,
+  reduceMotion,
+}) => {
+  const { colors, scheme } = useTheme();
+  const ink = colors.action.onPrimary;
+  // Soft-edged shine ink. On dark, surface.inverse is white → a crisp glint;
+  // on the light "paper" canvas it flips dark, so there we lean on the scheme-
+  // aware sheen gloss instead of a dark streak.
+  const shine = scheme === "dark" ? colors.surface.inverse : null;
+  const [w, setW] = useState(0);
+  const shimmer = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion || w === 0) return;
+    shimmer.value = withRepeat(
+      withDelay(
+        SHIMMER_GAP,
+        withTiming(1, { duration: SHIMMER_SWEEP, easing: easing.inOut }),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(shimmer);
+  }, [reduceMotion, w, shimmer]);
+
+  const sweepStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(shimmer.value, [0, 0.15, 0.85, 1], [0, 1, 1, 0]),
+    transform: [
+      { translateX: interpolate(shimmer.value, [0, 1], [-SHEEN_W, w + SHEEN_W]) },
+      { rotate: "18deg" },
+    ],
+  }));
+
+  return (
+    <PressableScale
+      scaleTo={0.97}
+      onPress={loading ? undefined : onPress}
+      disabled={loading}
+      style={[
+        styles.buyCta,
+        { backgroundColor: colors.action.primary, shadowColor: colors.action.primary },
+      ]}
+    >
+      <View
+        style={styles.buyClip}
+        onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      >
+        <Gradient token="brand" style={StyleSheet.absoluteFill} pointerEvents="none" />
+        {!reduceMotion && w > 0 ? (
+          <Animated.View style={[styles.buySweep, sweepStyle]} pointerEvents="none">
+            {shine ? (
+              <Gradient
+                colors={[withAlpha(shine, 0), withAlpha(shine, 0.5), withAlpha(shine, 0)]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            ) : (
+              <Gradient token="sheen" style={StyleSheet.absoluteFill} />
+            )}
+          </Animated.View>
+        ) : null}
+
+        {loading ? (
+          <ActivityIndicator color={ink} />
+        ) : (
+          <>
+            <Text variant="title" color={ink} numberOfLines={1}>
+              {label}
+            </Text>
+            <Icon name={icons.forward} size={20} color={ink} />
+          </>
+        )}
+      </View>
+    </PressableScale>
+  );
+};
 
 /* ────────────────────────────── Pager plumbing ────────────────────────── */
 
@@ -359,7 +482,6 @@ const Dot: React.FC<DotProps> = ({ index, scrollX, width, colors }) => {
 interface HookPageProps {
   topPad: number;
   bottomPad: number;
-  ink: string;
   eyebrow: string;
   title: string;
   pitch: string | null;
@@ -373,7 +495,6 @@ interface HookPageProps {
 const HookPage: React.FC<HookPageProps> = ({
   topPad,
   bottomPad,
-  ink,
   eyebrow,
   title,
   pitch,
@@ -383,6 +504,8 @@ const HookPage: React.FC<HookPageProps> = ({
   reduceMotion,
   hintVisible,
 }) => {
+  const { colors } = useTheme();
+  const glow = colors.action.primary;
   const nudge = useSharedValue(0);
   const drift = useSharedValue(0);
   useEffect(() => {
@@ -415,34 +538,40 @@ const HookPage: React.FC<HookPageProps> = ({
 
   return (
     <View style={styles.hookRoot}>
-      <Gradient token="sunrise" style={StyleSheet.absoluteFill} pointerEvents="none" />
-      {/* Depth without an illustration: a soft ink orb for radial glow, a large
-          drifting brand-journey emblem as the hero mark, and a top gloss. */}
+      {/* Premium dark hero — the constitution's "dark + orange accents, never an
+          orange flood": warm light falls from the top, an orange orb glow and the
+          drifting brand emblem give atmosphere, and the content speaks in accents. */}
+      <Gradient
+        colors={[withAlpha(glow, 0.16), withAlpha(glow, 0)]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.hookWarmth}
+        pointerEvents="none"
+      />
       <View
-        style={[styles.hookBlob, { backgroundColor: withAlpha(ink, 0.08) }]}
+        style={[styles.hookBlob, { backgroundColor: withAlpha(glow, 0.08) }]}
         pointerEvents="none"
       />
       <Animated.View style={[styles.hookGlyph, glyphStyle]} pointerEvents="none">
-        <Icon name={icons.roadmap} size={216} color={withAlpha(ink, 0.1)} />
+        <Icon name={icons.roadmap} size={216} color={withAlpha(glow, 0.14)} />
       </Animated.View>
-      <Gradient token="sheen" style={styles.hookSheen} pointerEvents="none" />
 
       <View style={[styles.hookFill, { paddingTop: topPad, paddingBottom: bottomPad }]}>
         <View style={styles.hookGap} />
 
         <Animated.View entering={staggerEntering(0, reduceMotion)}>
-          <Text variant="label" color={withAlpha(ink, 0.72)}>
+          <Text variant="label" color="accent">
             {eyebrow}
           </Text>
         </Animated.View>
         <Animated.View entering={staggerEntering(1, reduceMotion)}>
-          <Text variant="display" color={ink} style={styles.hookTitle}>
+          <Text variant="display" color="primary" style={styles.hookTitle}>
             {title}
           </Text>
         </Animated.View>
         {pitch ? (
           <Animated.View entering={staggerEntering(2, reduceMotion)}>
-            <Text variant="body" color={withAlpha(ink, 0.86)}>
+            <Text variant="body" color="secondary">
               {pitch}
             </Text>
           </Animated.View>
@@ -451,10 +580,16 @@ const HookPage: React.FC<HookPageProps> = ({
         {matchReason ? (
           <Animated.View
             entering={staggerEntering(3, reduceMotion)}
-            style={[styles.matchPill, { backgroundColor: withAlpha(ink, 0.12) }]}
+            style={[
+              styles.matchPill,
+              {
+                backgroundColor: colors.surface.default,
+                borderColor: colors.border.default,
+              },
+            ]}
           >
-            <Icon name={icons.roadmap} size={16} color={ink} />
-            <Text variant="bodySm" color={ink} style={styles.flex1}>
+            <Icon name={icons.roadmap} size={16} color={colors.text.accent} />
+            <Text variant="bodySm" color="secondary" style={styles.flex1}>
               {matchReason}
             </Text>
           </Animated.View>
@@ -465,12 +600,12 @@ const HookPage: React.FC<HookPageProps> = ({
             entering={staggerEntering(4, reduceMotion)}
             style={styles.statsRow}
           >
-            {dayCount ? <Stat value={dayCount} label="days" ink={ink} /> : null}
+            {dayCount ? <Stat value={dayCount} label="days" /> : null}
             {dayCount && sessionCount > 0 ? (
-              <View style={[styles.statRule, { backgroundColor: withAlpha(ink, 0.24) }]} />
+              <View style={[styles.statRule, { backgroundColor: colors.border.strong }]} />
             ) : null}
             {sessionCount > 0 ? (
-              <Stat value={sessionCount} label="sessions" ink={ink} />
+              <Stat value={sessionCount} label="sessions" />
             ) : null}
           </Animated.View>
         )}
@@ -479,11 +614,11 @@ const HookPage: React.FC<HookPageProps> = ({
 
         {hintVisible ? (
           <View style={styles.hint}>
-            <Text variant="label" color={withAlpha(ink, 0.72)}>
+            <Text variant="label" color="tertiary">
               Swipe to see your plan
             </Text>
             <Animated.View style={nudgeStyle}>
-              <Icon name={icons.chevronRight} size={16} color={withAlpha(ink, 0.72)} />
+              <Icon name={icons.chevronRight} size={16} color={colors.text.tertiary} />
             </Animated.View>
           </View>
         ) : null}
@@ -495,13 +630,12 @@ const HookPage: React.FC<HookPageProps> = ({
 interface StatProps {
   value: number;
   label: string;
-  ink: string;
 }
 
-const Stat: React.FC<StatProps> = ({ value, label, ink }) => (
+const Stat: React.FC<StatProps> = ({ value, label }) => (
   <View style={styles.stat}>
-    <AnimatedNumber value={value} variant="display" color={ink} />
-    <Text variant="label" color={withAlpha(ink, 0.72)}>
+    <AnimatedNumber value={value} variant="display" color="primary" />
+    <Text variant="label" color="tertiary">
       {label}
     </Text>
   </View>
@@ -581,105 +715,153 @@ const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }
   );
 };
 
-/* ───────────────────────── Page 3: The paywall close ──────────────────── */
+/* ─────────────────────────── The purchase sheet ───────────────────────── */
 
-interface ClosePageProps {
-  topPad: number;
-  priceInr: number;
-  anchorInr: number;
-  note?: string;
+interface PurchaseSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  /** Fires after the sheet has FULLY closed — where the real purchase runs, so
+   *  its success/error sheet never stacks over this one (iOS two-modal freeze). */
+  onDismissed: () => void;
+  /** Confirm tapped — flag the deferred buy and start closing. */
+  onConfirm: () => void;
+  reduceMotion: boolean;
+  eyebrow: string;
+  title: string;
+  matchReason: string | null;
   dayCount: number | null;
   credits: number;
   giftDays: number;
   bonusEligible: boolean;
-  bottomPad: number;
+  priceInr: number;
+  anchorInr: number;
+  note?: string;
 }
 
-const ClosePage: React.FC<ClosePageProps> = ({
-  topPad,
-  priceInr,
-  anchorInr,
-  note,
+/**
+ * The commit surface — a focused review sheet that earns the tap. Persuasion is
+ * white-hat only (Octalysis, done honestly): OWNERSHIP ("yours forever, not a
+ * subscription"), the REAL saving vs the standing price (loss-aversion with a
+ * true anchor), a GENUINE gift (reciprocity — only when actually eligible), real
+ * "matched to you" personalisation, and risk-reversal. No fabricated countdowns,
+ * scarcity, or social proof — every line is server-owned truth.
+ */
+const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
+  visible,
+  onClose,
+  onDismissed,
+  onConfirm,
+  reduceMotion,
+  eyebrow,
+  title,
+  matchReason,
   dayCount,
   credits,
   giftDays,
   bonusEligible,
-  bottomPad,
+  priceInr,
+  anchorInr,
+  note,
 }) => {
   const { colors } = useTheme();
   const discounted = anchorInr > priceInr;
   const showGift = giftDays > 0 && bonusEligible;
 
   return (
-    <ScrollView
-      style={styles.pageScroll}
-      nestedScrollEnabled
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.pageScrollContent,
-        styles.closeContent,
-        { paddingTop: topPad, paddingBottom: bottomPad },
-      ]}
-    >
-      <View>
-        <Text variant="label" color="tertiary">
-          THE OFFER
-        </Text>
-        <Text variant="h1" color="primary" style={styles.pageTitle}>
-          Ready when you are
-        </Text>
-      </View>
-
-      {/* The offer card — one real one-time price, featured like a paywall's
-          headline plan. The badge is the SERVER discount note; the struck
-          original carries the magnitude. No invented tiers, no fake award. */}
-      <View
-        style={[
-          styles.offerCard,
-          {
-            backgroundColor: colors.surface.elevated,
-            borderColor: colors.action.primary,
-          },
-        ]}
-      >
-        <View style={styles.offerTop}>
+    <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed}>
+      <View style={styles.sheetBody}>
+        {/* Identity + the goal (epic meaning) */}
+        <View>
+          <View style={[styles.sheetEmblem, { backgroundColor: colors.action.primary }]}>
+            <Icon name={icons.roadmap} size={22} color={colors.action.onPrimary} />
+          </View>
           <Text variant="label" color="tertiary">
-            LIFETIME ACCESS
+            {eyebrow}
           </Text>
-          {discounted && note ? (
-            <View style={[styles.dealBadge, { backgroundColor: colors.accent.success }]}>
-              <Text variant="caption" color={colors.accentOn.success}>
-                {note}
-              </Text>
-            </View>
+          <Text variant="h1" color="primary" style={styles.pageTitle}>
+            {title}
+          </Text>
+        </View>
+
+        {/* Matched to you — real personalisation (relatedness), when present. */}
+        {matchReason ? (
+          <View
+            style={[
+              styles.sheetMatched,
+              { backgroundColor: colors.surface.default, borderColor: colors.border.default },
+            ]}
+          >
+            <Icon name={icons.roadmap} size={16} color={colors.text.accent} />
+            <Text variant="bodySm" color="secondary" style={styles.flex1}>
+              {matchReason}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* The offer — one real one-time price, the saving carried by the badge
+            + the struck original. Ownership framing, honest anchor. */}
+        <View
+          style={[
+            styles.offerCard,
+            {
+              backgroundColor: colors.surface.default,
+              borderColor: colors.action.primary,
+            },
+          ]}
+        >
+          <View style={styles.offerTop}>
+            <Text variant="label" color="tertiary">
+              LIFETIME ACCESS
+            </Text>
+            {discounted && note ? (
+              <View style={[styles.dealBadge, { backgroundColor: colors.accent.success }]}>
+                <Text variant="caption" color={colors.accentOn.success}>
+                  {note}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.offerPrice}>
+            <PriceTag priceInr={priceInr} anchorInr={anchorInr} />
+          </View>
+          <Text variant="bodySm" color="secondary">
+            One payment. Yours to keep — no subscription.
+          </Text>
+        </View>
+
+        {/* What you get — the value checklist. */}
+        <View style={styles.checkList}>
+          {dayCount ? (
+            <CheckRow label={`${dayCount}-day guided arc, one session a day`} />
           ) : null}
+          {credits > 0 ? (
+            <CheckRow label={`${credits} AI practice calls, built in`} />
+          ) : null}
+          {showGift ? (
+            <CheckRow label="First month of membership, free" gift />
+          ) : null}
+          <CheckRow label="Yours to keep — no subscription" />
         </View>
-        <View style={styles.offerPrice}>
-          <PriceTag priceInr={priceInr} anchorInr={anchorInr} />
+
+        {/* Commit — the premium button, then the risk-reverser, then an easy out. */}
+        <View style={styles.sheetActions}>
+          <BuyButton
+            label="Unlock now"
+            loading={false}
+            onPress={onConfirm}
+            reduceMotion={reduceMotion}
+          />
+          <Text variant="caption" color="tertiary" center>
+            Nothing is charged until you confirm.
+          </Text>
+          <PressableScale onPress={onClose} style={styles.maybeLater}>
+            <Text variant="bodySm" color="tertiary">
+              Maybe later
+            </Text>
+          </PressableScale>
         </View>
-        <Text variant="bodySm" color="secondary">
-          One payment. Yours to keep — no subscription.
-        </Text>
       </View>
-
-      {/* What you get — the value checklist, sitting right next to the price. */}
-      <View style={styles.checkList}>
-        {dayCount ? (
-          <CheckRow label={`${dayCount}-day guided arc, one session a day`} />
-        ) : null}
-        {credits > 0 ? (
-          <CheckRow label={`${credits} AI practice calls, built in`} />
-        ) : null}
-        {showGift ? (
-          <CheckRow label="First month of membership, free" gift />
-        ) : null}
-        <CheckRow label="Yours to keep — no subscription" />
-      </View>
-
-      <Text variant="caption" color="tertiary" center style={styles.trust}>
-        Nothing is charged until you confirm.
-      </Text>
-    </ScrollView>
+    </Sheet>
   );
 };
 
@@ -740,24 +922,49 @@ const styles = StyleSheet.create({
   },
   buyBar: {
     position: "absolute",
-    left: space.screenX,
-    right: space.screenX,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Headroom for the fade — content dissolves before it reaches the price.
+    paddingTop: spacing["3xl"],
+  },
+  buyFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Start the dissolve above the dock so the fade has room to finish before
+    // the price line — behind price + CTA the backing is fully opaque.
+    top: -spacing["4xl"],
+  },
+  buyBarInner: {
+    paddingHorizontal: space.screenX,
+    gap: space.rowGap,
+  },
+  buyCta: {
+    height: 56,
+    borderRadius: radius.pill,
+    alignSelf: "stretch",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  buyClip: {
+    flex: 1,
+    borderRadius: radius.pill,
+    overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: space.groupGap,
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.24,
-    shadowRadius: 16,
-    elevation: 12,
+    justifyContent: "center",
+    gap: space.inlineGap,
+    paddingHorizontal: spacing.lg,
   },
-  buyBtn: {
-    flex: 1,
+  buySweep: {
+    position: "absolute",
+    top: -24,
+    bottom: -24,
+    width: SHEEN_W,
   },
   // ── Hook ──
   hookRoot: {
@@ -788,7 +995,7 @@ const styles = StyleSheet.create({
     top: 24,
     right: -56,
   },
-  hookSheen: {
+  hookWarmth: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -800,8 +1007,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: space.inlineGap,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     borderRadius: radius.chip,
+    borderWidth: StyleSheet.hairlineWidth,
     marginTop: space.groupGap,
   },
   statsRow: {
@@ -827,14 +1035,6 @@ const styles = StyleSheet.create({
   // ── Shared page ──
   pagePadded: {
     flex: 1,
-    paddingHorizontal: space.screenX,
-  },
-  pageScroll: {
-    flex: 1,
-  },
-  pageScrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
     paddingHorizontal: space.screenX,
   },
   pageTitle: {
@@ -874,10 +1074,7 @@ const styles = StyleSheet.create({
   dayDesc: {
     marginTop: space.titleSub,
   },
-  // ── Paywall close ──
-  closeContent: {
-    gap: space.sectionGap,
-  },
+  // ── Offer card + checklist (shared by the purchase sheet) ──
   offerCard: {
     borderRadius: radius.card,
     borderWidth: borderWidth.thick,
@@ -905,8 +1102,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: space.iconText,
   },
-  trust: {
-    marginTop: space.inlineGap,
+  // ── Purchase sheet ──
+  sheetBody: {
+    gap: spacing.xl,
+  },
+  sheetEmblem: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: space.groupGap,
+  },
+  sheetMatched: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.iconText,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.input,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  sheetActions: {
+    gap: space.rowGap,
+  },
+  maybeLater: {
+    alignSelf: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   flex1: {
     flex: 1,
