@@ -794,44 +794,62 @@ export const FlagProp: React.FC<PartProps> = () => (
 
 // ── NEW headgear (compact, tile-fitting) ─────────────────────────────────────
 
-/** A stubby party hat — a cone that fits inside the circular tile, with gold
- *  zig-stripes, a brim band, and a pom. Free (celebration dressing). */
+/** A party hat — a FULL-HEAD dome (same coverage silhouette as the other hats,
+ *  so no head/hair peeks out) styled festive: gold zig-stripes, a hatline band,
+ *  and a pom at the crown. Free (celebration dressing). */
 export const PartyHat: React.FC<PartProps> = () => (
   <>
-    <Dome d="M15.5 15 L26 2 L34.5 14 Z" fill="#8B6CFF" />
-    <Path d="M20 11 L24.4 3.8" stroke="#FFD23F" strokeWidth={2.2} strokeLinecap="round" />
-    <Path d="M24 13 L28.2 5.4" stroke="#FFD23F" strokeWidth={2.2} strokeLinecap="round" />
-    <Path d="M15.5 15 Q25 17.6 34.5 14" stroke="#FFD23F" strokeWidth={2.6} fill="none" strokeLinecap="round" />
-    <Circle cx={26} cy={2} r={2.3} fill="#FFFFFF" />
-    <Circle cx={26} cy={2} r={2.3} fill="none" stroke={INK} strokeWidth={0.9} />
+    <Dome d="M6 14 C5 5.5 9 2.2 24.675 2.2 C40.35 2.2 44.35 5.5 43.35 14 C36.5 12 29 12.8 24.675 12.8 C20.35 12.8 12.85 12 6 14 Z" fill="#8B6CFF" />
+    {/* zig stripes down the dome */}
+    <Path
+      d="M12.5 12 L17.5 3.6 M20.8 13 L25.4 2.8 M30 13 L34.6 3.6 M38 12 L41.8 5.6"
+      fill="none"
+      stroke="#FFD23F"
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    {/* hatline band */}
+    <Path d="M6.5 11.6 C15 10.2 34.35 10.2 42.85 11.6 L42.85 14.2 C34.35 12.8 15 12.8 6.5 14.2 Z" fill="#6A4FD0" />
+    {/* pom at the crown */}
+    <Circle cx={24.675} cy={2.4} r={2.1} fill="#FFFFFF" />
+    <Circle cx={24.675} cy={2.4} r={2.1} fill="none" stroke={INK} strokeWidth={0.9} />
   </>
 );
 
-/** A gold five-point crown — a jewelled band with triangular spikes. */
+/** A gold crown — a solid dome that FULLY covers the head, with five points
+ *  rising from it and a jewelled band (points sit on the dome, so no head shows
+ *  between them). */
 export const Crown: React.FC<PartProps> = () => (
   <>
-    <Dome
-      d="M6.5 16 L7.6 5.5 L13.8 11 L18.9 3.5 L24.675 10 L30.45 3.5 L35.55 11 L41.75 5.5 L42.85 16 Q24.675 12.8 6.5 16 Z"
+    <Dome d="M6.5 15 C5.6 7 9.5 4 24.675 4 C39.85 4 43.75 7 42.85 15 C36 13 29 13.6 24.675 13.6 C20.35 13.6 13 13 6.5 15 Z" fill={GOLD} />
+    {/* five points on top of the dome (their filled base overlaps the dome) */}
+    <Path
+      d="M6.6 8 L9 3.6 L13.2 6.4 L18.4 2.2 L24.675 5.6 L30.95 2.2 L36.15 6.4 L40.35 3.6 L42.75 8 C36 6.6 29 6.3 24.675 6.3 C20.35 6.3 13 6.6 6.6 8 Z"
       fill={GOLD}
     />
-    <Sheen d="M6.5 15.4 Q24.675 12.2 42.85 15.4 L42.85 18 Q24.675 14.8 6.5 18 Z" fill="#E0A93A" />
-    <Circle cx={24.675} cy={9.4} r={1.5} fill="#E8556B" />
-    <Circle cx={14.3} cy={11.4} r={1.2} fill="#4C8BF0" />
-    <Circle cx={35.05} cy={11.4} r={1.2} fill="#4C8BF0" />
-    <Circle cx={19.4} cy={5} r={1} fill="#FFFFFF" opacity={0.85} />
-    <Circle cx={29.95} cy={5} r={1} fill="#FFFFFF" opacity={0.85} />
+    <Path
+      d="M6.6 8 L9 3.6 L13.2 6.4 L18.4 2.2 L24.675 5.6 L30.95 2.2 L36.15 6.4 L40.35 3.6 L42.75 8"
+      fill="none"
+      stroke="#E0A93A"
+      strokeWidth={0.6}
+      strokeLinejoin="round"
+    />
+    <Path d="M7 11.4 C15 10.1 34.35 10.1 42.35 11.4 L42.35 14 C34.35 12.7 15 12.7 7 14 Z" fill="#E0A93A" />
+    <Circle cx={24.675} cy={12.6} r={1.5} fill="#E8556B" />
+    <Circle cx={14.3} cy={12.8} r={1.1} fill="#4C8BF0" />
+    <Circle cx={35.05} cy={12.8} r={1.1} fill="#4C8BF0" />
   </>
 );
 
-/** A classic top hat — tall cylinder crown (fits the tile) on a wide brim. */
+/** A top hat — a full-head-covering dark crown (flat-topped) on a wide brim. */
 export const TopHat: React.FC<PartProps> = () => (
   <>
-    <Dome d="M12.5 4.5 Q12.5 3.2 14 3.2 L35.35 3.2 Q36.85 3.2 36.85 4.5 L36.85 14 Q24.675 12 12.5 14 Z" fill="#2B2733" />
-    {/* band */}
-    <Sheen d="M12.6 11.4 Q24.675 9.6 36.75 11.4 L36.75 14.2 Q24.675 12.4 12.6 14.2 Z" fill="#C0504C" />
-    {/* brim */}
-    <Sheen d="M4.5 14.4 Q24.675 10.6 44.85 14.4 Q42.9 18 24.675 17.3 Q6.45 18 4.5 14.4 Z" fill="#2B2733" />
-    <Path d="M16 5.4 Q16.6 8.6 16.2 11.4" stroke="#4A4552" strokeWidth={0.8} opacity={0.7} />
+    <Dome d="M8 13.5 C7.2 4.5 10.5 2.5 24.675 2.5 C38.85 2.5 42.15 4.5 41.35 13.5 C34.5 11.8 29 12.4 24.675 12.4 C20.35 12.4 14.5 11.8 8 13.5 Z" fill="#2B2733" />
+    {/* red band */}
+    <Path d="M8.6 10.4 C15 9 34.35 9 40.75 10.4 L40.75 13 C34.35 11.6 15 11.6 8.6 13 Z" fill="#C0504C" />
+    {/* wide stiff brim */}
+    <Dome d="M3 14 C2.3 11.2 5.6 11.4 8.2 12.1 C15.5 13.5 24.675 13.7 24.675 13.7 C24.675 13.7 33.85 13.5 41.15 12.1 C43.75 11.4 47.05 11.2 46.35 14 C41.6 17 24.675 17.3 24.675 17.3 C7.75 17 3 14 3 14 Z" fill="#2B2733" />
+    <Path d="M12 4.6 C16 3.1 24.675 2.9 24.675 2.9" fill="none" stroke="#FFF" strokeWidth={0.9} strokeLinecap="round" opacity={0.14} />
   </>
 );
 
