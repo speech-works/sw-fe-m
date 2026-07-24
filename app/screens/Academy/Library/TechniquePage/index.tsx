@@ -54,6 +54,7 @@ const TechniquePage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
+  const [contentHeight, setContentHeight] = useState(Dimensions.get("window").height);
   const [headerHeight, setHeaderHeight] = useState(200);
 
   const scrollY_0 = useSharedValue(0);
@@ -260,8 +261,9 @@ const TechniquePage = () => {
         <View
           style={styles.contentContainer}
           onLayout={(e) => {
-            const width = e.nativeEvent.layout.width;
+            const { width, height } = e.nativeEvent.layout;
             if (width > 0) setContentWidth(width);
+            if (height > 0) setContentHeight(height);
           }}
         >
           <ScrollView
@@ -276,8 +278,13 @@ const TechniquePage = () => {
               handleStepChange(pageIndex);
             }}
             style={{ flex: 1 }}
+            // Without these the row's cross-axis is auto-sized, so each page — and
+            // the vertical ScrollView inside it — has no definite viewport height.
+            // The inner scroll then under-reports its content and long items become
+            // unscrollable past a screen or two.
+            contentContainerStyle={styles.pagerContent}
           >
-            <View style={{ width: contentWidth }}>
+            <View style={[styles.page, { width: contentWidth, height: contentHeight }]}>
               <TutorialPage
                 setActiveStageIndex={handleChildStageChange}
                 techniqueId={techniqueId}
@@ -287,7 +294,7 @@ const TechniquePage = () => {
             </View>
             {isContentAccessible && (
               <>
-                <View style={{ width: contentWidth }}>
+                <View style={[styles.page, { width: contentWidth, height: contentHeight }]}>
                   <PracticePage
                     setActiveStageIndex={handleChildStageChange}
                     techniqueId={techniqueId}
@@ -295,7 +302,7 @@ const TechniquePage = () => {
                     outerScrollY={scrollY_1}
                   />
                 </View>
-                <View style={{ width: contentWidth }}>
+                <View style={[styles.page, { width: contentWidth, height: contentHeight }]}>
                   <QuizPage
                     techniqueId={techniqueId}
                     techniqueName={techniqueName}
@@ -359,10 +366,18 @@ const TechniquePage = () => {
 export default TechniquePage;
 
 const styles = StyleSheet.create({
+  // No radius/overflow mask here: it buys nothing visually (the pages are full-bleed
+  // on the canvas) and the mask layer clips very tall page content on iOS.
   contentContainer: {
     flex: 1,
-    borderRadius: radius.card,
-    overflow: "hidden",
+  },
+  // The paging row fills the pager's height, and every page stretches to it, so each
+  // stage's own scroll view has a real viewport to measure its content against.
+  pagerContent: {
+    flexGrow: 1,
+  },
+  page: {
+    alignSelf: "stretch",
   },
   // Info sheet content
   modalContent: {

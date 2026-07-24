@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Animated from "react-native-reanimated";
+import React, { useEffect, useRef, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 
 import { getTechniquePractice } from "../../../../../api/library";
 import {
+  EXERCISE_ITEM_TYPE_ENUM,
   PracticeMode,
   TechniquePracticeItem,
   TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
 import { speakText } from "../../../../../util/functions/speak";
-import CustomScrollView from "../../../../../components/CustomScrollView";
+import PressableScale from "../../../../../components/PressableScale";
 
 // Components
 import { ToolType } from "../../../../../api/tools/types";
@@ -31,7 +28,12 @@ import {
   spacing,
   radius,
   space,
+  zIndex,
   Sheet,
+  FloatingControls,
+  FloatingControlItem,
+  floatingControlSurface,
+  FLOATING_CONTROL_SIZE,
 } from "../../../../../design-system";
 
 interface PracticePageProps {
@@ -40,6 +42,29 @@ interface PracticePageProps {
   header?: React.ReactNode;
   outerScrollY?: Animated.SharedValue<number>;
 }
+
+/** First-paint estimate of the fixed cluster (control stack + dock); replaced by the
+ *  measured value on layout so the scroll always reserves the exact right space. */
+const CLUSTER_ESTIMATE = 280;
+/** Above this length an item reads as a passage, not a line — see `textStyleFor`. */
+const PASSAGE_CHARS = 120;
+/** Only items this short are vertically centred; longer ones top-align so they can
+ *  never overflow a centred (flex-resolved) box and become unreachable. */
+const CENTERABLE_CHARS = 60;
+
+const isPassage = (item?: TechniquePracticeItem) =>
+  item?.type !== EXERCISE_ITEM_TYPE_ENUM.WORD &&
+  (item?.text?.length ?? 0) > PASSAGE_CHARS;
+
+/**
+ * Reading size follows the item, matching the standalone reading screens
+ * (word 48 · line 26 · passage 19). A single 42pt hero size applied to a full
+ * passage is what pushed the text off both ends of the stage.
+ */
+const textStyleFor = (item?: TechniquePracticeItem) => {
+  if (item?.type === EXERCISE_ITEM_TYPE_ENUM.WORD) return styles.textWord;
+  return isPassage(item) ? styles.textPassage : styles.textLine;
+};
 
 const PracticePage = ({
   techniqueId,
@@ -66,6 +91,25 @@ const PracticePage = ({
   const [voiceRecordingUri, setVoiceRecordingUri] = useState<string | null>(
     null,
   );
+
+  // Measured height of the fixed cluster (control stack + dock), so the scroll can
+  // reserve exactly enough room for the last line to clear the whole scrim fade.
+  const [clusterH, setClusterH] = useState(CLUSTER_ESTIMATE);
+
+  // Drives the parent's collapsing header (it owns the shared header above the pager).
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      if (outerScrollY) outerScrollY.value = e.contentOffset.y;
+    },
+  });
+
+  // A new item always starts at its first line — never mid-passage where the last
+  // one left off. Also re-shows the header, which follows this scroll offset.
+  const scrollRef = useRef<Animated.ScrollView>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    if (outerScrollY) outerScrollY.value = 0;
+  }, [selectedIndex, outerScrollY]);
 
   // VoiceHover Config
   const [vhRate, setVhRate] = useState(1.0);
@@ -117,6 +161,20 @@ const PracticePage = ({
       setVoiceRecordingUri(null);
       setVhIsPlaying(false);
     }
+  };
+
+  // Stepping back is pure navigation — unlike `handleNext` it does NOT mark the
+  // item complete, so re-reading something never inflates the done count.
+  const handlePrev = () => {
+    if (selectedIndex <= 0) return;
+    setSelectedIndex((prevIndex) => prevIndex - 1);
+    setVoiceRecordingUri(null);
+    setVhIsPlaying(false);
+  };
+
+  const onDeckLayout = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && Math.abs(h - clusterH) > 1) setClusterH(h);
   };
 
   const isToolActive = (toolName: string) =>
@@ -239,10 +297,11 @@ const PracticePage = ({
   if (mode === "REFLECTION") {
     return (
       <View style={styles.container}>
-        <CustomScrollView
-          contentContainerStyle={styles.scrollContent}
+        <Animated.ScrollView
+          contentContainerStyle={[styles.scrollContent, styles.reflectionScroll]}
           showsVerticalScrollIndicator={false}
-          outerScrollY={outerScrollY}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
         >
           {header}
           <View style={styles.stage}>
@@ -279,84 +338,140 @@ const PracticePage = ({
               Nothing to record — this one is just for you.
             </Text>
           </View>
-        </CustomScrollView>
+        </Animated.ScrollView>
       </View>
     );
   }
 
+  const canCenter =
+    currentItem?.type === EXERCISE_ITEM_TYPE_ENUM.WORD ||
+    (currentItem?.text?.length ?? 0) <= CENTERABLE_CHARS;
+  // The last line has to clear the WHOLE fixed cluster — controls and dock — so the
+  // end of a passage is readable in the clear, not parked under the mic pill.
+  const bottomReserve = clusterH + spacing["4xl"];
+  const itemLabel = (currentItem?.type || "ITEM").toUpperCase();
+  // One <Text> per paragraph: real paragraph rhythm for a long passage, and it keeps
+  // each text node a size iOS measures reliably (one 5k-character node does not).
+  const paragraphs = (currentItem?.text || "Loading...")
+    .split(/\n{2,}|\r\n\r\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const controls: FloatingControlItem[] = [
+    {
+      // items[0] sits closest to the thumb — item navigation is the primary control.
+      key: "pager",
+      render: (
+        <View
+          style={[
+            styles.pager,
+            { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+          ]}
+        >
+          <PressableScale
+            onPress={selectedIndex <= 0 ? undefined : handlePrev}
+            style={[styles.pagerBtn, selectedIndex <= 0 && styles.pagerOff]}
+            accessibilityLabel="Previous item"
+          >
+            <Icon name="chevron-up" size={20} color={colors.text.accent} />
+          </PressableScale>
+          <Text variant="label" color="secondary" style={styles.pagerCount}>
+            {selectedIndex + 1}/{exerciseItems.length || "?"}
+          </Text>
+          <PressableScale
+            onPress={handleNext}
+            style={styles.pagerBtn}
+            accessibilityLabel="Next item"
+          >
+            <Icon name="chevron-down" size={20} color={colors.text.accent} />
+          </PressableScale>
+        </View>
+      ),
+    },
+    {
+      icon: icons.volume,
+      onPress: () => speakText(currentItem?.text),
+      accessibilityLabel: "Hear this item",
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      {/* Main Content Area */}
-      <View style={{ flex: 1 }}>
-        <CustomScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          outerScrollY={outerScrollY}
+      {/* SCROLLING reading surface — nothing interactive lives here, so no content
+          length can move a control (the shared "Clean Focus" split). */}
+      <Animated.ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          canCenter && styles.scrollContentCenter,
+        ]}
+        showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+      >
+        {header}
+        <View
+          style={[
+            styles.stage,
+            canCenter && styles.stageCenter,
+            isPassage(currentItem) && styles.stageStretch,
+          ]}
         >
-          {header}
-          <View style={styles.stage}>
-            <Text variant="label" color={colors.accentText.info} style={styles.eyebrow}>
-              PRACTICE
-            </Text>
+          <Text variant="label" color={colors.accentText.info} style={styles.eyebrow}>
+            {completedItems.length > 0
+              ? `${itemLabel} · ${completedItems.length} DONE`
+              : itemLabel}
+          </Text>
 
-            <View style={styles.wordWrapper}>
-              {selectedPracticeTool === ToolType.CHORUS && (
-                <View
-                  style={{
-                    position: "absolute",
-                    opacity: 0,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                >
-                  <VoiceHover
-                    text={currentItem?.text || ""}
-                    rate={vhRate}
-                    prePause={vhPrePause}
-                    gap={vhGap}
-                    isPlaying={vhIsPlaying}
-                    onComplete={() => setVhIsPlaying(false)}
-                  />
-                </View>
-              )}
+          <View
+            style={[
+              styles.wordWrapper,
+              isPassage(currentItem) && styles.wordWrapperInset,
+            ]}
+          >
+            {selectedPracticeTool === ToolType.CHORUS && (
+              <View
+                style={{
+                  position: "absolute",
+                  opacity: 0,
+                  width: "100%",
+                  height: "100%",
+                }}
+              >
+                <VoiceHover
+                  text={currentItem?.text || ""}
+                  rate={vhRate}
+                  prePause={vhPrePause}
+                  gap={vhGap}
+                  isPlaying={vhIsPlaying}
+                  onComplete={() => setVhIsPlaying(false)}
+                />
+              </View>
+            )}
+            {paragraphs.map((para, i) => (
               <Text
+                key={i}
                 variant={currentItem?.type === "WORD" ? "h1" : "h2"}
                 color="primary"
-                style={styles.mainWordText}
+                style={[
+                  textStyleFor(currentItem),
+                  i > 0 && styles.paragraphGap,
+                ]}
               >
-                {currentItem?.text || "Loading..."}
+                {para}
               </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.phoneticContainer,
-                { backgroundColor: colors.surface.control },
-              ]}
-              onPress={() => speakText(currentItem?.text)}
-            >
-              <Icon name={icons.volume} size={16} color={colors.text.accent} />
-              <Text variant="body" color="secondary" style={styles.phoneticText}>
-                Tap to hear
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.navigationRow}>
-              <TouchableOpacity onPress={handleNext} style={styles.skipButton}>
-                <Text variant="title" color="secondary">
-                  Skip
-                </Text>
-              </TouchableOpacity>
-              <Text variant="bodySm" color="secondary">
-                Item {selectedIndex + 1} of {exerciseItems.length || "?"} · {completedItems.length} done
-              </Text>
-            </View>
+            ))}
           </View>
-        </CustomScrollView>
-      </View>
+        </View>
 
-      {/* Dock (Fixed Bottom) */}
-      <View style={styles.dockWrapper}>
+        {/* Explicit spacer, not padding — iOS miscalculates flex padding inside a
+            flexGrow content container and bounces the last lines back. */}
+        <View style={{ height: bottomReserve }} />
+      </Animated.ScrollView>
+
+      {/* FIXED control stack + dock — measured; nothing here ever moves. */}
+      <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
+        <FloatingControls inline items={controls} style={styles.deckStack} />
         <SmartRecorder
           onRecorded={setVoiceRecordingUri}
           prevRecordingUri={voiceRecordingUri || undefined}
@@ -412,62 +527,107 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     textAlign: "center",
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: space.screenX,
+  // Reflection has no dock, so it reserves a plain bottom pad instead of a cluster.
+  reflectionScroll: {
     paddingBottom: spacing["4xl"],
   },
-  stage: {
+  scrollContent: {
+    paddingHorizontal: space.screenX,
+  },
+  // flexGrow ONLY for short items that vertically centre. On a long passage it makes
+  // the content container resolve against the viewport, so the ScrollView reports a
+  // contentSize far shorter than the text really is and the tail becomes unreachable.
+  scrollContentCenter: {
     flexGrow: 1,
-    justifyContent: "center",
+  },
+  // Natural top-aligned flow by default so long items measure their TRUE height and
+  // scroll fully. `stageCenter` adds flexGrow only for short items that can never
+  // overflow — a flexGrow child inside a flexGrow scroll container is flex-resolved
+  // to the viewport height, which clips overflow at BOTH ends and kills scroll.
+  stage: {
     alignItems: "center",
     gap: spacing["2xl"],
     paddingVertical: spacing["3xl"],
+  },
+  stageCenter: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  stageStretch: {
+    alignItems: "stretch",
   },
   eyebrow: {
     letterSpacing: 1.2,
   },
 
-  // Card Styles
-
-  // Body Sheet
-
   wordWrapper: {
     position: "relative",
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  mainWordText: {
+  // A passage runs the full height of the scroll, so it would otherwise pass BEHIND
+  // the floating control stack and lose two words a line. Reserve the stack's gutter
+  // so every line stays fully readable all the way down to the dock. Short items are
+  // centred well clear of the controls and keep the full width.
+  wordWrapperInset: {
+    paddingRight: FLOATING_CONTROL_SIZE + spacing.md,
+    alignItems: "stretch",
+  },
+  textWord: {
     textAlign: "center",
-    fontSize: 42,
-    lineHeight: 52,
+    fontSize: 48,
+    lineHeight: 56,
   },
-  phoneticContainer: {
-    flexDirection: "row",
+  textLine: {
+    textAlign: "center",
+    fontSize: 26,
+    lineHeight: 38,
+  },
+  // Long passages read left-aligned — centred ragged text over many lines is hard
+  // to track back to at the start of each line.
+  textPassage: {
+    textAlign: "left",
+    fontSize: 19,
+    lineHeight: 32,
+  },
+  paragraphGap: {
+    marginTop: spacing.xl,
+  },
+
+  // Fixed cluster
+  deckFloat: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: zIndex.sticky + 1,
+  },
+  deckStack: {
+    alignSelf: "stretch",
+    paddingRight: space.screenX,
+    marginBottom: spacing.md,
+  },
+  // Vertical pager pill — same footprint as the icon FABs, taller to house
+  // prev / count / next in one control (matches the reading screens).
+  pager: {
+    ...floatingControlSurface,
     alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
   },
-  phoneticText: {
+  pagerBtn: {
+    width: FLOATING_CONTROL_SIZE,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pagerOff: {
+    opacity: 0.3,
+  },
+  pagerCount: {
+    textAlign: "center",
     fontVariant: ["tabular-nums"],
-  },
-
-
-  navigationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  skipButton: {
-    padding: spacing.sm,
-  },
-
-  // Dock
-  dockWrapper: {
-    paddingTop: spacing.lg,
   },
 
   // Sheet
