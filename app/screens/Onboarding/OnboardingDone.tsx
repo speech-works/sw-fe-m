@@ -5,6 +5,7 @@ import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { getOffers, type OfferItem } from "../../api";
+import OnboardingCelebration from "./OnboardingCelebration";
 import {
   Button,
   Icon,
@@ -93,6 +94,8 @@ const OnboardingDone: React.FC = () => {
             ? "Here's what we'd start with, based on what you told us."
             : "Thanks — that helps us shape what we put in front of you."}
         </Text>
+
+        <OnboardingCelebration />
 
         {topMatch ? (
           <View
