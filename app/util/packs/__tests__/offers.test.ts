@@ -1,4 +1,4 @@
-import { selectOffer, groupByShelf, isOpenable } from "../offers";
+import { selectOffer, isOpenable } from "../offers";
 import type { OfferItem } from "../../../api";
 
 const offer = (
@@ -40,39 +40,6 @@ describe("selectOffer — never sell the wrong product", () => {
 
   it("returns null for an empty catalog rather than throwing", () => {
     expect(selectOffer([], "anything")).toBeNull();
-  });
-});
-
-describe("groupByShelf", () => {
-  it("keeps shelves in display order regardless of the server's ordering", () => {
-    const items = [
-      offer("deep_one", "deep", 1999),
-      offer("small_one", "small", 199),
-      offer("regular_one", "regular", 999),
-    ];
-    expect(groupByShelf(items).map((g) => g.shelf)).toEqual([
-      "small",
-      "regular",
-      "deep",
-    ]);
-  });
-
-  it("drops empty shelves so no heading sits above a gap", () => {
-    const groups = groupByShelf([offer("only", "regular", 999)]);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].shelf).toBe("regular");
-  });
-
-  it("returns nothing at all for an empty catalog", () => {
-    // The shop shows "nothing yet", which is a normal pre-launch state — not
-    // an error, and not an empty scaffold of three headings.
-    expect(groupByShelf([])).toEqual([]);
-  });
-
-  it("drops an unrecognised shelf instead of filing it under a default", () => {
-    const rogue = offer("mystery", "premium" as OfferItem["shelf"], 4999);
-    const groups = groupByShelf([offer("ok", "small", 199), rogue]);
-    expect(groups.flatMap((g) => g.items.map((i) => i.key))).toEqual(["ok"]);
   });
 });
 

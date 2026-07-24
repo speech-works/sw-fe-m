@@ -30,21 +30,12 @@ export function selectOffer(
 export type Shelf = OfferItem["shelf"];
 
 /**
- * Groups offers onto shelves in display order, dropping shelves with nothing
- * on them so the shop never renders a heading above an empty gap.
- *
- * Unknown shelves are dropped rather than bucketed into a default: a shelf the
- * app does not recognise is a backend change the app has not shipped support
- * for, and silently filing it under "Focused" would misdescribe the product.
+ * NOTE: `groupByShelf` lived here and grouped the shop into cheap-first shelf
+ * sections. It was removed when the backend began returning items already
+ * RANKED for the user (ShopRankingService) — grouping by price bucket would
+ * have re-sorted that ranking away, which is the opposite of the point. Shelf
+ * survives as a per-card label, not as the sort order.
  */
-export function groupByShelf(
-  items: OfferItem[],
-  order: Shelf[] = ["small", "regular", "deep"],
-): { shelf: Shelf; items: OfferItem[] }[] {
-  return order
-    .map((shelf) => ({ shelf, items: items.filter((i) => i.shelf === shelf) }))
-    .filter((group) => group.items.length > 0);
-}
 
 /**
  * Whether a product can be opened for a closer look. `packId` is null when the

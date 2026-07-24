@@ -269,6 +269,25 @@ export interface OfferItem {
    * Treat null as "not openable" rather than assuming a pack exists.
    */
   packId: string | null;
+  /** Length of the guided arc in days, for "8-day guided arc". Null if none. */
+  arcDays: number | null;
+  /** One-line pitch, straight from the pack — never written in the app. */
+  blurb: string | null;
+  /** AI practice calls bundled with the pack. 0 for most; 8–10 on premium. */
+  creditGrantAmount: number;
+  /**
+   * Days of membership gifted on purchase. ONLY show this alongside
+   * `Offers.bonusMembershipEligible` — the backend grants it to first-time
+   * pack buyers only, so advertising it unconditionally promises a gift a
+   * repeat buyer will never receive.
+   */
+  bonusMembershipDays: number;
+  /**
+   * Why this pack was matched to this user, or null when we have no signal
+   * that justifies a claim. Render a "matched to you" badge ONLY when present
+   * — the backend refuses to fabricate one.
+   */
+  match: { level: "top" | "strong"; reason?: string } | null;
 }
 
 /**
@@ -297,6 +316,20 @@ export interface MembershipOffer {
 export interface Offers {
   isFounderCohort: boolean;
   showMembershipOffer: boolean;
+  /**
+   * How much the backend actually knows about this user.
+   * `"none"` = no onboarding signal at all: show NO match badges anywhere and
+   * prompt onboarding instead. `"intent"` = they told us their situations/goal
+   * but haven't finished onboarding. `"full"` = clinical baseline exists too.
+   */
+  signalLevel: "none" | "intent" | "full";
+  /**
+   * Whether the first-purchase bonus membership month would really be granted.
+   * False for a repeat buyer, or anyone who has ever held a membership. Gate
+   * every "free month included" line on this.
+   */
+  bonusMembershipEligible: boolean;
+  /** Ranked best-first by the backend. Render in the order given. */
   items: OfferItem[];
   topup: TopupOffer;
   membership: MembershipOffer;
