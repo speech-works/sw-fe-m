@@ -13,7 +13,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import CheerHero from "../../assets/celebration/cheerHero";
+import { UserAvatar } from "../../components/UserAvatar";
+import { DEFAULT_MANIFEST, type AvatarManifest } from "../../types/avatar";
+import CelebrationGear from "../../assets/celebration/celebrationGear";
 import {
   Text,
   useTheme,
@@ -43,9 +45,24 @@ import {
  *    no shockwave, no confetti, no tap-bounce. Comprehension kept, motion gone.
  */
 
-const HERO_SIZE = 120;
-const STAGE = 224; // stage height that the light layers center within
+// The avatar renders in a -8..56 viewBox (an 8-unit bleed for props like the
+// flag), and its disc is 0.75 × size — so 160 gives a ~120px disc plus room
+// for the summit flag to fly past the edge.
+const HERO_SIZE = 160;
+const STAGE = 232; // stage height that the light layers center within
 const BURST_PERIOD = 22000; // one slow god-ray revolution
+
+/**
+ * The celebration hero is the app's OWN avatar — the circular tile + squircle
+ * head everyone recognises — with just a joyful face. NO wardrobe headgear /
+ * eyewear / prop: those are level-gated unlocks a brand-new user hasn't earned.
+ * The party hat + heart glasses are bespoke celebration gear (CelebrationGear),
+ * layered on top, so nothing here depends on the level system.
+ */
+const HERO_MANIFEST: AvatarManifest = {
+  ...DEFAULT_MANIFEST,
+  parts: { ...DEFAULT_MANIFEST.parts, face: "face.joy" },
+};
 
 // ── God-ray sunburst geometry (built once; Math is fine in app code) ────────
 const RAYS = 12;
@@ -191,10 +208,7 @@ const Sparkle: React.FC<{
 };
 
 /** The single celebration hero — pops in over the burst, floats, tap to bounce. */
-const Hero: React.FC<{ reduced: boolean; color: string }> = ({
-  reduced,
-  color,
-}) => {
+const Hero: React.FC<{ reduced: boolean }> = ({ reduced }) => {
   const pop = useSharedValue(0);
   const floatV = useSharedValue(0);
   // Tap-to-bounce — the "interactive" bit. A quick squash toward the finger,
@@ -239,8 +253,15 @@ const Hero: React.FC<{ reduced: boolean; color: string }> = ({
 
   return (
     <Pressable onPress={onPoke} accessibilityRole="image">
-      <Animated.View style={style}>
-        <CheerHero size={HERO_SIZE} color={color} />
+      <Animated.View style={[style, { width: HERO_SIZE, height: HERO_SIZE }]}>
+        <UserAvatar
+          manifest={HERO_MANIFEST}
+          size={HERO_SIZE}
+          animate={false}
+          accessibilityLabel="Your celebration avatar"
+        />
+        {/* Bespoke party gear, layered in the avatar's own coordinate space. */}
+        <CelebrationGear size={HERO_SIZE} />
       </Animated.View>
     </Pressable>
   );
@@ -372,7 +393,7 @@ const OnboardingCelebration: React.FC = () => {
       {!reduced ? <Confetti palette={palette} /> : null}
 
       <CheerBubble reduced={reduced} />
-      <Hero reduced={reduced} color={gold} />
+      <Hero reduced={reduced} />
     </View>
   );
 };
