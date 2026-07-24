@@ -13,12 +13,16 @@ import {
   Icon,
   icons,
   useTheme,
+  withAlpha,
   spacing,
   radius,
   Spinner,
 } from "../../design-system";
 import PriceTag from "../../components/PriceTag";
-import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import {
+  showErrorBottomSheet,
+  showSuccessBottomSheet,
+} from "../../util/functions/bottomSheet";
 import {
   ExploreStackNavigationProp,
   ExploreStackRouteProp,
@@ -43,6 +47,13 @@ const ProgramDetailScreen = () => {
 
   const [offer, setOffer] = useState<OfferItem | null>(null);
   const [isFounder, setIsFounder] = useState(false);
+  /**
+   * Whether the first-purchase bonus month would ACTUALLY be granted to this
+   * user. The backend gives it to first-time pack buyers only, so this gates
+   * every mention of it — advertising a gift a repeat buyer won't receive is
+   * the same shown≠charged harm as a wrong price.
+   */
+  const [bonusEligible, setBonusEligible] = useState(false);
   const [brochure, setBrochure] = useState<PackBrochure | null>(null);
   const [owned, setOwned] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,6 +72,7 @@ const ProgramDetailScreen = () => {
         const match = selectOffer(offers.items, catalogKey);
         setOffer(match);
         setIsFounder(offers.isFounderCohort);
+        setBonusEligible(offers.bonusMembershipEligible);
         setOwned(match?.owned ?? false);
       } catch (error) {
         console.error("[ProgramDetail] Failed to load offer:", error);
@@ -98,6 +110,20 @@ const ProgramDetailScreen = () => {
         );
         if (wallet) {
           setOwned(true);
+          // CLAIM THE GIFT — but only once the wallet proves it landed.
+          // The bonus membership month is granted silently by the webhook and
+          // was never mentioned anywhere in the app, which wasted the single
+          // most generous thing we do. Read it back from the wallet rather
+          // than assuming from pre-purchase eligibility: a race, a refund or a
+          // changed rule must never produce a congratulation for a gift the
+          // user did not actually get.
+          if (wallet.entitlements.includes("membership")) {
+            setBonusEligible(false); // spent — never advertise it twice
+            showSuccessBottomSheet(
+              "You're in — and the first month is on us",
+              "Your program is unlocked, plus a free month of membership: 4 AI practice calls to use whenever you want them.",
+            );
+          }
         } else {
           showErrorBottomSheet(
             "Almost there",
@@ -174,6 +200,26 @@ const ProgramDetailScreen = () => {
         </View>
       )}
 
+      {/* Why we put this in front of them — their own words, when we have
+          them. Absent whenever the backend had no signal to justify a claim. */}
+      {offer.match?.reason && !owned ? (
+        <View
+          style={[
+            styles.matchRow,
+            { backgroundColor: withAlpha(colors.action.primary, 0.12) },
+          ]}
+        >
+          <Icon name={icons.roadmap} size={14} color={colors.action.primary} />
+          <Text
+            variant="bodySm"
+            color={colors.action.primary}
+            style={styles.matchText}
+          >
+            {offer.match.reason}
+          </Text>
+        </View>
+      ) : null}
+
       {brochure && brochure.modules.length > 0 && (
         <View
           style={[
@@ -213,6 +259,55 @@ const ProgramDetailScreen = () => {
         </View>
       ) : (
         <>
+          {/* WHAT YOU ACTUALLY GET — every line server-owned, and the free
+              month appears ONLY when this user is genuinely eligible for it.
+              When they're not, the line is omitted entirely rather than shown
+              greyed or struck: advertising a gift we're withholding is worse
+              than never mentioning it. */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface.default,
+                borderColor: colors.border.default,
+              },
+            ]}
+          >
+            <Text variant="title" color="primary">
+              Included
+            </Text>
+            {dayCount ? (
+              <View style={styles.includeRow}>
+                <Icon name={icons.timeline} size={16} color={colors.action.primary} />
+                <Text variant="bodySm" color="secondary" style={styles.includeText}>
+                  A {dayCount}-day guided arc, one short session a day
+                </Text>
+              </View>
+            ) : null}
+            {offer.creditGrantAmount > 0 ? (
+              <View style={styles.includeRow}>
+                <Icon name={icons.call} size={16} color={colors.action.primary} />
+                <Text variant="bodySm" color="secondary" style={styles.includeText}>
+                  {offer.creditGrantAmount} AI practice calls, built into the arc
+                </Text>
+              </View>
+            ) : null}
+            {offer.bonusMembershipDays > 0 && bonusEligible ? (
+              <View style={styles.includeRow}>
+                <Icon name={icons.gift} size={16} color={colors.action.primary} />
+                <Text variant="bodySm" color="secondary" style={styles.includeText}>
+                  Your first month of membership free — 4 AI practice calls
+                </Text>
+              </View>
+            ) : null}
+            <View style={styles.includeRow}>
+              <Icon name={icons.lifetime} size={16} color={colors.action.primary} />
+              <Text variant="bodySm" color="secondary" style={styles.includeText}>
+                Buy once, yours to keep
+              </Text>
+            </View>
+          </View>
+
           {/* One anchor-driven rule covers BOTH founder and launch-offer
               discounts: PriceTag strikes anchorPriceInr whenever it exceeds the
               charged price. All numbers come from the server, so the struck
@@ -276,6 +371,26 @@ const styles = StyleSheet.create({
     minWidth: 52,
   },
   moduleTitle: {
+    flex: 1,
+  },
+  matchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.chip,
+    marginBottom: spacing.lg,
+  },
+  matchText: {
+    flex: 1,
+  },
+  includeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  includeText: {
     flex: 1,
   },
   priceRow: {
