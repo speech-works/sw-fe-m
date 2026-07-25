@@ -110,12 +110,12 @@ const ActOneWelcome: React.FC = () => {
             it is a typesetting decision. Anything that changes this string must
             re-check the break. */}
         <View style={styles.copyBlock}>
-        <Animated.View entering={motion.stagger(1)}>
-          <Text variant="screenTitle">Everyone has{"\n"}a list.</Text>
-        </Animated.View>
+          <Animated.View entering={motion.stagger(1)}>
+            <Text variant="screenTitle">Everyone has{"\n"}a list.</Text>
+          </Animated.View>
 
-        <Animated.View entering={motion.stagger(2)}>
-          {/* Carries the domain in words. The bubbles say "speaking" visually,
+          <Animated.View entering={motion.stagger(2)}>
+            {/* Carries the domain in words. The bubbles say "speaking" visually,
               but they're hidden from assistive tech, so without this line a
               screen-reader user would hear "Everyone has a list" and have no
               idea a list OF WHAT.
@@ -126,22 +126,22 @@ const ActOneWelcome: React.FC = () => {
               layout accident rather than a sentence. All three tiers are single
               lines now, so the hierarchy — display, body, caption — is legible
               at a glance instead of as a paragraph. */}
-          <Text variant="body" color="secondary">
-            Tell us where speaking gets hard.
-          </Text>
-        </Animated.View>
+            <Text variant="body" color="secondary">
+              Tell us where speaking gets hard.
+            </Text>
+          </Animated.View>
 
-        {/* THE FACTS, DEMOTED. These used to be welded onto the sentence above
+          {/* THE FACTS, DEMOTED. These used to be welded onto the sentence above
             ("Five quick questions about speaking. About a minute, and no
             account needed."), which made the one warm line on the screen read
             like a spec sheet. Separated and dropped to tertiary they become
             scannable reassurance — and they give the empty band above the CTA
             something to do besides be empty. */}
-        <Animated.View entering={motion.stagger(3)}>
-          <Text variant="caption" color="tertiary">
-            5 questions · about a minute · no account needed
-          </Text>
-        </Animated.View>
+          <Animated.View entering={motion.stagger(3)}>
+            <Text variant="caption" color="tertiary">
+              5 questions · about a minute · no account needed
+            </Text>
+          </Animated.View>
         </View>
       </View>
 
@@ -209,8 +209,8 @@ const ActOneWelcome: React.FC = () => {
             style={styles.noteRow}
             onPress={() => setPrivacyOpen(true)}
           >
-          We count which question people stop on — never your answers.{" "}
-          {/* `link`, not the brand fill: the DS guards against bright accent
+            We count which question people stop on — never your answers.{" "}
+            {/* `link`, not the brand fill: the DS guards against bright accent
               hues used as text because they drop below AA on a light surface. */}
             <Text variant="caption" color="link">
               Change

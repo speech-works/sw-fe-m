@@ -2,13 +2,16 @@ import React, { useEffect } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { UserAvatar } from "../../components/UserAvatar";
+import { FaceExpression } from "../../assets/avatar/parts";
 import {
   Text,
   easing,
@@ -114,6 +117,12 @@ const BUBBLES = [
     // `topPct` is a fraction of stage height so the ring of bubbles scales with
     // the art instead of drifting across the face on a bigger screen.
     anchor: { topPct: 0, left: 0 },
+    // Where the character has to look to see this one, normalised -1..1 from
+    // the centre of its face. Deliberately hand-written and kept HERE, beside
+    // the anchor, rather than derived: the anchors mix left/right/percent units
+    // and a derivation would need each chip's rendered width. The invariant to
+    // preserve is simply "move the anchor, move the gaze" — they are one edit.
+    gaze: { x: -1, y: -0.9 },
     delay: 0,
     period: 3400,
   },
@@ -125,6 +134,7 @@ const BUBBLES = [
     // the head has already started narrowing, so the bubble tucks against the
     // jaw and reads as coming from the mouth rather than covering it.
     anchor: { topPct: 0.56, right: 0 },
+    gaze: { x: 1, y: 0.2 },
     delay: 900,
     period: 3900,
   },
@@ -132,6 +142,7 @@ const BUBBLES = [
     key: "ordering_food",
     tone: "lime" as const,
     anchor: { topPct: 0.86, left: 16 },
+    gaze: { x: -0.8, y: 1 },
     delay: 1800,
     period: 3650,
   },
@@ -150,6 +161,78 @@ const BLOB_PATH =
   "M104 4 C146 2 184 30 190 70 C196 110 168 132 164 162 " +
   "C160 192 122 198 86 192 C50 186 18 166 8 132 " +
   "C-2 98 14 62 40 38 C66 14 62 6 104 4 Z";
+
+/**
+ * Gaze cadence — the numbers that decide whether this reads as alive or creepy.
+ *
+ * SACCADE is short on purpose. Real eyes jump between targets in well under a
+ * fifth of a second; a gaze that glides slowly across a face is the single
+ * biggest tell of a bad character animation — it reads as drowsy, or as a doll
+ * turning to look at you. Snap, then dwell.
+ *
+ * HOLD is long enough to actually read the chip being looked at, which is the
+ * whole point: the character is reading its own list, and the eye leads the
+ * viewer to each item in turn.
+ */
+const SACCADE = 220;
+const HOLD = 2100;
+/** One word's worth of jaw. Fires on arrival — it says the thing it looked at. */
+const PULSE_UP = 160;
+const PULSE_DOWN = 260;
+const REST = HOLD - PULSE_UP - PULSE_DOWN;
+
+/**
+ * Drives gaze + speech around the ring of bubbles, forever.
+ *
+ * The two timelines are built from the same constants and MUST stay equal in
+ * total duration — SACCADE + HOLD per target for the eyes, and
+ * SACCADE + PULSE_UP + PULSE_DOWN + REST for the mouth. If they drift apart the
+ * character starts talking while looking somewhere else, which is uncanny in a
+ * way that is hard to place and easy to introduce.
+ */
+const useGazeCycle = (reduced: boolean): FaceExpression => {
+  const gazeX = useSharedValue(0);
+  const gazeY = useSharedValue(0);
+  const speak = useSharedValue(0);
+
+  useEffect(() => {
+    // Reduced motion: leave everything at 0. That is not a broken state — it
+    // is the face looking straight ahead with a closed smile, which is exactly
+    // the resting pose the rest of the app ships.
+    if (reduced) return;
+
+    const track = (axis: "x" | "y") =>
+      BUBBLES.flatMap((b) => [
+        withTiming(b.gaze[axis], { duration: SACCADE, easing: easing.out }),
+        // A zero-duration timing to the value it already holds — an explicit
+        // dwell, so each target costs exactly SACCADE + HOLD.
+        withDelay(HOLD, withTiming(b.gaze[axis], { duration: 0 })),
+      ]);
+
+    gazeX.value = withRepeat(withSequence(...track("x")), -1, false);
+    gazeY.value = withRepeat(withSequence(...track("y")), -1, false);
+    speak.value = withRepeat(
+      withSequence(
+        ...BUBBLES.flatMap(() => [
+          // Waits out the saccade so the mouth opens on ARRIVAL, not in transit.
+          withDelay(SACCADE, withTiming(1, { duration: PULSE_UP, easing: easing.out })),
+          withTiming(0, { duration: PULSE_DOWN, easing: easing.out }),
+          withDelay(REST, withTiming(0, { duration: 0 })),
+        ]),
+      ),
+      -1,
+      false,
+    );
+
+    return () => {
+      cancelAnimation(gazeX);
+      cancelAnimation(gazeY);
+      cancelAnimation(speak);
+    };
+  }, [reduced, gazeX, gazeY, speak]);
+
+  return { gazeX, gazeY, speak };
+};
 
 const Bubble: React.FC<{
   label: string;
@@ -191,6 +274,7 @@ const WelcomeStage: React.FC<{ reduced: boolean; available: number }> = ({
 }) => {
   const { colors, scheme } = useTheme();
   const { width } = useWindowDimensions();
+  const expression = useGazeCycle(reduced);
   const s = sizes(width, available);
 
   const tone = {
@@ -230,7 +314,7 @@ const WelcomeStage: React.FC<{ reduced: boolean; available: number }> = ({
           face, not "yours". Dressing it in earned gear would show a stranger a
           wardrobe they don't have and spend the celebration screen's one trick
           sixty seconds early. */}
-      <UserAvatar size={s.avatar} animate />
+      <UserAvatar size={s.avatar} animate expression={expression} />
 
       {BUBBLES.map((b) => (
         <Bubble
