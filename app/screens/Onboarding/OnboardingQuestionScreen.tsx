@@ -373,6 +373,7 @@ const OnboardingQuestionScreen: React.FC = () => {
               question={q.questionText}
               description={q.description ?? ""}
               questionType={q.questionType}
+              layout={q.layout}
               options={q.options.map((o) => ({
                 id: o.id,
                 answer: o.optionText,

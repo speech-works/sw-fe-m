@@ -17,6 +17,27 @@ interface Props {
   question: string;
   description?: string;
   questionType: "SINGLE" | "MULTI" | "SLIDER";
+  /**
+   * How the choices are laid out.
+   *
+   * "wrap"  — pill chips that flow and wrap, sized to their label.
+   * "list"  — one full-width row per option, in the order given. THE DEFAULT.
+   *
+   * WHY THIS IS A PROP AND NOT INFERRED. Half this question bank is ordered:
+   * "Effortless → Exhausting", "Very often → Almost never". An ordered scale
+   * has to be read along ONE axis; flow it into wrapping columns and the
+   * continuum it depends on is gone, because "3 of 5" stops being positional.
+   *
+   * There is no reliable way to detect that from the data — the frequency
+   * scale's values are enum strings (`very_often`…`never`), identical in shape
+   * to the unordered ones, so any "numeric means scale" rule silently gets it
+   * wrong. Ordinality is something only the question's author knows.
+   *
+   * Hence "list" is the default: a question that says nothing renders exactly
+   * as it always has, and server-driven questions are unaffected until someone
+   * deliberately marks one.
+   */
+  layout?: "list" | "wrap";
   options: OnboardingOption[];
   value?: string;
   values?: string[];
@@ -29,6 +50,7 @@ const OnboardingQuestion = ({
   question,
   description,
   questionType,
+  layout = "list",
   options,
   value,
   values = [],
@@ -38,6 +60,7 @@ const OnboardingQuestion = ({
   const { colors } = useTheme();
   const isSlider = questionType === "SLIDER";
   const isMulti = questionType === "MULTI";
+  const isWrap = layout === "wrap" && !isSlider;
 
   // ---- SLIDER LOGIC ----
   const min = 0;
@@ -147,50 +170,88 @@ const OnboardingQuestion = ({
               {description}
             </Text>
           )}
-          {options.map((opt) => {
-            const normalizedId = String(opt.id);
-            const selected = isMulti
-              ? values.map(String).includes(normalizedId)
-              : String(value) === normalizedId;
+          <View style={isWrap ? styles.wrapBlock : styles.listBlock}>
+            {options.map((opt) => {
+              const normalizedId = String(opt.id);
+              const selected = isMulti
+                ? values.map(String).includes(normalizedId)
+                : String(value) === normalizedId;
 
-            return (
-              <TouchableOpacity
-                key={opt.id}
-                style={[styles.option, selected && styles.optionSelected]}
-                onPress={() => handlePressOption(opt.id)}
-                activeOpacity={0.85}
-              >
-                <View
-                  style={[
-                    styles.controlOuter,
-                    isMulti ? styles.checkboxOuter : styles.radioOuter,
-                    selected && styles.controlOuterActive,
-                  ]}
-                >
-                  {selected &&
-                    (isMulti ? (
-                      <Icon
-                        name="check"
-                        size={14}
-                        color={colors.text.accent}
-                      />
-                    ) : (
-                      <View style={styles.radioInner} />
-                    ))}
-                </View>
-                <View style={styles.textWrap}>
-                  <Text variant="body" color="primary">
-                    {opt.answer}
-                  </Text>
-                  {opt.description && (
-                    <Text variant="bodySm" color="secondary">
-                      {opt.description}
+              // CHIP. Sized to its own label, so short answers stop reserving a
+              // full row each — nine options fit on one screen instead of four
+              // and a half, and the set can be compared at a glance rather than
+              // remembered across a scroll.
+              if (isWrap) {
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[styles.chip, selected && styles.chipSelected]}
+                    onPress={() => handlePressOption(opt.id)}
+                    activeOpacity={0.85}
+                    accessibilityRole={isMulti ? "checkbox" : "radio"}
+                    accessibilityState={{ checked: selected }}
+                  >
+                    {/* NO TICK, and this took two passes to get right.
+
+                        Drawing one only when selected changed the chip's width
+                        on tap, which reflowed every chip after it — items slid
+                        out from under the finger mid-multi-select, which is how
+                        you mis-tap. Reserving 16pt for it on every chip fixed
+                        that but cost a column of density, which was the entire
+                        reason for this layout.
+
+                        So: no mark at all. A solid fill is not "colour alone" —
+                        it is a filled shape against an outlined one, a large
+                        luminance change that survives greyscale — and the tick
+                        was only ever restating it. Screen readers get the state
+                        from accessibilityState, not from the glyph. */}
+                    <Text
+                      variant="body"
+                      color={selected ? colors.action.onPrimary : colors.text.primary}
+                    >
+                      {opt.answer}
                     </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[styles.option, selected && styles.optionSelected]}
+                  onPress={() => handlePressOption(opt.id)}
+                  activeOpacity={0.85}
+                  accessibilityRole={isMulti ? "checkbox" : "radio"}
+                  accessibilityState={{ checked: selected }}
+                >
+                  <View
+                    style={[
+                      styles.controlOuter,
+                      isMulti ? styles.checkboxOuter : styles.radioOuter,
+                      selected && styles.controlOuterActive,
+                    ]}
+                  >
+                    {selected &&
+                      (isMulti ? (
+                        <Icon name="check" size={14} color={colors.text.accent} />
+                      ) : (
+                        <View style={styles.radioInner} />
+                      ))}
+                  </View>
+                  <View style={styles.textWrap}>
+                    <Text variant="body" color="primary">
+                      {opt.answer}
+                    </Text>
+                    {opt.description ? (
+                      <Text variant="bodySm" color="secondary">
+                        {opt.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       )}
     </View>
@@ -225,11 +286,48 @@ const useStyles = makeStyles((c, t) => ({
   nonSliderBlock: {
     gap: t.spacing.xl, // Clearer separation between description and options
   },
+  /** Chips flow and wrap, each sized to its own label. */
+  wrapBlock: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: t.spacing.sm,
+  },
+  /** Ordered options: one per row, tighter than before so a five-point scale
+   *  fits on screen without scrolling — the whole scale has to be visible at
+   *  once for "somewhere in the middle" to mean anything. */
+  listBlock: {
+    gap: t.spacing.md,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    // 48 is the floor, not a guess: touch targets at or above 48pt measure
+    // materially fewer mis-taps, and shrinking chips to fit more per row is
+    // exactly the trade that would undo the point of the layout.
+    minHeight: 48,
+    paddingVertical: t.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    borderRadius: t.radius.pill,
+    borderWidth: 1.5,
+    borderColor: c.border.default,
+    backgroundColor: c.surface.default,
+  },
+  /** SOLID fill, not a tint — a tinted chip beside an untinted one reads as
+   *  "slightly different", where a filled one reads as chosen. `onPrimary` is
+   *  the AA-correct ink for that fill. */
+  chipSelected: {
+    borderColor: c.action.primary,
+    backgroundColor: c.action.primary,
+  },
   option: {
     flexDirection: "row",
     alignItems: "center",
     gap: t.spacing.lg,
-    paddingVertical: 18,
+    // 14, not 18. A five-point scale has to be visible ALL AT ONCE — you pick
+    // "somewhere in the middle" by seeing the range, so a fifth option below
+    // the fold breaks the instrument, not just the layout. At 14 the row is
+    // 52pt tall, still clear of the 48pt touch-target floor.
+    paddingVertical: 14,
     paddingHorizontal: t.spacing.xl,
     borderRadius: t.radius.input,
     borderWidth: 1.5,

@@ -108,6 +108,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       questionText: "Where does speaking feel hardest?",
       description: "Pick as many as fit. This is what we build your plan around.",
       questionType: "MULTI",
+      layout: "wrap",
       isRequired: true,
       adaptiveKey: "speech.situations",
       options: [
@@ -129,6 +130,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       questionText: "What matters most to you right now?",
       description: "This shapes what we put in front of you first.",
       questionType: "SINGLE",
+      layout: "wrap",
       isRequired: true,
       adaptiveKey: "goal.primary",
       options: [
@@ -182,6 +184,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       questionText: "Have you worked with a speech therapist?",
       description: "So we pitch things at the right level for you.",
       questionType: "SINGLE",
+      layout: "wrap",
       isRequired: true,
       adaptiveKey: "experience.therapy",
       options: [

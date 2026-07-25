@@ -18,6 +18,13 @@ export interface OnboardingQuestion {
   questionType: QuestionType;
   isRequired: boolean;
   options: OnboardingOption[];
+  /**
+   * Choice layout. Absent (the server never sends it today) means "list",
+   * which is the pre-existing rendering — so nothing changes for a
+   * server-driven question until someone deliberately opts it in.
+   * See OnboardingQuestion's `layout` prop for why this cannot be inferred.
+   */
+  layout?: "list" | "wrap";
   adaptiveKey?: string | null;
 }
 
