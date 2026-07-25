@@ -81,4 +81,24 @@ module.exports = [
       },
     },
   },
+
+  /**
+   * Jest setup files. Same config gap as the block above, one directory over:
+   * `jest.config.js` happens to match `*.config.js` there, but `jest.setup.js`
+   * matches nothing, so `jest.mock(...)` reported as `no-undef`.
+   *
+   * Only plain-JS setup files need this. The `.ts` test suites are fine already
+   * — typescript-eslint turns `no-undef` off for TypeScript, where the compiler
+   * is the authority on what exists.
+   */
+  {
+    files: ["jest.setup.{js,cjs,mjs}"],
+    languageOptions: {
+      globals: {
+        jest: "readonly",
+        require: "readonly",
+        module: "writable",
+      },
+    },
+  },
 ];
