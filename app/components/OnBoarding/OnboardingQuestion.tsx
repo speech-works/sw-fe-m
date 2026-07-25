@@ -1,9 +1,9 @@
 import Slider from "@react-native-community/slider";
 import React, { useState } from "react";
-import { TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { View } from "react-native";
 
 import { makeStyles, Text, useTheme } from "../../design-system";
+import PressableScale from "../PressableScale";
 
 interface OnboardingOption {
   id: string;
@@ -183,11 +183,10 @@ const OnboardingQuestion = ({
               // remembered across a scroll.
               if (isWrap) {
                 return (
-                  <TouchableOpacity
+                  <PressableScale
                     key={opt.id}
                     style={[styles.chip, selected && styles.chipSelected]}
                     onPress={() => handlePressOption(opt.id)}
-                    activeOpacity={0.85}
                     accessibilityRole={isMulti ? "checkbox" : "radio"}
                     accessibilityState={{ checked: selected }}
                   >
@@ -211,44 +210,41 @@ const OnboardingQuestion = ({
                     >
                       {opt.answer}
                     </Text>
-                  </TouchableOpacity>
+                  </PressableScale>
                 );
               }
 
+              // ORDERED SCALE ROW. Same instrument as before — five discrete,
+              // fully-labelled options in a fixed order, one tap, nothing
+              // preselected — restyled to match the chips. Full width rather
+              // than hugging: a ragged right edge on a scale implies the
+              // options differ in weight, and a common left edge is what lets
+              // the eye run the range in order.
               return (
-                <TouchableOpacity
+                <PressableScale
                   key={opt.id}
                   style={[styles.option, selected && styles.optionSelected]}
                   onPress={() => handlePressOption(opt.id)}
-                  activeOpacity={0.85}
                   accessibilityRole={isMulti ? "checkbox" : "radio"}
                   accessibilityState={{ checked: selected }}
                 >
-                  <View
-                    style={[
-                      styles.controlOuter,
-                      isMulti ? styles.checkboxOuter : styles.radioOuter,
-                      selected && styles.controlOuterActive,
-                    ]}
-                  >
-                    {selected &&
-                      (isMulti ? (
-                        <Icon name="check" size={14} color={colors.text.accent} />
-                      ) : (
-                        <View style={styles.radioInner} />
-                      ))}
-                  </View>
                   <View style={styles.textWrap}>
-                    <Text variant="body" color="primary">
+                    <Text
+                      variant="body"
+                      color={selected ? colors.action.onPrimary : colors.text.primary}
+                    >
                       {opt.answer}
                     </Text>
                     {opt.description ? (
-                      <Text variant="bodySm" color="secondary">
+                      <Text
+                        variant="bodySm"
+                        color={selected ? colors.action.onPrimary : colors.text.secondary}
+                      >
                         {opt.description}
                       </Text>
                     ) : null}
                   </View>
-                </TouchableOpacity>
+                </PressableScale>
               );
             })}
           </View>
@@ -322,42 +318,23 @@ const useStyles = makeStyles((c, t) => ({
   option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: t.spacing.lg,
     // 14, not 18. A five-point scale has to be visible ALL AT ONCE — you pick
     // "somewhere in the middle" by seeing the range, so a fifth option below
     // the fold breaks the instrument, not just the layout. At 14 the row is
     // 52pt tall, still clear of the 48pt touch-target floor.
     paddingVertical: 14,
     paddingHorizontal: t.spacing.xl,
-    borderRadius: t.radius.input,
+    borderRadius: t.radius.pill,
     borderWidth: 1.5,
     borderStyle: "solid",
     borderColor: c.border.default,
+    backgroundColor: c.surface.default,
   },
+  /** Solid fill, matching the chips — one selection language across the whole
+   *  flow instead of a tint here and a fill there. */
   optionSelected: {
     borderColor: c.action.primary,
-    backgroundColor: c.action.primaryTint,
-  },
-  controlOuter: {
-    width: 22,
-    height: 22,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderStyle: "solid",
-    borderColor: c.border.default,
-  },
-  radioOuter: { borderRadius: t.radius.full },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 10,
     backgroundColor: c.action.primary,
-  },
-  checkboxOuter: { borderRadius: 6 },
-  controlOuterActive: {
-    borderColor: c.action.primary,
   },
   textWrap: { flex: 1, gap: t.spacing.xs, display: "flex", flexDirection: "column" },
 }));
