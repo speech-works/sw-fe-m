@@ -31,5 +31,10 @@ module.exports = {
     "/.expo/",
     "/dist/",
   ],
+  // Every zustand store here persists through AsyncStorage, whose native module
+  // does not exist under Jest — importing one throws before a single assertion
+  // runs. The library ships an in-memory mock for exactly this; without it no
+  // store logic is testable at all.
+  setupFiles: ["<rootDir>/jest.setup.js"],
   clearMocks: true,
 };

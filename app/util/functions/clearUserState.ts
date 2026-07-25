@@ -48,6 +48,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useActivityStore },
       { useReminderStore },
       { useOnboardingStore },
+      { useOnboardingDraftStore },
       { useImpactAssessmentStore },
     ] = await Promise.all([
       import("../../stores/user"),
@@ -63,6 +64,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/activity"),
       import("../../stores/reminders"),
       import("../../stores/onboarding"),
+      import("../../stores/onboardingDraft"),
       import("../../stores/impactAssessment"),
     ]);
     resets.push(
@@ -81,6 +83,9 @@ export async function clearAllPersistedUserState(): Promise<void> {
       // user's reminders can't fire for the next account on a shared device.
       ["reminders", () => useReminderStore.getState().removeAll()],
       ["onboarding", () => useOnboardingStore.getState().resetOnboarding()],
+      // Act-1 answers are health-adjacent and live on-device before signup;
+      // they must not survive a logout on a shared phone.
+      ["onboardingDraft", () => useOnboardingDraftStore.getState().clear()],
       ["impactAssessment", () => useImpactAssessmentStore.getState().resetImpactAssessment()],
     );
   } catch (e) {

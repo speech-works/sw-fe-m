@@ -244,6 +244,12 @@ module.exports = {
     extra: {
       API_BASE_URL: process.env.API_BASE_URL,
       PAYMENTS_ENABLED: process.env.PAYMENTS_ENABLED ?? "false",
+      // Ask the first five onboarding questions BEFORE an account exists, so
+      // the signup step unlocks a plan instead of guarding one. Defaults ON;
+      // set to "false" to fall straight back to the login-first flow without
+      // shipping a new build (it is read at runtime, not compiled away).
+      PRE_AUTH_ONBOARDING_ENABLED:
+        process.env.PRE_AUTH_ONBOARDING_ENABLED ?? "true",
       ALLOW_SIMULATOR_HEADSET_BYPASS:
         process.env.ALLOW_SIMULATOR_HEADSET_BYPASS ?? "false",
       // RevenueCat public SDK keys (PAYMENTS-PLAN.md) — safe to expose

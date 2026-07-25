@@ -27,4 +27,7 @@ export const ASYNC_KEYS_NAME = {
   SW_MIRROR_PROMPT_SEEN: "@mirrorPrompts:seenOpeners",
   // Avatar Studio work-in-progress (survives an app kill mid-edit; cleared on save).
   SW_ZSTORE_AVATAR_DRAFT: "SW_ZSTORE_AVATAR_DRAFT",
+  // Act-1 answers held on-device before an account exists. Health-adjacent, so
+  // it must be wiped on logout like any other user-scoped store.
+  SW_ZSTORE_ONBOARDING_DRAFT: "SW_ZSTORE_ONBOARDING_DRAFT",
 };

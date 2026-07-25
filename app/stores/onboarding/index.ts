@@ -13,6 +13,8 @@ interface OnboardingState {
   // Actions
   setFlow: (flow: OnboardingFlow) => void;
   startFresh: (flow: OnboardingFlow) => void;
+  /** Seed with already-given answers and jump to the first unanswered screen. */
+  resumeFrom: (flow: OnboardingFlow, seeded: Record<string, any>) => void;
   setAnswer: (key: string, value: any) => void;
   toggleMultiAnswer: (key: string, option: any) => void;
 
@@ -49,6 +51,35 @@ export const useOnboardingStore = create<OnboardingState>()(
           currentScreen: firstScreen,
           answers: {},
         });
+      },
+
+      resumeFrom: (flow, seeded) => {
+        // Continue where Act 1 left off instead of starting over.
+        //
+        // The five pre-signup answers have just been replayed to the server, so
+        // reasking them would be the app forgetting something the person had
+        // already told it thirty seconds earlier. Jump to the first screen that
+        // still has an unanswered required question.
+        const screens = [
+          ...new Set(flow.questions.map((q) => q.screenNumber)),
+        ].sort((a, b) => a - b);
+
+        const answered = (q: (typeof flow.questions)[number]) => {
+          const v = seeded[q.adaptiveKey ?? q.id];
+          if (v === undefined || v === null) return false;
+          if (typeof v === "string" && v.trim() === "") return false;
+          if (Array.isArray(v) && v.length === 0) return false;
+          return true;
+        };
+
+        const firstUnanswered =
+          screens.find((s) =>
+            flow.questions
+              .filter((q) => q.screenNumber === s)
+              .some((q) => q.isRequired !== false && !answered(q)),
+          ) ?? screens[screens.length - 1] ?? 1;
+
+        set({ flow, answers: { ...seeded }, currentScreen: firstUnanswered });
       },
 
       setAnswer: (key, value) => {

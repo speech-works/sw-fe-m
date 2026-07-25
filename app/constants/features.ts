@@ -9,6 +9,23 @@ export const PAYMENTS_ENABLED =
   String(Constants.expoConfig?.extra?.PAYMENTS_ENABLED ?? "false").toLowerCase() ===
   "true";
 
+/**
+ * Ask the first five onboarding questions BEFORE signup.
+ *
+ * Today the app demands an account before it gives anything back. With this on,
+ * a stranger answers five questions in about a minute, sees their own words
+ * reflected with the area we'd start them on, and only then creates an account
+ * — so signing up unlocks their plan rather than guarding it.
+ *
+ * Defaults ON. Like the other flags this is a RUNTIME read of
+ * `Constants.expoConfig.extra`, not a compile-time constant, so both paths ship
+ * and turning it off is an env-var change rather than an App Store round trip.
+ */
+export const PRE_AUTH_ONBOARDING_ENABLED =
+  String(
+    Constants.expoConfig?.extra?.PRE_AUTH_ONBOARDING_ENABLED ?? "true",
+  ).toLowerCase() === "true";
+
 export const ALLOW_SIMULATOR_HEADSET_BYPASS =
   String(
     Constants.expoConfig?.extra?.ALLOW_SIMULATOR_HEADSET_BYPASS ?? "false",
