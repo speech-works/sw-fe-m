@@ -1,6 +1,12 @@
 import React from "react";
 import { G, Path, Circle, Ellipse, Rect, ClipPath } from "react-native-svg";
-import Animated, { SharedValue, useAnimatedProps } from "react-native-reanimated";
+import Animated, {
+  SharedValue,
+  useAnimatedProps,
+  useDerivedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { spring } from "../../design-system";
 import { HEAD, CX, GOLD, INK, shade } from "./avatarKit";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -44,8 +50,6 @@ export interface FaceExpression {
   gazeX: SharedValue<number>;
   /** -1 = up, +1 = down. */
   gazeY: SharedValue<number>;
-  /** 0 = resting smile, 1 = jaw fully dropped. */
-  speak: SharedValue<number>;
 }
 
 export interface PartProps {
@@ -170,14 +174,27 @@ const GAZE_RANGE_Y = (GAZE_LIMIT_Y - TRACK_BASE_DY) * GAZE_FILL; // ~1.40
 const HEAD_FOLLOW_X = 0.9;
 const HEAD_FOLLOW_Y = 0.6;
 
+/** `spring.gentle` — soft settle, no overshoot. A head that bounces on arrival
+ *  reads as a bobblehead, so this is the one DS spring with no bounce in it. */
+const HEAD_SPRING = spring.gentle;
+
 const FollowingFeatures: React.FC<{
   expression: FaceExpression;
   children: React.ReactNode;
 }> = ({ expression, children }) => {
+  // THE HEAD LAGS THE EYES, and that lag is the whole reason this reads as
+  // smooth. Driving the features off the raw gaze value moved eyes and head as
+  // one rigid block, which is what made the motion feel like a jerk however
+  // gently the gaze itself was eased. Springing toward the gaze instead means
+  // the eyes arrive first and the head settles in after them — which is both
+  // what real heads do and, conveniently, impossible to make look abrupt.
+  const headX = useDerivedValue(() => withSpring(expression.gazeX.value, HEAD_SPRING));
+  const headY = useDerivedValue(() => withSpring(expression.gazeY.value, HEAD_SPRING));
+
   const props = useAnimatedProps(() => ({
     transform: [
-      { translateX: expression.gazeX.value * HEAD_FOLLOW_X },
-      { translateY: expression.gazeY.value * HEAD_FOLLOW_Y },
+      { translateX: headX.value * HEAD_FOLLOW_X },
+      { translateY: headY.value * HEAD_FOLLOW_Y },
     ] as never,
   }));
   return <AnimatedG animatedProps={props}>{children}</AnimatedG>;
@@ -259,13 +276,16 @@ const MOUTH = "M19 29.7 Q24.675 30.9 30.35 29.7 Q30.1 35.2 24.675 35.7 Q19.25 35
 
 /** Animated open smile (the reference sheet's "A"/"L N" mouth): dark interior
  *  + white upper-teeth band + tongue, all flat fills clipped to the shape. */
-/** The upper lip, y. The jaw hinges here — scaling about the mouth's CENTRE
- *  would lift the top lip into the philtrum, which reads as a snarl. */
-const MOUTH_HINGE_Y = 29.7;
-/** Jaw drop at speak = 1. Deliberately small: this is a word, not a yawn. */
-const MOUTH_OPEN = 0.38;
-
-const SmileShape: React.FC = () => (
+/** Animated open smile (the reference sheet's "A"/"L N" mouth): dark interior
+ *  + white upper-teeth band + tongue, all flat fills clipped to the shape.
+ *
+ *  NOT animated. An earlier pass dropped the jaw on each gaze arrival, as if
+ *  the character were saying the thing it had just looked at. Two mouths' worth
+ *  of movement plus the eyes was too much going on at once, and a mouth that
+ *  moves in step with the eyes reads as a puppet rather than a person — real
+ *  faces look first and speak separately. The smile now simply stays a smile.
+ */
+const OpenSmile: React.FC = () => (
   <>
     <ClipPath id="av-mouth">
       <Path d={MOUTH} />
@@ -281,28 +301,6 @@ const SmileShape: React.FC = () => (
     <Path d={MOUTH} fill="none" stroke={INK} strokeWidth={0.7} strokeLinejoin="round" />
   </>
 );
-
-const SpeakingSmile: React.FC<{ expression: FaceExpression }> = ({ expression }) => {
-  const props = useAnimatedProps(() => ({
-    // Translate the hinge to the origin, scale, translate back — the transform
-    // list applies left to right, so this scales ABOUT the upper lip.
-    transform: [
-      { translateY: MOUTH_HINGE_Y },
-      { scaleY: 1 + expression.speak.value * MOUTH_OPEN },
-      { translateY: -MOUTH_HINGE_Y },
-    ] as never,
-  }));
-  return (
-    <AnimatedG animatedProps={props}>
-      <SmileShape />
-    </AnimatedG>
-  );
-};
-
-/** Animated open smile (the reference sheet's "A"/"L N" mouth): dark interior
- *  + white upper-teeth band + tongue, all flat fills clipped to the shape. */
-const OpenSmile: React.FC<{ expression?: FaceExpression }> = ({ expression }) =>
-  expression ? <SpeakingSmile expression={expression} /> : <SmileShape />;
 
 /** Closed tapered smile — thick middle tapering to points, Snoo-style. */
 const TaperedSmile: React.FC = () => (
@@ -339,7 +337,7 @@ export const BrandFace: React.FC<PartProps> = ({ expression }) => (
   <Features expression={expression}>
     <AvatarEye cx={16} irisDx={0.55} expression={expression} />
     <AvatarEye cx={32} irisDx={-0.55} expression={expression} />
-    <OpenSmile expression={expression} />
+    <OpenSmile />
   </Features>
 );
 

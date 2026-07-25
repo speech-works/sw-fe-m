@@ -163,75 +163,68 @@ const BLOB_PATH =
   "C-2 98 14 62 40 38 C66 14 62 6 104 4 Z";
 
 /**
- * Gaze cadence — the numbers that decide whether this reads as alive or creepy.
+ * Gaze cadence.
  *
- * SACCADE is short on purpose. Real eyes jump between targets in well under a
- * fifth of a second; a gaze that glides slowly across a face is the single
- * biggest tell of a bad character animation — it reads as drowsy, or as a doll
- * turning to look at you. Snap, then dwell.
+ * MOVE was 220ms — a real saccade, since eyes genuinely do jump. On screen it
+ * read as a twitch, because the head moves with the eyes here and a head that
+ * snaps looks broken however correct the eye timing is. It is now a comfortable
+ * glance, eased in AND out so there is no hard start or stop, and the head is
+ * sprung so it trails rather than jumping in lockstep (see FollowingFeatures).
  *
- * HOLD is long enough to actually read the chip being looked at, which is the
- * whole point: the character is reading its own list, and the eye leads the
- * viewer to each item in turn.
+ * DWELL is long enough to actually read the chip being looked at, which is the
+ * point: the character reads its own list and the eye leads the viewer to each
+ * item in turn.
  */
-const SACCADE = 220;
-const HOLD = 2100;
-/** One word's worth of jaw. Fires on arrival — it says the thing it looked at. */
-const PULSE_UP = 160;
-const PULSE_DOWN = 260;
-const REST = HOLD - PULSE_UP - PULSE_DOWN;
+const MOVE = 620;
+const DWELL = 1500;
+/** Longer, because being looked at is the moment worth holding. */
+const VIEWER_DWELL = 2400;
 
 /**
- * Drives gaze + speech around the ring of bubbles, forever.
+ * Where the eyes go, in order: each bubble, and then the reader.
  *
- * The two timelines are built from the same constants and MUST stay equal in
- * total duration — SACCADE + HOLD per target for the eyes, and
- * SACCADE + PULSE_UP + PULSE_DOWN + REST for the mouth. If they drift apart the
- * character starts talking while looking somewhere else, which is uncanny in a
- * way that is hard to place and easy to introduce.
+ * (0, 0) is straight ahead — the same resting pose the static face uses — so
+ * "look at the user" needs no special case, it is simply another target. It
+ * lands last so the loop ends on eye contact before starting round the list
+ * again, and it is the only beat where the character isn't busy with its own
+ * thoughts.
  */
+const GAZE_TARGETS: { x: number; y: number; dwell: number }[] = [
+  ...BUBBLES.map((b) => ({ ...b.gaze, dwell: DWELL })),
+  { x: 0, y: 0, dwell: VIEWER_DWELL },
+];
+
+/** Drives the gaze around the ring of bubbles and back to the reader, forever. */
 const useGazeCycle = (reduced: boolean): FaceExpression => {
   const gazeX = useSharedValue(0);
   const gazeY = useSharedValue(0);
-  const speak = useSharedValue(0);
 
   useEffect(() => {
-    // Reduced motion: leave everything at 0. That is not a broken state — it
-    // is the face looking straight ahead with a closed smile, which is exactly
-    // the resting pose the rest of the app ships.
+    // Reduced motion: leave both at 0. Not a broken state — 0,0 is exactly the
+    // "looking at you" pose the cycle keeps returning to anyway.
     if (reduced) return;
 
     const track = (axis: "x" | "y") =>
-      BUBBLES.flatMap((b) => [
-        withTiming(b.gaze[axis], { duration: SACCADE, easing: easing.out }),
+      GAZE_TARGETS.flatMap((t) => [
+        // inOut, not out: eased at BOTH ends, so the eyes neither snap away nor
+        // slam to a stop. `out` alone leaves a hard departure, which is most of
+        // what made the old motion feel jerky.
+        withTiming(t[axis], { duration: MOVE, easing: easing.inOut }),
         // A zero-duration timing to the value it already holds — an explicit
-        // dwell, so each target costs exactly SACCADE + HOLD.
-        withDelay(HOLD, withTiming(b.gaze[axis], { duration: 0 })),
+        // dwell, so each target costs exactly MOVE + its own dwell.
+        withDelay(t.dwell, withTiming(t[axis], { duration: 0 })),
       ]);
 
     gazeX.value = withRepeat(withSequence(...track("x")), -1, false);
     gazeY.value = withRepeat(withSequence(...track("y")), -1, false);
-    speak.value = withRepeat(
-      withSequence(
-        ...BUBBLES.flatMap(() => [
-          // Waits out the saccade so the mouth opens on ARRIVAL, not in transit.
-          withDelay(SACCADE, withTiming(1, { duration: PULSE_UP, easing: easing.out })),
-          withTiming(0, { duration: PULSE_DOWN, easing: easing.out }),
-          withDelay(REST, withTiming(0, { duration: 0 })),
-        ]),
-      ),
-      -1,
-      false,
-    );
 
     return () => {
       cancelAnimation(gazeX);
       cancelAnimation(gazeY);
-      cancelAnimation(speak);
     };
-  }, [reduced, gazeX, gazeY, speak]);
+  }, [reduced, gazeX, gazeY]);
 
-  return { gazeX, gazeY, speak };
+  return { gazeX, gazeY };
 };
 
 const Bubble: React.FC<{
