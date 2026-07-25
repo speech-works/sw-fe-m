@@ -88,6 +88,8 @@ type MetricChipItem = {
   domain: ClinicalDomain;
   config: (typeof METRIC_CONFIG)[ClinicalDomain];
   current: number;
+  /** False until enough answers back this bar; show a placeholder, not a score. */
+  measured: boolean;
   hasComparison: boolean;
   percentDelta: number | null;
   trend: "IMPROVING" | "STABLE" | "WORSENING";
@@ -147,8 +149,14 @@ const MetricChip: React.FC<{
             </View>
           )}
         </View>
-        <Text variant="h3" color={isSettling ? "tertiary" : "primary"}>
-          {Math.round(item.current)}
+        {/* A dash, not a number, until something was actually measured — the
+            score underneath is the population mean, and printing it would
+            present a default as a finding about this person. */}
+        <Text
+          variant="h3"
+          color={!item.measured || isSettling ? "tertiary" : "primary"}
+        >
+          {item.measured ? Math.round(item.current) : "—"}
         </Text>
         <Text variant="bodySm" color="secondary" numberOfLines={1}>
           {item.config.label}
@@ -201,11 +209,14 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       const key = config.profileKey;
       const delta = combinedDeltas[key];
       const uncertainty = overallState.clinical.domains[domain]?.uncertainty ?? 0;
+      // Absent on an older server — treat as measured so nothing regresses.
+      const measured = overallState.clinical.domains[domain]?.measured !== false;
       return {
         key,
         domain,
         config,
         current: combinedAxes[key],
+        measured,
         hasComparison: delta.hasComparison,
         percentDelta: delta.percentDelta,
         trend: delta.trend,
@@ -273,6 +284,32 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               style={{ borderRadius: 12, flex: 1 }}
             />
           ))}
+        </View>
+      </View>
+    );
+  }
+
+  // NOTHING MEASURED YET — say so, rather than drawing numbers nobody supplied.
+  //
+  // Every domain score falls back to the population mean when there is no
+  // measurement behind it, so this widget will happily render five confident
+  // mid bars for someone who has answered nothing. That reads as a finding
+  // about them. `hasMeasurements` is false until a domain has at least the
+  // minimum answers behind it, and an honest empty state is the only correct
+  // thing to show before that.
+  if (overallState.clinical.hasMeasurements === false) {
+    return (
+      <View style={[styles.container, style]}>
+        <View style={styles.header}>
+          <View style={styles.textContainer}>
+            <Text variant="h2" color="primary">
+              Growth Profile
+            </Text>
+            <Text variant="bodySm" color="secondary">
+              Answer the starting-point questions and your five measures appear
+              here — then you can watch them move.
+            </Text>
+          </View>
         </View>
       </View>
     );

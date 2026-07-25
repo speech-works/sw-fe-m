@@ -18,8 +18,18 @@ export interface ClinicalSummary {
       score: number; // 0-100, higher = worse
       uncertainty: number; // Confidence level
       trend: "IMPROVING" | "STABLE" | "WORSENING";
+      /**
+       * Whether this bar has enough answers behind it to be worth drawing.
+       * `score` ALWAYS carries a number (it falls back to the population mean),
+       * so without checking this a user who has measured nothing sees five
+       * identical mid bars that read as real data about them. Show an empty
+       * state when false. Optional for back-compat with an older server.
+       */
+      measured?: boolean;
     }
   >;
+  /** True once any domain is `measured` — for a whole-profile empty state. */
+  hasMeasurements?: boolean;
   severityCategory:
     | "MILD"
     | "MILD_TO_MODERATE"
