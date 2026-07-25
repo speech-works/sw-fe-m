@@ -111,7 +111,15 @@ const ActOneWelcome: React.FC = () => {
             re-check the break. */}
         <View style={styles.copyBlock}>
           <Animated.View entering={motion.stagger(1)}>
-            <Text variant="screenTitle">Everyone has{"\n"}a list.</Text>
+            {/* Leading tightened from the token's 44 to 40. The scale's
+                line-heights are tuned for reading paragraphs; at 38pt extrabold
+                over two lines that same ratio leaves the pair floating apart
+                instead of reading as one block. Display type always wants
+                tighter leading than body type. Done here, not in the token,
+                which the rest of the app relies on at its current value. */}
+            <Text variant="screenTitle" style={styles.headline}>
+              Everyone has{"\n"}a list.
+            </Text>
           </Animated.View>
 
           <Animated.View entering={motion.stagger(2)}>
@@ -126,7 +134,7 @@ const ActOneWelcome: React.FC = () => {
               layout accident rather than a sentence. All three tiers are single
               lines now, so the hierarchy — display, body, caption — is legible
               at a glance instead of as a paragraph. */}
-            <Text variant="body" color="secondary">
+            <Text variant="h3" color="secondary">
               Tell us where speaking gets hard.
             </Text>
           </Animated.View>
@@ -354,6 +362,9 @@ const styles = StyleSheet.create({
    */
   copyBlock: {
     gap: space.inlineGap,
+  },
+  headline: {
+    lineHeight: 40,
   },
   // flex:1 so the illustration absorbs ALL the vertical slack and the text
   // block below it is pushed down onto the CTA. (An earlier pass removed the
