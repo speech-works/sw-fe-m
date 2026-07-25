@@ -4,24 +4,30 @@ import PromoCard from "../screens/Home/components/PromoCard";
 
 interface Props {
   onPress: () => void;
-  dayNumber?: number;
-  totalDays?: number;
+  /** Answered so far — from the server, not assumed. */
+  totalAnswered?: number;
   totalRemaining?: number;
   style?: StyleProp<ViewStyle>;
 }
 
-const TOTAL_QUESTIONS = 100; // Structured impact assessment total
-
 const ImpactAssessmentWidget: React.FC<Props> = ({
   onPress,
-  totalRemaining = 100,
+  totalAnswered = 0,
+  totalRemaining = 0,
   style,
 }) => {
-  const questionsAnswered = TOTAL_QUESTIONS - totalRemaining;
-  const progressPercentage = Math.min(
-    Math.max((questionsAnswered / TOTAL_QUESTIONS) * 100, 0),
-    100,
-  );
+  // Derive the denominator instead of hardcoding it.
+  //
+  // This used to assume `TOTAL_QUESTIONS = 100` while the bank actually holds
+  // 42, so a user who had answered nothing was shown a bar sitting at 58%
+  // ((100 - 42) / 100) — and it could never reach 100%. Deriving it from
+  // answered + remaining is exact, and self-corrects if the bank ever changes
+  // size or the flow becomes phased.
+  const total = totalAnswered + totalRemaining;
+  const progressPercentage =
+    total > 0
+      ? Math.min(Math.max((totalAnswered / total) * 100, 0), 100)
+      : 0;
 
   return (
     <PromoCard

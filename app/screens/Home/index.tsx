@@ -52,7 +52,8 @@ const Home = () => {
   const navigation = useNavigation<any>();
   const [impactAssessmentProgress, setImpactAssessmentProgress] = useState<{
     dayNumber: number;
-    totalDays: number;
+    /** Both come from the server — the widget derives its own denominator. */
+    totalAnswered: number;
     totalRemaining: number;
   } | null>(null);
   const [, setLoadingImpactAssessment] = useState(true);
@@ -155,20 +156,37 @@ const Home = () => {
           }
         }
 
-        // Step 2: Determine Visibility based on Assessment Progress
+        // Step 2: Determine visibility.
+        //
+        // The Home card exists to get the BASELINE finished — the one sitting
+        // that fills the Growth Profile. Once that's done the assessment moves
+        // to its ONGOING trickle, which belongs after practice, not as a
+        // standing task on Home. Hiding the card then is what stops it nagging
+        // forever: the old condition needed all 42 answered, which nobody ever
+        // reached, so it never hid.
+        //
+        // `phase` is optional for back-compat: an older server sends none, and
+        // we fall back to the previous all-answered rule.
+        const phase = batch?.phase;
         const totalRemaining = batch?.metadata?.totalRemaining ?? 0;
         const questionsCount = batch?.questions?.length ?? 0;
+        // Progress is measured against the CURRENT phase, so a finished
+        // baseline reads 100% rather than ~48% of the whole bank.
+        const phaseTarget = batch?.metadata?.phaseTarget;
+        const phaseRemaining = batch?.metadata?.phaseRemaining;
+        const totalAnswered =
+          phaseTarget !== undefined && phaseRemaining !== undefined
+            ? phaseTarget - phaseRemaining
+            : (batch?.metadata?.totalAnswered ?? 0);
 
-        // Only hide if the batch is explicitly complete AND no questions remain
-        // If batch is null but user is post-onboarding, we show the card to encourage starting
+        const baselineDone = phase ? phase !== "BASELINE" : false;
         const isActuallyDone =
           !!batch &&
-          batch.isComplete &&
-          totalRemaining === 0 &&
-          questionsCount === 0;
+          (baselineDone ||
+            (batch.isComplete && totalRemaining === 0 && questionsCount === 0));
 
         if (isActuallyDone) {
-          console.log("[Home] Impact assessment complete. Hiding card.");
+          console.log("[Home] Baseline assessment done. Hiding card.", { phase });
           setImpactAssessmentProgress(null);
           return;
         }
@@ -178,12 +196,15 @@ const Home = () => {
         const safeDay = batch?.dayNumber || 1;
         console.log("[Home] Impact Assessment Progress Setting:", {
           safeDay,
+          totalAnswered,
           totalRemaining,
         });
         setImpactAssessmentProgress({
           dayNumber: safeDay,
-          totalDays: 7, // Fixed 7-day flow
-          totalRemaining: totalRemaining,
+          totalAnswered,
+          // Remaining IN THIS PHASE, so the card counts down to the end of the
+          // baseline sitting rather than to the bottom of the 42-item bank.
+          totalRemaining: phaseRemaining ?? totalRemaining,
         });
       } catch (error: any) {
         console.error("[Home] initImpactAssessment Error:", error);
@@ -291,8 +312,7 @@ const Home = () => {
     if (cardType === "impactAssessment") {
       return (
         <ImpactAssessmentWidget
-          dayNumber={impactAssessmentProgress?.dayNumber}
-          totalDays={impactAssessmentProgress?.totalDays}
+          totalAnswered={impactAssessmentProgress?.totalAnswered}
           totalRemaining={impactAssessmentProgress?.totalRemaining}
           onPress={() => {
             navigation.navigate("ExploreStack", {
