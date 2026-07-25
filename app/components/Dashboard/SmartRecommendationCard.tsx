@@ -4,6 +4,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getPackBrochure, getPackProgress, getRecommendedPack } from "../../api/packs";
 import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import { useUserStore } from "../../stores/user";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PressableScale from "../PressableScale";
 import PriceTag from "../PriceTag";
 import RecHeroCard, { REC_HERO_ACCENT } from "./RecHeroCard";
@@ -91,9 +93,41 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
       }
 
       setRecommendation(rec);
+
       if (rec && rec.pack) {
         const prog = await getPackProgress(rec.pack.id);
         setProgress(prog);
+      }
+
+      // ── Funnel: recommendation_shown ──────────────────────────────────
+      // Fired AFTER the (owned-pack) progress fetch, so a progress failure —
+      // which routes to catch and renders the error card — never emits a
+      // "shown". Mirrors the render branches below so the event never claims a
+      // card that isn't shown (the NEEDS_ONBOARDING case defers to the reminder
+      // card → renders nothing). Store read imperatively; callback is stable.
+      const u = useUserStore.getState().user;
+      const reminderWillShow = !!u && !u.hasCompletedOnboarding;
+      const variant = rec?.pack
+        ? "owned_pack"
+        : rec?.state === "NEEDS_ONBOARDING" && reminderWillShow
+          ? null
+          : rec?.state === "ALL_COMPLETE" && !rec?.topPick
+            ? "all_complete"
+            : !rec?.topPick
+              ? "browse_fallback"
+              : "top_pick";
+      if (variant) {
+        track(ANALYTICS_EVENTS.RECOMMENDATION_SHOWN, {
+          surface: "home",
+          variant,
+          state: rec?.state ?? null,
+          catalogKey: rec?.topPick?.catalogKey ?? null,
+          packId: rec?.pack?.id ?? rec?.topPick?.packId ?? null,
+          strategy: rec?.strategy ?? null,
+          priceInr: rec?.topPick?.priceInr ?? null,
+          hasMatchReason: !!rec?.topPick?.matchReason,
+          isRefresher: rec?.isRefresher ?? false,
+        });
       }
     } catch (error) {
       console.error("Failed to fetch recommendation", error);
@@ -249,12 +283,19 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             ink={colors.accentOn[REC_HERO_ACCENT]}
           />
         }
-        onPress={() =>
+        onPress={() => {
+          track(ANALYTICS_EVENTS.PACK_CLICKED, {
+            source: "home_recommendation",
+            catalogKey: pick.catalogKey,
+            packId: pick.packId,
+            priceInr: pick.priceInr,
+            hasMatchReason: !!pick.matchReason,
+          });
           exploreNavigation.navigate("ExploreStack", {
             screen: "ProgramDetail",
             params: { catalogKey: pick.catalogKey, packId: pick.packId },
-          })
-        }
+          });
+        }}
       />
     );
   }

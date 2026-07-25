@@ -131,10 +131,22 @@ const SubscribeScreen = () => {
       ? membership.annualProductId
       : membership.productId;
 
+    // Payment funnel for the membership paywall. `catalogKey: "membership"`
+    // separates it from pack purchases; `amountInr` is omitted because
+    // membership is store-priced (StoreKit / Play Billing) and not necessarily
+    // in INR — better absent than fabricated.
+    const payProps = {
+      planId: productId,
+      catalogKey: "membership",
+      plan: isAnnual ? "annual" : "monthly",
+    };
+    track(ANALYTICS_EVENTS.PAYMENT_STARTED, payProps);
+
     setLoading(true);
     try {
       const outcome = await purchaseProductById(productId);
       if (outcome.status === "purchased") {
+        track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
         // The entitlement is granted by the RevenueCat webhook, not the purchase
         // call itself — poll our own backend until "membership" appears.
         const wallet = await pollWalletUntil((w) =>
@@ -152,12 +164,21 @@ const SubscribeScreen = () => {
             "Your purchase went through but is still being confirmed. It should appear shortly.",
           );
         }
-      } else if (outcome.status === "error") {
-        showErrorBottomSheet("Purchase didn't complete", outcome.message);
+      } else {
+        // "error" or "cancelled" — `reason` separates a store failure from a
+        // user backing out, so an abandonment isn't read as a payment failure.
+        track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          ...payProps,
+          reason: outcome.status === "error" ? outcome.message : outcome.status,
+        });
+        if (outcome.status === "error") {
+          showErrorBottomSheet("Purchase didn't complete", outcome.message);
+        }
+        // "cancelled" → the user backed out at the store sheet; stay silent.
       }
-      // "cancelled" → the user backed out at the store sheet; stay silent.
     } catch (error) {
       console.error("[Payments] Purchase failed:", error);
+      track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "exception" });
       showErrorBottomSheet(
         "Purchase didn't complete",
         "Nothing has been charged. Please try again in a moment.",

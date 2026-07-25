@@ -21,6 +21,8 @@ import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import {
   ExploreStackNavigationProp,
   ExploreStackRouteProp,
@@ -56,6 +58,12 @@ const ProgramDetailScreen = () => {
   const [owned, setOwned] = useState(false);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+
+  // Funnel: the recommendation→click→DETAIL step. Fires once per opened
+  // program, independent of how the user got here (Home rec, shop, deep link).
+  useEffect(() => {
+    track(ANALYTICS_EVENTS.PROGRAM_DETAIL_VIEWED, { catalogKey, packId });
+  }, [catalogKey, packId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,9 +108,26 @@ const ProgramDetailScreen = () => {
   const handleBuy = async () => {
     if (!offer) return;
     setPurchasing(true);
+    // Funnel: bottom of the recommendation → purchase chain. `planId` is the
+    // tier SKU key; `catalogKey` ties it back to the recommended pack.
+    const payProps = {
+      planId: offer.key,
+      catalogKey,
+      amountInr: offer.priceInr,
+    };
+    track(ANALYTICS_EVENTS.PAYMENT_STARTED, payProps);
     try {
       const outcome = await purchaseCatalogItem(offer.key);
+      if (outcome.status !== "purchased") {
+        // Not completed: a user cancel or a store error. `reason` separates the
+        // two so an abandonment isn't read as a genuine payment failure.
+        track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          ...payProps,
+          reason: outcome.status === "error" ? outcome.message : outcome.status,
+        });
+      }
       if (outcome.status === "purchased") {
+        track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
         const wallet = await pollWalletUntil((w) =>
           w.entitlements.includes(`pack:${offer.key}`),
         );
@@ -131,6 +156,7 @@ const ProgramDetailScreen = () => {
       }
     } catch (error) {
       console.error("[ProgramDetail] Purchase failed:", error);
+      track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "exception" });
       showErrorBottomSheet(
         "Purchase didn't complete",
         "Nothing has been charged. Please try again in a moment.",

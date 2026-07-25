@@ -30,11 +30,20 @@ export const ANALYTICS_EVENTS = {
     ACTIVITY_COMPLETED: 'activity_completed',         // props: { activityId, contentType, title, isPackContext, vitals? }
     ACTIVITY_ABANDONED: 'activity_abandoned',         // props: { activityId, contentType, progressSeconds }
 
+    // ── Recommendation Funnel ─────────────────────────────────────────
+    // The pack recommendation → click → detail → purchase funnel. Server-side
+    // attribution (signalLevel, reasonPath, every candidate score) lives in the
+    // RecommendationLog; these are the CLIENT-observable steps that let us see
+    // where the funnel leaks. Consent-gated, release-only (existing setup).
+    RECOMMENDATION_SHOWN: 'recommendation_shown',   // props: { surface, variant, state, catalogKey, packId, strategy, priceInr, hasMatchReason, isRefresher }
+    PACK_CLICKED: 'pack_clicked',                   // props: { source, catalogKey, packId, priceInr, hasMatchReason }
+    PROGRAM_DETAIL_VIEWED: 'program_detail_viewed', // props: { catalogKey, packId }
+
     // ── Paywall & Payments ────────────────────────────────────────────
     PAYWALL_VIEWED: 'paywall_viewed',             // props: none
-    PAYMENT_STARTED: 'payment_started',            // props: { planId, amountInr }
-    PAYMENT_COMPLETED: 'payment_completed',          // props: { planId, amountInr }
-    PAYMENT_FAILED: 'payment_failed',             // props: { planId, amountInr, reason }
+    PAYMENT_STARTED: 'payment_started',            // props: { planId, catalogKey, amountInr }
+    PAYMENT_COMPLETED: 'payment_completed',          // props: { planId, catalogKey, amountInr }
+    PAYMENT_FAILED: 'payment_failed',             // props: { planId, catalogKey, amountInr, reason }
 
     // ── Stamina System ────────────────────────────────────────────────
     STAMINA_LOW_ALERT_SHOWN: 'stamina_low_alert_shown',   // props: { staminaPct }
