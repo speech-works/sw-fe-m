@@ -148,14 +148,24 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       questionText: "How often do you stay quiet when you'd rather speak?",
       description: "Most people do. It's completely okay to answer honestly.",
       questionType: "SINGLE",
+      layout: "scale",
       isRequired: true,
       adaptiveKey: "avoidance.frequency",
+      // LOW TO HIGH, like every other scale in the flow. This one used to run
+      // the other way ("Very often" first) while the distress scale below ran
+      // upward, so two scales three taps apart pointed in opposite directions —
+      // the reliable way to make someone answer the second one on the first
+      // one's muscle memory.
+      //
+      // Only the DISPLAY order changed. Each value stays glued to its own
+      // label, and the submitted answer is the value, so nothing about scoring
+      // or already-collected data moves. `orderIndex` is display order only.
       options: [
-        opt("very_often", "Very often", 1),
-        opt("often", "Often", 2),
+        opt("never", "Almost never", 1),
+        opt("rarely", "Rarely", 2),
         opt("sometimes", "Sometimes", 3),
-        opt("rarely", "Rarely", 4),
-        opt("never", "Almost never", 5),
+        opt("often", "Often", 4),
+        opt("very_often", "Very often", 5),
       ],
     },
     {
@@ -167,6 +177,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       questionText: "How heavy does it feel right now?",
       description: "This is about today, not about how you stutter.",
       questionType: "SINGLE",
+      layout: "scale",
       isRequired: true,
       adaptiveKey: "distress.overall",
       options: [

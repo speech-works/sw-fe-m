@@ -22,6 +22,10 @@ interface Props {
    *
    * "wrap"  — pill chips that flow and wrap, sized to their label.
    * "list"  — one full-width row per option, in the order given. THE DEFAULT.
+   * "scale" — an ordered five-point scale. Renders as "list" TODAY; it is a
+   *           separate name because a scale carries a promise a plain list
+   *           does not (evenly weighted steps, running low to high), and that
+   *           promise is what any future scale-specific affordance has to keep.
    *
    * WHY THIS IS A PROP AND NOT INFERRED. Half this question bank is ordered:
    * "Effortless → Exhausting", "Very often → Almost never". An ordered scale
@@ -37,7 +41,7 @@ interface Props {
    * as it always has, and server-driven questions are unaffected until someone
    * deliberately marks one.
    */
-  layout?: "list" | "wrap";
+  layout?: "list" | "wrap" | "scale";
   options: OnboardingOption[];
   value?: string;
   values?: string[];
@@ -61,6 +65,20 @@ const OnboardingQuestion = ({
   const isSlider = questionType === "SLIDER";
   const isMulti = questionType === "MULTI";
   const isWrap = layout === "wrap" && !isSlider;
+  /**
+   * A scale renders as the ordered column, and deliberately shares the chips'
+   * exact pill treatment — same shape, same border, same fill on select, same
+   * press feedback. One question type should not look like it came from a
+   * different app than the one before it.
+   *
+   * What it must NOT do is decorate per-index. An earlier attempt gave each row
+   * its own tilt, its own width from a hardcoded list (86/74/82/70/88 — not
+   * monotonic, so the width meant nothing), alternating left/right alignment
+   * and chat-bubble tails. Randomised ornament actively destroys a scale: five
+   * evenly weighted steps read as five unrelated messages, and a speech-bubble
+   * tail implies a dialogue between two parties rather than one continuum.
+   * Identical, evenly spaced rows in one direction ARE the scale.
+   */
 
   // ---- SLIDER LOGIC ----
   const min = 0;

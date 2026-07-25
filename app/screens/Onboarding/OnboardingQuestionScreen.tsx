@@ -40,6 +40,8 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 /** Pause after a single-select tap, so the choice is seen before we move on. */
 const AUTO_ADVANCE_MS = 260;
+/** The kinetic scale gets one extra beat so its selection feedback can land. */
+const AUTO_ADVANCE_SCALE_MS = 400;
 
 const OnboardingQuestionScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -195,6 +197,11 @@ const OnboardingQuestionScreen: React.FC = () => {
   const screenQuestions = getCurrentScreenQuestions(screenNumber);
   const totalScreens = Math.max(...flow.questions.map((q) => q.screenNumber));
   const isLast = screenNumber === totalScreens;
+  const usesAutoAdvanceRail =
+    screenQuestions.length > 0 &&
+    screenQuestions.every(
+      (q) => q.questionType === "SINGLE" && q.layout === "scale",
+    );
 
   // -----------------------------------------------------
   // SKIP → emit STOP_ONBOARDING to return app to main flow
@@ -398,10 +405,15 @@ const OnboardingQuestionScreen: React.FC = () => {
                 // render, so the answer is visibly registered before we move.
                 if (q.questionType === "SINGLE") {
                   if (advanceTimer.current) clearTimeout(advanceTimer.current);
-                  advanceTimer.current = setTimeout(() => {
-                    advanceTimer.current = null;
-                    handleNext();
-                  }, AUTO_ADVANCE_MS);
+                  advanceTimer.current = setTimeout(
+                    () => {
+                      advanceTimer.current = null;
+                      handleNext();
+                    },
+                    q.layout === "scale"
+                      ? AUTO_ADVANCE_SCALE_MS
+                      : AUTO_ADVANCE_MS,
+                  );
                 }
               }}
             />
@@ -409,23 +421,25 @@ const OnboardingQuestionScreen: React.FC = () => {
         })}
       </CustomScrollView>
 
-      <View
-        style={[
-          styles.footerButton,
-          {
-            paddingBottom: Math.max(
-              insets.bottom + space.inlineGap,
-              spacing["2xl"],
-            ),
-          },
-        ]}
-      >
-        <Button
-          label={isLast ? "Complete" : "Next"}
-          disabled={!isCurrentScreenValid(screenNumber)}
-          onPress={handleNext}
-        />
-      </View>
+      {!usesAutoAdvanceRail ? (
+        <View
+          style={[
+            styles.footerButton,
+            {
+              paddingBottom: Math.max(
+                insets.bottom + space.inlineGap,
+                spacing["2xl"],
+              ),
+            },
+          ]}
+        >
+          <Button
+            label={isLast ? "Complete" : "Next"}
+            disabled={!isCurrentScreenValid(screenNumber)}
+            onPress={handleNext}
+          />
+        </View>
+      ) : null}
     </ScreenView>
   );
 };

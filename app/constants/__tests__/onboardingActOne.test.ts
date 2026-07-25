@@ -79,6 +79,47 @@ describe("Act 1 bundled flow", () => {
     ]);
   });
 
+  it("opts ordered five-point questions into the compact scale layout", () => {
+    const orderedScaleKeys = ["avoidance.frequency", "distress.overall"];
+    for (const key of orderedScaleKeys) {
+      expect(questions.find((q) => q.adaptiveKey === key)?.layout).toBe("scale");
+    }
+  });
+
+  /**
+   * Direction is the thing worth guarding. A reader learns which end is "more"
+   * from the first scale and answers the next one on that muscle memory, so two
+   * scales pointing opposite ways in the same flow produces wrong answers that
+   * look perfectly valid in the data. Asserting the exact rendered order catches
+   * a flip that no type or lint rule would.
+   */
+  it("orders every scale from lowest to highest", () => {
+    const expected: Record<string, string[]> = {
+      "avoidance.frequency": [
+        "Almost never",
+        "Rarely",
+        "Sometimes",
+        "Often",
+        "Very often",
+      ],
+      "distress.overall": [
+        "Not heavy at all",
+        "A little heavy",
+        "Moderately heavy",
+        "Very heavy",
+        "Extremely heavy",
+      ],
+    };
+
+    for (const [key, labels] of Object.entries(expected)) {
+      const q = questions.find((it) => it.adaptiveKey === key);
+      expect(q?.layout).toBe("scale");
+      expect(q?.options.map((o) => o.optionText)).toEqual(labels);
+      // Display order must be a clean 1..n, so "first" is unambiguous.
+      expect(q?.options.map((o) => o.orderIndex)).toEqual([1, 2, 3, 4, 5]);
+    }
+  });
+
   it("has a recognition phrase for every real situation", () => {
     // NONE / NOT_SURE carry no targeting information and are never echoed back.
     const targetable = ACT_ONE_SITUATION_VALUES.filter(

@@ -24,7 +24,7 @@ export interface OnboardingQuestion {
    * server-driven question until someone deliberately opts it in.
    * See OnboardingQuestion's `layout` prop for why this cannot be inferred.
    */
-  layout?: "list" | "wrap";
+  layout?: "list" | "wrap" | "scale";
   adaptiveKey?: string | null;
 }
 
