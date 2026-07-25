@@ -1,20 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import { UserAvatar } from "../../components/UserAvatar";
-import { FaceExpression } from "../../assets/avatar/parts";
 import {
   Text,
-  easing,
   radius,
   spacing,
   useTheme,
@@ -80,9 +69,6 @@ const sizes = (width: number, available: number) => {
   };
 };
 
-/** Drift distance, px. Small on purpose: this is breathing, not bobbing. */
-const FLOAT_DISTANCE = 6;
-
 /**
  * Blob wash, per scheme — and the two are NOT the same number.
  *
@@ -117,14 +103,6 @@ const BUBBLES = [
     // `topPct` is a fraction of stage height so the ring of bubbles scales with
     // the art instead of drifting across the face on a bigger screen.
     anchor: { topPct: 0, left: 0 },
-    // Where the character has to look to see this one, normalised -1..1 from
-    // the centre of its face. Deliberately hand-written and kept HERE, beside
-    // the anchor, rather than derived: the anchors mix left/right/percent units
-    // and a derivation would need each chip's rendered width. The invariant to
-    // preserve is simply "move the anchor, move the gaze" — they are one edit.
-    gaze: { x: -1, y: -0.9 },
-    delay: 0,
-    period: 3400,
   },
   {
     key: "meeting_people",
@@ -134,17 +112,11 @@ const BUBBLES = [
     // the head has already started narrowing, so the bubble tucks against the
     // jaw and reads as coming from the mouth rather than covering it.
     anchor: { topPct: 0.56, right: 0 },
-    gaze: { x: 1, y: 0.2 },
-    delay: 900,
-    period: 3900,
   },
   {
     key: "ordering_food",
     tone: "lime" as const,
     anchor: { topPct: 0.86, left: 16 },
-    gaze: { x: -0.8, y: 1 },
-    delay: 1800,
-    period: 3650,
   },
 ];
 
@@ -163,111 +135,33 @@ const BLOB_PATH =
   "C-2 98 14 62 40 38 C66 14 62 6 104 4 Z";
 
 /**
- * Gaze cadence.
+ * A situation chip.
  *
- * MOVE was 220ms — a real saccade, since eyes genuinely do jump. On screen it
- * read as a twitch, because the head moves with the eyes here and a head that
- * snaps looks broken however correct the eye timing is. It is now a comfortable
- * glance, eased in AND out so there is no hard start or stop, and the head is
- * sprung so it trails rather than jumping in lockstep (see FollowingFeatures).
+ * STATIC, deliberately. These used to drift up and down on staggered periods.
+ * Three chips bobbing plus a gaze that tracked between them plus the avatar's
+ * idle float plus the entrance stagger was four separate motion systems on a
+ * screen whose whole job is one tap — and continuously moving things are
+ * permanent attention magnets, competing with the very CTA they sit above.
  *
- * DWELL is long enough to actually read the chip being looked at, which is the
- * point: the character reads its own list and the eye leads the viewer to each
- * item in turn.
+ * The scene keeps exactly ONE ambient motion now: the character's slow breath.
+ * One living thing in a still frame reads as alive; four read as busy.
  */
-const MOVE = 620;
-const DWELL = 1500;
-/** Longer, because being looked at is the moment worth holding. */
-const VIEWER_DWELL = 2400;
-
-/**
- * Where the eyes go, in order: each bubble, and then the reader.
- *
- * (0, 0) is straight ahead — the same resting pose the static face uses — so
- * "look at the user" needs no special case, it is simply another target. It
- * lands last so the loop ends on eye contact before starting round the list
- * again, and it is the only beat where the character isn't busy with its own
- * thoughts.
- */
-const GAZE_TARGETS: { x: number; y: number; dwell: number }[] = [
-  ...BUBBLES.map((b) => ({ ...b.gaze, dwell: DWELL })),
-  { x: 0, y: 0, dwell: VIEWER_DWELL },
-];
-
-/** Drives the gaze around the ring of bubbles and back to the reader, forever. */
-const useGazeCycle = (reduced: boolean): FaceExpression => {
-  const gazeX = useSharedValue(0);
-  const gazeY = useSharedValue(0);
-
-  useEffect(() => {
-    // Reduced motion: leave both at 0. Not a broken state — 0,0 is exactly the
-    // "looking at you" pose the cycle keeps returning to anyway.
-    if (reduced) return;
-
-    const track = (axis: "x" | "y") =>
-      GAZE_TARGETS.flatMap((t) => [
-        // inOut, not out: eased at BOTH ends, so the eyes neither snap away nor
-        // slam to a stop. `out` alone leaves a hard departure, which is most of
-        // what made the old motion feel jerky.
-        withTiming(t[axis], { duration: MOVE, easing: easing.inOut }),
-        // A zero-duration timing to the value it already holds — an explicit
-        // dwell, so each target costs exactly MOVE + its own dwell.
-        withDelay(t.dwell, withTiming(t[axis], { duration: 0 })),
-      ]);
-
-    gazeX.value = withRepeat(withSequence(...track("x")), -1, false);
-    gazeY.value = withRepeat(withSequence(...track("y")), -1, false);
-
-    return () => {
-      cancelAnimation(gazeX);
-      cancelAnimation(gazeY);
-    };
-  }, [reduced, gazeX, gazeY]);
-
-  return { gazeX, gazeY };
-};
-
 const Bubble: React.FC<{
   label: string;
   bg: string;
   fg: string;
   place: object;
-  delay: number;
-  period: number;
-  reduced: boolean;
-}> = ({ label, bg, fg, place, delay, period, reduced }) => {
-  const t = useSharedValue(0);
+}> = ({ label, bg, fg, place }) => (
+  <View style={[styles.bubble, place, { backgroundColor: bg }]}>
+    <Text variant="caption" color={fg}>
+      {label}
+    </Text>
+  </View>
+);
 
-  useEffect(() => {
-    if (reduced) return;
-    t.value = withDelay(
-      delay,
-      // `true` = reverse: the bubble drifts up and back down rather than
-      // snapping to the start, which would read as a glitch on a loop this slow.
-      withRepeat(withTiming(1, { duration: period, easing: easing.loop }), -1, true),
-    );
-  }, [delay, period, reduced, t]);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateY: -t.value * FLOAT_DISTANCE }],
-  }));
-
-  return (
-    <Animated.View style={[styles.bubble, place, { backgroundColor: bg }, style]}>
-      <Text variant="caption" color={fg}>
-        {label}
-      </Text>
-    </Animated.View>
-  );
-};
-
-const WelcomeStage: React.FC<{ reduced: boolean; available: number }> = ({
-  reduced,
-  available,
-}) => {
+const WelcomeStage: React.FC<{ available: number }> = ({ available }) => {
   const { colors, scheme } = useTheme();
   const { width } = useWindowDimensions();
-  const expression = useGazeCycle(reduced);
   const s = sizes(width, available);
 
   const tone = {
@@ -307,7 +201,7 @@ const WelcomeStage: React.FC<{ reduced: boolean; available: number }> = ({
           face, not "yours". Dressing it in earned gear would show a stranger a
           wardrobe they don't have and spend the celebration screen's one trick
           sixty seconds early. */}
-      <UserAvatar size={s.avatar} animate expression={expression} />
+      <UserAvatar size={s.avatar} animate />
 
       {BUBBLES.map((b) => (
         <Bubble
@@ -320,9 +214,6 @@ const WelcomeStage: React.FC<{ reduced: boolean; available: number }> = ({
             left: b.anchor.left,
             right: b.anchor.right,
           }}
-          delay={b.delay}
-          period={b.period}
-          reduced={reduced}
         />
       ))}
     </View>

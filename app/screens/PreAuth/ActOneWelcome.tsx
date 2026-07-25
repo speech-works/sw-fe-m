@@ -74,7 +74,7 @@ const ActOneWelcome: React.FC = () => {
           entering={motion.stagger(0)}
           onLayout={(e) => setStageHeight(e.nativeEvent.layout.height)}
         >
-          <WelcomeStage reduced={motion.reduced} available={stageHeight} />
+          <WelcomeStage available={stageHeight} />
         </Animated.View>
 
         {/* RECOGNITION BEFORE EFFORT.
@@ -131,21 +131,32 @@ const ActOneWelcome: React.FC = () => {
             </Text>
           </Animated.View>
 
-          {/* THE FACTS, DEMOTED. These used to be welded onto the sentence above
-            ("Five quick questions about speaking. About a minute, and no
-            account needed."), which made the one warm line on the screen read
-            like a spec sheet. Separated and dropped to tertiary they become
-            scannable reassurance — and they give the empty band above the CTA
-            something to do besides be empty. */}
+          {/* THE FACTS, DEMOTED. These used to be welded onto the sentence above,
+            which made the one warm line on the screen read like a spec sheet.
+            Separated and dropped to tertiary they become scannable reassurance.
+
+            "no account needed" was a third fact here and is gone. It was the
+            weakest of the three — the flow demonstrates it a second later by
+            simply not asking for an account — and two facts scan in one glance
+            where three read as a list. */}
           <Animated.View entering={motion.stagger(3)}>
             <Text variant="caption" color="tertiary">
-              5 questions · about a minute · no account needed
+              5 questions · about a minute
             </Text>
           </Animated.View>
         </View>
       </View>
 
-      <View style={styles.footer}>
+      {/* The bottom inset is applied here for the same reason the top one is
+          applied above: ScreenView supplies neither, so without it the privacy
+          note clears the home indicator only by luck of the padding value.
+          `max` keeps it honest on a device that has no indicator at all. */}
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
+        ]}
+      >
         <Animated.View entering={motion.stagger(4)}>
           {/* NO rightIcon. A chevron here (as in the reference screens) makes
               the DS Button truncate its own label to "Let's st…" — the Icon
@@ -209,7 +220,7 @@ const ActOneWelcome: React.FC = () => {
             style={styles.noteRow}
             onPress={() => setPrivacyOpen(true)}
           >
-            We count which question people stop on — never your answers.{" "}
+            We count where people stop, never answers.{" "}
             {/* `link`, not the brand fill: the DS guards against bright accent
               hues used as text because they drop below AA on a light surface. */}
             <Text variant="caption" color="link">
@@ -324,18 +335,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  /**
+   * The footer holds three things of very different importance, and an even
+   * gap between all three made them read as one dense block of text — the
+   * "overwhelming" bottom.
+   *
+   * So the gap is removed and spacing is carried by the rows themselves: a
+   * generous break after the CTA, then the two secondary lines tucked close
+   * together so they group as one quiet footnote rather than as two more
+   * things to read. Proximity does the grouping; nothing had to be deleted for
+   * the stack to calm down.
+   */
   footer: {
     paddingHorizontal: space.screenX,
-    paddingBottom: spacing["2xl"],
-    gap: space.rowGap,
+    // paddingBottom is applied inline from the safe-area inset.
   },
-  // paddingVertical carries a ~20pt line to the 44pt minimum tap target.
+  // Asymmetric on purpose: the big padding above separates this from the CTA,
+  // the small padding below binds it to the note underneath. Together they
+  // still carry a ~20pt line past the 44pt minimum tap target.
   signInRow: {
-    paddingVertical: spacing.md,
+    paddingTop: spacing["2xl"],
+    paddingBottom: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   noteRow: {
-    paddingTop: space.inlineGap,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   sheet: {

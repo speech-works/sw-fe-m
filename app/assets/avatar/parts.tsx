@@ -1,15 +1,6 @@
 import React from "react";
 import { G, Path, Circle, Ellipse, Rect, ClipPath } from "react-native-svg";
-import Animated, {
-  SharedValue,
-  useAnimatedProps,
-  useDerivedValue,
-  withSpring,
-} from "react-native-reanimated";
-import { spring } from "../../design-system";
 import { HEAD, CX, GOLD, INK, shade } from "./avatarKit";
-
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 /**
  * The avatar part catalog, drawn in the construction language of the
@@ -32,26 +23,6 @@ const AnimatedG = Animated.createAnimatedComponent(G);
  * Head contour: crown y=8 · x 6.24→43.11 at y=20 · x 6.07→43.27 at y=24.
  */
 
-/**
- * Optional life for the face: where it is looking, and whether it is mid-word.
- *
- * OPT-IN BY DESIGN. Without it every face renders exactly as it always has,
- * with no animated nodes and no reanimated hooks — which matters because the
- * avatar studio renders a grid of these, and the Home widget renders one on a
- * screen people open all day. Only a screen that has something worth looking
- * AT should pass this.
- *
- * Values are normalised to -1..1 so the driver can think in directions
- * ("up and to the left") and the eye alone owns how far that is in SVG units —
- * the safe travel is a property of the artwork, not of the caller.
- */
-export interface FaceExpression {
-  /** -1 = hard left, +1 = hard right. */
-  gazeX: SharedValue<number>;
-  /** -1 = up, +1 = down. */
-  gazeY: SharedValue<number>;
-}
-
 export interface PartProps {
   colors: { skin: string; hair: string; bg: string; collar: string };
   /** Hair only: which sub-layer to render. "back" = the drape drawn BEHIND the
@@ -59,8 +30,6 @@ export interface PartProps {
    *  crown drawn ON the head (what a hat covers). Undefined = both, in place
    *  (used by standalone previews where nothing sits between the two). */
   layer?: "back" | "front";
-  /** Faces only: gaze + speech. Absent = the static pose (see FaceExpression). */
-  expression?: FaceExpression;
 }
 
 /** The Snoo idiom: a flat fill + the shared ink outline. Used for every hat
@@ -116,159 +85,20 @@ const IRIS = "#2E2A44";
 /** One eye, matched to the reference's cute panel: a big white egg (now with
  *  the shared ink outline, like Snoo), a large dark pupil ringed by a thin
  *  iris, sitting LOW and slightly INWARD — plus one small catchlight. */
-const EYE_CY = 22;
-const EYE_RX = 3.1;
-const EYE_RY = 4;
-const IRIS_R = 2.15;
-
-/**
- * How far the iris may travel from the eye's centre before it starts to clip
- * out through the white. Derived, not tuned: the iris is a disc of radius
- * IRIS_R inside an ellipse of radii (EYE_RX, EYE_RY), so its centre has to stay
- * within the difference. Change the artwork and these follow.
- */
-const GAZE_LIMIT_X = EYE_RX - IRIS_R; // 0.95
-const GAZE_LIMIT_Y = EYE_RY - IRIS_R; // 1.85
-
-/**
- * A tracking eye re-centres before it starts moving.
- *
- * The resting pose parks the iris low and slightly inward — that converged
- * look-down is what makes the static face endearing. It also spends most of
- * the available travel: from irisDx = 0.55 there is only 0.4 left before the
- * iris clips, which is about one point on screen and reads as nothing. So a
- * face that is actively looking at things gives up the resting offset and
- * starts centred, which buys the full +/-0.95 in each direction.
- */
-const TRACK_BASE_DY = 0.3;
-
-/**
- * Travel actually used, as a fraction of what the artwork allows.
- *
- * Short of the limit on purpose. At the limit the iris sits flush against the
- * white and the eye reads as bulging rather than looking; leaving a sliver of
- * white on the far side is what makes it read as a glance. The vertical budget
- * is measured DOWNWARD from the resting offset, because that is the tighter of
- * the two directions.
- */
-const GAZE_FILL = 0.9;
-const GAZE_RANGE_X = GAZE_LIMIT_X * GAZE_FILL; // ~0.86
-const GAZE_RANGE_Y = (GAZE_LIMIT_Y - TRACK_BASE_DY) * GAZE_FILL; // ~1.40
-
-/**
- * How far the FEATURES slide with the gaze — eyes, mouth and all, as one.
- *
- * Pupils alone cannot sell this. The iris very nearly fills the eye white by
- * design (r 2.15 inside rx 3.1), so the entire available travel is under a
- * point of screen space at this size — measurable, but not really readable as
- * "looking at that".
- *
- * So the head follows the eyes, which is what heads do: the eyes reach a target
- * first and the head turns after them. Sliding the features a little against a
- * fixed skull and hairline is the flat-illustration shorthand for that turn,
- * and it roughly doubles the apparent movement without touching the artwork.
- *
- * Keep it small. Past a couple of units the features stop reading as a turned
- * head and start reading as a face sliding off the front of a skull.
- */
-const HEAD_FOLLOW_X = 0.9;
-const HEAD_FOLLOW_Y = 0.6;
-
-/** `spring.gentle` — soft settle, no overshoot. A head that bounces on arrival
- *  reads as a bobblehead, so this is the one DS spring with no bounce in it. */
-const HEAD_SPRING = spring.gentle;
-
-const FollowingFeatures: React.FC<{
-  expression: FaceExpression;
-  children: React.ReactNode;
-}> = ({ expression, children }) => {
-  // THE HEAD LAGS THE EYES, and that lag is the whole reason this reads as
-  // smooth. Driving the features off the raw gaze value moved eyes and head as
-  // one rigid block, which is what made the motion feel like a jerk however
-  // gently the gaze itself was eased. Springing toward the gaze instead means
-  // the eyes arrive first and the head settles in after them — which is both
-  // what real heads do and, conveniently, impossible to make look abrupt.
-  const headX = useDerivedValue(() => withSpring(expression.gazeX.value, HEAD_SPRING));
-  const headY = useDerivedValue(() => withSpring(expression.gazeY.value, HEAD_SPRING));
-
-  const props = useAnimatedProps(() => ({
-    transform: [
-      { translateX: headX.value * HEAD_FOLLOW_X },
-      { translateY: headY.value * HEAD_FOLLOW_Y },
-    ] as never,
-  }));
-  return <AnimatedG animatedProps={props}>{children}</AnimatedG>;
-};
-
-/** Wraps a face's features so they turn together — or renders them untouched
- *  when the face is static. */
-const Features: React.FC<{
-  expression?: FaceExpression;
-  children: React.ReactNode;
-}> = ({ expression, children }) =>
-  expression ? (
-    <FollowingFeatures expression={expression}>{children}</FollowingFeatures>
-  ) : (
-    <>{children}</>
-  );
-
-/** The iris, pupil and catchlight — the parts that move together as the gaze. */
-const Iris: React.FC<{ ix: number; iy: number }> = ({ ix, iy }) => (
-  <>
-    <Circle cx={ix} cy={iy} r={IRIS_R} fill={IRIS} />
-    <Circle cx={ix} cy={iy} r={1.55} fill="#0B0A10" />
-    <Circle cx={ix - 0.7} cy={iy - 0.8} r={0.6} fill="#FFFFFF" />
-  </>
-);
-
-const TrackingIris: React.FC<{ cx: number; expression: FaceExpression }> = ({
-  cx,
-  expression,
-}) => {
-  const props = useAnimatedProps(() => ({
-    transform: [
-      { translateX: expression.gazeX.value * GAZE_RANGE_X },
-      { translateY: expression.gazeY.value * GAZE_RANGE_Y },
-    ] as never,
-  }));
+const AvatarEye: React.FC<{ cx: number; irisDx: number }> = ({ cx, irisDx }) => {
+  const cy = 22;
+  const ix = cx + irisDx;
+  const iy = cy + 1.1; // low in the egg — the endearing look-down
   return (
-    <AnimatedG animatedProps={props}>
-      <Iris ix={cx} iy={EYE_CY + TRACK_BASE_DY} />
-    </AnimatedG>
+    <>
+      <Ellipse cx={cx} cy={cy} rx={3.1} ry={4} fill="#FFFFFF" />
+      <Ellipse cx={cx} cy={cy} rx={3.1} ry={4} fill="none" stroke={INK} strokeWidth={0.6} />
+      <Circle cx={ix} cy={iy} r={2.15} fill={IRIS} />
+      <Circle cx={ix} cy={iy} r={1.55} fill="#0B0A10" />
+      <Circle cx={ix - 0.7} cy={iy - 0.8} r={0.6} fill="#FFFFFF" />
+    </>
   );
 };
-
-/** One eye, matched to the reference's cute panel: a big white egg (now with
- *  the shared ink outline, like Snoo), a large dark pupil ringed by a thin
- *  iris, sitting LOW and slightly INWARD — plus one small catchlight.
- *
- *  `expression` is either present for this component's whole life or absent for
- *  all of it (a screen decides once), so branching on it here never swaps a
- *  mounted component for a different one mid-flight. That is what keeps the
- *  hookless path genuinely hookless instead of a conditional hook in disguise. */
-const AvatarEye: React.FC<{
-  cx: number;
-  irisDx: number;
-  expression?: FaceExpression;
-}> = ({ cx, irisDx, expression }) => (
-  <>
-    <Ellipse cx={cx} cy={EYE_CY} rx={EYE_RX} ry={EYE_RY} fill="#FFFFFF" />
-    <Ellipse
-      cx={cx}
-      cy={EYE_CY}
-      rx={EYE_RX}
-      ry={EYE_RY}
-      fill="none"
-      stroke={INK}
-      strokeWidth={0.6}
-    />
-    {expression ? (
-      <TrackingIris cx={cx} expression={expression} />
-    ) : (
-      <Iris ix={cx + irisDx} iy={EYE_CY + 1.1} />
-    )}
-  </>
-);
 
 /** The open-smile outline — shared by the fill, the interior clip, and the
  *  outline stroke so the three can never drift apart. */
@@ -276,15 +106,6 @@ const MOUTH = "M19 29.7 Q24.675 30.9 30.35 29.7 Q30.1 35.2 24.675 35.7 Q19.25 35
 
 /** Animated open smile (the reference sheet's "A"/"L N" mouth): dark interior
  *  + white upper-teeth band + tongue, all flat fills clipped to the shape. */
-/** Animated open smile (the reference sheet's "A"/"L N" mouth): dark interior
- *  + white upper-teeth band + tongue, all flat fills clipped to the shape.
- *
- *  NOT animated. An earlier pass dropped the jaw on each gaze arrival, as if
- *  the character were saying the thing it had just looked at. Two mouths' worth
- *  of movement plus the eyes was too much going on at once, and a mouth that
- *  moves in step with the eyes reads as a puppet rather than a person — real
- *  faces look first and speak separately. The smile now simply stays a smile.
- */
 const OpenSmile: React.FC = () => (
   <>
     <ClipPath id="av-mouth">
@@ -333,21 +154,21 @@ const WideEye: React.FC<{ cx: number }> = ({ cx }) => (
 //    one-face rule holds: these are moods of THE face, not new characters). ───
 
 /** Cheerful (the default): the endearing gaze + open smile. */
-export const BrandFace: React.FC<PartProps> = ({ expression }) => (
-  <Features expression={expression}>
-    <AvatarEye cx={16} irisDx={0.55} expression={expression} />
-    <AvatarEye cx={32} irisDx={-0.55} expression={expression} />
+export const BrandFace: React.FC<PartProps> = () => (
+  <>
+    <AvatarEye cx={16} irisDx={0.55} />
+    <AvatarEye cx={32} irisDx={-0.55} />
     <OpenSmile />
-  </Features>
+  </>
 );
 
 /** Soft smile: the same gaze + closed tapered smile. */
-export const SmileFace: React.FC<PartProps> = ({ expression }) => (
-  <Features expression={expression}>
-    <AvatarEye cx={16} irisDx={0.55} expression={expression} />
-    <AvatarEye cx={32} irisDx={-0.55} expression={expression} />
+export const SmileFace: React.FC<PartProps> = () => (
+  <>
+    <AvatarEye cx={16} irisDx={0.55} />
+    <AvatarEye cx={32} irisDx={-0.55} />
     <TaperedSmile />
-  </Features>
+  </>
 );
 
 /** Joy: both eyes closed happy + open smile. */

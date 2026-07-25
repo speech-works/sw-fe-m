@@ -10,7 +10,6 @@ import Animated, {
 import { AvatarManifest, normalizeManifest } from "../types/avatar";
 import { AvatarDefs, TILE } from "../assets/avatar/avatarKit";
 import { PART_REGISTRY } from "../assets/avatar/registry";
-import { FaceExpression } from "../assets/avatar/parts";
 import { easing, useMotion } from "../design-system";
 
 /** Bespoke ambient loop period — the DS "Ambient (avatar float)" taxonomy row.
@@ -25,14 +24,6 @@ export interface UserAvatarProps {
   size: number;
   /** Idle float. Forced off by OS reduced motion. */
   animate?: boolean;
-  /**
-   * Make the face look around and mouth words. Opt-in: without it the face
-   * renders its static pose with no animated nodes and no extra hooks, which
-   * is what every existing caller gets. Pass it only where there is something
-   * on screen worth looking at, and drive it with reduced motion in mind — the
-   * shared values simply staying at 0 is a valid, calm resting state.
-   */
-  expression?: FaceExpression;
   accessibilityLabel?: string;
 }
 
@@ -60,7 +51,7 @@ export interface UserAvatarProps {
  * L0–L7 are masked to the tile circle; the prop alone escapes it.
  */
 export const UserAvatar = React.memo<UserAvatarProps>(
-  ({ manifest, size, animate = false, expression, accessibilityLabel }) => {
+  ({ manifest, size, animate = false, accessibilityLabel }) => {
     const { reduced } = useMotion();
     const m = useMemo(() => normalizeManifest(manifest), [manifest]);
 
@@ -89,15 +80,7 @@ export const UserAvatar = React.memo<UserAvatarProps>(
       const id = m.parts[slot];
       if (!id) return null;
       const Component = PART_REGISTRY[slot][id];
-      if (!Component) return null;
-      // `expression` goes ONLY to the face. Handing it to every slot would let
-      // a future hat or prop quietly start animating on screens that never
-      // asked for it.
-      return slot === "face" ? (
-        <Component colors={m.colors} expression={expression} />
-      ) : (
-        <Component colors={m.colors} />
-      );
+      return Component ? <Component colors={m.colors} /> : null;
     };
 
     /** Hair renders in two passes — the back drape (behind the head) and the
