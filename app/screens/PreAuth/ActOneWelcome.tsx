@@ -208,9 +208,19 @@ const ActOneWelcome: React.FC = () => {
           It is a footnote rather than a toggle card because this is the first
           thing anyone sees: a switch sitting between the headline and the CTA
           makes an invitation read like a preferences page, and asks for a
-          decision before the person knows what they are deciding about. The
-          line states plainly what is collected; the sheet holds the control for
-          anyone who wants it.
+          decision before the person knows what they are deciding about.
+
+          WHY, NOT WHAT. This used to say "We count where people stop, never
+          answers." Two things were wrong with it. It led with what we take, so
+          the reader's first thought was that something was being taken. And the
+          denial backfired — "never answers" plants the idea that answers COULD
+          be taken, which nobody was worried about until we raised it. A
+          reassurance phrased as a negation reliably creates the doubt it means
+          to settle.
+
+          So the line now gives the purpose and stops. "Anonymous" carries the
+          reassurance without a denial attached, and the sheet holds the detail
+          for anyone who actually wants to decide.
         */}
         <Animated.View entering={motion.stagger(6)}>
           <Text
@@ -220,7 +230,7 @@ const ActOneWelcome: React.FC = () => {
             style={styles.noteRow}
             onPress={() => setPrivacyOpen(true)}
           >
-            We count where people stop, never answers.{" "}
+            Anonymous usage helps us keep this short.{" "}
             {/* `link`, not the brand fill: the DS guards against bright accent
               hues used as text because they drop below AA on a light surface. */}
             <Text variant="caption" color="link">
@@ -232,13 +242,33 @@ const ActOneWelcome: React.FC = () => {
 
       <Sheet visible={privacyOpen} onClose={() => setPrivacyOpen(false)}>
         <View style={styles.sheet}>
+          {/*
+            The heading was "What we count", which framed the whole sheet as a
+            disclosure of what we take. "Keeping this short" is the actual
+            reason any of it exists, and it is a reason that serves the reader.
+
+            HOW FAR TO SOFTEN. The footnote outside can be purpose-only, because
+            it is a pointer. This sheet cannot: the toggle below it IS the
+            consent, so whoever opens this has to come away able to decide. That
+            is why one plain example survives. Vagueness is not automatically
+            kinder here — "we collect usage data" is what every app says and
+            nobody believes, whereas a detail this mundane is reassuring
+            precisely because it is so obviously harmless.
+
+            What DID go are the two denials — "nothing else" and "never part of
+            this". Both raised doubts nobody had. The device line says the same
+            thing as a plain positive fact instead.
+          */}
           <Text variant="h2" color="primary">
-            What we count
+            Keeping this short
           </Text>
           <Text variant="body" color="secondary">
-            To make this shorter we record which question people stop on —
-            nothing else. Your answers stay on this device until you create an
-            account, and they are never part of this.
+            Fewer questions is better for everyone, so we look at anonymous
+            usage — how far people get before they stop — to see what we can
+            cut.
+          </Text>
+          <Text variant="body" color="secondary">
+            Your answers stay on this device until you make an account.
           </Text>
 
           <View
