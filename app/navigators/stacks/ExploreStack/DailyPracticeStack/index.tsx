@@ -1,9 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import DailyPractice from "../../../../screens/Academy/DailyPractice";
-import ImpactAssessmentComplete from "../../../../screens/Academy/ImpactAssessment/ImpactAssessmentComplete";
-import ImpactAssessmentIntro from "../../../../screens/Academy/ImpactAssessment/ImpactAssessmentIntro";
-import ImpactAssessmentQuestions from "../../../../screens/Academy/ImpactAssessment/ImpactAssessmentQuestions";
 import { DPStackParamList } from "./types";
 
 import CDPStackNavigator from "./CognitivePracticeStack";
@@ -26,21 +23,8 @@ export default function DPStackNavigator() {
       <Stack.Screen name="ExposureStack" component={EDPStackNavigator} />
 
       {/* Impact Assessment Flow */}
-      <Stack.Screen
-        name="ImpactAssessmentIntro"
-        component={ImpactAssessmentIntro}
-        options={{ gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="ImpactAssessmentQuestions"
-        component={ImpactAssessmentQuestions}
-        options={{ gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="ImpactAssessmentComplete"
-        component={ImpactAssessmentComplete}
-        options={{ gestureEnabled: false }}
-      />
+
+
     </Stack.Navigator>
   );
 }

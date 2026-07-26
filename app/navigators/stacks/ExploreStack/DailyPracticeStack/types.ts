@@ -8,9 +8,6 @@ export type DPStackParamList = {
   CognitivePracticeStack: undefined;
   ExposureStack: undefined;
   // Impact Assessment
-  ImpactAssessmentIntro: undefined;
-  ImpactAssessmentQuestions: undefined;
-  ImpactAssessmentComplete: undefined;
 };
 export type DPStackNavigationProp<T extends keyof DPStackParamList> =
   NativeStackNavigationProp<DPStackParamList, T>;

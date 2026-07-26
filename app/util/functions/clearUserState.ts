@@ -49,7 +49,6 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useReminderStore },
       { useOnboardingStore },
       { useOnboardingDraftStore },
-      { useImpactAssessmentStore },
     ] = await Promise.all([
       import("../../stores/user"),
       import("../../stores/toolConsent"),
@@ -65,7 +64,6 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/reminders"),
       import("../../stores/onboarding"),
       import("../../stores/onboardingDraft"),
-      import("../../stores/impactAssessment"),
     ]);
     resets.push(
       ["user", () => useUserStore.getState().clearUser()],
@@ -86,7 +84,6 @@ export async function clearAllPersistedUserState(): Promise<void> {
       // Act-1 answers are health-adjacent and live on-device before signup;
       // they must not survive a logout on a shared phone.
       ["onboardingDraft", () => useOnboardingDraftStore.getState().clear()],
-      ["impactAssessment", () => useImpactAssessmentStore.getState().resetImpactAssessment()],
     );
   } catch (e) {
     console.warn("[clearUserState] loading stores for reset failed:", e);

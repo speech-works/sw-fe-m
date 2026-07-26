@@ -59,28 +59,17 @@ const DailyPractice = () => {
     icon: React.ReactNode;
     accent: HubAccent;
   }> = [
-      // Show the structured daily assessment only after onboarding is complete
+      // A "Daily Check-in — Complete your 7-Day Pulse" tile sat here and opened
+      // the 20-item impact assessment. Both are gone: more than half that
+      // question bank was unreachable from any screen, and the onboarding
+      // answers already carry most of the clinical value it was collecting.
       ...(hasCompletedOnboarding
-        ? [
-          {
-            title: "Daily Check-in",
-            description: "Complete your 7-Day Pulse",
-            onPress: () => navigation.navigate("ImpactAssessmentIntro"),
-            icon: (
-              <FAIcon
-                name="calendar-check"
-                size={52}
-                color={colors.accentOn.info}
-              />
-            ),
-            accent: "info" as HubAccent,
-          },
-        ]
+        ? []
         : [
           // Otherwise show "Complete Profile" to nudge them to finish onboarding
           {
             title: "Complete Profile",
-            description: "Finish your clinical intake",
+            description: "So we can match programs to you",
             onPress: () => emit(EVENT_NAMES.START_ONBOARDING), // Trigger onboarding via event store
             icon: (
               <FAIcon

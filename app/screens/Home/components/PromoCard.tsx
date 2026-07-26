@@ -12,7 +12,7 @@ import {
   radius,
 } from "../../../design-system";
 
-export type PromoVariant = "onboarding" | "impactAssessment" | "mood";
+export type PromoVariant = "onboarding" | "mood";
 
 /** Keys of `colors.accent`/`accentOn` — a solid vivid fill + its AA-correct dark ink. */
 type AccentKey = "success" | "warning" | "purple";
@@ -35,12 +35,6 @@ const VARIANTS: Record<PromoVariant, VariantConfig> = {
     title: "Which situations are hardest?",
     subtitle: "Answer these and we'll match programs to them — until then we're only guessing.",
     cta: "Continue",
-  },
-  impactAssessment: {
-    accentKey: "warning",
-    title: "Unlock Your Profile",
-    subtitle: "", // always overridden with the live question count
-    cta: "Continue Assessment",
   },
   mood: {
     accentKey: "purple",
