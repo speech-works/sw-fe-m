@@ -1,11 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { UserAvatar } from "../../components/UserAvatar";
 import {
   Text,
+  easing,
   radius,
   spacing,
+  useMotion,
   useTheme,
   withAlpha,
 } from "../../design-system";
@@ -156,6 +165,38 @@ const BLOB_PATH =
   "C-2 98 14 62 40 38 C66 14 62 6 104 4 Z";
 
 /**
+ * The blob breathes — a slow scale/tilt drift, not a static wash.
+ *
+ * WHY THIS DOESN'T REOPEN THE "ONE AMBIENT MOTION" RULE ABOVE. That rule was
+ * about the FOREGROUND: three bubbles bobbing on their own rhythms plus a gaze
+ * tracking between them plus the avatar's breath plus the entrance stagger —
+ * four things simultaneously asking for attention on a screen whose job is one
+ * tap. The blob is the opposite kind of motion: it carries no content (no
+ * text, no gaze, nothing to read), sits furthest back in the stack behind the
+ * avatar and every bubble, and moves slowly enough that nobody could describe
+ * what it's doing without watching for several seconds. That combination —
+ * peripheral, wordless, glacial — is what backdrop motion needs to read as
+ * "considered" rather than "busy"; it's the same shape Stripe/Linear/Arc use
+ * for the soft gradient blobs behind their marketing hero copy.
+ *
+ * PERIOD IS DELIBERATELY MISMATCHED with the avatar's 4000ms breath (and with
+ * LoginBackground's three orbs, same reasoning there) — a shared period would
+ * pull scale and float into visible lockstep every few seconds, which reads as
+ * a mechanical pulse rather than something alive. Independent, irrational-
+ * feeling periods never resynchronise within a session.
+ *
+ * Scale drift is tiny (3.5%) and rotation drift is small (3deg) for the same
+ * reason the bubble float was capped at 6px: this is breathing, not bobbing.
+ * Respects reduce motion — gated in the component, not here.
+ */
+const BLOB_DRIFT_PERIOD = 9000;
+const BLOB_SCALE_DRIFT = 0.035;
+const BLOB_ROTATE_DRIFT = 3;
+/** The blob's resting tilt — animation drifts AROUND this, never past it in
+ *  a way that would make the shape read as spinning rather than swaying. */
+const BLOB_BASE_ROTATE = -12;
+
+/**
  * A situation chip.
  *
  * STATIC, deliberately. These used to drift up and down on staggered periods.
@@ -195,8 +236,38 @@ const WelcomeStage: React.FC<{
   labels?: string[];
 }> = ({ available, labels }) => {
   const { colors, scheme } = useTheme();
+  const { reduced } = useMotion();
   const { width } = useWindowDimensions();
   const s = sizes(width, available);
+
+  const breathe = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) {
+      // Reduced motion: hold at the resting tilt. Not a fallback state — a
+      // still blob is exactly what the backdrop looked like before this,
+      // and remains a perfectly complete composition on its own.
+      cancelAnimation(breathe);
+      breathe.value = 0;
+      return;
+    }
+    // `true` = reverse, so the drift breathes out and back rather than
+    // snapping to the start every cycle — the same shape as the avatar's own
+    // float and every other ambient loop in this app.
+    breathe.value = withRepeat(
+      withTiming(1, { duration: BLOB_DRIFT_PERIOD, easing: easing.loop }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(breathe);
+  }, [reduced, breathe]);
+
+  const blobAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${BLOB_BASE_ROTATE + breathe.value * BLOB_ROTATE_DRIFT}deg` },
+      { scale: 1 + breathe.value * BLOB_SCALE_DRIFT },
+    ],
+  }));
 
   // Anchors and hues stay put; only the words change. The teaser is meant to
   // read as the same picture the welcome screen showed, now filled in with the
@@ -217,25 +288,27 @@ const WelcomeStage: React.FC<{
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      {/* Rotated a few degrees so the shape can't be mistaken for a deliberate
-          symmetrical container — the tilt is what makes it read as drawn.
+      {/* Tilted so the shape can't be mistaken for a deliberate symmetrical
+          container — the tilt is what makes it read as drawn — and now
+          breathing slowly around that tilt; see the note on BLOB_DRIFT_PERIOD.
 
           There used to be concentric "speech ripple" rings on top of this. Blob
           plus rings read as a dartboard: two nested circular systems competing
           for the same centre. The bubbles say "this character is talking" far
           more plainly than rings ever did, so the rings went. */}
-      <Svg
-        width={s.blob}
-        height={s.blob}
-        viewBox="0 0 200 200"
-        style={styles.blob}
-        pointerEvents="none"
-      >
-        <Path d={BLOB_PATH} fill={withAlpha(
-            colors.action.primary,
-            scheme === "dark" ? BLOB_ALPHA.dark : BLOB_ALPHA.light,
-          )} />
-      </Svg>
+      <Animated.View style={[styles.blob, blobAnimatedStyle]}>
+        <Svg
+          width={s.blob}
+          height={s.blob}
+          viewBox="0 0 200 200"
+          pointerEvents="none"
+        >
+          <Path d={BLOB_PATH} fill={withAlpha(
+              colors.action.primary,
+              scheme === "dark" ? BLOB_ALPHA.dark : BLOB_ALPHA.light,
+            )} />
+        </Svg>
+      </Animated.View>
 
       {/* No manifest: `UserAvatar` normalises undefined to the default avatar,
           which is right here — there is no account yet, so this is the app's
@@ -273,7 +346,9 @@ const styles = StyleSheet.create({
   },
   blob: {
     position: "absolute",
-    transform: [{ rotate: "-12deg" }],
+    // Transform is applied via blobAnimatedStyle (rotate + scale both animate,
+    // sharing one worklet so they read as ONE gentle drift rather than two
+    // independent properties that might visibly desync).
   },
   bubble: {
     position: "absolute",
