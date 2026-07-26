@@ -19,6 +19,7 @@ import {
   withAlpha,
 } from "../../design-system";
 import { SITUATION_PHRASE } from "../../constants/onboardingActOne";
+import { DEFAULT_MANIFEST } from "../../types/avatar";
 
 /**
  * The welcome illustration: a character on a colored stage, with the things
@@ -222,7 +223,9 @@ const WelcomeStage: React.FC<{
    *               there would show them a list they explicitly did not choose.
    */
   labels?: string[];
-}> = ({ available, labels }) => {
+  /** Optional custom face id (e.g., 'face.joy') to override the default avatar face. */
+  face?: string;
+}> = ({ available, labels, face }) => {
   const { colors, scheme } = useTheme();
   const { reduced } = useMotion();
   const { width } = useWindowDimensions();
@@ -359,12 +362,14 @@ const WelcomeStage: React.FC<{
         </Svg>
       </Animated.View>
 
-      {/* No manifest: `UserAvatar` normalises undefined to the default avatar,
-          which is right here — there is no account yet, so this is the app's
-          face, not "yours". Dressing it in earned gear would show a stranger a
-          wardrobe they don't have and spend the celebration screen's one trick
-          sixty seconds early. */}
-      <UserAvatar size={s.avatar} animate />
+      {/* When a specific face is requested (like joyous for the teaser), we 
+          override the default brand face in the manifest. Otherwise, we rely
+          on UserAvatar's default normalization. */}
+      <UserAvatar 
+        size={s.avatar} 
+        animate 
+        manifest={face ? { ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, face } as any } : undefined} 
+      />
 
       {shown.map(({ b, label }) => (
         <Bubble
