@@ -9,6 +9,8 @@ import {
   Dimensions,
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
@@ -213,6 +215,10 @@ export const Sheet: React.FC<SheetProps> = ({
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <View style={{ flex: 1, justifyContent: "flex-end" }}>
         {/* Opaque backdrop — fades in place, never slides. */}
         <Animated.View
@@ -270,6 +276,7 @@ export const Sheet: React.FC<SheetProps> = ({
           )}
         </Animated.View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

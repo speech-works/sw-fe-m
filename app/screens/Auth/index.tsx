@@ -381,14 +381,14 @@ const LoginScreen = () => {
         onClose={() => setIsSheetOpen(false)}
         title="Pair with a Buddy"
       >
-        <View style={{ paddingHorizontal: space.screenX, paddingBottom: Math.max(insets.bottom, spacing.xl), gap: space.groupGap }}>
+        <View style={{ gap: space.groupGap, paddingHorizontal: spacing.md, paddingTop: spacing.md }}>
           <Text variant="body" color="secondary">
-            If you received an invite code from a friend, enter it below. This will pair you together in the app so you can share your experience!
+            Enter a friend's invite code to pair up and share your progress.
           </Text>
           <TextField
             value={inviteCode}
             onChangeText={(t) => setInviteCode(t.toUpperCase())}
-            placeholder="Enter buddy code"
+            placeholder="Invite code"
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={12}
@@ -396,7 +396,7 @@ const LoginScreen = () => {
           />
           <Button 
             variant="primary" 
-            label={isCodeAdded ? "Save Buddy Code" : "Add Buddy Code"} 
+            label={isCodeAdded ? "Update" : "Pair up"} 
             onPress={() => {
               setIsCodeAdded(inviteCode.trim().length > 0);
               setIsSheetOpen(false);
