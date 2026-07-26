@@ -41,7 +41,6 @@ import {
   useTheme,
 } from "../../design-system";
 import LoginBackground from "./components/LoginBackground";
-
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
 
@@ -358,7 +357,6 @@ const LoginScreen = () => {
                       <Text
                         variant="title"
                         color={colors.text.onInverse}
-                        numberOfLines={1}
                       >
                         {label}
                       </Text>
