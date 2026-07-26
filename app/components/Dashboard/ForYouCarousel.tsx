@@ -3,6 +3,7 @@ import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getOffers, Offers, OfferItem } from "../../api/users";
 import { selectForYou } from "../../util/packs/forYou";
+import { isOpenable } from "../../util/packs/offers";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import OfferSlide, { SLIDE_MIN_HEIGHT } from "./OfferSlide";
@@ -42,24 +43,19 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   const navigation = useNavigation<any>();
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
   const lastFetchRef = useRef<number>(0);
 
   const load = useCallback(async () => {
     try {
       const data = await getOffers();
       setOffers(data);
-      setFailed(false);
     } catch (err) {
+      // Deliberately does NOT clear `offers`. The sibling card learned this the
+      // hard way: a refetch that set an error state on failure replaced a
+      // perfectly good recommendation with an error card on one flaky request.
+      // Keeping the last good data means a dropped connection changes nothing
+      // on screen.
       console.error("[ForYou] Failed to load offers", err);
-      // Only surface a failure when there is nothing already on screen. The
-      // sibling card learned this the hard way: a refetch that set an error
-      // state replaced a perfectly good recommendation with an error card on
-      // one flaky request.
-      setOffers((prev) => {
-        if (!prev) setFailed(true);
-        return prev;
-      });
     } finally {
       setLoading(false);
       lastFetchRef.current = Date.now();
@@ -109,25 +105,39 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     );
   }
 
-  // Nothing to suggest — owns everything, empty catalogue, or no signal at all.
-  // Silence would leave a hole where a recommendation was, which is the exact
-  // regression the "never render nothing" note on the sibling card warns about,
-  // so this fills the slot the deleted browse-fallback branch used to fill.
+  // Nothing to suggest. TWO very different reasons, and they must not share an
+  // outcome:
+  //
+  //   a) There is nothing left to sell — they own everything openable. The
+  //      sibling card is already saying "today's work is done", so a browse
+  //      card under it would be a shop that won't take no for an answer.
+  //
+  //   b) Everything else — no signal yet, an empty catalogue, a failed fetch.
+  //      There IS something to show, we just can't claim a match for it. Render
+  //      the neutral card, because silence leaves a hole on Home and nobody can
+  //      tell a blank from a bug. This is the slot the deleted browse-fallback
+  //      branch used to fill, and the "never render nothing" rule it carried.
   if (selection.items.length === 0) {
-    if (failed || !offers) {
-      // No second error card: SmartRecommendationCard already owns that, and
-      // two red cards on Home is worse than one honest fallback.
-      return (
-        <RecHeroCard
-          style={style}
-          eyebrow="PROGRAMS"
-          title="Find your next program"
-          ctaLabel="Browse programs"
-          onPress={goToPrograms}
-        />
-      );
-    }
-    return null;
+    const nothingLeftToSell =
+      !!offers &&
+      (offers.items ?? []).length > 0 &&
+      (offers.items ?? []).every((i) => i.owned || !isOpenable(i));
+
+    if (nothingLeftToSell) return null;
+
+    // No second error card even when the fetch failed: SmartRecommendationCard
+    // already owns that, and two red cards on Home is worse than one honest
+    // fallback. No eyebrow claim, no badge — we have nothing to back one.
+    return (
+      <RecHeroCard
+        style={style}
+        eyebrow="PROGRAMS"
+        title="Find your next program"
+        subtitle="Guided, day-by-day plans for the situations that feel hardest."
+        ctaLabel="Browse programs"
+        onPress={goToPrograms}
+      />
+    );
   }
 
   return (

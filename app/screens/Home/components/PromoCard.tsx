@@ -25,11 +25,16 @@ interface VariantConfig {
 }
 
 const VARIANTS: Record<PromoVariant, VariantConfig> = {
+  // Names the thing that's actually withheld, and it sits directly above the
+  // programs shelf — which, with no answers yet, can only show a plain browse
+  // card because the backend refuses to claim a match it can't back. "Complete
+  // Profile / Finish setting up to get your personalized plan" described a form
+  // and promised a vague noun; this describes what changes on the screen below.
   onboarding: {
     accentKey: "success",
-    title: "Complete Profile",
-    subtitle: "Finish setting up to get your personalized plan",
-    cta: "Continue Setup",
+    title: "Which situations are hardest?",
+    subtitle: "Answer these and we'll match programs to them — until then we're only guessing.",
+    cta: "Continue",
   },
   impactAssessment: {
     accentKey: "warning",
