@@ -87,11 +87,15 @@ const ActOneTeaser: React.FC = () => {
           />
         </Animated.View>
 
-        {/* THE SAME THREE TIERS AS THE WELCOME SCREEN, in the same sizes with
-            the same gaps: screenTitle at 40 leading, h3 secondary, caption
-            tertiary. Two screens that bookend the same minute have to be set in
-            one voice, and this one was stopping after two tiers — which read as
-            a lighter, unfinished version of the screen it is answering. */}
+        {/* TWO TIERS, matching the welcome screen's TYPE SCALE (screenTitle at
+            40 leading, h3 secondary) without matching its TIER COUNT. Matching
+            the welcome screen means using the same sizes when text is there,
+            not manufacturing a third line to hit the same number of rows.
+
+            A caption-tier reassurance line used to sit here ("You won't have to
+            answer them again"). Cut: it existed to fill the tier, not to tell
+            the reader anything they'd asked. Text that answers no question is
+            the thing that makes a clean screen start to feel busy. */}
         <View style={styles.copyBlock}>
           <Animated.View entering={motion.stagger(1)}>
             {/* A RESPONSE, not a summary. "That's a good place to start" was
@@ -116,17 +120,6 @@ const ActOneTeaser: React.FC = () => {
                 : "Your first plan starts with the everyday moments."}
             </Text>
           </Animated.View>
-
-          <Animated.View entering={motion.stagger(3)}>
-            {/* The quiet tier, matching "5 questions · about a minute" opposite.
-                It answers the question actually in the reader's head at a signup
-                wall — "is that minute about to be wasted?" — which is the most
-                useful thing this screen can say at the moment it asks for an
-                account. */}
-            <Text variant="caption" color="tertiary">
-              You won't have to answer them again.
-            </Text>
-          </Animated.View>
         </View>
       </View>
 
@@ -136,7 +129,7 @@ const ActOneTeaser: React.FC = () => {
           { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
         ]}
       >
-        <Animated.View entering={motion.stagger(4)}>
+        <Animated.View entering={motion.stagger(3)}>
           <Button
             label="Create an account"
             onPress={() => navigation.navigate("Auth")}
