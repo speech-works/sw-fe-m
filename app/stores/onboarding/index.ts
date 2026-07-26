@@ -61,6 +61,42 @@ interface OnboardingState {
   resetOnboarding: () => void;
 }
 
+/**
+ * Can these stored answers still be understood against this flow?
+ *
+ * "Do answers exist?" is the wrong question, and asking it is how questions get
+ * repeated in one direction and silently skipped in the other:
+ *
+ *   - Someone who backed out at question 8 has answers and must CONTINUE.
+ *     Treating a populated store as "already used up" restarts them at 1 and
+ *     throws away everything after signup too.
+ *   - Someone whose answers are the old random `opt-…` tokens has answers that
+ *     mean nothing. `resumeFrom` only checks that a key is present, so it would
+ *     count each one as answered and skip straight past questions that were
+ *     never really answered.
+ *
+ * So the test is whether every stored value is one this flow's questions
+ * actually offer. Free-form and scale questions carry no options and are taken
+ * at face value; keys belonging to some other flow are ignored rather than
+ * counted against it.
+ */
+const answersAreReadable = (
+  flow: OnboardingFlow,
+  answers: Record<string, any>,
+): boolean => {
+  const entries = Object.entries(answers ?? {});
+  if (entries.length === 0) return false;
+
+  return entries.every(([key, value]) => {
+    const question = flow.questions.find((q) => (q.adaptiveKey ?? q.id) === key);
+    if (!question?.options?.length) return true;
+
+    const offered = new Set(question.options.map((o) => String(o.value)));
+    const given = Array.isArray(value) ? value : [value];
+    return given.every((v) => offered.has(String(v)));
+  });
+};
+
 export const useOnboardingStore = create<OnboardingState>()(
   persist(
     (set, get) => ({
@@ -125,29 +161,29 @@ export const useOnboardingStore = create<OnboardingState>()(
       consumeResume: () => set({ pendingResume: false }),
 
       enterFlow: (flow) => {
-        const { pendingResume, answers: seeded } = get();
+        const { pendingResume, answers: stored } = get();
 
-        if (pendingResume) {
-          // Recomputed against the flow just fetched rather than trusting the
-          // screen number worked out at replay time, so a flow that changed in
-          // between cannot strand anyone on a screen that no longer exists.
-          get().resumeFrom(flow, seeded);
+        // 1. The replay staged a resume, or there is readable progress already.
+        //
+        // `resumeFrom` is re-run against the flow just fetched rather than
+        // trusting the screen number worked out earlier, so a flow that changed
+        // in between cannot strand anyone on a screen that no longer exists.
+        if (pendingResume || answersAreReadable(flow, stored)) {
+          get().resumeFrom(flow, stored);
           get().consumeResume();
           return get().currentScreen;
         }
 
-        // THE REPLAY MAY SIMPLY NOT HAVE LANDED YET.
+        // 2. The replay may simply not have landed yet.
         //
         // `replayOnboardingDraft` runs from a MainNavigator effect and makes
-        // two network round-trips before it calls `resumeFrom`, while this
+        // two network round-trips before it stages the resume, while this
         // screen is already on-screen and tappable. Someone who taps Continue
-        // straight away beats it, finds `pendingResume` still false, and gets
-        // all twelve questions — intermittently, which is exactly how this was
-        // described: sometimes repeated, sometimes not.
-        //
-        // The answers are on the device the whole time, so read them from
-        // there instead of racing. Seeding twice is harmless — both paths seed
-        // the same values — and the replay's own transmit is unaffected.
+        // straight away beats it and would get all twelve questions —
+        // intermittently, which is how this was described: sometimes repeated,
+        // sometimes not. The answers are on the device the whole time, so read
+        // them from there rather than racing the network. Seeding twice is
+        // harmless: both paths seed the same values.
         const draft = useOnboardingDraftStore.getState().answers;
         if (Object.keys(draft).length > 0) {
           get().resumeFrom(flow, draft);
@@ -155,6 +191,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           return get().currentScreen;
         }
 
+        // 3. Nothing usable to continue from.
         get().startFresh(flow);
         return get().currentScreen;
       },

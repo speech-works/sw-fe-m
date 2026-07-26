@@ -26,6 +26,35 @@ const flow = (): OnboardingFlow =>
     ],
   }) as unknown as OnboardingFlow;
 
+/**
+ * The same flow, but with each question's real option values attached.
+ *
+ * `flow()` above leaves `options: []`, which makes every answer trivially
+ * readable — fine for the resume-point arithmetic it was written for, useless
+ * for judging whether a stored answer still means anything.
+ */
+const OFFERED: Record<string, string[]> = {
+  "speech.situations": ["phone_calls", "interviews"],
+  "goal.primary": ["FEEL_CALMER", "SPEAK_FREELY"],
+  "avoidance.frequency": ["very_often", "never"],
+  "distress.overall": ["1", "2", "3"],
+  "experience.therapy": ["past", "never"],
+  "participation.impact": ["a_little", "a_lot"],
+  "communication.function": ["a_little", "a_lot"],
+};
+
+const flowWithOptions = (): OnboardingFlow => {
+  const f = flow();
+  f.questions.forEach((q) => {
+    q.options = (OFFERED[q.adaptiveKey as string] ?? []).map((value, i) => ({
+      value,
+      text: value,
+      orderIndex: i + 1,
+    })) as never;
+  });
+  return f;
+};
+
 const ACT_ONE_ANSWERS = {
   "speech.situations": ["phone_calls"],
   "goal.primary": "FEEL_CALMER",
@@ -110,11 +139,10 @@ describe("the resume survives to the screen that consumes it", () => {
     expect(useOnboardingStore.getState().pendingResume).toBe(false);
   });
 
-  it("clears the flag once consumed, so a later visit starts clean", () => {
+  it("clears the flag without disturbing the position or the answers", () => {
     useOnboardingStore.getState().resumeFrom(flow(), ACT_ONE_ANSWERS);
     useOnboardingStore.getState().consumeResume();
     expect(useOnboardingStore.getState().pendingResume).toBe(false);
-    // Consuming the flag must not disturb the position or the answers.
     expect(useOnboardingStore.getState().currentScreen).toBe(6);
     expect(useOnboardingStore.getState().answers).toMatchObject(ACT_ONE_ANSWERS);
   });
@@ -185,13 +213,39 @@ describe("enterFlow", () => {
     expect(useOnboardingStore.getState().answers).toMatchObject(ACT_ONE_ANSWERS);
   });
 
-  it("only honours the resume once — a second entry starts fresh", () => {
-    // Someone who backs out of onboarding and returns later should not be
-    // silently dropped at screen 6 forever; the staged resume is a one-shot
-    // handover from the replay, not a standing preference.
-    useOnboardingStore.getState().resumeFrom(flow(), ACT_ONE_ANSWERS);
-    expect(useOnboardingStore.getState().enterFlow(flow())).toBe(6);
-    expect(useOnboardingStore.getState().enterFlow(flow())).toBe(1);
+  it("continues where they backed out, on a second and third entry", () => {
+    // THE ONE-SHOT READING OF THIS WAS WRONG. Someone who reaches question 7,
+    // backs out to Home and taps the card again arrives here with the staged
+    // resume already consumed and the device draft already cleared. Starting
+    // fresh there would throw away the post-signup answers too — a repeat that
+    // gets worse the further in they were.
+    useOnboardingStore.getState().resumeFrom(flowWithOptions(), {
+      ...ACT_ONE_ANSWERS,
+      "participation.impact": "a_lot",
+    });
+    useOnboardingStore.getState().consumeResume();
+    useOnboardingDraftStore.getState().clear();
+
+    expect(useOnboardingStore.getState().enterFlow(flowWithOptions())).toBe(7);
+    expect(useOnboardingStore.getState().enterFlow(flowWithOptions())).toBe(7);
+    expect(useOnboardingStore.getState().answers["participation.impact"]).toBe(
+      "a_lot",
+    );
+  });
+
+  it("starts fresh when the stored answers are the old unreadable tokens", () => {
+    // The random `opt-…` ids the app used to submit. `resumeFrom` only checks
+    // that a key is PRESENT, so without the readability test these would each
+    // count as answered and skip the reader past five questions they never
+    // actually answered — the opposite failure, and the quieter one.
+    useOnboardingStore.getState().resumeFrom(flowWithOptions(), {
+      "speech.situations": ["opt-lxxk5rw21"],
+      "goal.primary": "opt-lxxk5rw22",
+    });
+    useOnboardingStore.getState().consumeResume();
+    useOnboardingDraftStore.getState().clear();
+
+    expect(useOnboardingStore.getState().enterFlow(flowWithOptions())).toBe(1);
     expect(useOnboardingStore.getState().answers).toEqual({});
   });
 });
