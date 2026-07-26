@@ -165,35 +165,23 @@ const BLOB_PATH =
   "C-2 98 14 62 40 38 C66 14 62 6 104 4 Z";
 
 /**
- * The blob breathes — a slow scale/tilt drift, not a static wash.
+ * QUIRKY LIQUID BLOB DRIFT:
  *
- * WHY THIS DOESN'T REOPEN THE "ONE AMBIENT MOTION" RULE ABOVE. That rule was
- * about the FOREGROUND: three bubbles bobbing on their own rhythms plus a gaze
- * tracking between them plus the avatar's breath plus the entrance stagger —
- * four things simultaneously asking for attention on a screen whose job is one
- * tap. The blob is the opposite kind of motion: it carries no content (no
- * text, no gaze, nothing to read), sits furthest back in the stack behind the
- * avatar and every bubble, and moves slowly enough that nobody could describe
- * what it's doing without watching for several seconds. That combination —
- * peripheral, wordless, glacial — is what backdrop motion needs to read as
- * "considered" rather than "busy"; it's the same shape Stripe/Linear/Arc use
- * for the soft gradient blobs behind their marketing hero copy.
- *
- * PERIOD IS DELIBERATELY MISMATCHED with the avatar's 4000ms breath (and with
- * LoginBackground's three orbs, same reasoning there) — a shared period would
- * pull scale and float into visible lockstep every few seconds, which reads as
- * a mechanical pulse rather than something alive. Independent, irrational-
- * feeling periods never resynchronise within a session.
- *
- * Scale drift is tiny (3.5%) and rotation drift is small (3deg) for the same
- * reason the bubble float was capped at 6px: this is breathing, not bobbing.
- * Respects reduce motion — gated in the component, not here.
+ * 1. MULTI-PENDULUM ORGANIC ORBITS: To ensure absolute smoothness with ZERO snaps
+ *    or loop boundary glitches, we use 4 independent pendulum drivers. Each one
+ *    eases in-and-out gently (velocity = 0 at boundaries) over different prime-like
+ *    durations (11s, 13s, 17s, 19s). When combined, they create a complex,
+ *    never-repeating Lissajous path in space.
+ * 2. DUAL-LAYER ORGANIC DEPTH: A translucent background halo blob floats slightly out
+ *    of phase (driven by different pendulums) behind the primary blob. As the two
+ *    asymmetrical shapes slide past each other, their overlapping silhouettes continuously
+ *    morph, giving the visual feel of liquid watercolor/jelly deforming in real time.
+ * 3. VOLUME-PRESERVING SQUISH & STRETCH: Non-uniform scaleX and scaleY fluctuate inversely
+ *    out-of-phase with translation, so the blob organically elongates as it drifts, then
+ *    relaxes naturally.
  */
-const BLOB_DRIFT_PERIOD = 9000;
-const BLOB_SCALE_DRIFT = 0.035;
-const BLOB_ROTATE_DRIFT = 3;
-/** The blob's resting tilt — animation drifts AROUND this, never past it in
- *  a way that would make the shape read as spinning rather than swaying. */
+
+/** The blob's resting tilt — drift happens AROUND this. */
 const BLOB_BASE_ROTATE = -12;
 
 /**
@@ -240,34 +228,81 @@ const WelcomeStage: React.FC<{
   const { width } = useWindowDimensions();
   const s = sizes(width, available);
 
-  const breathe = useSharedValue(0);
+  // 4 independent, smooth-reversing drivers for absolutely zero glitches.
+  const driftA = useSharedValue(0); // 13s
+  const driftB = useSharedValue(0); // 17s
+  const driftC = useSharedValue(0); // 11s
+  const driftD = useSharedValue(0); // 19s
 
   useEffect(() => {
     if (reduced) {
-      // Reduced motion: hold at the resting tilt. Not a fallback state — a
-      // still blob is exactly what the backdrop looked like before this,
-      // and remains a perfectly complete composition on its own.
-      cancelAnimation(breathe);
-      breathe.value = 0;
+      [driftA, driftB, driftC, driftD].forEach((v) => {
+        cancelAnimation(v);
+        v.value = 0.5;
+      });
       return;
     }
-    // `true` = reverse, so the drift breathes out and back rather than
-    // snapping to the start every cycle — the same shape as the avatar's own
-    // float and every other ambient loop in this app.
-    breathe.value = withRepeat(
-      withTiming(1, { duration: BLOB_DRIFT_PERIOD, easing: easing.loop }),
-      -1,
-      true,
-    );
-    return () => cancelAnimation(breathe);
-  }, [reduced, breathe]);
+    // `true` = reverse: the drift eases out and back rather than snapping to
+    // the start each cycle, guaranteeing zero snaps.
+    const loop = (period: number) =>
+      withRepeat(withTiming(1, { duration: period, easing: easing.loop }), -1, true);
 
-  const blobAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { rotate: `${BLOB_BASE_ROTATE + breathe.value * BLOB_ROTATE_DRIFT}deg` },
-      { scale: 1 + breathe.value * BLOB_SCALE_DRIFT },
-    ],
-  }));
+    driftA.value = loop(13000);
+    driftB.value = loop(17000);
+    driftC.value = loop(11000);
+    driftD.value = loop(19000);
+
+    return () => {
+      [driftA, driftB, driftC, driftD].forEach(cancelAnimation);
+    };
+  }, [reduced, driftA, driftB, driftC, driftD]);
+
+  // Main foreground blob: fluid Lissajous orbit + organic squish/stretch.
+  const frontBlobStyle = useAnimatedStyle(() => {
+    // Map 0..1 onto -1..1 so each drift swings symmetrically around rest
+    const a = (driftA.value - 0.5) * 2;
+    const b = (driftB.value - 0.5) * 2;
+    const c = (driftC.value - 0.5) * 2;
+
+    const tx = a * 12 + c * 4;
+    const ty = b * 13 + a * 4;
+    const rot = BLOB_BASE_ROTATE + c * 6 + b * 3;
+    const sx = 1 + a * 0.045 + b * 0.02;
+    const sy = 1 - a * 0.04 + c * 0.02;
+
+    return {
+      transform: [
+        { translateX: tx },
+        { translateY: ty },
+        { rotate: `${rot}deg` },
+        { scaleX: sx },
+        { scaleY: sy },
+      ],
+    };
+  });
+
+  // Background halo blob: driven by different pendulums for rich, smooth parallax morphing
+  const backBlobStyle = useAnimatedStyle(() => {
+    const b = (driftB.value - 0.5) * 2;
+    const c = (driftC.value - 0.5) * 2;
+    const d = (driftD.value - 0.5) * 2;
+
+    const tx = d * 15 + b * 5;
+    const ty = c * 16 + d * 4;
+    const rot = BLOB_BASE_ROTATE + 32 + d * 7 + c * 3;
+    const sx = 1.07 + c * 0.05 + d * 0.02;
+    const sy = 1.07 + b * 0.05 + d * 0.02;
+
+    return {
+      transform: [
+        { translateX: tx },
+        { translateY: ty },
+        { rotate: `${rot}deg` },
+        { scaleX: sx },
+        { scaleY: sy },
+      ],
+    };
+  });
 
   // Anchors and hues stay put; only the words change. The teaser is meant to
   // read as the same picture the welcome screen showed, now filled in with the
@@ -288,25 +323,39 @@ const WelcomeStage: React.FC<{
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      {/* Tilted so the shape can't be mistaken for a deliberate symmetrical
-          container — the tilt is what makes it read as drawn — and now
-          breathing slowly around that tilt; see the note on BLOB_DRIFT_PERIOD.
-
-          There used to be concentric "speech ripple" rings on top of this. Blob
-          plus rings read as a dartboard: two nested circular systems competing
-          for the same centre. The bubbles say "this character is talking" far
-          more plainly than rings ever did, so the rings went. */}
-      <Animated.View style={[styles.blob, blobAnimatedStyle]}>
+      {/* Background soft out-of-phase halo blob (liquid depth morphing) */}
+      <Animated.View style={[styles.blob, backBlobStyle]}>
         <Svg
           width={s.blob}
           height={s.blob}
           viewBox="0 0 200 200"
           pointerEvents="none"
         >
-          <Path d={BLOB_PATH} fill={withAlpha(
+          <Path
+            d={BLOB_PATH}
+            fill={withAlpha(
+              colors.action.primary,
+              scheme === "dark" ? BLOB_ALPHA.dark * 0.55 : BLOB_ALPHA.light * 0.45,
+            )}
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* Primary organic front blob */}
+      <Animated.View style={[styles.blob, frontBlobStyle]}>
+        <Svg
+          width={s.blob}
+          height={s.blob}
+          viewBox="0 0 200 200"
+          pointerEvents="none"
+        >
+          <Path
+            d={BLOB_PATH}
+            fill={withAlpha(
               colors.action.primary,
               scheme === "dark" ? BLOB_ALPHA.dark : BLOB_ALPHA.light,
-            )} />
+            )}
+          />
         </Svg>
       </Animated.View>
 
