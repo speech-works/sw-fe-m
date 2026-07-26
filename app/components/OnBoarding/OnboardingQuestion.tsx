@@ -274,7 +274,44 @@ const OnboardingQuestion = ({
 
 export default OnboardingQuestion;
 
-const useStyles = makeStyles((c, t) => ({
+/**
+ * ONE definition for every selectable thing in the form.
+ *
+ * The chip and the scale row drifted apart the moment they were two style
+ * blocks: 48pt tall versus 52, 16pt of side padding versus 20. Nobody chose
+ * that — each was tuned in isolation for its own screen, and the result was
+ * controls that changed size as you moved between questions three taps apart.
+ *
+ * They share this base now, so the only thing a variant may express is how it
+ * takes WIDTH (a chip hugs its label, a scale row fills the column). Anything
+ * else has to change here, for both.
+ *
+ * 48 rather than 52: it is the touch-target floor the chips already shipped at,
+ * and lowering the scale rows to meet it buys 20pt back on a screen that has to
+ * show all five points at once.
+ */
+const SELECTOR_HEIGHT = 48;
+
+const useStyles = makeStyles((c, t) => {
+  const selector = {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    minHeight: SELECTOR_HEIGHT,
+    // 24 (body lineHeight) + 12 + 12 = 48, so single-line options land exactly
+    // on SELECTOR_HEIGHT and a wrapped one grows from there.
+    paddingVertical: t.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    borderRadius: t.radius.pill,
+    borderWidth: 1.5,
+    borderStyle: "solid" as const,
+    borderColor: c.border.default,
+    backgroundColor: c.surface.default,
+  };
+  const selectorSelected = {
+    borderColor: c.action.primary,
+    backgroundColor: c.action.primary,
+  };
+  return ({
   container: {
     gap: t.spacing["3xl"], // Increase gap between Title and content
     paddingVertical: t.spacing.md,
@@ -312,47 +349,16 @@ const useStyles = makeStyles((c, t) => ({
   listBlock: {
     gap: t.spacing.md,
   },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    // 48 is the floor, not a guess: touch targets at or above 48pt measure
-    // materially fewer mis-taps, and shrinking chips to fit more per row is
-    // exactly the trade that would undo the point of the layout.
-    minHeight: 48,
-    paddingVertical: t.spacing.md,
-    paddingHorizontal: t.spacing.lg,
-    borderRadius: t.radius.pill,
-    borderWidth: 1.5,
-    borderColor: c.border.default,
-    backgroundColor: c.surface.default,
-  },
+  /** Hugs its label and wraps with its siblings. */
+  chip: { ...selector },
   /** SOLID fill, not a tint — a tinted chip beside an untinted one reads as
    *  "slightly different", where a filled one reads as chosen. `onPrimary` is
    *  the AA-correct ink for that fill. */
-  chipSelected: {
-    borderColor: c.action.primary,
-    backgroundColor: c.action.primary,
-  },
-  option: {
-    flexDirection: "row",
-    alignItems: "center",
-    // 14, not 18. A five-point scale has to be visible ALL AT ONCE — you pick
-    // "somewhere in the middle" by seeing the range, so a fifth option below
-    // the fold breaks the instrument, not just the layout. At 14 the row is
-    // 52pt tall, still clear of the 48pt touch-target floor.
-    paddingVertical: 14,
-    paddingHorizontal: t.spacing.xl,
-    borderRadius: t.radius.pill,
-    borderWidth: 1.5,
-    borderStyle: "solid",
-    borderColor: c.border.default,
-    backgroundColor: c.surface.default,
-  },
+  chipSelected: { ...selectorSelected },
+  /** Fills the column width; identical to a chip in every other respect. */
+  option: { ...selector },
   /** Solid fill, matching the chips — one selection language across the whole
    *  flow instead of a tint here and a fill there. */
-  optionSelected: {
-    borderColor: c.action.primary,
-    backgroundColor: c.action.primary,
-  },
+  optionSelected: { ...selectorSelected },
   textWrap: { flex: 1, gap: t.spacing.xs, display: "flex", flexDirection: "column" },
-}));
+})});
