@@ -73,6 +73,7 @@ import { shareBuddyInvite } from "../../util/functions/share";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { apiErrorMessage } from "../../util/functions/apiError";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -387,7 +388,12 @@ const Community = () => {
       const fresh = useInboxStore.getState().hasBuddy;
       if (fresh) setShowWelcome(true);
     } catch (e: any) {
-      setErrorMessage(e.response?.data?.message || "Please check the code and try again.");
+      // `data.message` was always undefined — the API serialises as
+      // `{ error }` — so this silently showed the generic fallback every time
+      // and never the specific reason.
+      setErrorMessage(
+        apiErrorMessage(e, "Please check the code and try again."),
+      );
       setShowError(true);
     } finally {
       setSubmittingCode(false);

@@ -4,6 +4,7 @@
 // cooperative scoring (bond/team/pulse). All COMMUNICATION (signals, reactions, support) lives in
 // api/threads — cheering is now a reaction on a timeline signal, not a standalone buddy action.
 import axiosClient from "../axiosClient";
+import { isClientError } from "../../util/functions/apiError";
 
 export type BuddyRole = "inviter" | "invitee";
 export type BuddyLinkStatus = "pending" | "active" | "ended";
@@ -62,7 +63,13 @@ export async function attachInviteCode(code: string): Promise<BuddyLink> {
     const response = await axiosClient.post("/buddies/redeem", { code });
     return response.data;
   } catch (error) {
-    console.error("Error attaching invite code:", error);
+    // A rejected code is an ANSWER, not a fault — the server distinguishes six
+    // reasons and every one is something the person can act on. `console.error`
+    // raised a dev redbox over a mistyped code, which made a handled outcome
+    // look like a crash. Callers surface the message; faults still get logged.
+    if (!isClientError(error)) {
+      console.error("Error attaching invite code:", error);
+    }
     throw error;
   }
 }

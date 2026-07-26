@@ -43,6 +43,7 @@ import {
   useTheme,
 } from "../../design-system";
 import LoginBackground from "./components/LoginBackground";
+import { apiErrorMessage } from "../../util/functions/apiError";
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
 
@@ -241,12 +242,24 @@ const LoginScreen = () => {
       refreshToken,
     );
 
-    console.log("[OAuth 7] ✅ Stored tokens, logging in.");
-    login(appJwt);
-    setUser(user);
-
-    // Practice Buddy: if the user entered an invite code, link them to their buddy.
-    // Non-blocking and new-sign-ups-only (the server rejects non-new accounts).
+    /**
+     * Practice Buddy — REDEEMED BEFORE `login()`, deliberately.
+     *
+     * This used to run after, and a wrong code vanished into a `console.warn`:
+     * the person typed their friend's code, was never linked, and was never
+     * told. Moving it after login also put it past the point of no return —
+     * `login()` flips `isLoggedIn`, MainNavigator swaps this navigator out, and
+     * everything below it runs on an unmounted component, so there was nowhere
+     * left to show anything.
+     *
+     * Here the screen is still mounted and the request is still authenticated:
+     * the JWT went into SecureStore above, and that is where the axios
+     * interceptor reads it from — `login()` is React state, not the token.
+     *
+     * A rejection does NOT block sign-in. The account exists either way, and
+     * trapping someone at the door over their friend's typo would be a far
+     * worse outcome than being paired later.
+     */
     const buddyCode = inviteCode.trim();
     if (buddyCode) {
       try {
@@ -254,9 +267,19 @@ const LoginScreen = () => {
         await attachInviteCode(buddyCode);
         track(ANALYTICS_EVENTS.BUDDY_LINKED, { role: "invitee" });
       } catch (e) {
-        console.warn("[Buddy] Invite code not applied:", (e as any)?.message);
+        // The server's own words: it distinguishes an invalid code from your
+        // own code, from already having a buddy, from theirs being taken. A
+        // generic "something went wrong" would throw all of that away.
+        Alert.alert(
+          "Couldn't pair you up",
+          `${apiErrorMessage(e, "That code didn't work.")}\n\nYou're all signed up — you can add a code from the Community tab.`,
+        );
       }
     }
+
+    console.log("[OAuth 7] ✅ Stored tokens, logging in.");
+    login(appJwt);
+    setUser(user);
   };
 
   const providers = getDisplayProviders();
