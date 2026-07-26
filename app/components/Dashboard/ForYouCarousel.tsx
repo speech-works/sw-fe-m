@@ -3,7 +3,6 @@ import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getOffers, Offers, OfferItem } from "../../api/users";
 import { selectForYou } from "../../util/packs/forYou";
-import { isOpenable } from "../../util/packs/offers";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import OfferSlide, { SLIDE_MIN_HEIGHT } from "./OfferSlide";
@@ -49,6 +48,28 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     try {
       const data = await getOffers();
       setOffers(data);
+
+      // ── Funnel: recommendation_shown ────────────────────────────────────
+      // Fired here, once per settled fetch — NOT on render (this component
+      // re-renders on every parent update) and NOT on carousel settle
+      // (`onIndexChange` fires through runOnJS on every swipe and would spam
+      // one event per flick). `mode` comes from the same call the render uses,
+      // so the event can never claim a card that wasn't shown.
+      const shown = selectForYou(data);
+      if (shown.mode !== "hidden") {
+        track(ANALYTICS_EVENTS.RECOMMENDATION_SHOWN, {
+          surface: "home_for_you",
+          variant: shown.mode === "carousel" ? "carousel" : "browse_fallback",
+          state: null,
+          signalLevel: data.signalLevel ?? null,
+          count: shown.items.length,
+          catalogKey: shown.items[0]?.key ?? null,
+          packId: shown.items[0]?.packId ?? null,
+          priceInr: shown.items[0]?.priceInr ?? null,
+          hasMatchReason: shown.highlightFirst,
+          remaining: shown.remaining,
+        });
+      }
     } catch (err) {
       // Deliberately does NOT clear `offers`. The sibling card learned this the
       // hard way: a refetch that set an error state on failure replaced a
@@ -105,26 +126,11 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     );
   }
 
-  // Nothing to suggest. TWO very different reasons, and they must not share an
-  // outcome:
-  //
-  //   a) There is nothing left to sell — they own everything openable. The
-  //      sibling card is already saying "today's work is done", so a browse
-  //      card under it would be a shop that won't take no for an answer.
-  //
-  //   b) Everything else — no signal yet, an empty catalogue, a failed fetch.
-  //      There IS something to show, we just can't claim a match for it. Render
-  //      the neutral card, because silence leaves a hole on Home and nobody can
-  //      tell a blank from a bug. This is the slot the deleted browse-fallback
-  //      branch used to fill, and the "never render nothing" rule it carried.
-  if (selection.items.length === 0) {
-    const nothingLeftToSell =
-      !!offers &&
-      (offers.items ?? []).length > 0 &&
-      (offers.items ?? []).every((i) => i.owned || !isOpenable(i));
+  // `selectForYou` already decided which of the three this is — deliberately,
+  // so this cannot drift from the analytics above.
+  if (selection.mode === "hidden") return null;
 
-    if (nothingLeftToSell) return null;
-
+  if (selection.mode === "browse") {
     // No second error card even when the fetch failed: SmartRecommendationCard
     // already owns that, and two red cards on Home is worse than one honest
     // fallback. No eyebrow claim, no badge — we have nothing to back one.

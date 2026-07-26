@@ -115,6 +115,49 @@ describe("selectForYou", () => {
     });
   });
 
+  describe("mode — the single decision the render AND the analytics both read", () => {
+    it("hides only when they own everything openable", () => {
+      // The one state where rendering nothing is right: the sibling card is
+      // already saying "today's work is done".
+      const items = [offer("a", { owned: true }), offer("b", { owned: true })];
+      expect(selectForYou(offers(items)).mode).toBe("hidden");
+    });
+
+    it("browses — not hides — when there is no signal yet", () => {
+      // THE BUG THIS REPLACED. Returning nothing here left a blank space on
+      // Home for a brand-new user, which is the one case guaranteed to hit it.
+      const items = [offer("a"), offer("b")];
+      const result = selectForYou(offers(items, { signalLevel: "none" }));
+      expect(result.mode).toBe("browse");
+    });
+
+    it("browses when the fetch failed outright", () => {
+      expect(selectForYou(null).mode).toBe("browse");
+    });
+
+    it("browses on an empty catalogue rather than claiming nothing is left", () => {
+      // No items at all is a config state, not "you've finished everything".
+      expect(selectForYou(offers([])).mode).toBe("browse");
+    });
+
+    it("browses when every item is unopenable", () => {
+      const items = [offer("ghost", { packId: null })];
+      expect(selectForYou(offers(items)).mode).toBe("browse");
+    });
+
+    it("shows the carousel when there is genuinely something to suggest", () => {
+      expect(selectForYou(offers([offer("a")])).mode).toBe("carousel");
+    });
+
+    it("owning everything beats having no signal — they still see nothing", () => {
+      // Order matters: both conditions are true at once for someone who bought
+      // everything before onboarding. Hiding is right; a browse card would be
+      // a shop that won't take no for an answer.
+      const items = [offer("a", { owned: true })];
+      expect(selectForYou(offers(items, { signalLevel: "none" })).mode).toBe("hidden");
+    });
+  });
+
   it("survives an empty catalogue, a null response, and a missing items array", () => {
     expect(selectForYou(offers([])).items).toEqual([]);
     expect(selectForYou(null).items).toEqual([]);

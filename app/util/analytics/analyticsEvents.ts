@@ -18,10 +18,9 @@ export const ANALYTICS_EVENTS = {
 
     // ── Clinical Estimation Flow ───────────────────────────────────────
     // This is your core conversion funnel. Track every step.
-    ASSESSMENT_STARTED: 'assessment_started',           // props: { totalQuestions }
-    ASSESSMENT_STEP_VIEWED: 'assessment_step_viewed',    // props: { step, totalSteps }
-    ASSESSMENT_COMPLETED: 'assessment_completed',       // props: { totalAnswered }
-    ASSESSMENT_ABANDONED: 'assessment_abandoned',       // props: { atStep, totalSteps }
+    // The four assessment_* events were removed with the 20-item impact
+    // assessment: no screen exists that could fire them. Historic events keep
+    // their names in the warehouse; nothing new will arrive.
 
     // ── Practice Sessions ─────────────────────────────────────────────
     PRACTICE_SESSION_STARTED: 'practice_session_started',  // props: { packId, moduleId, moduleTitle, totalBlocks }
@@ -35,8 +34,12 @@ export const ANALYTICS_EVENTS = {
     // attribution (signalLevel, reasonPath, every candidate score) lives in the
     // RecommendationLog; these are the CLIENT-observable steps that let us see
     // where the funnel leaks. Consent-gated, release-only (existing setup).
-    RECOMMENDATION_SHOWN: 'recommendation_shown',   // props: { surface, variant, state, catalogKey, packId, strategy, priceInr, hasMatchReason, isRefresher }
-    PACK_CLICKED: 'pack_clicked',                   // props: { source, catalogKey, packId, priceInr, hasMatchReason }
+    // surface: 'home' (SmartRecommendationCard — owned_pack | all_complete)
+    //        | 'home_for_you' (ForYouCarousel — carousel | browse_fallback)
+    // The 'home' surface stopped emitting top_pick/browse_fallback when selling
+    // moved to the carousel; those variants now arrive under 'home_for_you'.
+    RECOMMENDATION_SHOWN: 'recommendation_shown',   // props: { surface, variant, state, catalogKey, packId, strategy, priceInr, hasMatchReason, isRefresher, signalLevel?, count?, remaining? }
+    PACK_CLICKED: 'pack_clicked',                   // props: { source, catalogKey, packId, priceInr, hasMatchReason, position? }
     PROGRAM_DETAIL_VIEWED: 'program_detail_viewed', // props: { catalogKey, packId }
 
     // ── Paywall & Payments ────────────────────────────────────────────

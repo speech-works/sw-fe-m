@@ -47,9 +47,9 @@ const VARIANTS: Record<PromoVariant, VariantConfig> = {
 export interface PromoCardProps {
   variant: PromoVariant;
   onPress: () => void;
-  /** Overrides the variant's default subtitle (e.g. Impact's live question count). */
+  /** Overrides the variant's default subtitle. */
   subtitle?: string;
-  /** Optional progress row (onboarding / impact). */
+  /** Optional progress row. */
   progress?: { leftLabel: string; percentage: number };
   style?: StyleProp<ViewStyle>;
 }

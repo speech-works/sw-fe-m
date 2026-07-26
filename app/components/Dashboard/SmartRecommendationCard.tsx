@@ -114,7 +114,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
         ? "owned_pack"
         : rec?.state === "NEEDS_ONBOARDING" && reminderWillShow
           ? null
-          : rec?.state === "ALL_COMPLETE" && !rec?.topPick
+          : rec?.state === "ALL_COMPLETE"
             ? "all_complete"
             : // Everything else renders nothing here now — the carousel has it.
               null;
@@ -206,11 +206,15 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
       return null;
     }
 
-    const pick = recommendation.topPick;
-
     // B. Owns everything they bought and finished it — genuinely caught up.
-    // This is the ONLY case where "today's work is done" is true.
-    if (recommendation.state === "ALL_COMPLETE" && !pick) {
+    //
+    // The condition used to be `ALL_COMPLETE && !topPick`, because the deleted
+    // branch D showed the pick under a "WHAT PAIRS WELL NEXT" eyebrow instead.
+    // With selling moved to the carousel, whether a pick exists says nothing
+    // about whether today's work is done — and keeping the clause left a HOLE:
+    // someone who had finished everything AND owned everything got null from
+    // here and a hidden carousel, so Home had a blank where a card belongs.
+    if (recommendation.state === "ALL_COMPLETE") {
       const ink = colors.accentOn.success;
       return (
         <View

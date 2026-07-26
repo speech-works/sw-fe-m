@@ -94,10 +94,6 @@ export const icons = {
   mastery: "graduation-cap", // mastery / skill level
   ease: "sunset", // ease — calm, settled speech (was "droplet", a Feather outline amid filled Fluent)
   social: "users", // social participation
-  // Growth Profile family lenses (DimensionDetail tabs) — collision-free, denotative
-  lensCombined: "layer", // combined = stacked baseline + recent signal
-  lensClinical: "clipboard-pulse", // clinical = validated questionnaire record
-  lensEngagement: "person-star", // engagement = active user (person + star = engaged)
   growthSeed: "sprout", // growth (seedling)
   locked: "lock", // locked achievement
   weekly: "calendar", // "This week" scope
