@@ -82,12 +82,18 @@ export const SITUATION_PHRASE: Record<string, string> = {
   authority: "talking to people in charge",
 };
 
-const opt = (value: string, optionText: string, orderIndex: number) => ({
+const opt = (
+  value: string,
+  optionText: string,
+  orderIndex: number,
+  exclusive?: true,
+) => ({
   // The submitted answer IS this id — see the note above.
   id: value,
   value,
   optionText,
   orderIndex,
+  exclusive,
 });
 
 /**
@@ -119,8 +125,11 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
         opt("public_speaking", "Public speaking", 5),
         opt("stress_talking", "Talking when stressed", 6),
         opt("authority", "Talking to people in charge", 7),
-        opt("none", "None of these", 8),
-        opt("not_sure", "I'm not sure", 9),
+        // exclusive: selecting either replaces any real picks, and picking a
+        // real situation afterwards retracts it — see OnboardingQuestion's
+        // handlePressOption.
+        opt("none", "None of these", 8, true),
+        opt("not_sure", "I'm not sure", 9, true),
       ],
     },
     {

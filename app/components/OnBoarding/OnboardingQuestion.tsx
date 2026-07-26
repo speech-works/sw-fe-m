@@ -5,10 +5,63 @@ import { View } from "react-native";
 import { makeStyles, Text, useTheme } from "../../design-system";
 import PressableScale from "../PressableScale";
 
+/**
+ * The next MULTI selection after tapping `pressedId`. Pulled out as a pure
+ * function (rather than left inline in the component) so the exclusivity rule
+ * — the actual bug this fixes — is unit-testable without rendering: this
+ * codebase has no component-render test setup, and one bug fix is not the
+ * reason to introduce one.
+ */
+export function nextMultiSelection(
+  currentValues: string[],
+  pressedId: string,
+  options: { id: string; exclusive?: boolean }[],
+): string[] {
+  const idStr = String(pressedId);
+
+  if (currentValues.includes(idStr)) {
+    // Deselecting is always plain removal — exclusivity only governs what else
+    // may be selected AT THE SAME TIME as this one, not un-selecting it.
+    return currentValues.filter((v) => v !== idStr);
+  }
+
+  const pressed = options.find((o) => String(o.id) === idStr);
+
+  if (pressed?.exclusive) {
+    // Picking "None of these" / "I'm not sure" replaces every other pick — it
+    // is a statement about all of them, not one more item in the set.
+    return [idStr];
+  }
+
+  // Picking a real option drops any exclusive pick first. Selected-then-
+  // reconsidered is the common path here (someone taps "Not sure" while still
+  // reading the list, then spots one that fits), and the exclusive choice must
+  // not linger alongside a real answer.
+  const withoutExclusive = currentValues.filter((v) => {
+    const o = options.find((opt) => String(opt.id) === v);
+    return !o?.exclusive;
+  });
+  return [...withoutExclusive, idStr];
+}
+
 interface OnboardingOption {
   id: string;
   answer: string;
   description?: string;
+  /**
+   * MULTI only. "None of these" / "I'm not sure" — picking one says something
+   * about EVERY other option at once (there isn't one / I can't tell), so it
+   * cannot coexist with a real pick, and picking a real option afterwards has
+   * to retract it. Without this, both rendered as ordinary chips: a reader
+   * could select "Public speaking" AND "None of these" simultaneously, which
+   * the recommender would then have to interpret as a contradiction rather
+   * than a choice.
+   *
+   * A prop rather than an id check ("none"/"not_sure" hardcoded here) for the
+   * same reason `layout` is a prop: this component is shared and must not
+   * assume every MULTI question's option ids.
+   */
+  exclusive?: boolean;
 }
 
 interface Props {
@@ -105,13 +158,7 @@ const OnboardingQuestion = ({
       return onChange(id, optionId);
     }
     const currentValues = Array.isArray(values) ? (values as string[]) : [];
-    if (currentValues.includes(optionId)) {
-      return onChange(
-        id,
-        currentValues.filter((v) => v !== String(optionId)),
-      );
-    }
-    return onChange(id, [...currentValues, String(optionId)]);
+    return onChange(id, nextMultiSelection(currentValues, optionId, options));
   };
 
   return (

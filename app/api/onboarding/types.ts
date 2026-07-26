@@ -5,6 +5,13 @@ export interface OnboardingOption {
   description?: string;
   value?: string;
   orderIndex: number;
+  /**
+   * MULTI only: this option ("None of these", "I'm not sure") is a statement
+   * about every other option at once, so it cannot be selected alongside a
+   * real pick. See OnboardingQuestion's `exclusive` prop for the UI rule this
+   * drives. Absent means "an ordinary option" — the pre-existing behaviour.
+   */
+  exclusive?: boolean;
 }
 
 export type QuestionType = "SINGLE" | "MULTI" | "SLIDER";

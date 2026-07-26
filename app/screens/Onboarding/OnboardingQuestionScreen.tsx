@@ -400,6 +400,7 @@ const OnboardingQuestionScreen: React.FC = () => {
                 id: o.id,
                 answer: o.optionText,
                 description: o.description ?? "",
+                exclusive: o.exclusive,
               }))}
               // use storageKey for UI selection
               value={
