@@ -1,17 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
+import WelcomeStage from "./WelcomeStage";
 import {
   Button,
-  Icon,
-  icons,
   SchemeStatusBar,
   Text,
   space,
   spacing,
-  radius,
-  useTheme,
+  useMotion,
 } from "../../design-system";
 import { useOnboardingDraftStore } from "../../stores/onboardingDraft";
 import { SITUATION_PHRASE } from "../../constants/onboardingActOne";
@@ -24,31 +24,40 @@ function joinPhrases(list: string[]): string {
 }
 
 /**
- * The last screen before signup.
+ * The last screen before signup — and the payoff for the five questions.
  *
- * THIS SCREEN DOES NOT SELL. It says their own words back to them, and that is
- * the entire job. Naming a program or a price here would change the question in
- * the reader's head from "they understood me" to "do I want to buy this" — and
- * the second question is a much worse one to be asking someone who has known us
- * for sixty seconds. The goal of Act 1 is a signup made WITH INTENT; the buying
- * decision belongs later, once there is a real, priced, personalised match to
- * decide about.
+ * IT IS THE WELCOME SCREEN, FILLED IN. Same character, same blob, same three
+ * bubbles in the same places — except the bubbles now carry the reader's own
+ * answers instead of the samples they opened on. That is the whole idea: the
+ * first screen showed somebody else's list, this one shows theirs, and holding
+ * the composition still is what makes the swap land. A different layout here
+ * would read as a different screen rather than as an answer to the first one.
  *
- * So the absence of a price here is the design, not a gap to be closed. Do not
- * "improve" this screen by adding one.
+ * It replaces a version that was a headline, a bordered white card, and a
+ * third of a screen of nothing. That version stated the recognition in prose
+ * ("You said phone calls feel hardest") while showing no evidence of it; the
+ * bubbles ARE the evidence, so the card is gone and the copy got shorter.
+ *
+ * THIS SCREEN DOES NOT SELL. It names no program, no price, no urgency.
+ * Naming one would change the question in the reader's head from "they
+ * understood me" to "do I want to buy this" — a much worse question to be
+ * asking someone who has known us for sixty seconds. Act 1 exists to earn a
+ * signup made WITH INTENT; the buying decision belongs later, against a real
+ * priced personalised match.
  *
  * (There is a second, independent reason it would also be unsafe: the real
  * match comes from `GET /users/me/offers`, which requires an account, so
  * computing one here would mean duplicating the ranking and the pricing into
  * the app where they can drift and quote a number we do not charge —
  * `app/util/packs/offers.ts` opens with the story of that exact bug. If that
- * endpoint were ever opened up, the product reason above still stands on its
- * own.)
+ * endpoint were ever opened up, the product reason above still stands alone.)
  */
 const ActOneTeaser: React.FC = () => {
-  const { colors } = useTheme();
+  const motion = useMotion();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const answers = useOnboardingDraftStore((s) => s.answers);
+  const [stageHeight, setStageHeight] = useState(0);
 
   const raw = answers["speech.situations"];
   const chosen = Array.isArray(raw) ? raw : raw ? [raw] : [];
@@ -63,50 +72,56 @@ const ActOneTeaser: React.FC = () => {
     <ScreenView style={styles.screen}>
       <SchemeStatusBar />
 
-      <View style={styles.body}>
-        <Text variant="display">
-          {named ? "That's a good place to start." : "Good start."}
-        </Text>
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.surface.default,
-              borderColor: colors.border.default,
-            },
-          ]}
+      <View style={[styles.body, { paddingTop: insets.top + spacing.lg }]}>
+        <Animated.View
+          style={styles.stageSlot}
+          entering={motion.stagger(0)}
+          onLayout={(e) => setStageHeight(e.nativeEvent.layout.height)}
         >
-          <View style={styles.cardHead}>
-            <Icon name={icons.roadmap} size={18} color={colors.action.primary} />
-            <Text variant="label" color={colors.action.primary}>
-              WHAT WE&apos;D START WITH
-            </Text>
-          </View>
+          {/* An empty array, not undefined, when they named nothing — see the
+              note on `labels`. Someone who chose "None of these" must not be
+              shown the sample situations as though they had picked them. */}
+          <WelcomeStage
+            available={stageHeight}
+            labels={phrases.slice(0, 3)}
+          />
+        </Animated.View>
 
-          {named ? (
-            <Text variant="h3" color="primary">
-              You said {named} feel hardest. That&apos;s exactly what
-              we&apos;d build your first plan around.
+        <View style={styles.copyBlock}>
+          <Animated.View entering={motion.stagger(1)}>
+            {/* Same lockup as the welcome headline: screenTitle, tightened
+                leading, hard break, left aligned. Two screens that bookend the
+                same minute should be set in the same voice. */}
+            <Text variant="screenTitle" style={styles.headline}>
+              {named ? "That's a good\nplace to start." : "Good start."}
             </Text>
-          ) : (
-            <Text variant="h3" color="primary">
-              We&apos;ll start with the everyday moments that feel hardest, and
-              build from there.
-            </Text>
-          )}
+          </Animated.View>
 
-          <Text variant="bodySm" color="secondary">
-            Create an account and your plan is waiting on the other side.
-          </Text>
+          <Animated.View entering={motion.stagger(2)}>
+            {/* The bubbles overhead already say WHICH moments, so this does not
+                repeat them back in prose — it says what happens next, which is
+                the one thing the picture cannot show. */}
+            <Text variant="h3" color="secondary">
+              {named
+                ? "Your first plan gets built around these."
+                : "We'll start with the everyday moments that feel hardest."}
+            </Text>
+          </Animated.View>
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <Button
-          label="Create an account"
-          onPress={() => navigation.navigate("Auth")}
-        />
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
+        ]}
+      >
+        <Animated.View entering={motion.stagger(3)}>
+          <Button
+            label="Create an account"
+            onPress={() => navigation.navigate("Auth")}
+          />
+        </Animated.View>
       </View>
     </ScreenView>
   );
@@ -121,23 +136,25 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: space.screenX,
-    gap: space.sectionGap,
+    gap: space.groupGap,
+    paddingBottom: space.groupGap,
   },
-  card: {
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: spacing.xl,
+  // Absorbs the slack and measures itself, so the illustration fills whatever
+  // the copy and footer leave over — see the note on `sizes()` in WelcomeStage.
+  stageSlot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  copyBlock: {
     gap: space.inlineGap,
   },
-  cardHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  headline: {
+    lineHeight: 40,
   },
   footer: {
     paddingHorizontal: space.screenX,
-    paddingBottom: spacing["2xl"],
   },
 });

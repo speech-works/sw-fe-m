@@ -84,6 +84,30 @@ const sizes = (width: number, available: number) => {
 const BLOB_ALPHA = { dark: 0.075, light: 0.14 } as const;
 
 /**
+ * The vertical band the character's head occupies, as a fraction of stage
+ * height: the visible tile is 0.75 x the avatar, the avatar is 0.62 x the blob,
+ * and the stage is 1.14 x the blob, so the head spans the middle ~41%.
+ *
+ * Every bubble is placed clear of it. That was optional while the labels were
+ * three hand-picked short phrases, and became mandatory the moment the TEASER
+ * started echoing whatever the reader actually chose: "speaking in front of
+ * people" is 27 characters and drew itself straight across the mouth. Anchors
+ * cannot be tuned against a sample string when the real string is user data.
+ */
+const FACE_BAND = { top: 0.296, bottom: 0.704 };
+
+/** A bubble's own height as a fraction of stage height (~46pt of ~330). */
+const BUBBLE_H = 0.14;
+
+/** The only three places a bubble may sit — all derived from FACE_BAND, so
+ *  redrawing the character moves the bubbles instead of stranding them. */
+const SLOT = {
+  top: 0,
+  upper: FACE_BAND.top - BUBBLE_H,
+  lower: FACE_BAND.bottom + 0.05,
+};
+
+/**
  * The three situations shown. Deliberately the SHORTEST phrases in the bank —
  * long ones wrap and the bubbles stop reading as bubbles. Keyed off
  * SITUATION_PHRASE rather than retyped so that rewording a question option can
@@ -102,21 +126,18 @@ const BUBBLES = [
     //
     // `topPct` is a fraction of stage height so the ring of bubbles scales with
     // the art instead of drifting across the face on a bigger screen.
-    anchor: { topPct: 0, left: 0 },
+    anchor: { topPct: SLOT.top, left: 0 },
   },
   {
     key: "meeting_people",
     tone: "purple" as const,
-    // 0.56, i.e. BELOW the eye line. At mid-height the head is at its widest
-    // and this bubble sliced through the hair beside the eyes; a little lower
-    // the head has already started narrowing, so the bubble tucks against the
-    // jaw and reads as coming from the mouth rather than covering it.
-    anchor: { topPct: 0.56, right: 0 },
+    // Tucked just above the head rather than beside it — see FACE_BAND.
+    anchor: { topPct: SLOT.upper, right: 0 },
   },
   {
     key: "ordering_food",
     tone: "lime" as const,
-    anchor: { topPct: 0.86, left: 16 },
+    anchor: { topPct: SLOT.lower, left: 12 },
   },
 ];
 
@@ -159,10 +180,30 @@ const Bubble: React.FC<{
   </View>
 );
 
-const WelcomeStage: React.FC<{ available: number }> = ({ available }) => {
+const WelcomeStage: React.FC<{
+  available: number;
+  /**
+   * What the bubbles say. THREE STATES, and the difference matters:
+   *
+   *   undefined — the three sample situations. The welcome screen, where the
+   *               bubbles are examples off somebody else's list.
+   *   [...]     — the reader's own answers, echoed back. The teaser.
+   *   []        — no bubbles at all. Someone who picked "None of these" has
+   *               given us nothing to echo, and falling back to the samples
+   *               there would show them a list they explicitly did not choose.
+   */
+  labels?: string[];
+}> = ({ available, labels }) => {
   const { colors, scheme } = useTheme();
   const { width } = useWindowDimensions();
   const s = sizes(width, available);
+
+  // Anchors and hues stay put; only the words change. The teaser is meant to
+  // read as the same picture the welcome screen showed, now filled in with the
+  // reader's own answers — so the composition must not move between them.
+  const shown = (labels ?? BUBBLES.map((b) => SITUATION_PHRASE[b.key]))
+    .slice(0, BUBBLES.length)
+    .map((label, i) => ({ b: BUBBLES[i], label }));
 
   const tone = {
     primary: { bg: colors.action.primary, fg: colors.action.onPrimary },
@@ -203,10 +244,10 @@ const WelcomeStage: React.FC<{ available: number }> = ({ available }) => {
           sixty seconds early. */}
       <UserAvatar size={s.avatar} animate />
 
-      {BUBBLES.map((b) => (
+      {shown.map(({ b, label }) => (
         <Bubble
           key={b.key}
-          label={SITUATION_PHRASE[b.key]}
+          label={label}
           bg={tone[b.tone].bg}
           fg={tone[b.tone].fg}
           place={{
@@ -236,6 +277,10 @@ const styles = StyleSheet.create({
   },
   bubble: {
     position: "absolute",
+    // Long phrases wrap to a second line instead of running the full width of
+    // the stage. Combined with FACE_BAND placement, no label can cover the
+    // character however long it is.
+    maxWidth: "78%",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
