@@ -13,7 +13,11 @@ import {
   getPackProgress,
   startModule,
 } from "../../../api/packs";
-import { ContentBlockType, PackModule } from "../../../api/packs/types";
+import {
+  ContentBlockType,
+  PackModule,
+  ReferenceBlockContent,
+} from "../../../api/packs/types";
 import { classifyPackError } from "../../../util/packs/packErrors";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
@@ -35,6 +39,10 @@ import {
 import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
+import {
+  recordGrowthPointDecline,
+  DeclineReason,
+} from "../../../api/growthPoints";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -87,11 +95,42 @@ const PackModuleScreen = () => {
     eased?: number;
   } | null>(null);
 
-  const recordSkip = (reason: "tooChallenging" | "notNow") => {
+  const recordSkip = (reason: DeclineReason) => {
+    // The legacy per-module tally, kept as-is. It still feeds the older
+    // server-side approach rate, and only MOTIVATION belongs in the avoidance
+    // bucket — "I'd need to be shown how" is a gap in our teaching, not a
+    // retreat, so it lands with "not right now".
+    const legacyBucket =
+      reason === DeclineReason.MOTIVATION ? "tooChallenging" : "notNow";
     setSkipTally((prev) => ({
       ...(prev ?? {}),
-      [reason]: ((prev?.[reason] as number | undefined) ?? 0) + 1,
+      [legacyBucket]: ((prev?.[legacyBucket] as number | undefined) ?? 0) + 1,
     }));
+
+    // THE NEW RECORD — and only for a real activity.
+    //
+    // This is the leak being closed. The dialog also fires for FORM blocks, so
+    // the old inference counted a skipped quiz or reflection in the same
+    // avoidance tally as turning down a phone call. A form is not a Growth
+    // Point and must not be recorded as one. (The server independently returns
+    // `recorded: false` for anything that resolves to no Growth Point, so this
+    // is the first of two guards, not the only one.)
+    const block = blocks[currentBlockIndex];
+    if (block?.type === ContentBlockType.ACTIVITY) {
+      const ref = block.content as ReferenceBlockContent;
+      if (ref?.refId && ref?.activityType) {
+        void recordGrowthPointDecline({
+          contentType: ref.activityType,
+          contentId: ref.refId,
+          reason,
+          // This screen does not offer a gentler version yet. Reporting the
+          // truth matters: claiming an offer we never rendered would make the
+          // record read as "we gave them a way down and they still said no".
+          easierOffered: false,
+        });
+      }
+    }
+
     setShowSkipConfirmation(false);
     // Defer so the sheet's close animation doesn't collide with navigation.
     setTimeout(() => proceedToNext(), 350);
@@ -734,15 +773,39 @@ const PackModuleScreen = () => {
             what actually happened.
           </Text>
 
+          {/*
+            THE WORDING IS THE MECHANISM.
+
+            The evidence on sensitive questions is specific: face-saving ANSWER
+            OPTIONS work, reassuring preambles largely don't. So each option is
+            written to be a comfortable thing to pick, with the justification
+            built into it.
+
+            "This one's too big a jump right now" replaced "It felt too hard".
+            Same information, but it blames the TASK rather than the person —
+            "too hard" asks someone to admit the thing they are most ashamed
+            of, and would systematically under-report the single answer that
+            matters most.
+
+            Three options, not two, because a decline has three causes and only
+            one of them is avoidance. Someone who has not been taught the
+            technique yet is not retreating, and counting them as if they were
+            penalises us for our own gap.
+          */}
           <View style={styles.skipModalActions}>
             <Button
-              label="It felt too hard"
-              onPress={() => recordSkip("tooChallenging")}
+              label="Too big a jump right now"
+              onPress={() => recordSkip(DeclineReason.MOTIVATION)}
             />
             <Button
-              label="Not right now"
+              label="I'd need to be shown how first"
               variant="secondary"
-              onPress={() => recordSkip("notNow")}
+              onPress={() => recordSkip(DeclineReason.CAPABILITY)}
+            />
+            <Button
+              label="Today's not the day"
+              variant="secondary"
+              onPress={() => recordSkip(DeclineReason.OPPORTUNITY)}
             />
             <Button
               label="Go Back"

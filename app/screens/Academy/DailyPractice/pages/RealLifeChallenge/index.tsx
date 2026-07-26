@@ -34,6 +34,7 @@ import DonePractice from "../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
 import IRLConfirmationModal from "../../../../../components/IRLConfirmationModal";
+import { recordGrowthPointDecline } from "../../../../../api/growthPoints";
 
 enum ChallengeStep {
   INSTRUCTION = 0,
@@ -133,6 +134,21 @@ const RealLifeChallenge = () => {
       setEasierState("none");
       return;
     }
+
+    // RECORD THAT THE HARDER ONE WAS PASSED OVER — as an APPROACH.
+    //
+    // This flow already worked; it just left no trace, so taking the gentler
+    // rung looked identical to never being offered anything. It is the exact
+    // opposite of backing away: graded exposure is the treatment, and someone
+    // who steps down a rung and does it has approached, not avoided. No reason
+    // is sent because none was asked — we only ask why if the smaller one is
+    // turned down too.
+    void recordGrowthPointDecline({
+      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+      contentId: sourceId,
+      easierOffered: true,
+      easierAccepted: true,
+    });
 
     // Swap in place rather than pushing a new screen: the user asked for THIS
     // challenge to be gentler, so landing them back on a briefing for the same
