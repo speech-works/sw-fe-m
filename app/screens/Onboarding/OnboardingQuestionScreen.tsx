@@ -391,7 +391,7 @@ const OnboardingQuestionScreen: React.FC = () => {
               id={q.id}
               // No `sequence` prop: the flow now shows ONE question per screen,
               // so a "1." in front of every single question was both wrong and
-              // redundant next to the "Step 4 of 12" progress header.
+              // redundant next to the step counter in the progress header.
               question={q.questionText}
               description={q.description ?? ""}
               questionType={q.questionType}

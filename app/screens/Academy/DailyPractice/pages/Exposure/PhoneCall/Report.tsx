@@ -177,11 +177,13 @@ const PhoneCallReport: React.FC<Props> = ({
     return (
       <View style={[styles.errorWrap, { backgroundColor: colors.background.canvas }]}>
         <ErrorStateCard
+          eyebrow={rateLimited ? "BUSY RIGHT NOW" : "COULDN'T LOAD"}
           title={rateLimited ? "Taking a moment" : "Report unavailable"}
+          // No hard line breaks — the card sets its own left-aligned measure now.
           message={
             rateLimited
-              ? "Reports are in high demand right now.\nTap retry in a moment, or skip."
-              : "We couldn't build your report.\nTry again, or skip for now."
+              ? "Reports are in high demand right now. Try again in a moment, or skip."
+              : "We couldn't build your report. Try again, or skip for now."
           }
           onRetry={load}
         />

@@ -254,10 +254,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
   if (error) {
     return (
-      <ErrorStateCard
-        onRetry={fetchAllTrends}
-        style={{ marginVertical: 16 }}
-      />
+      // Matches the widget's own container offset, so the error card lands on
+      // the same baseline as the Growth Profile it replaces.
+      <ErrorStateCard onRetry={fetchAllTrends} style={[{ marginTop: spacing.xl }, style]} />
     );
   }
 

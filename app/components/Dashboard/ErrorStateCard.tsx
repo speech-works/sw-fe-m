@@ -1,245 +1,159 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
+import PressableScale from "../PressableScale";
 import {
   Text,
-  Button,
   Icon,
   icons,
   useTheme,
   useMotion,
+  withAlpha,
   spacing,
   space,
   radius,
-  easing,
-  mix,
-  withAlpha,
 } from "../../design-system";
 
 interface ErrorStateCardProps {
+  /** ALL-CAPS eyebrow — the family's "what kind of card is this" slot. */
+  eyebrow?: string;
   title?: string;
   message?: string;
   onRetry: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-/** Bespoke ambient loop periods — slow drift, and a ripple that reads as a
- *  signal going out rather than something urgent. */
-const FLOAT_PERIOD = 4000;
-const RIPPLE_PERIOD = 2600;
-
-const MOTIF_SIZE = 130;
-
 /**
  * The failed-to-load card (reports, trends, recommendations).
  *
- * Rebuilt on tokens. It previously hardcoded twelve colour literals behind a
- * `variant` prop, of which only "dark" was ever passed — so the light half was
- * dead code that also happened to be the app's only defence against light mode,
- * where the card would have rendered a near-black panel on cream. Reading the
- * scheme from `useTheme` deletes both problems.
+ * Built on the Home card recipe shared by `PromoCard` and `RecHeroCard`: one
+ * solid `colors.accent` fill, AA-correct `accentOn` ink, two ink-circle blobs
+ * for texture, a left-aligned eyebrow → `h2` title → `body` message, and a
+ * solid dark-island CTA pill. Same padding, same radius, same press feedback —
+ * so a load failure reads as one of Home's cards rather than a different tier.
  *
- * The face is gone; a ripple around a dark glyph carries the "signal lost" idea
- * without one. The distinctive shape — flat header, convex hill overlapping it,
- * motif straddling the seam — is kept, since that's the card's identity.
+ * `danger` is the one accent slot the other Home cards leave free (success,
+ * warning, purple and info are taken), so the hue does double duty: it says
+ * "problem" while still sitting in the family.
+ *
+ * The old bespoke shape — flat header band, convex hill, a pulsing ripple motif
+ * and a brand-orange `Button` — is gone. Nothing else on Home is centered,
+ * two-tone or illustrated, and the two ambient loops (a 4s drift and a 2.6s
+ * ripple) ran forever behind a card that carries no meaning in its motion.
  */
 const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
+  eyebrow = "COULDN'T LOAD",
   title = "Uh oh.",
-  message = "Something weird happened.\nKeep calm and try again.",
+  message = "Something weird happened. Keep calm and try again.",
   onRetry,
   style,
 }) => {
-  const { colors, elevation } = useTheme();
-  const { reduced } = useMotion();
+  const { colors, scheme } = useTheme();
+  const motion = useMotion();
+  const isDark = scheme === "dark";
 
-  const cardBg = colors.surface.elevated;
-  // An opaque tint rather than a wash: a 12% accentTint over the card is nearly
-  // the card, and the header needs to read as its own band in both schemes.
-  const headerBg = mix(cardBg, colors.accent.danger, 0.16);
-
-  const float = useSharedValue(0);
-  const ripple = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduced) {
-      // Nothing here carries meaning, so ambient motion stops entirely. The
-      // original looped regardless of the OS preference.
-      cancelAnimation(float);
-      cancelAnimation(ripple);
-      float.value = 0;
-      ripple.value = 0;
-      return;
-    }
-    float.value = withRepeat(
-      withTiming(1, { duration: FLOAT_PERIOD, easing: easing.loop }),
-      -1,
-      true,
-    );
-    ripple.value = withRepeat(
-      withTiming(1, { duration: RIPPLE_PERIOD, easing: easing.out }),
-      -1,
-      false,
-    );
-    return () => {
-      cancelAnimation(float);
-      cancelAnimation(ripple);
-    };
-  }, [reduced, float, ripple]);
-
-  const orbStyle1 = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: float.value * 10 },
-      { translateX: float.value * 8 },
-    ],
-  }));
-  const orbStyle2 = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: float.value * -15 },
-      { translateX: float.value * -10 },
-    ],
-  }));
-
-  // Two rings half a period apart, so the signal keeps going out.
-  const ringOuter = useAnimatedStyle(() => ({
-    transform: [{ scale: 0.55 + ripple.value * 0.65 }],
-    opacity: (1 - ripple.value) * 0.4,
-  }));
-  const ringInner = useAnimatedStyle(() => {
-    const p = (ripple.value + 0.5) % 1;
-    return {
-      transform: [{ scale: 0.55 + p * 0.65 }],
-      opacity: (1 - p) * 0.4,
-    };
-  });
+  const fill = colors.accent.danger;
+  const ink = colors.accentOn.danger;
+  // Primary action = a solid dark island on the bright fill (pure inverse surface
+  // in light mode). Identical to PromoCard/RecHeroCard so the three CTAs match.
+  const islandBg = isDark ? colors.action.secondary : colors.surface.inverse;
+  const islandInk = isDark ? colors.action.onSecondary : colors.text.primary;
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: cardBg }, elevation.e2, style]}
-    >
-      {/* 1. Flat header band */}
-      <View style={[styles.headerBg, { backgroundColor: headerBg }]}>
-        <View style={StyleSheet.absoluteFill}>
-          <Animated.View
-            style={[
-              styles.orb,
-              { backgroundColor: withAlpha(colors.accent.danger, 0.2), top: -20, left: -20 },
-              orbStyle1,
-            ]}
+    // The card swaps in where a spinner just was, so it fades up rather than
+    // popping. Reduced-motion degrades it to opacity-only via `useMotion`.
+    <Animated.View entering={motion.enter()} style={style}>
+      <PressableScale
+        scaleTo={0.98}
+        onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel={`${title} ${message} Try again.`}
+        style={styles.card}
+      >
+        <View style={[styles.fill, { backgroundColor: fill }]}>
+          {/* Subtle ink-circle texture (the Explore/PromoCard pattern) — depth without art. */}
+          <View
+            style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}
+            pointerEvents="none"
           />
-          <Animated.View
-            style={[
-              styles.orb,
-              { backgroundColor: withAlpha(colors.accent.danger, 0.3), bottom: -20, right: -10 },
-              orbStyle2,
-            ]}
+          <View
+            style={[styles.blobB, { backgroundColor: withAlpha(ink, 0.1) }]}
+            pointerEvents="none"
           />
-        </View>
-      </View>
 
-      {/* 2. The overlapping convex hill */}
-      <View style={[styles.hillShape, { backgroundColor: cardBg }]} />
+          {/* Message */}
+          <View>
+            <Text variant="label" color={ink}>
+              {eyebrow}
+            </Text>
+            <Text variant="h2" color={ink} style={styles.title}>
+              {title}
+            </Text>
+            <Text variant="body" color={ink}>
+              {message}
+            </Text>
+          </View>
 
-      {/* 3. Foreground content */}
-      <View style={styles.content}>
-        <View style={styles.motifContainer}>
-          <Animated.View
-            style={[
-              styles.ring,
-              { borderColor: colors.feedback.dangerText },
-              ringOuter,
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.ring,
-              { borderColor: colors.feedback.dangerText },
-              ringInner,
-            ]}
-          />
-          <View style={[styles.motifDisc, { backgroundColor: colors.accent.danger }]}>
-            <Icon name={icons.danger} size={34} color={colors.accentOn.danger} />
+          {/* Footer — dark-island CTA at the leading edge. The whole card is the
+              tap target; the pill is the affordance, as on the sibling cards. */}
+          <View style={styles.footer}>
+            <View style={[styles.cta, { backgroundColor: islandBg }]}>
+              <Icon name={icons.refresh} size={14} color={islandInk} />
+              <Text variant="title" color={islandInk}>
+                Try again
+              </Text>
+            </View>
           </View>
         </View>
-
-        <Text variant="h2" color="primary" center>
-          {title}
-        </Text>
-        <Text variant="body" color="secondary" center style={styles.message}>
-          {message}
-        </Text>
-
-        <Button label="Try again" onPress={onRetry} fullWidth={false} />
-      </View>
-    </View>
+      </PressableScale>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
+    borderRadius: radius.card,
+  },
+  fill: {
     borderRadius: radius.card,
     overflow: "hidden",
-    position: "relative",
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
   },
-  headerBg: {
+  blobA: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 180, // height of the flat band behind the hill
-    overflow: "hidden",
-  },
-  hillShape: {
-    position: "absolute",
-    top: 140, // leaves the header 140px, then curves up over it
-    left: "-50%", // centres the oversized circle
-    width: "200%", // wide enough that the arc reads as a subtle convex hill
-    height: 600,
-    borderRadius: 1000,
-  },
-  content: {
-    padding: spacing["3xl"],
-    alignItems: "center",
-    gap: space.titleSub,
-    zIndex: 1,
-  },
-  motifContainer: {
-    marginTop: spacing["4xl"],
-    marginBottom: spacing.xl,
-    height: MOTIF_SIZE,
-    width: MOTIF_SIZE,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  ring: {
-    position: "absolute",
-    width: MOTIF_SIZE,
-    height: MOTIF_SIZE,
-    borderRadius: radius.full,
-    borderWidth: 2,
-  },
-  motifDisc: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  message: {
-    marginBottom: spacing["2xl"],
-  },
-  // Soft blobs drifting behind the header band.
-  orb: {
-    position: "absolute",
+    top: -40,
+    right: -30,
     width: 150,
     height: 150,
-    borderRadius: radius.full,
+    borderRadius: 75,
+  },
+  blobB: {
+    position: "absolute",
+    bottom: -20,
+    right: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+  },
+  title: {
+    marginTop: space.titleSub,
+    marginBottom: space.titleSub,
+  },
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.xl,
+  },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
   },
 });
 

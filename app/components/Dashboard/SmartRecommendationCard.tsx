@@ -175,10 +175,9 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 
   if (error) {
     return (
-      <ErrorStateCard
-        onRetry={handleFindNext}
-        style={{ marginVertical: spacing.lg }}
-      />
+      // No ad-hoc margin: this sits in the same Home slot as RecHeroCard, whose
+      // spacing comes from Page's contentGap.
+      <ErrorStateCard onRetry={handleFindNext} style={style} />
     );
   }
 
