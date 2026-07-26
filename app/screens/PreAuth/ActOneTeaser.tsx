@@ -87,24 +87,44 @@ const ActOneTeaser: React.FC = () => {
           />
         </Animated.View>
 
+        {/* THE SAME THREE TIERS AS THE WELCOME SCREEN, in the same sizes with
+            the same gaps: screenTitle at 40 leading, h3 secondary, caption
+            tertiary. Two screens that bookend the same minute have to be set in
+            one voice, and this one was stopping after two tiers — which read as
+            a lighter, unfinished version of the screen it is answering. */}
         <View style={styles.copyBlock}>
           <Animated.View entering={motion.stagger(1)}>
-            {/* Same lockup as the welcome headline: screenTitle, tightened
-                leading, hard break, left aligned. Two screens that bookend the
-                same minute should be set in the same voice. */}
+            {/* A RESPONSE, not a summary. "That's a good place to start" was
+                the app appraising the reader's answer; this is the app
+                answering it. Understated on purpose — someone who has just
+                named the moments they dread is better met with quiet
+                competence than with enthusiasm.
+
+                Hard-broken to two lines so the lockup matches "Everyone has /
+                a list." on the opening screen. */}
             <Text variant="screenTitle" style={styles.headline}>
-              {named ? "That's a good\nplace to start." : "Good start."}
+              We can work{"\n"}with that.
             </Text>
           </Animated.View>
 
           <Animated.View entering={motion.stagger(2)}>
-            {/* The bubbles overhead already say WHICH moments, so this does not
-                repeat them back in prose — it says what happens next, which is
-                the one thing the picture cannot show. */}
+            {/* The bubbles overhead already say WHICH moments, so this says the
+                one thing the picture cannot: what happens with them next. */}
             <Text variant="h3" color="secondary">
               {named
-                ? "Your first plan gets built around these."
-                : "We'll start with the everyday moments that feel hardest."}
+                ? "Your first plan starts with these."
+                : "Your first plan starts with the everyday moments."}
+            </Text>
+          </Animated.View>
+
+          <Animated.View entering={motion.stagger(3)}>
+            {/* The quiet tier, matching "5 questions · about a minute" opposite.
+                It answers the question actually in the reader's head at a signup
+                wall — "is that minute about to be wasted?" — which is the most
+                useful thing this screen can say at the moment it asks for an
+                account. */}
+            <Text variant="caption" color="tertiary">
+              You won't have to answer them again.
             </Text>
           </Animated.View>
         </View>
@@ -116,7 +136,7 @@ const ActOneTeaser: React.FC = () => {
           { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
         ]}
       >
-        <Animated.View entering={motion.stagger(3)}>
+        <Animated.View entering={motion.stagger(4)}>
           <Button
             label="Create an account"
             onPress={() => navigation.navigate("Auth")}
