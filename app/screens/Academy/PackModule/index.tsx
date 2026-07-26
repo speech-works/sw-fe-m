@@ -96,39 +96,44 @@ const PackModuleScreen = () => {
   } | null>(null);
 
   const recordSkip = (reason: DeclineReason) => {
-    // The legacy per-module tally, kept as-is. It still feeds the older
-    // server-side approach rate, and only MOTIVATION belongs in the avoidance
-    // bucket — "I'd need to be shown how" is a gap in our teaching, not a
-    // retreat, so it lands with "not right now".
-    const legacyBucket =
-      reason === DeclineReason.MOTIVATION ? "tooChallenging" : "notNow";
-    setSkipTally((prev) => ({
-      ...(prev ?? {}),
-      [legacyBucket]: ((prev?.[legacyBucket] as number | undefined) ?? 0) + 1,
-    }));
-
-    // THE NEW RECORD — and only for a real activity.
+    // IS THIS EVEN A THING WE MEASURE?
     //
-    // This is the leak being closed. The dialog also fires for FORM blocks, so
-    // the old inference counted a skipped quiz or reflection in the same
-    // avoidance tally as turning down a phone call. A form is not a Growth
-    // Point and must not be recorded as one. (The server independently returns
-    // `recorded: false` for anything that resolves to no Growth Point, so this
-    // is the first of two guards, not the only one.)
+    // The dialog fires for FORM blocks too, so a skipped quiz or reflection
+    // used to land in the identical avoidance tally as turning down a phone
+    // call. A form is not a Growth Point. Deciding that ONCE, here, is what
+    // keeps the two records below from disagreeing — an earlier version gated
+    // only the new record and left the legacy tally still counting forms, so
+    // the leak was half-closed in a way that looked closed.
     const block = blocks[currentBlockIndex];
-    if (block?.type === ContentBlockType.ACTIVITY) {
-      const ref = block.content as ReferenceBlockContent;
-      if (ref?.refId && ref?.activityType) {
-        void recordGrowthPointDecline({
-          contentType: ref.activityType,
-          contentId: ref.refId,
-          reason,
-          // This screen does not offer a gentler version yet. Reporting the
-          // truth matters: claiming an offer we never rendered would make the
-          // record read as "we gave them a way down and they still said no".
-          easierOffered: false,
-        });
-      }
+    const ref =
+      block?.type === ContentBlockType.ACTIVITY
+        ? (block.content as ReferenceBlockContent)
+        : undefined;
+    const isMeasurable = !!ref?.refId && !!ref?.activityType;
+
+    if (isMeasurable) {
+      // The legacy per-module tally. Only MOTIVATION belongs in the avoidance
+      // bucket — "I'd need to be shown how" is a gap in our teaching, not a
+      // retreat, so it lands with "not right now".
+      const legacyBucket =
+        reason === DeclineReason.MOTIVATION ? "tooChallenging" : "notNow";
+      setSkipTally((prev) => ({
+        ...(prev ?? {}),
+        [legacyBucket]: ((prev?.[legacyBucket] as number | undefined) ?? 0) + 1,
+      }));
+
+      // The new record. The server independently returns `recorded: false` for
+      // anything resolving to no Growth Point, so this is the first of two
+      // guards rather than the only one.
+      void recordGrowthPointDecline({
+        contentType: ref!.activityType!,
+        contentId: ref!.refId,
+        reason,
+        // This screen does not offer a gentler version yet. Reporting the truth
+        // matters: claiming an offer we never rendered would make the record
+        // read as "we gave them a way down and they still said no".
+        easierOffered: false,
+      });
     }
 
     setShowSkipConfirmation(false);
@@ -165,9 +170,7 @@ const PackModuleScreen = () => {
    * back to what it said before rather than blocking the screen. Nobody should
    * be kept from a module because we could not count it.
    */
-  const [arc, setArc] = useState<{ total: number; completed: number } | null>(
-    null,
-  );
+  const [arc, setArc] = useState<{ total: number } | null>(null);
 
   // Persistent mapping of block IDs to activity instance IDs
   const [blockToActivityMap, setBlockToActivityMap] = useState<
@@ -256,10 +259,9 @@ const PackModuleScreen = () => {
     getPackProgress(packId)
       .then((p) => {
         if (!alive) return;
-        setArc({
-          total: p.modules.length,
-          completed: p.modules.filter((m) => m.status === "COMPLETED").length,
-        });
+        // Only the total. A completed count was stored here and never read —
+        // and the label needs the denominator, not the numerator.
+        setArc({ total: p.modules.length });
       })
       .catch(() => {
         /* Header falls back to the un-totalled label. Not worth a toast. */
