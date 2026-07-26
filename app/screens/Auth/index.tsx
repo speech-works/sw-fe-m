@@ -30,8 +30,10 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import {
   borderWidth,
+  Button,
   radius,
   SchemeStatusBar,
+  Sheet,
   size,
   space,
   spacing,
@@ -67,6 +69,8 @@ const LoginScreen = () => {
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState("");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isCodeAdded, setIsCodeAdded] = useState(false);
   /**
    * The invite field starts collapsed behind a link.
    *
@@ -274,11 +278,6 @@ const LoginScreen = () => {
         it broke the left-aligned rhythm the welcome, question and teaser
         screens all share, so arriving here felt like arriving in a different
         app.
-
-        Now it is the welcome screen's skeleton: a spacer that pushes content
-        down, a screenTitle headline at 40 leading, the actions, one footnote.
-        The ambient orbs stay — they are what makes a screen with almost nothing
-        on it still feel considered, and they already respect reduce-motion.
       */}
       <ScrollView
         style={styles.scroll}
@@ -292,19 +291,9 @@ const LoginScreen = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Collapses to nothing the moment content outgrows the viewport (an
-            open keyboard, a large text size), so the headline can never be
-            pushed above the scroll origin where nothing can reach it. */}
         <View style={styles.spacer} />
 
         <Animated.View entering={motion.stagger(0)}>
-          {/* Hard-broken to two lines so the lockup matches "Everyone has /
-              a list." — same variant, same 40 leading, same left edge.
-
-              Works for both arrivals, which is why it replaced a stacked
-              "Let's get started" / "Login to continue your progress": one of
-              those addressed a new signup and the other a returning login, and
-              showing both to everyone meant half of it was always wrong. */}
           <Text variant="screenTitle" style={styles.headline}>
             Let's get{"\n"}you in.
           </Text>
@@ -317,9 +306,6 @@ const LoginScreen = () => {
               provider.charAt(0).toUpperCase() + provider.slice(1)
             }`;
 
-            // OAuth-branded buttons: a bright inverse disc on the canvas with
-            // near-black label/glyph (surface.inverse + text.onInverse) — the
-            // AA-correct pairing on both schemes.
             return (
               <Animated.View key={provider} entering={motion.stagger(1 + i)}>
                 <PressableScale
@@ -340,12 +326,6 @@ const LoginScreen = () => {
                     <ActivityIndicator color={colors.text.onInverse} />
                   ) : (
                     <>
-                      {/* FIXED-WIDTH ICON SLOT. The three brand glyphs have
-                          different intrinsic widths (the Apple mark is narrow
-                          and tall, the Google G is wide), so without a box of
-                          their own each one pushed its label to a different x.
-                          Boxed and centred, every label starts on the same
-                          left edge. */}
                       <View style={styles.oauthIcon}>
                         <FontAwesome5
                           name={provider as any}
@@ -368,49 +348,19 @@ const LoginScreen = () => {
           })}
         </View>
 
-        {/* FOOTER CHROME, centred and set apart from the actions above.
-
-            It was three link-coloured spans stacked in the bottom third — the
-            invite link, "Terms & Privacy Policy", and "Need help?" — two of
-            them inside one caption that wrapped mid-phrase and orphaned "help?"
-            onto its own line. Three separate orange things at three different
-            left edges is what read as messy, not any one of them.
-
-            Now: two elements, one accent each, centred, with real space above
-            them. Centring is deliberate — these are chrome rather than content,
-            the full-width buttons reset the eye between the left-aligned
-            headline and here, and all three reference designs treat the legal
-            line exactly this way. */}
         <View style={styles.footer}>
           <Animated.View entering={motion.stagger(1 + providers.length)}>
-            {showInvite ? (
-              <TextField
-                value={inviteCode}
-                onChangeText={(t) => setInviteCode(t.toUpperCase())}
-                placeholder="Invite code"
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={12}
-                textAlign="center"
-                autoFocus
-              />
-            ) : (
-              <Text
-                variant="bodySm"
-                color="link"
-                center
-                style={styles.inviteLink}
-                onPress={() => setShowInvite(true)}
-              >
-                Have an invite code?
-              </Text>
-            )}
+            <Text
+              variant="bodySm"
+              color={isCodeAdded ? (colors.feedback.successText as any) : "link"}
+              center
+              style={styles.inviteLink}
+              onPress={() => setIsSheetOpen(true)}
+            >
+              {isCodeAdded ? "Buddy code added" : "Have an invite code?"}
+            </Text>
           </Animated.View>
 
-          {/* ONE link in the consent line now. "Need help?" moved into the
-              failure Alert, where support is actually wanted — offered at the
-              moment sign-in breaks instead of permanently occupying the door
-              for everyone it never helps. */}
           <Animated.View entering={motion.stagger(2 + providers.length)}>
             <Text variant="caption" color="tertiary" center>
               By continuing, you agree to our{" "}
@@ -425,6 +375,35 @@ const LoginScreen = () => {
           </Animated.View>
         </View>
       </ScrollView>
+
+      <Sheet
+        visible={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        title="Pair with a Buddy"
+      >
+        <View style={{ paddingHorizontal: space.screenX, paddingBottom: Math.max(insets.bottom, spacing.xl), gap: space.groupGap }}>
+          <Text variant="body" color="secondary">
+            If you received an invite code from a friend, enter it below. This will pair you together in the app so you can share your experience!
+          </Text>
+          <TextField
+            value={inviteCode}
+            onChangeText={(t) => setInviteCode(t.toUpperCase())}
+            placeholder="Enter buddy code"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={12}
+            textAlign="center"
+          />
+          <Button 
+            variant="primary" 
+            label={isCodeAdded ? "Save Buddy Code" : "Add Buddy Code"} 
+            onPress={() => {
+              setIsCodeAdded(inviteCode.trim().length > 0);
+              setIsSheetOpen(false);
+            }} 
+          />
+        </View>
+      </Sheet>
     </View>
   );
 };
