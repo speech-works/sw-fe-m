@@ -1,9 +1,3 @@
-import type {
-  GrowthProfileAxisKey,
-  GrowthProfileMetrics,
-  MomentumState,
-  ProfileAxisDelta,
-} from "../overallState/types";
 import type { LevelStage } from "../users";
 
 export type WeeklyStat = {
@@ -68,31 +62,6 @@ export type DetailedWeeklySummaryResponse = {
   daysActiveComparison: FlowComparisonSummary;
 };
 
-export type WeeklyGrowthBreakthrough = {
-  axis: GrowthProfileAxisKey;
-  label: string;
-  absoluteDelta: number;
-  percentDelta: number | null;
-};
-
-export type WeeklyGrowthReport = {
-  axes: {
-    combined: GrowthProfileMetrics;
-    clinical: GrowthProfileMetrics;
-  };
-  comparison: {
-    hasComparison: boolean;
-    previousPeriodKey: string | null;
-    comparisonLabel: string;
-    deltas: Record<GrowthProfileAxisKey, ProfileAxisDelta>;
-  };
-  topBreakthroughs: WeeklyGrowthBreakthrough[];
-  meta: {
-    computedAt: string | Date;
-    momentumState: MomentumState;
-  };
-};
-
 export type WeeklyReportResponse = {
   timeframe: "weekly";
   comparisonLabel: string;
@@ -102,7 +71,6 @@ export type WeeklyReportResponse = {
   >;
   distribution: WeeklyDistribution;
   mood: Record<string, number>;
-  growth: WeeklyGrowthReport;
 };
 
 export type LifetimeJourneySummary = {
@@ -116,34 +84,9 @@ export type LifetimeJourneySummary = {
   progressReportCopy: string;
 };
 
-export type LifetimeGrowthJourneyPoint = {
-  periodKey: string;
-  periodStart: string | Date;
-  periodEnd: string | Date;
-  axes: GrowthProfileMetrics;
-  overallProgressScore: number;
-};
-
-export type LifetimeGrowthJourneyResponse = {
-  currentPeriodKey: string;
-  current: GrowthProfileMetrics;
-  baseline: GrowthProfileMetrics | null;
-  baselinePeriodKey: string | null;
-  baselineLabel: string | null;
-  hasComparison: boolean;
-  comparisonLabel: string;
-  deltas: Record<GrowthProfileAxisKey, ProfileAxisDelta>;
-  history: LifetimeGrowthJourneyPoint[];
-  meta: {
-    computedAt: string | Date;
-    momentumState: MomentumState;
-  };
-};
-
 export type LifetimeReportResponse = {
   timeframe: "lifetime";
   journey: LifetimeJourneySummary;
   distribution: WeeklyDistribution;
-  growthJourney: LifetimeGrowthJourneyResponse;
   achievements: LevelStage;
 };

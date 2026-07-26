@@ -51,10 +51,6 @@ export type {
 } from "./quiz/types";
 
 // Overall State API (clinical + engagement metrics for home page)
-export { getCurrentOverallState, getOverallStateHistory } from "./overallState";
-export type {
-    ClinicalSummary, CombinedView, EngagementSummary, UserOverallStateAggregate
-} from "./overallState/types";
 // Recommendations API (post-mood clinical suggestions)
 export { getPracticeSuggestions } from "./recommendations";
 export type { PracticeSuggestion } from "./recommendations/types";

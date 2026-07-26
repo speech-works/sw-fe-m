@@ -52,14 +52,14 @@ export default function MainNavigator() {
     }
   }, [events, clear, logout]);
 
-  // A `fetchAllTrends()` on login lived here. It pulled the clinical domain
-  // scores that drew the Growth Profile — and nothing renders those any more,
-  // so it was a network round-trip on every login whose result nobody read.
+  // A `fetchAllTrends()` on login lived here, pulling the clinical domain
+  // scores that drew the Growth Profile. Nothing renders those any more, so it
+  // was a network round-trip on every login whose result nobody read — and the
+  // store, its selectors and the overallState API layer went with it.
   //
-  // The store and its API types survive because the backend still returns this
-  // data and the progress-report DTOs reference the shapes. Nothing on the
-  // client reads it today; whatever replaces the progress view will decide
-  // whether to fetch it again.
+  // The backend still computes and returns this data; the client simply
+  // ignores the fields. Whatever replaces the progress view will bring its own
+  // shapes rather than inheriting these.
 
   // HAND THE PRE-SIGNUP ANSWERS OVER, ONCE AN ACCOUNT EXISTS.
   //
