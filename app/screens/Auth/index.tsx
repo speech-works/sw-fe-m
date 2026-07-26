@@ -1,23 +1,16 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
-  Easing,
   Linking,
   Platform,
   ScrollView,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 
-import {
-  COMPANY_NAME,
-  COMPANY_SLOGAN,
-  PRIVACY_POLICY_URL,
-  SUPPORT_URL,
-} from "./constants";
+import { PRIVACY_POLICY_URL, SUPPORT_URL } from "./constants";
 
 import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
@@ -25,7 +18,7 @@ import * as WebBrowser from "expo-web-browser";
 // Brand marks (google/apple) have no Fluent/registry glyph — scoped brand
 // exception, mirroring the DS Icon's own FontAwesome5 brand fallback.
 import { FontAwesome5 } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { handleOAuthCallback, loginUser } from "../../api";
 import PressableScale from "../../components/PressableScale";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
@@ -44,6 +37,7 @@ import {
   spacing,
   Text,
   TextField,
+  useMotion,
   useTheme,
 } from "../../design-system";
 import LoginBackground from "./components/LoginBackground";
@@ -66,44 +60,24 @@ WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = () => {
   const { colors } = useTheme();
-  const { height } = useWindowDimensions();
-  const isSmallDevice = height < 700;
+  const motion = useMotion();
+  const insets = useSafeAreaInsets();
 
   const { login } = useContext(AuthContext);
   const { setUser } = useUserStore();
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState("");
-
-  // Animation Refs
-  const logoScaleAnim = useRef(new Animated.Value(0.8)).current;
-  const logoFadeAnim = useRef(new Animated.Value(0)).current;
-  const sheetSlideAnim = useRef(new Animated.Value(height * 0.5)).current; // Start off-screen
-
-  useEffect(() => {
-    Animated.parallel([
-      // Logo Animation: Scale up + Fade in
-      Animated.timing(logoScaleAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.back(1.5)), // Slight bounce
-      }),
-      Animated.timing(logoFadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      // Sheet Animation: Slide Up
-      Animated.timing(sheetSlideAnim, {
-        toValue: 0,
-        duration: 700,
-        delay: 200, // Wait a bit for logo
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
-    ]).start();
-  }, []);
+  /**
+   * The invite field starts collapsed behind a link.
+   *
+   * It used to sit open under the buttons on every visit, which meant the one
+   * input on the screen belonged to the small minority who arrived with a code
+   * — and, worse, read as a thing you might be expected to fill in before
+   * continuing. Behind a link it costs one row instead of one field, and the
+   * people who have a code are exactly the people looking for it.
+   */
+  const [showInvite, setShowInvite] = useState(false);
 
   const showError = (message: string) => {
     Alert.alert("Login Error", message);
@@ -282,172 +256,151 @@ const LoginScreen = () => {
       <LoginBackground />
 
       {/*
-        1. TOP SECTION (Brand)
-           - Transparent to show background watermarks
-      */}
-      <View style={styles.topSection}>
-        {/* Logo Content */}
-        <SafeAreaView edges={["top"]} style={styles.brandContent}>
-          <Animated.View
-            style={[
-              styles.logoWrapper,
-              {
-                opacity: logoFadeAnim,
-                transform: [{ scale: logoScaleAnim }],
-                height: isSmallDevice ? 100 : 120, // Adaptive logo height
-              },
-            ]}
-          >
-            {/* <Image
-              style={styles.logoImg}
-              source={speechworksLogo}
-              resizeMode="contain"
-            /> */}
-          </Animated.View>
-          <Animated.View style={{ opacity: logoFadeAnim }}>
-            {/* Brand wordmark — text.link is the scheme-correct orange ink
-                (deep orange on paper, bright orange on the dark canvas). */}
-            <Text variant="screenTitle" color="link" center>
-              {COMPANY_NAME}
-            </Text>
-            <Text
-              variant={isSmallDevice ? "bodySm" : "h3"}
-              color="secondary"
-              center
-              style={styles.captionText}
-            >
-              {COMPANY_SLOGAN}
-            </Text>
-          </Animated.View>
-        </SafeAreaView>
-      </View>
+        ONE COLUMN, LEFT ALIGNED — the same shape as every screen before it.
 
-      {/*
-        2. BOTTOM SECTION (Sheet)
-           - Slides up from bottom
+        This used to be a brand block pinned to the top 35-42% and a sheet that
+        slid up over it, with the wordmark and slogan set centred. Two problems.
+        The wordmark introduced the app by name to someone who had just spent a
+        minute answering its questions and been shown a personalised plan — the
+        one moment in the flow where an introduction is redundant. And centring
+        it broke the left-aligned rhythm the welcome, question and teaser
+        screens all share, so arriving here felt like arriving in a different
+        app.
+
+        Now it is the welcome screen's skeleton: a spacer that pushes content
+        down, a screenTitle headline at 40 leading, the actions, one footnote.
+        The ambient orbs stay — they are what makes a screen with almost nothing
+        on it still feel considered, and they already respect reduce-motion.
       */}
-      <Animated.View
-        style={[
-          styles.bottomSheet,
-          { transform: [{ translateY: sheetSlideAnim }] },
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + spacing.lg,
+            paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md,
+          },
         ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <SafeAreaView
-          edges={["bottom", "left", "right"]}
-          style={styles.sheetSafeArea}
-        >
-          <ScrollView
-            style={styles.sheetScroll}
-            contentContainerStyle={styles.sheetContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Header of Sheet */}
-            <View style={styles.sheetHeader}>
-              <Text variant="h2" center style={styles.sheetTitle}>
-                Let's get started
-              </Text>
-              <Text variant="body" color="secondary" center>
-                Login to continue your progress
-              </Text>
-            </View>
+        {/* Collapses to nothing the moment content outgrows the viewport (an
+            open keyboard, a large text size), so the headline can never be
+            pushed above the scroll origin where nothing can reach it. */}
+        <View style={styles.spacer} />
 
-            {/* Social Buttons */}
-            <View style={styles.loginButtons}>
-              {providers.map((provider) => {
-                const isLoading = loadingProvider === provider;
-                const label = `Continue with ${
-                  provider.charAt(0).toUpperCase() + provider.slice(1)
-                }`;
+        <Animated.View entering={motion.stagger(0)}>
+          {/* Hard-broken to two lines so the lockup matches "Everyone has /
+              a list." — same variant, same 40 leading, same left edge.
 
-                // OAuth-branded buttons: a bright inverse disc on the canvas with
-                // near-black label/glyph (surface.inverse + text.onInverse) — the
-                // AA-correct pairing on both schemes.
-                return (
-                  <PressableScale
-                    key={provider}
-                    onPress={() => onPressOAuth(provider)}
-                    disabled={isLoading}
-                    accessibilityRole="button"
-                    accessibilityLabel={label}
-                    accessibilityState={{ disabled: isLoading, busy: isLoading }}
-                    style={[
-                      styles.oauthButton,
-                      {
-                        backgroundColor: colors.surface.inverse,
-                        borderColor: colors.border.default,
-                        marginBottom: isSmallDevice ? spacing.md : spacing.lg,
-                        height: isSmallDevice ? 50 : 56,
-                        paddingHorizontal: isSmallDevice ? spacing.lg : spacing["2xl"],
-                      },
-                    ]}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color={colors.text.onInverse} />
-                    ) : (
-                      <>
-                        <FontAwesome5
-                          name={provider as any}
-                          size={size.icon}
-                          color={colors.text.onInverse}
-                          brand
-                        />
-                        <Text
-                          variant="title"
-                          color={colors.text.onInverse}
-                          numberOfLines={1}
-                          adjustsFontSizeToFit
-                          minimumFontScale={0.8}
-                        >
-                          {label}
-                        </Text>
-                      </>
-                    )}
-                  </PressableScale>
-                );
-              })}
-            </View>
+              Works for both arrivals, which is why it replaced a stacked
+              "Let's get started" / "Login to continue your progress": one of
+              those addressed a new signup and the other a returning login, and
+              showing both to everyone meant half of it was always wrong. */}
+          <Text variant="screenTitle" style={styles.headline}>
+            Let's get{"\n"}you in.
+          </Text>
+        </Animated.View>
 
-            {/* Optional invite code */}
-            <View style={styles.inviteWrap}>
-              <TextField
-                value={inviteCode}
-                onChangeText={(t) => setInviteCode(t.toUpperCase())}
-                placeholder="Have an invite code? (optional)"
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={12}
-                textAlign="center"
-              />
-            </View>
+        <View style={styles.actions}>
+          {providers.map((provider, i) => {
+            const isLoading = loadingProvider === provider;
+            const label = `Continue with ${
+              provider.charAt(0).toUpperCase() + provider.slice(1)
+            }`;
 
-            {/* Footer / Legal */}
-            <View style={styles.legalContainer}>
-              <Text variant="caption" color="tertiary" center>
-                By continuing, you agree to our{" "}
-                <Text
-                  variant="caption"
-                  color="link"
-                  onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+            // OAuth-branded buttons: a bright inverse disc on the canvas with
+            // near-black label/glyph (surface.inverse + text.onInverse) — the
+            // AA-correct pairing on both schemes.
+            return (
+              <Animated.View key={provider} entering={motion.stagger(1 + i)}>
+                <PressableScale
+                  onPress={() => onPressOAuth(provider)}
+                  disabled={isLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ disabled: isLoading, busy: isLoading }}
+                  style={[
+                    styles.oauthButton,
+                    {
+                      backgroundColor: colors.surface.inverse,
+                      borderColor: colors.border.default,
+                    },
+                  ]}
                 >
-                  Terms & Privacy Policy
-                </Text>
-              </Text>
-              <View style={{ height: spacing.lg }} />
-              <Text variant="caption" color="tertiary" center>
-                Need help?{" "}
-                <Text
-                  variant="caption"
-                  color="link"
-                  onPress={() => handleLinkPress(SUPPORT_URL)}
-                >
-                  Contact Support
-                </Text>
-              </Text>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Animated.View>
+                  {isLoading ? (
+                    <ActivityIndicator color={colors.text.onInverse} />
+                  ) : (
+                    <>
+                      <FontAwesome5
+                        name={provider as any}
+                        size={size.icon}
+                        color={colors.text.onInverse}
+                        brand
+                      />
+                      <Text
+                        variant="title"
+                        color={colors.text.onInverse}
+                        numberOfLines={1}
+                      >
+                        {label}
+                      </Text>
+                    </>
+                  )}
+                </PressableScale>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        <Animated.View entering={motion.stagger(1 + providers.length)}>
+          {showInvite ? (
+            <TextField
+              value={inviteCode}
+              onChangeText={(t) => setInviteCode(t.toUpperCase())}
+              placeholder="Invite code"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={12}
+              autoFocus
+            />
+          ) : (
+            <Text
+              variant="bodySm"
+              color="link"
+              style={styles.inviteLink}
+              onPress={() => setShowInvite(true)}
+            >
+              Have an invite code?
+            </Text>
+          )}
+        </Animated.View>
+
+        {/* ONE footnote, not two stacked blocks with a spacer between them.
+            The consent sentence has to be here; "Need help?" rides along on the
+            same line rather than claiming a block of its own, so nothing is
+            lost from a screen someone may well be stuck on. */}
+        <Animated.View entering={motion.stagger(2 + providers.length)}>
+          <Text variant="caption" color="tertiary" style={styles.legal}>
+            By continuing, you agree to our{" "}
+            <Text
+              variant="caption"
+              color="link"
+              onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+            >
+              Terms & Privacy Policy
+            </Text>
+            .{" "}
+            <Text
+              variant="caption"
+              color="link"
+              onPress={() => handleLinkPress(SUPPORT_URL)}
+            >
+              Need help?
+            </Text>
+          </Text>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 };
@@ -459,86 +412,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Top Section — fixed min-height so it never collapses on small screens
-  // but also doesn't crowd the sheet on large screens.
-  topSection: {
-    minHeight: "35%" as any,
-    maxHeight: "42%" as any,
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  brandContent: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: spacing.sm + 2,
-    gap: spacing.sm,
-  },
-  logoWrapper: {
-    // Large logo area
-    width: 200,
-    height: 120, // Base height, overridden by inline style
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoImg: {
-    width: "100%",
-    height: "100%",
-  },
-  captionText: {
-    marginTop: spacing.xs,
-  },
-
-  // Bottom Sheet — flex:1 fills all remaining space after the top section
-  bottomSheet: {
-    flex: 1,
-    backgroundColor: "transparent",
-    borderTopLeftRadius: radius.sheet,
-    borderTopRightRadius: radius.sheet,
-    overflow: "hidden",
-  },
-  sheetSafeArea: {
+  scroll: {
     flex: 1,
   },
-  sheetScroll: {
-    flex: 1,
-  },
-  sheetContent: {
+  content: {
+    // flexGrow, not flex — the spacer below can then absorb slack on a tall
+    // screen AND collapse on a short one, instead of the content being centred
+    // and clipped at both ends when it overflows.
     flexGrow: 1,
     paddingHorizontal: space.screenX,
-    paddingTop: spacing["2xl"],
-    paddingBottom: spacing["2xl"],
+    gap: space.groupGap,
   },
-  sheetHeader: {
-    marginBottom: space.groupGap,
-    alignItems: "center",
+  spacer: {
+    flex: 1,
   },
-  sheetTitle: {
-    marginBottom: space.titleSub,
+  headline: {
+    lineHeight: 40,
   },
-
-  loginButtons: {
-    width: "100%",
-    marginBottom: space.rowGap,
+  actions: {
+    gap: space.rowGap,
   },
   oauthButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: space.iconText,
+    height: 56,
     borderRadius: radius.pill,
     borderWidth: borderWidth.thin,
     paddingHorizontal: spacing["2xl"],
   },
-  inviteWrap: {
-    width: "100%",
-    marginBottom: space.rowGap,
+  inviteLink: {
+    paddingVertical: spacing.sm,
   },
-
-  legalContainer: {
-    alignItems: "center",
-    paddingTop: spacing.lg,
+  legal: {
+    paddingBottom: spacing.sm,
   },
 });
