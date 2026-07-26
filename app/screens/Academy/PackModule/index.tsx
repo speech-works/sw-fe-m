@@ -153,6 +153,22 @@ const PackModuleScreen = () => {
     Set<string>
   >(new Set());
 
+  /**
+   * How far through the ARC this module sits — "3 of 9", not just "3".
+   *
+   * The header used to read "Module 3 · Step 2 of 5", which answers where you
+   * are inside the module and leaves the bigger question open: three of what?
+   * A visible finish line is what lets the goal-gradient pull work at all, and
+   * it was missing at exactly the moment someone is doing the work.
+   *
+   * Null until it loads, and null forever if the fetch fails — the label falls
+   * back to what it said before rather than blocking the screen. Nobody should
+   * be kept from a module because we could not count it.
+   */
+  const [arc, setArc] = useState<{ total: number; completed: number } | null>(
+    null,
+  );
+
   // Persistent mapping of block IDs to activity instance IDs
   const [blockToActivityMap, setBlockToActivityMap] = useState<
     Map<string, string>
@@ -232,6 +248,26 @@ const PackModuleScreen = () => {
 
     navigation.navigate("Explore" as never);
   }, [navigation]);
+
+  // The arc position. Deliberately its own effect and its own failure path:
+  // it is decoration on the header, and must never delay or break the module.
+  useEffect(() => {
+    let alive = true;
+    getPackProgress(packId)
+      .then((p) => {
+        if (!alive) return;
+        setArc({
+          total: p.modules.length,
+          completed: p.modules.filter((m) => m.status === "COMPLETED").length,
+        });
+      })
+      .catch(() => {
+        /* Header falls back to the un-totalled label. Not worth a toast. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [packId]);
 
   useEffect(() => {
     const initModule = async () => {
@@ -650,10 +686,15 @@ const PackModuleScreen = () => {
   }
 
   const moduleTitle = module.title.replace(/^Module \d+:\s*/, "");
+  // "Module 3 of 9" once we know the total; "Module 3" until then, which is
+  // exactly what it said before — so a slow or failed count costs nothing.
+  const modulePosition = arc
+    ? `Module ${module.orderIndex} of ${arc.total}`
+    : `Module ${module.orderIndex}`;
   const progressLabel =
     blocks.length === 0
-      ? `Module ${module.orderIndex}`
-      : `Module ${module.orderIndex} · Step ${currentBlockIndex + 1} of ${blocks.length}`;
+      ? modulePosition
+      : `${modulePosition} · Step ${currentBlockIndex + 1} of ${blocks.length}`;
 
   // Footer action button — mirrors the legacy Skip / Complete / Next logic.
   const isInteractiveBlock =

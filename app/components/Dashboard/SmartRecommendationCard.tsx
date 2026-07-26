@@ -380,9 +380,25 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                 <Text variant="bodySm" color={ink}>
                   Module {nextModuleOrder} of {totalModules}
                 </Text>
-                <Text variant="bodySm" color={ink}>
-                  {Math.round(percentComplete * 100)}%
-                </Text>
+                {/*
+                  NEVER OPEN ON A ZERO.
+
+                  A fresh pack showed "Module 1 of 9" beside a flat "0%". The
+                  position is a statement about a journey; the zero is a
+                  statement about emptiness, and it is the first thing someone
+                  sees after paying. The pre-stamped loyalty card reached 34%
+                  completion against 19% for an empty one — identical purchases,
+                  the difference was entirely in not starting at nothing.
+
+                  This does not invent credit, which would be the dishonest
+                  version. It just stops announcing the absence of it: the empty
+                  bar already says "not started" without putting a number on it.
+                */}
+                {percentComplete > 0 ? (
+                  <Text variant="bodySm" color={ink}>
+                    {Math.round(percentComplete * 100)}%
+                  </Text>
+                ) : null}
               </View>
               <View style={[styles.track, { backgroundColor: withAlpha(ink, 0.28) }]}>
                 <View
