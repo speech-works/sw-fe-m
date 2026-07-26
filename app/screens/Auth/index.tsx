@@ -79,8 +79,17 @@ const LoginScreen = () => {
    */
   const [showInvite, setShowInvite] = useState(false);
 
+  /**
+   * Sign-in failed. Offers support HERE rather than from a permanent link on
+   * the screen: this is the only moment anyone actually wants it, and a
+   * standing "Need help?" at the door was clutter for everyone it never helped.
+   * An error with no recovery path is the thing worth avoiding — not the link.
+   */
   const showError = (message: string) => {
-    Alert.alert("Login Error", message);
+    Alert.alert("Couldn't sign you in", message, [
+      { text: "Get help", onPress: () => handleLinkPress(SUPPORT_URL) },
+      { text: "Try again", style: "cancel" },
+    ]);
   };
 
   const onPressOAuth = async (provider: string) => {
@@ -332,12 +341,20 @@ const LoginScreen = () => {
                     <ActivityIndicator color={colors.text.onInverse} />
                   ) : (
                     <>
-                      <FontAwesome5
-                        name={provider as any}
-                        size={size.icon}
-                        color={colors.text.onInverse}
-                        brand
-                      />
+                      {/* FIXED-WIDTH ICON SLOT. The three brand glyphs have
+                          different intrinsic widths (the Apple mark is narrow
+                          and tall, the Google G is wide), so without a box of
+                          their own each one pushed its label to a different x.
+                          Boxed and centred, every label starts on the same
+                          left edge. */}
+                      <View style={styles.oauthIcon}>
+                        <FontAwesome5
+                          name={provider as any}
+                          size={size.icon}
+                          color={colors.text.onInverse}
+                          brand
+                        />
+                      </View>
                       <Text
                         variant="title"
                         color={colors.text.onInverse}
@@ -353,53 +370,62 @@ const LoginScreen = () => {
           })}
         </View>
 
-        <Animated.View entering={motion.stagger(1 + providers.length)}>
-          {showInvite ? (
-            <TextField
-              value={inviteCode}
-              onChangeText={(t) => setInviteCode(t.toUpperCase())}
-              placeholder="Invite code"
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={12}
-              autoFocus
-            />
-          ) : (
-            <Text
-              variant="bodySm"
-              color="link"
-              style={styles.inviteLink}
-              onPress={() => setShowInvite(true)}
-            >
-              Have an invite code?
-            </Text>
-          )}
-        </Animated.View>
+        {/* FOOTER CHROME, centred and set apart from the actions above.
 
-        {/* ONE footnote, not two stacked blocks with a spacer between them.
-            The consent sentence has to be here; "Need help?" rides along on the
-            same line rather than claiming a block of its own, so nothing is
-            lost from a screen someone may well be stuck on. */}
-        <Animated.View entering={motion.stagger(2 + providers.length)}>
-          <Text variant="caption" color="tertiary" style={styles.legal}>
-            By continuing, you agree to our{" "}
-            <Text
-              variant="caption"
-              color="link"
-              onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
-            >
-              Terms & Privacy Policy
+            It was three link-coloured spans stacked in the bottom third — the
+            invite link, "Terms & Privacy Policy", and "Need help?" — two of
+            them inside one caption that wrapped mid-phrase and orphaned "help?"
+            onto its own line. Three separate orange things at three different
+            left edges is what read as messy, not any one of them.
+
+            Now: two elements, one accent each, centred, with real space above
+            them. Centring is deliberate — these are chrome rather than content,
+            the full-width buttons reset the eye between the left-aligned
+            headline and here, and all three reference designs treat the legal
+            line exactly this way. */}
+        <View style={styles.footer}>
+          <Animated.View entering={motion.stagger(1 + providers.length)}>
+            {showInvite ? (
+              <TextField
+                value={inviteCode}
+                onChangeText={(t) => setInviteCode(t.toUpperCase())}
+                placeholder="Invite code"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={12}
+                textAlign="center"
+                autoFocus
+              />
+            ) : (
+              <Text
+                variant="bodySm"
+                color="link"
+                center
+                style={styles.inviteLink}
+                onPress={() => setShowInvite(true)}
+              >
+                Have an invite code?
+              </Text>
+            )}
+          </Animated.View>
+
+          {/* ONE link in the consent line now. "Need help?" moved into the
+              failure Alert, where support is actually wanted — offered at the
+              moment sign-in breaks instead of permanently occupying the door
+              for everyone it never helps. */}
+          <Animated.View entering={motion.stagger(2 + providers.length)}>
+            <Text variant="caption" color="tertiary" center>
+              By continuing, you agree to our{" "}
+              <Text
+                variant="caption"
+                color="link"
+                onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+              >
+                Terms & Privacy Policy
+              </Text>
             </Text>
-            .{" "}
-            <Text
-              variant="caption"
-              color="link"
-              onPress={() => handleLinkPress(SUPPORT_URL)}
-            >
-              Need help?
-            </Text>
-          </Text>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -435,17 +461,29 @@ const styles = StyleSheet.create({
   oauthButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    // flex-start, NOT center. Centring the [icon + label] group put every icon
+    // and every label at a different x, because the three labels differ in
+    // length and the three glyphs differ in width — three buttons, three left
+    // edges. Left-aligning against a fixed icon slot gives all three a single
+    // shared edge, which is also what the left-aligned headline above wants.
+    justifyContent: "flex-start",
     gap: space.iconText,
     height: 56,
     borderRadius: radius.pill,
     borderWidth: borderWidth.thin,
     paddingHorizontal: spacing["2xl"],
   },
-  inviteLink: {
-    paddingVertical: spacing.sm,
+  oauthIcon: {
+    width: size.icon,
+    alignItems: "center",
   },
-  legal: {
-    paddingBottom: spacing.sm,
+  /** Set apart from the actions: this is chrome, and it was crowding them. */
+  footer: {
+    gap: space.rowGap,
+    paddingTop: space.groupGap,
+  },
+  inviteLink: {
+    // Carries the ~20pt line past the 44pt minimum tap target.
+    paddingVertical: spacing.md,
   },
 });
