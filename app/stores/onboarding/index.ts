@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { OnboardingFlow, OnboardingQuestion } from "../../api/onboarding/types";
+import { useOnboardingDraftStore } from "../onboardingDraft";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { reviveDatesInObject } from "../../util/functions/date";
 
@@ -9,12 +10,43 @@ interface OnboardingState {
   flow: OnboardingFlow | null;
   answers: Record<string, any>;
   currentScreen: number;
+  /**
+   * A resume has been staged by the pre-signup replay and not yet consumed.
+   *
+   * PERSISTED ON PURPOSE: the replay runs from a MainNavigator effect the
+   * moment an account exists, but the welcome screen that acts on it may not be
+   * reached until after the app is killed and reopened. An in-memory flag would
+   * be lost in that window and the person would be reasked everything.
+   *
+   * An EXPLICIT flag rather than inferring "are there answers already?" —
+   * answers persist across sessions, so someone who abandoned onboarding, or
+   * whose old unreadable answers were reset server-side, also has a populated
+   * store. Those people need a clean start; only a genuine replay should skip
+   * ahead. Inferring it would silently skip questions for exactly the users
+   * whose stored answers cannot be trusted.
+   */
+  pendingResume: boolean;
 
   // Actions
   setFlow: (flow: OnboardingFlow) => void;
   startFresh: (flow: OnboardingFlow) => void;
   /** Seed with already-given answers and jump to the first unanswered screen. */
   resumeFrom: (flow: OnboardingFlow, seeded: Record<string, any>) => void;
+  /** Clear the staged resume once a screen has acted on it. */
+  consumeResume: () => void;
+  /**
+   * Enter the post-signup flow and return the screen to navigate to.
+   *
+   * THE DECISION LIVES HERE, NOT IN THE SCREEN. The welcome screen used to
+   * make it inline — and got it wrong in two independent ways at once: it
+   * called `startFresh` unconditionally (wiping the replayed answers) and then
+   * hard-navigated to screen 1 (ignoring the computed resume point). Either
+   * alone was enough to reask all twelve questions.
+   *
+   * A screen that only navigates cannot reintroduce that, and unlike a screen
+   * this is reachable from a test.
+   */
+  enterFlow: (flow: OnboardingFlow) => number;
   setAnswer: (key: string, value: any) => void;
   toggleMultiAnswer: (key: string, option: any) => void;
 
@@ -35,6 +67,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       flow: null,
       answers: {},
       currentScreen: 1,
+      pendingResume: false,
 
       setFlow: (flow) => {
         set({ flow });
@@ -50,6 +83,8 @@ export const useOnboardingStore = create<OnboardingState>()(
           flow,
           currentScreen: firstScreen,
           answers: {},
+          // A deliberate fresh start outranks any staged resume.
+          pendingResume: false,
         });
       },
 
@@ -79,7 +114,49 @@ export const useOnboardingStore = create<OnboardingState>()(
               .some((q) => q.isRequired !== false && !answered(q)),
           ) ?? screens[screens.length - 1] ?? 1;
 
-        set({ flow, answers: { ...seeded }, currentScreen: firstUnanswered });
+        set({
+          flow,
+          answers: { ...seeded },
+          currentScreen: firstUnanswered,
+          pendingResume: true,
+        });
+      },
+
+      consumeResume: () => set({ pendingResume: false }),
+
+      enterFlow: (flow) => {
+        const { pendingResume, answers: seeded } = get();
+
+        if (pendingResume) {
+          // Recomputed against the flow just fetched rather than trusting the
+          // screen number worked out at replay time, so a flow that changed in
+          // between cannot strand anyone on a screen that no longer exists.
+          get().resumeFrom(flow, seeded);
+          get().consumeResume();
+          return get().currentScreen;
+        }
+
+        // THE REPLAY MAY SIMPLY NOT HAVE LANDED YET.
+        //
+        // `replayOnboardingDraft` runs from a MainNavigator effect and makes
+        // two network round-trips before it calls `resumeFrom`, while this
+        // screen is already on-screen and tappable. Someone who taps Continue
+        // straight away beats it, finds `pendingResume` still false, and gets
+        // all twelve questions — intermittently, which is exactly how this was
+        // described: sometimes repeated, sometimes not.
+        //
+        // The answers are on the device the whole time, so read them from
+        // there instead of racing. Seeding twice is harmless — both paths seed
+        // the same values — and the replay's own transmit is unaffected.
+        const draft = useOnboardingDraftStore.getState().answers;
+        if (Object.keys(draft).length > 0) {
+          get().resumeFrom(flow, draft);
+          get().consumeResume();
+          return get().currentScreen;
+        }
+
+        get().startFresh(flow);
+        return get().currentScreen;
       },
 
       setAnswer: (key, value) => {
@@ -154,6 +231,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           flow: null,
           answers: {},
           currentScreen: 1,
+          pendingResume: false,
         }),
     }),
     {

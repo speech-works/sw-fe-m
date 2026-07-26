@@ -46,7 +46,7 @@ const OnboardingWelcome: React.FC = () => {
     useNavigation<
       OnboardingStackNavigationProp<keyof OnboardingStackParamList>
     >();
-  const { startFresh, answers } = useOnboardingStore();
+  const { enterFlow, answers } = useOnboardingStore();
   const user = useUserStore((s) => s.user);
   const [stageHeight, setStageHeight] = useState(0);
 
@@ -83,12 +83,29 @@ const OnboardingWelcome: React.FC = () => {
     return phrases.length > 0 ? phrases.slice(0, 3) : undefined;
   })();
 
+  /**
+   * THIS USED TO DESTROY EVERY PRE-SIGNUP ANSWER.
+   *
+   * It called `startFresh(fetched)` unconditionally — which sets `answers: {}`
+   * and `currentScreen` back to the first screen — and then hard-navigated to
+   * `screenNumber: 1`. The replay had just seeded the five Act 1 answers and
+   * computed a resume point of screen 6, and both were thrown away the instant
+   * the reader tapped the button. All twelve questions were then asked,
+   * including the five they had answered sixty seconds earlier. Two separate
+   * causes, and either alone was enough: the wipe, and the hardcoded 1.
+   *
+   * Now this screen makes no decision at all — `enterFlow` owns it, where it is
+   * reachable from a test. This fetches, delegates, and navigates to whatever
+   * screen it is handed. The literal `1` is gone: the question screen navigates
+   * by route param, so passing a constant there overrode whatever was computed.
+   */
   const handleStart = async () => {
     track(ANALYTICS_EVENTS.ONBOARDING_STARTED);
     try {
       const fetched = await getActiveOnboardingFlow();
-      startFresh(fetched);
-      navigation.navigate("OnboardingQuestion", { screenNumber: 1 });
+      navigation.navigate("OnboardingQuestion", {
+        screenNumber: enterFlow(fetched),
+      });
     } catch (err) {
       console.error("Failed to load onboarding flow:", err);
     }
