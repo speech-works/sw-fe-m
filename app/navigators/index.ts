@@ -27,12 +27,6 @@ export type AuthStackRouteProp<T extends keyof AuthStackParamList> = RouteProp<
 export type HomeStackParamList = {
   Home: undefined;
   ProgressDetail: { scrollTo?: "achievements" } | undefined;
-  DimensionDetail: {
-    domain: string;
-    accentKey?: string;
-    comparisonLabel: string;
-    familyData: any;
-  };
 };
 
 export type HomeStackNavigationProp<T extends keyof HomeStackParamList> =

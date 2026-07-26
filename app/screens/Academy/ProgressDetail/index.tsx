@@ -35,10 +35,8 @@ import DetailedWeeklySummary, {
   WeeklySummarySkeleton,
 } from "./components/DetailedWeeklySummary";
 import DPSummary, { DPSummarySkeleton } from "./components/DPSummary";
-import LifetimeGrowthJourneyCard from "./components/LifetimeGrowthJourneyCard";
 import LifetimeJourneyCard from "./components/LifetimeJourneyCard";
 import MoodSummary, { MoodSummarySkeleton } from "./components/MoodSummary";
-import WeeklyGrowthCard from "./components/WeeklyGrowthCard";
 
 type ReportTimeframe = "weekly" | "lifetime";
 
@@ -160,7 +158,6 @@ const ProgressDetail = () => {
     return (
       <>
         <DetailedWeeklySummary summary={weeklyReport.summary} loading={loading.weekly} hasError={Boolean(errors.weekly)} />
-        <WeeklyGrowthCard growth={weeklyReport.growth} loading={loading.weekly} hasError={Boolean(errors.weekly)} />
         <DPSummary distribution={weeklyReport.distribution} timeframe="weekly" loading={loading.weekly} hasError={Boolean(errors.weekly)} />
         <MoodSummary moodStats={weeklyReport.mood} loading={loading.weekly} hasError={Boolean(errors.weekly)} />
       </>
@@ -190,7 +187,6 @@ const ProgressDetail = () => {
     return (
       <>
         <LifetimeJourneyCard journey={lifetimeReport.journey} loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
-        <LifetimeGrowthJourneyCard growthJourney={lifetimeReport.growthJourney} loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
         <DPSummary distribution={lifetimeReport.distribution} timeframe="lifetime" loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
         <View onLayout={(event) => { achievementsY.current = event.nativeEvent.layout.y; }}>
           <Achievements stageData={lifetimeReport.achievements} />

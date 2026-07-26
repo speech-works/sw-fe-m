@@ -7,14 +7,10 @@ import OnboardingStackNavigator from "./stacks/OnboardingStack";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { useUserStore } from "../stores/user";
-import { useUserBehaviorTrendsStore } from "../stores/userBehaviorTrends";
 import { replayOnboardingDraft } from "../util/functions/replayOnboardingDraft";
 
 export default function MainNavigator() {
   console.log("main navigator loaded..");
-  const fetchAllTrends = useUserBehaviorTrendsStore(
-    (state) => state.fetchAllTrends,
-  );
   const { isLoggedIn, logout } = useContext(AuthContext);
   const { user } = useUserStore();
   const userId = user?.id;
@@ -56,12 +52,14 @@ export default function MainNavigator() {
     }
   }, [events, clear, logout]);
 
-  useEffect(() => {
-    if (!isLoggedIn || !userId) return;
-    void fetchAllTrends().catch(() => {
-      // Store-level error handling already captures and persists the failure state.
-    });
-  }, [fetchAllTrends, isLoggedIn, userId]);
+  // A `fetchAllTrends()` on login lived here. It pulled the clinical domain
+  // scores that drew the Growth Profile — and nothing renders those any more,
+  // so it was a network round-trip on every login whose result nobody read.
+  //
+  // The store and its API types survive because the backend still returns this
+  // data and the progress-report DTOs reference the shapes. Nothing on the
+  // client reads it today; whatever replaces the progress view will decide
+  // whether to fetch it again.
 
   // HAND THE PRE-SIGNUP ANSWERS OVER, ONCE AN ACCOUNT EXISTS.
   //

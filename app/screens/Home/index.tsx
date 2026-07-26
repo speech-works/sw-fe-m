@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { RefreshControl, View } from "react-native";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
-import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
 import { useEventStore } from "../../stores/events";
@@ -10,7 +9,6 @@ import { EVENT_NAMES } from "../../stores/events/constants";
 import { useMoodCheckStore } from "../../stores/mood";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
-import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import { IdentityBlock } from "./components/IdentityBlock";
 import MoodCheckBanner from "./components/MoodCheckBanner";
@@ -32,7 +30,6 @@ const Home = () => {
   const { colors } = useTheme();
   const styles = useStyles();
   const { user, setUser } = useUserStore();
-  const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
   const { hasRecordedToday } = useMoodCheckStore();
 
@@ -93,7 +90,7 @@ const Home = () => {
     setRefreshing(true);
     try {
       const oldLevel = user?.level;
-      const [freshUser] = await Promise.all([getMyUser(), fetchAllTrends()]);
+      const freshUser = await getMyUser();
       setUser(freshUser);
 
       // Detect regression
@@ -116,7 +113,7 @@ const Home = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchAllTrends, setUser, user?.level]);
+  }, [setUser, user?.level]);
 
   const currentHour = new Date().getHours();
   const greeting =
@@ -198,7 +195,6 @@ const Home = () => {
             keeps "what to do today"; this shows what to consider next. */}
         <ForYouCarousel key={`foryou-${refreshKey}`} />
 
-        <ClinicalStatsWidget />
 
         {cards.length > 0 ? (
           <Carousel

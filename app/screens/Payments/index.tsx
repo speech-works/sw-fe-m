@@ -306,11 +306,21 @@ const SubscribeScreen = () => {
               >
                 {[
                   {
-                    label: "Perf. Intelligence",
-                    free: "Limited",
-                    pro: "Deep Audit",
+                    // Was: "Deep tracking across 5 clinical domains with weekly
+                    // breakthrough reports." That sold something we could not
+                    // deliver — the five domain scores were written twice per
+                    // user, both inside the first three days, so the numbers
+                    // were frozen for the entire life of the subscription. The
+                    // clinical view has been removed for exactly that reason.
+                    //
+                    // What replaces it is real, daily, and already built: how
+                    // much you practised, on how many days, across which kinds
+                    // of practice, and how that week compares to the last.
+                    label: "Your progress",
+                    free: "This week",
+                    pro: "Full history",
                     icon: "bar-chart-2",
-                    desc: "Deep tracking across 5 clinical domains with weekly breakthrough reports.",
+                    desc: "Every session, day and streak you've built — with weekly and lifetime breakdowns.",
                   },
                   {
                     label: "Daily Activities",
