@@ -7,8 +7,6 @@ import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PressableScale from "../PressableScale";
-import PriceTag from "../PriceTag";
-import RecHeroCard, { REC_HERO_ACCENT } from "./RecHeroCard";
 import ErrorStateCard from "./ErrorStateCard";
 import {
   Sheet,
@@ -105,6 +103,11 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
       // "shown". Mirrors the render branches below so the event never claims a
       // card that isn't shown (the NEEDS_ONBOARDING case defers to the reminder
       // card → renders nothing). Store read imperatively; callback is stable.
+      //
+      // FUNNEL BREAK, DELIBERATE: `"top_pick"` and `"browse_fallback"` stopped
+      // firing on `surface: "home"` when selling moved to ForYouCarousel. Both
+      // are now `surface: "home_for_you"`. Any dashboard built on the old pair
+      // shows a cliff at this release — expected, not a regression.
       const u = useUserStore.getState().user;
       const reminderWillShow = !!u && !u.hasCompletedOnboarding;
       const variant = rec?.pack
@@ -113,9 +116,8 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
           ? null
           : rec?.state === "ALL_COMPLETE" && !rec?.topPick
             ? "all_complete"
-            : !rec?.topPick
-              ? "browse_fallback"
-              : "top_pick";
+            : // Everything else renders nothing here now — the carousel has it.
+              null;
       if (variant) {
         track(ANALYTICS_EVENTS.RECOMMENDATION_SHOWN, {
           surface: "home",
@@ -237,66 +239,23 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
       );
     }
 
-    // C. No specific suggestion we can stand behind — but NEVER render nothing.
+    // C/D. SELLING MOVED OUT OF THIS COMPONENT.
     //
-    // A card that silently disappears is worse than the wrong card: Home ends
-    // up with a hole and no one can tell a blank from a bug. This catches an
-    // older backend (predating `state`/`topPick`), an unrecognised shape, and
-    // "signals exist but nothing matched". Same rich shell as the match, minus
-    // the specifics — it says only what is always true and points somewhere.
-    if (!pick) {
-      return (
-        <RecHeroCard
-          style={style}
-          eyebrow="PROGRAMS"
-          title="Find your next program"
-          subtitle="Guided, day-by-day plans for the situations that feel hardest."
-          ctaLabel="Browse programs"
-          onPress={() =>
-            exploreNavigation.navigate("ExploreStack", { screen: "Programs" })
-          }
-        />
-      );
-    }
-
-    // D. A real, signal-backed program to suggest — the same rich shell, filled
-    // with the match: its reason, and the authoritative price.
-    return (
-      <RecHeroCard
-        style={style}
-        eyebrow={
-          recommendation.state === "ALL_COMPLETE"
-            ? "WHAT PAIRS WELL NEXT"
-            : "MATCHED TO YOU"
-        }
-        title={pick.title}
-        subtitle={pick.matchReason ?? pick.blurb}
-        ctaLabel="See the program"
-        priceNode={
-          <PriceTag
-            priceInr={pick.priceInr}
-            anchorInr={pick.anchorPriceInr}
-            compact
-            // Dark ink for the RecHeroCard's bright accent fill — single source
-            // so the price ink can't drift from the card's fill color.
-            ink={colors.accentOn[REC_HERO_ACCENT]}
-          />
-        }
-        onPress={() => {
-          track(ANALYTICS_EVENTS.PACK_CLICKED, {
-            source: "home_recommendation",
-            catalogKey: pick.catalogKey,
-            packId: pick.packId,
-            priceInr: pick.priceInr,
-            hasMatchReason: !!pick.matchReason,
-          });
-          exploreNavigation.navigate("ExploreStack", {
-            screen: "ProgramDetail",
-            params: { catalogKey: pick.catalogKey, packId: pick.packId },
-          });
-        }}
-      />
-    );
+    // Two branches lived here: a "MATCHED TO YOU" hero for `topPick`, and a
+    // neutral "Find your next program" fallback. Both are now `ForYouCarousel`,
+    // which shows THREE ranked programs instead of one — the backend has always
+    // returned all ten with the runners-up tagged `"strong"`, and nothing read
+    // that field.
+    //
+    // They had to move rather than coexist: keeping the hero here AND showing
+    // the same pack as slide 1 renders it twice, and the obvious dodge —
+    // starting the carousel at `items[1]` — is exactly the positional shortcut
+    // `util/packs/offers.ts` forbids after it once shipped the wrong pack at
+    // the wrong price.
+    //
+    // The "never render nothing" rule above still holds; the carousel owns it
+    // now, and renders the same neutral browse card when it has nothing.
+    return null;
   }
 
   const { pack } = recommendation;

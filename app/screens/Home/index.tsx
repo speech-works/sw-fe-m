@@ -25,6 +25,7 @@ import { IdentityBlock } from "./components/IdentityBlock";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import Toast from "react-native-toast-message";
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
+import ForYouCarousel from "../../components/Dashboard/ForYouCarousel";
 import {
   Page,
   Carousel,
@@ -362,6 +363,10 @@ const Home = () => {
         <IdentityBlock />
 
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
+
+        {/* The only thing on Home that sells. SmartRecommendationCard above
+            keeps "what to do today"; this shows what to consider next. */}
+        <ForYouCarousel key={`foryou-${refreshKey}`} />
 
         <ClinicalStatsWidget />
 
