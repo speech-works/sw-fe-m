@@ -33,6 +33,7 @@ import {
   getActiveOnboardingFlow,
   submitOnboardingAnswers,
 } from "../../api/onboarding";
+import type { QuestionType } from "../../api/onboarding/types";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { track } from "../../util/analytics/postHog";
@@ -40,8 +41,23 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 /** Pause after a single-select tap, so the choice is seen before we move on. */
 const AUTO_ADVANCE_MS = 260;
-/** The kinetic scale gets one extra beat so its selection feedback can land. */
-const AUTO_ADVANCE_SCALE_MS = 400;
+
+/**
+ * Does answering this question commit the screen on its own?
+ *
+ * ONE predicate, used by BOTH the auto-advance timer and the decision to render
+ * a Next button — they are the same question asked twice, and when they were
+ * two separate expressions they disagreed. Auto-advance fired for every SINGLE
+ * question; the button hid only for SINGLE questions with the "scale" layout.
+ * So the two single-select chip screens advanced on tap AND carried a Next
+ * button that was disabled before you chose and unreachable after it, because
+ * the tap navigated away first.
+ *
+ * MULTI keeps the button because the user is not finished choosing and needs a
+ * way to say so. SLIDER keeps it because dragging has no discrete commit.
+ */
+const autoAdvances = (q: { questionType: QuestionType }) =>
+  q.questionType === "SINGLE";
 
 const OnboardingQuestionScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -197,11 +213,10 @@ const OnboardingQuestionScreen: React.FC = () => {
   const screenQuestions = getCurrentScreenQuestions(screenNumber);
   const totalScreens = Math.max(...flow.questions.map((q) => q.screenNumber));
   const isLast = screenNumber === totalScreens;
+  // Hide the footer only when EVERY question on the screen commits on its own;
+  // a mixed screen still needs the button for the ones that don't.
   const usesAutoAdvanceRail =
-    screenQuestions.length > 0 &&
-    screenQuestions.every(
-      (q) => q.questionType === "SINGLE" && q.layout === "scale",
-    );
+    screenQuestions.length > 0 && screenQuestions.every(autoAdvances);
 
   // -----------------------------------------------------
   // SKIP → emit STOP_ONBOARDING to return app to main flow
@@ -403,17 +418,17 @@ const OnboardingQuestionScreen: React.FC = () => {
                 // finished choosing) and SLIDER has no discrete commit, so both
                 // keep the button. The small delay lets the selection state
                 // render, so the answer is visibly registered before we move.
-                if (q.questionType === "SINGLE") {
+                if (autoAdvances(q)) {
                   if (advanceTimer.current) clearTimeout(advanceTimer.current);
-                  advanceTimer.current = setTimeout(
-                    () => {
-                      advanceTimer.current = null;
-                      handleNext();
-                    },
-                    q.layout === "scale"
-                      ? AUTO_ADVANCE_SCALE_MS
-                      : AUTO_ADVANCE_MS,
-                  );
+                  // One delay for every question type. The scale used to get a
+                  // longer beat to let a bespoke "kinetic" selection animation
+                  // land; that animation is gone and every selector now gives
+                  // identical feedback, so a per-layout delay would just be an
+                  // unexplained inconsistency in how fast the form responds.
+                  advanceTimer.current = setTimeout(() => {
+                    advanceTimer.current = null;
+                    handleNext();
+                  }, AUTO_ADVANCE_MS);
                 }
               }}
             />
