@@ -110,7 +110,7 @@ export const Button: React.FC<ButtonProps> = ({
           {leftIcon ? <Icon name={leftIcon} size={20} color={fg} /> : null}
           {/* center + single line: a button label must never wrap or left-align
               (an un-centered wrapped label is the classic cramped-button defect). */}
-          <Text variant="title" color={fg} center numberOfLines={1}>
+          <Text variant="title" color={fg} center numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {label}
           </Text>
           {rightIcon ? <Icon name={rightIcon} size={20} color={fg} /> : null}
