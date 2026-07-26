@@ -69,18 +69,17 @@ const LoginScreen = () => {
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState("");
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isCodeAdded, setIsCodeAdded] = useState(false);
   /**
-   * The invite field starts collapsed behind a link.
+   * The invite field stays collapsed until asked for.
    *
    * It used to sit open under the buttons on every visit, which meant the one
    * input on the screen belonged to the small minority who arrived with a code
    * — and, worse, read as a thing you might be expected to fill in before
-   * continuing. Behind a link it costs one row instead of one field, and the
+   * continuing. Behind the sheet it costs one row instead of one field, and the
    * people who have a code are exactly the people looking for it.
    */
-  const [showInvite, setShowInvite] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isCodeAdded, setIsCodeAdded] = useState(false);
 
   /**
    * Sign-in failed. Offers support HERE rather than from a permanent link on
