@@ -24,6 +24,7 @@ import MovieFace from "../../../assets/sw-faces/MovieFace";
 import { useEventStore } from "../../../stores/events";
 import { EVENT_NAMES } from "../../../stores/events/constants";
 import { useUserStore } from "../../../stores/user";
+import TodayStrip from "./components/TodayStrip";
 
 /** Vivid accent role per hub entry — keeps each card distinct while the whole
  *  list lives on the dark canvas (the PracticeGrid solid-accent recipe). */
@@ -114,6 +115,23 @@ const DailyPractice = () => {
   return (
     <Page title="Daily Practice" onBack={() => navigation.goBack()}>
       <View style={styles.listContainer}>
+        {/* SITS ABOVE the hub and replaces none of it. Renders nothing at all
+            when the server has no loop it can honestly promise, so the screen
+            below is exactly what it has always been. */}
+        <TodayStrip
+          onOpen={(contentType) => {
+            switch (contentType) {
+              case "EXPOSURE_PRACTICE":
+                return moveToExposure();
+              case "COGNITIVE_PRACTICE":
+                return moveToCognitiveTherapy();
+              case "READING_PRACTICE":
+                return moveToReadingPractice();
+              case "FUN_PRACTICE":
+                return moveToFunPractice();
+            }
+          }}
+        />
         {dailyPracticeData.map((item, index) => {
           const on = colors.accentOn[item.accent];
           return (
