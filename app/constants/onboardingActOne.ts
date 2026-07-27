@@ -26,13 +26,15 @@ import { OnboardingFlow } from "../api/onboarding/types";
 
 /** Mirrors sw-be-2 `SpeechSituation`. */
 export const ACT_ONE_SITUATION_VALUES = [
-  "phone_calls",
-  "ordering_food",
-  "group_discussions",
-  "meeting_people",
-  "public_speaking",
-  "stress_talking",
-  "authority",
+  "introduce_yourself",
+  "order_or_ask",
+  "answer_questions",
+  "explain",
+  "speak_up",
+  "present",
+  "push_back",
+  "open_chat",
+  "disclose",
   "none",
   "not_sure",
 ] as const;
@@ -92,13 +94,15 @@ export const ACT_ONE_ADAPTIVE_KEYS = [
  * person just chose.
  */
 export const SITUATION_PHRASE: Record<string, string> = {
-  phone_calls: "phone calls",
-  ordering_food: "ordering out loud",
-  group_discussions: "speaking up in groups",
-  meeting_people: "meeting new people",
-  public_speaking: "speaking in front of people",
-  stress_talking: "talking under pressure",
-  authority: "talking to people in charge",
+  introduce_yourself: "saying your own name",
+  order_or_ask: "asking for what you want",
+  answer_questions: "being put on the spot",
+  explain: "explaining something properly",
+  speak_up: "getting a word in",
+  present: "standing in front of a room",
+  push_back: "saying no",
+  open_chat: "talking with no script",
+  disclose: "telling people you stutter",
 };
 
 const opt = (
@@ -137,18 +141,20 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       isRequired: true,
       adaptiveKey: "speech.situations",
       options: [
-        opt("phone_calls", "Phone calls", 1),
-        opt("ordering_food", "Ordering food", 2),
-        opt("group_discussions", "Group discussions", 3),
-        opt("meeting_people", "Meeting new people", 4),
-        opt("public_speaking", "Public speaking", 5),
-        opt("stress_talking", "Talking when stressed", 6),
-        opt("authority", "Talking to people in charge", 7),
+        opt("introduce_yourself", "Saying my name or introducing myself", 1),
+        opt("order_or_ask", "Ordering or asking for something", 2),
+        opt("answer_questions", "Answering questions about myself", 3),
+        opt("explain", "Explaining something in detail", 4),
+        opt("speak_up", "Speaking up in a group when nobody asked me", 5),
+        opt("present", "Presenting to a room", 6),
+        opt("push_back", "Pushing back — complaining, saying no", 7),
+        opt("open_chat", "Open conversation with no script", 8),
+        opt("disclose", "Telling someone I stutter", 9),
         // exclusive: selecting either replaces any real picks, and picking a
         // real situation afterwards retracts it — see OnboardingQuestion's
         // handlePressOption.
-        opt("none", "None of these", 8, true),
-        opt("not_sure", "I'm not sure", 9, true),
+        opt("none", "None of these", 10, true),
+        opt("not_sure", "I'm not sure", 11, true),
       ],
     },
     {
