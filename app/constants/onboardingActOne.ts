@@ -82,6 +82,7 @@ export const ACT_ONE_SHAPE_VALUES = [
  */
 export const ACT_ONE_ADAPTIVE_KEYS = [
   "speech.situations",
+  "situation.most_frequent",
   "difficulty.shape",
   "goal.primary",
   "avoidance.frequency",
@@ -134,7 +135,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       id: "act1-situations",
       screenNumber: 1,
       orderIndex: 1,
-      questionText: "Where does speaking feel hardest?",
+      questionText: "Which of these feels hardest?",
       description: "Pick as many as fit. This is what we build your plan around.",
       questionType: "MULTI",
       layout: "wrap",
@@ -158,6 +159,45 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       ],
     },
     {
+      // WHAT IS FREQUENT, where the screen before asks what is HARD, and the
+      // two are routinely different people. Priya dreads presenting and
+      // presents twice a year; Sam finds asking for things mildly hard and does
+      // it a dozen times a day. Their answers to the previous screen are
+      // identical, and nothing could tell them apart.
+      //
+      // ONE SINGLE-SELECT rather than a rating per pick, measured rather than
+      // assumed: rating every pick changes the top match for 39.5% of
+      // multi-pick users, naming the most frequent act changes it for 50.3%. A
+      // decisive nomination beats a nuanced rating, because most nuanced
+      // ratings come out near-flat and move nothing.
+      //
+      // ALL NINE ACTS, not only the ones they called hard. Naming a frequent
+      // act they did not flag is real information, and static options need no
+      // dependency on the previous answer. Weighting only ever touches acts
+      // they DID pick, so an unpicked answer is simply neutral.
+      id: "act1-most-frequent",
+      screenNumber: 2,
+      orderIndex: 1,
+      questionText: "Which of these comes up most in an ordinary week?",
+      description: "Not the hardest — the one you run into most often.",
+      questionType: "SINGLE",
+      layout: "list",
+      isRequired: true,
+      adaptiveKey: "situation.most_frequent",
+      options: [
+        opt("introduce_yourself", "Saying my name or introducing myself", 1),
+        opt("order_or_ask", "Ordering or asking for something", 2),
+        opt("answer_questions", "Answering questions about myself", 3),
+        opt("explain", "Explaining something in detail", 4),
+        opt("speak_up", "Speaking up in a group when nobody asked me", 5),
+        opt("present", "Presenting to a room", 6),
+        opt("push_back", "Pushing back — complaining, saying no", 7),
+        opt("open_chat", "Open conversation with no script", 8),
+        opt("disclose", "Telling someone I stutter", 9),
+        opt("not_sure", "I'm not sure", 10, true),
+      ],
+    },
+    {
       // THE ROUTING PARTNER TO SITUATIONS, and the only question that can reach
       // five of the ten programmes.
       //
@@ -172,7 +212,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       // said the build-up beforehand is the hardest part" is the most
       // recognisable sentence we can show someone sixty seconds in.
       id: "act1-difficulty-shape",
-      screenNumber: 2,
+      screenNumber: 3,
       orderIndex: 1,
       questionText: "When speaking is hardest, what's the worst part?",
       description: "Different people get stuck in different places.",
@@ -191,7 +231,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
     },
     {
       id: "act1-goal",
-      screenNumber: 3,
+      screenNumber: 4,
       orderIndex: 1,
       questionText: "What matters most to you right now?",
       description: "This shapes what we put in front of you first.",
@@ -209,7 +249,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
     },
     {
       id: "act1-avoidance",
-      screenNumber: 4,
+      screenNumber: 5,
       orderIndex: 1,
       questionText: "How often do you stay quiet when you'd rather speak?",
       description: "Most people do. It's completely okay to answer honestly.",
@@ -238,7 +278,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       // The safety signal. Answered outside the top bracket, it is what lets us
       // honestly offer higher-intensity work before any clinical data exists.
       id: "act1-distress",
-      screenNumber: 5,
+      screenNumber: 6,
       orderIndex: 1,
       questionText: "How heavy does it feel right now?",
       description: "This is about today, not about how you stutter.",

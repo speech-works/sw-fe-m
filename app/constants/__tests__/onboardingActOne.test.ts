@@ -22,7 +22,7 @@ import {
 describe("Act 1 bundled flow", () => {
   const questions = ACT_ONE_FLOW.questions;
 
-  it("asks exactly the five Act-1 signals, in value order", () => {
+  it("asks exactly the six Act-1 signals, in flow order", () => {
     expect(questions.map((q) => q.adaptiveKey)).toEqual([
       ...ACT_ONE_ADAPTIVE_KEYS,
     ]);
@@ -36,7 +36,11 @@ describe("Act 1 bundled flow", () => {
   it("shows one question per screen", () => {
     const screens = questions.map((q) => q.screenNumber);
     expect(new Set(screens).size).toBe(questions.length);
-    expect(screens).toEqual([1, 2, 3, 4, 5]);
+    // Six since the frequency question landed. CONTIGUOUS FROM 1 is the part
+    // that matters, not the count: the resume walks forward from the first
+    // unanswered screen, so a gap marches somebody back through questions they
+    // have already answered.
+    expect(screens).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
   it("submits option VALUES as ids, never a generated token", () => {
@@ -55,6 +59,10 @@ describe("Act 1 bundled flow", () => {
       "goal.primary": ACT_ONE_GOAL_VALUES,
       "avoidance.frequency": ACT_ONE_AVOIDANCE_VALUES,
       "difficulty.shape": ACT_ONE_SHAPE_VALUES,
+      // Same nine acts as `speech.situations` — this asks which of them comes
+      // up most, so an answer is only meaningful as one of those. `none` is
+      // absent by design: "none of these comes up most" says nothing.
+      "situation.most_frequent": ACT_ONE_SITUATION_VALUES,
       // Likert 1-5; the server rescales to the 20-100 clinical scale.
       "distress.overall": ["1", "2", "3", "4", "5"],
     };
