@@ -105,22 +105,32 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, highlight, onPress }) => 
         // Load-bearing on the paper scheme, where `surface.default` sits at
         // roughly 1.02:1 against the canvas and the card edge vanishes.
         border: colors.border.default as string | undefined,
-        // The same circle in the same place, whispered instead of spoken — the
-        // deck reads as one family as you swipe. A 10% *ink* blob would be a
-        // grey smudge on a neutral card, so the runners-up tint with the accent.
-        blob: colors.accentTint[REC_HERO_ACCENT],
+        // NO TEXTURE. A tinted echo of the hero's blobs used to sit here so the
+        // deck would "read as one family", but decoration on a runner-up is
+        // exactly what gave these slides a main-character feel: two big accent
+        // discs on a neutral card are ornament, and ornament is the vivid tier's
+        // signature. The family resemblance is carried by the SHARED SKELETON —
+        // same slots, same order, same geometry — which is the part that
+        // actually has to match.
+        blob: undefined as string | undefined,
         eyebrow: "tertiary",
         title: "primary",
-        // `accent` resolves to the per-scheme foreground cut, NOT the bright
-        // fill — a personalised reason still reads as personal without a chip
-        // around it. A generic blurb must NOT borrow that ink: orange here is
-        // the app's "this is about you" signal, and a marketing line is not.
-        reasonText: "accent",
+        // Was `accent`. Two lines of full-strength orange were the loudest thing
+        // on the card — louder than its own title — which is a strange thing for
+        // the slide you did NOT rank first. The personal signal survives the
+        // demotion because it was never really the colour doing it: "You said
+        // ordering felt hardest" reads as being about you from the words alone.
+        // That also lets a generic blurb share the role without borrowing a
+        // claim, which is why the two keys now agree.
+        reasonText: "secondary",
         blurbText: "secondary",
         priceInk: undefined,
-        // Quiet tier, same shape. An interactive `surface.control` container is
-        // ~1.1:1 on paper, so the affordance needs a defined edge.
-        ctaBg: colors.surface.control,
+        // An OUTLINE, not a fill. The top match ends on a solid dark island; a
+        // filled control pill here read as a second button of equal weight. A
+        // hairline pill is one clear step down while keeping the affordance —
+        // and `border.strong` is what stops it vanishing on the paper scheme,
+        // where an unfilled control is otherwise ~1.1:1.
+        ctaBg: undefined as string | undefined,
         ctaInk: colors.text.primary,
         ctaBorder: colors.border.strong as string | undefined,
       };
@@ -153,15 +163,21 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, highlight, onPress }) => 
           },
         ]}
       >
-        {/* Two ink circles — the Explore / PromoCard texture. Depth without art. */}
-        <View
-          style={[styles.blobA, { backgroundColor: skin.blob }]}
-          pointerEvents="none"
-        />
-        <View
-          style={[styles.blobB, { backgroundColor: skin.blob }]}
-          pointerEvents="none"
-        />
+        {/* Two ink circles — the Explore / PromoCard texture. Depth without art,
+            and the vivid tier's alone: `skin.blob` is undefined on the runners-up
+            so they render nothing at all rather than a fainter version. */}
+        {skin.blob ? (
+          <>
+            <View
+              style={[styles.blobA, { backgroundColor: skin.blob }]}
+              pointerEvents="none"
+            />
+            <View
+              style={[styles.blobB, { backgroundColor: skin.blob }]}
+              pointerEvents="none"
+            />
+          </>
+        ) : null}
 
         <View style={styles.body}>
           {/* Reserves the badge's horizontal lane so a long shelf label can never
