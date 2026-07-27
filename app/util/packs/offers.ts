@@ -68,3 +68,21 @@ export function programEyebrow(item: OfferItem): string {
   const label = item.arcDays ? `${shelf} · ${item.arcDays} days` : shelf;
   return label.toUpperCase();
 }
+
+/**
+ * Why a struck-through price is struck through — "Founder price" / "Launch
+ * offer" — or null when nothing is actually discounted.
+ *
+ * THE NULL IS THE POINT. It is keyed off the server's own anchor being higher
+ * than the price, never off a flag or a date the app decides, so the app cannot
+ * print "Launch offer" beside a price that isn't reduced. Lifted verbatim out of
+ * `ProgramSalesFlow` so the shop hero explains a discount in the same words the
+ * purchase screen does.
+ */
+export function priceNoteFor(
+  item: OfferItem,
+  isFounder: boolean,
+): string | undefined {
+  if (item.anchorPriceInr <= item.priceInr) return undefined;
+  return isFounder ? "Founder price" : "Launch offer";
+}

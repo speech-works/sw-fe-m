@@ -24,12 +24,38 @@ interface ResourceItem {
   action?: string;
 }
 
+/**
+ * INDIA FIRST, then the rest — matching where this screen's audience actually
+ * is. The crisis list below has been country-aware for a while (Tele-MANAS for
+ * IN) with a comment saying most readers are in India; this list had never had
+ * the same treatment and pointed at three American organisations only.
+ *
+ * That gap mattered more than it looks. The practice catalogue now asks people
+ * to find a group near them and go and listen, and support-group participation
+ * is one of the better-evidenced things anyone who stammers can do. Sending an
+ * Indian reader to a US chapter directory is sending them nowhere.
+ *
+ * Both spellings appear here, and not for search reasons: "stammering" is the
+ * ordinary word in India and the UK, and TISA and STAMMA are their own names.
+ */
 const SUPPORT: ResourceItem[] = [
   {
+    label: "TISA — The Indian Stammering Association",
+    desc: "Peer-led self-help groups across India, plus online meets. Free.",
+    icon: "users",
+    url: "https://stammer.in",
+  },
+  {
     label: "National Stuttering Association",
-    desc: "Community, local chapters & events for people who stutter.",
+    desc: "US chapters, events and an annual conference for people who stutter.",
     icon: "users",
     url: "https://westutter.org",
+  },
+  {
+    label: "STAMMA — British Stammering Association",
+    desc: "UK helpline, guidance for work and study, and local groups.",
+    icon: "message-circle",
+    url: "https://stamma.org",
   },
   {
     label: "The Stuttering Foundation",

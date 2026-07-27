@@ -794,7 +794,15 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
   const showGift = giftDays > 0 && bonusEligible;
 
   return (
-    <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed}>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      onDismissed={onDismissed}
+      // The gutter moves off the card and onto the body below, so the sheet's
+      // scroller runs edge-to-edge. Otherwise its bounds sit exactly on the
+      // CTA's edges and clip the button's glow into a flat-sided slab.
+      contentStyle={styles.sheetSurface}
+    >
       <View style={styles.sheetBody}>
         {/* Identity — compact on purpose, so the offer and CTA stay above the
             fold (the single biggest conversion lever on a small screen). */}
@@ -1143,8 +1151,14 @@ const styles = StyleSheet.create({
     gap: space.iconText,
   },
   // ── Purchase sheet ──
+  sheetSurface: {
+    paddingHorizontal: 0,
+  },
   sheetBody: {
     gap: space.groupGap,
+    // Carries the sheet's own gutter — same inset as before, but now inside the
+    // scroller, so the CTA's glow has room to spread before anything clips it.
+    paddingHorizontal: space.screenX,
   },
   sheetMatched: {
     flexDirection: "row",

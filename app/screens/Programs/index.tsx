@@ -23,7 +23,7 @@ import TopMatchBadge, {
   BADGE_OVERHANG,
   BADGE_LANE,
 } from "../../components/Dashboard/TopMatchBadge";
-import { programEyebrow } from "../../util/packs/offers";
+import { programEyebrow, priceNoteFor } from "../../util/packs/offers";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
@@ -52,7 +52,7 @@ import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack
 
 const ProgramsScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Programs">>();
-  const { colors, scheme } = useTheme();
+  const { colors, scheme, elevation } = useTheme();
   const isDark = scheme === "dark";
   const { emit } = useEventStore();
   const [offers, setOffers] = useState<Offers | null>(null);
@@ -103,9 +103,17 @@ const ProgramsScreen = () => {
     }
   };
 
-  /** The "+ what you also get" line. Server data only, and the free month is
-   *  gated on real eligibility — a repeat buyer never sees a gift we withhold. */
-  const valueLine = (item: OfferItem): string | null => {
+  /**
+   * WHAT YOU ALSO GET, with no leading verb — callers add the framing that suits
+   * them. Server data only, and the free month is gated on real eligibility, so
+   * a repeat buyer never sees a gift we withhold.
+   *
+   * The prefix moved out to the call sites because the hero now shows this
+   * inside a gift-glyph callout, where "Includes" is a wasted word: the glyph and
+   * the container already say "you also get", and dropping it is the difference
+   * between the line fitting on one row and wrapping onto two.
+   */
+  const valueParts = (item: OfferItem): string | null => {
     const parts: string[] = [];
     if (item.creditGrantAmount > 0) {
       parts.push(`${item.creditGrantAmount} AI practice calls`);
@@ -113,94 +121,119 @@ const ProgramsScreen = () => {
     if (item.bonusMembershipDays > 0 && offers?.bonusMembershipEligible) {
       parts.push("first month of membership free");
     }
-    return parts.length ? `Includes ${parts.join(" · ")}` : null;
+    return parts.length ? parts.join(" · ") : null;
   };
 
+  /** Sentence-cased for the hero's callout, which has no leading verb. */
+  const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
   /**
-   * The matched hero — the most valuable card on the screen, and it was reading
-   * like the least finished one: the loudest fill in the app ending in a naked
-   * chevron, while the plain rows beneath it had a proper CTA island. It now
-   * carries the same badge, eyebrow and island as everywhere else, so what makes
-   * it special is the orange and the scale, not a different set of parts.
+   * The matched hero.
+   *
+   * THE REFERENCE CARDS HAVE NO TEXTURE AT ALL. Every previous pass tried to
+   * make this card feel rich by ADDING a surface treatment — a sunrise ramp,
+   * white bubbles, glow orbs, a medallion, a ghosted numeral watermark. The
+   * cards it is actually being measured against have none of that. They are flat
+   * saturated colour, and their richness is entirely STRUCTURAL: a nested panel
+   * holding the data, type set two sizes bigger than feels safe, and one
+   * full-width button. So this pass removes rather than adds.
+   *
+   * THREE OBJECTS, NOT SEVEN LINES. The old card stacked seven text blocks and
+   * used a divider to imply two zones. Now the deal is a real nested panel, so
+   * the zones are things you can see rather than a rule you have to infer:
+   *   1. the pitch   — kicker, title, reason, printed straight on the fill
+   *   2. the panel   — price, its reason, and the gift, grouped as one object
+   *   3. the action  — a full-width island, the shape both references end on
+   * The divider, the perk's separate wash pill, and the watermark all became
+   * unnecessary the moment the panel existed, so all three are gone.
+   *
+   * The panel is a LIGHTER wash, not a darker one: on a bright fill, lifting a
+   * nested surface toward white reads as depth, while darkening it reads as a
+   * hole. Its dark ink then clears AA more easily than it did on the fill itself.
    */
   const renderHero = (item: OfferItem) => {
     const ink = colors.action.onPrimary;
-    // A solid dark island on the bright fill — the one high-contrast shape a
-    // bright surface allows, and the same pill the shop rows and the Home
-    // carousel end with.
+    const perk = valueParts(item);
+    // PromoCard's island pair, verbatim. An earlier version picked this by
+    // measurement to survive a pale accent; on the brand orange that machinery
+    // bought nothing and, in light mode, `onColor` could only choose between two
+    // DARK inks — both illegible on the dark island it had just selected.
     const islandBg = isDark ? colors.action.secondary : colors.surface.inverse;
     const islandInk = isDark ? colors.action.onSecondary : colors.text.primary;
 
     return (
-      // The badge is a SIBLING of the fill, not a child — the fill clips to its
-      // own radius so the watermark stays inside it, and a child badge would be
-      // cropped at exactly the corner it is meant to hang off.
+      // The badge is a SIBLING of the card, not a child — the card clips to its
+      // own radius, and a child badge would be cropped at exactly the corner it
+      // is meant to hang off.
       <PressableScale
         key={item.key}
         scaleTo={0.98}
         onPress={() => openDetail(item)}
-        style={styles.heroWrap}
+        style={[styles.heroWrap, elevation.e2]}
       >
+        {/* FLAT, not a gradient. At this size a ramp just muddies the middle of
+            the card; both references commit to one saturated colour. */}
         <View style={[styles.hero, { backgroundColor: colors.action.primary }]}>
-          <View style={styles.heroWatermark} pointerEvents="none">
-            <Icon name={icons.roadmap} size={150} color={withAlpha(ink, 0.12)} />
-          </View>
+          {/* ── 1. the pitch ─────────────────────────────────────────────── */}
+          <Text
+            variant="label"
+            color={withAlpha(ink, INK_MUTED)}
+            numberOfLines={1}
+            style={styles.eyebrowClear}
+          >
+            {programEyebrow(item)}
+          </Text>
 
-          <View style={styles.heroContent}>
-            {/* The factual line the rows below use, so the hero and the list
-                describe a program the same way. The claim is the badge. */}
-            <Text
-              variant="label"
-              color={ink}
-              numberOfLines={1}
-              style={styles.eyebrowClear}
+          <Text variant="h1" color={ink} style={styles.heroTitle}>
+            {item.title}
+          </Text>
+
+          {item.match?.reason ? (
+            <Text variant="body" color={ink} style={styles.heroReason}>
+              {item.match.reason}
+            </Text>
+          ) : null}
+
+          {/* ── 2. the deal, as one object ───────────────────────────────── */}
+          {item.owned ? null : (
+            <View
+              style={[
+                styles.dealPanel,
+                { backgroundColor: withAlpha(colors.surface.inverse, 0.22) },
+              ]}
             >
-              {programEyebrow(item)}
-            </Text>
+              <PriceTag
+                priceInr={item.priceInr}
+                anchorInr={item.anchorPriceInr}
+                note={priceNoteFor(item, offers?.isFounderCohort ?? false)}
+                ink={ink}
+              />
 
-            <Text variant="h2" color={ink}>
-              {item.title}
-            </Text>
-            {item.match?.reason ? (
-              <Text variant="body" color={ink}>
-                {item.match.reason}
-              </Text>
-            ) : null}
-
-            {/* The old "7 days" line here said the same thing as the eyebrow now
-                does, one line apart. Only the value line is left. */}
-            {valueLine(item) ? (
-              <Text variant="bodySm" color={ink} style={styles.heroMeta}>
-                {valueLine(item)}
-              </Text>
-            ) : null}
-
-            <View style={styles.heroFooter}>
-              {/* `ink` is not optional here. Without it PriceTag falls back to
-                  the canvas `text.primary`, which is near-white on the dark
-                  scheme — about 2:1 on this orange fill. Every other on-fill
-                  price in the app passes the fill's own dark ink; this one was
-                  missed. */}
-              {item.owned ? null : (
-                <PriceTag
-                  priceInr={item.priceInr}
-                  anchorInr={item.anchorPriceInr}
-                  compact
-                  ink={ink}
-                />
-              )}
-              {/* No edge: `styles.cta`'s hairline exists to make a neutral
-                  control visible on paper. A solid dark island on a bright fill
-                  already has all the edge it needs. */}
-              <View
-                style={[styles.cta, { backgroundColor: islandBg, borderWidth: 0 }]}
-              >
-                <Icon name={icons.journey} size={CTA_ICON} color={islandInk} />
-                <Text variant="title" color={islandInk} numberOfLines={1}>
-                  {item.owned ? "Open your program" : "See inside"}
-                </Text>
-              </View>
+              {/* Inside the panel the gift needs no container of its own — the
+                  panel IS its container, which is what the wash pill was
+                  clumsily standing in for. */}
+              {perk ? (
+                <View style={styles.dealPerk}>
+                  <Icon name={icons.gift} size={CTA_ICON} color={ink} />
+                  <Text
+                    variant="bodySm"
+                    color={ink}
+                    numberOfLines={2}
+                    style={styles.dealPerkText}
+                  >
+                    {capitalise(perk)}
+                  </Text>
+                </View>
+              ) : null}
             </View>
+          )}
+
+          {/* ── 3. the action ───────────────────────────────────────────── */}
+          <View style={[styles.heroCta, { backgroundColor: islandBg }]}>
+            <Icon name={icons.journey} size={CTA_ICON} color={islandInk} />
+            <Text variant="title" color={islandInk} numberOfLines={1}>
+              {item.owned ? "Open your program" : "See inside"}
+            </Text>
           </View>
         </View>
 
@@ -230,7 +263,7 @@ const ProgramsScreen = () => {
    * title, kills the overflowing row outright, and gives the price the footer.
    */
   const renderCard = (item: OfferItem) => {
-    const value = valueLine(item);
+    const value = valueParts(item);
     const reason = item.match?.reason ?? null;
 
     return (
@@ -271,8 +304,9 @@ const ProgramsScreen = () => {
         ) : null}
 
         {value ? (
+          // The row has no gift glyph to imply the verb, so it says it.
           <Text variant="caption" color="tertiary">
-            {value}
+            Includes {value}
           </Text>
         ) : null}
 
@@ -405,6 +439,13 @@ const ProgramsScreen = () => {
 
 export default ProgramsScreen;
 
+/**
+ * The demoted ink tier. Everything on the hero is one of two alphas — full for
+ * what sells, this for what is merely true — which is what lets the layout carry
+ * hierarchy with no rules, boxes or indents at all.
+ */
+const INK_MUTED = 0.72;
+
 const styles = StyleSheet.create({
   centered: {
     paddingVertical: spacing["3xl"],
@@ -418,30 +459,53 @@ const styles = StyleSheet.create({
   hero: {
     borderRadius: radius.card,
     overflow: "hidden",
-    padding: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["2xl"],
+    paddingBottom: spacing.xl,
   },
-  heroWatermark: {
-    position: "absolute",
-    top: -24,
-    right: -40,
-    transform: [{ rotate: "-15deg" }],
-  },
-  heroContent: {
-    gap: space.inlineGap,
-    zIndex: 1,
-  },
-  heroMeta: {
-    marginTop: spacing.xs,
-  },
-  // The badge is absolutely positioned and takes no space, so the eyebrow keeps
-  // this lane clear rather than running under it.
+  // Bled off the bottom-right corner. A numeral crops gracefully — a disc does
+  // not, which is why the medallion that used to sit here had to stay fully
+  // inside and ended up looking pasted on. Declared first, so it is behind
+  // everything; the copy above it never needs to dodge it because it is texture,
+  // not an object.
+  // The badge is absolutely positioned and takes no space, so the kicker — the
+  // one line level with it — keeps its lane clear rather than running under it.
   eyebrowClear: {
     marginRight: BADGE_LANE,
   },
-  heroFooter: {
+  heroTitle: {
+    marginTop: space.titleSub,
+  },
+  heroReason: {
+    marginTop: spacing.md,
+  },
+  // The nested data panel — the one structural device both references lean on.
+  // `radius.input` rather than `radius.card`: a panel inside a 24-radius card
+  // needs a visibly tighter corner, or the two curves fight.
+  dealPanel: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.input,
+    gap: spacing.md,
+  },
+  dealPerk: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: space.inlineGap,
+  },
+  dealPerkText: {
+    flexShrink: 1,
+  },
+  // FULL WIDTH. A small left-aligned pill left the bottom of the card ragged;
+  // both references end on a single button that spans the whole card, which is
+  // also the last thing the eye lands on.
+  heroCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.inlineGap,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.pill,
     marginTop: spacing.md,
   },
   sectionHeading: {

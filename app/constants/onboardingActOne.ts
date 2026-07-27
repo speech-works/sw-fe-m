@@ -103,7 +103,7 @@ export const SITUATION_PHRASE: Record<string, string> = {
   present: "standing in front of a room",
   push_back: "saying no",
   open_chat: "talking with no script",
-  disclose: "telling people you stutter",
+  disclose: "telling people you stammer or stutter",
 };
 
 const opt = (
@@ -150,7 +150,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
         opt("present", "Presenting to a room", 6),
         opt("push_back", "Pushing back — complaining, saying no", 7),
         opt("open_chat", "Open conversation with no script", 8),
-        opt("disclose", "Telling someone I stutter", 9),
+        opt("disclose", "Telling someone I stammer or stutter", 9),
         // exclusive: selecting either replaces any real picks, and picking a
         // real situation afterwards retracts it — see OnboardingQuestion's
         // handlePressOption.
@@ -193,7 +193,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
         opt("present", "Presenting to a room", 6),
         opt("push_back", "Pushing back — complaining, saying no", 7),
         opt("open_chat", "Open conversation with no script", 8),
-        opt("disclose", "Telling someone I stutter", 9),
+        opt("disclose", "Telling someone I stammer or stutter", 9),
         opt("not_sure", "I'm not sure", 10, true),
       ],
     },
