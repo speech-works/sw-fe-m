@@ -58,6 +58,8 @@ const OPTICAL_INSET: Record<string, number> = {
   "mic-vocal": 0.4,   // mic + circle badge — trim slightly
   clock: -0.6,        // hollow ring reads light — grow a touch
   mic: 0.4,           // narrow capsule (~same fill as mic-vocal) — balance to match, not inflate
+  layers: -1.8,       // three thin sheets, short and gappy — next to a solid `play` in the same
+                      // CTA island it reads a size down. Grow it to match.
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 20, color, style }) => {

@@ -14,6 +14,14 @@ export interface TextLinkProps {
   /** Type-scale variant (default `bodySm`). */
   variant?: TypographyVariant;
   align?: TextStyle["textAlign"];
+  /**
+   * Drop the underline. Default true — leave it ON unless the link's POSITION
+   * already makes it unmistakably an action (e.g. the lone centred line directly
+   * beneath a carousel's paging dots). The underline exists to stop a link
+   * reading as content copy; only turn it off where nothing could be misread as
+   * copy in the first place, never merely because it looks cleaner.
+   */
+  underline?: boolean;
 }
 
 /**
@@ -30,6 +38,7 @@ export const TextLink: React.FC<TextLinkProps> = ({
   color = "link",
   variant = "bodySm",
   align = "center",
+  underline = true,
 }) => (
   <PressableScale
     haptic={false}
@@ -38,7 +47,11 @@ export const TextLink: React.FC<TextLinkProps> = ({
     accessibilityRole="link"
     style={{ alignSelf: "center", paddingVertical: space.inlineGap }}
   >
-    <Text variant={variant} color={color} style={{ textAlign: align, textDecorationLine: "underline" }}>
+    <Text
+      variant={variant}
+      color={color}
+      style={{ textAlign: align, textDecorationLine: underline ? "underline" : "none" }}
+    >
       {label}
     </Text>
   </PressableScale>

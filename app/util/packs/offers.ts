@@ -46,3 +46,25 @@ export type Shelf = OfferItem["shelf"];
 export function isOpenable(item: OfferItem): boolean {
   return item.packId !== null && item.packId !== undefined;
 }
+
+/** Shelf → the one word the app uses for it. */
+const SHELF_LABEL: Record<Shelf, string> = {
+  small: "Focused",
+  regular: "Full program",
+  deep: "Deep work",
+};
+
+/**
+ * The ALL-CAPS eyebrow every program surface prints above a title. The shop list
+ * and the Home carousel share it so one product is described the same way in
+ * both places — they drifted apart the moment each screen wrote its own.
+ *
+ * FACTS OFF THE ITEM ONLY. This fills the eyebrow slot on cards that have no
+ * match to claim, so it must never imply one. `|| "Program"` is not dead code:
+ * a shelf value the app doesn't know yet would otherwise print "UNDEFINED".
+ */
+export function programEyebrow(item: OfferItem): string {
+  const shelf = SHELF_LABEL[item.shelf] || "Program";
+  const label = item.arcDays ? `${shelf} · ${item.arcDays} days` : shelf;
+  return label.toUpperCase();
+}

@@ -13,10 +13,17 @@ import {
   spacing,
   radius,
   space,
+  borderWidth,
   withAlpha,
   Spinner,
 } from "../../design-system";
 import PressableScale from "../../components/PressableScale";
+import RecHeroCard, { CTA_ICON } from "../../components/Dashboard/RecHeroCard";
+import TopMatchBadge, {
+  BADGE_OVERHANG,
+  BADGE_LANE,
+} from "../../components/Dashboard/TopMatchBadge";
+import { programEyebrow } from "../../util/packs/offers";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
@@ -43,16 +50,10 @@ import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack
  * anything; "closest to what you told us" is the whole point.
  */
 
-/** Small factual chip per shelf — replaces the old cheap-first shelf sections. */
-const SHELF_LABEL: Record<OfferItem["shelf"], string> = {
-  small: "Focused",
-  regular: "Full program",
-  deep: "Deep work",
-};
-
 const ProgramsScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Programs">>();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const { emit } = useEventStore();
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,71 +116,123 @@ const ProgramsScreen = () => {
     return parts.length ? `Includes ${parts.join(" · ")}` : null;
   };
 
-  const renderHero = (item: OfferItem) => (
-    <PressableScale
-      key={item.key}
-      scaleTo={0.98}
-      onPress={() => openDetail(item)}
-      style={[styles.hero, { backgroundColor: colors.action.primary }]}
-    >
-      <View style={styles.heroWatermark} pointerEvents="none">
-        <Icon
-          name={icons.roadmap}
-          size={150}
-          color={withAlpha(colors.action.onPrimary, 0.12)}
-        />
-      </View>
+  /**
+   * The matched hero — the most valuable card on the screen, and it was reading
+   * like the least finished one: the loudest fill in the app ending in a naked
+   * chevron, while the plain rows beneath it had a proper CTA island. It now
+   * carries the same badge, eyebrow and island as everywhere else, so what makes
+   * it special is the orange and the scale, not a different set of parts.
+   */
+  const renderHero = (item: OfferItem) => {
+    const ink = colors.action.onPrimary;
+    // A solid dark island on the bright fill — the one high-contrast shape a
+    // bright surface allows, and the same pill the shop rows and the Home
+    // carousel end with.
+    const islandBg = isDark ? colors.action.secondary : colors.surface.inverse;
+    const islandInk = isDark ? colors.action.onSecondary : colors.text.primary;
 
-      <View style={styles.heroContent}>
-        <Text variant="label" color={colors.action.onPrimary}>
-          MATCHED TO YOU
-        </Text>
-        <Text variant="h2" color={colors.action.onPrimary}>
-          {item.title}
-        </Text>
-        {item.match?.reason ? (
-          <Text variant="body" color={colors.action.onPrimary}>
-            {item.match.reason}
-          </Text>
-        ) : null}
+    return (
+      // The badge is a SIBLING of the fill, not a child — the fill clips to its
+      // own radius so the watermark stays inside it, and a child badge would be
+      // cropped at exactly the corner it is meant to hang off.
+      <PressableScale
+        key={item.key}
+        scaleTo={0.98}
+        onPress={() => openDetail(item)}
+        style={styles.heroWrap}
+      >
+        <View style={[styles.hero, { backgroundColor: colors.action.primary }]}>
+          <View style={styles.heroWatermark} pointerEvents="none">
+            <Icon name={icons.roadmap} size={150} color={withAlpha(ink, 0.12)} />
+          </View>
 
-        <View style={styles.heroMeta}>
-          {item.arcDays ? (
-            <Text variant="bodySm" color={colors.action.onPrimary}>
-              {item.arcDays} days
+          <View style={styles.heroContent}>
+            {/* The factual line the rows below use, so the hero and the list
+                describe a program the same way. The claim is the badge. */}
+            <Text
+              variant="label"
+              color={ink}
+              numberOfLines={1}
+              style={styles.eyebrowClear}
+            >
+              {programEyebrow(item)}
             </Text>
-          ) : null}
-          {valueLine(item) ? (
-            <Text variant="bodySm" color={colors.action.onPrimary}>
-              {valueLine(item)}
+
+            <Text variant="h2" color={ink}>
+              {item.title}
             </Text>
-          ) : null}
+            {item.match?.reason ? (
+              <Text variant="body" color={ink}>
+                {item.match.reason}
+              </Text>
+            ) : null}
+
+            {/* The old "7 days" line here said the same thing as the eyebrow now
+                does, one line apart. Only the value line is left. */}
+            {valueLine(item) ? (
+              <Text variant="bodySm" color={ink} style={styles.heroMeta}>
+                {valueLine(item)}
+              </Text>
+            ) : null}
+
+            <View style={styles.heroFooter}>
+              {/* `ink` is not optional here. Without it PriceTag falls back to
+                  the canvas `text.primary`, which is near-white on the dark
+                  scheme — about 2:1 on this orange fill. Every other on-fill
+                  price in the app passes the fill's own dark ink; this one was
+                  missed. */}
+              {item.owned ? null : (
+                <PriceTag
+                  priceInr={item.priceInr}
+                  anchorInr={item.anchorPriceInr}
+                  compact
+                  ink={ink}
+                />
+              )}
+              {/* No edge: `styles.cta`'s hairline exists to make a neutral
+                  control visible on paper. A solid dark island on a bright fill
+                  already has all the edge it needs. */}
+              <View
+                style={[styles.cta, { backgroundColor: islandBg, borderWidth: 0 }]}
+              >
+                <Icon name={icons.journey} size={CTA_ICON} color={islandInk} />
+                <Text variant="title" color={islandInk} numberOfLines={1}>
+                  {item.owned ? "Open your program" : "See inside"}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.heroFooter}>
-          {item.owned ? (
-            <Text variant="title" color={colors.action.onPrimary}>
-              Open your program
-            </Text>
-          ) : (
-            <PriceTag
-              priceInr={item.priceInr}
-              anchorInr={item.anchorPriceInr}
-              compact
-            />
-          )}
-          <Icon
-            name={icons.chevronRight}
-            size={18}
-            color={colors.action.onPrimary}
-          />
-        </View>
-      </View>
-    </PressableScale>
-  );
+        <TopMatchBadge />
+      </PressableScale>
+    );
+  };
 
+  /**
+   * A shop row, in the same language as the Home carousel slide it links from:
+   * eyebrow → title → why → footer with the price beside a real CTA island. A
+   * product should not change shape between the two screens that sell it.
+   *
+   * WHAT THIS REPLACED, so it doesn't come back. The card was five equal-weight
+   * rows — every one a full-width `space-between` line at the same 8px pitch —
+   * so nothing led and the eye had no entry point. Three of them were also
+   * broken:
+   *   · title and price shared the header row, so a two-line title floated the
+   *     price to its vertical middle and no two cards agreed on where the price
+   *     sat;
+   *   · the meta row put two texts in a `space-between` with no `flexShrink`,
+   *     so the longer one ran off the right edge of the card ("…membership fr");
+   *   · the reason was orange text on a 12% orange tint — about 1.5:1, the exact
+   *     pairing the conventions call out, and `action.primary` as a text colour
+   *     also trips the design-system's own dev warning on every render.
+   * Shelf and length moved up into the eyebrow, which frees the header for the
+   * title, kills the overflowing row outright, and gives the price the footer.
+   */
   const renderCard = (item: OfferItem) => {
     const value = valueLine(item);
+    const reason = item.match?.reason ?? null;
+
     return (
       <PressableScale
         key={item.key}
@@ -193,18 +246,45 @@ const ProgramsScreen = () => {
           },
         ]}
       >
-        <View style={styles.cardHeader}>
-          <Text variant="title" color="primary" style={styles.cardTitle}>
+        <View style={styles.cardBody}>
+          <Text variant="label" color="tertiary">
+            {programEyebrow(item)}
+          </Text>
+          <Text variant="h3" color="primary">
             {item.title}
           </Text>
+          {item.blurb ? (
+            <Text variant="bodySm" color="secondary" numberOfLines={2}>
+              {item.blurb}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Only when the server sent a reason it can stand behind. Bare accent
+            copy, not a chip: `accent` is the per-scheme foreground cut, and the
+            colour shift from the `secondary` blurb directly above it is what
+            marks this line as being about YOU. */}
+        {reason ? (
+          <Text variant="bodySm" color="accent" numberOfLines={2}>
+            {reason}
+          </Text>
+        ) : null}
+
+        {value ? (
+          <Text variant="caption" color="tertiary">
+            {value}
+          </Text>
+        ) : null}
+
+        <View style={styles.cardFooter}>
           {item.owned ? (
             <View style={styles.ownedTag}>
               <Icon
                 name={icons.success}
-                size={14}
+                size={16}
                 color={colors.feedback.successText}
               />
-              <Text variant="label" color={colors.feedback.successText}>
+              <Text variant="title" color={colors.feedback.successText}>
                 Owned
               </Text>
             </View>
@@ -215,50 +295,29 @@ const ProgramsScreen = () => {
               compact
             />
           )}
-        </View>
 
-        {item.blurb ? (
-          <Text variant="bodySm" color="secondary" numberOfLines={2}>
-            {item.blurb}
-          </Text>
-        ) : null}
-
-        {/* Badge only when the server sent a reason it can stand behind. */}
-        {item.match?.reason ? (
+          {/* The same island the carousel slide ends with, down to the leading
+              glyph. An interactive `surface.control` container is ~1.1:1 on
+              paper, so the affordance needs a defined edge — a bare chevron
+              simply vanished there. */}
           <View
             style={[
-              styles.matchRow,
-              { backgroundColor: withAlpha(colors.action.primary, 0.12) },
+              styles.cta,
+              {
+                backgroundColor: colors.surface.control,
+                borderColor: colors.border.strong,
+              },
             ]}
           >
-            <Icon name={icons.success} size={12} color={colors.action.primary} />
-            <Text variant="caption" color={colors.action.primary} style={styles.matchText}>
-              {item.match.reason}
+            <Icon
+              name={icons.journey}
+              size={CTA_ICON}
+              color={colors.text.primary}
+            />
+            <Text variant="title" color="primary" numberOfLines={1}>
+              {item.owned ? "Open" : "See inside"}
             </Text>
           </View>
-        ) : null}
-
-        <View style={styles.metaRow}>
-          <Text variant="caption" color="tertiary">
-            {SHELF_LABEL[item.shelf]}
-            {item.arcDays ? ` · ${item.arcDays} days` : ""}
-          </Text>
-          {value ? (
-            <Text variant="caption" color="tertiary" numberOfLines={1}>
-              {value}
-            </Text>
-          ) : null}
-        </View>
-
-        <View style={styles.cardFooter}>
-          <Text variant="bodySm" color="tertiary">
-            {item.owned ? "Open your program" : "See what's inside"}
-          </Text>
-          <Icon
-            name={icons.chevronRight}
-            size={16}
-            color={colors.text.tertiary}
-          />
         </View>
       </PressableScale>
     );
@@ -301,34 +360,32 @@ const ProgramsScreen = () => {
         </View>
       ) : (
         <>
+          {/*
+            THIS CARD STANDS IN THE HERO'S SLOT, and the two are mutually
+            exclusive: the hero needs `hasSignal`, this renders only when we
+            don't have it. So it is not a small aside above the shop — when it
+            shows, it is the ONLY thing at the top of the screen, and the list
+            below it is unranked because of the very thing it is asking for.
+            A muted bordered row understated all of that.
+
+            It gets the vivid banner treatment for that reason, in LIME rather
+            than the default blue: it is not a product, and it must not read as
+            one more thing to buy. Nothing else in the shop is lime, and the
+            accent is unclaimed elsewhere in the app — the colour alone says
+            "this one is different" before a word is read.
+          */}
           {!hasSignal ? (
-            <PressableScale
-              scaleTo={0.99}
+            <RecHeroCard
+              accentKey="lime"
+              eyebrow="PERSONALISE THIS LIST"
+              title="Not sure where to start?"
+              subtitle="Answer a few questions and we'll point you to the program built for what you find hardest."
+              ctaLabel="Get matched"
+              // Not the default pack glyph: this button doesn't open a program,
+              // it starts the questions that decide which one to point at.
+              ctaIcon={icons.roadmap}
               onPress={startOnboarding}
-              style={[
-                styles.prompt,
-                {
-                  backgroundColor: colors.surface.default,
-                  borderColor: colors.border.default,
-                },
-              ]}
-            >
-              <Icon name={icons.roadmap} size={20} color={colors.action.primary} />
-              <View style={styles.promptText}>
-                <Text variant="title" color="primary">
-                  Not sure where to start?
-                </Text>
-                <Text variant="bodySm" color="secondary">
-                  Answer a few questions and we&apos;ll point you to the program
-                  built for what you find hardest.
-                </Text>
-              </View>
-              <Icon
-                name={icons.chevronRight}
-                size={16}
-                color={colors.text.tertiary}
-              />
-            </PressableScale>
+            />
           ) : null}
 
           {heroItem ? renderHero(heroItem) : null}
@@ -354,24 +411,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
-  prompt: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  promptText: {
-    flex: 1,
-    gap: spacing.xxs,
+  // Holds the badge's overhang. The fill below clips; this must not.
+  heroWrap: {
+    paddingTop: BADGE_OVERHANG,
   },
   hero: {
     borderRadius: radius.card,
     overflow: "hidden",
     padding: spacing.xl,
-    marginBottom: spacing.lg,
   },
   heroWatermark: {
     position: "absolute",
@@ -384,8 +431,12 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   heroMeta: {
-    gap: spacing.xxs,
     marginTop: spacing.xs,
+  },
+  // The badge is absolutely positioned and takes no space, so the eyebrow keeps
+  // this lane clear rather than running under it.
+  eyebrowClear: {
+    marginRight: BADGE_LANE,
   },
   heroFooter: {
     flexDirection: "row",
@@ -394,46 +445,38 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   sectionHeading: {
-    marginBottom: spacing.sm,
+    // A heading belongs to what's UNDER it. `Page`'s uniform gap sits it
+    // equidistant from both neighbours, so this buys back the difference.
+    marginTop: spacing.sm,
   },
   card: {
     borderRadius: radius.card,
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     padding: spacing.lg,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    // Blocks, not rows. The tight `titleSub` pitch inside `cardBody` binds the
+    // eyebrow/title/blurb into ONE thing; this gap is what separates it from
+    // the reason, the value line and the footer.
+    gap: space.rowGap,
+    // No marginBottom — `Page` already puts `space.groupGap` between children,
+    // and the old margin stacked on top of it for a 28px trench between cards.
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  cardTitle: {
-    flex: 1,
-  },
-  matchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.chip,
-    alignSelf: "flex-start",
-  },
-  matchText: {
-    flexShrink: 1,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
+  cardBody: {
+    gap: space.titleSub,
   },
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: spacing.xs,
+  },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: borderWidth.hairline,
   },
   ownedTag: {
     flexDirection: "row",

@@ -166,7 +166,14 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
 
       {selection.remaining > 0 ? (
         <View style={styles.more}>
-          <TextLink label="Show more programs" onPress={goToPrograms} />
+          {/* No underline: it is the lone centred line directly under the paging
+              dots, which already reads as "there's more this way" — nothing here
+              could be mistaken for body copy. */}
+          <TextLink
+            label="Show more programs"
+            onPress={goToPrograms}
+            underline={false}
+          />
         </View>
       ) : null}
     </View>

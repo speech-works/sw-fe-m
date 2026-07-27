@@ -13,7 +13,9 @@ import {
   radius,
   borderWidth,
 } from "../../design-system";
-import { REC_HERO_ACCENT } from "./RecHeroCard";
+import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
+import TopMatchBadge, { BADGE_OVERHANG, BADGE_LANE } from "./TopMatchBadge";
+import { programEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
 
 /**
@@ -26,14 +28,37 @@ import type { OfferItem } from "../../api/users";
  * its neighbours. So every slide shares `SLIDE_MIN_HEIGHT` and the top match is
  * marked by fill, ink and an eyebrow instead.
  *
- * The highlighted tier deliberately reuses `RecHeroCard`'s exact language — the
- * same `accent.info` fill, the same `accentOn` ink, the same dark-island CTA —
- * because that is the card this carousel replaces. The blue does not change for
- * anyone; it just moved into a deck.
+ * ONE SKELETON, TWO SKINS — and that is load-bearing, not tidiness. This file
+ * used to be two independent JSX branches, and they drifted exactly the way two
+ * independent branches always do: the plain tier grew a bordered chip around the
+ * reason (louder than its own title), lost the eyebrow (so titles landed at a
+ * different height and jumped as you swiped), and traded the CTA island for a
+ * bare grey chevron. Nothing decided that; it just happened one edit at a time.
+ * Now every slide renders the SAME nodes in the same order and `skin` carries
+ * the entire difference, so a tier cannot gain or lose a part on its own.
+ *
+ * The highlighted tier deliberately reuses the Home vivid-card language —
+ * `PromoCard` / `RecHeroCard`: the same `accent.info` fill, the same `accentOn`
+ * ink, the same TWO ink-circle blobs, the same padding rhythm, and the same
+ * solid dark-island CTA pill with a label. The blue does not change for anyone;
+ * it just moved into a deck.
  */
 
-/** Shared by both tiers. Matches Home's `PromoCard` height so the row is even. */
+/**
+ * The height of a whole SLOT — card plus the badge's overhang above it. Matches
+ * Home's `PromoCard` so the shelf is the same height as its neighbours, and so
+ * adding the badge did not push the carousel 8px taller; the card gave the room
+ * back instead.
+ */
 export const SLIDE_MIN_HEIGHT = 260;
+
+/**
+ * Same words and the same glyph in both tiers — the tier changes the weight of
+ * the island, never the affordance inside it. Icon leads the label, `PromoCard`
+ * "▶ Check In" style; `journey` is the registry's word for a pack, which is
+ * exactly what this opens.
+ */
+const CTA_LABEL = "See inside";
 
 export interface OfferSlideProps {
   item: OfferItem;
@@ -50,98 +75,143 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, highlight, onPress }) => 
   // never reaches here — `selectForYou` returns nothing in that state.
   const reason = item.match?.reason ?? null;
 
-  if (highlight) {
-    const fill = colors.accent[REC_HERO_ACCENT];
-    const ink = colors.accentOn[REC_HERO_ACCENT];
-    const islandBg = isDark ? colors.action.secondary : colors.surface.inverse;
-    const islandInk = isDark ? colors.action.onSecondary : colors.text.primary;
+  const fill = colors.accent[REC_HERO_ACCENT];
+  const ink = colors.accentOn[REC_HERO_ACCENT];
 
-    return (
-      <PressableScale scaleTo={0.98} onPress={() => onPress(item)}>
-        <View style={[styles.slide, styles.fill, { backgroundColor: fill }]}>
-          <View
-            style={[styles.blob, { backgroundColor: withAlpha(ink, 0.1) }]}
-            pointerEvents="none"
-          />
+  // Every part of the tier difference, in one object. Both skins name the same
+  // keys, so neither can quietly drop a part the other has.
+  const skin = highlight
+    ? {
+        bg: fill,
+        border: undefined as string | undefined,
+        // Texture at 10% ink, the Home vivid-card recipe.
+        blob: withAlpha(ink, 0.1),
+        // On a bright fill there is exactly one legible ink, so every text role
+        // collapses to it — the hierarchy is carried by type scale alone.
+        eyebrow: ink,
+        title: ink,
+        // Bare copy: on an accent surface content is the only borderless thing
+        // and actions are the only enclosed shapes.
+        reasonText: ink,
+        blurbText: ink,
+        priceInk: ink as string | undefined,
+        // The one loud CTA — a solid dark island (pure inverse in light mode).
+        ctaBg: isDark ? colors.action.secondary : colors.surface.inverse,
+        ctaInk: isDark ? colors.action.onSecondary : colors.text.primary,
+        ctaBorder: undefined as string | undefined,
+      }
+    : {
+        bg: colors.surface.default,
+        // Load-bearing on the paper scheme, where `surface.default` sits at
+        // roughly 1.02:1 against the canvas and the card edge vanishes.
+        border: colors.border.default as string | undefined,
+        // The same circle in the same place, whispered instead of spoken — the
+        // deck reads as one family as you swipe. A 10% *ink* blob would be a
+        // grey smudge on a neutral card, so the runners-up tint with the accent.
+        blob: colors.accentTint[REC_HERO_ACCENT],
+        eyebrow: "tertiary",
+        title: "primary",
+        // `accent` resolves to the per-scheme foreground cut, NOT the bright
+        // fill — a personalised reason still reads as personal without a chip
+        // around it. A generic blurb must NOT borrow that ink: orange here is
+        // the app's "this is about you" signal, and a marketing line is not.
+        reasonText: "accent",
+        blurbText: "secondary",
+        priceInk: undefined,
+        // Quiet tier, same shape. An interactive `surface.control` container is
+        // ~1.1:1 on paper, so the affordance needs a defined edge.
+        ctaBg: colors.surface.control,
+        ctaInk: colors.text.primary,
+        ctaBorder: colors.border.strong as string | undefined,
+      };
 
-          <View style={styles.body}>
-            <Text variant="label" color={ink}>
-              TOP MATCH
-            </Text>
-            {/* h3, not h2: at slide width minus the peek, h2 wraps to three
-                lines and swallows the card. */}
-            <Text variant="h3" color={ink} style={styles.title} numberOfLines={2}>
-              {item.title}
-            </Text>
-            {reason ? (
-              <Text variant="bodySm" color={ink} numberOfLines={3}>
-                {reason}
-              </Text>
-            ) : null}
-          </View>
+  // EVERY slide's eyebrow is now the same factual line — the claim moved out to
+  // the badge. That is what keeps the titles on one baseline as you swipe: the
+  // eyebrow row is present, and the same height, on all three.
 
-          <View style={styles.footer}>
-            <PriceTag
-              priceInr={item.priceInr}
-              anchorInr={item.anchorPriceInr}
-              compact
-              ink={ink}
-            />
-            <View style={[styles.cta, { backgroundColor: islandBg }]}>
-              <Icon name={icons.chevronRight} size={18} color={islandInk} />
-            </View>
-          </View>
-        </View>
-      </PressableScale>
-    );
-  }
+  // Both tiers print this as bare copy in the same slot — the reason is marked
+  // by ink, not by a container.
+  const support = reason ?? item.blurb ?? null;
+  const supportColor = reason ? skin.reasonText : skin.blurbText;
 
   return (
-    <PressableScale scaleTo={0.98} onPress={() => onPress(item)}>
+    // The badge is a SIBLING of the card, not a child: the card clips to its own
+    // radius. It stays inside the Pressable so the corner is still part of the
+    // tap target and it scales with the card on press — one object, one motion.
+    <PressableScale
+      scaleTo={0.98}
+      onPress={() => onPress(item)}
+      style={styles.wrap}
+    >
       <View
         style={[
           styles.slide,
-          styles.plain,
           {
-            backgroundColor: colors.surface.default,
-            // Load-bearing on the paper scheme, where `surface.default` sits at
-            // roughly 1.02:1 against the canvas and the card edge vanishes.
-            borderColor: colors.border.default,
+            backgroundColor: skin.bg,
+            borderColor: skin.border,
+            borderWidth: skin.border ? borderWidth.hairline : 0,
           },
         ]}
       >
+        {/* Two ink circles — the Explore / PromoCard texture. Depth without art. */}
+        <View
+          style={[styles.blobA, { backgroundColor: skin.blob }]}
+          pointerEvents="none"
+        />
+        <View
+          style={[styles.blobB, { backgroundColor: skin.blob }]}
+          pointerEvents="none"
+        />
+
         <View style={styles.body}>
-          <Text variant="title" color="primary" numberOfLines={2}>
+          {/* Reserves the badge's horizontal lane so a long shelf label can never
+              run under it — the eyebrow is the one line at the badge's height. */}
+          <Text
+            variant="label"
+            color={skin.eyebrow}
+            numberOfLines={1}
+            style={highlight ? styles.eyebrowClear : undefined}
+          >
+            {programEyebrow(item)}
+          </Text>
+          {/* h3, not h2: at slide width minus the peek, h2 wraps to three
+              lines and swallows the card. */}
+          <Text variant="h3" color={skin.title} numberOfLines={2}>
             {item.title}
           </Text>
-          {reason ? (
-            // Solid control surface + accent text. NOT accent text on an accent
-            // tint, which the conventions call out at ~1.5:1.
-            <View
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: colors.surface.control,
-                  borderColor: colors.border.default,
-                },
-              ]}
-            >
-              <Text variant="caption" color="accent" numberOfLines={2}>
-                {reason}
-              </Text>
-            </View>
-          ) : item.blurb ? (
-            <Text variant="bodySm" color="secondary" numberOfLines={3}>
-              {item.blurb}
+          {support ? (
+            <Text variant="bodySm" color={supportColor} numberOfLines={3}>
+              {support}
             </Text>
           ) : null}
         </View>
 
         <View style={styles.footer}>
-          <PriceTag priceInr={item.priceInr} anchorInr={item.anchorPriceInr} compact />
-          <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
+          <PriceTag
+            priceInr={item.priceInr}
+            anchorInr={item.anchorPriceInr}
+            compact
+            ink={skin.priceInk}
+          />
+          <View
+            style={[
+              styles.cta,
+              {
+                backgroundColor: skin.ctaBg,
+                borderColor: skin.ctaBorder,
+                borderWidth: skin.ctaBorder ? borderWidth.hairline : 0,
+              },
+            ]}
+          >
+            <Icon name={icons.journey} size={CTA_ICON} color={skin.ctaInk} />
+            <Text variant="title" color={skin.ctaInk} numberOfLines={1}>
+              {CTA_LABEL}
+            </Text>
+          </View>
         </View>
       </View>
+
+      {highlight ? <TopMatchBadge /> : null}
     </PressableScale>
   );
 };
@@ -149,19 +219,24 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, highlight, onPress }) => 
 export default OfferSlide;
 
 const styles = StyleSheet.create({
+  // Not on the card itself: the card clips, and the badge's overhang has to live
+  // in a parent that doesn't. The padding buys back the vertical overhang so the
+  // carousel's ScrollView frame never crops it.
+  wrap: {
+    paddingTop: BADGE_OVERHANG,
+  },
   slide: {
-    minHeight: SLIDE_MIN_HEIGHT,
+    minHeight: SLIDE_MIN_HEIGHT - BADGE_OVERHANG,
     borderRadius: radius.card,
-    padding: spacing.xl,
+    overflow: "hidden",
+    // The Home vivid-card padding rhythm (PromoCard / RecHeroCard), not a
+    // uniform box — the extra head-room is what makes the type sit right.
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
     justifyContent: "space-between",
   },
-  fill: {
-    overflow: "hidden",
-  },
-  plain: {
-    borderWidth: borderWidth.hairline,
-  },
-  blob: {
+  blobA: {
     position: "absolute",
     top: -40,
     right: -30,
@@ -169,30 +244,34 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 75,
   },
+  blobB: {
+    position: "absolute",
+    bottom: -20,
+    right: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+  },
   body: {
     gap: space.titleSub,
   },
-  title: {
-    marginTop: space.titleSub,
-  },
-  chip: {
-    alignSelf: "flex-start",
-    borderWidth: borderWidth.hairline,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+  // Keeps the eyebrow out of the badge's lane. Applied only on the highlighted
+  // slide, so the other two get the full width for their label.
+  eyebrowClear: {
+    marginRight: BADGE_LANE,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   cta: {
-    width: 36,
-    height: 36,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: space.inlineGap,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
 });
