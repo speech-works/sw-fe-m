@@ -76,6 +76,14 @@ export interface User {
   // Consent (production-readiness pass, WS5) — server-side record so a
   // reinstall doesn't silently re-collect consent that was already given.
   aiCallConsentAt?: Date | null;
+
+  /**
+   * When their ONCE-IN-A-LIFETIME first call actually connected, or null/absent
+   * if it is still waiting. Read-only here: the client uses it purely to skip
+   * asking the server for an offer that cannot exist, never to decide whether
+   * somebody is entitled to one — that answer is `GET /first-call`'s alone.
+   */
+  firstCallTakenAt?: Date | null;
   researchConsent?: boolean;
   researchConsentAt?: Date | null;
   consentVersion?: string | null;

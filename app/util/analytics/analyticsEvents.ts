@@ -108,4 +108,21 @@ export const ANALYTICS_EVENTS = {
     BUDDY_SUPPORT_GUIDE_VIEWED: 'buddy_support_guide_viewed',
     BUDDY_SUPPORT_SELF_RESOURCE_TAPPED: 'buddy_support_self_resource_tapped', // props: { resource: '988' | 'resources' }
 
+    // ── The once-in-a-lifetime first call ──
+    // A funnel, not a counter: each user appears at most once at each step, so
+    // the drop between any two steps IS the conversion rate for that step. The
+    // steps are deliberately fine-grained around the headphone gate, which is
+    // the one place we knowingly stand between somebody and the experience.
+    FIRST_CALL_OFFERED: 'first_call_offered',           // props: { action, callerName, quiet }
+    FIRST_CALL_OPENED: 'first_call_opened',             // props: { action, quiet }
+    FIRST_CALL_GATE_PASSED: 'first_call_gate_passed',   // props: { attempts }
+    FIRST_CALL_GATE_DEFERRED: 'first_call_gate_deferred', // props: { reason: 'later' | 'no_headphones', attempts }
+    FIRST_CALL_RINGING: 'first_call_ringing',           // props: { action }
+    FIRST_CALL_ANSWERED: 'first_call_answered',         // props: { action }
+    FIRST_CALL_DECLINED: 'first_call_declined',         // props: { action }
+    FIRST_CALL_CONNECTED: 'first_call_connected',       // props: { action } — the offer is now spent
+    FIRST_CALL_ENDED: 'first_call_ended',               // props: { action, completed, reason }
+    FIRST_CALL_FEELING: 'first_call_feeling',           // props: { feeling: 'good'|'mixed'|'alot'|null }
+    FIRST_CALL_BREATHING_TAKEN: 'first_call_breathing_taken',
+
 } as const;

@@ -83,6 +83,19 @@ type Props = {
   agentDesignation: string;
   scenarioIcon: string;
   practiceActivityId?: string; // <-- ADDED
+  /**
+   * Connect on mount instead of waiting for the call button.
+   *
+   * For the once-ever first call, which arrives as an INCOMING call: the user
+   * has already pressed Answer on the ringing screen, and making them press a
+   * second, differently-shaped button to actually connect would break the one
+   * illusion the whole experience rests on.
+   *
+   * Only ever passed by a screen that has already run its own headphone check;
+   * `startCall` still runs its own, so a headset unplugged in between is caught
+   * here rather than trusted away.
+   */
+  autoStart?: boolean;
 };
 const DEFAULT_SAMPLE_RATE = 24000;
 const CALL_DEBUG_LOGS_ENABLED = __DEV__;
@@ -434,6 +447,7 @@ const CallingWidget: React.FC<Props> = ({
   ringtoneAsset,
   ringtoneUri,
   scenarioIcon,
+  autoStart = false,
 }) => {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -1939,6 +1953,27 @@ const CallingWidget: React.FC<Props> = ({
     };
   };
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
+
+  /**
+   * ANSWERING AN INCOMING CALL.
+   *
+   * The first call rings rather than waiting to be dialled, so by the time this
+   * widget mounts the user has already pressed Answer. Connecting on mount is
+   * what keeps that one gesture meaning what it looks like it means.
+   *
+   * The ref guard matters: `startCall` bails on a non-IDLE state, but a
+   * StrictMode double-invoke would still fire two starts in the same tick and
+   * each one creates a practice activity server-side. On a once-ever call the
+   * second would be billed.
+   */
+  const autoStartFiredRef = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoStartFiredRef.current) return;
+    autoStartFiredRef.current = true;
+    void startCall();
+    // Mount-only by design: this answers the call that is already ringing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   // --- ⬇️ MODIFIED: `endCall` order of operations ⬇️ ---
   const endCall = async () => {

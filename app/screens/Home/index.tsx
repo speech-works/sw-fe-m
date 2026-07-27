@@ -15,6 +15,7 @@ import MoodCheckBanner from "./components/MoodCheckBanner";
 import Toast from "react-native-toast-message";
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 import ForYouCarousel from "../../components/Dashboard/ForYouCarousel";
+import FirstCallCard from "../../components/Dashboard/FirstCallCard";
 import {
   Page,
   Carousel,
@@ -188,6 +189,13 @@ const Home = () => {
         }
       >
         <IdentityBlock />
+
+        {/* Above the recommendation on purpose. It renders nothing at all once
+            the server says the call has been taken, so it only outranks
+            "what to do today" for the short window where somebody has a call
+            waiting and has never had one — which is exactly the window it is
+            for. Quieted, it collapses to a single row and stops competing. */}
+        <FirstCallCard key={`first-call-${refreshKey}`} />
 
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
 

@@ -28,4 +28,7 @@ export const ASYNC_KEYS_NAME = {
   // Act-1 answers held on-device before an account exists. Health-adjacent, so
   // it must be wiped on logout like any other user-scoped store.
   SW_ZSTORE_ONBOARDING_DRAFT: "SW_ZSTORE_ONBOARDING_DRAFT",
+  // Whether the once-ever first call has been put off. Holds NO entitlement —
+  // only the server knows whether the call itself is still going.
+  SW_ZSTORE_FIRST_CALL: "SW_ZSTORE_FIRST_CALL",
 };

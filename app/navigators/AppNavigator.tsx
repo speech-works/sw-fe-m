@@ -8,6 +8,7 @@ import PracticeComposer from "../screens/PracticeComposer";
 import Resources from "../screens/Resources";
 import ShareMomentScreen from "../screens/ShareMoment";
 import AvatarStudio from "../screens/AvatarStudio";
+import FirstCall from "../screens/FirstCall";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,6 +48,15 @@ export default function AppNavigator() {
       {/* The avatar editor — root-registered so Home's identity card (and later
           Settings) reach it by name from any stack. */}
       <Stack.Screen name="AvatarStudio" component={AvatarStudio} />
+      {/* The once-in-a-lifetime first call. Root-registered and gesture-locked:
+          it owns the whole screen for its five minutes (an incoming call is not
+          a page you swipe away from mid-ring), and the user reaches it from
+          Home today but will be sent here from the end of onboarding too. */}
+      <Stack.Screen
+        name="FirstCall"
+        component={FirstCall}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }
