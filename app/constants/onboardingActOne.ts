@@ -55,16 +55,35 @@ export const ACT_ONE_AVOIDANCE_VALUES = [
   "never",
 ] as const;
 
-/** Mirrors sw-be-2 `TherapyExperience`. */
-export const ACT_ONE_THERAPY_VALUES = ["current", "past", "never"] as const;
+/** Mirrors sw-be-2 `DifficultyShape`. Each value routes to exactly one pack. */
+export const ACT_ONE_SHAPE_VALUES = [
+  "anticipation",
+  "in_the_moment",
+  "aftermath",
+  "recurring_thoughts",
+  "not_understanding",
+  "not_sure",
+] as const;
 
-/** The four adaptiveKeys Act 1 collects, plus the safety one. */
+/**
+ * The five adaptiveKeys Act 1 collects.
+ *
+ * THESE MUST BE A CONTIGUOUS PREFIX of the server's v2.0 flow — screens 1..5,
+ * in the same order. The post-signup resume finds the first screen with an
+ * unanswered required question, then walks forward one screen at a time. A gap
+ * anywhere in the prefix therefore lands someone mid-flow and marches them back
+ * through questions they already answered.
+ *
+ * `experience.therapy` was in this list and moved to screen 6 (post-signup) to
+ * make room for `difficulty.shape` without lengthening Act 1. It routes nothing
+ * today; difficulty.shape reaches five programmes no other answer can.
+ */
 export const ACT_ONE_ADAPTIVE_KEYS = [
   "speech.situations",
+  "difficulty.shape",
   "goal.primary",
   "avoidance.frequency",
   "distress.overall",
-  "experience.therapy",
 ] as const;
 
 /**
@@ -133,8 +152,40 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       ],
     },
     {
-      id: "act1-goal",
+      // THE ROUTING PARTNER TO SITUATIONS, and the only question that can reach
+      // five of the ten programmes.
+      //
+      // Situations answer WHERE speaking is hard. Five programmes are built
+      // around a where; the other five are built around a WHEN or a WHAT — the
+      // build-up before, the physical moment, the replay afterwards, the
+      // thoughts that keep returning, and not understanding what is happening.
+      // Nothing we asked could separate those, so four programmes could not be
+      // surfaced by any answer anyone was able to give. Measured, not assumed.
+      //
+      // It sits pre-signup because the teaser can then quote it back — "you
+      // said the build-up beforehand is the hardest part" is the most
+      // recognisable sentence we can show someone sixty seconds in.
+      id: "act1-difficulty-shape",
       screenNumber: 2,
+      orderIndex: 1,
+      questionText: "When speaking is hardest, what's the worst part?",
+      description: "Different people get stuck in different places.",
+      questionType: "SINGLE",
+      layout: "list",
+      isRequired: true,
+      adaptiveKey: "difficulty.shape",
+      options: [
+        opt("anticipation", "The build-up beforehand", 1),
+        opt("in_the_moment", "Getting the words out", 2),
+        opt("aftermath", "Going over it afterwards", 3),
+        opt("recurring_thoughts", "Thoughts that keep coming back", 4),
+        opt("not_understanding", "Not understanding why it happens", 5),
+        opt("not_sure", "I'm not sure", 6),
+      ],
+    },
+    {
+      id: "act1-goal",
+      screenNumber: 3,
       orderIndex: 1,
       questionText: "What matters most to you right now?",
       description: "This shapes what we put in front of you first.",
@@ -152,7 +203,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
     },
     {
       id: "act1-avoidance",
-      screenNumber: 3,
+      screenNumber: 4,
       orderIndex: 1,
       questionText: "How often do you stay quiet when you'd rather speak?",
       description: "Most people do. It's completely okay to answer honestly.",
@@ -181,7 +232,7 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
       // The safety signal. Answered outside the top bracket, it is what lets us
       // honestly offer higher-intensity work before any clinical data exists.
       id: "act1-distress",
-      screenNumber: 4,
+      screenNumber: 5,
       orderIndex: 1,
       questionText: "How heavy does it feel right now?",
       description: "This is about today, not about how you stutter.",
@@ -195,22 +246,6 @@ export const ACT_ONE_FLOW: OnboardingFlow = {
         opt("3", "Moderately heavy", 3),
         opt("4", "Very heavy", 4),
         opt("5", "Extremely heavy", 5),
-      ],
-    },
-    {
-      id: "act1-therapy",
-      screenNumber: 5,
-      orderIndex: 1,
-      questionText: "Have you worked with a speech therapist?",
-      description: "So we pitch things at the right level for you.",
-      questionType: "SINGLE",
-      layout: "wrap",
-      isRequired: true,
-      adaptiveKey: "experience.therapy",
-      options: [
-        opt("current", "Yes, currently", 1),
-        opt("past", "Yes, in the past", 2),
-        opt("never", "No, never", 3),
       ],
     },
   ],

@@ -4,7 +4,7 @@ import {
   ACT_ONE_SITUATION_VALUES,
   ACT_ONE_GOAL_VALUES,
   ACT_ONE_AVOIDANCE_VALUES,
-  ACT_ONE_THERAPY_VALUES,
+  ACT_ONE_SHAPE_VALUES,
   SITUATION_PHRASE,
 } from "../onboardingActOne";
 
@@ -54,7 +54,7 @@ describe("Act 1 bundled flow", () => {
       "speech.situations": ACT_ONE_SITUATION_VALUES,
       "goal.primary": ACT_ONE_GOAL_VALUES,
       "avoidance.frequency": ACT_ONE_AVOIDANCE_VALUES,
-      "experience.therapy": ACT_ONE_THERAPY_VALUES,
+      "difficulty.shape": ACT_ONE_SHAPE_VALUES,
       // Likert 1-5; the server rescales to the 20-100 clinical scale.
       "distress.overall": ["1", "2", "3", "4", "5"],
     };
@@ -136,5 +136,20 @@ describe("Act 1 bundled flow", () => {
       expect(texts.every(Boolean)).toBe(true);
       expect(new Set(texts).size).toBe(texts.length);
     }
+  });
+
+  it("is a CONTIGUOUS PREFIX — screens 1..N with no gaps, in order", () => {
+    // The property that makes the post-signup resume work. `resumeFrom` finds
+    // the first screen with an unanswered required question and then walks
+    // forward one screen at a time, so a gap anywhere in Act 1 lands someone
+    // mid-flow and marches them back through questions they already answered.
+    //
+    // This nearly broke when difficulty.shape was inserted at screen 2: the
+    // server shifted goal/avoidance/distress down by one while the bundled
+    // flow did not, which would have re-asked three questions of every user
+    // who came through Act 1.
+    const screens = questions.map((q) => q.screenNumber).sort((a, b) => a - b);
+    expect(screens).toEqual(screens.map((_, i) => i + 1));
+    expect(new Set(screens).size).toBe(screens.length);
   });
 });
