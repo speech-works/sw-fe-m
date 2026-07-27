@@ -123,33 +123,42 @@ const SLOT = {
  * SITUATION_PHRASE rather than retyped so that rewording a question option can
  * never leave this screen advertising an answer we no longer offer.
  */
-const BUBBLES = [
-  {
-    key: "phone_calls",
-    // Each gets its own hue: three chips in one color reads as a tag list, and
-    // the whole point is that these are unrelated corners of a life.
-    tone: "primary" as const,
-    // Anchored to whichever edge each sits nearest, so a longer phrase grows
-    // INWARD and can never push a bubble off the screen. The three sit at
-    // roughly 10 / 4 / 7 o'clock — spread around the character rather than
-    // stacked down one side.
-    //
-    // `topPct` is a fraction of stage height so the ring of bubbles scales with
-    // the art instead of drifting across the face on a bigger screen.
-    anchor: { topPct: SLOT.top, left: 0 },
-  },
-  {
-    key: "meeting_people",
-    tone: "purple" as const,
-    // Tucked just above the head rather than beside it — see FACE_BAND.
-    anchor: { topPct: SLOT.upper, right: 0 },
-  },
-  {
-    key: "ordering_food",
-    tone: "lime" as const,
-    anchor: { topPct: SLOT.lower, left: 12 },
-  },
+/**
+ * Position and hue are fixed; the WORDS are derived. The previous version
+ * hardcoded three keys while its own comment claimed they were "keyed off
+ * SITUATION_PHRASE ... so that rewording a question option can never leave this
+ * screen advertising an answer we no longer offer". They were not, and the
+ * moment the options were rebuilt around acts every lookup returned undefined —
+ * three coloured blobs with no words on the first screen anybody sees. The map
+ * is `Record<string, string>`, so nothing failed to compile.
+ *
+ * Each gets its own hue: three chips in one colour reads as a tag list, and the
+ * whole point is that these are unrelated corners of a life.
+ *
+ * Anchored to whichever edge each sits nearest, so a longer phrase grows INWARD
+ * and can never push a bubble off the screen. The three sit at roughly 10 / 4 /
+ * 7 o'clock — spread around the character rather than stacked down one side.
+ * `topPct` is a fraction of stage height so the ring scales with the art
+ * instead of drifting across the face on a bigger screen.
+ */
+const BUBBLE_SLOTS = [
+  { tone: "primary" as const, anchor: { topPct: SLOT.top, left: 0 } },
+  // Tucked just above the head rather than beside it — see FACE_BAND.
+  { tone: "purple" as const, anchor: { topPct: SLOT.upper, right: 0 } },
+  { tone: "lime" as const, anchor: { topPct: SLOT.lower, left: 12 } },
 ];
+
+/**
+ * The SHORTEST phrases we actually offer, chosen by length rather than listed.
+ * Long ones wrap and the bubbles stop reading as bubbles, and picking them
+ * dynamically means a reworded option can never leave a bubble empty.
+ */
+const BUBBLES = BUBBLE_SLOTS.map((slot, i) => ({
+  ...slot,
+  key: Object.keys(SITUATION_PHRASE).sort(
+    (a, b) => SITUATION_PHRASE[a].length - SITUATION_PHRASE[b].length,
+  )[i],
+}));
 
 /**
  * Organic, hand-drawn-feeling backdrop — the "color field" the character stands

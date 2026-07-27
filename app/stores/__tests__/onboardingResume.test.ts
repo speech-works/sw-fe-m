@@ -34,7 +34,7 @@ const flow = (): OnboardingFlow =>
  * for judging whether a stored answer still means anything.
  */
 const OFFERED: Record<string, string[]> = {
-  "speech.situations": ["phone_calls", "interviews"],
+  "speech.situations": ["push_back", "order_or_ask"],
   "goal.primary": ["FEEL_CALMER", "SPEAK_FREELY"],
   "avoidance.frequency": ["very_often", "never"],
   "distress.overall": ["1", "2", "3"],
@@ -56,7 +56,7 @@ const flowWithOptions = (): OnboardingFlow => {
 };
 
 const ACT_ONE_ANSWERS = {
-  "speech.situations": ["phone_calls"],
+  "speech.situations": ["push_back"],
   "goal.primary": "FEEL_CALMER",
   "avoidance.frequency": "very_often",
   "distress.overall": "2",
@@ -86,7 +86,7 @@ describe("resumeFrom", () => {
   it("skips over a gap rather than stopping at the first answered screen", () => {
     // Someone answered 1 and 3 but not 2 — resume must go to 2, not 4.
     useOnboardingStore.getState().resumeFrom(flow(), {
-      "speech.situations": ["phone_calls"],
+      "speech.situations": ["push_back"],
       "avoidance.frequency": "often",
     });
     expect(useOnboardingStore.getState().currentScreen).toBe(2);

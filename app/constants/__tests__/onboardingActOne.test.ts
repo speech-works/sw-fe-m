@@ -153,3 +153,39 @@ describe("Act 1 bundled flow", () => {
     expect(new Set(screens).size).toBe(screens.length);
   });
 });
+
+describe("Welcome-stage bubbles", () => {
+  it("only ever shows phrases we actually offer", () => {
+    // THE BUG THIS EXISTS FOR. The three bubbles on the first screen anybody
+    // sees used to carry hardcoded keys while their own comment claimed they
+    // were derived, "so that rewording a question option can never leave this
+    // screen advertising an answer we no longer offer". Rebuilding the options
+    // around acts turned every lookup into `undefined` — three coloured blobs
+    // with no words — and nothing failed to compile, because SITUATION_PHRASE
+    // is a Record<string, string> and any key typechecks.
+    //
+    // The keys are now derived by length from SITUATION_PHRASE itself. This
+    // asserts the property rather than the current three words, so rewording
+    // stays free and deleting an option still fails loudly.
+    const shortest = Object.keys(SITUATION_PHRASE)
+      .sort((a, b) => SITUATION_PHRASE[a].length - SITUATION_PHRASE[b].length)
+      .slice(0, 3);
+
+    expect(shortest).toHaveLength(3);
+    for (const key of shortest) {
+      expect(SITUATION_PHRASE[key]).toBeTruthy();
+      // Long phrases wrap and stop reading as bubbles.
+      expect(SITUATION_PHRASE[key].length).toBeLessThanOrEqual(24);
+    }
+  });
+
+  it("has a phrase for every value the question offers", () => {
+    // The other half: an option with no phrase would render blank wherever the
+    // teaser reflects somebody's own answers back at them.
+    const real = ACT_ONE_SITUATION_VALUES.filter(
+      (v) => v !== "none" && v !== "not_sure",
+    );
+    const missing = real.filter((v) => !SITUATION_PHRASE[v]);
+    expect(missing).toEqual([]);
+  });
+});
