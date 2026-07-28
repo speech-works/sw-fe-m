@@ -145,48 +145,46 @@ const Exposure = () => {
                   </View>
                 </View>
 
-                {/* Footer: the action on the left, what it costs on the right
-                    — the same composition the breathing card uses for its
-                    duration badge opposite "Change". */}
-                <View style={styles.cardFooter}>
-                  {!item.disabled ? (
-                    /* Start affordance — a small surface chip (the in-app card-chip pattern). */
-                    <View
-                      style={[
-                        styles.startChip,
-                        { backgroundColor: colors.surface.default },
-                      ]}
-                    >
-                      <Icon
-                        name={icons.play}
-                        size={12}
-                        color={colors.text.primary}
-                      />
-                      <Text variant="label" color="primary">
-                        Start
-                      </Text>
-                    </View>
-                  ) : (
-                    <View
-                      style={[
-                        styles.startChip,
-                        { backgroundColor: colors.surface.control },
-                      ]}
-                    >
-                      <Icon
-                        name={icons.locked}
-                        size={12}
-                        color={colors.text.secondary}
-                      />
-                      <Text variant="label" color="secondary">
-                        Locked
-                      </Text>
-                    </View>
-                  )}
-
-                  {item.spendsCall ? <CallAllowanceBadge color={on} /> : null}
-                </View>
+                {!item.disabled ? (
+                  /* Start affordance — a small surface chip (the in-app card-chip pattern). */
+                  <View
+                    style={[
+                      styles.startChip,
+                      { backgroundColor: colors.surface.default },
+                    ]}
+                  >
+                    <Icon
+                      name={icons.play}
+                      size={12}
+                      color={colors.text.primary}
+                    />
+                    <Text variant="label" color="primary">
+                      Start
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.startChip,
+                      { backgroundColor: colors.surface.control },
+                    ]}
+                  >
+                    <Icon
+                      name={icons.locked}
+                      size={12}
+                      color={colors.text.secondary}
+                    />
+                    <Text variant="label" color="secondary">
+                      Locked
+                    </Text>
+                  </View>
+                )}
               </View>
+
+              {/* OUTSIDE the fill, which clips its overflow — this pill hangs
+                  off the corner, exactly as the cognitive cards' FREE badge
+                  does. */}
+              {item.spendsCall ? <CallAllowanceBadge /> : null}
             </PressableScale>
           );
         })}
@@ -242,12 +240,6 @@ const styles = StyleSheet.create({
   iconWrapper: {
     transform: [{ scale: 1.2 }, { rotate: "-10deg" }],
     opacity: 0.9,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    zIndex: 2,
   },
   startChip: {
     flexDirection: "row",

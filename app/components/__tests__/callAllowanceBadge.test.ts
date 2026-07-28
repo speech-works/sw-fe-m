@@ -39,7 +39,7 @@ describe("what the call badge says", () => {
   it("announces a free call when one is waiting", () => {
     expect(
       describeAllowance(wallet({ freeCallAvailable: true }), NOW),
-    ).toBe("Free call ready");
+    ).toEqual({ label: "READY", ready: true });
   });
 
   it("counts bought credits ahead of the weekly call", () => {
@@ -50,11 +50,11 @@ describe("what the call badge says", () => {
         wallet({ balance: 3, freeCallAvailable: false, nextFreeCallAt: inHours(72) }),
         NOW,
       ),
-    ).toBe("3 calls left");
+    ).toEqual({ label: "3 CALLS", ready: true });
   });
 
   it("gets the singular right", () => {
-    expect(describeAllowance(wallet({ balance: 1 }), NOW)).toBe("1 call left");
+    expect(describeAllowance(wallet({ balance: 1 }), NOW)).toEqual({ label: "1 CALL", ready: true });
   });
 
   it("counts down in days once the call is spent", () => {
@@ -63,7 +63,7 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(72) }),
         NOW,
       ),
-    ).toBe("Ready in 3 days");
+    ).toEqual({ label: "IN 3 DAYS", ready: false });
   });
 
   it("ROUNDS UP, so it never promises the call early", () => {
@@ -76,22 +76,22 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(77) }),
         NOW,
       ),
-    ).toBe("Ready in 4 days");
+    ).toEqual({ label: "IN 4 DAYS", ready: false });
   });
 
-  it("says tomorrow rather than 'in 1 days'", () => {
+  it("says TOMORROW rather than 'IN 1 DAYS'", () => {
     expect(
       describeAllowance(
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(5) }),
         NOW,
       ),
-    ).toBe("Ready tomorrow");
+    ).toEqual({ label: "TOMORROW", ready: false });
     expect(
       describeAllowance(
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(23) }),
         NOW,
       ),
-    ).toBe("Ready tomorrow");
+    ).toEqual({ label: "TOMORROW", ready: false });
   });
 
   it("treats a countdown that has already elapsed as ready", () => {
@@ -102,7 +102,7 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(-1) }),
         NOW,
       ),
-    ).toBe("Free call ready");
+    ).toEqual({ label: "READY", ready: true });
   });
 
   it("says nothing rather than NaN when the date is unparseable", () => {
@@ -124,15 +124,15 @@ describe("what the call badge says", () => {
         NOW,
       );
       expect(label).not.toBeNull();
-      const days = Number(/Ready in (\d+) days/.exec(label!)?.[1] ?? 1);
+      const days = Number(/IN (\d+) DAYS/.exec(label!.label)?.[1] ?? 1);
       expect(days).toBeLessThanOrEqual(7);
       expect(days).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it("keeps every label short enough for the card footer", () => {
-    // It sits opposite the Start chip on a fixed-height card; a long string
-    // wraps under it and breaks the row.
+  it("keeps every label short enough for the corner pill", () => {
+    // It is the corner pill the cognitive cards use for "FREE"; anything much
+    // longer than "TOP MATCH" overhangs the card edge and wraps.
     const labels = [
       describeAllowance(wallet({ freeCallAvailable: true }), NOW),
       describeAllowance(wallet({ balance: 12 }), NOW),
@@ -141,6 +141,6 @@ describe("what the call badge says", () => {
         NOW,
       ),
     ];
-    for (const l of labels) expect(l!.length).toBeLessThanOrEqual(16);
+    for (const l of labels) expect(l!.label.length).toBeLessThanOrEqual(12);
   });
 });
