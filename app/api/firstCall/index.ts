@@ -34,7 +34,13 @@ export interface FirstCallScenario {
 
 export interface FirstCallOffer {
   available: boolean;
-  reason?: "already_taken" | "no_content";
+  /**
+   * `not_eligible` = the account predates the feature. The first call is a
+   * WELCOME, so it goes to people who signed up once it existed; handing one to
+   * every established account would be a re-engagement campaign with a real
+   * per-call cost, which is a different decision.
+   */
+  reason?: "already_taken" | "no_content" | "not_eligible";
   scenario?: FirstCallScenario;
 }
 
