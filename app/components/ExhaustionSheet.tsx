@@ -5,7 +5,7 @@ import {
   purchaseProductById,
   pollWalletUntil,
 } from "../services/purchases";
-import { Text, Button, Icon, icons, Sheet, useTheme, spacing } from "../design-system";
+import { Text, Button, Icon, Sheet, space, spacing, useTheme } from "../design-system";
 
 interface ExhaustionSheetProps {
   visible: boolean;
@@ -96,58 +96,98 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Out of calls">
+    /* NO `title` PROP. The Sheet's title floats ABOVE the card on the backdrop,
+       which left "Out of calls" hanging in the dark with its own explanation
+       sealed in a box below it. A heading belongs with the thing it heads. */
+    <Sheet visible={visible} onClose={onClose}>
       <View style={styles.content}>
-        <Text variant="body" color="secondary" center>
-          You&apos;re out of AI call credits for now. Your free weekly call
-          comes back next week — or top up to keep going today.
-        </Text>
+        {/* Title and body are one block, tight together — they are a single
+            thought. The actions get the wider gap below. */}
+        <View style={styles.copyBlock}>
+          <Text variant="h2" color="primary">
+            Out of calls
+          </Text>
+          {/* LEADS WITH THE FREE OPTION. Someone who has just been stopped from
+              doing the thing they came to do should hear what they already have
+              before they hear a price — and the free weekly call is the more
+              reassuring fact anyway.
 
-        {/*
-          Product ids AND prices come from GET /users/me/offers — never from a
-          literal here. A hardcoded "₹99" is a price that goes stale silently the
-          day we change it, and the user gets charged something other than what
-          the button promised. Until offers load we show the button disabled with
-          no price rather than guessing one.
-        */}
-        <Button
-          label={
-            offers?.topup
-              ? `Get ${offers.topup.credits} calls — ₹${offers.topup.priceInr}`
-              : "Get more calls"
-          }
-          leftIcon={icons.call}
-          loading={purchasing === "credits"}
-          disabled={purchasing !== null || !offers?.topup}
-          onPress={handleBuyCredits}
-        />
+              "one free call a week" is a standing fact rather than a date. The
+              reset is seven days from their LAST call, so "comes back next
+              week" is right for some people and wrong for others; naming the
+              shape is true for everyone. */}
+          <Text variant="body" color="secondary">
+            You get one free call a week. Top up if you&apos;d rather not wait
+            for the next one.
+          </Text>
+        </View>
 
-        {offers?.showMembershipOffer && offers.membership ? (
+        <View style={styles.actions}>
+          {/*
+            Product ids AND prices come from GET /users/me/offers — never from a
+            literal here. A hardcoded "₹99" is a price that goes stale silently
+            the day we change it, and the user gets charged something other than
+            what the button promised. Until offers load we show the button
+            disabled with no price rather than guessing one.
+
+            NO leftIcon. The DS Button locks its label to one line and shrinks
+            the type to fit; an icon takes width from that same row, so a phone
+            glyph here bought nothing and made "Get 2 calls · ₹99" the first
+            thing to go small. The price is the point — it should be full size.
+          */}
           <Button
-            label={`Membership — ₹${offers.membership.priceInr}/month`}
-            variant="secondary"
-            leftIcon={icons.energy}
-            loading={purchasing === "membership"}
-            disabled={purchasing !== null}
-            onPress={handleBuyMembership}
+            label={
+              offers?.topup
+                ? `Get ${offers.topup.credits} calls · ₹${offers.topup.priceInr}`
+                : "Get more calls"
+            }
+            loading={purchasing === "credits"}
+            disabled={purchasing !== null || !offers?.topup}
+            onPress={handleBuyCredits}
           />
-        ) : null}
+
+          {offers?.showMembershipOffer && offers.membership ? (
+            <Button
+              label={`Membership · ₹${offers.membership.priceInr}/month`}
+              variant="secondary"
+              loading={purchasing === "membership"}
+              disabled={purchasing !== null}
+              onPress={handleBuyMembership}
+            />
+          ) : null}
+        </View>
 
         {errorMessage ? (
           <View style={styles.errorRow}>
-            <Icon name="alert-circle" size={14} color={colors.feedback.dangerText} />
-            <Text variant="caption" color={colors.feedback.dangerText}>
+            <Icon
+              name="alert-circle"
+              size={14}
+              color={colors.feedback.dangerText}
+            />
+            <Text
+              variant="caption"
+              color={colors.feedback.dangerText}
+              style={styles.errorText}
+            >
               {errorMessage}
             </Text>
           </View>
         ) : null}
 
-        <Button
-          label="Not now"
-          variant="ghost"
-          disabled={purchasing !== null}
-          onPress={onClose}
-        />
+        {/* A TEXT LINK, NOT A GHOST BUTTON. As a full-width ghost this rendered
+            in the brand orange at button scale — a second thing the same colour
+            and nearly the same weight as the actual call to action, which is
+            how a sheet ends up with two primary-looking choices. Declining is
+            the exception here, so it should look like one. */}
+        <Text
+          variant="bodySm"
+          color="secondary"
+          center
+          style={styles.dismiss}
+          onPress={purchasing === null ? onClose : undefined}
+        >
+          Not now
+        </Text>
       </View>
     </Sheet>
   );
@@ -156,14 +196,31 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
 export default ExhaustionSheet;
 
 const styles = StyleSheet.create({
+  // No paddingBottom: the dismiss row carries its own, and doubling them was
+  // most of the dead space under the buttons.
   content: {
-    gap: spacing.lg,
-    paddingBottom: spacing.lg,
+    gap: space.sectionGap,
+  },
+  // Heading and explanation are one thought, so they sit close.
+  copyBlock: {
+    gap: space.titleSub,
+  },
+  // The two offers are alternatives to each other, so they group tighter than
+  // they do to the copy above.
+  actions: {
+    gap: spacing.sm,
   },
   errorRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.xs,
-    justifyContent: "center",
+  },
+  errorText: {
+    flex: 1,
+  },
+  dismiss: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
 });
