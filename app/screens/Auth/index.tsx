@@ -391,7 +391,7 @@ const LoginScreen = () => {
                 color="link"
                 onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
               >
-                Terms & Privacy Policy
+                Privacy Policy
               </Text>
             </Text>
           </Animated.View>
