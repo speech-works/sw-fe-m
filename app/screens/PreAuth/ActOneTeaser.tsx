@@ -131,9 +131,12 @@ const ActOneTeaser: React.FC = () => {
         ]}
       >
         <Animated.View entering={motion.stagger(3)}>
+          {/* Was "Create an account", which asked for the commitment before
+              offering anything for it. The call offer sits next; the account
+              is asked for there, once there is a reason to make one. */}
           <Button
-            label="Create an account"
-            onPress={() => navigation.navigate("Auth")}
+            label="Continue"
+            onPress={() => navigation.navigate("ActOneCallOffer")}
           />
         </Animated.View>
       </View>

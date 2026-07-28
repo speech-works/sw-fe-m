@@ -32,6 +32,34 @@ export interface FirstCallScenario {
   action: FirstCallAction | null;
 }
 
+/**
+ * Who could ring, with nothing about who is asking.
+ *
+ * Comes from the PUBLIC `GET /callers`, which takes no input and identifies
+ * nobody — the pre-signup screen names the caller without Act 1's answers ever
+ * leaving the device, which is the promise `stores/onboardingDraft` makes.
+ * Carries no activity id, so it cannot be used to start anything.
+ */
+export interface CallerPreview {
+  action: FirstCallAction | null;
+  callerName: string;
+  callerDesignation: string;
+  icon: string;
+  /** Who rings when nothing matched. Exactly one entry has this. */
+  isDefault: boolean;
+}
+
+/** The cast. Empty on failure — the caller decides what to do with that. */
+export async function fetchCallerPreviews(): Promise<CallerPreview[]> {
+  try {
+    const res = await axiosClient.get("/callers");
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.warn("[firstCall] Could not load the callers", err);
+    return [];
+  }
+}
+
 export interface FirstCallOffer {
   available: boolean;
   /**

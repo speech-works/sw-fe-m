@@ -86,7 +86,12 @@ export async function clearAllPersistedUserState(): Promise<void> {
       // The next account on this phone gets its own first call, offered as
       // loudly as anyone else's — a previous user's "not now" must not
       // quiet it.
-      ["firstCall", () => useFirstCallStore.getState().clearDeferral()],
+      ["firstCall", () => {
+        useFirstCallStore.getState().clearDeferral();
+        // ...and the pre-signup "yes", which would otherwise ring the NEXT
+        // person to sign in on this phone.
+        useFirstCallStore.getState().clearPreSignup();
+      }],
     );
   } catch (e) {
     console.warn("[clearUserState] loading stores for reset failed:", e);

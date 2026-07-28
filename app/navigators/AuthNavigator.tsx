@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Auth from "../screens/Auth";
 import ActOneWelcome from "../screens/PreAuth/ActOneWelcome";
 import ActOneTeaser from "../screens/PreAuth/ActOneTeaser";
+import ActOneCallOffer from "../screens/PreAuth/ActOneCallOffer";
 import OnboardingQuestionScreen from "../screens/Onboarding/OnboardingQuestionScreen";
 import { useOnboardingDraftStore } from "../stores/onboardingDraft";
 import { PRE_AUTH_ONBOARDING_ENABLED } from "../constants/features";
@@ -11,6 +12,7 @@ export type AuthStackParamList = {
   ActOneWelcome: undefined;
   ActOneQuestion: { screenNumber: number; preAuth: true };
   ActOneTeaser: undefined;
+  ActOneCallOffer: undefined;
   Auth: undefined;
 };
 
@@ -77,6 +79,9 @@ export default function AuthNavigator() {
         initialParams={{ screenNumber: 1, preAuth: true }}
       />
       <Stack.Screen name="ActOneTeaser" component={ActOneTeaser} />
+      {/* The offer sits between the payoff and the account: the teaser is what
+          we heard, this is what we're giving them for it. */}
+      <Stack.Screen name="ActOneCallOffer" component={ActOneCallOffer} />
       <Stack.Screen
         name="Auth"
         component={Auth}

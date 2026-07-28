@@ -16,6 +16,18 @@ import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
  * card and a single quiet row; the call stays one tap away in both.
  */
 interface FirstCallState {
+  /**
+   * They said yes to the call BEFORE they had an account.
+   *
+   * The offer is made after Act 1's questions, where there is no session to
+   * hold anything server-side — so the answer rides here across signup and the
+   * rest of onboarding, and is honoured the first time they reach Home.
+   *
+   * It is an INTENTION, not an entitlement: it can only ever cause the ringing
+   * screen to open, never cause a call to be free or to exist. The server
+   * decides that, after they sign in, exactly as it does for everyone else.
+   */
+  acceptedPreSignup: boolean;
   /** When they last put it off, or null if they never have. */
   deferredAt: number | null;
   /** They told us they have no headphones — a fact, not a mood. */
@@ -26,6 +38,10 @@ interface FirstCallState {
   markNoHeadphones: () => void;
   /** They came back through the quiet row: treat it as new again. */
   clearDeferral: () => void;
+  /** Said yes on the pre-signup screen. */
+  acceptPreSignup: () => void;
+  /** Honoured (or abandoned) — never fire it twice. */
+  clearPreSignup: () => void;
 }
 
 /** How long a "remind me later" quiets the offer for. */
@@ -34,11 +50,14 @@ export const FIRST_CALL_DEFER_MS = 3 * 24 * 60 * 60 * 1000;
 export const useFirstCallStore = create<FirstCallState>()(
   persist(
     (set) => ({
+      acceptedPreSignup: false,
       deferredAt: null,
       noHeadphones: false,
       defer: () => set({ deferredAt: Date.now() }),
       markNoHeadphones: () => set({ noHeadphones: true, deferredAt: Date.now() }),
       clearDeferral: () => set({ deferredAt: null, noHeadphones: false }),
+      acceptPreSignup: () => set({ acceptedPreSignup: true }),
+      clearPreSignup: () => set({ acceptedPreSignup: false }),
     }),
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_FIRST_CALL,

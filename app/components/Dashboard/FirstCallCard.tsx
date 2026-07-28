@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { FirstCallOffer, fetchFirstCallOffer } from "../../api/firstCall";
 import {
@@ -46,6 +46,8 @@ const FirstCallCard: React.FC = () => {
 
   const takenAt = useUserStore((s) => s.user?.firstCallTakenAt);
 
+  const acceptedPreSignup = useFirstCallStore((s) => s.acceptedPreSignup);
+  const clearPreSignup = useFirstCallStore((s) => s.clearPreSignup);
   const deferredAt = useFirstCallStore((s) => s.deferredAt);
   const noHeadphones = useFirstCallStore((s) => s.noHeadphones);
   const quiet = isFirstCallQuieted({ deferredAt, noHeadphones });
@@ -78,6 +80,32 @@ const FirstCallCard: React.FC = () => {
     // Fetched once per mount; Home remounts this on pull-to-refresh via its key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alreadyTaken]);
+
+  /**
+   * THEY ALREADY SAID YES — BEFORE THEY HAD AN ACCOUNT.
+   *
+   * The offer is made after Act 1's questions, where there is no session to
+   * hold anything, so the answer rode across signup on the device. This is
+   * where it is honoured: the first time they reach Home, the phone rings
+   * rather than a card appearing that asks them the same question again.
+   *
+   * Waits for the server's answer rather than trusting the device flag — the
+   * flag is an intention, and only `GET /first-call` knows whether there is
+   * still a call. Cleared before navigating, and ref-guarded, because a second
+   * firing would push a duplicate screen onto the stack.
+   */
+  const honoured = useRef(false);
+  useEffect(() => {
+    if (honoured.current || !acceptedPreSignup) return;
+    if (!offer) return; // still asking
+    honoured.current = true;
+    clearPreSignup();
+    if (offer.available && offer.scenario) {
+      navigation.navigate("FirstCall", { offer });
+    }
+    // An unavailable offer needs no apology: they never saw a promise that
+    // this exact moment would happen, only that the call would come.
+  }, [acceptedPreSignup, offer, clearPreSignup, navigation]);
 
   const scenario = offer?.available ? offer.scenario : undefined;
   // `alreadyTaken` is re-checked at RENDER, not just before the fetch. Home

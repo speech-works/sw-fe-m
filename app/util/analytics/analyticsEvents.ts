@@ -113,6 +113,11 @@ export const ANALYTICS_EVENTS = {
     // the drop between any two steps IS the conversion rate for that step. The
     // steps are deliberately fine-grained around the headphone gate, which is
     // the one place we knowingly stand between somebody and the experience.
+    // Pre-signup: the offer is made after Act 1's questions, so these three
+    // fire with no user attached and join up on signup.
+    FIRST_CALL_PRESIGNUP_SHOWN: 'first_call_presignup_shown',       // props: { action, callerName }
+    FIRST_CALL_PRESIGNUP_ACCEPTED: 'first_call_presignup_accepted', // props: { action, callerName }
+    FIRST_CALL_PRESIGNUP_DECLINED: 'first_call_presignup_declined', // props: { action }
     FIRST_CALL_OFFERED: 'first_call_offered',           // props: { action, callerName, quiet }
     FIRST_CALL_OPENED: 'first_call_opened',             // props: { action, quiet }
     FIRST_CALL_GATE_PASSED: 'first_call_gate_passed',   // props: { attempts }
