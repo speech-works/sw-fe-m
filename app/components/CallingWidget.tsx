@@ -32,7 +32,7 @@ import * as Localization from "expo-localization";
 
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
-import { makeStyles, useTheme, withAlpha, radius } from "../design-system";
+import { makeStyles, useTheme, withAlpha, radius, spacing } from "../design-system";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 
@@ -98,6 +98,10 @@ type Props = {
   autoStart?: boolean;
 };
 const DEFAULT_SAMPLE_RATE = 24000;
+
+/** The container's bottom padding — shared so the floating suggestions panel
+ *  and the dock can never disagree about where the bottom of the screen is. */
+const DOCK_BOTTOM_INSET = 40;
 const CALL_DEBUG_LOGS_ENABLED = __DEV__;
 
 const callDebugLog = (...args: unknown[]) => {
@@ -474,6 +478,14 @@ const CallingWidget: React.FC<Props> = ({
   // --- ⬇️ ADDED: State for notification dot ⬇️ ---
   const [showNotificationDot, setShowNotificationDot] = useState(false);
   // --- ⬇️ ADDED: Cost control state ⬇️ ---
+  /**
+   * Measured height of the control dock.
+   *
+   * The suggestions panel floats above it, and "above it" has to be a real
+   * number: the end-call button is taller than the pill it sits in, so the
+   * dock's height is not something that can be assumed from its padding.
+   */
+  const [dockHeight, setDockHeight] = useState(0);
   const [idleWarningVisible, setIdleWarningVisible] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState<number | null>(null);
   const [callEndReason, setCallEndReason] = useState<string | null>(null);
@@ -3041,9 +3053,24 @@ const CallingWidget: React.FC<Props> = ({
           </View>
         </View>
       </Modal>
-      {/* --- SUGGESTIONS (Floating) --- */}
+      {/* --- SUGGESTIONS --- */}
+      {/* NOW ACTUALLY FLOATING, which the comment above it has always claimed.
+          It was a normal block in a `space-between` column, so the moment the
+          agent sent suggestions mid-call the panel's ~250pt of height entered
+          the layout and pushed the dock off the bottom of the screen — the call
+          controls left the viewport at exactly the moment they became useful.
+
+          Absolute takes it out of the height calculation entirely, so the dock
+          cannot move no matter what arrives. Anchored to the MEASURED dock
+          height rather than a guess, and capped so a long list overlays the orb
+          instead of growing under the status bar. */}
       {showTips && suggestedResponses.length > 0 && (
-        <View style={styles.glassTipsContainer}>
+        <View
+          style={[
+            styles.glassTipsContainer,
+            { bottom: dockHeight + DOCK_BOTTOM_INSET + spacing.lg },
+          ]}
+        >
           <Text style={styles.tipsTitleModern}>SUGGESTIONS</Text>
           <View style={styles.tipsButtonRow}>
             {suggestedResponses.map((text, i) => (
@@ -3062,7 +3089,10 @@ const CallingWidget: React.FC<Props> = ({
       )}
 
       {/* --- CONTROLS DOCK --- */}
-      <View style={styles.controlsDock}>
+      <View
+        style={styles.controlsDock}
+        onLayout={(e) => setDockHeight(e.nativeEvent.layout.height)}
+      >
         {/* Mute */}
         <TouchableOpacity
           style={[
@@ -3392,7 +3422,7 @@ const useStyles = makeStyles((c) => ({
     flexDirection: "column",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingBottom: 40, // Reduced from 60
+    paddingBottom: DOCK_BOTTOM_INSET,
     paddingTop: 40, // Reduced from 60
   },
 
@@ -3588,11 +3618,16 @@ const useStyles = makeStyles((c) => ({
 
   // Tips / Suggestions Container
   glassTipsContainer: {
-    width: "90%",
+    // Floats above the dock — `bottom` is applied inline from the measured
+    // dock height. left/right rather than width+alignSelf so the centring is
+    // deterministic for an absolutely-positioned child.
+    position: "absolute",
+    left: "5%",
+    right: "5%",
+    maxHeight: "42%",
     backgroundColor: c.surface.material,
     borderRadius: 24,
-    padding: 20, // More padding
-    marginBottom: 30,
+    padding: 20,
     borderWidth: 1,
     borderColor: c.border.default,
     shadowColor: c.shadow,
