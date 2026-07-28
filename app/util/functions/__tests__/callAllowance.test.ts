@@ -1,5 +1,5 @@
-import { describeAllowance } from "../../util/functions/callAllowance";
-import type { Wallet } from "../../api/users";
+import { describeAllowance } from "../callAllowance";
+import type { Wallet } from "../../../api/users";
 
 /**
  * ============================================================================
@@ -36,10 +36,10 @@ describe("what the call badge says", () => {
     expect(describeAllowance(wallet({}), NOW)).toBeNull();
   });
 
-  it("announces a free call when one is waiting", () => {
+  it("badges the card when a free call is waiting", () => {
     expect(
       describeAllowance(wallet({ freeCallAvailable: true }), NOW),
-    ).toEqual({ label: "READY", ready: true });
+    ).toEqual({ badge: "FREE CALL", subtitle: null });
   });
 
   it("counts bought credits ahead of the weekly call", () => {
@@ -50,11 +50,11 @@ describe("what the call badge says", () => {
         wallet({ balance: 3, freeCallAvailable: false, nextFreeCallAt: inHours(72) }),
         NOW,
       ),
-    ).toEqual({ label: "3 CALLS", ready: true });
+    ).toEqual({ badge: "3 CALLS", subtitle: null });
   });
 
   it("gets the singular right", () => {
-    expect(describeAllowance(wallet({ balance: 1 }), NOW)).toEqual({ label: "1 CALL", ready: true });
+    expect(describeAllowance(wallet({ balance: 1 }), NOW)).toEqual({ badge: "1 CALL", subtitle: null });
   });
 
   it("counts down in days once the call is spent", () => {
@@ -63,7 +63,7 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(72) }),
         NOW,
       ),
-    ).toEqual({ label: "IN 3 DAYS", ready: false });
+    ).toEqual({ badge: null, subtitle: "Next free call in 3 days" });
   });
 
   it("ROUNDS UP, so it never promises the call early", () => {
@@ -76,22 +76,22 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(77) }),
         NOW,
       ),
-    ).toEqual({ label: "IN 4 DAYS", ready: false });
+    ).toEqual({ badge: null, subtitle: "Next free call in 4 days" });
   });
 
-  it("says TOMORROW rather than 'IN 1 DAYS'", () => {
+  it("says tomorrow rather than 'in 1 days'", () => {
     expect(
       describeAllowance(
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(5) }),
         NOW,
       ),
-    ).toEqual({ label: "TOMORROW", ready: false });
+    ).toEqual({ badge: null, subtitle: "Next free call tomorrow" });
     expect(
       describeAllowance(
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(23) }),
         NOW,
       ),
-    ).toEqual({ label: "TOMORROW", ready: false });
+    ).toEqual({ badge: null, subtitle: "Next free call tomorrow" });
   });
 
   it("treats a countdown that has already elapsed as ready", () => {
@@ -102,7 +102,7 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(-1) }),
         NOW,
       ),
-    ).toEqual({ label: "READY", ready: true });
+    ).toEqual({ badge: "FREE CALL", subtitle: null });
   });
 
   it("says nothing rather than NaN when the date is unparseable", () => {
@@ -124,23 +124,49 @@ describe("what the call badge says", () => {
         NOW,
       );
       expect(label).not.toBeNull();
-      const days = Number(/IN (\d+) DAYS/.exec(label!.label)?.[1] ?? 1);
+      const days = Number(/in (\d+) days/.exec(label!.subtitle ?? "")?.[1] ?? 1);
       expect(days).toBeLessThanOrEqual(7);
       expect(days).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it("keeps every label short enough for the corner pill", () => {
+  it("keeps every badge short enough for the corner pill", () => {
     // It is the corner pill the cognitive cards use for "FREE"; anything much
     // longer than "TOP MATCH" overhangs the card edge and wraps.
-    const labels = [
+    const badges = [
       describeAllowance(wallet({ freeCallAvailable: true }), NOW),
       describeAllowance(wallet({ balance: 12 }), NOW),
+    ];
+    for (const b of badges) expect(b!.badge!.length).toBeLessThanOrEqual(12);
+  });
+
+  it("badges only good news, and never both at once", () => {
+    // The pill is a POSITIVE claim — the same role "FREE" plays on the
+    // cognitive cards. The spent state has no pill at all: a muted one
+    // disappeared against the dark canvas it overhangs, and an invisible badge
+    // is worse than an absent one. The two slots are mutually exclusive, so a
+    // card can never show a green "available" pill over a waiting subtitle.
+    const cases = [
+      describeAllowance(wallet({ freeCallAvailable: true }), NOW),
+      describeAllowance(wallet({ balance: 2 }), NOW),
       describeAllowance(
-        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(7 * 24) }),
+        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(50) }),
         NOW,
       ),
     ];
-    for (const l of labels) expect(l!.label.length).toBeLessThanOrEqual(12);
+    for (const c of cases) {
+      expect(Boolean(c!.badge) !== Boolean(c!.subtitle)).toBe(true);
+    }
+  });
+
+  it("spells the wait out, because a bare countdown does not say what for", () => {
+    // "IN 7 DAYS" in a corner pill could mean the activity takes a week, or
+    // expires in one. The subtitle has room to name the thing being waited on.
+    const spent = describeAllowance(
+      wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(5 * 24) }),
+      NOW,
+    );
+    expect(spent!.subtitle).toBe("Next free call in 5 days");
+    expect(spent!.subtitle).toMatch(/free call/);
   });
 });

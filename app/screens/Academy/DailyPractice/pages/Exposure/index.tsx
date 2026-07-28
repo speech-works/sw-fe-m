@@ -5,8 +5,8 @@ import {
   PracticeIcon,
   haloAccentFor,
 } from "../../../../../assets/practice-icons/PracticeIcon";
-import CallAllowanceBadge from "../../../../../components/CallAllowanceBadge";
 import PressableScale from "../../../../../components/PressableScale";
+import { useCallAllowance } from "../../../../../hooks/useCallAllowance";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
   EDPStackNavigationProp,
@@ -34,6 +34,7 @@ const Exposure = () => {
   const { colors } = useTheme();
   const { user } = useUserStore();
   const { categories, fetchSummary } = usePracticeCategorySummaryStore();
+  const allowance = useCallAllowance();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -55,13 +56,13 @@ const Exposure = () => {
     accent: ExposureAccent;
     disabled: boolean;
     /**
-     * Spends the call allowance, so it shows what is left.
+     * Spends a CALL CREDIT rather than stamina, so the card carries the limit.
      *
-     * BOTH call cards carry it, and that is not a nicety. The gate keys on the
-     * scenario having `phoneCallData`, and the interview scenarios are
-     * PHONE_CALL rows like any other — so a mock interview burns the same
-     * weekly call. Badging only one of them would make the badge wrong the
-     * first time somebody practises an interview.
+     * Only the AI call does. Interview Simulation loads `type = INTERVIEW`,
+     * whose rows carry no `phoneCallData` — and `phoneCallData` is exactly
+     * what the credit gate keys on — so it reserves stamina like every other
+     * activity. (The interview-sounding names in the PHONE_CALL table belong
+     * to the Interview Ready pack, which is a different thing from this card.)
      */
     spendsCall?: boolean;
   }> = [
@@ -80,7 +81,6 @@ const Exposure = () => {
       iconName: "exposure-interview-simulation",
       accent: "danger", // rose/red
       disabled: false,
-      spendsCall: true,
     },
     {
       title: "AI Phone Calls",
@@ -130,7 +130,11 @@ const Exposure = () => {
                       {item.title}
                     </Text>
                     <Text variant="body" color={on} style={styles.subtitle}>
-                      {item.subtitle}
+                      {/* While the free call is spent the subtitle carries the
+                          wait, because a whole sentence here cannot be misread
+                          the way a three-word corner pill could. */}
+                      {(item.spendsCall && allowance?.subtitle) ||
+                        item.subtitle}
                     </Text>
                   </View>
                   <View style={styles.iconContainer} pointerEvents="none">
@@ -181,10 +185,26 @@ const Exposure = () => {
                 )}
               </View>
 
-              {/* OUTSIDE the fill, which clips its overflow — this pill hangs
-                  off the corner, exactly as the cognitive cards' FREE badge
-                  does. */}
-              {item.spendsCall ? <CallAllowanceBadge /> : null}
+              {/* Outside the fill, which clips its overflow — this pill hangs
+                  off the corner, and it is the SAME green pill the cognitive
+                  cards wear for FREE.
+
+                  It only ever appears when there is a call to take. A muted
+                  "spent" version of it vanished against the dark canvas it
+                  overhangs, and a badge that is invisible half the time is
+                  worse than one that simply is not there. */}
+              {item.spendsCall && allowance?.badge ? (
+                <View
+                  style={[
+                    styles.cornerBadge,
+                    { backgroundColor: colors.accent.success },
+                  ]}
+                >
+                  <Text variant="label" color={colors.accentOn.success}>
+                    {allowance.badge}
+                  </Text>
+                </View>
+              ) : null}
             </PressableScale>
           );
         })}
@@ -240,6 +260,17 @@ const styles = StyleSheet.create({
   iconWrapper: {
     transform: [{ scale: 1.2 }, { rotate: "-10deg" }],
     opacity: 0.9,
+  },
+  // Copied verbatim from CognitivePractice's `cornerBadge` — same pill, same
+  // overhang, same stacking. Do not re-derive these from tokens.
+  cornerBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.chip,
+    zIndex: 10,
   },
   startChip: {
     flexDirection: "row",
