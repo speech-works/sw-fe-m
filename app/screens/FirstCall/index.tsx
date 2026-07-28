@@ -25,6 +25,7 @@ import { useMarkActivityStart } from "../../hooks/useMarkActivityStart";
 import { useActivityStore } from "../../stores/activity";
 import { useAICallConsentStore } from "../../stores/aiCallConsent";
 import { useFirstCallStore } from "../../stores/firstCall";
+import { useOnboardingDraftStore } from "../../stores/onboardingDraft";
 import { useUserStore } from "../../stores/user";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { track } from "../../util/analytics/postHog";
@@ -66,6 +67,9 @@ const RINGING_SOUND_FILE = require("../../assets/sounds/dial-tone_us.wav");
  * ============================================================================
  */
 
+/** How long to wait for the Act 1 replay before asking anyway. */
+const REPLAY_WAIT_MS = 6000;
+
 type Phase =
   | "loading"
   | "gate"
@@ -75,7 +79,23 @@ type Phase =
   | "failed"
   | "gone";
 
-const FirstCall = () => {
+interface FirstCallProps {
+  /**
+   * Rendered as its own navigator, straight after signup, for somebody who
+   * accepted the call BEFORE they had an account — rather than reached here
+   * from Home.
+   *
+   * The difference is that there is no app behind this screen yet: no tab bar
+   * to go back to and no ExploreStack to send them to. So `standalone` swaps
+   * every "leave" for a callback the host owns, and the host uses it to hand
+   * them on to the rest of onboarding.
+   */
+  standalone?: boolean;
+  /** Standalone only: the flow is over, by any route including failure. */
+  onFinished?: () => void;
+}
+
+const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const styles = useStyles();
@@ -147,8 +167,45 @@ const FirstCall = () => {
   const needsConsent =
     consentHydrated && !aiConsented && !user?.aiCallConsentAt;
 
+  /**
+   * WAIT FOR THE ANSWERS TO LAND BEFORE ASKING WHO IS CALLING.
+   *
+   * Act 1's answers live on the device until signup, and MainNavigator replays
+   * them in an effect that races this screen's mount. Ask too early and the
+   * server has no signals to match on, so it falls back to the default caller
+   * — and the pre-signup screen has already promised a name. Being handed
+   * Sofia after being told Omar would ring is the one way this screen can
+   * quietly break its own promise.
+   *
+   * `hasPendingReplay()` goes false either when the replay succeeds or when
+   * there was nothing to replay, so the gate opens on both. The ceiling exists
+   * because a FAILED replay leaves it pending forever: after that we ask
+   * anyway and take the default, which is a worse call than we meant to give
+   * but far better than a spinner that never resolves.
+   */
+  const [replayed, setReplayed] = useState(
+    () => !standalone || !useOnboardingDraftStore.getState().hasPendingReplay(),
+  );
   useEffect(() => {
-    if (seeded?.scenario) return;
+    if (replayed) return;
+    // `hasPendingReplay` reads the live store rather than the emitted state,
+    // so it is called off getState() — the subscription is only the trigger.
+    // It flips false the moment `markReplayed` runs, which is immediately
+    // after the server acknowledges the answers: exactly the right moment.
+    const unsub = useOnboardingDraftStore.subscribe(() => {
+      if (!useOnboardingDraftStore.getState().hasPendingReplay()) {
+        setReplayed(true);
+      }
+    });
+    const ceiling = setTimeout(() => setReplayed(true), REPLAY_WAIT_MS);
+    return () => {
+      unsub();
+      clearTimeout(ceiling);
+    };
+  }, [replayed]);
+
+  useEffect(() => {
+    if (seeded?.scenario || !replayed) return;
     let alive = true;
     (async () => {
       const fresh = await fetchFirstCallOffer();
@@ -159,7 +216,18 @@ const FirstCall = () => {
     return () => {
       alive = false;
     };
-  }, [seeded]);
+  }, [seeded, replayed]);
+
+  /**
+   * Nothing to offer, and nobody to tell. On Home this renders an explanation
+   * with a way back; here there is no "back" and no context in which the
+   * message would mean anything — they signed up seconds ago. So it hands
+   * straight on to onboarding, and the offer (which the server still holds) is
+   * made again from Home in the ordinary way.
+   */
+  useEffect(() => {
+    if (standalone && phase === "gone") onFinished?.();
+  }, [standalone, phase, onFinished]);
 
   useEffect(() => {
     if (phase === "gate" && scenario) {
@@ -172,9 +240,13 @@ const FirstCall = () => {
   }, [phase === "gate", scenario?.activityId]);
 
   const leave = useCallback(() => {
+    if (standalone) {
+      onFinished?.();
+      return;
+    }
     if (navigation.canGoBack()) navigation.goBack();
     else navigation.navigate("Root", { screen: "HOME" });
-  }, [navigation]);
+  }, [standalone, onFinished, navigation]);
 
   /**
    * Creates and starts the practice activity — THE MOMENT THE OFFER IS SPENT.
@@ -450,10 +522,17 @@ const FirstCall = () => {
           onBreathe={() => {
             track(ANALYTICS_EVENTS.FIRST_CALL_FEELING, { feeling: "alot" });
             track(ANALYTICS_EVENTS.FIRST_CALL_BREATHING_TAKEN);
-            navigation.replace("ExploreStack", {
-              screen: "Breathing",
-              params: { from: "HOME" },
-            });
+            if (standalone) {
+              // Pushed, not replaced: Breathing's no-params exit is goBack(),
+              // which needs something to go back TO. It lands here, on the
+              // check-in, and one tap finishes the flow.
+              navigation.navigate("Breathing");
+            } else {
+              navigation.replace("ExploreStack", {
+                screen: "Breathing",
+                params: { from: "HOME" },
+              });
+            }
           }}
           onFinish={(feeling: AfterCallFeeling | null) => {
             track(ANALYTICS_EVENTS.FIRST_CALL_FEELING, { feeling });

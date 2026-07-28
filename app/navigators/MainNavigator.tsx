@@ -3,10 +3,12 @@ import { AuthContext } from "../contexts/AuthContext";
 import AppNavigator from "./AppNavigator";
 import AuthNavigator from "./AuthNavigator";
 import OnboardingStackNavigator from "./stacks/OnboardingStack";
+import FirstCallNavigator from "./FirstCallNavigator";
 
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { useUserStore } from "../stores/user";
+import { useFirstCallStore } from "../stores/firstCall";
 import { replayOnboardingDraft } from "../util/functions/replayOnboardingDraft";
 
 export default function MainNavigator() {
@@ -16,6 +18,10 @@ export default function MainNavigator() {
   const userId = user?.id;
 
   const { events, clear } = useEventStore();
+
+  // Said yes to the call before signing up — see the branch below.
+  const acceptedPreSignup = useFirstCallStore((s) => s.acceptedPreSignup);
+  const clearPreSignup = useFirstCallStore((s) => s.clearPreSignup);
 
   // prevents auto-onboarding AFTER a skip (only for this session)
   const [suppressAutoOnboarding, setSuppressAutoOnboarding] = useState(false);
@@ -102,6 +108,23 @@ export default function MainNavigator() {
   // Routing decision
   // -----------------------------
   if (!isLoggedIn) return <AuthNavigator />;
+
+  // THE CALL THEY ALREADY SAID YES TO, BEFORE ANYTHING ELSE.
+  //
+  // Somebody who tapped "I'll take the call" on the last pre-signup screen and
+  // then had to answer twelve more questions has been told one thing and given
+  // another. It also buys nothing: the caller is matched from the two Act 1
+  // answers they have already given, so the remaining questions cannot improve
+  // it.
+  //
+  // The blast radius of a branch in this file is normally everybody, which is
+  // why it is guarded on a flag only those people can have set. The flag is
+  // cleared by `onFinished` on EVERY exit — taken, declined, deferred, or
+  // failed — so nobody can be parked here; the render then falls through to
+  // the onboarding branch below on the next pass.
+  if (user && acceptedPreSignup) {
+    return <FirstCallNavigator onFinished={clearPreSignup} />;
+  }
 
   // If the user explicitly opened onboarding (card)
   if (forceOnboarding) {
