@@ -37,6 +37,20 @@ const Exposure = () => {
   const { categories, fetchSummary } = usePracticeCategorySummaryStore();
   const allowance = useCallAllowance();
 
+  /**
+   * Bumped on every arrival, so the countdown's flip tile plays each visit.
+   *
+   * Navigation keeps this screen mounted behind whatever is pushed on top of
+   * it, so a mount-only animation fires once in a session and is then gone for
+   * good — which is exactly what it did, invisibly, under the push transition.
+   */
+  const [visitKey, setVisitKey] = React.useState(0);
+  useFocusEffect(
+    React.useCallback(() => {
+      setVisitKey((k) => k + 1);
+    }, []),
+  );
+
   useFocusEffect(
     React.useCallback(() => {
       if (!user?.id) {
@@ -146,6 +160,7 @@ const Exposure = () => {
                         </Text>
                         <FlipDigit
                           value={allowance.countdown.days}
+                          playKey={visitKey}
                           variant="body"
                           color={on}
                         />

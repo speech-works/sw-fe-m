@@ -20,11 +20,31 @@ export interface FlipDigitProps {
   towards?: number;
   variant?: TypographyVariant;
   color?: TextProps["color"];
+  /**
+   * Change this to play it again.
+   *
+   * Without it the flap fires once and never again: `value` is stable within a
+   * session, and React Navigation keeps a screen mounted behind whatever you
+   * push on top of it — so returning to the card replayed nothing. Pass a
+   * counter bumped on focus and every visit gets the animation.
+   */
+  playKey?: string | number;
 }
 
 /** How far the flap gets before gravity wins. Far enough to read as an attempt,
  *  short of the 90° that would complete the flip and tell a lie. */
-const TIP_DEG = 52;
+const TIP_DEG = 62;
+
+/**
+ * Wait for the screen to arrive before moving.
+ *
+ * This used to start the moment the wallet resolved — about 50ms — which put
+ * the whole flip UNDERNEATH the navigation transition that was still sliding
+ * the card into place. Two things moving at once and you register neither.
+ * The delay is not sluggishness: nothing here is responding to a tap, so there
+ * is no input latency to protect. It is just waiting until somebody is looking.
+ */
+const ENTRANCE_MS = 420;
 /** Lower = stronger foreshortening. Tuned against the body type size. */
 const PERSPECTIVE = 260;
 
@@ -53,6 +73,7 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
   towards,
   variant = "body",
   color,
+  playKey,
 }) => {
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(0);
@@ -60,14 +81,18 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
 
   useEffect(() => {
     if (reduceMotion) return;
-    t.value = withSequence(
-      // The attempt: quick, ease-out, so the movement is felt immediately.
-      withTiming(1, { duration: duration.reveal, easing: easing.out }),
-      // The hesitation, then the fall back. Spring rather than timing so it
-      // settles with a little weight instead of arriving on a schedule.
-      withDelay(120, withSpring(0, spring.gentle)),
+    t.value = withDelay(
+      ENTRANCE_MS,
+      withSequence(
+        // The attempt: quick, ease-out, so the movement is felt immediately.
+        withTiming(1, { duration: duration.reveal, easing: easing.out }),
+        // The hesitation — long enough to read as "stuck", not as a stumble —
+        // then the fall back. Spring rather than timing so it settles with a
+        // little weight instead of arriving on a schedule.
+        withDelay(180, withSpring(0, spring.gentle)),
+      ),
     );
-  }, [value, reduceMotion, t]);
+  }, [value, playKey, reduceMotion, t]);
 
   const frontStyle = useAnimatedStyle(() => ({
     transform: [
@@ -81,7 +106,7 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
 
   // Only visible through the gap the front flap opens. At rest it is fully
   // transparent, so the two digits never sit stacked on top of each other.
-  const behindStyle = useAnimatedStyle(() => ({ opacity: t.value * 0.55 }));
+  const behindStyle = useAnimatedStyle(() => ({ opacity: t.value * 0.72 }));
 
   if (reduceMotion) {
     return (
