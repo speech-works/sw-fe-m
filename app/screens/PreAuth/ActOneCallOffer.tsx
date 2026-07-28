@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +8,7 @@ import ScreenView from "../../components/ScreenView";
 import {
   Button,
   SchemeStatusBar,
+  Sheet,
   Text,
   space,
   spacing,
@@ -85,6 +86,14 @@ const ActOneCallOffer: React.FC = () => {
   const acceptPreSignup = useFirstCallStore((s) => s.acceptPreSignup);
 
   const [cast, setCast] = useState<CallerPreview[] | null>(null);
+  const [signupOpen, setSignupOpen] = useState(false);
+  /**
+   * Navigation is deferred to the sheet's `onDismissed`, never fired while it
+   * is open. The sheet is a native Modal, and pushing a screen underneath one
+   * leaves it lingering over the new screen — on iOS a second stacked native
+   * Modal freezes touches app-wide.
+   */
+  const goingToAuth = useRef(false);
   /** Measured height of the illustration slot — see the note in WelcomeStage. */
   const [stageHeight, setStageHeight] = useState(0);
 
@@ -188,8 +197,7 @@ const ActOneCallOffer: React.FC = () => {
                 action: act,
                 callerName: caller.callerName,
               });
-              acceptPreSignup();
-              navigation.navigate("Auth");
+              setSignupOpen(true);
             }}
           />
         </Animated.View>
@@ -215,15 +223,73 @@ const ActOneCallOffer: React.FC = () => {
           </Text>
         </Animated.View>
 
-        {/* Said BEFORE the tap, not discovered after it — and cut to a single
-            line. The two-line version wrapped mid-sentence and left an orphan,
-            which is what turns a footnote into a paragraph. */}
-        <Animated.View entering={motion.stagger(5)}>
-          <Text variant="caption" color="tertiary" center style={styles.noteRow}>
-            Account first, then {caller.callerName} rings.
-          </Text>
-        </Animated.View>
       </View>
+
+      {/*
+        THE ACCOUNT STEP, EXPLAINED AT THE MOMENT IT MATTERS.
+
+        It replaced a caption sitting under the button ("Account first, then
+        Omar rings.") — read by nobody, because a footnote is what people skip
+        on the way to the thing they already decided to tap.
+
+        The reason it gives is the TRUE one, and it happens to be the most
+        reassuring thing we can say: their answers really are still on this
+        phone. Nothing has been sent anywhere. That is a fact about our
+        restraint, not a feature pitch, and it makes the account a way to keep
+        something of theirs rather than a toll on the way to the call.
+
+        "So we can track your progress" was the obvious line and it is the
+        weaker one — it explains what WE get.
+      */}
+      <Sheet
+        visible={signupOpen}
+        onClose={() => setSignupOpen(false)}
+        onDismissed={() => {
+          if (!goingToAuth.current) return;
+          goingToAuth.current = false;
+          acceptPreSignup();
+          navigation.navigate("Auth");
+        }}
+      >
+        <View style={styles.sheet}>
+          <Text variant="h2" color="primary">
+            Before {caller.callerName} calls
+          </Text>
+
+          <Text variant="body" color="secondary">
+            Your answers are on this phone and nowhere else — we haven&apos;t
+            sent them anywhere. Making an account is what carries them over, so
+            the call is about what you actually told us.
+          </Text>
+
+          <Text variant="body" color="secondary">
+            It is also what lets this one count, instead of being a one-off you
+            have nothing to show for.
+          </Text>
+
+          <Text variant="caption" color="tertiary">
+            Google or Apple — there is no form to fill in.
+          </Text>
+
+          <Button
+            label="Create my account"
+            onPress={() => {
+              goingToAuth.current = true;
+              setSignupOpen(false);
+            }}
+          />
+
+          <Text
+            variant="bodySm"
+            color="secondary"
+            center
+            style={styles.sheetCancel}
+            onPress={() => setSignupOpen(false)}
+          >
+            Not yet
+          </Text>
+        </View>
+      </Sheet>
     </ScreenView>
   );
 };
@@ -264,7 +330,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.md,
   },
-  noteRow: {
+  sheet: {
+    gap: space.groupGap,
+  },
+  sheetCancel: {
     paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.md,
