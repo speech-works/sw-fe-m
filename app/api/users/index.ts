@@ -249,6 +249,19 @@ export interface Wallet {
   balance: number;
   entitlements: EntitlementKey[];
   founderCohort: boolean;
+  /**
+   * The free weekly call — one every seven days for a user with no credits.
+   *
+   * Both fields are computed by the server from the SAME code the start-gate
+   * runs, so a card that says "Free call ready" cannot sit over a screen that
+   * refuses to dial. Do NOT re-derive either of these from a timestamp in the
+   * app: the window is a rolling seven days from the last call (nothing resets
+   * on a Monday), and the gate decides under a row lock that no client-side
+   * arithmetic can reproduce.
+   */
+  freeCallAvailable?: boolean;
+  /** ISO instant the next free call unlocks; null while one is available. */
+  nextFreeCallAt?: string | null;
 }
 
 // One purchasable pack from GET /users/me/offers. The store `tierProductId`

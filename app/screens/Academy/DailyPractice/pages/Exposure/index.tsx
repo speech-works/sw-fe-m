@@ -5,6 +5,7 @@ import {
   PracticeIcon,
   haloAccentFor,
 } from "../../../../../assets/practice-icons/PracticeIcon";
+import CallAllowanceBadge from "../../../../../components/CallAllowanceBadge";
 import PressableScale from "../../../../../components/PressableScale";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -53,6 +54,16 @@ const Exposure = () => {
     iconName: string;
     accent: ExposureAccent;
     disabled: boolean;
+    /**
+     * Spends the call allowance, so it shows what is left.
+     *
+     * BOTH call cards carry it, and that is not a nicety. The gate keys on the
+     * scenario having `phoneCallData`, and the interview scenarios are
+     * PHONE_CALL rows like any other — so a mock interview burns the same
+     * weekly call. Badging only one of them would make the badge wrong the
+     * first time somebody practises an interview.
+     */
+    spendsCall?: boolean;
   }> = [
     {
       title: "Social Challenges",
@@ -64,19 +75,24 @@ const Exposure = () => {
     },
     {
       title: "Interview Simulation",
-      subtitle: "AI-powered practice",
+      subtitle: "A mock interview, out loud",
       onPress: () => navigation.navigate("InterviewSimulationStack"),
       iconName: "exposure-interview-simulation",
       accent: "danger", // rose/red
       disabled: false,
+      spendsCall: true,
     },
     {
       title: "AI Phone Calls",
-      subtitle: "Speak freely, without hesitation",
+      // Was "Speak freely, without hesitation" — a promise about FLUENCY, from
+      // the one product that refuses to measure it. Someone who blocks halfway
+      // through the call had been told by this card that the activity failed.
+      subtitle: "One free call a week",
       onPress: () => navigation.navigate("PhoneCallStack"),
       iconName: "exposure-ai-phone-calls",
       accent: "purple", // pink → next-closest distinct role
       disabled: false,
+      spendsCall: true,
     },
   ];
 
@@ -129,40 +145,47 @@ const Exposure = () => {
                   </View>
                 </View>
 
-                {!item.disabled ? (
-                  /* Start affordance — a small surface chip (the in-app card-chip pattern). */
-                  <View
-                    style={[
-                      styles.startChip,
-                      { backgroundColor: colors.surface.default },
-                    ]}
-                  >
-                    <Icon
-                      name={icons.play}
-                      size={12}
-                      color={colors.text.primary}
-                    />
-                    <Text variant="label" color="primary">
-                      Start
-                    </Text>
-                  </View>
-                ) : (
-                  <View
-                    style={[
-                      styles.startChip,
-                      { backgroundColor: colors.surface.control },
-                    ]}
-                  >
-                    <Icon
-                      name={icons.locked}
-                      size={12}
-                      color={colors.text.secondary}
-                    />
-                    <Text variant="label" color="secondary">
-                      Locked
-                    </Text>
-                  </View>
-                )}
+                {/* Footer: the action on the left, what it costs on the right
+                    — the same composition the breathing card uses for its
+                    duration badge opposite "Change". */}
+                <View style={styles.cardFooter}>
+                  {!item.disabled ? (
+                    /* Start affordance — a small surface chip (the in-app card-chip pattern). */
+                    <View
+                      style={[
+                        styles.startChip,
+                        { backgroundColor: colors.surface.default },
+                      ]}
+                    >
+                      <Icon
+                        name={icons.play}
+                        size={12}
+                        color={colors.text.primary}
+                      />
+                      <Text variant="label" color="primary">
+                        Start
+                      </Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={[
+                        styles.startChip,
+                        { backgroundColor: colors.surface.control },
+                      ]}
+                    >
+                      <Icon
+                        name={icons.locked}
+                        size={12}
+                        color={colors.text.secondary}
+                      />
+                      <Text variant="label" color="secondary">
+                        Locked
+                      </Text>
+                    </View>
+                  )}
+
+                  {item.spendsCall ? <CallAllowanceBadge color={on} /> : null}
+                </View>
               </View>
             </PressableScale>
           );
@@ -219,6 +242,12 @@ const styles = StyleSheet.create({
   iconWrapper: {
     transform: [{ scale: 1.2 }, { rotate: "-10deg" }],
     opacity: 0.9,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 2,
   },
   startChip: {
     flexDirection: "row",
