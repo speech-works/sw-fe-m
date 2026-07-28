@@ -13,12 +13,14 @@ import { useOnboardingDraftStore } from "../../stores/onboardingDraft";
 import { useQuestionSource } from "./useQuestionSource";
 import {
   Button,
+  Gradient,
   IconButton,
   icons,
   SchemeStatusBar,
   space,
   spacing,
   useTheme,
+  withAlpha,
 } from "../../design-system";
 
 import {
@@ -45,6 +47,13 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 /** Pause after a single-select tap, so the choice is seen before we move on. */
 const AUTO_ADVANCE_MS = 260;
+
+/**
+ * How far the list must scroll past the floating dock: the button's own height
+ * plus the padding around it. Derived the same way as OnboardingDone's, so the
+ * last option always clears the CTA rather than stopping under it.
+ */
+const DOCK_CLEARANCE = 56 + spacing["2xl"] + spacing["3xl"];
 
 /**
  * "You arrived here by pressing Back."
@@ -497,7 +506,16 @@ const OnboardingQuestionScreen: React.FC = () => {
 
       <CustomScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            // Clear the floating dock, or nothing — the auto-advance screens
+            // have no button and would otherwise end in a band of dead space.
+            paddingBottom: usesAutoAdvanceRail
+              ? spacing["4xl"]
+              : insets.bottom + DOCK_CLEARANCE,
+          },
+        ]}
       >
         {screenQuestions.map((q) => {
           // 🟢 KEY FIX: choose adaptiveKey if exists, otherwise fallback to id
@@ -555,25 +573,45 @@ const OnboardingQuestionScreen: React.FC = () => {
         })}
       </CustomScrollView>
 
+      {/* FLOATING DOCK — the CTA sits ON the canvas, not in a boxed footer.
+          It used to be a sibling below the scroll view, so the list ended at
+          the button's top edge and the last option was sliced clean in half by
+          an opaque bar. Now the list runs the full height and the gradient
+          dissolves it into the canvas before it reaches the button, so content
+          fades out instead of being cut off, and nothing ever ghosts through
+          the label.
+
+          Same recipe as OnboardingDone, one screen further along in this very
+          flow — copied rather than re-derived so the two docks cannot drift. */}
       {!usesAutoAdvanceRail ? (
-        <View
-          style={[
-            styles.footerButton,
-            {
-              paddingBottom: Math.max(
-                insets.bottom + space.inlineGap,
-                spacing["2xl"],
-              ),
-            },
-          ]}
-        >
-          <Button
-            label={isLast ? "Complete" : "Next"}
-            disabled={!isCurrentScreenValid(screenNumber)}
-            onPress={handleNext}
+        <View style={styles.dock} pointerEvents="box-none">
+          <Gradient
+            colors={[
+              withAlpha(colors.background.canvas, 0),
+              colors.background.canvas,
+              colors.background.canvas,
+            ]}
+            locations={[0, 0.45, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.dockFade}
+            pointerEvents="none"
           />
+          <View
+            style={[
+              styles.dockInner,
+              { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
+            ]}
+          >
+            <Button
+              label={isLast ? "Complete" : "Next"}
+              disabled={!isCurrentScreenValid(screenNumber)}
+              onPress={handleNext}
+            />
+          </View>
         </View>
       ) : null}
+
     </ScreenView>
   );
 };
@@ -602,11 +640,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     gap: spacing["4xl"],
-    paddingBottom: spacing["4xl"],
     paddingHorizontal: space.screenX,
+    // paddingBottom is applied inline: it depends on whether the dock is there
+    // at all, and a fixed value would either strand content under the button or
+    // leave a dead gap on the auto-advance screens that have no button.
   },
-  footerButton: {
-    paddingTop: spacing.lg,
+  dock: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Headroom so the dissolve finishes above the button.
+    paddingTop: spacing["3xl"],
+  },
+  dockFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Begin the dissolve well above the dock: behind the CTA the backing is
+    // fully opaque, so the button always reads at full contrast.
+    top: -spacing["4xl"],
+  },
+  dockInner: {
     paddingHorizontal: space.screenX,
   },
 });
