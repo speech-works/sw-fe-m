@@ -34,8 +34,9 @@ import { isHeadsetConnected } from "../../util/functions/headset";
  * Same lockup as the pre-signup offer and the Act 1 welcome: the stage floating
  * in a flex slot that absorbs the slack, a bottom-anchored text block landing
  * on the CTA, then screenTitle / h3 / caption. The person who reaches this
- * screen saw "Maya would like to call you" a minute ago; the SAME picture with
- * a headphone badge added says "still Maya, one condition" without a word.
+ * screen saw "Maya would like to call you" a minute ago, so the name in the
+ * headline is all the continuity it needs — the picture is free to show the one
+ * thing this screen is actually about.
  *
  * A THREE-TIER FOOTER, not three orange things. The previous version stacked a
  * filled pill and two accent-coloured links at equal size, which gave three
@@ -47,8 +48,6 @@ import { isHeadsetConnected } from "../../util/functions/headset";
 
 interface Props {
   callerName: string;
-  /** Keeps the picture continuous with the screen before it. */
-  callerIcon?: string;
   /** Headphones confirmed — go and ring. */
   onReady: () => void;
   /** "Remind me later" — quiet for a few days. */
@@ -59,7 +58,6 @@ interface Props {
 
 const HeadphoneGate: React.FC<Props> = ({
   callerName,
-  callerIcon,
   onReady,
   onDefer,
   onNoHeadphones,
@@ -91,13 +89,18 @@ const HeadphoneGate: React.FC<Props> = ({
           entering={motion.stagger(0)}
           onLayout={(e) => setStageHeight(e.nativeEvent.layout.height)}
         >
-          {/* NOT pulsing. The pulse means "incoming" and nothing is incoming
-              yet — the call is held behind this screen. Reusing it here would
-              spend the signal before the moment it exists for. */}
+          {/* THE GLYPH IS THE HEADPHONES, not the caller with a headphone
+              badge stuck to them. A badge is a second object explaining the
+              first; the screen has exactly one condition, so it should show
+              exactly one thing. The caller's name is in the headline, which is
+              where a name belongs.
+
+              NOT pulsing. The pulse means "incoming" and nothing is incoming
+              yet — the call is held behind this screen. Spending the signal
+              here would cost it its meaning one screen later. */}
           <CallerStage
             available={stageHeight}
-            icon={callerIcon || "user"}
-            badge="headphones-alt"
+            icon="headphones-alt"
             pulsing={false}
           />
         </Animated.View>
@@ -114,8 +117,7 @@ const HeadphoneGate: React.FC<Props> = ({
           <Animated.View entering={motion.stagger(2)}>
             {/* Ours to fix, said as ours. Never "your setup won't work". */}
             <Text variant="h3" color="secondary">
-              We&apos;re still improving how calls work — for now, headphones
-              in, so you can hear {callerName} properly.
+              Calls need headphones for now — we&apos;re still working on that.
             </Text>
           </Animated.View>
 
@@ -128,8 +130,7 @@ const HeadphoneGate: React.FC<Props> = ({
             {missed ? (
               <Animated.View entering={FadeIn.duration(duration.base)}>
                 <Text variant="caption" color="tertiary">
-                  Still not seeing them — check they&apos;re plugged in or
-                  paired, then try again.
+                  Still not seeing them. Try again?
                 </Text>
               </Animated.View>
             ) : null}
@@ -206,9 +207,9 @@ const useStyles = () =>
     headline: {
       lineHeight: 40,
     },
-    // Two caption lines' worth, reserved. See the note at the call site.
+    // One caption line's worth, reserved. See the note at the call site.
     hintSlot: {
-      minHeight: 34,
+      minHeight: 18,
     },
     footer: {
       paddingHorizontal: space.screenX,

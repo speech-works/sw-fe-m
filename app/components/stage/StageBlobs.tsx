@@ -51,7 +51,18 @@ export const BLOB_BASE_ROTATE = -12;
  * different app rather than the next page of the same one. One implementation
  * is the only way that stays true after the next edit.
  */
-export const StageBlobs: React.FC<{ size: number }> = ({ size }) => {
+export const StageBlobs: React.FC<{
+  size: number;
+  /**
+   * How many blobs. Two overlap into a liquid, morphing field — right behind a
+   * character with three chips around it, where the extra depth reads as
+   * illustration. ONE is right behind a single centred object: the second
+   * shape's edge crosses the first's and the pair reads as a smudge with a
+   * seam rather than as one soft wash. Default stays two so the welcome stage
+   * is untouched.
+   */
+  layers?: 1 | 2;
+}> = ({ size, layers = 2 }) => {
   const { colors, scheme } = useTheme();
   const { reduced } = useMotion();
 
@@ -126,11 +137,13 @@ export const StageBlobs: React.FC<{ size: number }> = ({ size }) => {
 
   return (
     <>
-      <Animated.View style={[styles.blob, backBlobStyle]}>
-        <Svg width={size} height={size} viewBox="0 0 200 200" pointerEvents="none">
-          <Path d={BLOB_PATH} fill={backFill} />
-        </Svg>
-      </Animated.View>
+      {layers === 2 ? (
+        <Animated.View style={[styles.blob, backBlobStyle]}>
+          <Svg width={size} height={size} viewBox="0 0 200 200" pointerEvents="none">
+            <Path d={BLOB_PATH} fill={backFill} />
+          </Svg>
+        </Animated.View>
+      ) : null}
 
       <Animated.View style={[styles.blob, frontBlobStyle]}>
         <Svg width={size} height={size} viewBox="0 0 200 200" pointerEvents="none">

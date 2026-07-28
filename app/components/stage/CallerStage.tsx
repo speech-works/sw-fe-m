@@ -10,37 +10,39 @@ import Animated, {
   Easing as REasing,
 } from "react-native-reanimated";
 import FA5Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  Text,
-  radius,
-  spacing,
-  useMotion,
-  useTheme,
-} from "../../design-system";
+import { useMotion, useTheme, withAlpha } from "../../design-system";
 import { StageBlobs } from "./StageBlobs";
 
 /**
- * The call-offer illustration: somebody about to ring, on the same drifting
- * colour field the welcome and teaser screens stand on.
+ * The call illustration: one soft field, one object on it.
  *
- * IT IS THE WELCOME STAGE WITH A DIFFERENT PERSON ON IT. Same blob, same
- * drift, same bubble language — because this is the third screen of one
- * sequence and the composition holding still is what makes it read as the next
- * page rather than a different app. What changes is who is standing there: the
- * first two screens show the reader's own character, and this one shows
- * somebody else, which is the entire point of the screen.
+ * IT IS THE WELCOME STAGE, EMPTIED. Same blob, same drift, same silhouette —
+ * because this sits in the middle of that sequence, and the composition holding
+ * still is what makes it read as the next page rather than a different app.
+ * What it does NOT keep is everything else that stage carries: no chips, no
+ * second blob, no badge.
  *
- * ONE AMBIENT MOTION, and it means something. The welcome stage keeps exactly
- * one (the character's breath) on the principle that one living thing in a
- * still frame reads as alive while four read as busy. Here that one is a slow
- * ring expanding out of the medallion — not decoration, but the only thing on
- * the screen that says INCOMING. A pulse is the universal shorthand for a
- * phone about to go off, so it carries meaning the copy would otherwise have
- * to spend a line on.
+ * ── ONE ACCENT ──────────────────────────────────────────────────────────────
+ * The version this replaces had a peach blob, a pink medallion, a purple glyph,
+ * a saturated purple chip and an orange button — four hues at similar
+ * saturation, so nothing anchored and the loudest thing on the screen was the
+ * chip, which mattered least.
  *
- * Decorative by a11y, like its sibling: every word of it is said in the copy
- * underneath, so the whole stage is hidden rather than read out as a pile of
- * disconnected fragments.
+ * Now the ONLY saturated thing on the screen is the call to action. The
+ * medallion is a plain raised disc carrying the brand hue in its glyph, so it
+ * reads as an object sitting on the wash rather than as a second button
+ * competing with the real one. A single focal point is most of what separates a
+ * minimal screen from an empty one.
+ *
+ * ── ONE MOTION ──────────────────────────────────────────────────────────────
+ * A slow ring leaving the disc, and nothing else. Not decoration: a pulse is
+ * universal shorthand for a phone about to go off, so it carries the word
+ * "incoming" the copy would otherwise spend a line on. The welcome stage keeps
+ * exactly one ambient motion for the same reason — one living thing in a still
+ * frame reads as alive, four read as busy.
+ *
+ * Decorative by a11y: the copy underneath says all of it in words, so the whole
+ * stage is hidden rather than read out as disconnected fragments.
  */
 
 /** Same derivation as WelcomeStage's `sizes`, so the two silhouettes match. */
@@ -50,10 +52,9 @@ const sizes = (width: number, available: number) => {
   const blob = Math.max(MIN_BLOB, Math.min(width * 0.82, available / 1.14));
   return {
     blob,
-    // The medallion is a circle where the welcome stage puts a character, and
-    // a circle reads bigger than an irregular figure at the same width — so it
-    // sits a little tighter than the 0.62 used there.
-    medallion: blob * 0.52,
+    // A circle reads bigger than an irregular figure at the same width, so it
+    // sits tighter inside the blob than the 0.62 the character uses.
+    medallion: blob * 0.46,
     stageHeight: blob * 1.14,
   };
 };
@@ -65,21 +66,11 @@ const CallerStage: React.FC<{
   available: number;
   /** FontAwesome5 glyph, the same vocabulary the calling widget renders. */
   icon: string;
-  /** What the call is about, in the reader's own words. Omitted when we were
-   *  told nothing to route on — a bubble with no content is worse than none. */
-  about?: string | null;
-  /**
-   * A small glyph clipped to the medallion's lower-right — the status-badge
-   * shape every messaging app uses for "online", and the reason it reads
-   * instantly. It exists so a screen can add ONE condition to the same picture
-   * (the headphone gate needs headphones) without spending a paragraph on it,
-   * and without becoming a different illustration.
-   */
-  badge?: string | null;
-  /** Suppresses the incoming pulse. Off when the call is not imminent yet. */
+  /** Suppresses the pulse. Off wherever the call is not actually imminent —
+   *  spending the "incoming" signal early costs it its meaning later. */
   pulsing?: boolean;
-}> = ({ available, icon, about, badge, pulsing = true }) => {
-  const { colors } = useTheme();
+}> = ({ available, icon, pulsing = true }) => {
+  const { colors, elevation } = useTheme();
   const { reduced } = useMotion();
   const { width } = useWindowDimensions();
   const s = sizes(width, available);
@@ -100,9 +91,12 @@ const CallerStage: React.FC<{
     return () => cancelAnimation(pulse);
   }, [reduced, pulsing, pulse]);
 
+  // Softer than the incoming-call screen's ring on purpose: there, the pulse is
+  // the event; here it is an undertone beneath a headline, and at full strength
+  // it pulled the eye off the words.
   const ring = useAnimatedStyle(() => ({
-    opacity: pulse.value === 0 ? 0 : (1 - pulse.value) * 0.4,
-    transform: [{ scale: 1 + pulse.value * 0.55 }],
+    opacity: pulse.value === 0 ? 0 : (1 - pulse.value) * 0.22,
+    transform: [{ scale: 1 + pulse.value * 0.5 }],
   }));
 
   return (
@@ -111,7 +105,7 @@ const CallerStage: React.FC<{
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <StageBlobs size={s.blob} />
+      <StageBlobs size={s.blob} layers={1} />
 
       {!reduced && pulsing && (
         <Animated.View
@@ -121,7 +115,7 @@ const CallerStage: React.FC<{
               height: s.medallion,
               width: s.medallion,
               borderRadius: s.medallion / 2,
-              backgroundColor: colors.accent.purple,
+              backgroundColor: colors.action.primary,
             },
             ring,
           ]}
@@ -129,69 +123,29 @@ const CallerStage: React.FC<{
         />
       )}
 
-      {/* The medallion and its badge share one box, sized to the medallion —
-          so the badge is placed against the CIRCLE it belongs to rather than
-          against a full-width stage whose width nobody here knows. */}
-      <View style={{ height: s.medallion, width: s.medallion }}>
-        <View
-          style={[
-            styles.medallion,
-            {
-              borderRadius: s.medallion / 2,
-              backgroundColor: colors.accentTint.purple,
-            },
-          ]}
-        >
-          <FA5Icon
-            solid
-            name={icon || "user"}
-            size={s.medallion * 0.38}
-            color={colors.accentText.purple}
-          />
-        </View>
-
-        {badge ? (
-          <View
-            style={[
-              styles.badge,
-              {
-                height: s.medallion * 0.34,
-                width: s.medallion * 0.34,
-                borderRadius: (s.medallion * 0.34) / 2,
-                backgroundColor: colors.accent.purple,
-                borderColor: colors.background.canvas,
-              },
-            ]}
-          >
-            <FA5Icon
-              solid
-              name={badge}
-              size={s.medallion * 0.16}
-              color={colors.accentOn.purple}
-            />
-          </View>
-        ) : null}
+      <View
+        style={[
+          styles.medallion,
+          elevation.e2,
+          {
+            height: s.medallion,
+            width: s.medallion,
+            borderRadius: s.medallion / 2,
+            backgroundColor: colors.surface.elevated,
+            // A hairline in the brand hue rather than the border token: at 8%
+            // it is invisible as a line and reads only as the disc having an
+            // edge — which is what stops it dissolving into the wash behind it.
+            borderColor: withAlpha(colors.action.primary, 0.08),
+          },
+        ]}
+      >
+        <FA5Icon
+          solid
+          name={icon || "user"}
+          size={s.medallion * 0.34}
+          color={colors.action.primary}
+        />
       </View>
-
-      {/* One bubble, not three. The welcome stage uses three because it is
-          showing a LIST; this screen is about a single call, and the bubble
-          exists to name what it is about — the reader's own answer, echoed
-          back one screen later. */}
-      {about ? (
-        <View
-          style={[
-            styles.bubble,
-            {
-              backgroundColor: colors.accent.purple,
-              top: s.stageHeight * 0.74,
-            },
-          ]}
-        >
-          <Text variant="caption" color={colors.accentOn.purple}>
-            {about}
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 };
@@ -208,27 +162,8 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   medallion: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  badge: {
-    position: "absolute",
-    // 4-o'clock, overlapping the medallion's edge — the overlap is what makes
-    // it read as attached rather than as a second floating dot.
-    right: "-2%",
-    bottom: "6%",
-    alignItems: "center",
-    justifyContent: "center",
-    // A ring in the canvas colour is what separates the badge from the
-    // medallion underneath; without it the two purples merge into one blob.
-    borderWidth: 3,
-  },
-  bubble: {
-    position: "absolute",
-    maxWidth: "78%",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
+    borderWidth: 1,
   },
 });

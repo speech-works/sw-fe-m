@@ -146,11 +146,7 @@ const ActOneCallOffer: React.FC = () => {
           entering={motion.stagger(0)}
           onLayout={(e) => setStageHeight(e.nativeEvent.layout.height)}
         >
-          <CallerStage
-            available={stageHeight}
-            icon={caller.icon}
-            about={phrase}
-          />
+          <CallerStage available={stageHeight} icon={caller.icon} />
         </Animated.View>
 
         <View style={styles.copyBlock}>
@@ -165,22 +161,14 @@ const ActOneCallOffer: React.FC = () => {
           </Animated.View>
 
           <Animated.View entering={motion.stagger(2)}>
-            {/* Who they are, in one line. What the call is ABOUT rides on the
-                bubble above; saying it in both places turned this tier into a
-                paragraph, and every other screen in Act 1 holds it to one
-                line. */}
+            {/* ONE supporting line, doing both jobs the screen needs: who is
+                ringing, and what about. It replaced a chip on the stage plus a
+                three-item middot list — a feature list on a screen that should
+                read as an invitation. Three promises are not three times as
+                persuasive as one; they are just three things to get through. */}
             <Text variant="h3" color="secondary">
-              {caller.callerDesignation}.
-            </Text>
-          </Animated.View>
-
-          {/* THE FACTS, DEMOTED — the same treatment, and the same middot rule,
-              as "5 questions · about a minute" next door. Each one removes a
-              specific reason to say no, and as tertiary text they scan in a
-              glance instead of reading as three more things to get through. */}
-          <Animated.View entering={motion.stagger(3)}>
-            <Text variant="caption" color="tertiary">
-              You pick up · nothing to prepare · nobody mentions how you sound
+              {caller.callerDesignation}
+              {phrase ? `, about ${phrase}.` : "."}
             </Text>
           </Animated.View>
         </View>
@@ -192,7 +180,7 @@ const ActOneCallOffer: React.FC = () => {
           { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
         ]}
       >
-        <Animated.View entering={motion.stagger(4)}>
+        <Animated.View entering={motion.stagger(3)}>
           <Button
             label="I'll take the call"
             onPress={() => {
@@ -210,7 +198,7 @@ const ActOneCallOffer: React.FC = () => {
             in ActOneWelcome. Declining is the exception, so it should look like
             one, and it costs nothing: Home offers the call afterwards exactly
             as it does today. */}
-        <Animated.View entering={motion.stagger(5)}>
+        <Animated.View entering={motion.stagger(4)}>
           <Text
             variant="bodySm"
             color="secondary"
@@ -227,11 +215,12 @@ const ActOneCallOffer: React.FC = () => {
           </Text>
         </Animated.View>
 
-        {/* Said BEFORE the tap, not discovered after it. */}
-        <Animated.View entering={motion.stagger(6)}>
+        {/* Said BEFORE the tap, not discovered after it — and cut to a single
+            line. The two-line version wrapped mid-sentence and left an orphan,
+            which is what turns a footnote into a paragraph. */}
+        <Animated.View entering={motion.stagger(5)}>
           <Text variant="caption" color="tertiary" center style={styles.noteRow}>
-            One conversation, once. We&apos;ll set your account up first, then{" "}
-            {caller.callerName} rings.
+            Account first, then {caller.callerName} rings.
           </Text>
         </Animated.View>
       </View>
