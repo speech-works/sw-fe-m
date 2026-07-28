@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import Animated, {
   useAnimatedProps,
-  useDerivedValue,
   useReducedMotion,
   useSharedValue,
   withDelay,
@@ -48,9 +47,13 @@ const PITCH_LEAN = 22;
 const COS_Y = Math.cos(YAW);
 const SIN_Y = Math.sin(YAW);
 
-const OUT_MS = 460;
-const HOLD_MS = 520;
-const BACK_MS = 600;
+/* Slower than a UI transition on purpose. Nothing here is answering a tap, so
+   there is no responsiveness to protect — and a longer move covers the same
+   distance in more frames, which means smaller steps and a smoother read even
+   when a frame is dropped. */
+const OUT_MS = 560;
+const HOLD_MS = 480;
+const BACK_MS = 820;
 
 /** Top lightest, front mid, side darkest — one light source, above and in front. */
 const FRONT = "#17161A";
@@ -61,6 +64,73 @@ const TOP_DIGIT = "#C9C6D4";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedText = Animated.createAnimatedComponent(SvgText);
+
+/* ── the pose table ─────────────────────────────────────────────────────────
+   WHY THIS IS NOT COMPUTED PER FRAME.
+
+   Animating a Path's `d` repaints — it is the one SVG animation that cannot be
+   composited — so the frame budget has to go on the repaint and nothing else.
+   The first version spent it elsewhere: every frame it ran trigonometry for
+   twelve projected points, then built three path strings through twenty-four
+   `toFixed` calls, then allocated an object to carry them, all on the UI
+   thread. That is the stutter.
+
+   Every pose the block can ever hold is baked once at module load instead, and
+   a frame becomes an array lookup. 61 steps over a 14° lean is 0.23° apart —
+   about a tenth of a pixel at the rendered size, so the quantisation is well
+   under what a screen can show, and far finer than the frame rate anyway. */
+
+const STEPS = 60;
+
+const buildPoses = () => {
+  const out = [];
+  for (let i = 0; i <= STEPS; i++) {
+    const deg = PITCH_REST + (i / STEPS) * (PITCH_LEAN - PITCH_REST);
+    const p = (deg * Math.PI) / 180;
+    const cp = Math.cos(p);
+    const sp = Math.sin(p);
+
+    // Yaw about the vertical, then pitch about the horizontal. Orthographic —
+    // no divide, so faces stay exact parallelograms and edges stay shared.
+    const at = (x: number, y: number, z: number): [number, number] => {
+      const x1 = x * COS_Y + z * SIN_Y;
+      const z1 = -x * SIN_Y + z * COS_Y;
+      return [C + x1, C + (y * cp + z1 * sp)];
+    };
+    const quad = (
+      a: [number, number],
+      b: [number, number],
+      c: [number, number],
+      d: [number, number],
+    ) =>
+      `M${a[0].toFixed(2)} ${a[1].toFixed(2)}L${b[0].toFixed(2)} ${b[1].toFixed(2)}L${c[0].toFixed(2)} ${c[1].toFixed(2)}L${d[0].toFixed(2)} ${d[1].toFixed(2)}Z`;
+
+    out.push({
+      front: quad(at(-H, -H, H), at(H, -H, H), at(H, H, H), at(-H, H, H)),
+      top: quad(at(-H, -H, -H), at(H, -H, -H), at(H, -H, H), at(-H, -H, H)),
+      side: quad(at(H, -H, H), at(H, -H, -H), at(H, H, -H), at(H, H, H)),
+      // Centre of the front face, which drops as the block leans.
+      cx: C + H * SIN_Y,
+      cy: C + H * COS_Y * sp,
+      // Centre of the TOP face, and how hard that face is foreshortened. The
+      // squash is not optional the way the front's is: at rest the top is a
+      // few units tall and an unsquashed glyph would stand right off it.
+      tx: C,
+      ty: C - H * cp,
+      tSquash: (sp / Math.sin((PITCH_LEAN * Math.PI) / 180)) * 0.62,
+    });
+  }
+  return out;
+};
+
+const POSES = buildPoses();
+
+/** Worklet-safe clamp into the table. */
+const poseIndex = (t: number) => {
+  "worklet";
+  const i = Math.round(t * STEPS);
+  return i < 0 ? 0 : i > STEPS ? STEPS : i;
+};
 
 /**
  * A SOLID BLOCK WITH THE DAY COUNT ON ITS FRONT FACE.
@@ -84,7 +154,7 @@ const AnimatedText = Animated.createAnimatedComponent(SvgText);
 export const FlipDigit: React.FC<FlipDigitProps> = ({
   value,
   size = 30,
-  restMs = 1600,
+  restMs = 1800,
 }) => {
   const reduceMotion = useReducedMotion();
   /** 0 = resting pose, 1 = fully leaned. */
@@ -111,52 +181,21 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
     );
   }, [reduceMotion, restMs, lean]);
 
-  /** The three face polygons plus the front face's centre, for the digit. */
-  const geo = useDerivedValue(() => {
-    const deg = PITCH_REST + lean.value * (PITCH_LEAN - PITCH_REST);
-    const p = (deg * Math.PI) / 180;
-    const cp = Math.cos(p);
-    const sp = Math.sin(p);
-
-    // Yaw about the vertical, then pitch about the horizontal. Orthographic —
-    // no divide, so faces stay exact parallelograms.
-    const at = (x: number, y: number, z: number) => {
-      const x1 = x * COS_Y + z * SIN_Y;
-      const z1 = -x * SIN_Y + z * COS_Y;
-      const y2 = y * cp + z1 * sp;
-      return [C + x1, C + y2] as const;
-    };
-
-    const quad = (
-      a: readonly [number, number],
-      b: readonly [number, number],
-      c: readonly [number, number],
-      d: readonly [number, number],
-    ) =>
-      `M ${a[0].toFixed(2)} ${a[1].toFixed(2)} L ${b[0].toFixed(2)} ${b[1].toFixed(2)} L ${c[0].toFixed(2)} ${c[1].toFixed(2)} L ${d[0].toFixed(2)} ${d[1].toFixed(2)} Z`;
-
-    return {
-      front: quad(at(-H, -H, H), at(H, -H, H), at(H, H, H), at(-H, H, H)),
-      top: quad(at(-H, -H, -H), at(H, -H, -H), at(H, -H, H), at(-H, -H, H)),
-      side: quad(at(H, -H, H), at(H, -H, -H), at(H, H, -H), at(H, H, H)),
-      // Centre of the front face, which drops as the block leans.
-      cx: C + H * SIN_Y,
-      cy: C + H * COS_Y * sp,
-      // Centre of the TOP face, and how hard that face is foreshortened. The
-      // squash is not optional the way the front's is: at rest the top is a
-      // few units tall, and an unsquashed glyph would stand right off it.
-      tx: C,
-      ty: C - H * cp,
-      tSquash: (sp / Math.sin((PITCH_LEAN * Math.PI) / 180)) * 0.62,
-    };
-  }, [lean]);
-
-  const frontProps = useAnimatedProps(() => ({ d: geo.value.front }));
-  const topProps = useAnimatedProps(() => ({ d: geo.value.top }));
-  const sideProps = useAnimatedProps(() => ({ d: geo.value.side }));
+  // Index straight into the table. Reads one array entry and one number per
+  // frame — no trigonometry, no string building, no allocation on the UI
+  // thread. Clamped because the easing can graze outside [0, 1].
+  const frontProps = useAnimatedProps(() => ({
+    d: POSES[poseIndex(lean.value)].front,
+  }));
+  const topProps = useAnimatedProps(() => ({
+    d: POSES[poseIndex(lean.value)].top,
+  }));
+  const sideProps = useAnimatedProps(() => ({
+    d: POSES[poseIndex(lean.value)].side,
+  }));
   const textProps = useAnimatedProps(() => ({
-    x: geo.value.cx,
-    y: geo.value.cy,
+    x: POSES[poseIndex(lean.value)].cx,
+    y: POSES[poseIndex(lean.value)].cy,
   }));
 
   // Translate to the top face, then squash. Drawn at the local origin so the
@@ -164,18 +203,21 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
   //
   // translate + scale ONLY, deliberately. The full placement would also carry
   // a shear from the yaw, but a general affine means an animated transform
-  // MATRIX, and this codebase already has a scar from animated SVG props that
+  // MATRIX, and this repo already has a scar from animated SVG props that
   // silently never arrived (see IdentityBlock). These three are the shapes
   // BreathingFace already proves work here. The shear it drops is under two
   // units across a glyph that is six pixels tall.
-  const topTextProps = useAnimatedProps(() => ({
-    opacity: geo.value.tSquash,
-    transform: [
-      { translateX: geo.value.tx },
-      { translateY: geo.value.ty },
-      { scaleY: geo.value.tSquash },
-    ],
-  }));
+  const topTextProps = useAnimatedProps(() => {
+    const pose = POSES[poseIndex(lean.value)];
+    return {
+      opacity: pose.tSquash,
+      transform: [
+        { translateX: pose.tx },
+        { translateY: pose.ty },
+        { scaleY: pose.tSquash },
+      ],
+    };
+  });
 
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${VB} ${VB}`}>
