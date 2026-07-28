@@ -12,6 +12,7 @@ import { postAiCallConsent } from "../../api/users";
 import AICallConsentModal from "../../components/AICallConsentModal";
 import CallingWidget from "../../components/CallingWidget";
 import {
+  IconButton,
   Screen,
   Spinner,
   Text,
@@ -100,6 +101,21 @@ const FirstCall = () => {
    * because they can plainly see it did not happen, unsettling.
    */
   const connectedRef = useRef(false);
+  /**
+   * The same fact as `connectedRef`, in state, because the escape hatch below
+   * has to RENDER on it.
+   *
+   * `CallingWidget` has exactly one exit of its own — the end-call button — and
+   * it only exists once a call is up. Every way `startCall` can bail before
+   * then returns silently WITHOUT firing `onCallEnd`: no socket URL, a mic
+   * permission the user just denied (the first call is precisely when that
+   * prompt appears), audio capture failing. With gestures disabled and no
+   * header, each of those stranded the user on a screen they could only leave
+   * by killing the app. This is the way out.
+   */
+  const [connected, setConnected] = useState(false);
+  /** Set when the call ended on the crisis route — see `handleCallEnd`. */
+  const [crisisEnded, setCrisisEnded] = useState(false);
 
   const defer = useFirstCallStore((s) => s.defer);
   const markNoHeadphones = useFirstCallStore((s) => s.markNoHeadphones);
@@ -184,9 +200,15 @@ const FirstCall = () => {
     const id = await markActivityStart();
     if (id) {
       connectedRef.current = true;
+      setConnected(true);
       track(ANALYTICS_EVENTS.FIRST_CALL_CONNECTED, { action });
+      return id;
     }
-    return id;
+    // The widget takes null as "do not connect" and stops there, silently —
+    // nothing was created server-side, so the call is still theirs. Say so,
+    // instead of leaving them looking at a dead call button.
+    setPhase("failed");
+    return null;
   };
 
   const handleCallEnd = async ({
@@ -239,7 +261,22 @@ const FirstCall = () => {
     } finally {
       useUserStore.getState().fetchUser();
       trackActivityId(null);
-      setPhase("aftercare");
+      // A CRISIS-ENDED CALL NEVER REACHES THE CHECK-IN.
+      //
+      // The crisis-support modal — the one with the helpline on it — lives
+      // INSIDE CallingWidget, and advancing the phase unmounts the widget.
+      // Doing that here would take a distressed person's helpline off the
+      // screen and replace it with "You took the call. How do you feel?
+      // — Honestly, good". The widget already goes to great lengths to keep
+      // that modal reachable; this is the same promise kept from the outside.
+      //
+      // So the widget stays mounted and owns the screen. All we add is a way
+      // out for afterwards, once its own modals are dismissed.
+      if (reason === "crisis") {
+        setCrisisEnded(true);
+      } else {
+        setPhase("aftercare");
+      }
     }
   };
 
@@ -377,6 +414,20 @@ const FirstCall = () => {
 
       {phase === "live" && (
         <View style={styles.live}>
+          {/* Shown only until the call is up: after that the widget's own
+              end-call button is the exit, and a second way out that skipped
+              hanging up properly would leak a live call. It comes back after a
+              crisis-ended call, where we deliberately do NOT advance the phase
+              and so would otherwise strand them behind the widget. */}
+          {(!connected || crisisEnded) && (
+            <View style={styles.escape}>
+              <IconButton
+                name="arrow-left"
+                accessibilityLabel="Leave without taking the call"
+                onPress={leave}
+              />
+            </View>
+          )}
           <CallingWidget
             userId={user?.id || ""}
             websocketUrl={WS_BASE_URL || ""}
@@ -438,5 +489,11 @@ const useStyles = makeStyles(() => ({
   },
   live: {
     flex: 1,
+  },
+  escape: {
+    position: "absolute",
+    top: spacing.sm,
+    left: space.screenX,
+    zIndex: 10,
   },
 }));

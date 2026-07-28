@@ -80,7 +80,12 @@ const FirstCallCard: React.FC = () => {
   }, [alreadyTaken]);
 
   const scenario = offer?.available ? offer.scenario : undefined;
-  if (!scenario) return null;
+  // `alreadyTaken` is re-checked at RENDER, not just before the fetch. Home
+  // does not remount this on navigation, so somebody returning straight from
+  // their first call would otherwise still see "Maya is trying to reach you"
+  // for a call they had just taken — the offer state is from mount, but the
+  // user store updated the moment the call completed.
+  if (!scenario || alreadyTaken) return null;
 
   const open = () => navigation.navigate("FirstCall", { offer });
 
