@@ -56,6 +56,8 @@ const BACK_MS = 600;
 const FRONT = "#17161A";
 const TOP = "#3C3A46";
 const SIDE = "#0B0A0E";
+/** Dimmer than the front digit — it is next, not now. */
+const TOP_DIGIT = "#C9C6D4";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedText = Animated.createAnimatedComponent(SvgText);
@@ -140,6 +142,12 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
       // Centre of the front face, which drops as the block leans.
       cx: C + H * SIN_Y,
       cy: C + H * COS_Y * sp,
+      // Centre of the TOP face, and how hard that face is foreshortened. The
+      // squash is not optional the way the front's is: at rest the top is a
+      // few units tall, and an unsquashed glyph would stand right off it.
+      tx: C,
+      ty: C - H * cp,
+      tSquash: (sp / Math.sin((PITCH_LEAN * Math.PI) / 180)) * 0.62,
     };
   }, [lean]);
 
@@ -151,11 +159,48 @@ export const FlipDigit: React.FC<FlipDigitProps> = ({
     y: geo.value.cy,
   }));
 
+  // Translate to the top face, then squash. Drawn at the local origin so the
+  // scale acts about the glyph rather than about the viewBox corner.
+  //
+  // translate + scale ONLY, deliberately. The full placement would also carry
+  // a shear from the yaw, but a general affine means an animated transform
+  // MATRIX, and this codebase already has a scar from animated SVG props that
+  // silently never arrived (see IdentityBlock). These three are the shapes
+  // BreathingFace already proves work here. The shear it drops is under two
+  // units across a glyph that is six pixels tall.
+  const topTextProps = useAnimatedProps(() => ({
+    opacity: geo.value.tSquash,
+    transform: [
+      { translateX: geo.value.tx },
+      { translateY: geo.value.ty },
+      { scaleY: geo.value.tSquash },
+    ],
+  }));
+
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${VB} ${VB}`}>
       {/* Back to front. A convex solid needs no more sorting than this. */}
       <AnimatedPath animatedProps={sideProps} fill={SIDE} />
       <AnimatedPath animatedProps={topProps} fill={TOP} />
+      {/* Tomorrow's number, on the face that will roll into the front. Drawn
+          before the front face so a glyph that overshoots is clipped by the
+          solid rather than floating over it. Absent at one day, where the next
+          value is zero — a number the copy never prints has no business on the
+          object. */}
+      {value - 1 >= 1 ? (
+        <AnimatedText
+          animatedProps={topTextProps}
+          x={0}
+          y={0}
+          fill={TOP_DIGIT}
+          fontSize={12}
+          fontWeight="bold"
+          textAnchor="middle"
+          alignmentBaseline="central"
+        >
+          {value - 1}
+        </AnimatedText>
+      ) : null}
       <AnimatedPath animatedProps={frontProps} fill={FRONT} />
       <AnimatedText
         animatedProps={textProps}

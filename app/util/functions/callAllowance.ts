@@ -76,19 +76,21 @@ export function describeAllowance(
     if (waitMs <= 0)
       return { badge: "FREE CALL", subtitle: null, countdown: null };
 
+    // Always a number, never "tomorrow". A worded countdown has no digit, so
+    // the block vanishes for the last day of the wait — which is precisely the
+    // day somebody is most likely to be checking. `days` is ceil'd, so this
+    // floors at 1 and never reaches zero.
     const days = Math.ceil(waitMs / DAY_MS);
-    if (days <= 1) {
-      return {
-        badge: null,
-        subtitle: "Next free call tomorrow",
-        countdown: null,
-      };
-    }
 
     // ONE source for the sentence. `subtitle` is joined from these parts
     // rather than written out beside them, so the animated version and the
     // plain one cannot say different things.
-    const countdown = { before: "Next free call in ", days, after: " days" };
+    const countdown = {
+      before: "Next free call in ",
+      days,
+      // One day, not one days.
+      after: days === 1 ? " day" : " days",
+    };
     return {
       badge: null,
       subtitle: `${countdown.before}${countdown.days}${countdown.after}`,

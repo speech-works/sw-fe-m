@@ -95,27 +95,49 @@ describe("what the call badge says", () => {
     });
   });
 
-  it("says tomorrow rather than 'in 1 days'", () => {
-    expect(
-      describeAllowance(
-        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(5) }),
+  it("counts the last day as a NUMBER, never as the word tomorrow", () => {
+    // A worded countdown has no digit, so the block would vanish for the final
+    // day of the wait — precisely the day somebody is most likely to open the
+    // app to check. Every wait keeps its number, and therefore its block.
+    for (const hours of [1, 5, 23]) {
+      const a = describeAllowance(
+        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(hours) }),
         NOW,
-      ),
-    ).toEqual({
-      badge: null,
-      subtitle: "Next free call tomorrow",
-      countdown: null,
-    });
-    expect(
+      )!;
+      expect(a.subtitle).toBe("Next free call in 1 day");
+      expect(a.countdown).toEqual({
+        before: "Next free call in ",
+        days: 1,
+        after: " day",
+      });
+    }
+  });
+
+  it("says day for one and days for the rest", () => {
+    const after = (hours: number) =>
       describeAllowance(
-        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(23) }),
+        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(hours) }),
         NOW,
-      ),
-    ).toEqual({
-      badge: null,
-      subtitle: "Next free call tomorrow",
-      countdown: null,
-    });
+      )!.countdown!.after;
+
+    expect(after(10)).toBe(" day"); // 1
+    expect(after(30)).toBe(" days"); // 2
+    expect(after(7 * 24)).toBe(" days"); // 7
+  });
+
+  it("never counts down to zero", () => {
+    // `days` is rounded UP, so the smallest wait it can express is one. A zero
+    // would print "in 0 days" and put a number on the block that means ready.
+    for (let m = 1; m <= 7 * 24 * 60; m += 37) {
+      const a = describeAllowance(
+        wallet({
+          freeCallAvailable: false,
+          nextFreeCallAt: new Date(NOW.getTime() + m * 60_000).toISOString(),
+        }),
+        NOW,
+      )!;
+      expect(a.countdown!.days).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it("treats a countdown that has already elapsed as ready", () => {
@@ -214,17 +236,42 @@ describe("what the call badge says", () => {
     }
   });
 
-  it("has no digit to animate when the copy has no digit in it", () => {
-    // "tomorrow" and "FREE CALL" carry no number, so the card must fall back to
-    // the plain text rather than render a tile showing something invented.
-    const tomorrow = describeAllowance(
-      wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(10) }),
-      NOW,
+  it("shows the block exactly when there is a number, and never otherwise", () => {
+    // THE INVARIANT. The block is an object that carries a digit; with no digit
+    // there is nothing for it to be. Stated over every state the wallet can be
+    // in, so a future branch cannot quietly add a fifth that renders an empty
+    // one — or a wait that renders none.
+    const withBlock = [
+      inHours(1),
+      inHours(23),
+      inHours(50),
+      inHours(7 * 24),
+    ].map((at) =>
+      describeAllowance(
+        wallet({ freeCallAvailable: false, nextFreeCallAt: at }),
+        NOW,
+      ),
     );
-    expect(tomorrow!.subtitle).not.toMatch(/\d/);
-    expect(tomorrow!.countdown).toBeNull();
-    expect(
-      describeAllowance(wallet({ freeCallAvailable: true }), NOW)!.countdown,
-    ).toBeNull();
+    for (const a of withBlock) {
+      expect(a!.countdown).not.toBeNull();
+      expect(a!.subtitle).toMatch(/\d/);
+    }
+
+    const withoutBlock = [
+      describeAllowance(wallet({ freeCallAvailable: true }), NOW),
+      describeAllowance(wallet({ balance: 3 }), NOW),
+      describeAllowance(
+        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(-1) }),
+        NOW,
+      ),
+    ];
+    for (const a of withoutBlock) {
+      expect(a!.countdown).toBeNull();
+      expect(a!.subtitle).toBeNull();
+    }
+
+    // ...and the two states that describe nothing at all.
+    expect(describeAllowance(null, NOW)).toBeNull();
+    expect(describeAllowance(wallet({}), NOW)).toBeNull();
   });
 });
