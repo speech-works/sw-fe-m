@@ -23,6 +23,8 @@ export { ProgressRing } from "./ProgressRing";
 export type { ProgressRingProps } from "./ProgressRing";
 export { AnimatedNumber } from "./AnimatedNumber";
 export type { AnimatedNumberProps } from "./AnimatedNumber";
+export { FlipDigit } from "./FlipDigit";
+export type { FlipDigitProps } from "./FlipDigit";
 export { TrendLine } from "./TrendLine";
 export type { TrendLineProps } from "./TrendLine";
 export { PulseDot } from "./PulseDot";

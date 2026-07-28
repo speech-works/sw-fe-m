@@ -20,6 +20,14 @@ export interface CallAllowance {
    * a three-word pill could mean the activity takes a week, or expires in one.
    */
   subtitle: string | null;
+  /**
+   * `subtitle` split around its day count, so the digit can be rendered as a
+   * flip tile without the sentence being written out a second time in the
+   * card. Built from the same parts `subtitle` is joined from, so the two can
+   * never drift. Null whenever there is no number to animate — an available
+   * call, or "tomorrow".
+   */
+  countdown: { before: string; days: number; after: string } | null;
 }
 
 /**
@@ -53,25 +61,38 @@ export function describeAllowance(
     return {
       badge: `${wallet.balance} CALL${wallet.balance === 1 ? "" : "S"}`,
       subtitle: null,
+      countdown: null,
     };
   }
 
-  if (wallet.freeCallAvailable) return { badge: "FREE CALL", subtitle: null };
+  if (wallet.freeCallAvailable)
+    return { badge: "FREE CALL", subtitle: null, countdown: null };
 
   if (wallet.freeCallAvailable === false && wallet.nextFreeCallAt) {
     const waitMs = new Date(wallet.nextFreeCallAt).getTime() - now.getTime();
     if (Number.isNaN(waitMs)) return null;
     // The wallet is a snapshot; a screen left open past the unlock instant must
     // not keep telling somebody to wait for a call they can already make.
-    if (waitMs <= 0) return { badge: "FREE CALL", subtitle: null };
+    if (waitMs <= 0)
+      return { badge: "FREE CALL", subtitle: null, countdown: null };
 
     const days = Math.ceil(waitMs / DAY_MS);
+    if (days <= 1) {
+      return {
+        badge: null,
+        subtitle: "Next free call tomorrow",
+        countdown: null,
+      };
+    }
+
+    // ONE source for the sentence. `subtitle` is joined from these parts
+    // rather than written out beside them, so the animated version and the
+    // plain one cannot say different things.
+    const countdown = { before: "Next free call in ", days, after: " days" };
     return {
       badge: null,
-      subtitle:
-        days <= 1
-          ? "Next free call tomorrow"
-          : `Next free call in ${days} days`,
+      subtitle: `${countdown.before}${countdown.days}${countdown.after}`,
+      countdown,
     };
   }
 

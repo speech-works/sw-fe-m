@@ -37,9 +37,9 @@ describe("what the call badge says", () => {
   });
 
   it("badges the card when a free call is waiting", () => {
-    expect(
-      describeAllowance(wallet({ freeCallAvailable: true }), NOW),
-    ).toEqual({ badge: "FREE CALL", subtitle: null });
+    expect(describeAllowance(wallet({ freeCallAvailable: true }), NOW)).toEqual(
+      { badge: "FREE CALL", subtitle: null, countdown: null },
+    );
   });
 
   it("counts bought credits ahead of the weekly call", () => {
@@ -47,14 +47,22 @@ describe("what the call badge says", () => {
     // Thursday — the free call is the FLOOR, not the ceiling.
     expect(
       describeAllowance(
-        wallet({ balance: 3, freeCallAvailable: false, nextFreeCallAt: inHours(72) }),
+        wallet({
+          balance: 3,
+          freeCallAvailable: false,
+          nextFreeCallAt: inHours(72),
+        }),
         NOW,
       ),
-    ).toEqual({ badge: "3 CALLS", subtitle: null });
+    ).toEqual({ badge: "3 CALLS", subtitle: null, countdown: null });
   });
 
   it("gets the singular right", () => {
-    expect(describeAllowance(wallet({ balance: 1 }), NOW)).toEqual({ badge: "1 CALL", subtitle: null });
+    expect(describeAllowance(wallet({ balance: 1 }), NOW)).toEqual({
+      badge: "1 CALL",
+      subtitle: null,
+      countdown: null,
+    });
   });
 
   it("counts down in days once the call is spent", () => {
@@ -63,7 +71,11 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(72) }),
         NOW,
       ),
-    ).toEqual({ badge: null, subtitle: "Next free call in 3 days" });
+    ).toEqual({
+      badge: null,
+      subtitle: "Next free call in 3 days",
+      countdown: { before: "Next free call in ", days: 3, after: " days" },
+    });
   });
 
   it("ROUNDS UP, so it never promises the call early", () => {
@@ -76,7 +88,11 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(77) }),
         NOW,
       ),
-    ).toEqual({ badge: null, subtitle: "Next free call in 4 days" });
+    ).toEqual({
+      badge: null,
+      subtitle: "Next free call in 4 days",
+      countdown: { before: "Next free call in ", days: 4, after: " days" },
+    });
   });
 
   it("says tomorrow rather than 'in 1 days'", () => {
@@ -85,13 +101,21 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(5) }),
         NOW,
       ),
-    ).toEqual({ badge: null, subtitle: "Next free call tomorrow" });
+    ).toEqual({
+      badge: null,
+      subtitle: "Next free call tomorrow",
+      countdown: null,
+    });
     expect(
       describeAllowance(
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(23) }),
         NOW,
       ),
-    ).toEqual({ badge: null, subtitle: "Next free call tomorrow" });
+    ).toEqual({
+      badge: null,
+      subtitle: "Next free call tomorrow",
+      countdown: null,
+    });
   });
 
   it("treats a countdown that has already elapsed as ready", () => {
@@ -102,7 +126,7 @@ describe("what the call badge says", () => {
         wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(-1) }),
         NOW,
       ),
-    ).toEqual({ badge: "FREE CALL", subtitle: null });
+    ).toEqual({ badge: "FREE CALL", subtitle: null, countdown: null });
   });
 
   it("says nothing rather than NaN when the date is unparseable", () => {
@@ -124,7 +148,9 @@ describe("what the call badge says", () => {
         NOW,
       );
       expect(label).not.toBeNull();
-      const days = Number(/in (\d+) days/.exec(label!.subtitle ?? "")?.[1] ?? 1);
+      const days = Number(
+        /in (\d+) days/.exec(label!.subtitle ?? "")?.[1] ?? 1,
+      );
       expect(days).toBeLessThanOrEqual(7);
       expect(days).toBeGreaterThanOrEqual(1);
     }
@@ -168,5 +194,37 @@ describe("what the call badge says", () => {
     );
     expect(spent!.subtitle).toBe("Next free call in 5 days");
     expect(spent!.subtitle).toMatch(/free call/);
+  });
+
+  it("keeps the flip digit and the plain sentence saying the same thing", () => {
+    // The card renders the countdown as three pieces so the number can sit on
+    // an animated tile, and falls back to `subtitle` for the screen reader and
+    // for reduced motion. If those two ever drifted, a user would SEE one
+    // number and HEAR another — so the sentence is joined from the parts
+    // rather than written out beside them, and this holds that.
+    for (let h = 25; h <= 7 * 24; h++) {
+      const a = describeAllowance(
+        wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(h) }),
+        NOW,
+      )!;
+      if (!a.countdown) continue;
+      expect(
+        `${a.countdown.before}${a.countdown.days}${a.countdown.after}`,
+      ).toBe(a.subtitle);
+    }
+  });
+
+  it("has no digit to animate when the copy has no digit in it", () => {
+    // "tomorrow" and "FREE CALL" carry no number, so the card must fall back to
+    // the plain text rather than render a tile showing something invented.
+    const tomorrow = describeAllowance(
+      wallet({ freeCallAvailable: false, nextFreeCallAt: inHours(10) }),
+      NOW,
+    );
+    expect(tomorrow!.subtitle).not.toMatch(/\d/);
+    expect(tomorrow!.countdown).toBeNull();
+    expect(
+      describeAllowance(wallet({ freeCallAvailable: true }), NOW)!.countdown,
+    ).toBeNull();
   });
 });

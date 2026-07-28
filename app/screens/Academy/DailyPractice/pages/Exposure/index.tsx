@@ -22,6 +22,7 @@ import {
   useTheme,
   spacing,
   radius,
+  FlipDigit,
 } from "../../../../../design-system";
 
 /** Vivid accent role per sub-category — keeps each card distinct while the whole
@@ -129,13 +130,38 @@ const Exposure = () => {
                     <Text variant="h3" color={on}>
                       {item.title}
                     </Text>
-                    <Text variant="body" color={on} style={styles.subtitle}>
-                      {/* While the free call is spent the subtitle carries the
-                          wait, because a whole sentence here cannot be misread
-                          the way a three-word corner pill could. */}
-                      {(item.spendsCall && allowance?.subtitle) ||
-                        item.subtitle}
-                    </Text>
+                    {item.spendsCall && allowance?.countdown ? (
+                      /* The countdown gets its digit on a flip tile. One row
+                         rather than one Text, because a View cannot live
+                         inside a <Text> reliably on Android. The whole
+                         sentence is still read as one thing by a screen
+                         reader — see accessibilityLabel. */
+                      <View
+                        style={[styles.subtitle, styles.subtitleRow]}
+                        accessible
+                        accessibilityLabel={allowance.subtitle ?? undefined}
+                      >
+                        <Text variant="body" color={on}>
+                          {allowance.countdown.before}
+                        </Text>
+                        <FlipDigit
+                          value={allowance.countdown.days}
+                          variant="body"
+                          color={on}
+                        />
+                        <Text variant="body" color={on}>
+                          {allowance.countdown.after}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text variant="body" color={on} style={styles.subtitle}>
+                        {/* While the free call is spent the subtitle carries
+                            the wait, because a whole sentence here cannot be
+                            misread the way a three-word corner pill could. */}
+                        {(item.spendsCall && allowance?.subtitle) ||
+                          item.subtitle}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.iconContainer} pointerEvents="none">
                     <View style={styles.iconWrapper}>
@@ -250,6 +276,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: spacing.xxs,
+  },
+  // The flip tile is a View, so the sentence around it becomes a row. Centred
+  // rather than baseline-aligned: the tile is mid-rotation half the time, and
+  // a baseline on a transformed box drifts.
+  subtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
   },
   iconContainer: {
     position: "absolute",
