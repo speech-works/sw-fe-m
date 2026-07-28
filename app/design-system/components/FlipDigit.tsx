@@ -5,152 +5,142 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withDelay,
-  withSequence,
-  withSpring,
+  withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { duration, easing, spring } from "../motion";
-import { TypographyVariant } from "../primitives/typography";
-import { Text, TextProps } from "./Text";
+import { easing } from "../motion";
+import { palette } from "../primitives/palette";
+import { Text } from "./Text";
 
 export interface FlipDigitProps {
-  /** The number on the face. */
+  /** The number on the block. */
   value: number;
-  /** The face it leans toward. Defaults to `value - 1` — these are countdowns. */
-  towards?: number;
-  variant?: TypographyVariant;
-  color?: TextProps["color"];
-  /**
-   * Change this to play it again.
-   *
-   * Without it the flap fires once and never again: `value` is stable within a
-   * session, and React Navigation keeps a screen mounted behind whatever you
-   * push on top of it — so returning to the card replayed nothing. Pass a
-   * counter bumped on focus and every visit gets the animation.
-   */
-  playKey?: string | number;
+  /** Milliseconds the readable face is held before each turn. */
+  restMs?: number;
 }
 
-/** How far the flap gets before gravity wins. Far enough to read as an attempt,
- *  short of the 90° that would complete the flip and tell a lie. */
-const TIP_DEG = 62;
+/** Square, like a die. Small enough to sit inside a sentence without shouting. */
+const SIZE = 26;
+/** Lower = stronger foreshortening, so the turn reads as depth rather than squash. */
+const PERSPECTIVE = 200;
+const FLIP_MS = 940;
 
 /**
- * Wait for the screen to arrive before moving.
+ * A SOLID BLOCK WITH THE DAY COUNT ON IT, TURNING OVER.
  *
- * This used to start the moment the wallet resolved — about 50ms — which put
- * the whole flip UNDERNEATH the navigation transition that was still sliding
- * the card into place. Two things moving at once and you register neither.
- * The delay is not sluggishness: nothing here is responding to a tap, so there
- * is no input latency to protect. It is just waiting until somebody is looking.
- */
-const ENTRANCE_MS = 420;
-/** Lower = stronger foreshortening. Tuned against the body type size. */
-const PERSPECTIVE = 260;
-
-/**
- * A DEPARTURE-BOARD FLAP THAT TRIES, AND DOESN'T QUITE MAKE IT.
+ * Matte black tile, white bold numeral, resting face-on and then turning fast —
+ * a desk-calendar block, not a styled number.
  *
- * The digit sits on a tile hinged along its top edge. On appearance it tips
- * forward as though about to flip to the next number — the number behind
- * showing through the gap — hangs there a moment, then falls back.
+ * WHY IT IS NOT A CUBE. The reference for this was a rendered 3D die showing
+ * two faces at once. React Native cannot draw that: its transform system has no
+ * `translateZ`, no parent-level `perspective` and no `preserve-3d`, so every
+ * face is projected independently and adjacent faces will not meet along a
+ * shared edge — they visibly drift apart mid-rotation. Two faces 180° apart
+ * with backface culling is the honest version: one block, always upright,
+ * turning over.
  *
- * It never completes the flip, and that is the point: this renders a countdown
- * that moves once a day. A flap that landed on the next digit would be telling
- * the user the number just changed, every single time they opened the screen.
- * Leaning and failing says the thing that is actually true — it is counting,
- * but not yet.
+ * WHY IT RESTS. The first version turned at a constant speed, and a flat face
+ * spinning steadily is edge-on and unreadable for most of every cycle. This is
+ * a countdown; the number is there to be read. So the readable pose gets ~64%
+ * of the cycle and the turn happens fast, which is also what a real departure
+ * board does.
  *
- * Plays once per appearance and once per value change, never on a loop. It is
- * one expressive moment on a card the user may sit and read; a tic that
- * repeated every few seconds would be decoration, and decoration on a screen
- * telling somebody they cannot practise yet is the wrong instinct.
+ * Both faces carry the SAME number. The block turns; the day count does not,
+ * and a face showing a different digit would claim otherwise.
  *
- * Reduced motion gets a plain digit — no transform, no second face.
+ * BLACK AND WHITE IN BOTH SCHEMES, on purpose. It sits on a solid vivid card
+ * beside the illustration, so it belongs with the artwork rather than with the
+ * surfaces around it — the same reason the card's icon does not re-tint in
+ * light mode.
+ *
+ * Reduced motion gets the block, standing still. The number is the point; the
+ * turning is not load-bearing.
  */
 export const FlipDigit: React.FC<FlipDigitProps> = ({
   value,
-  towards,
-  variant = "body",
-  color,
-  playKey,
+  restMs = 1660,
 }) => {
   const reduceMotion = useReducedMotion();
-  const t = useSharedValue(0);
-  const next = towards ?? value - 1;
+  /** 0 → 1 is one full turn. */
+  const spin = useSharedValue(0);
 
   useEffect(() => {
     if (reduceMotion) return;
-    t.value = withDelay(
-      ENTRANCE_MS,
-      withSequence(
-        // The attempt: quick, ease-out, so the movement is felt immediately.
-        withTiming(1, { duration: duration.reveal, easing: easing.out }),
-        // The hesitation — long enough to read as "stuck", not as a stumble —
-        // then the fall back. Spring rather than timing so it settles with a
-        // little weight instead of arriving on a schedule.
-        withDelay(180, withSpring(0, spring.gentle)),
+    spin.value = 0;
+    spin.value = withRepeat(
+      // Hold, then whip through. Repeating forwards rather than reversing:
+      // 360° and 0° are the same pose, so the wrap is invisible, where a
+      // reverse would visibly rock back the way it came.
+      withDelay(
+        restMs,
+        withTiming(1, { duration: FLIP_MS, easing: easing.inOut }),
       ),
+      -1,
+      false,
     );
-  }, [value, playKey, reduceMotion, t]);
+  }, [reduceMotion, restMs, spin]);
 
   const frontStyle = useAnimatedStyle(() => ({
     transform: [
       { perspective: PERSPECTIVE },
-      { rotateX: `${-t.value * TIP_DEG}deg` },
+      { rotateX: `${spin.value * 360}deg` },
     ],
-    // The face turning away from the light, not a fade — it stays legible
-    // through the whole arc.
-    opacity: 1 - t.value * 0.2,
   }));
 
-  // Only visible through the gap the front flap opens. At rest it is fully
-  // transparent, so the two digits never sit stacked on top of each other.
-  const behindStyle = useAnimatedStyle(() => ({ opacity: t.value * 0.72 }));
+  const backStyle = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: PERSPECTIVE },
+      { rotateX: `${spin.value * 360 + 180}deg` },
+    ],
+  }));
 
-  if (reduceMotion) {
-    return (
-      <Text variant={variant} color={color} style={styles.figures}>
-        {value}
-      </Text>
-    );
-  }
+  const face = (
+    <Text variant="h2" color={palette.white} style={styles.digit}>
+      {value}
+    </Text>
+  );
+
+  if (reduceMotion) return <View style={styles.block}>{face}</View>;
 
   return (
-    <View>
-      <Animated.View
-        style={[StyleSheet.absoluteFill, styles.behind, behindStyle]}
-        pointerEvents="none"
-      >
-        <Text variant={variant} color={color} style={styles.figures}>
-          {next}
-        </Text>
+    <View style={styles.stage}>
+      <Animated.View style={[styles.block, styles.face, frontStyle]}>
+        {face}
       </Animated.View>
-
-      {/* In flow, so it is what gives the container its size. */}
-      <Animated.View style={[styles.hinge, frontStyle]}>
-        <Text variant={variant} color={color} style={styles.figures}>
-          {value}
-        </Text>
+      <Animated.View style={[styles.block, styles.face, backStyle]}>
+        {face}
       </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  hinge: {
-    // Hinged along the TOP edge — a flap falling forward, not a card spinning
-    // about its middle. RN 0.74+ supports this; FocusLamp uses it too.
-    transformOrigin: "50% 0%",
+  stage: { width: SIZE, height: SIZE },
+  face: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    // Exactly one face points at the viewer at any moment; the other is culled.
+    // Without this the far side's mirrored digit bleeds through the block.
     backfaceVisibility: "hidden",
   },
-  behind: {
+  block: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: palette.ink.sunken,
+    // A lit top edge. One highlight is all it takes to say "solid object" —
+    // the turn supplies the rest of the depth.
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.18)",
   },
-  figures: {
-    // Tabular figures: 7 and 6 occupy the same box, so neither the flap nor
-    // tomorrow's countdown reflows the sentence around it.
+  digit: {
+    // h2 for its bold face, sized down to fit the block. Overriding the size
+    // and line box only; the font family stays the variant's.
+    fontSize: 15,
+    lineHeight: 17,
     fontVariant: ["tabular-nums"],
   },
 });
