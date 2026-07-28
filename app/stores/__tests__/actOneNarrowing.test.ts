@@ -24,6 +24,7 @@ import { useOnboardingDraftStore } from "../onboardingDraft";
  */
 
 const FREQ_SCREEN = 2;
+/** Act 1 is the bundled six-screen flow; the server flow post-signup has 13. */
 const SITUATIONS = "speech.situations";
 const FREQUENCY = "situation.most_frequent";
 

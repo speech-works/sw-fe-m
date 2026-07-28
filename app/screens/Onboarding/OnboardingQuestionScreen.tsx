@@ -21,7 +21,12 @@ import {
   useTheme,
 } from "../../design-system";
 
-import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useNavigation,
+  useNavigationState,
+  useRoute,
+} from "@react-navigation/native";
 import {
   OnboardingStackNavigationProp,
   OnboardingStackParamList,
@@ -105,6 +110,31 @@ const OnboardingQuestionScreen: React.FC = () => {
     answers,
     canSubmitToServer,
   } = useQuestionSource(preAuth);
+
+  /**
+   * WHICH STEPS ARE ACTUALLY BEHIND US — read from the navigation stack, not
+   * inferred from the step number.
+   *
+   * The two are not the same thing. Post-signup, somebody who answered Act 1
+   * and reopens the app resumes at (say) step 7, and that screen is the ROOT of
+   * its stack: steps 1-6 are answered but were never pushed. Deriving "can I go
+   * back?" from `screenNumber > 1` would render a back button that does nothing
+   * and dots that offer jumps to screens which do not exist.
+   *
+   * Act 1 also skips a step when there is nothing to rank, so stack depth and
+   * step number drift apart there too — which is why jumping pops by INDEX
+   * rather than by the difference between step numbers.
+   */
+  const routes = useNavigationState((st) => st?.routes);
+  const reachable = React.useMemo(() => {
+    const map = new Map<number, number>();
+    (routes ?? []).forEach((r: any, i: number) => {
+      const n = r?.params?.screenNumber;
+      if (typeof n === "number" && n < screenNumber) map.set(n, i);
+    });
+    return map;
+  }, [routes, screenNumber]);
+  const myIndex = (routes?.length ?? 1) - 1;
 
   const nextAnswerableScreen = useOnboardingDraftStore((s) => s.nextAnswerableScreen);
   const settleSkipped = useOnboardingDraftStore((s) => s.settleSkipped);
@@ -333,7 +363,7 @@ const OnboardingQuestionScreen: React.FC = () => {
    * blank one. The flag is what lets the dot there acknowledge the press.
    */
   const handleBack = () => {
-    if (screenNumber <= 1) return;
+    if (!navigation.canGoBack()) return;
     if (advanceTimer.current) {
       clearTimeout(advanceTimer.current);
       advanceTimer.current = null;
@@ -348,16 +378,18 @@ const OnboardingQuestionScreen: React.FC = () => {
    * are already looking at the dot they chose.
    */
   const jumpBackTo = (step: number) => {
-    if (step >= screenNumber) return;
+    const at = reachable.get(step);
+    if (at === undefined) return;
     if (advanceTimer.current) {
       clearTimeout(advanceTimer.current);
       advanceTimer.current = null;
     }
     if (preAuth) setDraftStep(step);
-    (navigation as any).navigate(
-      preAuth ? "ActOneQuestion" : "OnboardingQuestion",
-      { screenNumber: step, preAuth },
-    );
+    // POP BY STACK INDEX, not by the difference between step numbers — Act 1
+    // can skip a step, so the two are not the same count. Popping also returns
+    // to the screen that is already mounted, with its answer on it, rather than
+    // pushing a second copy of the same question.
+    (navigation as any).pop(myIndex - at);
   };
 
   // -----------------------------------------------------
@@ -438,7 +470,7 @@ const OnboardingQuestionScreen: React.FC = () => {
           and the destructive one stays on the outside where it is harder to
           hit by accident. */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
-        {screenNumber > 1 ? (
+        {navigation.canGoBack() ? (
           <IconButton
             name="arrow-left"
             onPress={handleBack}
@@ -457,6 +489,7 @@ const OnboardingQuestionScreen: React.FC = () => {
         <StepDots
           total={totalScreens}
           current={screenNumber}
+          reachable={reachable}
           onJump={jumpBackTo}
           popOnArrival={poppedArrival}
         />

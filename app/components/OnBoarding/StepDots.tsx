@@ -45,6 +45,13 @@ interface Props {
   total: number;
   /** 1-based. */
   current: number;
+  /**
+   * Steps that are genuinely BEHIND us in the navigation stack, keyed by step
+   * number. A step can be answered without being reachable — somebody resuming
+   * onboarding lands mid-flow with nothing pushed behind them — and a dot that
+   * looks tappable and is not teaches people the whole row is decorative.
+   */
+  reachable: Map<number, number>;
   /** Jump back to `step`. Only ever called with a step behind the current one. */
   onJump: (step: number) => void;
   /**
@@ -58,7 +65,9 @@ interface Props {
 const DOT = 6;
 const DOT_WIDE = 22;
 
-const StepDots: React.FC<Props> = ({ total, current, onJump, popOnArrival }) => {
+const StepDots: React.FC<Props> = ({
+  total, current, reachable, onJump, popOnArrival,
+}) => {
   const styles = useStyles();
   const { colors } = useTheme();
   const { reduced } = useMotion();
@@ -83,6 +92,9 @@ const StepDots: React.FC<Props> = ({ total, current, onJump, popOnArrival }) => 
         const step = i + 1;
         const done = step < current;
         const now = step === current;
+        // Filled says "answered". Pressable says "you can get back to it".
+        // They are different facts and this is the one place they diverge.
+        const canJump = done && reachable.has(step);
         return (
           <Dot
             key={step}
@@ -94,7 +106,7 @@ const StepDots: React.FC<Props> = ({ total, current, onJump, popOnArrival }) => 
             reduced={reduced}
             colors={colors}
             styles={styles}
-            onPress={done ? () => onJump(step) : undefined}
+            onPress={canJump ? () => onJump(step) : undefined}
           />
         );
       })}
