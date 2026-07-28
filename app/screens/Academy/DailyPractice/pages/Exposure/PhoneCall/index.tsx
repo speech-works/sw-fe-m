@@ -101,9 +101,8 @@ const PhoneCall = () => {
   // Consent is affirmative-only: declining (backdrop tap, back, or "Not now")
   // must NOT record consent and must take the user out of the AI-call flow —
   // no consent, no call (production-readiness hardening).
-  const handleAiCallConsentDecline = () => {
-    navigation.goBack();
-  };
+  // Close first, leave once it has gone. See `onDismissed` on the modal.
+  const handleAiCallConsentDecline = () => setConsentDeclined(true);
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
@@ -133,6 +132,8 @@ const PhoneCall = () => {
   const currentActivityIdRef = useRef<string | null>(
     practiceActivity?.id || null,
   );
+  /** A purchase landed — show the confirmation once the sheet has gone. */
+  const purchaseLandedRef = useRef(false);
 
   const setTrackedActivityId = (activityId: string | null) => {
     currentActivityIdRef.current = activityId;
@@ -146,8 +147,38 @@ const PhoneCall = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showExhaustionSheet, setShowExhaustionSheet] = useState(false);
+  /** Declined the AI-call disclosure — leave, but only once the sheet is gone. */
+  const [consentDeclined, setConsentDeclined] = useState(false);
   const [walletRefreshKey, setWalletRefreshKey] = useState(0);
   const closeModal = () => setIsModalVisible(false);
+
+  /**
+   * BACK MUST CLOSE AN OPEN SHEET, NOT NAVIGATE PAST IT.
+   *
+   * A sheet is a native Modal. Navigating while one is on screen leaves it
+   * presented over the screen you moved to — transparent, on top of
+   * everything, swallowing every touch. The app looks fine and answers
+   * nothing, which is exactly what somebody hit here: out of calls, sheet
+   * opens, tap back because there is nothing else to do, dead app.
+   *
+   * The Sheet's own docs warn about this. The fix is the ordinary modal
+   * contract: the first back press dismisses what is open, the second leaves.
+   */
+  const handleHeaderBack = () => {
+    if (showExhaustionSheet) {
+      setShowExhaustionSheet(false);
+      return;
+    }
+    if (isModalVisible) {
+      setIsModalVisible(false);
+      return;
+    }
+    if (from === "MOOD_CHECK") {
+      navigation.navigate("Root" as any, { screen: "HOME" });
+    } else {
+      navigation.goBack();
+    }
+  };
 
   const markActivityStart = useMarkActivityStart({
     contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
@@ -392,14 +423,7 @@ const PhoneCall = () => {
             { paddingTop: insets.top + (Platform.OS === "android" ? 12 : 10) },
           ]}
         >
-          <IconButton
-            name="arrow-left"
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-          />
+          <IconButton name="arrow-left" onPress={handleHeaderBack} />
           <TouchableOpacity
             style={styles.headerTextContainer}
             onPress={() => setIsModalVisible(true)}
@@ -513,17 +537,33 @@ const PhoneCall = () => {
       />
 
       <AICallConsentModal
-        visible={consentHydrated && !aiConsented && !user?.aiCallConsentAt}
+        visible={
+          consentHydrated &&
+          !aiConsented &&
+          !user?.aiCallConsentAt &&
+          !consentDeclined
+        }
         onAcknowledge={handleAiCallConsentAcknowledge}
         onDecline={handleAiCallConsentDecline}
+        onDismissed={() => {
+          if (consentDeclined && navigation.canGoBack()) navigation.goBack();
+        }}
       />
 
       <ExhaustionSheet
         visible={showExhaustionSheet}
         onClose={() => setShowExhaustionSheet(false)}
         onResolved={() => {
+          // Close ONLY. The confirmation is a native modal of its own, and
+          // firing it here would stack it on a sheet still animating out —
+          // the same freeze the back button used to cause.
+          purchaseLandedRef.current = true;
           setShowExhaustionSheet(false);
           setWalletRefreshKey((k) => k + 1);
+        }}
+        onDismissed={() => {
+          if (!purchaseLandedRef.current) return;
+          purchaseLandedRef.current = false;
           showSuccessBottomSheet(
             "You're all set",
             "Tap the call button again to start.",

@@ -155,6 +155,7 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
   // call is not an exemption from it.
   const aiConsented = useAICallConsentStore((s) => s.consented);
   const markAICallConsented = useAICallConsentStore((s) => s.markConsented);
+  const [consentDeclined, setConsentDeclined] = useState(false);
   const [consentHydrated, setConsentHydrated] = useState(
     useAICallConsentStore.persist.hasHydrated(),
   );
@@ -542,12 +543,17 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
       )}
 
       <AICallConsentModal
-        visible={needsConsent && phase === "gate"}
+        visible={needsConsent && phase === "gate" && !consentDeclined}
         onAcknowledge={() => {
           markAICallConsented();
           postAiCallConsent().catch(() => {});
         }}
-        onDecline={leave}
+        // Close first, leave from onDismissed: this is a native Modal, and
+        // navigating while it is presented strands it over the next screen.
+        onDecline={() => setConsentDeclined(true)}
+        onDismissed={() => {
+          if (consentDeclined) leave();
+        }}
       />
     </Screen>
   );

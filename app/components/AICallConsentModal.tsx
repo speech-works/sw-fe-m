@@ -11,6 +11,10 @@ import {
 } from "../design-system";
 
 interface AICallConsentModalProps {
+  /** Fires once the sheet has FULLY animated out. Navigation belongs here, not
+   *  in `onDecline` — this is a native Modal, and leaving the screen while it
+   *  is still presented strands it over the next one, swallowing every touch. */
+  onDismissed?: () => void;
   visible: boolean;
   /** Called ONLY when the user taps the explicit accept button — caller persists consent + proceeds. */
   onAcknowledge: () => void;
@@ -35,11 +39,12 @@ export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
   visible,
   onAcknowledge,
   onDecline,
+  onDismissed,
 }) => {
   const { colors } = useTheme();
 
   return (
-    <Sheet visible={visible} onClose={onDecline}>
+    <Sheet visible={visible} onClose={onDecline} onDismissed={onDismissed}>
       <View style={styles.container}>
         <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
           <MaterialCommunityIcons

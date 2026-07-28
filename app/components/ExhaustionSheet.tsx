@@ -12,6 +12,10 @@ interface ExhaustionSheetProps {
   onClose: () => void;
   /** Called once a purchase actually landed (credits or membership) so the caller can retry starting the call. */
   onResolved: () => void;
+  /** Fires after the sheet has FULLY animated out. Anything that presents its
+   *  own native modal — a toast, a prompt — must wait for this, or it stacks on
+   *  a sheet that is still on screen and freezes touches app-wide. */
+  onDismissed?: () => void;
 }
 
 /**
@@ -24,6 +28,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   visible,
   onClose,
   onResolved,
+  onDismissed,
 }) => {
   const { colors } = useTheme();
   const [offers, setOffers] = useState<Offers | null>(null);
@@ -99,7 +104,11 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     /* NO `title` PROP. The Sheet's title floats ABOVE the card on the backdrop,
        which left "Out of calls" hanging in the dark with its own explanation
        sealed in a box below it. A heading belongs with the thing it heads. */
-    <Sheet visible={visible} onClose={onClose}>
+    /* `exclusive`: this is fired by an EVENT (a 402 mid-call), not by a tap, so
+       it can arrive while the consent modal or a prompt is already up. Two
+       native Modals presented at once freeze touches across the whole app on
+       iOS, so it waits for the registry to clear instead of stacking. */
+    <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed} exclusive>
       <View style={styles.content}>
         {/* Title and body are one block, tight together — they are a single
             thought. The actions get the wider gap below. */}
