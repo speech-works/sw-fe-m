@@ -144,6 +144,19 @@ const OnboardingQuestionScreen: React.FC = () => {
     return map;
   }, [routes, screenNumber]);
   const myIndex = (routes?.length ?? 1) - 1;
+  /**
+   * The question immediately behind this one, or null on the first.
+   *
+   * NOT `navigation.canGoBack()`, which is true on question one — the welcome
+   * screen is still under it, so the arrow would walk somebody OUT of the
+   * questions rather than between them. Back travels the flow; leaving it is
+   * the X's job, and conflating the two is how a control stops meaning one
+   * thing.
+   */
+  const prevStep = React.useMemo(() => {
+    const steps = [...reachable.keys()];
+    return steps.length ? Math.max(...steps) : null;
+  }, [reachable]);
 
   const nextAnswerableScreen = useOnboardingDraftStore((s) => s.nextAnswerableScreen);
   const settleSkipped = useOnboardingDraftStore((s) => s.settleSkipped);
@@ -371,35 +384,35 @@ const OnboardingQuestionScreen: React.FC = () => {
    * returning to it restores the answer already on it instead of re-creating a
    * blank one. The flag is what lets the dot there acknowledge the press.
    */
-  const handleBack = () => {
-    if (!navigation.canGoBack()) return;
-    if (advanceTimer.current) {
-      clearTimeout(advanceTimer.current);
-      advanceTimer.current = null;
-    }
-    arrivedViaBack = true;
-    if (preAuth) setDraftStep(screenNumber - 1);
-    if (navigation.canGoBack()) navigation.goBack();
-  };
-
   /**
-   * A dot tap — the same destination, any distance. No pop on arrival: they
-   * are already looking at the dot they chose.
+   * One way back, two entry points. The button always means "the previous
+   * question"; a dot means "that question". Both pop by stack INDEX rather than
+   * by the difference between step numbers, because Act 1 can skip a step and
+   * the two counts drift — and popping returns to the screen already mounted,
+   * with its answer on it, instead of pushing a second copy.
    */
-  const jumpBackTo = (step: number) => {
+  const popToStep = (step: number, viaButton: boolean) => {
     const at = reachable.get(step);
     if (at === undefined) return;
     if (advanceTimer.current) {
       clearTimeout(advanceTimer.current);
       advanceTimer.current = null;
     }
+    if (viaButton) arrivedViaBack = true;
     if (preAuth) setDraftStep(step);
-    // POP BY STACK INDEX, not by the difference between step numbers — Act 1
-    // can skip a step, so the two are not the same count. Popping also returns
-    // to the screen that is already mounted, with its answer on it, rather than
-    // pushing a second copy of the same question.
     (navigation as any).pop(myIndex - at);
   };
+
+  const handleBack = () => {
+    if (prevStep !== null) popToStep(prevStep, true);
+  };
+
+  /**
+   * A dot tap — the same destination, any distance. No pop on arrival: they
+   * are already looking at the dot they chose.
+   */
+  /** A dot tap. No pop on arrival — they are already looking at the dot. */
+  const jumpBackTo = (step: number) => popToStep(step, false);
 
   // -----------------------------------------------------
   // NEXT BUTTON
@@ -479,7 +492,7 @@ const OnboardingQuestionScreen: React.FC = () => {
           and the destructive one stays on the outside where it is harder to
           hit by accident. */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
-        {navigation.canGoBack() ? (
+        {prevStep !== null ? (
           <IconButton
             name="arrow-left"
             onPress={handleBack}
