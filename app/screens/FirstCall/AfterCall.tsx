@@ -164,9 +164,23 @@ const useStyles = makeStyles(() => ({
     paddingHorizontal: space.screenX,
     paddingBottom: spacing.xl,
   },
+  /**
+   * TOP-ANCHORED, and that is the whole fix for the layout shift.
+   *
+   * It was centred, and the actions block below it changes height with the
+   * selection — "that was a lot" adds a line of copy and a second control. A
+   * centred body absorbs that difference by MOVING, so choosing an answer
+   * dragged the headline, the question and every option upward. Nothing had
+   * changed about them; they moved because something else grew.
+   *
+   * Anchored to the top, the flexible space sits BETWEEN the choices and the
+   * actions, which is the only place that can grow without moving anything the
+   * reader is looking at.
+   */
   body: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: spacing["3xl"],
     gap: space.inlineGap,
   },
   headline: {

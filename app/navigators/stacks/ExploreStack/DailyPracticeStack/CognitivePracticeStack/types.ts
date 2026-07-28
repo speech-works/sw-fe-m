@@ -10,7 +10,12 @@ export type CDPStackParamList = {
     | {
         packContext?: PackContext;
         practiceActivity?: any;
-        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+        /**
+         * `FIRST_CALL` means the welcome flow, which runs in its own navigator
+         * with no app mounted behind it — so the usual Done screen's exits
+         * (they navigate to "Root") would dead-end. See the guard in Breathing.
+         */
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK" | "FIRST_CALL";
       }
     | undefined;
   MeditationPractice:

@@ -526,7 +526,7 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
               // Pushed, not replaced: Breathing's no-params exit is goBack(),
               // which needs something to go back TO. It lands here, on the
               // check-in, and one tap finishes the flow.
-              navigation.navigate("Breathing");
+              navigation.navigate("Breathing", { from: "FIRST_CALL" });
             } else {
               navigation.replace("ExploreStack", {
                 screen: "Breathing",

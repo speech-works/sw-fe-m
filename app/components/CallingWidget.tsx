@@ -3112,56 +3112,64 @@ const CallingWidget: React.FC<Props> = ({
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Tips / Suggestions */}
-        <View style={{ position: "relative" }}>
-          <TouchableOpacity
-            style={[
-              styles.glassControlBtn,
-              showTips && styles.glassControlBtnActive,
-              !isCalling && { opacity: 0.5 },
-            ]}
-            onPress={() => {
-              if (!isCalling) {
-                setStatus("Start call to see tips");
-                return;
-              }
-              toggleTips();
-            }}
-            // disabled={!isCalling} <-- REMOVED
-          >
-            <Icon
-              name="message-circle" // 'lightbulb' -> 'message-circle' or 'edit-3'
-              size={22}
-              color={showTips ? colors.text.primary : colors.text.secondary}
-            />
-          </TouchableOpacity>
+        {/* ONE CONTROL ON THE RIGHT, and it is whichever one currently does
+            something.
 
-          {/* Take-your-time toggle (Phase D): set before starting the call —
-              silence never ends a turn while it's on. Dimmed once the call
-              is live since the backend only reads it at join. */}
-          <TouchableOpacity
-            style={[
-              styles.glassControlBtn,
-              takeYourTime && styles.glassControlBtnActive,
-              isCalling && { opacity: 0.5 },
-            ]}
-            onPress={toggleTakeYourTime}
-            accessibilityLabel="Take your time — silence won't end the call"
-          >
-            <FAIcon
-              name="hourglass-half"
-              size={20}
-              color={takeYourTime ? colors.text.primary : colors.text.secondary}
-            />
-          </TouchableOpacity>
+            This slot used to hold THREE buttons inside a plain View with no
+            flexDirection, so they stacked vertically and spilled out of the
+            dock — the hourglass hanging off the corner was not a layout, it was
+            three children falling down a column.
 
-          {/* "I'm done" — only meaningful in take-your-time mode, mid-call */}
-          {takeYourTime && isCalling && (
-            <TouchableOpacity style={styles.glassControlBtn} onPress={sendEndOfTurn}>
+            It was also showing controls that could not be used: take-your-time
+            is read by the backend at JOIN, so mid-call it was rendered at half
+            opacity doing nothing, and tips does nothing before a call exists.
+            Showing each only when it is live means one icon at a time, and
+            every icon on screen is one you can press. */}
+        <View style={styles.dockSlot}>
+          {!isCalling ? (
+            /* Before the call — the only moment this is settable. */
+            <TouchableOpacity
+              style={[
+                styles.glassControlBtn,
+                takeYourTime && styles.glassControlBtnActive,
+              ]}
+              onPress={toggleTakeYourTime}
+              accessibilityLabel="Take your time — silence won't end the call"
+            >
+              <FAIcon
+                name="hourglass-half"
+                size={20}
+                color={takeYourTime ? colors.text.primary : colors.text.secondary}
+              />
+            </TouchableOpacity>
+          ) : takeYourTime ? (
+            /* Mid-call in take-your-time: silence never ends a turn, so this is
+               the ONLY way to hand the turn back. It outranks tips. */
+            <TouchableOpacity
+              style={styles.glassControlBtn}
+              onPress={sendEndOfTurn}
+              accessibilityLabel="I'm done — hand the turn back"
+            >
               <Icon name="check" size={22} color={colors.text.primary} />
             </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.glassControlBtn,
+                showTips && styles.glassControlBtnActive,
+              ]}
+              onPress={toggleTips}
+              accessibilityLabel="Suggestions"
+            >
+              <Icon
+                name="message-circle"
+                size={22}
+                color={showTips ? colors.text.primary : colors.text.secondary}
+              />
+            </TouchableOpacity>
           )}
-          {showNotificationDot && (
+
+          {showNotificationDot && isCalling && !takeYourTime && (
             <Animated.View
               style={[
                 styles.notificationBadgeModern,
@@ -3619,6 +3627,12 @@ const useStyles = makeStyles((c) => ({
   },
 
   // Controls Dock - Floating Premium Look
+  // The right-hand slot. `relative` so the unread badge can anchor to whatever
+  // control is currently in it; sized to one button so the dock stays balanced
+  // against the mute button opposite.
+  dockSlot: {
+    position: "relative",
+  },
   controlsDock: {
     flexDirection: "row",
     alignItems: "center",

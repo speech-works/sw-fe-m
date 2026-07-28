@@ -35,6 +35,7 @@ import {
   validateVitals,
 } from "../../../../../../utils/vitals";
 import DonePractice from "../../../components/DonePractice";
+import { useFirstCallStore } from "../../../../../../stores/firstCall";
 import {
   Page,
   Button,
@@ -579,6 +580,27 @@ const Breathing = () => {
     );
   }
 
+  /**
+   * THE WELCOME FLOW HAS NO APP BEHIND IT YET.
+   *
+   * The once-ever first call runs in its own navigator, mounted INSTEAD of the
+   * app, so somebody who reaches breathing from there is in a world containing
+   * two screens. DonePractice's buttons navigate to "Root" — which does not
+   * exist yet — and its own error said so: the action 'NAVIGATE' with payload
+   * {"name":"Root"...} was not handled by any navigator. A dead end at the end
+   * of a calming exercise, which is the worst possible place for one.
+   *
+   * So there is no Done screen here at all. Finishing (or abandoning) ends the
+   * welcome flow, which drops the person into the app exactly where they
+   * belong — the rest of onboarding, or Home if they are already through it.
+   * That is what "take them to the app" means for a user this new; a literal
+   * jump to Home would land them somewhere they have not earned yet.
+   */
+  if (isDone && from === "FIRST_CALL") {
+    useFirstCallStore.getState().clearPreSignup();
+    return null;
+  }
+
   if (isDone) {
     return (
       <DonePractice
@@ -589,7 +611,11 @@ const Breathing = () => {
         onAccentColor={onAccentColor}
         onDone={undefined}
         isAborted={isAborted}
-        from={from}
+        // Narrowed rather than widened: DonePractice must never be handed
+        // FIRST_CALL, because the welcome flow returns above without rendering
+        // it at all. Passing it through would only teach the type that this is
+        // a state DonePractice has to handle, which it does not.
+        from={from === "FIRST_CALL" ? undefined : from}
       />
     );
   }
