@@ -92,8 +92,13 @@ const ActOneCallOffer: React.FC = () => {
 
   const caller = useMemo(() => {
     if (!cast?.length) return null;
+    // The fallback carries an act of its own (open_chat — that is genuinely
+    // what Sofia's no-agenda call is), so matching without excluding it would
+    // pick between two entries by array order. Same rule the server uses, so
+    // the name promised here is the name that rings.
+    const matchable = cast.filter((c) => !c.isDefault);
     return (
-      (act ? cast.find((c) => c.action === act) : undefined) ??
+      (act ? matchable.find((c) => c.action === act) : undefined) ??
       cast.find((c) => c.isDefault) ??
       cast[0]
     );
