@@ -56,6 +56,12 @@ interface UseMarkActivityStartParams {
   rethrowErrors?: boolean;
   /** When false, skip the ACTIVITY_STARTED analytics event. Default true. */
   trackStart?: boolean;
+  /**
+   * Suppress the generic "can't start" dialog because this screen shows
+   * something better — the phone-call screen's top-up sheet, for instance.
+   * Pair it with `rethrowErrors` so the caller still sees the failure.
+   */
+  suppressErrorModal?: boolean;
 }
 
 /**
@@ -93,6 +99,7 @@ export const useMarkActivityStart = (
     onSessionError,
     rethrowErrors = false,
     trackStart = true,
+    suppressErrorModal = false,
   } = params;
 
   const decorate = (activity: any) =>
@@ -228,6 +235,7 @@ export const useMarkActivityStart = (
       const startedActivity = await startPracticeActivity({
         id: activityIdToStart,
         userId,
+        suppressErrorModal,
       });
 
       const decorated = decorate({ ...startedActivity });

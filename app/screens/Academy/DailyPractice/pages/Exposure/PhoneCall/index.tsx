@@ -193,6 +193,9 @@ const PhoneCall = () => {
     // Rethrow so handleCallStart below can tell a 402 NO_CREDITS apart from
     // any other start failure and show the right UI for each.
     rethrowErrors: true,
+    // This screen answers a refused start itself (the top-up sheet), so the
+    // generic dialog must not also fire — see the flag's note.
+    suppressErrorModal: true,
   });
 
   // Calls are the one activity type gated on call credits (SPEECHWORKS-STRATEGY.md

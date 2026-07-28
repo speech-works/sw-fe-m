@@ -267,6 +267,9 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
     setActivityId: trackActivityId,
     navigation,
     logTag: "FirstCall",
+    // This screen answers a refused start itself (the top-up sheet), so the
+    // generic dialog must not also fire — see the flag's note.
+    suppressErrorModal: true,
   });
 
   const handleCallStart = async (): Promise<string | null> => {

@@ -141,7 +141,16 @@ interface UpdateActivityReq {
 export async function startPracticeActivity({
   id,
   userId,
-}: UpdateActivityReq): Promise<PracticeActivity> {
+  /**
+   * The caller has its own answer for a refused start, so the generic dialog
+   * must stay out of the way. Set by the phone-call screen, which opens the
+   * top-up sheet for NO_CREDITS — two native modals at once freeze touches
+   * app-wide on iOS, so this is a correctness flag, not a cosmetic one.
+   */
+  suppressErrorModal,
+}: UpdateActivityReq & {
+  suppressErrorModal?: boolean;
+}): Promise<PracticeActivity> {
   console.log(">> API: Starting Practice Activity", { id, userId });
   try {
     const response = await axiosClient.post(
@@ -161,16 +170,45 @@ export async function startPracticeActivity({
         dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL, {
           errorMessage: backendError,
         });
+      } else if (suppressErrorModal) {
+        /* The caller has a better answer than a generic dialog — the phone-call
+           screen opens the top-up sheet for NO_CREDITS. Showing both meant two
+           native modals presented at once, which is not merely ugly: it freezes
+           touches app-wide on iOS. The error still throws, so nothing is
+           swallowed; only the duplicate UI is. */
       } else {
         dispatchCustomEvent(EVENT_NAMES.SHOW_ERROR_MODAL, {
-          errorMessage:
-            error.response.data.error ||
-            "An error occurred while starting the activity.",
-          modalTitle: "Try later",
+          /* NEVER THE RAW SERVER STRING. `data.error` is written for a
+             developer reading a log — it carried a user's uuid into a dialog
+             on their own screen. Known codes get copy a person can act on;
+             everything else gets a plain sentence, and the real text stays in
+             the console where it is useful. */
+          errorMessage: startErrorMessage(errorCode),
+          modalTitle: "Can't start this yet",
         });
       }
     }
     throw error;
+  }
+}
+
+/**
+ * What to SAY when an activity will not start.
+ *
+ * Keyed on the error code rather than the server's prose, so the wording is
+ * owned here — where somebody can read it in the context of the screen it
+ * appears on — instead of in a backend exception constructor.
+ */
+function startErrorMessage(code?: string): string {
+  switch (code) {
+    case "NO_CREDITS":
+      return "You're out of calls right now. Your free weekly call comes back soon.";
+    case "PACK_NOT_OWNED":
+      return "This one's part of a program you haven't started yet.";
+    case "PACK_DAY_LOCKED":
+      return "This day hasn't opened yet. It unlocks as you work through the program.";
+    default:
+      return "We couldn't start this just now. Give it another go in a moment.";
   }
 }
 
