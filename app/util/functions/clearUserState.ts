@@ -49,6 +49,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useOnboardingStore },
       { useOnboardingDraftStore },
       { useFirstCallStore },
+      { useCallHintsStore },
     ] = await Promise.all([
       import("../../stores/user"),
       import("../../stores/toolConsent"),
@@ -64,6 +65,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/onboarding"),
       import("../../stores/onboardingDraft"),
       import("../../stores/firstCall"),
+      import("../../stores/callHints"),
     ]);
     resets.push(
       ["user", () => useUserStore.getState().clearUser()],
@@ -92,6 +94,9 @@ export async function clearAllPersistedUserState(): Promise<void> {
         // person to sign in on this phone.
         useFirstCallStore.getState().clearPreSignup();
       }],
+      // Discovering the call controls is a per-person thing, not a per-device
+      // one: the next user gets shown the hourglass too.
+      ["callHints", () => useCallHintsStore.getState().reset()],
     );
   } catch (e) {
     console.warn("[clearUserState] loading stores for reset failed:", e);

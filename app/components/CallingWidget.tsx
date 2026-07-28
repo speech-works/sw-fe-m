@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   Animated, // <-- IMPORTED
   Easing, // <-- IMPORTED
   Linking,
@@ -35,6 +36,7 @@ import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { makeStyles, useTheme, withAlpha, radius, spacing } from "../design-system";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
+import { useCallHintsStore } from "../stores/callHints";
 
 type CallExitPayload = {
   reason: string | null;
@@ -506,6 +508,28 @@ const CallingWidget: React.FC<Props> = ({
   // join, WsEventType.PRESENCE/END_OF_TURN) — this wires the app up to
   // actually send them. ⬇️ ---
   const [takeYourTime, setTakeYourTime] = useState(false);
+
+  /**
+   * TEACHING THE HOURGLASS, WITHOUT PUTTING WORDS ON THE SCREEN.
+   *
+   * An hourglass reads as "you are being timed" — the exact opposite of what
+   * this control does. Nobody guesses it, and the toggle used to answer a
+   * press with nothing but a colour change, so even the curious learned
+   * nothing. For an audience who block mid-sentence, that is the one control
+   * on this screen they most need to find.
+   *
+   * The fix adds no element: the icon BREATHES until it has been pressed once
+   * ever, and the press is answered in the status line that is already sitting
+   * under the orbs. `takeYourTimeTried` is what retires the pulse for good.
+   */
+  const takeYourTimeTried = useCallHintsStore((s) => s.takeYourTimeTried);
+  const markTakeYourTimeTried = useCallHintsStore(
+    (s) => s.markTakeYourTimeTried,
+  );
+  const [toggleHint, setToggleHint] = useState<string | null>(null);
+  const toggleHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const takeYourTimePulse = useRef(new Animated.Value(1)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
   // --- ⬆️ END take-your-time state ⬆️ ---
 
   // Register each native <Modal> this widget can present so app-level exclusive
@@ -2516,10 +2540,91 @@ const CallingWidget: React.FC<Props> = ({
   // Take-your-time toggle: only meaningful BEFORE a call starts (it's sent
   // once, in the join payload) — mid-call it's display-only, since the
   // backend reads it exactly once at join.
+  /** How long the status line holds the answer before going back to normal. */
+  const TOGGLE_HINT_MS = 2500;
+
   const toggleTakeYourTime = () => {
     if (isCalling) return;
-    setTakeYourTime((prev) => !prev);
+    const next = !takeYourTime;
+    setTakeYourTime(next);
+    // Found. The pulse never comes back, on this or any later call.
+    markTakeYourTimeTried();
+
+    // Say what the press DID, in the slot that already holds "Ready to
+    // Connect" — both directions, because "off" is the state that ends
+    // somebody's turn while they are still trying to get a word out, and that
+    // deserves saying out loud just as much.
+    if (toggleHintTimerRef.current) clearTimeout(toggleHintTimerRef.current);
+    setToggleHint(
+      next ? "Silence won't end your turn" : "A pause will end your turn",
+    );
+    toggleHintTimerRef.current = setTimeout(
+      () => setToggleHint(null),
+      TOGGLE_HINT_MS,
+    );
   };
+
+  useEffect(
+    () => () => {
+      if (toggleHintTimerRef.current) clearTimeout(toggleHintTimerRef.current);
+    },
+    [],
+  );
+
+  // Motion is the whole hint, so it has to be the thing that degrades: with
+  // reduce-motion on there is no pulse at all, and discovery falls back to the
+  // accessibility label, which already reads "Take your time — silence won't
+  // end the call" to a screen reader.
+  useEffect(() => {
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (!cancelled) setReduceMotion(enabled);
+      })
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Pre-call only — mid-call the slot holds a different control entirely,
+    // and a call in progress is the worst possible time to be drawing the eye
+    // to a button that cannot be pressed.
+    const shouldPulse = !takeYourTimeTried && !isCalling && !reduceMotion;
+    if (!shouldPulse) {
+      takeYourTimePulse.stopAnimation();
+      takeYourTimePulse.setValue(1);
+      return;
+    }
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(takeYourTimePulse, {
+          toValue: 0.45,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(takeYourTimePulse, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulse.start();
+    return () => {
+      pulse.stop();
+      takeYourTimePulse.setValue(1);
+    };
+  }, [takeYourTimeTried, isCalling, reduceMotion, takeYourTimePulse]);
 
   // "I'm done" — the explicit hand-over the backend needs in take-your-time
   // mode, where silence never ends a turn on its own (PhoneCallConfig /
@@ -2786,9 +2891,12 @@ const CallingWidget: React.FC<Props> = ({
     missedSpeechCueVisible && missedSpeechCueCount >= 2
       ? "Could you say that again?"
       : "";
+  // Pre-call, the toggle's answer borrows this slot for a couple of seconds.
+  // Borrowing rather than adding is the point: the line is already here, and
+  // already reserving its height, so nothing appears and nothing shifts.
   const visibleStatus = isCalling
     ? userFallbackText || status
-    : "Ready to Connect";
+    : toggleHint || "Ready to Connect";
   const suggestionBadgeCount = Math.min(suggestedResponses.length, 9);
   const suggestionBadgeScale = suggestionBadgePulse.interpolate({
     inputRange: [0, 1],
@@ -2996,6 +3104,10 @@ const CallingWidget: React.FC<Props> = ({
               style={[
                 styles.statusTextModern,
                 Boolean(userFallbackText) && styles.retryHintText,
+                // A quieter register than the status: this is an explanation,
+                // not a state. Also drops the uppercase + 3pt tracking, which
+                // is what keeps the sentence on one line.
+                Boolean(toggleHint) && !isCalling && styles.toggleHintText,
               ]}
             >
               {visibleStatus}
@@ -3166,11 +3278,19 @@ const CallingWidget: React.FC<Props> = ({
               onPress={toggleTakeYourTime}
               accessibilityLabel="Take your time — silence won't end the call"
             >
-              <FAIcon
-                name="hourglass-half"
-                size={20}
-                color={takeYourTime ? colors.text.primary : colors.text.secondary}
-              />
+              {/* Breathes until it has been pressed once, ever. This is the
+                  entire hint: no label, no dot, no coach-mark — the screen at
+                  rest is unchanged, and an icon that moves is enough to earn
+                  the one press that does the actual teaching. */}
+              <Animated.View style={{ opacity: takeYourTimePulse }}>
+                <FAIcon
+                  name="hourglass-half"
+                  size={20}
+                  color={
+                    takeYourTime ? colors.text.primary : colors.text.secondary
+                  }
+                />
+              </Animated.View>
             </TouchableOpacity>
           ) : takeYourTime ? (
             /* Mid-call in take-your-time: silence never ends a turn, so this is
@@ -3591,6 +3711,13 @@ const useStyles = makeStyles((c) => ({
   },
   retryHintText: {
     color: c.feedback.infoText,
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.2,
+    textTransform: "none",
+  },
+  toggleHintText: {
+    color: c.text.secondary,
     fontSize: 14,
     fontWeight: "500",
     letterSpacing: 0.2,

@@ -31,4 +31,7 @@ export const ASYNC_KEYS_NAME = {
   // Whether the once-ever first call has been put off. Holds NO entitlement —
   // only the server knows whether the call itself is still going.
   SW_ZSTORE_FIRST_CALL: "SW_ZSTORE_FIRST_CALL",
+  // Which call-screen controls the user has discovered. Teaching state only —
+  // holds no entitlement and gates nothing but a hint.
+  SW_ZSTORE_CALL_HINTS: "SW_ZSTORE_CALL_HINTS",
 };
