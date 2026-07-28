@@ -24,10 +24,12 @@ interface AICallConsentModalProps {
 }
 
 /**
- * One-time disclosure shown before the user's first AI conversation, explaining
- * that their voice is streamed to third-party AI providers during the call.
- * Consent is affirmative-only: it is recorded solely via the accept button;
- * dismissing the sheet (backdrop/back) or tapping "Not now" is a decline.
+ * One-time gate shown before the user's first AI conversation. Deliberately
+ * carries no processing detail — the user is about to make an exposure call and
+ * does not need a vendor list at that moment; the full disclosure belongs in the
+ * privacy policy / T&C. What survives here is the affirmative act: consent is
+ * recorded solely via the accept button, and dismissing the sheet (backdrop/back)
+ * or tapping "Not now" is a decline.
  */
 export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
   visible,
@@ -48,17 +50,11 @@ export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
         </View>
 
         <Text variant="h2" center>
-          Before your first AI conversation
-        </Text>
-        <Text variant="bodySm" color="secondary" center>
-          Your voice is streamed in real time to our AI providers — Deepgram
-          transcribes your speech, and Groq generates the AI's responses — so
-          it can have a conversation with you during the call. It's used only
-          for this practice session; you can end the call anytime.
+          Ready to take the call?
         </Text>
 
         <View style={styles.buttons}>
-          <Button label="I agree — let's start" onPress={onAcknowledge} />
+          <Button label="I'm ready" onPress={onAcknowledge} />
           <Button label="Not now" variant="ghost" onPress={onDecline} />
         </View>
       </View>

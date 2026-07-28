@@ -5,6 +5,7 @@ import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
 
 import OnboardingQuestion from "../../components/OnBoarding/OnboardingQuestion";
+import StepDots from "../../components/OnBoarding/StepDots";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboardingStore } from "../../stores/onboarding";
@@ -14,11 +15,9 @@ import {
   Button,
   IconButton,
   icons,
-  ProgressBar,
   SchemeStatusBar,
   space,
   spacing,
-  Text,
   useTheme,
 } from "../../design-system";
 
@@ -41,6 +40,19 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 /** Pause after a single-select tap, so the choice is seen before we move on. */
 const AUTO_ADVANCE_MS = 260;
+
+/**
+ * "You arrived here by pressing Back."
+ *
+ * `navigation.goBack()` takes no params and the screen being returned TO was
+ * never unmounted, so there is no prop to thread this through. A module flag is
+ * the right size for it: exactly one question screen is focused at a time, and
+ * it is consumed on the next focus and immediately cleared.
+ *
+ * It exists so the dot you land on can pop — the one moment the back button and
+ * the dots read as one system rather than two ways to do the same thing.
+ */
+let arrivedViaBack = false;
 
 /**
  * Does answering this question commit the screen on its own?
@@ -72,6 +84,8 @@ const OnboardingQuestionScreen: React.FC = () => {
 
   const route = useRoute<OnboardingStackRouteProp<"OnboardingQuestion">>();
   const screenNumber = route.params?.screenNumber ?? 1;
+  /** True for this visit only when we got here via the back button. */
+  const [poppedArrival, setPoppedArrival] = React.useState(false);
   /**
    * Set by the pre-auth stack. Same screen, two sources: Act 1's five bundled
    * questions with answers kept on the device (no account exists yet, so
@@ -92,6 +106,8 @@ const OnboardingQuestionScreen: React.FC = () => {
     canSubmitToServer,
   } = useQuestionSource(preAuth);
 
+  const nextAnswerableScreen = useOnboardingDraftStore((s) => s.nextAnswerableScreen);
+  const settleSkipped = useOnboardingDraftStore((s) => s.settleSkipped);
   const setFlow = useOnboardingStore((s) => s.setFlow);
   const setDraftStep = useOnboardingDraftStore((s) => s.setStep);
   const markDraftCompleted = useOnboardingDraftStore((s) => s.markCompleted);
@@ -148,6 +164,13 @@ const OnboardingQuestionScreen: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       isAdvancing.current = false;
+      // Consume the note the back button left, once. Cleared immediately so a
+      // later focus (returning from somewhere else) cannot pop a second time.
+      if (arrivedViaBack) {
+        arrivedViaBack = false;
+        setPoppedArrival(true);
+      }
+      return () => setPoppedArrival(false);
     }, []),
   );
 
@@ -212,7 +235,22 @@ const OnboardingQuestionScreen: React.FC = () => {
 
   const screenQuestions = getCurrentScreenQuestions(screenNumber);
   const totalScreens = Math.max(...flow.questions.map((q) => q.screenNumber));
-  const isLast = screenNumber === totalScreens;
+
+  /**
+   * The next screen worth showing — NOT simply `screenNumber + 1`.
+   *
+   * Act 1 narrows the frequency question to the acts they called hard, and when
+   * there is only one there is nothing left to rank: the answer is arithmetic,
+   * so the store fills it in and the screen is skipped. Onboarding gets one
+   * question shorter for exactly the people it was most redundant for.
+   *
+   * `isLast` follows from the same walk, so the button says "Complete" on the
+   * real last screen rather than on screen six regardless.
+   */
+  const nextScreenNumber = preAuth
+    ? nextAnswerableScreen(screenNumber)
+    : screenNumber + 1;
+  const isLast = nextScreenNumber > totalScreens;
   // Hide the footer only when EVERY question on the screen commits on its own;
   // a mixed screen still needs the button for the ones that don't.
   const usesAutoAdvanceRail =
@@ -287,6 +325,41 @@ const OnboardingQuestionScreen: React.FC = () => {
     }
   };
 
+  /**
+   * BACK — the answer to a 260 ms hop nobody meant to trigger.
+   *
+   * `goBack` rather than a push: the previous screen is still mounted, so
+   * returning to it restores the answer already on it instead of re-creating a
+   * blank one. The flag is what lets the dot there acknowledge the press.
+   */
+  const handleBack = () => {
+    if (screenNumber <= 1) return;
+    if (advanceTimer.current) {
+      clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
+    arrivedViaBack = true;
+    if (preAuth) setDraftStep(screenNumber - 1);
+    if (navigation.canGoBack()) navigation.goBack();
+  };
+
+  /**
+   * A dot tap — the same destination, any distance. No pop on arrival: they
+   * are already looking at the dot they chose.
+   */
+  const jumpBackTo = (step: number) => {
+    if (step >= screenNumber) return;
+    if (advanceTimer.current) {
+      clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
+    if (preAuth) setDraftStep(step);
+    (navigation as any).navigate(
+      preAuth ? "ActOneQuestion" : "OnboardingQuestion",
+      { screenNumber: step, preAuth },
+    );
+  };
+
   // -----------------------------------------------------
   // NEXT BUTTON
   // -----------------------------------------------------
@@ -329,16 +402,20 @@ const OnboardingQuestionScreen: React.FC = () => {
       return;
     }
 
+    // Record anything a skipped screen would have asked, BEFORE moving on —
+    // this writes, so it belongs in the handler and not in the render path.
+    if (preAuth) settleSkipped(screenNumber, nextScreenNumber);
+
     nextScreen(); // Sync with store so "Resume" works later
     // Pre-auth resume lives on `stepIndex`, so keep it in step with the route —
     // otherwise reopening the app restarts Act 1 from question one.
-    if (preAuth) setDraftStep(screenNumber + 1);
+    if (preAuth) setDraftStep(nextScreenNumber);
 
     // The two stacks name this route differently, and pushing the wrong one is
     // silent until it isn't: "The action 'PUSH' ... was not handled by any
     // navigator", and the flow simply stops advancing.
     (navigation as any).push(preAuth ? "ActOneQuestion" : "OnboardingQuestion", {
-      screenNumber: screenNumber + 1,
+      screenNumber: nextScreenNumber,
       preAuth,
     });
   };
@@ -354,26 +431,34 @@ const OnboardingQuestionScreen: React.FC = () => {
         ]}
       />
 
-      {/* Header with Close Btn */}
+      {/* THE ROW WAS ALREADY HERE AND HALF EMPTY. It was `flex-end` with a lone
+          X, so the back control costs no vertical space at all — it fills
+          reserved room and fixes the lone-X imbalance on the way past. Back
+          sits LEFT of close: the pair reads as one group of screen controls,
+          and the destructive one stays on the outside where it is harder to
+          hit by accident. */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
+        {screenNumber > 1 ? (
+          <IconButton
+            name="arrow-left"
+            onPress={handleBack}
+            variant="control"
+            accessibilityLabel="Back to the previous question"
+          />
+        ) : null}
         <IconButton name={icons.close} onPress={handleSkip} variant="control" />
       </View>
 
-      {/* Step indicator + progress (tokenized ProgressBar) */}
+      {/* Six dots instead of "Step 2 of 6", "33%" and a filled bar — three
+          encodings of one fact, in four times the height. Every dot behind you
+          is also a tap target, so revisiting three answers back is one tap
+          rather than three screens. */}
       <View style={styles.progressBlock}>
-        <View style={styles.stepRow}>
-          <Text variant="bodySm" color="secondary">
-            Step {screenNumber} of {totalScreens}
-          </Text>
-          <Text variant="bodySm" color="secondary">
-            {Math.round((screenNumber / totalScreens) * 100)}%
-          </Text>
-        </View>
-        <ProgressBar
-          value={screenNumber}
-          max={totalScreens}
-          color={colors.action.primary}
-          height={8}
+        <StepDots
+          total={totalScreens}
+          current={screenNumber}
+          onJump={jumpBackTo}
+          popOnArrival={poppedArrival}
         />
       </View>
 
@@ -474,18 +559,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    marginBottom: spacing.lg, // Increased gap to ProgressBar
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
     paddingHorizontal: space.screenX,
   },
   progressBlock: {
     marginBottom: space.sectionGap,
     paddingHorizontal: space.screenX,
-  },
-  stepRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.sm,
   },
   scrollContent: {
     gap: spacing["4xl"],
