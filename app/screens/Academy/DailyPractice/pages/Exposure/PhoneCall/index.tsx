@@ -8,6 +8,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 // Server-driven scenario glyphs are FontAwesome names (e.g. "robot"), matching
 // how the shared CallingWidget renders the same value — a scoped vendor-icon
 // exception, not part of the Fluent DS set.
@@ -19,6 +25,7 @@ import {
   PhoneCallScenario,
 } from "../../../../../../api/dailyPractice/types";
 import CallingWidget from "../../../../../../components/CallingWidget";
+import PressableScale from "../../../../../../components/PressableScale";
 import WalletChip from "../../../../../../components/WalletChip";
 import ExhaustionSheet from "../../../../../../components/ExhaustionSheet";
 import {
@@ -39,6 +46,9 @@ import {
   useTheme,
   spacing,
   radius,
+  size as controlSize,
+  duration,
+  easing,
 } from "../../../../../../design-system";
 import {
   showErrorBottomSheet,
@@ -67,6 +77,8 @@ const PhoneCall = () => {
   const { user } = useUserStore();
   const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
+  /** Shared by the header row and the label absolutely centred inside it. */
+  const headerPaddingTop = insets.top + (Platform.OS === "android" ? 12 : 10);
   const { colors } = useTheme();
   // Phone Call = the "purple" accent from the Exposure hub card.
   const accentColor = colors.accent.purple;
@@ -153,6 +165,41 @@ const PhoneCall = () => {
   const closeModal = () => setIsModalVisible(false);
 
   /**
+   * IS A CALL ACTUALLY ON THE LINE?
+   *
+   * Not `currentActivityId` — that is already set on arrival when a pack hands
+   * this screen a pre-created activity, so it says "live" before anybody has
+   * pressed call. This flips on a start that really returned an id, and off in
+   * `handleCallEnd`, which the widget fires from one shared cleanup for EVERY
+   * termination (hang-up, limit, idle, crisis, technical).
+   *
+   * It gates the scenario picker, and that is not cosmetic: `CallingWidget` is
+   * keyed on the scenario id, so picking a different one mid-call remounted the
+   * widget and killed the call — after a credit had been spent on it.
+   */
+  const [callLive, setCallLive] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const liveT = useSharedValue(0);
+
+  useEffect(() => {
+    liveT.value = withTiming(callLive ? 1 : 0, {
+      // Exit faster than enter: the affordance should get out of the way the
+      // moment the call connects, and come back gently once it is over.
+      duration: callLive ? duration.sheetOut : duration.reveal,
+      easing: callLive ? easing.in : easing.out,
+    });
+  }, [callLive, liveT]);
+
+  /** The chevron is the only part that leaves — fading opacity, never width,
+   *  so the label beside it cannot shift when a call starts or ends. */
+  const chevronStyle = useAnimatedStyle(() => ({
+    opacity: 1 - liveT.value,
+    transform: reduceMotion ? [] : [{ translateY: liveT.value * 4 }],
+  }));
+
+  const openScenarioPicker = () => setIsModalVisible(true);
+
+  /**
    * BACK MUST CLOSE AN OPEN SHEET, NOT NAVIGATE PAST IT.
    *
    * A sheet is a native Modal. Navigating while one is on screen leaves it
@@ -204,8 +251,13 @@ const PhoneCall = () => {
   // the generic error toast.
   const handleCallStart = async (): Promise<string | null> => {
     try {
-      return await markActivityStart();
+      const startedId = await markActivityStart();
+      // Only a start that produced an id is a call — a null here means the
+      // widget never dialled, and the picker must stay available.
+      setCallLive(startedId !== null);
+      return startedId;
     } catch (error) {
+      setCallLive(false);
       if (
         axios.isAxiosError(error) &&
         error.response?.status === 402 &&
@@ -296,6 +348,10 @@ const PhoneCall = () => {
     shouldComplete: boolean;
     reason: string | null;
   }) => {
+    // Every termination lands here, including the ones that return early below.
+    // The line is down the moment this fires, so release the picker first.
+    setCallLive(false);
+
     if (reason === "limit_reached") {
       return;
     }
@@ -420,37 +476,37 @@ const PhoneCall = () => {
         ]}
       >
         {/* Safe Area Top Layout */}
-        <View
-          style={[
-            styles.topHeader,
-            { paddingTop: insets.top + (Platform.OS === "android" ? 12 : 10) },
-          ]}
-        >
+        <View style={[styles.topHeader, { paddingTop: headerPaddingTop }]}>
           <IconButton name="arrow-left" onPress={handleHeaderBack} />
-          <TouchableOpacity
-            style={styles.headerTextContainer}
-            onPress={() => setIsModalVisible(true)}
+          <WalletChip refreshKey={walletRefreshKey} />
+          {/*
+            Centred on the SCREEN, not on the gap between two controls of
+            unequal width — the wallet chip grows with the credit count, so a
+            row-centred label drifts left as the number changes. Absolute and
+            inert: it is a label, and the only control up here is back.
+          */}
+          <View
+            pointerEvents="none"
+            style={[styles.headerLabelSlot, { top: headerPaddingTop }]}
           >
-            <Text variant="label" color="tertiary" style={styles.headerEyebrow}>
+            <Text
+              variant="label"
+              color="tertiary"
+              numberOfLines={1}
+              style={styles.headerEyebrow}
+            >
               AI CONVERSATION
             </Text>
-            <View style={styles.headerTitleRow}>
-              <Text variant="title" color="primary">
-                {selectedScenario?.name || "Select Scenario"}
-              </Text>
-              <Icon
-                name={icons.chevronDown}
-                size={14}
-                color={colors.text.secondary}
-              />
-            </View>
-          </TouchableOpacity>
-          <WalletChip refreshKey={walletRefreshKey} />
+          </View>
         </View>
 
         {/* Main Calling UI Place */}
         <View style={styles.mainContent}>
           <CallingWidget
+            // Keyed so a scenario change resets the widget cleanly. That makes
+            // the picker DESTRUCTIVE mid-call — remounting hangs up a call the
+            // user has already paid a credit for — which is why the pull-tab
+            // below is disabled while `callLive`. Do not un-gate it.
             key={selectedScenario?.id}
             userId={user?.id || ""}
             websocketUrl={WS_BASE_URL || ""}
@@ -465,6 +521,72 @@ const PhoneCall = () => {
             onCallEnd={handleCallEnd}
             onCallEndAcknowledged={handleCallEndAcknowledged}
           />
+        </View>
+
+        {/*
+          THE SCENARIO PULL-TAB.
+
+          The picker used to hang off the header title under a chevron pointing
+          DOWN, at a sheet that rises from the bottom. This puts the control at
+          the edge the sheet actually comes from, within thumb reach, and points
+          the chevron the way the sheet travels.
+
+          It never unmounts. During a call it stops being a control and becomes
+          a plain label — the chevron fades, the name stays — so the scenario is
+          still readable mid-call and nothing in the layout moves either way.
+        */}
+        <View
+          style={[
+            styles.tabDock,
+            // Clear of the home indicator / gesture bar; a floor for devices
+            // that report no bottom inset at all.
+            { paddingBottom: Math.max(insets.bottom, spacing.md) },
+          ]}
+        >
+          <PressableScale
+            onPress={openScenarioPicker}
+            disabled={callLive}
+            haptic={false}
+            hitSlop={{
+              top: spacing.md,
+              bottom: spacing.sm,
+              left: spacing.xl,
+              right: spacing.xl,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              selectedScenario
+                ? `Scenario: ${selectedScenario.name}`
+                : "Choose a scenario"
+            }
+            accessibilityHint={
+              callLive ? undefined : "Opens the list of practice scenarios"
+            }
+            accessibilityState={{ disabled: callLive, expanded: isModalVisible }}
+            style={[
+              styles.tab,
+              {
+                backgroundColor: colors.surface.default,
+                borderColor: colors.border.hairline,
+              },
+            ]}
+          >
+            <Text
+              variant="bodySm"
+              color="secondary"
+              numberOfLines={1}
+              style={styles.tabLabel}
+            >
+              {selectedScenario?.name || "Choose a scenario"}
+            </Text>
+            <Animated.View style={chevronStyle}>
+              <Icon
+                name={icons.chevronUp}
+                size={14}
+                color={colors.text.tertiary}
+              />
+            </Animated.View>
+          </PressableScale>
         </View>
       </View>
 
@@ -594,21 +716,44 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     zIndex: 10,
   },
-  headerTextContainer: {
+  // Sits on the control row's own centreline: same height as the back button,
+  // so the label is optically level with it rather than pinned to the top.
+  headerLabelSlot: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: controlSize.backBtn,
     alignItems: "center",
+    justifyContent: "center",
   },
   headerEyebrow: {
     letterSpacing: 1,
   },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    marginTop: spacing.xxs,
-  },
   mainContent: {
     flex: 1,
     position: "relative",
+  },
+
+  // --- Scenario pull-tab (bottom edge) ---
+  tabDock: {
+    alignItems: "center",
+    paddingHorizontal: spacing.xl,
+  },
+  tab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    // 8 + ~18 line + 8 = ~34pt tall; hitSlop above takes the touch target past
+    // the 44pt minimum without making the tab itself look like a button bar.
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    maxWidth: "100%",
+  },
+  tabLabel: {
+    // Long scenario names ellipsise instead of pushing the chevron off the pill.
+    flexShrink: 1,
   },
 
   // Scenario picker sheet (dark canvas)
