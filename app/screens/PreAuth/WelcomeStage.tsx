@@ -1,23 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
-import Svg, { Path } from "react-native-svg";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
 import { UserAvatar } from "../../components/UserAvatar";
-import {
-  Text,
-  easing,
-  radius,
-  spacing,
-  useMotion,
-  useTheme,
-  withAlpha,
-} from "../../design-system";
+import { StageBlobs } from "../../components/stage/StageBlobs";
+import { Text, radius, spacing, useTheme } from "../../design-system";
 import { SITUATION_PHRASE } from "../../constants/onboardingActOne";
 import { DEFAULT_MANIFEST } from "../../types/avatar";
 
@@ -91,7 +76,6 @@ const sizes = (width: number, available: number) => {
  * The DS `action.primaryTint` token can't do this job: it is 0.12 in BOTH
  * schemes, so it lands on the wrong side of exactly this problem.
  */
-export const BLOB_ALPHA = { dark: 0.075, light: 0.14 } as const;
 
 /**
  * The vertical band the character's head occupies, as a fraction of stage
@@ -169,10 +153,6 @@ const BUBBLES = BUBBLE_SLOTS.map((slot, i) => ({
  * this path was near-circular and, tilted or not, still just looked like a
  * circle — asymmetry is the entire effect, so it has to be big enough to see.
  */
-export const BLOB_PATH =
-  "M104 4 C146 2 184 30 190 70 C196 110 168 132 164 162 " +
-  "C160 192 122 198 86 192 C50 186 18 166 8 132 " +
-  "C-2 98 14 62 40 38 C66 14 62 6 104 4 Z";
 
 /**
  * QUIRKY LIQUID BLOB DRIFT:
@@ -192,7 +172,6 @@ export const BLOB_PATH =
  */
 
 /** The blob's resting tilt — drift happens AROUND this. */
-export const BLOB_BASE_ROTATE = -12;
 
 /**
  * A situation chip.
@@ -218,106 +197,6 @@ const Bubble: React.FC<{
     </Text>
   </View>
 );
-
-/**
- * The drifting colour field, on its own so a second stage can stand on the
- * same ground.
- *
- * Lifted out of WelcomeStage unchanged — same path, same four pendulums, same
- * per-scheme wash. The call-offer screen sits directly after the teaser in the
- * same flow, and a blob that drifted even slightly differently would read as a
- * different app rather than the next page of the same one. One implementation
- * is the only way that stays true after the next edit.
- */
-export const StageBlobs: React.FC<{ size: number }> = ({ size }) => {
-  const { colors, scheme } = useTheme();
-  const { reduced } = useMotion();
-
-  const driftA = useSharedValue(0);
-  const driftB = useSharedValue(0);
-  const driftC = useSharedValue(0);
-  const driftD = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduced) {
-      [driftA, driftB, driftC, driftD].forEach((v) => {
-        cancelAnimation(v);
-        v.value = 0.5;
-      });
-      return;
-    }
-    const loop = (period: number) =>
-      withRepeat(withTiming(1, { duration: period, easing: easing.loop }), -1, true);
-
-    driftA.value = loop(13000);
-    driftB.value = loop(17000);
-    driftC.value = loop(11000);
-    driftD.value = loop(19000);
-
-    return () => {
-      [driftA, driftB, driftC, driftD].forEach(cancelAnimation);
-    };
-  }, [reduced, driftA, driftB, driftC, driftD]);
-
-  const frontBlobStyle = useAnimatedStyle(() => {
-    const a = (driftA.value - 0.5) * 2;
-    const b = (driftB.value - 0.5) * 2;
-    const c = (driftC.value - 0.5) * 2;
-    return {
-      transform: [
-        { translateX: a * 12 + c * 4 },
-        { translateY: b * 13 + a * 4 },
-        { rotate: `${BLOB_BASE_ROTATE + c * 6 + b * 3}deg` },
-        { scaleX: 1 + a * 0.045 + b * 0.02 },
-        { scaleY: 1 - a * 0.04 + c * 0.02 },
-      ],
-    };
-  });
-
-  const backBlobStyle = useAnimatedStyle(() => {
-    const b = (driftB.value - 0.5) * 2;
-    const c = (driftC.value - 0.5) * 2;
-    const d = (driftD.value - 0.5) * 2;
-    return {
-      transform: [
-        { translateX: d * 15 + b * 5 },
-        { translateY: c * 16 + d * 4 },
-        { rotate: `${BLOB_BASE_ROTATE + 32 + d * 7 + c * 3}deg` },
-        { scaleX: 1.07 + c * 0.05 + d * 0.02 },
-        { scaleY: 1.07 + b * 0.05 + d * 0.02 },
-      ],
-    };
-  });
-
-  // Written out per layer rather than as a multiplier, so the two numbers are
-  // the same two numbers this always used and a reader can check them at a
-  // glance. See BLOB_ALPHA for why the schemes differ by more than a factor.
-  const dark = scheme === "dark";
-  const backFill = withAlpha(
-    colors.action.primary,
-    dark ? BLOB_ALPHA.dark * 0.55 : BLOB_ALPHA.light * 0.45,
-  );
-  const frontFill = withAlpha(
-    colors.action.primary,
-    dark ? BLOB_ALPHA.dark : BLOB_ALPHA.light,
-  );
-
-  return (
-    <>
-      <Animated.View style={[styles.blob, backBlobStyle]}>
-        <Svg width={size} height={size} viewBox="0 0 200 200" pointerEvents="none">
-          <Path d={BLOB_PATH} fill={backFill} />
-        </Svg>
-      </Animated.View>
-
-      <Animated.View style={[styles.blob, frontBlobStyle]}>
-        <Svg width={size} height={size} viewBox="0 0 200 200" pointerEvents="none">
-          <Path d={BLOB_PATH} fill={frontFill} />
-        </Svg>
-      </Animated.View>
-    </>
-  );
-};
 
 const WelcomeStage: React.FC<{
   available: number;

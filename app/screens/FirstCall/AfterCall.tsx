@@ -70,10 +70,13 @@ const AfterCall: React.FC<Props> = ({ callerName, onBreathe, onFinish }) => {
     <View style={styles.root}>
       <View style={styles.body}>
         {/* States the fact, claims nothing about how it went. */}
-        <Text variant="h1" color="primary" center>
-          You took the call
+        {/* Left-aligned and set at screenTitle, like every other screen in this
+            flow. Centred h1 over a left-aligned list was the one thing here
+            that read as a different app. */}
+        <Text variant="screenTitle" style={styles.headline}>
+          You took{"\n"}the call.
         </Text>
-        <Text variant="body" color="secondary" center style={styles.line}>
+        <Text variant="h3" color="secondary">
           {callerName} has hung up. How do you feel?
         </Text>
 
@@ -119,20 +122,26 @@ const AfterCall: React.FC<Props> = ({ callerName, onBreathe, onFinish }) => {
           <>
             {/* The offer, not a prescription — and it counts for the day, so
                 taking it is not "giving up" on doing something real. */}
-            <Text variant="bodySm" color="secondary" center style={styles.line}>
-              Let's bring it down. One minute, and it counts for today just like
-              the call did.
+            <Text variant="caption" color="tertiary" center style={styles.line}>
+              One minute, and it counts for today just like the call did.
             </Text>
             <Button
               label="Breathe for a minute"
               variant="primary"
               onPress={onBreathe}
             />
-            <Button
-              label="I'm alright"
-              variant="ghost"
+            {/* A link, not a second pill. Two filled buttons here made "I'm
+                alright" look like a refusal of equal weight, when it is simply
+                the other ordinary answer. */}
+            <Text
+              variant="bodySm"
+              color="secondary"
+              center
+              style={styles.altRow}
               onPress={() => onFinish(picked)}
-            />
+            >
+              I&apos;m alright
+            </Text>
           </>
         ) : (
           <Button
@@ -158,10 +167,18 @@ const useStyles = makeStyles(() => ({
   body: {
     flex: 1,
     justifyContent: "center",
-    gap: spacing.md,
+    gap: space.inlineGap,
+  },
+  headline: {
+    lineHeight: 40,
   },
   line: {
     paddingHorizontal: spacing.sm,
+  },
+  altRow: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   choices: {
     gap: spacing.sm,

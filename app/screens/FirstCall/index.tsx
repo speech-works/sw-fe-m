@@ -366,6 +366,7 @@ const FirstCall = () => {
       {phase === "gate" && (
         <HeadphoneGate
           callerName={callerName}
+          callerIcon={scenario.icon}
           onReady={() => {
             gateAttempts.current += 1;
             track(ANALYTICS_EVENTS.FIRST_CALL_GATE_PASSED, {

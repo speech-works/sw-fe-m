@@ -18,7 +18,7 @@ import { useFirstCallStore } from "../../stores/firstCall";
 import { useOnboardingDraftStore } from "../../stores/onboardingDraft";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { track } from "../../util/analytics/postHog";
-import CallerStage from "./CallerStage";
+import CallerStage from "../../components/stage/CallerStage";
 
 /**
  * ============================================================================

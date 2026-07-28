@@ -17,7 +17,7 @@ import {
   useMotion,
   useTheme,
 } from "../../design-system";
-import { StageBlobs } from "./WelcomeStage";
+import { StageBlobs } from "./StageBlobs";
 
 /**
  * The call-offer illustration: somebody about to ring, on the same drifting
@@ -68,7 +68,17 @@ const CallerStage: React.FC<{
   /** What the call is about, in the reader's own words. Omitted when we were
    *  told nothing to route on — a bubble with no content is worse than none. */
   about?: string | null;
-}> = ({ available, icon, about }) => {
+  /**
+   * A small glyph clipped to the medallion's lower-right — the status-badge
+   * shape every messaging app uses for "online", and the reason it reads
+   * instantly. It exists so a screen can add ONE condition to the same picture
+   * (the headphone gate needs headphones) without spending a paragraph on it,
+   * and without becoming a different illustration.
+   */
+  badge?: string | null;
+  /** Suppresses the incoming pulse. Off when the call is not imminent yet. */
+  pulsing?: boolean;
+}> = ({ available, icon, about, badge, pulsing = true }) => {
   const { colors } = useTheme();
   const { reduced } = useMotion();
   const { width } = useWindowDimensions();
@@ -77,7 +87,7 @@ const CallerStage: React.FC<{
   const pulse = useSharedValue(0);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || !pulsing) return;
     pulse.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 1400, easing: REasing.out(REasing.quad) }),
@@ -88,7 +98,7 @@ const CallerStage: React.FC<{
       false,
     );
     return () => cancelAnimation(pulse);
-  }, [reduced, pulse]);
+  }, [reduced, pulsing, pulse]);
 
   const ring = useAnimatedStyle(() => ({
     opacity: pulse.value === 0 ? 0 : (1 - pulse.value) * 0.4,
@@ -103,7 +113,7 @@ const CallerStage: React.FC<{
     >
       <StageBlobs size={s.blob} />
 
-      {!reduced && (
+      {!reduced && pulsing && (
         <Animated.View
           style={[
             styles.ring,
@@ -119,23 +129,48 @@ const CallerStage: React.FC<{
         />
       )}
 
-      <View
-        style={[
-          styles.medallion,
-          {
-            height: s.medallion,
-            width: s.medallion,
-            borderRadius: s.medallion / 2,
-            backgroundColor: colors.accentTint.purple,
-          },
-        ]}
-      >
-        <FA5Icon
-          solid
-          name={icon || "user"}
-          size={s.medallion * 0.38}
-          color={colors.accentText.purple}
-        />
+      {/* The medallion and its badge share one box, sized to the medallion —
+          so the badge is placed against the CIRCLE it belongs to rather than
+          against a full-width stage whose width nobody here knows. */}
+      <View style={{ height: s.medallion, width: s.medallion }}>
+        <View
+          style={[
+            styles.medallion,
+            {
+              borderRadius: s.medallion / 2,
+              backgroundColor: colors.accentTint.purple,
+            },
+          ]}
+        >
+          <FA5Icon
+            solid
+            name={icon || "user"}
+            size={s.medallion * 0.38}
+            color={colors.accentText.purple}
+          />
+        </View>
+
+        {badge ? (
+          <View
+            style={[
+              styles.badge,
+              {
+                height: s.medallion * 0.34,
+                width: s.medallion * 0.34,
+                borderRadius: (s.medallion * 0.34) / 2,
+                backgroundColor: colors.accent.purple,
+                borderColor: colors.background.canvas,
+              },
+            ]}
+          >
+            <FA5Icon
+              solid
+              name={badge}
+              size={s.medallion * 0.16}
+              color={colors.accentOn.purple}
+            />
+          </View>
+        ) : null}
       </View>
 
       {/* One bubble, not three. The welcome stage uses three because it is
@@ -173,8 +208,21 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   medallion: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  badge: {
+    position: "absolute",
+    // 4-o'clock, overlapping the medallion's edge — the overlap is what makes
+    // it read as attached rather than as a second floating dot.
+    right: "-2%",
+    bottom: "6%",
+    alignItems: "center",
+    justifyContent: "center",
+    // A ring in the canvas colour is what separates the badge from the
+    // medallion underneath; without it the two purples merge into one blob.
+    borderWidth: 3,
   },
   bubble: {
     position: "absolute",
