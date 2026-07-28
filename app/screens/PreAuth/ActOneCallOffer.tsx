@@ -256,19 +256,22 @@ const ActOneCallOffer: React.FC = () => {
             Before {caller.callerName} calls
           </Text>
 
-          <Text variant="body" color="secondary">
-            Your answers are on this phone and nowhere else — we haven&apos;t
-            sent them anywhere. Making an account is what carries them over, so
-            the call is about what you actually told us.
-          </Text>
+          {/* ONE SENTENCE. It carries the only two things worth saying: the
+              answers are still on the device (a fact about our restraint, and
+              the most reassuring thing we can offer here), and the account is
+              what makes the call about them.
 
+              Three things were cut. A second paragraph about the call counting
+              afterwards — true, but a benefit nobody is weighing at this exact
+              moment. A line naming Google and Apple — the auth screen shows
+              those buttons a second later, so it was answering a question the
+              next screen answers better. And "Not yet", because the screen
+              behind this one already says "Not right now"; a sheet with a grab
+              handle and a backdrop does not need a third way to close, and a
+              decline offered twice reads as expecting one. */}
           <Text variant="body" color="secondary">
-            It is also what lets this one count, instead of being a one-off you
-            have nothing to show for.
-          </Text>
-
-          <Text variant="caption" color="tertiary">
-            Google or Apple — there is no form to fill in.
+            Your answers are still on this phone. An account carries them over,
+            so the call is about what you told us.
           </Text>
 
           <Button
@@ -278,16 +281,6 @@ const ActOneCallOffer: React.FC = () => {
               setSignupOpen(false);
             }}
           />
-
-          <Text
-            variant="bodySm"
-            color="secondary"
-            center
-            style={styles.sheetCancel}
-            onPress={() => setSignupOpen(false)}
-          >
-            Not yet
-          </Text>
         </View>
       </Sheet>
     </ScreenView>
@@ -332,10 +325,5 @@ const styles = StyleSheet.create({
   },
   sheet: {
     gap: space.groupGap,
-  },
-  sheetCancel: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
-    paddingHorizontal: spacing.md,
   },
 });
