@@ -233,8 +233,12 @@ module.exports = {
       [
         "@sentry/react-native/expo",
         {
+          // Confirmed against the Sentry org directly (2026-07-29) — the
+          // fallbacks are the real values, not placeholders. SENTRY_ORG /
+          // SENTRY_PROJECT / SENTRY_AUTH_TOKEN are also set as EAS project
+          // env vars for production, which is what an actual build reads;
+          // these defaults only cover a local `expo prebuild` run outside EAS.
           organization: process.env.SENTRY_ORG ?? "speechworks",
-          // TODO: confirm the exact Sentry project slug (org: speechworks).
           project: process.env.SENTRY_PROJECT ?? "react-native",
           // SENTRY_AUTH_TOKEN (build-time, for source-map upload) is read from
           // the environment — set it as an EAS secret, never commit it.
