@@ -13,6 +13,7 @@ import {
 } from "../../../../design-system";
 import {
   fetchGrowthTotals,
+  GrowthAxis,
   GrowthTotals,
   visibleTotals,
 } from "../../../../api/dailyPlan";
@@ -65,16 +66,44 @@ const GrowthSummary: React.FC = () => {
     }, []),
   );
 
-  const rows = visibleTotals(totals);
-  const hasAny = Boolean(totals?.hasAny);
+  /**
+   * ONLY WHAT HAS ACTUALLY MOVED — never a zero.
+   *
+   * The card on the progress report can afford an unearned axis, because it
+   * has room to say what would move it next: "Not yet — a phone call, an
+   * interview or a real-life challenge would be the first." That is a door.
+   * This row has no room for the sentence, so an unearned axis here would be
+   * a bare "0" under a word the person may never have seen — a statement about
+   * emptiness, which is precisely what the rest of this feature refuses to
+   * make.
+   *
+   * It matters most on day one. Somebody whose first count came from the
+   * welcome call would otherwise read "1 · 0 · 0" — one thing they did and two
+   * things they did not, before anything had explained what any of the three
+   * words mean. They now see a single earned number, and the row fills out as
+   * they do.
+   *
+   * `hasAny` is kept as the render gate rather than `rows.length`, because it
+   * is the server's own answer to the same question and the two must not be
+   * able to disagree.
+   */
+  const rows = visibleTotals(totals).filter((r) => r.count > 0);
+  const hasAny = Boolean(totals?.hasAny) && rows.length > 0;
 
   useEffect(() => {
     if (!totals || !hasAny) return;
+    // Keyed by axis, NOT by position. `rows` is filtered to what has moved, so
+    // its length and order both vary — reading rows[1] as "wider" would have
+    // reported Regular's count under Wider's name for anyone with a gap in the
+    // middle, which is the kind of wrong that survives for months because the
+    // numbers still look plausible.
+    const byAxis = new Map(totals.axes.map((a) => [a.axis, a.count]));
     track(ANALYTICS_EVENTS.GROWTH_SUMMARY_SHOWN, {
       stage: "counts",
-      braver: rows[0]?.count ?? 0,
-      wider: rows[1]?.count ?? 0,
-      regular: rows[2]?.count ?? 0,
+      shown: rows.length,
+      braver: byAxis.get(GrowthAxis.BRAVER) ?? 0,
+      wider: byAxis.get(GrowthAxis.WIDER) ?? 0,
+      regular: byAxis.get(GrowthAxis.REGULAR) ?? 0,
     });
     // Only when the numbers themselves change — refocusing Home with the same
     // totals is not a new impression.
