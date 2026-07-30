@@ -7,7 +7,10 @@ import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { setUpdateTokenFn } from "../util/functions/authToken";
 import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
-import { unregisterPushToken } from "../util/functions/notifications";
+import {
+  registerPushToken,
+  unregisterPushToken,
+} from "../util/functions/notifications";
 import { clearAllPersistedUserState } from "../util/functions/clearUserState";
 import { logoutPurchasesUser } from "../services/purchases";
 
@@ -63,6 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setUpdateTokenFn(updateToken);
   }, [updateToken]);
+
+  // Register this device's push token whenever we hold a JWT. App.tsx also
+  // calls this at startup, but a first-time user is NOT authenticated at mount:
+  // that call 401s, the error is swallowed, and nothing retried it — so new
+  // sign-ups had no push token on the server for their whole first session and
+  // silently received none of the server-sent notifications. Keying on `token`
+  // covers both fresh login/signup and a cold start with a stored token.
+  useEffect(() => {
+    if (!token) return;
+    void registerPushToken();
+  }, [token]);
 
   // Loading guard AFTER all hooks — never return before a hook has run, or the
   // hook count differs between renders (rules-of-hooks violation → crash). The

@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -66,7 +65,7 @@ import { Signal, Thread, getThread } from "../../api/threads";
 import { getLevelStage, LevelStage } from "../../api/users";
 import { useUserStore } from "../../stores/user";
 import { UserAvatar } from "../../components/UserAvatar";
-import { normalizeManifest } from "../../types/avatar";
+import { normalizeManifest, type AvatarManifest } from "../../types/avatar";
 import { useInboxStore } from "../../stores/inbox";
 import { useCommunityDock } from "../../stores/communityDock";
 import { shareBuddyInvite } from "../../util/functions/share";
@@ -629,15 +628,21 @@ const Community = () => {
       active: relativeAgo(report?.lastPracticeAt) ?? "—",
     };
 
-    // `isSelf` → the current user's owned avatar (never their photo). Buddies
-    // keep photo/initials until buddy manifests arrive (Phase E).
-    const renderAvatar = (url?: string | null, initials?: string, isSelf?: boolean) =>
-      isSelf ? (
-        <View style={[styles.pAvatarImg, styles.pAvatarClip, { backgroundColor: normalizeManifest(user?.avatarManifest).colors.bg }]}>
-          <UserAvatar manifest={user?.avatarManifest} size={85} />
+    // Both sides render the OWNED avatar, never the OAuth photo — a buddy sees
+    // the face you chose (Phase E). A missing manifest means "never
+    // customized", and normalizeManifest turns that into the default
+    // character, so `known: false` (we have no profile row at all) is the only
+    // case left for initials.
+    const renderAvatar = (
+      manifest: AvatarManifest | null | undefined,
+      initials: string | undefined,
+      label: string,
+      known = true,
+    ) =>
+      known ? (
+        <View style={[styles.pAvatarImg, styles.pAvatarClip, { backgroundColor: normalizeManifest(manifest).colors.bg }]}>
+          <UserAvatar manifest={manifest} size={85} accessibilityLabel={label} />
         </View>
-      ) : url ? (
-        <Image source={{ uri: url }} style={[styles.pAvatarImg, { backgroundColor: colors.surface.control }]} />
       ) : (
         <View style={[styles.pAvatarFallback, { backgroundColor: colors.surface.control }]}>
           <Text variant="h3" color="accent">{initials}</Text>
@@ -660,10 +665,15 @@ const Community = () => {
           <View style={[styles.partnerInner, { backgroundColor: colors.action.primary }]}>
             <View style={styles.overlappingAvatars}>
               <View style={[styles.avatarWrapper, { zIndex: 2, borderColor: colors.action.primary }]}>
-                {renderAvatar(undefined, myInitials, true)}
+                {renderAvatar(user?.avatarManifest, myInitials, "Your avatar")}
               </View>
               <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -spacing.xl, borderColor: colors.action.primary }]}>
-                {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
+                {renderAvatar(
+                  buddy?.avatarManifest,
+                  buddyInitials,
+                  `${buddyFirstName}'s avatar`,
+                  !!buddy,
+                )}
               </View>
             </View>
             <Text variant="h2" color={colors.action.onPrimary}>You & {buddyFirstName}</Text>

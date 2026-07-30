@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import {
@@ -451,12 +451,21 @@ const SignalCard = ({
       <View style={styles.axisCol}>
         <View style={[styles.axisLineTop, { backgroundColor: colors.border.strong }, isFirst && styles.hidden]} />
         <View style={styles.timelineAvatarWrap}>
+          {/* Everyone on the timeline gets their owned avatar, not their OAuth
+              photo. A missing manifest normalizes to the default character, so
+              initials remain only for an authorless signal (beats/cards). */}
           {signal.authorIsMe ? (
-            <View style={[styles.timelineAvatar, styles.timelineSelfClip, { borderColor: tone.accent, backgroundColor: normalizeManifest(currentUser?.avatarManifest).colors.bg }]}>
+            <View style={[styles.timelineAvatar, styles.timelineAvatarClip, { borderColor: tone.accent, backgroundColor: normalizeManifest(currentUser?.avatarManifest).colors.bg }]}>
               <UserAvatar manifest={currentUser?.avatarManifest} size={42} />
             </View>
-          ) : signal.author?.profilePictureUrl ? (
-            <Image source={{ uri: signal.author.profilePictureUrl }} style={[styles.timelineAvatar, { borderColor: tone.accent }]} />
+          ) : signal.author ? (
+            <View style={[styles.timelineAvatar, styles.timelineAvatarClip, { borderColor: tone.accent, backgroundColor: normalizeManifest(signal.author.avatarManifest).colors.bg }]}>
+              <UserAvatar
+                manifest={signal.author.avatarManifest}
+                size={42}
+                accessibilityLabel={`${signal.author.name}'s avatar`}
+              />
+            </View>
           ) : (
             <View style={[styles.timelineAvatarFallback, { backgroundColor: tone.accent }]}>
               <Text variant="caption" color={tone.on} style={styles.bold}>{initials}</Text>
@@ -530,7 +539,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: borderWidth.thick,
   },
-  timelineSelfClip: {
+  timelineAvatarClip: {
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",

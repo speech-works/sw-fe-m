@@ -13,21 +13,22 @@ import {
 import OutOfStaminaModal from "./OutOfStaminaModal";
 
 /**
- * Builds the informational copy for a blocked start. Paid users have a stamina
- * tank that regenerates over time (so we can estimate a recharge ETA); free
- * users have run out of the day's free sessions (which reset the next day).
+ * Builds the informational copy for a blocked start. Stamina is the single
+ * gating concept for EVERYONE now (SPEECHWORKS-STRATEGY.md §6.10) — the old
+ * "5 free sessions/day" counter, and with it the nightly reset, is gone. Both
+ * tiers refill continuously; free just refills slower into a smaller bar. So
+ * both get the same shape of message, and both get an ETA — telling a free
+ * user to "come back tomorrow" was both wrong and needlessly discouraging when
+ * their next point is often minutes away.
  */
 function buildMessage(user: User | null): string {
-  if (user?.isPaid) {
-    const { isFull, msUntilFull } = estimateStaminaRecharge(user, Date.now());
-    if (!isFull && msUntilFull > 0) {
-      return `You've used up your energy for now. It refills over time — you'll be topped up in about ${formatRechargeDuration(
-        msUntilFull,
-      )}. Rest your voice and come back stronger.`;
-    }
-    return "You've used up your energy for now. It refills over time — rest your voice and check back in a little while.";
+  const { isFull, msUntilFull } = estimateStaminaRecharge(user, Date.now());
+  if (!isFull && msUntilFull > 0) {
+    return `You've used up your energy for now. It refills over time — you'll be topped up in about ${formatRechargeDuration(
+      msUntilFull,
+    )}. Rest your voice and come back stronger.`;
   }
-  return "You've used all your free practice sessions for today. Fresh sessions unlock tomorrow — rest your voice and come back then.";
+  return "You've used up your energy for now. It refills over time — rest your voice and check back in a little while.";
 }
 
 /**

@@ -10,12 +10,17 @@
 // single field (`kind` + member count + nullable `communityId`), so nothing here needs a rename
 // when the full community ships.
 
+import type { AvatarManifest } from "../../types/avatar";
+
 // ── Members ────────────────────────────────────────────────────────────────
 /** A person in a thread. (Structurally the old BuddyProfile.) */
 export interface MemberProfile {
   id: string;
   name: string;
+  /** Google/OAuth photo. Kept only as the fallback behind `avatarManifest`. */
   profilePictureUrl?: string;
+  /** The member's own avatar; absent = render the default character. */
+  avatarManifest?: AvatarManifest | null;
 }
 
 // ── Thread ───────────────────────────────────────────────────────────────────
@@ -175,6 +180,7 @@ export interface MomentSignal extends BaseSignal {
 export interface BeatSignal extends BaseSignal {
   type: "beat";
   beatKind:
+    | "buddy_joined"
     | "bond_level_up"
     | "anniversary"
     | "shared_streak"

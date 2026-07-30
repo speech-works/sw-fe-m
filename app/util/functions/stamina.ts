@@ -1,9 +1,22 @@
 import { User } from "../../api/users";
 
-/** Regen cadence fallback when the backend doesn't specify one: 1 point / 18 min. */
-const DEFAULT_RECHARGE_MS = 18 * 60 * 1000;
-/** Stamina-cap fallback, mirrors the Energy Tank meter default. */
-const DEFAULT_MAX_STAMINA = 80;
+// Fallbacks for the window before GET /users/me has answered with the
+// server-computed cap/rate — notably right after signup, where the
+// /auth/callback payload carries currentStamina but NOT maxStaminaCap or
+// staminaRegenRateMs (those are computed in getMe). They mirror the backend's
+// LevelStages config and must stay TIER-AWARE: assuming the paid pool for
+// everyone rendered a new free user's full 35/35 bar as 44%.
+const PAID_RECHARGE_MS = 18 * 60 * 1000; // level-1 member pool
+const FREE_RECHARGE_MS = 41 * 60 * 1000; // FREE_STAMINA_CONFIG
+const PAID_MAX_STAMINA = 80;
+const FREE_MAX_STAMINA = 35;
+
+/** The stamina cap to display: server value, else the fallback for their tier. */
+export function staminaCapFor(user: User | null | undefined): number {
+  return (
+    user?.maxStaminaCap || (user?.isPaid ? PAID_MAX_STAMINA : FREE_MAX_STAMINA)
+  );
+}
 
 export interface StaminaRechargeEstimate {
   /** Server value plus points regenerated since `lastStaminaUpdate`, capped at max. */
@@ -24,14 +37,15 @@ export function estimateStaminaRecharge(
   user: User | null | undefined,
   nowMs: number,
 ): StaminaRechargeEstimate {
-  const max = user?.maxStaminaCap || DEFAULT_MAX_STAMINA;
+  const max = staminaCapFor(user);
   const current = user?.currentStamina ?? 0;
 
   if (!user?.lastStaminaUpdate) {
     return { estimatedStamina: current, msUntilFull: 0, isFull: current >= max };
   }
 
-  const rechargeMs = user.staminaRegenRateMs || DEFAULT_RECHARGE_MS;
+  const rechargeMs =
+    user.staminaRegenRateMs || (user.isPaid ? PAID_RECHARGE_MS : FREE_RECHARGE_MS);
   const msPassed = nowMs - new Date(user.lastStaminaUpdate).getTime();
   const pointsRecharged = Math.max(0, Math.floor(msPassed / rechargeMs));
   const estimatedStamina = Math.min(max, current + pointsRecharged);

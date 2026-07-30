@@ -1,7 +1,10 @@
 import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import { User } from "../../../../api/users";
-import { estimateStaminaRecharge } from "../../../../util/functions/stamina";
+import {
+  estimateStaminaRecharge,
+  staminaCapFor,
+} from "../../../../util/functions/stamina";
 
 export interface StaminaEstimate {
   estimatedStamina: number;
@@ -24,7 +27,7 @@ export function useStaminaEstimate(user: User | null): StaminaEstimate {
     user?.currentStamina ?? 0,
   );
 
-  const currentMaxStamina = user?.maxStaminaCap || 80;
+  const currentMaxStamina = staminaCapFor(user);
   const staminaPercentage: number =
     Math.min(100, Math.max(0, Math.round((estimatedStamina / currentMaxStamina) * 100))) || 0;
 

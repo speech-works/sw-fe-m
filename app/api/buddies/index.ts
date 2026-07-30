@@ -5,6 +5,7 @@
 // api/threads — cheering is now a reaction on a timeline signal, not a standalone buddy action.
 import axiosClient from "../axiosClient";
 import { isClientError } from "../../util/functions/apiError";
+import type { AvatarManifest } from "../../types/avatar";
 
 export type BuddyRole = "inviter" | "invitee";
 export type BuddyLinkStatus = "pending" | "active" | "ended";
@@ -13,7 +14,14 @@ export type BuddyLinkSource = "invite_code" | "matchmaking";
 export interface BuddyProfile {
   id: string;
   name: string;
+  /** Google/OAuth photo. Kept only as the fallback behind `avatarManifest`. */
   profilePictureUrl?: string;
+  /**
+   * The buddy's own avatar. Absent/null = never customized, in which case
+   * UserAvatar renders the default character (NOT the OAuth photo — the face
+   * a person chose, or the app's own, is what a buddy should see).
+   */
+  avatarManifest?: AvatarManifest | null;
 }
 
 export interface BuddyLink {

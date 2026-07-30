@@ -195,6 +195,13 @@ export async function registerForNotifications(): Promise<boolean> {
 export async function registerPushToken(): Promise<void> {
   try {
     if (!Device.isDevice) return;
+    // Called on every login as well as at startup, so it can fire before the
+    // permission prompt has been answered. Bail quietly rather than letting
+    // getExpoPushTokenAsync throw — the startup path re-runs this once the
+    // grant lands.
+    if (!hasGrantedNotificationPermission(await Notifications.getPermissionsAsync())) {
+      return;
+    }
     const projectId =
       (Constants.expoConfig as any)?.extra?.eas?.projectId ??
       (Constants as any)?.easConfig?.projectId;
