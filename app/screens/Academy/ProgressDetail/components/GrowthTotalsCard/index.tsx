@@ -8,10 +8,12 @@ import {
   spacing,
   radius,
   size,
+  withAlpha,
   type IconName,
 } from "../../../../../design-system";
 import { GrowthAxis, GrowthTotals, visibleTotals } from "../../../../../api/dailyPlan";
-import { FIRST_STEP, totalLine } from "../../../../../util/growth/format";
+import { FIRST_STEP, lastAtPhrase } from "../../../../../util/growth/format";
+import { axisAccent } from "../../../../../util/growth/accents";
 
 /**
  * ============================================================================
@@ -99,38 +101,75 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
       ) : null}
 
       <View style={styles.rows}>
-        {rows.map((row) => (
-          <View
-            key={row.axis}
-            style={[styles.row, { backgroundColor: colors.surface.default }]}
-          >
-            <View style={styles.rowIcon}>
-              <Icon
-                name={AXIS_ICON[row.axis] ?? icons.growth}
-                size={18}
-                color={colors.text.secondary}
-              />
-            </View>
-            <View style={styles.flex1}>
-              <Text variant="body" style={styles.bold}>
-                {row.label}
-              </Text>
-              {/* Never separated from the label — see the note above. */}
-              <Text variant="caption" color="tertiary">
-                {row.subtitle}
-              </Text>
-              <Text
-                variant="bodySm"
-                color={row.count > 0 ? "primary" : "secondary"}
-                style={styles.value}
+        {rows.map((row) => {
+          const accent = axisAccent(row.axis, colors);
+          const earned = row.count > 0;
+          return (
+            <View
+              key={row.axis}
+              style={[styles.row, { backgroundColor: colors.surface.default }]}
+            >
+              {/* SOLID DISC ONCE EARNED, TINTED WHILE IT IS STILL EMPTY.
+                  The one place a tint is right: an axis at zero should read as
+                  waiting rather than as a thing you have, and dimming the
+                  colour says that without adding a word or greying the label
+                  into illegibility. */}
+              <View
+                style={[
+                  styles.rowIcon,
+                  {
+                    backgroundColor: earned
+                      ? accent.fill
+                      : withAlpha(accent.fill, 0.18),
+                  },
+                ]}
               >
-                {row.count > 0
-                  ? totalLine(row.count, row.lastAt)
-                  : (FIRST_STEP[row.axis] ?? "Not yet.")}
-              </Text>
+                <Icon
+                  name={AXIS_ICON[row.axis] ?? icons.growth}
+                  size={20}
+                  color={earned ? accent.on : accent.text}
+                />
+              </View>
+
+              <View style={styles.flex1}>
+                <Text variant="body" style={styles.bold}>
+                  {row.label}
+                </Text>
+                {/* Never separated from the label — see the note above. */}
+                <Text variant="caption" color="tertiary">
+                  {row.subtitle}
+                </Text>
+                {!earned ? (
+                  <Text variant="bodySm" color="secondary" style={styles.value}>
+                    {FIRST_STEP[row.axis] ?? "None yet."}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* The number gets its own column and the axis hue, because it is
+                  the thing somebody opened this card to see. `accent.text`, not
+                  `accent.fill` — the bright fills are a documented contrast
+                  failure as foreground on the paper scheme. */}
+              {earned ? (
+                <View style={styles.valueColumn}>
+                  <Text variant="h3" color={accent.text}>
+                    {row.count}
+                  </Text>
+                  {/* The date on its own line, under its number. A `totalLine`
+                      helper used to join the two into "11 · last Tuesday" for
+                      a single-column layout; with the number in a column of its
+                      own it had nothing left to join, so it is gone rather than
+                      kept around to be picked apart by a caller. */}
+                  {lastAtPhrase(row.lastAt) ? (
+                    <Text variant="caption" color="tertiary">
+                      {lastAtPhrase(row.lastAt)}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
@@ -166,11 +205,18 @@ const styles = StyleSheet.create({
   rows: { gap: spacing.md },
   row: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: spacing.md,
     borderRadius: radius.input,
     padding: spacing.lg,
   },
-  rowIcon: { paddingTop: spacing.xxs },
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.input,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  valueColumn: { alignItems: "flex-end", gap: spacing.xxs },
   value: { marginTop: spacing.xs },
 });

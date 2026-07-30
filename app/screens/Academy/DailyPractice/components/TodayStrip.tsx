@@ -18,6 +18,7 @@ import {
   AXIS_SUBTITLE,
   isVisibleAxis,
 } from "../../../../api/dailyPlan";
+import { axisAccent } from "../../../../util/growth/accents";
 import { track } from "../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
 
@@ -172,7 +173,18 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
                   size={14}
                   color={colors.accent.success}
                 />
-              ) : null}
+              ) : (
+                // The axis's own hue, so the strip and the growth card speak
+                // one colour language as well as one vocabulary. A dot rather
+                // than a fill: an open loop is a thing to do, not a thing had,
+                // and filling it would read as already earned.
+                <View
+                  style={[
+                    styles.dot,
+                    { backgroundColor: axisAccent(axis, colors).fill },
+                  ]}
+                />
+              )}
               <View>
                 <Text
                   variant="bodySm"
@@ -244,6 +256,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     borderTopWidth: borderWidth.hairline,
   },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   rowTitle: { flex: 1 },
 });
 

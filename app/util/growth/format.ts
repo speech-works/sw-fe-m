@@ -60,26 +60,6 @@ export function lastAtPhrase(iso: string | null): string | null {
 }
 
 /**
- * The whole line for one axis: "6 times · last on Tuesday".
- *
- * A zero never reaches here as "0 times" — the caller shows the per-axis
- * invitation instead, because "0 times" under "taking on harder things" is a
- * verdict about a person and the invitation is a door.
- */
-export function totalLine(count: number, lastAt: string | null): string {
-  // THE NUMBER ALONE, because the subtitle directly above it already names the
-  // unit. "Hard things you've done" followed by "11 times" says "things" and
-  // "times" for one quantity, and repetition reads as confusion rather than
-  // emphasis. This used to spell the unit out because the old subtitles —
-  // "taking on harder things", "turning up" — never did.
-  //
-  // `countPhrase` survives for the screen reader, where there IS no subtitle
-  // in earshot and "11" on its own means nothing.
-  const when = lastAtPhrase(lastAt);
-  return when ? `${count} · last ${when}` : `${count}`;
-}
-
-/**
  * What would move this axis next, for somebody it has never moved for.
  *
  * Names concrete things in the app rather than restating the subtitle, because

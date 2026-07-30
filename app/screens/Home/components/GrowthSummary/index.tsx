@@ -18,6 +18,7 @@ import {
   visibleTotals,
 } from "../../../../api/dailyPlan";
 import { countPhrase } from "../../../../util/growth/format";
+import { axisAccent } from "../../../../util/growth/accents";
 import { useOnboardingNudgeStore } from "../../../../stores/onboardingNudge";
 import { track } from "../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
@@ -170,9 +171,18 @@ const GrowthSummary: React.FC = () => {
       ) : null}
 
       <View style={styles.stats}>
-        {rows.map((row) => (
-          <View key={row.axis} style={styles.stat}>
-            <Text variant="h3" color="primary">
+        {rows.map((row) => {
+          // SOLID FILL, NOT A TINT. The house rule from the contrast work, and
+          // the reason these read at a glance: a 12%-alpha wash behind a number
+          // is indistinguishable from the card at arm's length, which is how
+          // the first version ended up as three grey figures.
+          const accent = axisAccent(row.axis, colors);
+          return (
+          <View
+            key={row.axis}
+            style={[styles.stat, { backgroundColor: accent.fill }]}
+          >
+            <Text variant="h3" color={accent.on}>
               {row.count}
             </Text>
             {/* The label alone is safe here ONLY because it sits under a
@@ -180,11 +190,12 @@ const GrowthSummary: React.FC = () => {
                 tapping through reaches the subtitles immediately. Nothing in
                 this component may ever present "Wider" as a standalone
                 claim. */}
-            <Text variant="caption" color="tertiary" numberOfLines={1}>
+            <Text variant="caption" color={accent.on} numberOfLines={1}>
               {row.label}
             </Text>
           </View>
-        ))}
+          );
+        })}
       </View>
     </PressableScale>
   );
@@ -207,6 +218,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   intro: { marginTop: -spacing.xxs },
-  stats: { flexDirection: "row", gap: spacing.xl },
-  stat: { alignItems: "flex-start", minWidth: 64 },
+  stats: { flexDirection: "row", gap: spacing.xs },
+  stat: {
+    flex: 1,
+    alignItems: "flex-start",
+    borderRadius: radius.input,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.xxs,
+  },
 });
