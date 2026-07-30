@@ -160,6 +160,18 @@ const Achievements = ({ stageData }: AchievementsProps) => {
           <Animated.ScrollView
             ref={scrollRef}
             horizontal
+            // REQUIRED, not optional, because this carousel lives inside the
+            // screen's horizontal `pagingEnabled` pager (ProgressDetail/index.tsx:216).
+            // On ACTION_DOWN, Android's ReactHorizontalScrollView searches its
+            // subtree for a deeper horizontal scroller and declines to intercept
+            // if it finds one — but that search only matches children with
+            // nested scrolling ENABLED, and AOSP's HorizontalScrollView (unlike
+            // the vertical one) defaults it to false. Without this prop the
+            // pager wins the drag at ~8dp of slop and cancels the carousel's
+            // touch before it can claim the gesture, so the stage cards cannot
+            // be swiped at all. Inert on iOS, where UIScrollView already gives
+            // the innermost same-axis scroller priority.
+            nestedScrollEnabled
             showsHorizontalScrollIndicator={false}
             snapToInterval={slideWidth + SLIDE_GAP}
             snapToAlignment="start"

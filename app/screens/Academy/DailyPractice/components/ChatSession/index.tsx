@@ -101,7 +101,7 @@ export default function ChatSession<O extends ChatSessionOption>({
 
       {/* Opaque status-bar cap — hides scrolled content behind the clock/battery. */}
       {insets.top > 0 ? (
-        <View style={[styles.statusCap, { height: insets.top }]} />
+        <View pointerEvents="none" style={[styles.statusCap, { height: insets.top }]} />
       ) : null}
     </ScreenView>
   );

@@ -130,4 +130,13 @@ export const ANALYTICS_EVENTS = {
     FIRST_CALL_FEELING: 'first_call_feeling',           // props: { feeling: 'good'|'mixed'|'alot'|null }
     FIRST_CALL_BREATHING_TAKEN: 'first_call_breathing_taken',
 
+    // ── Diagnostics ───────────────────────────────────────────────────
+    // A finger went down and up in the same spot, quickly, and no instrumented
+    // touchable fired. Instrumentation for the intermittent "buttons randomly
+    // don't respond" bug — see app/util/diagnostics/deadTap.ts for what the
+    // properties mean and why raw counts must not be compared across screens.
+    DEAD_TAP_DETECTED: 'dead_tap_detected',
+    // props: { screen, msSinceScreenEnter, x, y, xPct, yPct, durationMs,
+    //          instrumented, nearTop, nearEdge }
+
 } as const;

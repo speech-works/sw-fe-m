@@ -300,7 +300,7 @@ export function ReadingStage({
       </View>
 
       {insets.top > 0 ? (
-        <View style={[styles.statusCap, { height: insets.top, backgroundColor: accentColor }]} />
+        <View pointerEvents="none" style={[styles.statusCap, { height: insets.top, backgroundColor: accentColor }]} />
       ) : null}
     </ScreenView>
   );

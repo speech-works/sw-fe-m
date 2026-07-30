@@ -102,7 +102,14 @@ const Explore = () => {
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       <SchemeStatusBar />
       {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
-      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
+      {/* pointerEvents="none": a full-screen decorative fill must never be a
+          touch target. It is harmless today only because sibling order puts the
+          ScrollView ahead of it in Android's reverse-z hit walk — one zIndex or
+          reorder away from swallowing every tap on the page. */}
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]}
+      />
 
       <ScrollView
         ref={scrollViewRef}
@@ -149,8 +156,17 @@ const Explore = () => {
         </Pressable>
       </ScrollView>
 
-      {/* Opaque cap so scrolled content doesn't bleed under the status bar. */}
-      <View style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]} />
+      {/* Opaque cap so scrolled content doesn't bleed under the status bar.
+          pointerEvents="none" is REQUIRED, not cosmetic: this is an absolutely
+          positioned View at zIndex 10 spanning the full width, so without it
+          every tap landing in the status-bar band is swallowed by a decorative
+          rectangle. A control sitting under it looks fine and does nothing —
+          and scrolling "fixes" it only because the control moves out of the
+          band. Community and ShareMoment already guard their copies of this. */}
+      <View
+        pointerEvents="none"
+        style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]}
+      />
     </ScreenView>
   );
 };

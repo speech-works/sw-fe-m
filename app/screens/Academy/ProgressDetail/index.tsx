@@ -249,7 +249,7 @@ const ProgressDetail = () => {
 
       {/* Opaque status-bar cap — title tucks behind the clock when scrolled */}
       {insets.top > 0 ? (
-        <View style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]} />
+        <View pointerEvents="none" style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]} />
       ) : null}
 
       {/* Internal menu dock — the same component as the app's bottom nav */}

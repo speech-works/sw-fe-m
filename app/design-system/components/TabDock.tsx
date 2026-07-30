@@ -15,13 +15,14 @@ import { fonts } from "../primitives/fonts";
 import { size } from "../primitives/scale";
 import { spring, duration } from "../motion";
 import { Icon, IconName } from "./Icon";
+import { Text } from "./Text";
+import { notePress } from "../../util/diagnostics/deadTap";
 
 // One spring drives BOTH the active pill's growth (per item) AND the capsule's
 // hug/resize (LinearTransition on the bar), so the pill and the dock move together
 // — never the pill overflowing first and the dock catching up.
 // The dock morph (pill grow + capsule resize) rides the shared `gentle` spring.
 const DOCK_SPRING = spring.gentle;
-import { Text } from "./Text";
 
 export interface TabDockItem {
   key: string;
@@ -239,7 +240,14 @@ const DockItem: React.FC<DockItemProps> = ({
       <TouchableOpacity
         onPress={onPress}
         onLongPress={onLongPress}
+        // Reports to the dead-tap detector that this touch reached a control.
+        onPressIn={notePress}
         activeOpacity={0.7}
+        // The bar is 70 tall with 8 of padding, so a tab only occupies the 54
+        // content box — the top and bottom 8dp resolved to the bar itself,
+        // which has no press handler, and silently ate those taps. hitSlop
+        // reclaims them without changing any layout.
+        hitSlop={{ top: 8, bottom: 8 }}
         style={fitContent ? styles.touchableFit : styles.touchable}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
@@ -273,18 +281,31 @@ const DockItem: React.FC<DockItemProps> = ({
           {/* Invisible measurer — gives the wrapper its expand target. It's given a
               generous fixed width so numberOfLines can never truncate it (the narrow
               pill would otherwise cap it and under-measure long labels like
-              "Settings"); onTextLayout then reports the TRUE glyph-run width. */}
-          <Text
-            variant="bodySm"
-            numberOfLines={1}
-            style={[styles.label, styles.measure]}
-            onTextLayout={(e) => {
-              const w = Math.ceil(e.nativeEvent.lines[0]?.width ?? 0);
-              if (w && w !== labelWidth) setLabelWidth(w);
-            }}
-          >
-            {label}
-          </Text>
+              "Settings"); onTextLayout then reports the TRUE glyph-run width.
+
+              MUST STAY INSIDE `measureClip`. On Android's New Architecture a
+              child's box inflates its ancestors' touch rectangle (overflowInset),
+              so this 1000px-wide Text was stretching every tab's tap zone ~950px
+              to the RIGHT and 0px to the left: the gap between tabs belonged to
+              the tab on its left, blank space past the last tab selected that
+              tab, and blank space before the first was dead. A zero-sized parent
+              with overflow:"hidden" zeroes that inset — layout (and therefore
+              onTextLayout) still runs, so measurement is unaffected.
+              `pointerEvents="none"` alone would NOT fix this: it stops the Text
+              being a target but still inflates the ancestors. */}
+          <View style={styles.measureClip} pointerEvents="none">
+            <Text
+              variant="bodySm"
+              numberOfLines={1}
+              style={[styles.label, styles.measure]}
+              onTextLayout={(e) => {
+                const w = Math.ceil(e.nativeEvent.lines[0]?.width ?? 0);
+                if (w && w !== labelWidth) setLabelWidth(w);
+              }}
+            >
+              {label}
+            </Text>
+          </View>
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
@@ -363,6 +384,15 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fonts.bold,
     textAlign: "center",
+  },
+  // Zero-sized clipping host for the invisible measurer. `overflow: "hidden"`
+  // is what makes RN report a zero overflowInset for this subtree, so the
+  // 1000px Text inside can no longer inflate the tab's Android touch rect.
+  measureClip: {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    overflow: "hidden",
   },
   measure: {
     position: "absolute",

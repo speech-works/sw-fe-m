@@ -14,6 +14,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { spring } from "../design-system/motion";
+import { notePress } from "../util/diagnostics/deadTap";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -49,6 +50,10 @@ const PressableScale = ({
   }));
 
   const handlePressIn = (e: GestureResponderEvent) => {
+    // Tells the dead-tap detector this touch reached a real control. Reported on
+    // press-IN rather than press-out so a tap that starts correctly but is later
+    // cancelled by a scroll is not counted as dead.
+    notePress();
     if (!reduceMotion) scale.value = withSpring(scaleTo, spring.press);
     if (haptic && !disabled) Vibration.vibrate(8);
     onPressIn?.(e);
