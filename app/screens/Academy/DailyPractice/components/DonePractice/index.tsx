@@ -29,6 +29,7 @@ import {
   VISIBLE_AXES,
 } from "../../../../../api/dailyPlan";
 import { useCelebrationStore } from "../../../../../stores/celebration";
+import { useOnboardingNudgeStore } from "../../../../../stores/onboardingNudge";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
 import { LevelUpTakeover } from "./LevelUpTakeover";
@@ -105,6 +106,31 @@ const DonePractice = ({
   const earnedLabel = shownAxis
     ? `${AXIS_LABEL[shownAxis]} — ${AXIS_SUBTITLE[shownAxis].toLowerCase()}`
     : null;
+
+  /**
+   * THE ONE TIME WE EXPLAIN THE VOCABULARY, if this screen gets there first.
+   *
+   * Highest attention and lowest defensiveness in the product: they have just
+   * finished something and are already reading. The alternative surface is
+   * Home's growth row, which only carries it for people whose first count came
+   * from the welcome call — that call ends on a feelings check-in we keep free
+   * of scorekeeping on purpose.
+   *
+   * Marked on unmount rather than on render, so leaving the screen is what
+   * counts as having had the chance to read it. A completion dismissed in half
+   * a second should not burn the only explanation the words ever get.
+   */
+  const growthIntroduced = useOnboardingNudgeStore(
+    (s) => s.growthIntroducedAt !== null,
+  );
+  const markGrowthIntroduced = useOnboardingNudgeStore(
+    (s) => s.markGrowthIntroduced,
+  );
+  const showIntro = !isAborted && !!earnedLabel && !growthIntroduced;
+  useEffect(() => {
+    if (!showIntro) return;
+    return () => markGrowthIntroduced();
+  }, [showIntro, markGrowthIntroduced]);
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
@@ -234,6 +260,16 @@ const DonePractice = ({
           {!isAborted && earnedLabel ? (
             <Text variant="bodySm" color={mutedForeground} center style={styles.earnedText}>
               {earnedLabel}
+            </Text>
+          ) : null}
+
+          {/* First time only. Says what the app is counting and where to find
+              it — nothing about what we are NOT measuring, which was the old
+              version's job and made the reader's first task disproving
+              something. */}
+          {showIntro ? (
+            <Text variant="caption" color={mutedForeground} center style={styles.introText}>
+              We count three of these. See them in your progress report.
             </Text>
           ) : null}
         </View>
@@ -397,6 +433,10 @@ const styles = StyleSheet.create({
   earnedText: {
     lineHeight: 20,
     marginTop: spacing.sm,
+  },
+  introText: {
+    lineHeight: 18,
+    marginTop: spacing.xs,
   },
   actionContainer: {
     width: "100%",

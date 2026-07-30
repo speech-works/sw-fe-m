@@ -37,12 +37,29 @@ interface OnboardingNudgeState {
    * note above.
    */
   completedAt: number | null;
+  /**
+   * Whether the four growth words have been introduced yet.
+   *
+   * ONE INTRODUCTION, WHEREVER IT LANDS FIRST. Somebody who practises first
+   * meets them on the completion screen; somebody whose first count came from
+   * the welcome call meets them on Home, because that call ends on a feelings
+   * check-in we deliberately keep free of scorekeeping. A flag per surface
+   * would say the same thing twice to anyone who does both.
+   *
+   * SET ON ACKNOWLEDGEMENT, NOT ON RENDER. It flips when the person has
+   * actually had the chance to read it — otherwise a mood sheet covering Home,
+   * or a completion screen dismissed in half a second, burns the one
+   * explanation the vocabulary gets.
+   */
+  growthIntroducedAt: number | null;
   /** They chose to leave onboarding unfinished. */
   markSkipped: () => void;
   /** They finished it. */
   markCompleted: () => void;
   /** They finished, or deliberately restarted — the nudge is live again. */
   clearSkip: () => void;
+  /** They have now been told what the growth words mean. */
+  markGrowthIntroduced: () => void;
 }
 
 export const useOnboardingNudgeStore = create<OnboardingNudgeState>()(
@@ -50,9 +67,16 @@ export const useOnboardingNudgeStore = create<OnboardingNudgeState>()(
     (set) => ({
       skippedAt: null,
       completedAt: null,
+      growthIntroducedAt: null,
       markSkipped: () => set({ skippedAt: Date.now() }),
       markCompleted: () => set({ completedAt: Date.now(), skippedAt: null }),
       clearSkip: () => set({ skippedAt: null }),
+      markGrowthIntroduced: () =>
+        // Idempotent: the first surface to acknowledge owns it, and a later one
+        // must not move the timestamp and make the introduction look recent.
+        set((s) =>
+          s.growthIntroducedAt ? s : { growthIntroducedAt: Date.now() },
+        ),
     }),
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING_NUDGE,

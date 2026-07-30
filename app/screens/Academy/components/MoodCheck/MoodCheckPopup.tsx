@@ -29,6 +29,14 @@ import {
   useOnboardingNudgeStore,
   completedOnboardingToday,
 } from "../../../../stores/onboardingNudge";
+import { hasOpenModalExcept } from "../../../../stores/nativeModal";
+
+/**
+ * Not a real registry id — this sheet registers its own under a generated id
+ * inside `Sheet`. We only need a value that can never match one, so the check
+ * below reads as "is ANY native modal open".
+ */
+const POPUP_ID = "__mood-check-precheck__";
 
 // The mood-name text sits on `surface.default`. The bright accent BASE hue fails
 // AA there on the light "paper" canvas (1.2–1.8:1), so the label uses the darker
@@ -87,6 +95,22 @@ const MoodCheckPopup = () => {
     // 2. Popup hasn't been shown today
     if (!hasRecordedToday && lastPopupDate !== today) {
       const timer = setTimeout(() => {
+        // STANDS DOWN RATHER THAN QUEUING.
+        //
+        // `exclusive` on the Sheet below defers-and-then-presents, which is
+        // right for a REACTIVE sheet: an error or a confirmation is the answer
+        // to something the user just did, and they need it whenever it can be
+        // shown. This is a PROACTIVE ask, and deferring one of those turns a
+        // collision into a chain — dismiss the first sheet and the next one
+        // appears in its place, which is more irritating than either alone and
+        // is the surest way to teach somebody to dismiss without reading.
+        //
+        // So if the moment is taken, we simply do not take it. Nothing is
+        // marked as shown, so the next visit to Home tries again at a moment
+        // that is actually free. And nothing is lost meanwhile: MoodCheckBanner
+        // sits on Home for anyone who wants to record a mood without being
+        // asked. A proactive prompt that can be skipped for free should be.
+        if (hasOpenModalExcept(POPUP_ID)) return;
         setVisible(true);
       }, 500);
       return () => clearTimeout(timer);
@@ -107,13 +131,13 @@ const MoodCheckPopup = () => {
   return (
     <Sheet
       visible={visible}
-      // WAITS ITS TURN, like OutcomeModal already does. Deference was
-      // one-directional: the outcome sheet is `exclusive` and defers to this
-      // one, but this one would open straight over it — and two stacked native
-      // Modals wedge touch handling app-wide on iOS, which is a bug we have
-      // already chased once. Reachable from an ordinary path: any success or
-      // error sheet raised while Home is settling, with this timer landing on
-      // top of it.
+      // A BACKSTOP, not the policy. The stand-down above is what normally
+      // keeps this out of another sheet's way; `exclusive` covers the race
+      // where something opens between that check and this presenting. Without
+      // it, two stacked native Modals wedge touch handling app-wide on iOS —
+      // a bug we have already chased once, and one this sheet could reach
+      // because deference used to run one way: OutcomeModal defers to this,
+      // this opened straight over it.
       exclusive
       onClose={handleSkip}
       onDismissed={() => {

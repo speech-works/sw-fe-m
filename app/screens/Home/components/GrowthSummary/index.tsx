@@ -18,6 +18,7 @@ import {
   visibleTotals,
 } from "../../../../api/dailyPlan";
 import { countPhrase } from "../../../../util/growth/format";
+import { useOnboardingNudgeStore } from "../../../../stores/onboardingNudge";
 import { track } from "../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
 
@@ -90,6 +91,14 @@ const GrowthSummary: React.FC = () => {
   const rows = visibleTotals(totals).filter((r) => r.count > 0);
   const hasAny = Boolean(totals?.hasAny) && rows.length > 0;
 
+  const growthIntroduced = useOnboardingNudgeStore(
+    (s) => s.growthIntroducedAt !== null,
+  );
+  const markGrowthIntroduced = useOnboardingNudgeStore(
+    (s) => s.markGrowthIntroduced,
+  );
+  const showIntro = hasAny && !growthIntroduced;
+
   useEffect(() => {
     if (!totals || !hasAny) return;
     // Keyed by axis, NOT by position. `rows` is filtered to what has moved, so
@@ -114,6 +123,11 @@ const GrowthSummary: React.FC = () => {
 
   const open = () => {
     track(ANALYTICS_EVENTS.GROWTH_SUMMARY_TAPPED, { stage: "counts" });
+    // Tapping through IS the acknowledgement — they are about to land on the
+    // card, which explains all three in full. Marked here rather than on
+    // render so a row sitting under an open mood sheet does not burn the one
+    // introduction the vocabulary gets.
+    markGrowthIntroduced();
     // Lands on the card itself rather than the top of the report. `scrollTo`
     // already exists for Achievements; "growth" reuses it so there is one
     // mechanism for "open the report at a particular thing".
@@ -142,6 +156,18 @@ const GrowthSummary: React.FC = () => {
         </Text>
         <Icon name={icons.chevronRight} size={16} color={colors.text.tertiary} />
       </View>
+
+      {/* ONLY IF THE COMPLETION SCREEN NEVER GOT THERE.
+          In practice that means somebody whose first count came from the
+          welcome call, which ends on a feelings check-in we keep free of
+          scorekeeping — so this row is their first sight of the words and has
+          to say what it is. Anyone who practised first has already been told,
+          and repeating it here would be the app explaining itself twice. */}
+      {showIntro ? (
+        <Text variant="caption" color="tertiary" style={styles.intro}>
+          Tap to see what this means.
+        </Text>
+      ) : null}
 
       <View style={styles.stats}>
         {rows.map((row) => (
@@ -180,6 +206,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  intro: { marginTop: -spacing.xxs },
   stats: { flexDirection: "row", gap: spacing.xl },
   stat: { alignItems: "flex-start", minWidth: 64 },
 });
