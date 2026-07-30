@@ -99,10 +99,6 @@ const statForField = (
       return payload.levelStageTitle ? { icon: icons.rank, label: payload.levelStageTitle } : null;
     case "milestoneLabel":
       return payload.milestoneLabel ? { icon: icons.milestone, label: payload.milestoneLabel } : null;
-    case "growthDelta":
-      return payload.growthDelta
-        ? { icon: icons.growth, label: `+${capitalize(payload.growthDelta.axis)}` }
-        : null;
     case "activityName":
     default:
       return null;
@@ -112,7 +108,6 @@ const statForField = (
 const STAT_ORDER: PracticePayloadField[] = [
   "milestoneLabel",
   "streakDays",
-  "growthDelta",
   "xpEarned",
   "leveledUp",
   "levelStageTitle",

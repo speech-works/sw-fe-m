@@ -6,6 +6,12 @@ import { GrowthAxis, AXIS_LABEL, AXIS_SUBTITLE } from "../index";
  * ----------------------------------------------------------------------------
  * These labels are the only place the axes become words a user reads, and two
  * of them were changed for reasons that are easy to lose later.
+ *
+ * THE SAME REFUSAL IS PINNED ELSEWHERE: `app/constants/__tests__/
+ * reminderTemplates.test.ts` enforces it for push copy, after five reminder
+ * messages turned out to be making exactly the claim this file forbids. If you
+ * are adding user-facing words about how someone sounds, both tests are
+ * relevant.
  * ============================================================================
  */
 describe("Growth axis labels", () => {

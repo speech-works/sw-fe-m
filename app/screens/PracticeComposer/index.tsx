@@ -20,7 +20,7 @@ import {
   previewPracticeSignal,
 } from "../../api/threads";
 import {
-  candidateFieldsFor,
+  candidateFields,
   defaultActivityNameForKind,
   templatesForActivity,
 } from "../../util/functions/post";
@@ -74,7 +74,6 @@ const FIELD_LABELS: Record<PracticePayloadField, string> = {
   leveledUp: "Level up",
   levelStageTitle: "Level",
   milestoneLabel: "Milestone",
-  growthDelta: "Evolution",
   journeyTitle: "Journey",
   moduleTitle: "Focus",
   journeyProgress: "Progress",
@@ -127,7 +126,7 @@ const PracticeComposer = () => {
   const [threadId, setThreadId] = useState<string | null>(null);
 
   const offeredTemplates = useMemo(() => templatesForActivity(activityKind), [activityKind]);
-  const allCandidates = useMemo(() => candidateFieldsFor(activityKind), [activityKind]);
+  const allCandidates = useMemo(() => candidateFields(), []);
 
   const [templateId, setTemplateId] = useState<TemplateId>(offeredTemplates[0]);
   const [resolved, setResolved] = useState<PracticePayload | null>(null);

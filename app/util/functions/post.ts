@@ -49,10 +49,16 @@ export const templatesForActivity = (
   }
 };
 
-/** Safe payload fields a user may toggle on/off for this activity. */
-export const candidateFieldsFor = (
-  kind: ActivityKind,
-): PracticePayloadField[] => {
+/**
+ * Safe payload fields a user may toggle on/off.
+ *
+ * Took an `ActivityKind` until `growthDelta` was deleted — that was the only
+ * branch, so the list no longer varies by activity. The parameter is gone
+ * rather than ignored, because a signature that promises kind-specific results
+ * and returns the same array either way is a lie the next reader has to
+ * disprove. Re-add it the day a field genuinely depends on the kind.
+ */
+export const candidateFields = (): PracticePayloadField[] => {
   const base: PracticePayloadField[] = [
     // Journey context first so it leads the "What to show" row when present.
     // These self-gate: the composer only shows a toggle when the preview returns
@@ -71,10 +77,6 @@ export const candidateFieldsFor = (
     "levelStageTitle",
     "milestoneLabel",
   ];
-  // growthDelta is meaningful where effort maps to courage/confidence axes.
-  if (kind === "EXPOSURE_PRACTICE" || kind === "COGNITIVE_PRACTICE") {
-    return [...base, "growthDelta"];
-  }
   return base;
 };
 

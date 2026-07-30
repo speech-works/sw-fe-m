@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import PressableScale from "../../../../components/PressableScale";
 import {
@@ -17,6 +17,8 @@ import {
   AXIS_LABEL,
   AXIS_SUBTITLE,
 } from "../../../../api/dailyPlan";
+import { track } from "../../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
 
 /**
  * ============================================================================
@@ -64,6 +66,28 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
       alive = false;
     };
   }, []);
+
+  /**
+   * Fires only when the strip genuinely renders, which is the point: the
+   * null-return above is not a gap in the data, it IS data — the days we had
+   * nothing closable to offer are exactly what we need to count. Reporting a
+   * "shown" for a component that rendered nothing would erase that.
+   *
+   * `closed` is sent alongside `axes` rather than as a separate event per
+   * loop, because a loop already closed when the strip loads was earned
+   * elsewhere in the app — it is not an interaction with this component.
+   */
+  const reported = useRef<string | null>(null);
+  useEffect(() => {
+    if (!plan || plan.items.length === 0 || plan.loops.length === 0) return;
+    const key = `${plan.loops.join()}|${plan.closed.join()}`;
+    if (reported.current === key) return;
+    reported.current = key;
+    track(ANALYTICS_EVENTS.TODAY_LOOPS_SHOWN, {
+      axes: plan.loops,
+      closed: plan.closed,
+    });
+  }, [plan]);
 
   if (!plan || plan.items.length === 0 || plan.loops.length === 0) return null;
 

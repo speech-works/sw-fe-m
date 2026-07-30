@@ -130,6 +130,37 @@ export const ANALYTICS_EVENTS = {
     FIRST_CALL_FEELING: 'first_call_feeling',           // props: { feeling: 'good'|'mixed'|'alot'|null }
     FIRST_CALL_BREATHING_TAKEN: 'first_call_breathing_taken',
 
+    // ── Growth & progress ─────────────────────────────────────────────
+    // ADDED BECAUSE THE ANSWER WAS "WE CANNOT TELL". Eighty-three events
+    // existed and not one covered the progress report or the growth loops, so
+    // "does anyone look at their progress" had no answer and the last revision
+    // of this feature was argued entirely from taste. These land BEFORE the
+    // growth surfaces so the before-and-after is measurable rather than
+    // asserted.
+    //
+    // The four axes are Braver / Wider / Finisher / Regular. `Finisher` is the
+    // display name for the STEADIER enum value; events carry the ENUM value so
+    // the warehouse doesn't have to track a rename.
+    PROGRESS_REPORT_OPENED: 'progress_report_opened',   // props: { tab: 'weekly' | 'lifetime', source }
+    PROGRESS_REPORT_TAB_SWITCHED: 'progress_report_tab_switched', // props: { tab }
+    // The Home summary that leads into the report. `stage` is what the person
+    // actually saw, which is the whole question: an empty frame is a very
+    // different experience from three real counts, and lumping them together
+    // would hide it.
+    GROWTH_SUMMARY_SHOWN: 'growth_summary_shown',       // props: { stage: 'empty' | 'counts', braver, wider, regular }
+    GROWTH_SUMMARY_TAPPED: 'growth_summary_tapped',     // props: { stage }
+    GROWTH_CARD_SHOWN: 'growth_card_shown',             // props: { stage, braver, wider, regular }
+    // The daily loops. `shown` fires only when the strip actually renders —
+    // it returns null whenever the server lists no closable loop, and those
+    // silences are data, not gaps. `closed` rides along on the same event
+    // rather than getting its own: the strip fetches once on mount and never
+    // refetches, so there is no open→closed transition for the client to
+    // witness. A loop is either already closed when the plan loads (earned
+    // elsewhere in the app, not an interaction with this component) or it is
+    // not. A separate `today_loop_closed` was declared here and deleted before
+    // it shipped for exactly that reason — nothing could honestly emit it.
+    TODAY_LOOPS_SHOWN: 'today_loops_shown',             // props: { axes: string[], closed: string[] }
+
     // ── Diagnostics ───────────────────────────────────────────────────
     // A finger went down and up in the same spot, quickly, and no instrumented
     // touchable fired. Instrumentation for the intermittent "buttons randomly

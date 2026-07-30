@@ -8,6 +8,22 @@
  *  - Stateless: never reference user history, streaks, or behavior we can't verify
  *  - Genuine: warm and encouraging, never gimmicky or manipulative
  *  - Actionable: each message nudges toward a specific app action
+ *  - NEVER A FLUENCY CLAIM: no promise about flow, ease, smoothness, steadiness,
+ *    or speech getting easier. Describe the ACT, not an outcome we cannot verify
+ *    and do not measure.
+ *
+ * That last rule was added after five messages broke it — "vocal ease", "a
+ * natural, steady flow", "steady the voice", "sharpen your vocal flow",
+ * "makes the next one easier". This is the product's central refusal: we
+ * renamed a growth axis from Steadier to Finisher precisely because "steady"
+ * reads as "my speech is steadier", and pinned it with a test. Meanwhile the
+ * same claim shipped four times a week to people who opted in to hear from us —
+ * the one surface that reaches someone who isn't even in the app. The other
+ * three rules held for years because they were written down here. This one was
+ * not, so nobody caught it.
+ *
+ * Confidence, calm and habit are fair game; they are what the app actually
+ * works on. How someone SOUNDS is not.
  */
 
 export type ReminderCategory =
@@ -87,7 +103,7 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       },
       {
         title: "Breathe with intention",
-        body: "Focused breathing helps calm the mind and steady the voice.",
+        body: "A few slow breaths, before something hard or just because.",
       },
       {
         title: "A moment for yourself",
@@ -116,14 +132,14 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
   {
     category: "READING",
     label: "Reading Practice",
-    description: "Sharpen your vocal flow",
+    description: "Read aloud, at your own pace",
     icon: "book-open-variant",
     color: "#8B5CF6",
     bgColor: "#F5F3FF",
     messages: [
       {
         title: "Time to read aloud",
-        body: "Reading aloud builds confidence and vocal ease.",
+        body: "Pick something short and say it out loud.",
       },
       {
         title: "Your reading session awaits",
@@ -135,11 +151,11 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       },
       {
         title: "A page a day",
-        body: "Consistent reading practice builds a natural, steady flow.",
+        body: "A page is plenty. Little and often beats all at once.",
       },
       {
         title: "Read, speak, grow",
-        body: "Every word you read aloud strengthens your voice.",
+        body: "Practice you can do with nobody else listening.",
       },
     ],
     deepLink: {
@@ -179,7 +195,7 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       },
       {
         title: "Courage is a muscle",
-        body: "Every exposure practice makes the next one easier.",
+        body: "Taking on a hard one counts, however it goes.",
       },
     ],
     deepLink: {

@@ -316,11 +316,28 @@ const SubscribeScreen = () => {
                     // What replaces it is real, daily, and already built: how
                     // much you practised, on how many days, across which kinds
                     // of practice, and how that week compares to the last.
+                    //
+                    // THE COLUMNS MATCH ON PURPOSE — DO NOT RE-SPLIT THEM.
+                    // The replacement promised `free: "This week"` /
+                    // `pro: "Full history"`, and that was the SECOND unbacked
+                    // claim on this one row inside a month: `ProgressDetail`
+                    // has no entitlement check of any kind, so the lifetime tab
+                    // has always been free to everybody. Rather than build a
+                    // gate to make the sentence true, we made the sentence
+                    // true — deliberately. Gating somebody's own evidence that
+                    // they are getting better is the wrong lever to pull on
+                    // people whose problem is avoidance: the week they most
+                    // need to see it is the week they have practised least and
+                    // are likeliest to let a subscription lapse.
+                    //
+                    // If the business ever does want history behind Pro, that
+                    // is a real entitlement check in `ProgressDetail`, not a
+                    // word change here.
                     label: "Your progress",
-                    free: "This week",
-                    pro: "Full history",
+                    free: "All of it",
+                    pro: "All of it",
                     icon: "bar-chart-2",
-                    desc: "Every session, day and streak you've built — with weekly and lifetime breakdowns.",
+                    desc: "Every session, day and streak you've built, weekly and lifetime. Yours either way — we don't hold your own progress back.",
                   },
                   {
                     label: "Daily Activities",

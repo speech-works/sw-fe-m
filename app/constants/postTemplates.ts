@@ -42,7 +42,10 @@ export const POST_TEMPLATES: PostTemplate[] = [
     label: "Courage",
     icon: "shield-star",
     gradient: ["#FF6B00", "#BF5000"],
-    emphasizes: ["growthDelta", "activityName"],
+    // `growthDelta` led this list and is gone. Behaviour is unchanged: neither
+    // it nor `activityName` ever produced a chip, so this emphasis has always
+    // been a no-op and the card falls through to STAT_ORDER.
+    emphasizes: ["activityName"],
     blurb: "You faced a challenge",
   },
   {

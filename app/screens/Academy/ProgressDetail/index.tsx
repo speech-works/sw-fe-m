@@ -30,6 +30,8 @@ import {
   icons,
   type IconName,
 } from "../../../design-system";
+import { track } from "../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import Achievements from "./components/Achievements";
 import DetailedWeeklySummary, {
   WeeklySummarySkeleton,
@@ -63,6 +65,34 @@ const ProgressDetail = () => {
   const { user } = useUserStore();
   const { weeklyReport, lifetimeReport, loading, errors, fetchReport } =
     useProgressReportStore();
+
+  /**
+   * "DOES ANYONE OPEN THIS?" — previously unanswerable.
+   *
+   * Fired from an effect on `activeTab` rather than from the three places that
+   * set it (the TabDock, the horizontal swipe at `:223`, and the scrollTo
+   * effect below). Instrumenting the call sites would triple-count a single
+   * switch and miss the route-param one entirely; deriving it from the state
+   * counts each change exactly once, whatever caused it.
+   *
+   * `source` is inferred, not passed: `scrollTo: "achievements"` is only ever
+   * set by Home's Level card, and nothing else tells us where the user came
+   * from. Reporting "direct" for Settings and Explore alike is honest about
+   * that; inventing a finer split would not be.
+   */
+  const opened = useRef(false);
+  React.useEffect(() => {
+    if (opened.current) {
+      track(ANALYTICS_EVENTS.PROGRESS_REPORT_TAB_SWITCHED, { tab: activeTab });
+      return;
+    }
+    opened.current = true;
+    track(ANALYTICS_EVENTS.PROGRESS_REPORT_OPENED, {
+      tab: activeTab,
+      source:
+        route.params?.scrollTo === "achievements" ? "home_level" : "direct",
+    });
+  }, [activeTab, route.params?.scrollTo]);
 
   const loadActiveReport = React.useCallback(
     async (timeframe: ReportTimeframe, isRefresh = false) => {

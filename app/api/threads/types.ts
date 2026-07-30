@@ -67,7 +67,24 @@ export type ActivityKind =
 /** Card template ids — visuals in constants/postTemplates.ts. */
 export type TemplateId = "milestone" | "streak" | "courage" | "calm" | "minimal";
 
-export type GrowthAxis = "mastery" | "ease" | "courage" | "confidence" | "social";
+// A `GrowthAxis = "mastery" | "ease" | "courage" | "confidence" | "social"`
+// lived here, feeding a `growthDelta` chip on shared cards. It is deleted
+// rather than repaired, because there was no feature to repair: the backend
+// declared the field and NEVER assigned it, so the chip has never once
+// rendered.
+//
+// What it was, though, was loaded. Those five names are the clinical domains
+// removed from the UI in `baa856f7`, and the chip rendered `+${capitalize(
+// axis)}` straight from the wire — bypassing AXIS_LABEL entirely, with the
+// backend typing the field as a plain `string`. Populate it and the community
+// feed publishes "+Ease" and "+Mastery" to ANOTHER PERSON: a claim about
+// someone's speech getting smoother, on the one surface with an audience, from
+// a product whose whole differentiator is refusing to make it. The note below
+// on this same payload promises "never clinical taxonomy" — and this was the
+// exception nobody spotted.
+//
+// The live vocabulary is the four axes in `api/dailyPlan`, which are always
+// rendered through AXIS_LABEL with their subtitles.
 
 export interface PracticePayload {
   v: 1;
@@ -80,7 +97,6 @@ export interface PracticePayload {
   leveledUp?: boolean;
   levelStageTitle?: string;
   milestoneLabel?: string;
-  growthDelta?: { axis: GrowthAxis; direction: "up" };
   // ── Journey (pack/module) context ──────────────────────────────────────────
   // Server-derived from the activity's pack/module link and SNAPSHOTTED into the
   // stored signal at share time (so "X of N"/completion stay truthful as the user
