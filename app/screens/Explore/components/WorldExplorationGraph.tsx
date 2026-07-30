@@ -19,7 +19,6 @@ import {
   WeeklyStat,
 } from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
-import { getFlowBenchmarkCopy } from "../../../util/flowBenchmark";
 import PressableScale from "../../../components/PressableScale";
 import {
   useTheme,
@@ -170,14 +169,29 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     DAILY_TARGET_MINUTES * 1.3,
   );
 
-  // Plain, full-referent last-week comparison for the header line — e.g. "0.7 min
-  // to match last week" / "0.7 min ahead of last week" / "Matched last week". The
-  // compact copy ("0.7m to match • 50%") was cryptic on a glanceable card, so the
-  // stat card is labelled simply ("this week") and the comparison lives here in words.
-  const benchmarkLine = minutesComparison?.hasBenchmark
-    ? getFlowBenchmarkCopy(minutesComparison, "minutes").primary
-    : loading
-      ? "This week so far"
+  // NO LAST-WEEK COMPARISON ON THIS SCREEN, DELIBERATELY.
+  //
+  // This line used to read "0.7 min to match last week" — a quantified
+  // shortfall, unprompted, above the fold, on EXPLORE. Explore is where
+  // somebody goes to choose what to do next, so after a quiet week the first
+  // thing they read about themselves was a deficit, and the screen then asked
+  // them to pick something hard. For a population whose presenting problem is
+  // anxiety-driven avoidance that is the worst possible placement: it supplies
+  // the evidence for "I'm not getting better, so why start" at the exact moment
+  // the answer needs to be "start small".
+  //
+  // The app already made this call for other people's numbers — the Us page
+  // states it outright, "vs your own pace, celebrated, never penalised". It had
+  // just never been applied to somebody's own report of themselves.
+  //
+  // The neutral lines stay, including "Your first week here" — which is the
+  // best-pitched sentence on the screen, descriptive and forward-facing with no
+  // deficit in it. The comparison still lives in the progress report, which is
+  // a place you choose to open.
+  const benchmarkLine = loading
+    ? "This week so far"
+    : minutesComparison?.hasBenchmark
+      ? "Your week so far"
       : "Your first week here";
 
   // --- Header readout ---

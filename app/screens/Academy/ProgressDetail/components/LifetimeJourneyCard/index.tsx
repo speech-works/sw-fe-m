@@ -35,6 +35,26 @@ const LifetimeJourneyCard = ({
     return null;
   }
 
+  /**
+   * NOTHING RATHER THAN FOUR ZEROS.
+   *
+   * A brand-new account gets a perfectly successful response describing an
+   * empty life: `0m / 0 / 0 / Level 1`, rendered at `h2`, under the heading
+   * "LIFETIME JOURNEY". There was no branch for it — the only guards above are
+   * for loading and for a missing payload, so somebody who had just signed up
+   * was shown a large, confident summary of having done nothing.
+   *
+   * The card is withheld instead. The growth card immediately above already
+   * carries the honest first-run state, with an invitation and what would move
+   * each axis first, so this would only add a second and colder version of the
+   * same news. It reappears the moment there is one real number in it.
+   */
+  const hasAnyHistory =
+    journey.totalPracticeMinutes > 0 ||
+    journey.totalCompletedPractices > 0 ||
+    journey.totalPracticeDays > 0;
+  if (!hasAnyHistory) return null;
+
   const stat = (value: string | number, label: string) => (
     <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
       <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>

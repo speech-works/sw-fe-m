@@ -65,7 +65,10 @@ const ProgressDetail = () => {
   const growthY = useRef<number>(0);
   const screenWidth = Dimensions.get("window").width;
 
-  const initialTab = route.params?.scrollTo === "achievements" ? "lifetime" : "weekly";
+  // BOTH scroll targets live on the Lifetime tab, so either one opens there.
+  // This used to name "achievements" alone, which would have landed a growth
+  // tap on the weekly tab and then bounced it across a beat later.
+  const initialTab = route.params?.scrollTo ? "lifetime" : "weekly";
   const [activeTab, setActiveTab] = useState<ReportTimeframe>(initialTab);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -73,20 +76,6 @@ const ProgressDetail = () => {
   const { weeklyReport, lifetimeReport, loading, errors, fetchReport } =
     useProgressReportStore();
 
-  /**
-   * "DOES ANYONE OPEN THIS?" — previously unanswerable.
-   *
-   * Fired from an effect on `activeTab` rather than from the three places that
-   * set it (the TabDock, the horizontal swipe at `:223`, and the scrollTo
-   * effect below). Instrumenting the call sites would triple-count a single
-   * switch and miss the route-param one entirely; deriving it from the state
-   * counts each change exactly once, whatever caused it.
-   *
-   * `source` is inferred, not passed: `scrollTo: "achievements"` is only ever
-   * set by Home's Level card, and nothing else tells us where the user came
-   * from. Reporting "direct" for Settings and Explore alike is honest about
-   * that; inventing a finer split would not be.
-   */
   /**
    * The totals are fetched here rather than inside the card so a pull-to-refresh
    * moves them too, and so the card stays a pure render of what it is handed.
@@ -116,8 +105,23 @@ const ProgressDetail = () => {
     });
   }, [growthTotals]);
 
+  /**
+   * "DOES ANYONE OPEN THIS?" — previously unanswerable.
+   *
+   * Fired from an effect on `activeTab` rather than from the three places that
+   * set it (the TabDock, the horizontal swipe, and the scrollTo effect below).
+   * Instrumenting the call sites would triple-count a single switch and miss
+   * the route-param one entirely; deriving it from the state counts each change
+   * exactly once, whatever caused it.
+   *
+   * `source` is INFERRED, not passed. `scrollTo` is only ever set by Home — the
+   * Level card asks for "achievements", the growth summary for "growth" — and
+   * nothing distinguishes Settings from Explore, so both report "direct".
+   * Saying so is honest about the limit; inventing a finer split would not be.
+   */
   const opened = useRef(false);
   React.useEffect(() => {
+    const from = route.params?.scrollTo;
     if (opened.current) {
       track(ANALYTICS_EVENTS.PROGRESS_REPORT_TAB_SWITCHED, { tab: activeTab });
       return;
@@ -126,7 +130,11 @@ const ProgressDetail = () => {
     track(ANALYTICS_EVENTS.PROGRESS_REPORT_OPENED, {
       tab: activeTab,
       source:
-        route.params?.scrollTo === "achievements" ? "home_level" : "direct",
+        from === "achievements"
+          ? "home_level"
+          : from === "growth"
+            ? "home_growth"
+            : "direct",
     });
   }, [activeTab, route.params?.scrollTo]);
 
@@ -199,7 +207,7 @@ const ProgressDetail = () => {
     setRefreshing(false);
   };
 
-  const currentEmptyState = useMemo(() => {
+  const fetchErrorCopy = useMemo(() => {
     if (activeTab === "weekly") {
       return {
         title: "Weekly Report Unavailable",
@@ -228,8 +236,8 @@ const ProgressDetail = () => {
       return (
         <ErrorStateCard
           onRetry={() => loadActiveReport("weekly", true)}
-          title={currentEmptyState.title}
-          message={currentEmptyState.message}
+          title={fetchErrorCopy.title}
+          message={fetchErrorCopy.message}
           style={styles.errorCard}
         />
       );
@@ -257,8 +265,8 @@ const ProgressDetail = () => {
       return (
         <ErrorStateCard
           onRetry={() => loadActiveReport("lifetime", true)}
-          title={currentEmptyState.title}
-          message={currentEmptyState.message}
+          title={fetchErrorCopy.title}
+          message={fetchErrorCopy.message}
           style={styles.errorCard}
         />
       );

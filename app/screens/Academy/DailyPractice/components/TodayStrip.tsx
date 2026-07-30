@@ -16,6 +16,7 @@ import {
   GrowthAxis,
   AXIS_LABEL,
   AXIS_SUBTITLE,
+  isVisibleAxis,
 } from "../../../../api/dailyPlan";
 import { track } from "../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
@@ -76,20 +77,48 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
    * `closed` is sent alongside `axes` rather than as a separate event per
    * loop, because a loop already closed when the strip loads was earned
    * elsewhere in the app — it is not an interaction with this component.
+   *
+   * It reports what was DRAWN, not what the server offered: `axes` is the
+   * filtered list, so the data cannot claim we showed a Finisher ring on a day
+   * we hid it. `closed` stays unfiltered, because it is a record of what the
+   * person actually earned anywhere in the app and that is true regardless of
+   * what this component chose to render.
    */
   const reported = useRef<string | null>(null);
   useEffect(() => {
-    if (!plan || plan.items.length === 0 || plan.loops.length === 0) return;
-    const key = `${plan.loops.join()}|${plan.closed.join()}`;
+    if (!plan || plan.items.length === 0) return;
+    const shown = plan.loops.filter(isVisibleAxis);
+    if (shown.length === 0) return;
+    const key = `${shown.join()}|${plan.closed.join()}`;
     if (reported.current === key) return;
     reported.current = key;
     track(ANALYTICS_EVENTS.TODAY_LOOPS_SHOWN, {
-      axes: plan.loops,
+      axes: shown,
       closed: plan.closed,
     });
   }, [plan]);
 
-  if (!plan || plan.items.length === 0 || plan.loops.length === 0) return null;
+  /**
+   * ONE VOCABULARY ACROSS THE APP. Finisher is hidden here for the same reason
+   * it is hidden on the growth card — see `VISIBLE_AXES`. Showing it as a ring
+   * today while the lifetime card never mentions it would be worse than either
+   * choice on its own.
+   *
+   * FILTERED, NOT UNREQUESTED. The plan still SUGGESTS Finisher-capable items
+   * and the server still counts them: its selection takes the scarcest axis
+   * first, so dropping the axis server-side would change which items get
+   * offered, and a completed call would stop closing anything. Only the ring
+   * goes. That does leave a suggested item with no ring of its own — which is
+   * the safe direction of the strip's rule, since the harm it guards against
+   * is a ring nothing can close, not an item without one.
+   */
+  const loops = (plan?.loops ?? []).filter(isVisibleAxis);
+
+  // `loops.length` and not `plan.loops.length`: with Finisher filtered out, a
+  // day whose only promisable loop was Finisher now has nothing honest to show,
+  // and the whole strip should collapse rather than render a heading over an
+  // empty row.
+  if (!plan || plan.items.length === 0 || loops.length === 0) return null;
 
   const closed = new Set(plan.closed);
 
@@ -111,11 +140,20 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
       </Text>
 
       <View style={styles.loops}>
-        {plan.loops.map((axis) => {
+        {loops.map((axis) => {
           const done = closed.has(axis);
           return (
             <View
               key={axis}
+              // The state is carried by colour and a tick, which a screen
+              // reader cannot see — so it goes in words. `IdentityBlock` and
+              // `WorldExplorationGraph` both already do this; this component
+              // was the one that did not.
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`${AXIS_LABEL[axis as GrowthAxis]}, ${
+                AXIS_SUBTITLE[axis as GrowthAxis]
+              }. ${done ? "Done today." : "Not yet today."}`}
               style={[
                 styles.loop,
                 {

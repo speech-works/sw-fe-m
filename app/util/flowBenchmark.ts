@@ -24,37 +24,6 @@ const formatCount = (value: number) => {
   return value.toFixed(1);
 };
 
-const formatPrimaryValue = (
-  value: number,
-  kind: BenchmarkKind,
-  compact: boolean,
-) => {
-  const formatted = formatCount(value);
-
-  switch (kind) {
-    case "minutes":
-      return compact ? `${formatted}m` : `${formatted} min`;
-    case "sessions":
-      return compact
-        ? value === 1
-          ? "1 more"
-          : `${formatted} more`
-        : value === 1
-          ? "1 more"
-          : `${formatted} more`;
-    case "days":
-      return compact
-        ? value === 1
-          ? "1 more day"
-          : `${formatted} more days`
-        : value === 1
-          ? "1 more day"
-          : `${formatted} more days`;
-    default:
-      return formatted;
-  }
-};
-
 const formatAheadValue = (
   value: number,
   kind: BenchmarkKind,
@@ -125,18 +94,26 @@ export const getFlowBenchmarkCopy = (
     };
   }
 
+  // BEHIND — AND WE SAY NOTHING.
+  //
+  // This branch used to return "12 min to match last week" plus "38% of last
+  // week's total". Both numbers are true and neither is useful: the raw figure
+  // this week is already on screen beside it, so the only thing the sentence
+  // added was the shortfall — a quantified statement of how far someone fell
+  // short, delivered to people who are unusually practised at reading those
+  // about themselves.
+  //
+  // AHEAD and MATCHED are kept, and the asymmetry is the point rather than an
+  // oversight. It is the same rule the Us page already states for buddies —
+  // "vs your own pace, celebrated, never penalised" — finally applied to
+  // somebody's own report of themselves. There is no replacement copy, because
+  // a softened deficit ("nearly there!") is still a deficit with a smile on it.
+  //
+  // `primary` is null rather than "" so a caller cannot render an empty line
+  // where a sentence used to be, and the type makes them handle it.
   return {
-    primary: `${formatPrimaryValue(
-      comparison.remainingToMatch ?? 0,
-      kind,
-      compact,
-    )} to match${compact ? "" : " last week"}`,
-    secondary:
-      comparison.percentOfPreviousTotal !== null
-        ? compact
-          ? `${Math.round(comparison.percentOfPreviousTotal)}%`
-          : `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
-        : null,
+    primary: null as string | null,
+    secondary: null as string | null,
     isAhead: false,
   };
 };

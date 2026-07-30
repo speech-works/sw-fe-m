@@ -217,10 +217,15 @@ const DetailedWeeklySummary = ({
                   : `${(weeklyData.totalPracticeMinutes / 60).toFixed(1)}h`}
               </Text>
               <Text variant="bodySm" color="secondary" style={styles.bold}>Practice Time</Text>
-              <Text variant="caption" color="tertiary" numberOfLines={2} style={styles.benchmark}>
-                {practiceBenchmark.primary}
-                {practiceBenchmark.secondary ? ` • ${practiceBenchmark.secondary}` : ""}
-              </Text>
+              {/* Nothing at all when there is nothing kind to say — the BEHIND
+                  branch now returns null, and an empty caption would leave a
+                  blank line exactly where the shortfall used to be. */}
+              {practiceBenchmark.primary ? (
+                <Text variant="caption" color="tertiary" numberOfLines={2} style={styles.benchmark}>
+                  {practiceBenchmark.primary}
+                  {practiceBenchmark.secondary ? ` • ${practiceBenchmark.secondary}` : ""}
+                </Text>
+              ) : null}
             </View>
 
             <View style={[styles.statBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
@@ -228,10 +233,12 @@ const DetailedWeeklySummary = ({
                 {weeklyData.totalDaysActive}
               </Text>
               <Text variant="bodySm" color="secondary" style={styles.bold}>Days Active</Text>
-              <Text variant="caption" color="tertiary" numberOfLines={2} style={styles.benchmark}>
-                {daysBenchmark.primary}
-                {daysBenchmark.secondary ? ` • ${daysBenchmark.secondary}` : ""}
-              </Text>
+              {daysBenchmark.primary ? (
+                <Text variant="caption" color="tertiary" numberOfLines={2} style={styles.benchmark}>
+                  {daysBenchmark.primary}
+                  {daysBenchmark.secondary ? ` • ${daysBenchmark.secondary}` : ""}
+                </Text>
+              ) : null}
             </View>
           </View>
 
@@ -267,10 +274,34 @@ const DetailedWeeklySummary = ({
         </>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text variant="h2">Your Growth Starts Here</Text>
-          <Text variant="bodySm" color="secondary">
-            Start practicing to track your stats.
-          </Text>
+          {/* A QUIET WEEK IS NOT A FIRST WEEK, and saying the same thing to
+              both gets one of them wrong. Someone returning after a gap has
+              history — `historicalActiveDays` proves it — so "Your Growth
+              Starts Here" erases what they already did and reads as being sent
+              back to the beginning. Someone genuinely new has no history and
+              the invitation is right for them.
+
+              No streak-broken language, no count of days away, no "we missed
+              you", and nothing that needs making up: the person most likely to
+              read this is the one whose week went badly, and the goal is that
+              they open the app again tomorrow. Their counts on the growth card
+              are untouched by the gap, which is the entire point of a memory
+              that only ever adds. */}
+          {historicalActiveDays.length > 0 ? (
+            <>
+              <Text variant="h2">A quiet week</Text>
+              <Text variant="bodySm" color="secondary">
+                Nothing here needs making up. Start wherever&apos;s easiest.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text variant="h2">Your Growth Starts Here</Text>
+              <Text variant="bodySm" color="secondary">
+                Start practicing to track your stats.
+              </Text>
+            </>
+          )}
           <View style={[styles.tipPill, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
             <Icon name={icons.tip} size={12} color={colors.feedback.warningText} />
             <Text variant="caption" color="secondary">Tip: Little and often beats all-at-once.</Text>
