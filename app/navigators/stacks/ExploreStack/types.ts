@@ -8,7 +8,11 @@ export type ExploreStackParamList = {
   Explore: undefined;
   DailyPracticeStack: undefined;
   LibraryStack: undefined;
-  ProgressDetail: { scrollTo?: "achievements" } | undefined;
+  // `scrollTo` opens the report AT something rather than at the top. Both
+  // targets live on the Lifetime tab, so the screen switches tab as well as
+  // scrolling. "achievements" comes from Home's Level card, "growth" from
+  // Home's GrowthSummary.
+  ProgressDetail: { scrollTo?: "achievements" | "growth" } | undefined;
   PaymentStack: undefined;
   Programs: undefined;
   ProgramDetail: { catalogKey: string; packId: string | null };

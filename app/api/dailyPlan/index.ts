@@ -39,6 +39,38 @@ export const AXIS_SUBTITLE: Record<GrowthAxis, string> = {
   [GrowthAxis.REGULAR]: "turning up",
 };
 
+/**
+ * The axes a user is currently shown — THE ONE PLACE THAT DECIDES.
+ *
+ * Finisher is deliberately absent. It is not a broken axis: "seeing things
+ * through" is arguably the most therapeutically meaningful of the four, because
+ * escaping a situation is the behaviour the whole treatment targets. It is a
+ * SUPPLY problem. Only two of the ten growth points move it — an AI call, which
+ * costs real money per use and is capped at one per rolling seven days for free
+ * users, and mirror work, of which the catalogue contains exactly one item
+ * (`TECH_COGNITIVE_MIRROR_WORK_GENERAL`). Braver responds to four growth points
+ * and Regular to six, so shown alongside them Finisher would sit visibly stuck
+ * while everything else moved — read by the user as personal failure, when it
+ * is really our content shelf. And explaining "this one moves when you take a
+ * call" turns the scarcest axis into an advert for the paid feature, which
+ * `GrowthPoints.config.ts` forbids in as many words: nothing here may move
+ * because something was bought.
+ *
+ * FILTERING IS A DISPLAY DECISION AND LIVES ONLY HERE. The enum, the registry,
+ * `closedToday` and the plan's axis selection all still know about STEADIER,
+ * and `/daily-plan/totals` still returns it — so turning it back on is this
+ * constant, with no server deploy. Anything that renders an axis to a user must
+ * filter through this; anything that reasons about scoring must not.
+ */
+export const VISIBLE_AXES: GrowthAxis[] = [
+  GrowthAxis.BRAVER,
+  GrowthAxis.WIDER,
+  GrowthAxis.REGULAR,
+];
+
+export const isVisibleAxis = (axis: GrowthAxis | string): boolean =>
+  (VISIBLE_AXES as string[]).includes(axis);
+
 export interface DailyPlanItem {
   contentType: string;
   contentId: string;
@@ -77,4 +109,66 @@ export async function fetchDailyPlan(): Promise<DailyPlan | null> {
     console.warn("[dailyPlan] Could not load today's plan", err);
     return null;
   }
+}
+
+/** One axis's standing total. Counts and dates only — never a score. */
+export interface GrowthTotal {
+  axis: GrowthAxis;
+  /** Attempts, distinct acts or distinct days — the unit differs per axis. */
+  count: number;
+  /** ISO timestamp of the most recent thing that moved this axis. */
+  lastAt: string | null;
+}
+
+export interface GrowthTotals {
+  axes: GrowthTotal[];
+  /** Whether ANYTHING has moved — the "never open on a zero" switch. */
+  hasAny: boolean;
+}
+
+/**
+ * What this person has done, for good.
+ *
+ * Separate from `fetchDailyPlan` on purpose. That one is about today and resets
+ * at midnight; this is the app's memory of somebody and must read the same
+ * after a quiet fortnight. Folding them together would invite a screen that
+ * renders a lifetime total which appears to reset.
+ *
+ * Returns `null` on failure, like its sibling — the caller shows nothing rather
+ * than an error, because a card the user did not ask for is not worth an alarm.
+ */
+export async function fetchGrowthTotals(): Promise<GrowthTotals | null> {
+  try {
+    const res = await axiosClient.get("/daily-plan/totals");
+    return res.data ?? null;
+  } catch (err) {
+    console.warn("[dailyPlan] Could not load growth totals", err);
+    return null;
+  }
+}
+
+/**
+ * The totals a user may see, in display order, with their labels resolved.
+ *
+ * Every rendering path goes through here so no screen can invent its own
+ * ordering or accidentally show Finisher. Filtering AFTER the fetch rather than
+ * asking the server for three keeps one source of truth about what exists and
+ * one about what is shown.
+ */
+export function visibleTotals(totals: GrowthTotals | null): {
+  axis: GrowthAxis;
+  label: string;
+  subtitle: string;
+  count: number;
+  lastAt: string | null;
+}[] {
+  if (!totals) return [];
+  const byAxis = new Map(totals.axes.map((t) => [t.axis, t]));
+  return VISIBLE_AXES.map((axis) => ({
+    axis,
+    label: AXIS_LABEL[axis],
+    subtitle: AXIS_SUBTITLE[axis],
+    count: byAxis.get(axis)?.count ?? 0,
+    lastAt: byAxis.get(axis)?.lastAt ?? null,
+  }));
 }

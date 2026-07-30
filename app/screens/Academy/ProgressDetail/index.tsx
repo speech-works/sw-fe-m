@@ -32,7 +32,13 @@ import {
 } from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
+import {
+  fetchGrowthTotals,
+  GrowthAxis,
+  type GrowthTotals,
+} from "../../../api/dailyPlan";
 import Achievements from "./components/Achievements";
+import GrowthTotalsCard from "./components/GrowthTotalsCard";
 import DetailedWeeklySummary, {
   WeeklySummarySkeleton,
 } from "./components/DetailedWeeklySummary";
@@ -56,6 +62,7 @@ const ProgressDetail = () => {
   const scrollRef = useRef<ScrollView>(null);
   const horizontalScrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
+  const growthY = useRef<number>(0);
   const screenWidth = Dimensions.get("window").width;
 
   const initialTab = route.params?.scrollTo === "achievements" ? "lifetime" : "weekly";
@@ -80,6 +87,35 @@ const ProgressDetail = () => {
    * from. Reporting "direct" for Settings and Explore alike is honest about
    * that; inventing a finer split would not be.
    */
+  /**
+   * The totals are fetched here rather than inside the card so a pull-to-refresh
+   * moves them too, and so the card stays a pure render of what it is handed.
+   *
+   * Refetched on focus, not just on mount: the number that changed while the
+   * user was away doing the thing is the entire reason they came back to look.
+   */
+  const [growthTotals, setGrowthTotals] = useState<GrowthTotals | null>(null);
+  const loadGrowthTotals = React.useCallback(async () => {
+    const totals = await fetchGrowthTotals();
+    if (totals) setGrowthTotals(totals);
+  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      void loadGrowthTotals();
+    }, [loadGrowthTotals]),
+  );
+
+  React.useEffect(() => {
+    if (!growthTotals) return;
+    const byAxis = new Map(growthTotals.axes.map((a) => [a.axis, a.count]));
+    track(ANALYTICS_EVENTS.GROWTH_CARD_SHOWN, {
+      stage: growthTotals.hasAny ? "counts" : "empty",
+      braver: byAxis.get(GrowthAxis.BRAVER) ?? 0,
+      wider: byAxis.get(GrowthAxis.WIDER) ?? 0,
+      regular: byAxis.get(GrowthAxis.REGULAR) ?? 0,
+    });
+  }, [growthTotals]);
+
   const opened = useRef(false);
   React.useEffect(() => {
     if (opened.current) {
@@ -117,23 +153,34 @@ const ProgressDetail = () => {
     }, [activeTab, loadActiveReport, user?.id]),
   );
 
+  /**
+   * Open the report AT something, not at the top.
+   *
+   * Generalised from the single "achievements" case so Home's growth summary
+   * can land on the growth card. Both targets are on the Lifetime tab, so this
+   * switches tab first and scrolls on the next pass once the report has
+   * rendered and the measured offsets exist.
+   *
+   * The growth card sits ABOVE `LifetimeJourneyCard` and is the first thing on
+   * the tab, so its offset is effectively the top — but it is measured rather
+   * than assumed, because anything inserted above it later would silently break
+   * a hardcoded zero.
+   */
+  const target = route.params?.scrollTo;
   React.useEffect(() => {
-    if (route.params?.scrollTo === "achievements" && activeTab !== "lifetime") {
+    if (!target) return;
+    if (activeTab !== "lifetime") {
       setActiveTab("lifetime");
       return;
     }
-    if (
-      route.params?.scrollTo === "achievements" &&
-      activeTab === "lifetime" &&
-      lifetimeReport
-    ) {
-      const timer = setTimeout(() => {
-        scrollRef.current?.scrollTo({ y: achievementsY.current, animated: true });
-        navigation.setParams({ scrollTo: undefined });
-      }, 450);
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, lifetimeReport, navigation, route.params?.scrollTo]);
+    if (!lifetimeReport) return;
+    const timer = setTimeout(() => {
+      const y = target === "growth" ? growthY.current : achievementsY.current;
+      scrollRef.current?.scrollTo({ y, animated: true });
+      navigation.setParams({ scrollTo: undefined });
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [activeTab, lifetimeReport, navigation, target]);
 
   React.useEffect(() => {
     horizontalScrollRef.current?.scrollTo({
@@ -145,7 +192,10 @@ const ProgressDetail = () => {
   const onRefresh = async () => {
     if (!user?.id) return;
     setRefreshing(true);
-    await loadActiveReport(activeTab, true);
+    // Both, and in parallel — a pull that visibly refreshes the cards below
+    // while leaving the growth counts on a stale value would read as the
+    // counts being broken rather than simply not included.
+    await Promise.all([loadActiveReport(activeTab, true), loadGrowthTotals()]);
     setRefreshing(false);
   };
 
@@ -216,6 +266,19 @@ const ProgressDetail = () => {
     if (!lifetimeReport) return null;
     return (
       <>
+        {/* FIRST, above the app's own numbers. LifetimeJourneyCard below is
+            practice time, practice count, practice days and level — all of it
+            about the app. This is the only thing on the screen about the
+            person's life, so it leads. It carries its own null and empty
+            states and is independent of `lifetimeReport`, which is why it sits
+            outside the report's loading and error branches above. */}
+        <View
+          onLayout={(event) => {
+            growthY.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <GrowthTotalsCard totals={growthTotals} />
+        </View>
         <LifetimeJourneyCard journey={lifetimeReport.journey} loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
         <DPSummary distribution={lifetimeReport.distribution} timeframe="lifetime" loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
         <View onLayout={(event) => { achievementsY.current = event.nativeEvent.layout.y; }}>

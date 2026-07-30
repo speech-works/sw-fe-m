@@ -1,0 +1,156 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import PressableScale from "../../../../components/PressableScale";
+import {
+  Text,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+} from "../../../../design-system";
+import {
+  fetchGrowthTotals,
+  GrowthTotals,
+  visibleTotals,
+} from "../../../../api/dailyPlan";
+import { countPhrase } from "../../../../util/growth/format";
+import { track } from "../../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
+
+/**
+ * ============================================================================
+ * THE ONE THING ON HOME THAT IS ABOUT THEIR LIFE
+ * ----------------------------------------------------------------------------
+ * Home's only meters were a game level starting at zero and an energy ring that
+ * reads 100% because you haven't done anything yet — and goes DOWN when you
+ * practise. Neither says "we noticed". This does, in one line, and then gets
+ * out of the way.
+ *
+ * ABOVE THE CAROUSEL AND NOT INSIDE IT (owner's decision). A carousel item has
+ * to be swiped to, competes with the mood check and the onboarding card, and
+ * would make a standing fact look like today's business. This is a fixed,
+ * quiet row that is always in the same place.
+ *
+ * DELIBERATELY A SUMMARY, NOT THE CARD. One line, three numbers, no subtitles,
+ * no invitation copy — the full thing lives in the progress report, which is a
+ * place you choose to go. Growth is PULLED, not pushed: for people whose
+ * presenting problem is avoidance, a daily unprompted comparison against
+ * yourself is a demand, and the app's own rule is that a plan you cannot
+ * decline is a demand.
+ *
+ * IT RENDERS NOTHING BEFORE THERE IS ANYTHING TRUE TO SAY. No skeleton, no
+ * zeros, no "calculating". On Home the honest empty state is absence — the
+ * invitation belongs on the report, where somebody has actively gone looking.
+ * (TodayStrip established this rule and states it in as many words.)
+ * ============================================================================
+ */
+
+const GrowthSummary: React.FC = () => {
+  const { colors } = useTheme();
+  const navigation = useNavigation<any>();
+  const [totals, setTotals] = useState<GrowthTotals | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void fetchGrowthTotals().then((t) => {
+        if (alive && t) setTotals(t);
+      });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  const rows = visibleTotals(totals);
+  const hasAny = Boolean(totals?.hasAny);
+
+  useEffect(() => {
+    if (!totals || !hasAny) return;
+    track(ANALYTICS_EVENTS.GROWTH_SUMMARY_SHOWN, {
+      stage: "counts",
+      braver: rows[0]?.count ?? 0,
+      wider: rows[1]?.count ?? 0,
+      regular: rows[2]?.count ?? 0,
+    });
+    // Only when the numbers themselves change — refocusing Home with the same
+    // totals is not a new impression.
+  }, [totals, hasAny, rows]);
+
+  // See the note above: nothing to say yet means nothing on screen.
+  if (!totals || !hasAny) return null;
+
+  const open = () => {
+    track(ANALYTICS_EVENTS.GROWTH_SUMMARY_TAPPED, { stage: "counts" });
+    // Lands on the card itself rather than the top of the report. `scrollTo`
+    // already exists for Achievements; "growth" reuses it so there is one
+    // mechanism for "open the report at a particular thing".
+    navigation.navigate("ProgressDetail", { scrollTo: "growth" });
+  };
+
+  return (
+    <PressableScale
+      scaleTo={0.98}
+      onPress={open}
+      accessibilityRole="button"
+      accessibilityLabel={`What you've done. ${rows
+        .map((r) => `${r.label}, ${countPhrase(r.axis, r.count)}`)
+        .join(". ")}. Opens your progress report.`}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface.elevated,
+          borderColor: colors.border.hairline,
+        },
+      ]}
+    >
+      <View style={styles.headerRow}>
+        <Text variant="bodySm" color="secondary" style={styles.bold}>
+          What you&apos;ve done
+        </Text>
+        <Icon name={icons.chevronRight} size={16} color={colors.text.tertiary} />
+      </View>
+
+      <View style={styles.stats}>
+        {rows.map((row) => (
+          <View key={row.axis} style={styles.stat}>
+            <Text variant="h3" color="primary">
+              {row.count}
+            </Text>
+            {/* The label alone is safe here ONLY because it sits under a
+                heading that frames the whole row as things done, and because
+                tapping through reaches the subtitles immediately. Nothing in
+                this component may ever present "Wider" as a standalone
+                claim. */}
+            <Text variant="caption" color="tertiary" numberOfLines={1}>
+              {row.label}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </PressableScale>
+  );
+};
+
+export default GrowthSummary;
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: radius.card,
+    borderWidth: borderWidth.hairline,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  bold: { fontWeight: "600" },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  stats: { flexDirection: "row", gap: spacing.xl },
+  stat: { alignItems: "flex-start", minWidth: 64 },
+});

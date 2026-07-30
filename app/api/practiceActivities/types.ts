@@ -29,6 +29,16 @@ export interface PracticeActivity {
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * Which growth axes this attempt moved, resolved SERVER-SIDE from the growth
+   * point registry. Computed per response, never stored.
+   *
+   * Enum values (`STEADIER`, not the "Finisher" label) — render through
+   * AXIS_LABEL, and filter through VISIBLE_AXES. Absent on responses that do
+   * not go through the enrichment path, and empty for the activity types the
+   * registry deliberately omits.
+   */
+  axesMoved?: string[];
 }
 
 // Request interface for completing an activity with optional vitals

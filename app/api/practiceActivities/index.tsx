@@ -253,6 +253,10 @@ export async function completePracticeActivity({
       "<< API: Practice Activity Completed Successfully",
       response.data,
     );
+    // Which axes this moved, as the server resolved them. Recorded at the
+    // chokepoint for the same reason the XP snapshot above is: every practice
+    // flow gets it with no per-caller wiring.
+    useCelebrationStore.getState().recordEarned(id, response.data?.axesMoved);
     return response.data;
   } catch (error) {
     console.error("Error completing practice activity:", error);
@@ -312,6 +316,11 @@ export async function completeMirrorWorkActivity(
     { userId, mirrorWorkPayload },
   );
   console.log('<< API: Mirror Work Activity Completed Successfully', response.data);
+  // Mirror work moves STEADIER and REGULAR. Only Regular is currently shown
+  // (see VISIBLE_AXES), so the success screen names that one — recorded here
+  // rather than filtered, because what the server says it moved and what we
+  // choose to display are separate decisions.
+  useCelebrationStore.getState().recordEarned(id, response.data?.axesMoved);
   return response.data;
 }
 

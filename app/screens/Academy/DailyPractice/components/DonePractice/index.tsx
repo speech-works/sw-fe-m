@@ -23,6 +23,12 @@ import { mapPracticeToCategory } from "../../../../../constants/reminderTemplate
 import { getMyBuddy } from "../../../../../api/buddies";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
+import {
+  AXIS_LABEL,
+  AXIS_SUBTITLE,
+  VISIBLE_AXES,
+} from "../../../../../api/dailyPlan";
+import { useCelebrationStore } from "../../../../../stores/celebration";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
 import { LevelUpTakeover } from "./LevelUpTakeover";
@@ -71,6 +77,30 @@ const DonePractice = ({
   // a gentler settle when the session was ended early. Reduced-motion aware.
   const discPop = useSuccessPop(true, { celebrate: !isAborted });
   const { reduced } = useMotion();
+
+  /**
+   * "That counts as Braver — taking on harder things."
+   *
+   * The axes come from the SERVER, recorded at the completion chokepoint and
+   * bound to this activity's id — the client has no copy of the growth-point
+   * registry and must not grow one, because the mapping depends on the practice
+   * sub-type and a second copy would drift and be wrong about somebody's
+   * growth.
+   *
+   * ONE axis, not a list. An interview moves both Braver and Wider, but three
+   * clauses on a success screen reads as a scoreboard; VISIBLE_AXES is in
+   * priority order, so taking the first names the most specific thing earned
+   * and Regular only wins when nothing else applies.
+   *
+   * THE LABEL IS NEVER SHOWN WITHOUT ITS SUBTITLE — "Wider" alone means "did a
+   * variety of exercises", the wrong meaning, and this is the one screen where
+   * a user meets the word for the first time.
+   */
+  const earnedAxes = useCelebrationStore((s) => s.earnedFor(activityId));
+  const shownAxis = VISIBLE_AXES.find((axis) => earnedAxes.includes(axis));
+  const earnedLabel = shownAxis
+    ? `That counts as ${AXIS_LABEL[shownAxis]} — ${AXIS_SUBTITLE[shownAxis]}.`
+    : null;
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
@@ -186,6 +216,22 @@ const DonePractice = ({
               ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.`
               : `You've completed your daily ${practiceName}. Keep up the momentum!`}
           </Text>
+
+          {/* WHAT THIS COUNTED AS.
+              The four words are explained here, at the instant they are
+              demonstrated, because this is the highest-attention and
+              lowest-defensiveness moment in the product — and because until
+              now they made their first appearance as unlabelled adjectives on
+              a screen the user reached by backing OUT of a practice.
+              Quiet and factual on purpose: DonePractice already bursts
+              confetti on every completion, and LevelUpTakeover is reserved
+              for something rare, so more celebration here would flatten both.
+              Nothing at all when the activity moved no VISIBLE axis. */}
+          {!isAborted && earnedLabel ? (
+            <Text variant="bodySm" color={mutedForeground} center style={styles.earnedText}>
+              {earnedLabel}
+            </Text>
+          ) : null}
         </View>
 
         {/* Actions */}
@@ -343,6 +389,10 @@ const styles = StyleSheet.create({
   },
   descText: {
     lineHeight: 24,
+  },
+  earnedText: {
+    lineHeight: 20,
+    marginTop: spacing.sm,
   },
   actionContainer: {
     width: "100%",

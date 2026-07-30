@@ -16,6 +16,7 @@ import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import { IdentityBlock } from "./components/IdentityBlock";
+import GrowthSummary from "./components/GrowthSummary";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import ForYouCarousel from "../../components/Dashboard/ForYouCarousel";
 import FirstCallCard from "../../components/Dashboard/FirstCallCard";
@@ -232,6 +233,12 @@ const Home = () => {
             keeps "what to do today"; this shows what to consider next. */}
         <ForYouCarousel key={`foryou-${refreshKey}`} />
 
+
+        {/* ABOVE the carousel and outside it, deliberately. A standing fact
+            about what somebody has done should not have to be swiped to, and
+            should not sit in a rotation with today's business. It renders
+            nothing at all until there is something true to show. */}
+        <GrowthSummary key={`growth-${refreshKey}`} />
 
         {cards.length > 0 ? (
           <Carousel
