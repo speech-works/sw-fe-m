@@ -28,15 +28,29 @@ export const AXIS_LABEL: Record<GrowthAxis, string> = {
 };
 
 /**
- * Always rendered with the label. "Wider" alone reads as "did lots of different
- * exercises", which is the wrong meaning — the subtitle is what makes it mean a
- * life rather than a menu, so the two must not be separated.
+ * Always rendered with the label — "Wider" alone reads as "did lots of
+ * different exercises", which is the wrong meaning.
+ *
+ * EACH ONE SAYS WHAT ITS NUMBER COUNTS, IN THE FEWEST PLAIN WORDS.
+ * They used to be written to avoid making a claim rather than to explain a
+ * number, and it showed: "turning up" is an idiom, "how much of your life is
+ * back in play" is a metaphor, and neither tells you what the figure beside it
+ * is a count OF. Read together they sounded clever and left the user guessing.
+ *
+ * The test is one read. "Hard things you've done · 11" needs no second pass.
+ *
+ * This also retired a disclaimer. The card used to carry "None of them are
+ * about how smooth you sound" — a definition by negation, which only lands if
+ * you already know what we are declining to measure. Three labels that plainly
+ * count deeds, situations and days cannot be mistaken for a fluency score, so
+ * showing it is better than saying it.
  */
 export const AXIS_SUBTITLE: Record<GrowthAxis, string> = {
-  [GrowthAxis.BRAVER]: "taking on harder things",
-  [GrowthAxis.WIDER]: "how much of your life is back in play",
-  [GrowthAxis.STEADIER]: "seeing things through",
-  [GrowthAxis.REGULAR]: "turning up",
+  [GrowthAxis.BRAVER]: "Hard things you've done",
+  [GrowthAxis.WIDER]: "Different situations you've spoken in",
+  // Hidden from users (see VISIBLE_AXES) but kept accurate.
+  [GrowthAxis.STEADIER]: "Times you saw it through",
+  [GrowthAxis.REGULAR]: "Days you've practised",
 };
 
 /**

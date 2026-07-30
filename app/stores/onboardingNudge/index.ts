@@ -29,8 +29,18 @@ import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 interface OnboardingNudgeState {
   /** When they last asked us to stop asking. Null means never. */
   skippedAt: number | null;
+  /**
+   * When they FINISHED. Null means they never have on this device.
+   *
+   * Recorded so other screens can leave somebody alone for the rest of that
+   * day. It is not an entitlement and never gates anything — see the store
+   * note above.
+   */
+  completedAt: number | null;
   /** They chose to leave onboarding unfinished. */
   markSkipped: () => void;
+  /** They finished it. */
+  markCompleted: () => void;
   /** They finished, or deliberately restarted — the nudge is live again. */
   clearSkip: () => void;
 }
@@ -39,7 +49,9 @@ export const useOnboardingNudgeStore = create<OnboardingNudgeState>()(
   persist(
     (set) => ({
       skippedAt: null,
+      completedAt: null,
       markSkipped: () => set({ skippedAt: Date.now() }),
+      markCompleted: () => set({ completedAt: Date.now(), skippedAt: null }),
       clearSkip: () => set({ skippedAt: null }),
     }),
     {
@@ -63,4 +75,30 @@ export function isOnboardingQuieted(state: {
   skippedAt: number | null;
 }): boolean {
   return state.skippedAt !== null;
+}
+
+/**
+ * True on the day somebody finished onboarding.
+ *
+ * ONE INTERRUPTION PER DAY IS PLENTY, AND ONBOARDING SPENT IT. Finishing means
+ * thirteen questions about the situations you avoid and how much they distress
+ * you. Landing on Home half a second later and being asked, in a sheet you have
+ * to dismiss, how you are feeling is the app taking a second bite of somebody
+ * who has just given it a great deal.
+ *
+ * Calendar day, not a rolling window, so it always ends at a boundary the user
+ * would recognise. Nothing else is suppressed — cards, rows and the practice
+ * hub are all untouched, because none of them take the screen.
+ */
+export function completedOnboardingToday(state: {
+  completedAt: number | null;
+}): boolean {
+  if (!state.completedAt) return false;
+  const then = new Date(state.completedAt);
+  const now = new Date();
+  return (
+    then.getFullYear() === now.getFullYear() &&
+    then.getMonth() === now.getMonth() &&
+    then.getDate() === now.getDate()
+  );
 }

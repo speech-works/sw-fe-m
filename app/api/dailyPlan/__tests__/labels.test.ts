@@ -40,7 +40,32 @@ describe("Growth axis labels", () => {
       expect(AXIS_SUBTITLE[axis]).toBeTruthy();
       expect(AXIS_SUBTITLE[axis].length).toBeGreaterThan(8);
     }
-    expect(AXIS_SUBTITLE[GrowthAxis.WIDER]).toContain("life");
+    // Wider must still be anchored OUTSIDE the app. This asserted the word
+    // "life" back when the subtitle read "how much of your life is back in
+    // play" — a metaphor that passed the test while telling the user nothing
+    // about what the number counts. The copy now names the thing itself, so
+    // the check names it too.
+    expect(AXIS_SUBTITLE[GrowthAxis.WIDER].toLowerCase()).toContain("situations");
+    expect(AXIS_SUBTITLE[GrowthAxis.WIDER].toLowerCase()).toContain("spoken");
+  });
+
+  it("makes every visible subtitle name what its number counts", () => {
+    // THE RULE THE COPY REWRITE INTRODUCED. Each subtitle sits directly above a
+    // bare figure, so it has to answer "a count of what?" on one read. The
+    // previous set — "taking on harder things", "turning up" — described an
+    // activity rather than a quantity, which left the number beside it
+    // unexplained and made "11" look like a score.
+    //
+    // Approximated as: it reads as a plural noun phrase about the person's own
+    // actions. Cheap, but it fails on a relapse to an idiom, which is the
+    // regression that actually happened.
+    for (const axis of [GrowthAxis.BRAVER, GrowthAxis.WIDER, GrowthAxis.REGULAR]) {
+      const subtitle = AXIS_SUBTITLE[axis];
+      expect(`${axis}:${/^[A-Z]/.test(subtitle)}`).toBe(`${axis}:true`);
+      expect(`${axis}:${/(things|situations|days|times)/i.test(subtitle)}`).toBe(
+        `${axis}:true`,
+      );
+    }
   });
 
   it("labels every axis, so a new one cannot ship nameless", () => {

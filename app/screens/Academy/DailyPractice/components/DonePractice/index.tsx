@@ -98,8 +98,12 @@ const DonePractice = ({
    */
   const earnedAxes = useCelebrationStore((s) => s.earnedFor(activityId));
   const shownAxis = VISIBLE_AXES.find((axis) => earnedAxes.includes(axis));
+  // "Regular — days you've practised". The name, then what it counts, and
+  // nothing else. The earlier wording — "That counts as Regular — turning up."
+  // — spent four words getting to the point and then landed on an idiom, so
+  // the one line meant to explain the vocabulary needed explaining itself.
   const earnedLabel = shownAxis
-    ? `That counts as ${AXIS_LABEL[shownAxis]} — ${AXIS_SUBTITLE[shownAxis]}.`
+    ? `${AXIS_LABEL[shownAxis]} — ${AXIS_SUBTITLE[shownAxis].toLowerCase()}`
     : null;
 
   // Routine completions stay a plain warm screen (they happen many times a

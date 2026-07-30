@@ -25,6 +25,10 @@ import HappyFace from "../../../../assets/mood-check/HappyFace";
 import SadFace from "../../../../assets/mood-check/SadFace";
 
 import { getLocalTodayDateString } from "../../../../util/functions/date";
+import {
+  useOnboardingNudgeStore,
+  completedOnboardingToday,
+} from "../../../../stores/onboardingNudge";
 
 // The mood-name text sits on `surface.default`. The bright accent BASE hue fails
 // AA there on the light "paper" canvas (1.2–1.8:1), so the label uses the darker
@@ -49,6 +53,7 @@ const MoodCheckPopup = () => {
   const styles = useStyles();
   const { hasRecordedToday, lastPopupDate, setPopupShown, _hasHydrated } =
     useMoodCheckStore();
+  const completedAt = useOnboardingNudgeStore((s) => s.completedAt);
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const [visible, setVisible] = React.useState(false);
@@ -62,6 +67,19 @@ const MoodCheckPopup = () => {
       return;
     }
 
+    // NOT ON THE DAY THEY FINISHED ONBOARDING.
+    //
+    // Finishing means thirteen questions about the situations they avoid and
+    // how much those distress them. They then land on Home and, half a second
+    // later, this sheet opens and asks how they are feeling — a second demand
+    // on somebody who has just given the app a great deal, on the most
+    // fatigued screen in the product.
+    //
+    // Deliberately a suppression and not a delay: the day is spent, and we ask
+    // again tomorrow. Nothing else about the mood check changes, and the
+    // banner on Home stays exactly where it is for anyone who wants it.
+    if (completedOnboardingToday({ completedAt })) return;
+
     const today = getLocalTodayDateString();
 
     // Show if:
@@ -73,7 +91,7 @@ const MoodCheckPopup = () => {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [hasRecordedToday, lastPopupDate, _hasHydrated]);
+  }, [hasRecordedToday, lastPopupDate, _hasHydrated, completedAt]);
 
   const handleSkip = () => {
     setPopupShown(); // Mark as shown for today
@@ -89,6 +107,14 @@ const MoodCheckPopup = () => {
   return (
     <Sheet
       visible={visible}
+      // WAITS ITS TURN, like OutcomeModal already does. Deference was
+      // one-directional: the outcome sheet is `exclusive` and defers to this
+      // one, but this one would open straight over it — and two stacked native
+      // Modals wedge touch handling app-wide on iOS, which is a bug we have
+      // already chased once. Reachable from an ordinary path: any success or
+      // error sheet raised while Home is settling, with this timer landing on
+      // top of it.
+      exclusive
       onClose={handleSkip}
       onDismissed={() => {
         const mood = pendingMoodRef.current;

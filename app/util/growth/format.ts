@@ -66,13 +66,17 @@ export function lastAtPhrase(iso: string | null): string | null {
  * invitation instead, because "0 times" under "taking on harder things" is a
  * verdict about a person and the invitation is a door.
  */
-export function totalLine(
-  axis: GrowthAxis | string,
-  count: number,
-  lastAt: string | null,
-): string {
+export function totalLine(count: number, lastAt: string | null): string {
+  // THE NUMBER ALONE, because the subtitle directly above it already names the
+  // unit. "Hard things you've done" followed by "11 times" says "things" and
+  // "times" for one quantity, and repetition reads as confusion rather than
+  // emphasis. This used to spell the unit out because the old subtitles —
+  // "taking on harder things", "turning up" — never did.
+  //
+  // `countPhrase` survives for the screen reader, where there IS no subtitle
+  // in earshot and "11" on its own means nothing.
   const when = lastAtPhrase(lastAt);
-  return when ? `${countPhrase(axis, count)} · last ${when}` : countPhrase(axis, count);
+  return when ? `${count} · last ${when}` : `${count}`;
 }
 
 /**
@@ -83,9 +87,7 @@ export function totalLine(
  * is absent for the same reason it is absent from VISIBLE_AXES.
  */
 export const FIRST_STEP: Record<string, string> = {
-  [GrowthAxis.BRAVER]:
-    "Not yet — a phone call, an interview or a real-life challenge would be the first.",
-  [GrowthAxis.WIDER]:
-    "Not yet — this one moves when you do something out in the world.",
-  [GrowthAxis.REGULAR]: "Not yet — anything at all counts here.",
+  [GrowthAxis.BRAVER]: "None yet. Try a phone call or a challenge.",
+  [GrowthAxis.WIDER]: "None yet. Speak to someone outside the app.",
+  [GrowthAxis.REGULAR]: "None yet. Any practice counts.",
 };

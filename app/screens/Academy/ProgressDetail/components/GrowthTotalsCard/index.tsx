@@ -77,13 +77,14 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
           <Text variant="label" color="tertiary" style={styles.eyebrow}>
             WHAT YOU&apos;VE DONE
           </Text>
-          <Text variant="h3">Three things we watch</Text>
-          {/* The differentiator, said to the user instead of only living in a
-              test file. It is also the sentence that stops somebody reading
-              these three numbers as a fluency score. */}
-          <Text variant="bodySm" color="secondary" style={styles.subhead}>
-            None of them are about how smooth you sound.
-          </Text>
+          {/* TWO LINES REMOVED HERE, NOT ONE.
+              "Three things we watch" restated the eyebrow, and "None of them
+              are about how smooth you sound" was a definition by negation —
+              it only lands if you already know what we are declining to
+              measure, and it made the reader's first job disproving something.
+              The three rows below now plainly count deeds, situations and
+              days, which cannot be read as a fluency score. Showing it beats
+              saying it, and the card opens on content instead of a caveat. */}
         </View>
         <Icon name={icons.growth} size={size.icon} color={colors.text.tertiary} />
       </View>
@@ -92,8 +93,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
         <View style={[styles.invite, { backgroundColor: colors.surface.default }]}>
           <Icon name={icons.tip} size={16} color={colors.text.secondary} />
           <Text variant="bodySm" color="secondary" style={styles.flex1}>
-            We fill this in from what you actually do — not from anything you
-            told us. Do one thing and there&apos;ll be something here.
+            This fills in as you practise. Nothing to set up.
           </Text>
         </View>
       ) : null}
@@ -125,7 +125,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
                 style={styles.value}
               >
                 {row.count > 0
-                  ? totalLine(row.axis, row.count, row.lastAt)
+                  ? totalLine(row.count, row.lastAt)
                   : (FIRST_STEP[row.axis] ?? "Not yet.")}
               </Text>
             </View>
@@ -151,7 +151,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: spacing.xxs,
   },
-  subhead: { marginTop: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",

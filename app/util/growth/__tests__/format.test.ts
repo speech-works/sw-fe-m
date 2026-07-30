@@ -61,12 +61,23 @@ describe("lastAtPhrase", () => {
 });
 
 describe("totalLine", () => {
-  it("joins the count and the date", () => {
-    expect(totalLine(GrowthAxis.BRAVER, 6, daysAgo(0))).toBe("6 times · last today");
+  it("gives the number and the date, and does NOT repeat the unit", () => {
+    // The subtitle directly above already says "Hard things you've done", so
+    // spelling out "6 times" here says "things" and "times" for one quantity.
+    // It used to, because the old subtitles ("taking on harder things",
+    // "turning up") never named the unit and something had to.
+    expect(totalLine(6, daysAgo(0))).toBe("6 · last today");
+    expect(totalLine(6, daysAgo(0))).not.toContain("times");
   });
 
   it("omits the date half rather than trailing an empty clause", () => {
-    expect(totalLine(GrowthAxis.REGULAR, 3, null)).toBe("3 days");
+    expect(totalLine(3, null)).toBe("3");
+  });
+
+  it("still spells the unit out for the screen reader", () => {
+    // `countPhrase` survives for the Home row's accessibility label, where
+    // there is no subtitle in earshot and a bare "3" means nothing.
+    expect(countPhrase(GrowthAxis.REGULAR, 3)).toBe("3 days");
   });
 });
 

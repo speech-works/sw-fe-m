@@ -55,7 +55,7 @@ const OnboardingDone: React.FC = () => {
   const serverConfirmedComplete = useOnboardingStore(
     (s) => s.serverConfirmedComplete,
   );
-  const clearSkip = useOnboardingNudgeStore((s) => s.clearSkip);
+  const markCompleted = useOnboardingNudgeStore((s) => s.markCompleted);
   const [topMatch, setTopMatch] = useState<OfferItem | null>(null);
 
   // The clinical baseline is seeded in the same request that completes
@@ -111,7 +111,13 @@ const OnboardingDone: React.FC = () => {
       // skipper who later completes stays quieted forever — harmless today,
       // but it would silently suppress a future re-ask (a new flow version,
       // say) for exactly the people who did engage.
-      clearSkip();
+      //
+      // `markCompleted` also clears the skip, so this one call covers both. It
+      // additionally stamps the day, which buys the person the rest of it free
+      // of any other sheet — they have just answered thirteen questions about
+      // what they avoid and how much it distresses them, and the mood check
+      // would otherwise open half a second after they reach Home.
+      markCompleted();
     }
     // If the server did NOT confirm, everything stays exactly where it is —
     // answers, flow and resume point — so the Home card can pick up precisely
