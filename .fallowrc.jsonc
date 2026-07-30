@@ -10,6 +10,17 @@
     // Powers over-the-air updates: driven by app.config.js `updates`, linked as
     // a native module, and loaded at runtime via Sentry's require('expo-updates').
     // Removing it re-introduces the release-build startup crash.
-    "expo-updates"
+    "expo-updates",
+    // Native requirement for `userInterfaceStyle: "automatic"` (app.config.js).
+    // Nothing imports it; without it, light/dark following the OS stops working
+    // on Android.
+    "expo-system-ui",
+    // babel.config.js lists it as 'transform-remove-console' — Babel resolves
+    // the `babel-plugin-` prefix itself, so the string never matches the package
+    // name. It strips console.* from production builds.
+    "babel-plugin-transform-remove-console",
+    // Peer dependency of the `jest-expo` preset. Nothing imports it directly;
+    // removing it breaks the entire test suite.
+    "react-test-renderer"
   ]
 }
