@@ -34,4 +34,9 @@ export const ASYNC_KEYS_NAME = {
   // Which call-screen controls the user has discovered. Teaching state only —
   // holds no entitlement and gates nothing but a hint.
   SW_ZSTORE_CALL_HINTS: "SW_ZSTORE_CALL_HINTS",
+  // Whether the user has asked to be left alone about finishing onboarding.
+  // Holds NO entitlement — whether onboarding is COMPLETE is the server's
+  // answer (`hasCompletedOnboarding`) and only the server's. This decides
+  // volume, never access.
+  SW_ZSTORE_ONBOARDING_NUDGE: "SW_ZSTORE_ONBOARDING_NUDGE",
 };

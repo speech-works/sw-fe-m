@@ -23,6 +23,7 @@ import {
 } from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { useOnboardingNudgeStore } from "../../stores/onboardingNudge";
 
 /**
  * THE PAYOFF MOMENT.
@@ -51,6 +52,10 @@ const OnboardingDone: React.FC = () => {
   const insets = useSafeAreaInsets();
   const stopOnboarding = useEventStore((s) => s.emit);
   const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
+  const serverConfirmedComplete = useOnboardingStore(
+    (s) => s.serverConfirmedComplete,
+  );
+  const clearSkip = useOnboardingNudgeStore((s) => s.clearSkip);
   const [topMatch, setTopMatch] = useState<OfferItem | null>(null);
 
   // The clinical baseline is seeded in the same request that completes
@@ -76,22 +81,50 @@ const OnboardingDone: React.FC = () => {
   }, []);
 
   const handleFinish = () => {
-    track(ANALYTICS_EVENTS.ONBOARDING_COMPLETED);
-    // Mark onboarding done HERE — the actual end of the flow.
+    // ONLY THE SERVER CAN SAY THIS IS DONE.
     //
-    // This used to happen back on the last question, the moment the server
-    // confirmed completion. But MainNavigator renders the OnboardingStack on
-    // `hasCompletedOnboarding === false`, so flipping it there unmounted the
-    // stack mid-flow and the navigation to the phoneme picker died with it.
-    // Setting it here means the navigator swaps exactly once, on purpose.
+    // Reaching this screen means the person walked to the end of the questions.
+    // It does NOT mean their answers arrived: a submit can fail, and someone
+    // resumed mid-flow may still have earlier screens unanswered. This screen
+    // used to assert completion regardless — flip the flag locally, wipe the
+    // answers — and Home's next `fetchUser` would overwrite it from the server
+    // seconds later, restoring the card with nothing left to resume from. That
+    // is the "You're all set, now answer all thirteen again" loop.
     const { user, setUser } = useUserStore.getState();
-    if (user && !user.hasCompletedOnboarding) {
-      setUser({ ...user, hasCompletedOnboarding: true });
+
+    if (serverConfirmedComplete) {
+      track(ANALYTICS_EVENTS.ONBOARDING_COMPLETED);
+
+      // Mark onboarding done HERE — the actual end of the flow.
+      //
+      // This used to happen back on the last question, the moment the server
+      // confirmed completion. But MainNavigator renders the OnboardingStack on
+      // `hasCompletedOnboarding === false`, so flipping it there unmounted the
+      // stack mid-flow and the navigation to the phoneme picker died with it.
+      // Setting it here means the navigator swaps exactly once, on purpose.
+      if (user && !user.hasCompletedOnboarding) {
+        setUser({ ...user, hasCompletedOnboarding: true });
+      }
+      // Safe to discard now: the server is the source of truth and it agrees.
+      resetOnboarding();
+      // They finished, so any earlier "leave me alone" is spent. Without this a
+      // skipper who later completes stays quieted forever — harmless today,
+      // but it would silently suppress a future re-ask (a new flow version,
+      // say) for exactly the people who did engage.
+      clearSkip();
     }
-    // Reset local onboarding UI state
-    resetOnboarding();
-    // Ask MainNavigator to switch back to App flow
-    stopOnboarding(EVENT_NAMES.STOP_ONBOARDING);
+    // If the server did NOT confirm, everything stays exactly where it is —
+    // answers, flow and resume point — so the Home card can pick up precisely
+    // where this left off instead of restarting from question one.
+
+    // Either way, let them out. Being unfinished must never trap anybody.
+    //
+    // The reason matters: MainNavigator marks a skip as persistent, and someone
+    // who just finished has not skipped anything. Without it, `clearSkip` above
+    // would be undone by the event it fires immediately afterwards.
+    stopOnboarding(EVENT_NAMES.STOP_ONBOARDING, {
+      reason: serverConfirmedComplete ? "completed" : "incomplete",
+    });
   };
 
   return (
@@ -126,15 +159,23 @@ const OnboardingDone: React.FC = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="display">You&apos;re all set!</Text>
-
-        <Text variant="body" color="secondary">
-          {topMatch
-            ? "Here's what we'd start with, based on what you told us."
-            : "Thanks — that helps us shape what we put in front of you."}
+        {/* The heading states a FACT, so it has to be one. Celebrating a
+            completion the server rejected is worse than saying nothing: the
+            card reappears moments later and contradicts it. */}
+        <Text variant="display">
+          {serverConfirmedComplete ? "You're all set!" : "Saved so far"}
         </Text>
 
-        <OnboardingCelebration />
+        <Text variant="body" color="secondary">
+          {!serverConfirmedComplete
+            ? "A few answers didn't reach us. Everything you've told us is kept — pick it up from your home screen whenever you like."
+            : topMatch
+              ? "Here's what we'd start with, based on what you told us."
+              : "Thanks — that helps us shape what we put in front of you."}
+        </Text>
+
+        {/* Confetti belongs to a finish line, not to a partial save. */}
+        {serverConfirmedComplete ? <OnboardingCelebration /> : null}
 
         {topMatch ? (
           <View

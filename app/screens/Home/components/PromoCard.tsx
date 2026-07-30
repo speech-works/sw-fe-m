@@ -47,6 +47,15 @@ const VARIANTS: Record<PromoVariant, VariantConfig> = {
 export interface PromoCardProps {
   variant: PromoVariant;
   onPress: () => void;
+  /**
+   * Overrides the variant's default title.
+   *
+   * The onboarding variant's fixed title names screen 1's question ("Which
+   * situations are hardest?"), which is only true for somebody who has answered
+   * nothing. A resumer taken to question 9 was promised a question the flow was
+   * never going to ask them.
+   */
+  title?: string;
   /** Overrides the variant's default subtitle. */
   subtitle?: string;
   /** Optional progress row. */
@@ -64,6 +73,7 @@ export interface PromoCardProps {
 export const PromoCard: React.FC<PromoCardProps> = ({
   variant,
   onPress,
+  title,
   subtitle,
   progress,
   style,
@@ -94,7 +104,7 @@ export const PromoCard: React.FC<PromoCardProps> = ({
         {/* Message */}
         <View>
           <Text variant="h2" color={ink} style={styles.title}>
-            {v.title}
+            {title ?? v.title}
           </Text>
           <Text variant="body" color={ink}>
             {subtitle ?? v.subtitle}

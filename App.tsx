@@ -16,6 +16,8 @@ import FontLoader from "./app/util/components/FontLoader";
 import { ThemeProvider, useTheme } from "./app/design-system";
 import { DevPreview } from "./app/design-system/_DevPreview";
 import { runSchemeAudit } from "./app/design-system/utils/schemeAudit";
+import { noteScreen } from "./app/util/diagnostics/deadTap";
+import DeadTapDetector from "./app/components/DeadTapDetector";
 
 // Dev-only: verify every canonical text-on-surface pairing in BOTH schemes
 // clears WCAG AA (warns a table of failures; silent in prod builds).
@@ -24,8 +26,6 @@ if (__DEV__) runSchemeAudit();
 // TEMP (Phase B visual review only): renders the design-system preview overlay.
 // Revert to false / remove before shipping.
 const SHOW_DS_PREVIEW = false;
-// import Toast from "react-native-toast-message";
-// import toastConfig from "./app/util/config/toastConfig";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
@@ -131,6 +131,10 @@ const ThemedNavRoot: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       onStateChange={() => {
         const currentRoute = navigationRef.getCurrentRoute();
         if (currentRoute?.name) {
+          // Also stamps the dead-tap detector, so a dead tap can be attributed
+          // to a screen AND to how long that screen had been open — the latter
+          // separates "broken on arrival" from "broken later".
+          noteScreen(currentRoute.name);
           trackScreen(
             currentRoute.name,
             currentRoute.params
@@ -317,14 +321,19 @@ const App: React.FC = () => {
             >
               <FontLoader />
               <ThemeProvider>
-                <ThemedNavRoot>
-                  <MainNavigator />
-                  <UpsellModal />
-                  <OutcomeModal />
-                  <StaminaVignetteOverlay />
-                  <GlobalStaminaController />
-                  <OutOfStaminaController />
-                </ThemedNavRoot>
+                {/* Passive instrumentation for the intermittent "buttons don't
+                    respond" bug. Uses onTouch* notifications, not the responder
+                    system, so it never competes for a gesture. */}
+                <DeadTapDetector>
+                  <ThemedNavRoot>
+                    <MainNavigator />
+                    <UpsellModal />
+                    <OutcomeModal />
+                    <StaminaVignetteOverlay />
+                    <GlobalStaminaController />
+                    <OutOfStaminaController />
+                  </ThemedNavRoot>
+                </DeadTapDetector>
               </ThemeProvider>
             </SafeAreaView>
           </SafeAreaProvider>

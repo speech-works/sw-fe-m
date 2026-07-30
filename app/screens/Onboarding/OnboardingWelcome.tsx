@@ -13,6 +13,8 @@ import {
 import { useOnboardingStore } from "../../stores/onboarding";
 import {
   Button,
+  IconButton,
+  icons,
   SchemeStatusBar,
   space,
   spacing,
@@ -23,6 +25,11 @@ import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useUserStore } from "../../stores/user";
 import { SITUATION_PHRASE } from "../../constants/onboardingActOne";
+import { loadServerOnboardingAnswers } from "../../util/functions/loadServerOnboardingAnswers";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import { apiErrorMessage } from "../../util/functions/apiError";
+import { useEventStore } from "../../stores/events";
+import { EVENT_NAMES } from "../../stores/events/constants";
 
 /**
  * The post-signup half of onboarding — the same process, continued.
@@ -48,7 +55,12 @@ const OnboardingWelcome: React.FC = () => {
     >();
   const { enterFlow, answers } = useOnboardingStore();
   const user = useUserStore((s) => s.user);
+  const { emit } = useEventStore();
   const [stageHeight, setStageHeight] = useState(0);
+  // Continue now makes two network calls, so it needs a visible busy state —
+  // and a guard, since a double tap would fire two flow fetches and two
+  // navigates.
+  const [starting, setStarting] = useState(false);
 
   /**
    * Is this a repair rather than a first run?
@@ -101,13 +113,33 @@ const OnboardingWelcome: React.FC = () => {
    */
   const handleStart = async () => {
     track(ANALYTICS_EVENTS.ONBOARDING_STARTED);
+    if (starting) return;
+    setStarting(true);
     try {
       const fetched = await getActiveOnboardingFlow();
+
+      // The account's own answers decide where to resume — see
+      // loadServerOnboardingAnswers. Best effort: a null result simply means
+      // `enterFlow` falls back to local state, exactly as it did before.
+      const serverAnswers = await loadServerOnboardingAnswers(
+        user?.id,
+        fetched,
+      );
+
       navigation.navigate("OnboardingQuestion", {
-        screenNumber: enterFlow(fetched),
+        screenNumber: enterFlow(fetched, serverAnswers ?? undefined),
       });
     } catch (err) {
+      // Was a bare console.error, which left the screen's ONLY button inert
+      // with no feedback and no way out — a hard lock for anyone opening the
+      // app offline.
       console.error("Failed to load onboarding flow:", err);
+      showErrorBottomSheet(
+        "We couldn't load your questions",
+        apiErrorMessage(err, "Check your connection and try again."),
+      );
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -115,7 +147,22 @@ const OnboardingWelcome: React.FC = () => {
     <ScreenView style={styles.screen}>
       <SchemeStatusBar />
 
-      <View style={[styles.body, { paddingTop: insets.top + spacing.lg }]}>
+      {/* THE ONLY WAY OUT. This screen had one button and no exit, with
+          `gestureEnabled: false` — so when the flow fetch failed (offline, a
+          500, an expired token) the button did nothing and the app had no other
+          reachable screen. Deleting and reinstalling was the only recovery.
+          Skipping is honoured permanently now, so leaving is a real choice
+          rather than a one-session reprieve. */}
+      <View style={[styles.exitRow, { paddingTop: insets.top + spacing.lg }]}>
+        <IconButton
+          name={icons.close}
+          onPress={() => emit(EVENT_NAMES.STOP_ONBOARDING)}
+          variant="control"
+          accessibilityLabel="Answer these later"
+        />
+      </View>
+
+      <View style={[styles.body, { paddingTop: spacing.lg }]}>
         {/* The slot measures itself and hands its height to the illustration —
             see the note on `sizes()` in WelcomeStage for why this is measured
             rather than derived from the window. */}
@@ -165,7 +212,12 @@ const OnboardingWelcome: React.FC = () => {
         {/* "Continue", not "Start" — this is the middle of one process, and the
             reader has already started. */}
         <Animated.View entering={motion.stagger(3)}>
-          <Button label="Continue" onPress={handleStart} />
+          <Button
+            label="Continue"
+            onPress={handleStart}
+            loading={starting}
+            disabled={starting}
+          />
         </Animated.View>
       </View>
     </ScreenView>
@@ -178,6 +230,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     paddingHorizontal: 0,
+  },
+  // Sits above the body so the illustration keeps its own vertical rhythm.
+  exitRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: space.screenX,
   },
   body: {
     flex: 1,

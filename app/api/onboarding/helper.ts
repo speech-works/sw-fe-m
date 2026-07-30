@@ -17,8 +17,20 @@ export function normalizeOnboardingFlow(flow: OnboardingFlow): OnboardingFlow {
       ...q,
       // Backend might send 'question' or 'text' instead of 'questionText'
       questionText: q.questionText ?? q.question ?? q.text ?? "",
-      // Force all questions to be required unless explicitly saying false
-      isRequired: q.isRequired !== false,
+      // THE SERVER CALLS THIS `required`. We call it `isRequired`.
+      //
+      // This read `q.isRequired` alone, which the API has never sent — so it
+      // was always `undefined`, `undefined !== false` was always true, and
+      // every question came out required no matter what the flow said. Latent
+      // while all thirteen genuinely are required; a hard lock the moment an
+      // optional one ships, because `isCurrentScreenValid` would never pass,
+      // the Next button stays disabled and `handleNext` returns early — on a
+      // question the SERVER already considers satisfied. Client blocked, server
+      // done, no way forward.
+      //
+      // `??` not `||`: a real `false` must survive, and only a genuinely absent
+      // field should fall through to the safe default of required.
+      isRequired: (q.isRequired ?? q.required) !== false,
       options: [...(q.options ?? [])]
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map((opt: any) => {

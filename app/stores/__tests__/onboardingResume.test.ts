@@ -249,3 +249,118 @@ describe("enterFlow", () => {
     expect(useOnboardingStore.getState().answers).toEqual({});
   });
 });
+
+/**
+ * The ACCOUNT's answers, not the device's.
+ *
+ * Local state cannot be trusted to say what a person has answered: it is empty
+ * after a reinstall or on a second phone, and on a shared handset it can belong
+ * to somebody else entirely. Everything here pins the rule that the server wins
+ * — and the one case where it must not.
+ */
+describe("enterFlow with the account's answers", () => {
+  beforeEach(() => {
+    useOnboardingStore.getState().resetOnboarding();
+    useOnboardingDraftStore.getState().clear();
+  });
+
+  it("resumes at question 1 for someone who skipped Act 1 and answered only Act 2", () => {
+    // The reported bug, inverted. Screens 5-7 are answered, 1-4 are not, so the
+    // first REAL gap is question 1 — not question 5. Anything that walked
+    // forward from a saved position would strand them past four unanswered
+    // required questions they can never reach.
+    const screen = useOnboardingStore.getState().enterFlow(flowWithOptions(), {
+      "experience.therapy": "past",
+      "participation.impact": "a_lot",
+      "communication.function": "a_little",
+    });
+
+    expect(screen).toBe(1);
+  });
+
+  it("lands on the EARLIEST gap when both acts are patchy", () => {
+    const screen = useOnboardingStore.getState().enterFlow(flowWithOptions(), {
+      "speech.situations": ["push_back"],
+      "goal.primary": "FEEL_CALMER",
+      "experience.therapy": "past",
+    });
+
+    expect(screen).toBe(3);
+  });
+
+  it("prefers the account's answers over stale local ones", () => {
+    // Someone signed in on a second device whose store holds a half-finished
+    // run. The account knows better.
+    useOnboardingStore.getState().resumeFrom(flowWithOptions(), {
+      "speech.situations": ["push_back"],
+    });
+    useOnboardingStore.getState().consumeResume();
+
+    const screen = useOnboardingStore
+      .getState()
+      .enterFlow(flowWithOptions(), ACT_ONE_ANSWERS);
+
+    expect(screen).toBe(6);
+    expect(useOnboardingStore.getState().answers["distress.overall"]).toBe("2");
+  });
+
+  it("keeps a local answer the server has not caught up with yet", () => {
+    // A submit that failed, or one still in flight. Losing it would re-ask a
+    // question the person visibly answered a moment ago.
+    useOnboardingStore.getState().resumeFrom(flowWithOptions(), {
+      ...ACT_ONE_ANSWERS,
+      "participation.impact": "a_lot",
+    });
+    useOnboardingStore.getState().consumeResume();
+
+    useOnboardingStore.getState().enterFlow(flowWithOptions(), ACT_ONE_ANSWERS);
+
+    expect(useOnboardingStore.getState().answers["participation.impact"]).toBe(
+      "a_lot",
+    );
+  });
+
+  it("ignores server answers this flow can no longer decode", () => {
+    // A record left over from an older flow version. Counting it as progress
+    // would skip a question that was never really answered — the exact failure
+    // `answersAreReadable` was written to stop, now reachable from the server
+    // path too.
+    const screen = useOnboardingStore.getState().enterFlow(flowWithOptions(), {
+      "speech.situations": ["a_value_this_flow_never_offers"],
+    });
+
+    expect(screen).toBe(1);
+  });
+
+  it("falls back to local state when the account has nothing", () => {
+    useOnboardingStore.getState().resumeFrom(flowWithOptions(), ACT_ONE_ANSWERS);
+    useOnboardingStore.getState().consumeResume();
+
+    expect(useOnboardingStore.getState().enterFlow(flowWithOptions(), {})).toBe(
+      6,
+    );
+  });
+});
+
+describe("setCurrentScreen", () => {
+  beforeEach(() => useOnboardingStore.getState().resetOnboarding());
+
+  it("follows the route absolutely, so going back cannot leave it ahead", () => {
+    // `nextScreen()` incremented from its own value, so a back-navigation left
+    // the store ahead of the route and every later Next widened the gap.
+    const s = useOnboardingStore.getState();
+    s.setCurrentScreen(7);
+    expect(useOnboardingStore.getState().currentScreen).toBe(7);
+
+    s.setCurrentScreen(3);
+    expect(useOnboardingStore.getState().currentScreen).toBe(3);
+  });
+
+  it("refuses a nonsense position rather than corrupting the resume point", () => {
+    useOnboardingStore.getState().setCurrentScreen(4);
+    useOnboardingStore.getState().setCurrentScreen(0);
+    useOnboardingStore.getState().setCurrentScreen(NaN);
+
+    expect(useOnboardingStore.getState().currentScreen).toBe(4);
+  });
+});

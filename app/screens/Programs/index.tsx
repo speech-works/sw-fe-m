@@ -2,7 +2,6 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getOffers, type OfferItem, type Offers } from "../../api";
-import { getActiveOnboardingFlow } from "../../api/onboarding";
 import PriceTag from "../../components/PriceTag";
 import {
   Page,
@@ -24,9 +23,7 @@ import TopMatchBadge, {
   BADGE_LANE,
 } from "../../components/Dashboard/TopMatchBadge";
 import { programEyebrow, priceNoteFor } from "../../util/packs/offers";
-import { useEventStore } from "../../stores/events";
-import { EVENT_NAMES } from "../../stores/events/constants";
-import { useOnboardingStore } from "../../stores/onboarding";
+import { openOnboarding } from "../../util/functions/openOnboarding";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
 
 /**
@@ -54,7 +51,6 @@ const ProgramsScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Programs">>();
   const { colors, scheme, elevation } = useTheme();
   const isDark = scheme === "dark";
-  const { emit } = useEventStore();
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -90,18 +86,11 @@ const ProgramsScreen = () => {
     });
   };
 
-  const startOnboarding = async () => {
-    try {
-      const state = useOnboardingStore.getState();
-      if (!state.flow) {
-        const flow = await getActiveOnboardingFlow();
-        state.startFresh(flow);
-      }
-      emit(EVENT_NAMES.START_ONBOARDING);
-    } catch (err) {
-      console.error("[Programs] Failed to open onboarding flow:", err);
-    }
-  };
+  // Was: fetch and `startFresh` ONLY when `state.flow` was null. `flow` is
+  // persisted, so for any returning user both were skipped and this CTA emitted
+  // against a stale position — dropping somebody mid-questionnaire from a
+  // button that reads as a beginning.
+  const startOnboarding = () => openOnboarding("programs");
 
   /**
    * WHAT YOU ALSO GET, with no leading verb — callers add the framing that suits

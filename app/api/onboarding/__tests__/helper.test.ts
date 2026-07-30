@@ -94,3 +94,38 @@ describe("normalizeOnboardingFlow", () => {
     expect(flow.questions[1].options[0].optionText).toBe("Phone calls");
   });
 });
+
+/**
+ * `required` vs `isRequired`.
+ *
+ * The API has always sent `required`; the normalizer only ever read
+ * `isRequired`, so it was undefined on every server question and the
+ * `!== false` test made everything required regardless. Harmless while all 13
+ * genuinely are — a hard lock the day an optional one ships, because the Next
+ * button would never enable on a question the SERVER already considers done.
+ */
+describe("normalizeOnboardingFlow — required flag", () => {
+  const flowWith = (q: Record<string, any>) =>
+    normalizeOnboardingFlow({
+      id: "f",
+      version: "2.0",
+      questions: [{ id: "q1", orderIndex: 1, screenNumber: 1, options: [], ...q }],
+    } as any);
+
+  it("honours the server's `required: false`", () => {
+    expect(flowWith({ required: false }).questions[0].isRequired).toBe(false);
+  });
+
+  it("honours an explicit `isRequired: false` too", () => {
+    expect(flowWith({ isRequired: false }).questions[0].isRequired).toBe(false);
+  });
+
+  it("defaults to required when neither field is present", () => {
+    // Safer direction: asking one question twice beats skipping one entirely.
+    expect(flowWith({}).questions[0].isRequired).toBe(true);
+  });
+
+  it("treats `required: true` as required", () => {
+    expect(flowWith({ required: true }).questions[0].isRequired).toBe(true);
+  });
+});

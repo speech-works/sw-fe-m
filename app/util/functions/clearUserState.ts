@@ -48,6 +48,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useReminderStore },
       { useOnboardingStore },
       { useOnboardingDraftStore },
+      { useOnboardingNudgeStore },
       { useFirstCallStore },
       { useCallHintsStore },
     ] = await Promise.all([
@@ -64,6 +65,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/reminders"),
       import("../../stores/onboarding"),
       import("../../stores/onboardingDraft"),
+      import("../../stores/onboardingNudge"),
       import("../../stores/firstCall"),
       import("../../stores/callHints"),
     ]);
@@ -85,6 +87,13 @@ export async function clearAllPersistedUserState(): Promise<void> {
       // Act-1 answers are health-adjacent and live on-device before signup;
       // they must not survive a logout on a shared phone.
       ["onboardingDraft", () => useOnboardingDraftStore.getState().clear()],
+      // One person's "leave me alone about onboarding" must not silence the
+      // prompt for the next account on this phone — they have their own
+      // questions to answer, and nobody has asked them anything yet.
+      [
+        "onboardingNudge",
+        () => useOnboardingNudgeStore.getState().clearSkip(),
+      ],
       // The next account on this phone gets its own first call, offered as
       // loudly as anyone else's — a previous user's "not now" must not
       // quiet it.

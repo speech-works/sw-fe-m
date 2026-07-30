@@ -9,12 +9,18 @@ import { useUserStore } from "../../stores/user";
 import {
   Button,
   ConnectedAvatarRow,
+  IconButton,
+  icons,
   Page,
   spacing,
   Spinner,
   useTheme,
 } from "../../design-system";
 import { OnboardingStackNavigationProp } from "../../navigators/stacks/OnboardingStack/types";
+import { useEventStore } from "../../stores/events";
+import { EVENT_NAMES } from "../../stores/events/constants";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import { apiErrorMessage } from "../../util/functions/apiError";
 
 /**
  * Onboarding "Difficult Sounds" — the same picker as Settings › Preferences ›
@@ -32,6 +38,7 @@ const OnboardingPhonemes = () => {
   const navigation =
     useNavigation<OnboardingStackNavigationProp<"OnboardingPhonemes">>();
   const { user, setUser } = useUserStore();
+  const { emit } = useEventStore();
   const [phonemes, setPhonemes] = useState<Phoneme[]>([]);
   const [selectedSounds, setSelectedSounds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +76,13 @@ const OnboardingPhonemes = () => {
         setPhonemes(sortedPhonemes);
         setSelectedSounds(initialSelected);
       } catch (error) {
+        // Silent before: the list simply stayed empty with nothing to explain
+        // it, on a screen that also had no way out.
         console.error("Error fetching phonemes:", error);
+        showErrorBottomSheet(
+          "We couldn't load the sounds",
+          apiErrorMessage(error, "You can skip this and come back to it."),
+        );
       } finally {
         setIsLoading(false);
       }
@@ -119,10 +132,29 @@ const OnboardingPhonemes = () => {
       setUser(updatedUser);
       navigation.navigate("OnboardingDone");
     } catch (error) {
+      // Was console.error only: the spinner stopped, nothing navigated, nothing
+      // was said. On a screen with no back gesture, no X and one button, that is
+      // indistinguishable from the app being broken.
       console.error("Error saving feared sounds:", error);
+      showErrorBottomSheet(
+        "We couldn't save your sounds",
+        apiErrorMessage(error, "Check your connection and try again."),
+      );
     } finally {
       setIsSaving(false);
     }
+  };
+
+  /**
+   * Leaving is allowed here.
+   *
+   * This screen had no exit of any kind — no X, no back, `gestureEnabled:false`
+   * — so a failed save left people with a single dead button and nowhere to go.
+   * Sounds are genuinely optional (pressing Next with nothing selected has
+   * always been valid), so nothing is lost by letting somebody step out.
+   */
+  const handleSkip = () => {
+    emit(EVENT_NAMES.STOP_ONBOARDING);
   };
 
   const renderPhonemeItem = ({ item }: { item: Phoneme }) => {
@@ -150,6 +182,15 @@ const OnboardingPhonemes = () => {
     <Page
       title="Difficult Sounds"
       description="Select the phonetic sounds you find challenging. We'll use this to customize your practice."
+      // The only way out of this screen. Without it a failed save is a dead end.
+      right={
+        <IconButton
+          name={icons.close}
+          onPress={handleSkip}
+          variant="control"
+          accessibilityLabel="Skip choosing sounds for now"
+        />
+      }
       scroll={!isLoading}
       list={
         isLoading

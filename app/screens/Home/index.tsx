@@ -1,19 +1,22 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { RefreshControl, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { InteractionManager, RefreshControl, View } from "react-native";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
+import { showSuccessBottomSheet } from "../../util/functions/bottomSheet";
+import { loadServerOnboardingAnswers } from "../../util/functions/loadServerOnboardingAnswers";
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
-import { useEventStore } from "../../stores/events";
-import { EVENT_NAMES } from "../../stores/events/constants";
+import {
+  answeredRequiredCount,
+  nextUnansweredQuestion,
+} from "../../util/onboarding/progress";
+import { openOnboarding as openOnboardingFlow } from "../../util/functions/openOnboarding";
 import { useMoodCheckStore } from "../../stores/mood";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import { IdentityBlock } from "./components/IdentityBlock";
 import MoodCheckBanner from "./components/MoodCheckBanner";
-import Toast from "react-native-toast-message";
-import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 import ForYouCarousel from "../../components/Dashboard/ForYouCarousel";
 import FirstCallCard from "../../components/Dashboard/FirstCallCard";
 import {
@@ -25,28 +28,41 @@ import {
   space,
   radius,
 } from "../../design-system";
-import { InteractionManager } from "react-native";
 
 const Home = () => {
   const { colors } = useTheme();
   const styles = useStyles();
   const { user, setUser } = useUserStore();
-  const { emit } = useEventStore();
   const { hasRecordedToday } = useMoodCheckStore();
 
-  const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
   const onboardingFlow = useOnboardingStore((s) => s.flow);
-  const getTotalScreens = useOnboardingStore((s) => s.getTotalScreens);
-  const totalOnboardingScreens = onboardingFlow ? getTotalScreens() : 1;
+  const onboardingAnswers = useOnboardingStore((s) => s.answers);
+
+  // COUNTED FROM ANSWERS, NOT FROM A SCREEN NUMBER.
+  //
+  // This was `currentScreen` against `getTotalScreens()`, with a `: 1` fallback
+  // when the flow had not been fetched — so the card could read "Step 13 of 13"
+  // with everything unanswered, or "Step 1 of 1" with a full bar. Both promised
+  // one tap and delivered thirteen questions, to the people who had already
+  // walked away once.
+  const { answered: onboardingAnswered, total: onboardingTotal } =
+    answeredRequiredCount(onboardingFlow, onboardingAnswers);
+  const nextOnboardingQuestion = nextUnansweredQuestion(
+    onboardingFlow,
+    onboardingAnswers,
+  );
 
 
-  // Resume Modal State
-  const [showResumeModal, setShowResumeModal] = useState(false);
   const [interactionsDone, setInteractionsDone] = useState(false);
 
   // Pagination & Visibility Logic (Derived State)
+  //
+  // `onboardingTotal > 0` is a correctness guard, not a nicety: the count comes
+  // from the cached flow, and someone who left before it was ever fetched has
+  // none — which would render "0 of 0 answered" with an empty bar. Better to
+  // show nothing for the moment it takes the effect below to fetch it.
   const showOnboarding =
-    user && !user.hasCompletedOnboarding;
+    user && !user.hasCompletedOnboarding && onboardingTotal > 0;
   const showMoodCheck = !hasRecordedToday;
 
   const cards: string[] = [];
@@ -54,28 +70,16 @@ const Home = () => {
 
   if (showMoodCheck) cards.push("mood");
 
-  // Resume Handler
-  const handleResumeOnboarding = () => {
-    setShowResumeModal(false);
-    emit(EVENT_NAMES.START_ONBOARDING);
-    // OnboardingWelcome will auto-redirect to current question
-  };
-
-  // Start Over Handler
-  const handleStartOverOnboarding = async () => {
-    setShowResumeModal(false);
-    try {
-      const flow = await getActiveOnboardingFlow();
-      const state = useOnboardingStore.getState();
-      state.startFresh(flow); // Resets currentScreen to 1
-      emit(EVENT_NAMES.START_ONBOARDING);
-      // OnboardingWelcome is screen 1 if no progress, but here we explicitly go to Q1?
-      // Actually OnboardingWelcome logic: if !hasProgress -> Show Welcome UI with Start button.
-      // So user will see Welcome screen. That is acceptable flow for Start Over.
-    } catch (err) {
-      console.error("Failed to restart onboarding flow:", err);
-    }
-  };
+  // THE RESUME/START-OVER MODAL IS GONE, deliberately.
+  //
+  // It asked a question the app can no longer answer. "Start Over" called
+  // `startFresh`, which clears LOCAL state only — and now that the resume point
+  // is derived from the account's answers, the very next step re-reads them and
+  // puts the person back exactly where they were. Keeping a button that looks
+  // like it does something and provably does not is worse than not offering it.
+  // A genuine restart would mean deleting the account's answers server-side
+  // (the endpoint exists) behind a confirm, which is a product decision, not a
+  // repair. Resuming is now the only behaviour, and it is the right default.
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -83,6 +87,46 @@ const Home = () => {
     });
     return () => task.cancel();
   }, []);
+
+  /**
+   * MAKE THE CARD'S NUMBER TRUE, including after a reinstall.
+   *
+   * The count is derived from the flow and the answers, and Home held neither
+   * for anybody whose local stores were empty — a fresh install, a second
+   * phone, or someone who exited before the flow was ever cached. Without this
+   * the card either could not render at all (the guard above) or would
+   * under-report what the account has already answered.
+   *
+   * Ref-guarded and only while the card is warranted, so this is at most one
+   * pair of requests per mount and none at all for a finished user.
+   */
+  const hydratedOnboarding = useRef(false);
+  useEffect(() => {
+    if (!user || user.hasCompletedOnboarding) return;
+    if (hydratedOnboarding.current) return;
+    hydratedOnboarding.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const flow = await getActiveOnboardingFlow();
+        const serverAnswers = await loadServerOnboardingAnswers(user.id, flow);
+        if (!cancelled) {
+          useOnboardingStore
+            .getState()
+            .hydrateFromServer(flow, serverAnswers ?? undefined);
+        }
+      } catch (err) {
+        // Silent by design. The card simply stays hidden this session; nothing
+        // is broken and nothing is claimed. Surfacing an error for a card the
+        // person did not ask for would be noise.
+        console.warn("[home] could not load onboarding progress:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -100,12 +144,13 @@ const Home = () => {
         freshUser.level !== undefined &&
         freshUser.level < oldLevel
       ) {
-        Toast.show({
-          type: "info",
-          text1: "Level adjusted",
-          text2:
-            "Your level settled after a sync — every practice grows it again.",
-        });
+        // Was `Toast.show`, which rendered NOTHING: the toast root is
+        // commented out in App.tsx, so this message has never once been seen.
+        // OutcomeModal is mounted and works.
+        showSuccessBottomSheet(
+          "Level adjusted",
+          "Your level settled after a sync — every practice grows it again.",
+        );
       }
 
       setRefreshKey((prev) => prev + 1);
@@ -129,26 +174,10 @@ const Home = () => {
     if (cardType === "onboarding") {
       return (
         <OnboardingReminderCard
-          currentStep={currentOnboardingScreen - 1}
-          totalSteps={totalOnboardingScreens}
-          onPress={async () => {
-            try {
-              const state = useOnboardingStore.getState();
-              if (
-                state.flow &&
-                (state.currentScreen > 1 ||
-                  Object.keys(state.answers).length > 0)
-              ) {
-                setShowResumeModal(true);
-                return;
-              }
-              const flow = await getActiveOnboardingFlow();
-              state.startFresh(flow);
-              emit(EVENT_NAMES.START_ONBOARDING);
-            } catch (err) {
-              console.error("Failed to load onboarding flow:", err);
-            }
-          }}
+          answered={onboardingAnswered}
+          total={onboardingTotal}
+          nextQuestionText={nextOnboardingQuestion?.questionText}
+          onPress={() => void openOnboardingFlow("home_card")}
         />
       );
     }
@@ -215,13 +244,6 @@ const Home = () => {
 
       {interactionsDone && <MoodCheckPopup />}
 
-      {/* Resume Modal Overlay */}
-      <OnboardingResumeModal
-        visible={showResumeModal}
-        onResume={handleResumeOnboarding}
-        onStartOver={handleStartOverOnboarding}
-        onDismiss={() => setShowResumeModal(false)}
-      />
     </>
   );
 };

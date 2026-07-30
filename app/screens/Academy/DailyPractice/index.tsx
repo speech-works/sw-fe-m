@@ -21,8 +21,7 @@ import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
-import { useEventStore } from "../../../stores/events";
-import { EVENT_NAMES } from "../../../stores/events/constants";
+import { openOnboarding } from "../../../util/functions/openOnboarding";
 import { useUserStore } from "../../../stores/user";
 import TodayStrip from "./components/TodayStrip";
 
@@ -33,7 +32,6 @@ type HubAccent = "info" | "success" | "warning" | "purple" | "danger";
 const DailyPractice = () => {
   const navigation =
     useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
-  const { emit } = useEventStore();
   const { colors } = useTheme();
 
   const moveToReadingPractice = () => {
@@ -71,7 +69,9 @@ const DailyPractice = () => {
           {
             title: "Complete Profile",
             description: "So we can match programs to you",
-            onPress: () => emit(EVENT_NAMES.START_ONBOARDING), // Trigger onboarding via event store
+            // Was a bare emit: no flow fetch, no store preparation, no error
+            // handling — so offline it opened a screen that could not load.
+            onPress: () => void openOnboarding("daily_practice"),
             icon: (
               <FAIcon
                 name="user-clock"

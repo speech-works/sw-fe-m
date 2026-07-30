@@ -9,6 +9,10 @@ import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { useUserStore } from "../stores/user";
 import { useFirstCallStore } from "../stores/firstCall";
+import {
+  isOnboardingQuieted,
+  useOnboardingNudgeStore,
+} from "../stores/onboardingNudge";
 import { replayOnboardingDraft } from "../util/functions/replayOnboardingDraft";
 
 export default function MainNavigator() {
@@ -23,8 +27,36 @@ export default function MainNavigator() {
   const acceptedPreSignup = useFirstCallStore((s) => s.acceptedPreSignup);
   const clearPreSignup = useFirstCallStore((s) => s.clearPreSignup);
 
-  // prevents auto-onboarding AFTER a skip (only for this session)
-  const [suppressAutoOnboarding, setSuppressAutoOnboarding] = useState(false);
+  // PREVENTS AUTO-ONBOARDING AFTER A SKIP — PERSISTED, not per-session.
+  //
+  // This was `useState(false)`, so it died with the process and the latch below
+  // re-forced the questionnaire over the whole app on every cold start. A skip
+  // bought exactly one session. See stores/onboardingNudge for why that matters
+  // more here than in most apps.
+  const skippedAt = useOnboardingNudgeStore((s) => s.skippedAt);
+  const markSkipped = useOnboardingNudgeStore((s) => s.markSkipped);
+  const suppressAutoOnboarding = isOnboardingQuieted({ skippedAt });
+
+  // WAIT FOR STORAGE BEFORE LATCHING.
+  //
+  // The nudge store rehydrates asynchronously, so `skippedAt` reads null on the
+  // first frames — and the latch effect below would fire in that window and
+  // re-force onboarding for a skipper anyway, making the whole fix silently
+  // useless. Same shape as AuthNavigator's gate, but applied to the EFFECT and
+  // not the render: returning null here would blank the entire app.
+  const [nudgeHydrated, setNudgeHydrated] = useState(() =>
+    useOnboardingNudgeStore.persist.hasHydrated(),
+  );
+  useEffect(() => {
+    if (nudgeHydrated) return;
+    const unsub = useOnboardingNudgeStore.persist.onFinishHydration(() =>
+      setNudgeHydrated(true),
+    );
+    // Guard against hydration completing between the read above and this
+    // subscription, which would otherwise wait forever.
+    if (useOnboardingNudgeStore.persist.hasHydrated()) setNudgeHydrated(true);
+    return unsub;
+  }, [nudgeHydrated]);
 
   // when user actively asks to open onboarding (card press) we force it
   const [forceOnboarding, setForceOnboarding] = useState(false);
@@ -39,14 +71,24 @@ export default function MainNavigator() {
       if (event.name === EVENT_NAMES.START_ONBOARDING) {
         console.log("→ START_ONBOARDING matched");
         setForceOnboarding(true);
-        setSuppressAutoOnboarding(false); // user explicitly opening onboarding
+        // NOTE: the skip is deliberately NOT cleared here. Opening the card to
+        // answer a few more questions must not re-arm the full-screen takeover
+        // they already declined. Only finishing clears it.
         clear(EVENT_NAMES.START_ONBOARDING);
       }
 
       if (event.name === EVENT_NAMES.STOP_ONBOARDING) {
         console.log("→ STOP_ONBOARDING matched");
         setForceOnboarding(false);
-        setSuppressAutoOnboarding(true); // suppress auto onboarding for this session
+        // Persisted, so leaving unfinished is honoured for good rather than
+        // until the next launch. The Home card still carries whatever is left.
+        //
+        // NOT when they finished. Both exits emit this same event, and marking
+        // a completer as "skipped" is wrong even though it is inert today
+        // (`hasCompletedOnboarding` keeps the latch off anyway). It would bite
+        // the moment a new flow version legitimately resets completion — the
+        // people who DID engage would be the ones silently quieted.
+        if (event.detail?.reason !== "completed") markSkipped();
         clear(EVENT_NAMES.STOP_ONBOARDING);
       }
 
@@ -77,9 +119,13 @@ export default function MainNavigator() {
   //
   // No-op for everyone who never went through Act 1. On failure the draft keeps
   // its answers and retries on the next open, so nobody silently loses them.
+  // The userId is passed so the replay can check what THIS account already
+  // knows before writing anything. This effect cannot tell a signup from a
+  // sign-in — no such signal exists in either repo — so the guard lives on the
+  // account's data rather than on the event.
   useEffect(() => {
     if (!isLoggedIn || !userId) return;
-    void replayOnboardingDraft();
+    void replayOnboardingDraft(userId);
   }, [isLoggedIn, userId]);
 
   // ONCE ONBOARDING IS ON SCREEN, KEEP IT ON SCREEN UNTIL THE USER FINISHES.
@@ -99,10 +145,14 @@ export default function MainNavigator() {
   // deliberately" path, which is already only cleared by STOP_ONBOARDING —
   // i.e. by finishing or skipping. Same teardown trigger, just an explicit one.
   useEffect(() => {
+    // Do nothing until we know whether they already asked to be left alone.
+    // Without this the effect fires on the first frames, when `skippedAt` is
+    // still the un-rehydrated null, and re-forces onboarding on every launch.
+    if (!nudgeHydrated) return;
     if (!suppressAutoOnboarding && user && user.hasCompletedOnboarding === false) {
       setForceOnboarding(true);
     }
-  }, [suppressAutoOnboarding, user]);
+  }, [nudgeHydrated, suppressAutoOnboarding, user]);
 
   // -----------------------------
   // Routing decision

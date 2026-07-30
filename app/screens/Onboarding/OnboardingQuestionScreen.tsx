@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import CustomScrollView from "../../components/CustomScrollView";
@@ -13,6 +13,7 @@ import { useOnboardingDraftStore } from "../../stores/onboardingDraft";
 import { useQuestionSource } from "./useQuestionSource";
 import {
   Button,
+  ErrorState,
   Gradient,
   IconButton,
   icons,
@@ -43,6 +44,8 @@ import type { QuestionType } from "../../api/onboarding/types";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { track } from "../../util/analytics/postHog";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import { apiErrorMessage } from "../../util/functions/apiError";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 /** Pause after a single-select tap, so the choice is seen before we move on. */
@@ -113,12 +116,17 @@ const OnboardingQuestionScreen: React.FC = () => {
   const {
     flow,
     setAnswer,
-    nextScreen,
     getCurrentScreenQuestions,
     isCurrentScreenValid,
     answers,
     canSubmitToServer,
   } = useQuestionSource(preAuth);
+
+  // Post-signup only: the server's verdict on whether the flow is finished.
+  // `useQuestionSource` swaps stores by phase, and the draft store has no such
+  // concept, so this is read directly rather than through the adapter.
+  const markServerComplete = useOnboardingStore((s) => s.markServerComplete);
+  const setCurrentScreen = useOnboardingStore((s) => s.setCurrentScreen);
 
   /**
    * WHICH STEPS ARE ACTUALLY BEHIND US — read from the navigation stack, not
@@ -166,6 +174,10 @@ const OnboardingQuestionScreen: React.FC = () => {
 
   const emit = useEventStore((s) => s.emit);
 
+  // Bumped by the error state's Try again, which is the only way to re-run the
+  // fetch below without leaving the screen.
+  const [flowRetryKey, setFlowRetryKey] = useState(0);
+
   // If flow is missing (e.g. reopened directly) — fetch it and rehydrate store.
   // Never pre-auth: Act 1's questions are bundled, and the flow endpoint sits
   // behind auth anyway, so a fetch here would 401 on the very first screen.
@@ -190,7 +202,7 @@ const OnboardingQuestionScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [flow, setFlow]);
+  }, [flow, setFlow, flowRetryKey]);
 
   // -----------------------------------------------------
   // SCROLL HANDLING
@@ -236,7 +248,13 @@ const OnboardingQuestionScreen: React.FC = () => {
   // flips false -> true at most once, so the event fires exactly once per step.
   const hasFlow = !!flow;
 
-  // Sync route param → store.currentScreen
+  // Scroll to top + fire the step-viewed event when the screen number changes.
+  //
+  // This was labelled "Sync route param → store.currentScreen" and contained no
+  // `set` at all — it has never synced anything. The comment was load-bearing
+  // in the wrong direction: it read as though drift was already handled here,
+  // which is part of why it went unnoticed. The real sync now happens on the
+  // two navigation paths (`popToStep` and `handleNext`), absolutely.
   useEffect(() => {
     // Nothing has rendered yet on a flow-less pass, so there is no step to
     // scroll or to count. This guard replaces the early `return null` that
@@ -283,7 +301,39 @@ const OnboardingQuestionScreen: React.FC = () => {
    * Behaviour is otherwise identical: the analytics event still fires only
    * for a step that actually rendered, via the in-effect guard above.
    */
-  if (!flow) return null;
+  // NOT `return null`. That rendered an empty screen with no X, no dots and no
+  // button — and when this screen was the stack root with a failed fetch, there
+  // was nothing to swipe back to either. A blank screen is the worst possible
+  // answer to "we couldn't load your questions": it looks like the app died.
+  if (!flow) {
+    return (
+      <ScreenView style={styles.screen}>
+        <SchemeStatusBar />
+        <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
+          <IconButton
+            name={icons.close}
+            // Inlined rather than reusing `handleSkip`, which is declared below
+            // this guard. Same two outcomes: pre-auth there is no account to
+            // leave to, so the exit is the auth screen; after signup it is Home.
+            onPress={() => {
+              track(ANALYTICS_EVENTS.ONBOARDING_SKIPPED, {
+                atStep: screenNumber,
+              });
+              if (preAuth) (navigation as any).navigate("Auth");
+              else emit(EVENT_NAMES.STOP_ONBOARDING);
+            }}
+            variant="control"
+            accessibilityLabel="Answer these later"
+          />
+        </View>
+        <ErrorState
+          title="We couldn't load your questions"
+          message="Nothing you've already answered is lost. Try again in a moment."
+          onRetry={() => setFlowRetryKey((k) => k + 1)}
+        />
+      </ScreenView>
+    );
+  }
 
   const screenQuestions = getCurrentScreenQuestions(screenNumber);
   const totalScreens = Math.max(...flow.questions.map((q) => q.screenNumber));
@@ -332,7 +382,17 @@ const OnboardingQuestionScreen: React.FC = () => {
   // SUBMIT ANSWERS
   // -----------------------------------------------------
 
-  const submitAnswers = async () => {
+  /**
+   * Returns whether the answers are SAFELY ON THE SERVER, so the caller can
+   * decide whether advancing is honest.
+   *
+   * It used to return void and swallow its own errors, and `handleNext` walked
+   * on regardless — so a dead network on the last screen carried somebody all
+   * the way to "You're all set!" while the server held nothing. `resetOnboarding`
+   * then wiped the only remaining copy of their answers. Every failure has to be
+   * visible and has to stop the flow, because there is no retry queue to catch it.
+   */
+  const submitAnswers = async (): Promise<{ ok: boolean; isComplete: boolean }> => {
     // PRE-AUTH: NOTHING LEAVES THE DEVICE.
     //
     // There is no account to attach these to, and they are health-adjacent
@@ -340,18 +400,13 @@ const OnboardingQuestionScreen: React.FC = () => {
     // heavy things feel today. Under GDPR Art. 9 that needs a lawful basis plus
     // explicit consent, and pre-signup we have neither. They sit in the draft
     // store and are replayed once, after signup, from MainNavigator.
-    if (!canSubmitToServer) return;
+    //
+    // `ok: true` because there is nothing to fail — the draft store already has
+    // them, and Act 1 must never be blocked on a network it deliberately avoids.
+    if (!canSubmitToServer) return { ok: true, isComplete: false };
 
     try {
-      console.log("Submitting onboarding answers:", answers);
-      const { answer, isComplete, profileCompletionPercent } =
-        await submitOnboardingAnswers({ answers });
-      console.log(
-        "submitOnboardingAnswers response",
-        answer,
-        isComplete,
-        profileCompletionPercent,
-      );
+      const { isComplete } = await submitOnboardingAnswers({ answers });
 
       // NOTE: we deliberately do NOT flip `user.hasCompletedOnboarding` here,
       // even though the server has just recorded it.
@@ -369,11 +424,23 @@ const OnboardingQuestionScreen: React.FC = () => {
       // actual end of onboarding and already tells MainNavigator to swap. If
       // the app dies in between, the SERVER still has it true, so the next
       // fetchUser syncs it and onboarding does not repeat.
-      if (isComplete) {
-        console.log("[Onboarding] Server reports flow complete.");
-      }
+      //
+      // What we DO record is the server's own verdict, so the payoff screen can
+      // tell the difference between "finished" and "walked to the end of the
+      // questions". Previously this was a console.log and OnboardingDone
+      // celebrated unconditionally.
+      if (isComplete) markServerComplete();
+      return { ok: true, isComplete };
     } catch (err) {
       console.error("Failed to submit onboarding answers:", err);
+      showErrorBottomSheet(
+        "We couldn't save that",
+        apiErrorMessage(
+          err,
+          "Your answer is still here. Check your connection and try again.",
+        ),
+      );
+      return { ok: false, isComplete: false };
     }
   };
 
@@ -399,7 +466,17 @@ const OnboardingQuestionScreen: React.FC = () => {
       advanceTimer.current = null;
     }
     if (viaButton) arrivedViaBack = true;
+    // KEEP THE STORE IN STEP IN BOTH PHASES.
+    //
+    // This was `if (preAuth) setDraftStep(step)` — pre-auth only — so going
+    // back post-signup moved the navigation stack while `currentScreen` stayed
+    // where it was. `nextScreen()` then advanced from that stale value while
+    // the push used the route's, and the two diverged further with every
+    // revision. Anything reading the store for "where are they" (the Home
+    // card's step count, the resume point) was reading a number that no longer
+    // described the flow.
     if (preAuth) setDraftStep(step);
+    else setCurrentScreen(step);
     (navigation as any).pop(myIndex - at);
   };
 
@@ -438,11 +515,18 @@ const OnboardingQuestionScreen: React.FC = () => {
       advanceTimer.current = null;
     }
 
-    await submitAnswers();
+    const { ok } = await submitAnswers();
 
-    // 🟢 KEY FIX: If this was the last screen, force completion locally
-    // This handles cases where backend might report partial completion (e.g. 74%)
-    // but the user has physically finished the flow.
+    // A failed save STOPS the flow. Walking on would carry somebody to the
+    // payoff screen while the server holds nothing — which is precisely how
+    // "You're all set!" came to be followed, seconds later, by all thirteen
+    // questions again. submitAnswers has already shown the error; releasing the
+    // latch lets them retry the same screen with their answer still on it.
+    if (!ok) {
+      isAdvancing.current = false;
+      return;
+    }
+
     if (isLast) {
       if (preAuth) {
         // End of Act 1. The teaser reads their answers back and hands off to
@@ -460,10 +544,15 @@ const OnboardingQuestionScreen: React.FC = () => {
     // this writes, so it belongs in the handler and not in the render path.
     if (preAuth) settleSkipped(screenNumber, nextScreenNumber);
 
-    nextScreen(); // Sync with store so "Resume" works later
-    // Pre-auth resume lives on `stepIndex`, so keep it in step with the route —
-    // otherwise reopening the app restarts Act 1 from question one.
+    // Keep the store on the screen the ROUTE is about to show.
+    //
+    // This was `nextScreen()`, which incremented the store's own counter from
+    // whatever it already held. After any back-navigation that value was
+    // already ahead of the route, so each Next widened the gap. Setting the
+    // route's number absolutely means the two can never diverge, however much
+    // somebody moves around.
     if (preAuth) setDraftStep(nextScreenNumber);
+    else setCurrentScreen(nextScreenNumber);
 
     // The two stacks name this route differently, and pushing the wrong one is
     // silent until it isn't: "The action 'PUSH' ... was not handled by any
@@ -500,7 +589,14 @@ const OnboardingQuestionScreen: React.FC = () => {
             accessibilityLabel="Back to the previous question"
           />
         ) : null}
-        <IconButton name={icons.close} onPress={handleSkip} variant="control" />
+        <IconButton
+          name={icons.close}
+          onPress={handleSkip}
+          variant="control"
+          // The back arrow beside it has had a label all along; this had none,
+          // so a screen reader announced the only exit as an unnamed button.
+          accessibilityLabel="Answer these later"
+        />
       </View>
 
       {/* Six dots instead of "Step 2 of 6", "33%" and a filled bar — three
