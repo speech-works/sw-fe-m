@@ -120,7 +120,10 @@ const Chat = () => {
     option: FixedRolePlayNodeOption,
     recordingUri: string | null,
   ) => {
-    if (!data?.stage.initialNodeId) return;
+    // Guard the map we're about to walk, not the entry point we already used —
+    // guarding `initialNodeId` refused to advance on a payload that had every
+    // dialogue but no start id, and stranded the turn with no feedback.
+    if (!data?.stage.dialogues) return;
 
     setMessages((prevMessages) => [
       ...prevMessages,

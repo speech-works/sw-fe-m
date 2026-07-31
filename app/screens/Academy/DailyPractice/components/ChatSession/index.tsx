@@ -7,8 +7,9 @@ import { ChatThread } from "./ChatThread";
 import { InputDock } from "./InputDock";
 import type { ChatSessionOption, ChatSessionProps } from "./types";
 
-/** Bottom clearance for the floating dock (pill 70 + ~34 safe margin + gap). */
-const DOCK_RESERVE = 120;
+/** Bottom clearance for the floating dock (pill 70 + ~34 safe margin + gap), plus
+ *  a row for the armed turn's "Continue without recording" link above the pill. */
+const DOCK_RESERVE = 120 + spacing["3xl"];
 /** The bottom fade dissolves scrolling content into the canvas before it reaches the dock. */
 const SCRIM_H = DOCK_RESERVE + spacing["4xl"];
 

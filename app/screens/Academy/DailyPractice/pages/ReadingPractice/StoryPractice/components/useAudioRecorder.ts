@@ -7,7 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type RecorderState = "idle" | "recording" | "playback";
 
 interface UseAudioRecorderReturn {
-  startRecording: () => Promise<void>;
+  /** Resolves `false` when the take never started (denied permission, failed
+   *  prepare) so the caller can say so — it used to fail silently. */
+  startRecording: () => Promise<boolean>;
   stopRecording: () => Promise<string | null>;
   startPlayback: (uri: string) => Promise<void>;
   stopPlayback: () => Promise<void>;
@@ -102,7 +104,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = async (): Promise<boolean> => {
     try {
       // 1. Cleanup
       if (recordingRef.current) {
@@ -136,7 +138,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
         console.warn("[useAudioRecorder] Permission denied");
-        return;
+        return false;
       }
 
       // 3. Audio Mode (RECORDING)
@@ -155,7 +157,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       // Increased to 500ms for iOS category transition stability
       await new Promise((r) => setTimeout(r, 500));
 
-      if (unmountedRef.current) return;
+      if (unmountedRef.current) return false;
 
       // 4. Start (Using High Quality Preset for Stability)
       console.log("[useAudioRecorder] Preparing recorder...");
@@ -168,16 +170,18 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       await recording.startAsync();
       if (unmountedRef.current) {
         await recording.stopAndUnloadAsync().catch(() => {});
-        return;
+        return false;
       }
       recordingRef.current = recording;
 
       setState("recording");
       startMeteringLogic();
       console.log("[useAudioRecorder] Recording started successfully.");
+      return true;
     } catch (e) {
       console.error("[useAudioRecorder] Failed to start recording", e);
       setState("idle");
+      return false;
     }
   };
 
@@ -226,7 +230,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
         (status) => {
           if (status.isLoaded) {
             setPlaybackPosition(status.positionMillis);
-            setDuration(status.durationMillis || 0);
+            // Only a POSITIVE reading is trustworthy. Android routinely reports
+            // no durationMillis for the m4a we just wrote, and zeroing here wiped
+            // the length captured at stop — which then read as 00:00 and tripped
+            // the "audio too short" guard on a perfectly good take.
+            if (status.durationMillis) setDuration(status.durationMillis);
 
             if (status.didJustFinish) {
               console.log("[useAudioRecorder] Playback finished.");

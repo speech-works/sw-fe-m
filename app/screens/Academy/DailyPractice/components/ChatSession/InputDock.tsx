@@ -3,6 +3,7 @@ import { View } from "react-native";
 import {
   Button,
   Text,
+  TextLink,
   makeStyles,
   space,
   spacing,
@@ -36,6 +37,13 @@ interface InputDockProps {
  * the recorder's idle left area (the space it otherwise uses for tools/waveform);
  * arming an option lights the mic up to speak. At the dialogue's end it's a
  * Finish button. Kept in-tree (no native Modal).
+ *
+ * The turn NEVER depends on audio existing. Speaking is the practice, but the
+ * recording is incidental — the session keeps a single uri and only the last take
+ * is ever uploaded — so an armed reply always has a way forward even if the mic
+ * is denied, fails, or the user would rather just say the line out loud. Welding
+ * the advance to the recorder's submit button is what left every scenario stuck
+ * on its first turn.
  */
 export const InputDock: React.FC<InputDockProps> = ({
   hasOptions,
@@ -67,30 +75,47 @@ export const InputDock: React.FC<InputDockProps> = ({
   if (!hasOptions) return null;
 
   return (
-    <SmartRecorder
-      disabled={!armed}
-      hideSeparator
-      prevRecordingUri={turnRecordingUri ?? undefined}
-      onRecorded={onRecorded}
-      onSubmit={onConfirm}
-      onDiscard={onDiscard}
-      accentColor={accentColor}
-      onAccentColor={onAccentColor}
-      renderTools={
-        armed
-          ? undefined
-          : () => (
-              <Text
-                variant="bodySm"
-                color="tertiary"
-                numberOfLines={1}
-                style={styles.hint}
-              >
-                Tap a reply, then speak it
-              </Text>
-            )
-      }
-    />
+    <View pointerEvents="box-none">
+      {/* The escape hatch: armed, nothing recorded. Quiet (tertiary, not the
+          orange link tier) so it reads as available rather than inviting —
+          speaking is still the point of the exercise. */}
+      {armed && !turnRecordingUri ? (
+        <TextLink
+          label="Continue without recording"
+          onPress={onConfirm}
+          color="tertiary"
+        />
+      ) : null}
+
+      <SmartRecorder
+        disabled={!armed}
+        hideSeparator
+        // A chat turn is a STEP, not the task — a short take must never open the
+        // "complete the task without submitting?" prompt, whose Cancel branch
+        // dead-ends the scenario.
+        confirmShortAudio={false}
+        prevRecordingUri={turnRecordingUri ?? undefined}
+        onRecorded={onRecorded}
+        onSubmit={onConfirm}
+        onDiscard={onDiscard}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
+        renderTools={
+          armed
+            ? undefined
+            : () => (
+                <Text
+                  variant="bodySm"
+                  color="tertiary"
+                  numberOfLines={1}
+                  style={styles.hint}
+                >
+                  Tap a reply, then speak it
+                </Text>
+              )
+        }
+      />
+    </View>
   );
 };
 

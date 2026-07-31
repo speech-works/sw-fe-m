@@ -34,6 +34,14 @@ interface Props {
   disabled?: boolean;
   /** Hide the idle tools↔mic divider (for docks with no left-side tools). Default false. */
   hideSeparator?: boolean;
+  /**
+   * Challenge a sub-second take before submitting. Default true — right where the
+   * submit IS the task (reading practice: one take, then you're done). Pass false
+   * where submit only ends a STEP (a chat turn), because there the prompt's
+   * "complete the task without submitting" wording is wrong and its Cancel branch
+   * strands the user on a turn they can't leave.
+   */
+  confirmShortAudio?: boolean;
   accentColor?: string;
   onAccentColor?: string;
 }
@@ -46,6 +54,7 @@ const SmartRecorder: React.FC<Props> = ({
   onDiscard,
   disabled = false,
   hideSeparator = false,
+  confirmShortAudio = true,
   accentColor,
   onAccentColor,
 }) => {
@@ -98,10 +107,12 @@ const SmartRecorder: React.FC<Props> = ({
 
   const [isPreparing, setIsPreparing] = useState(false);
   const [showSmallAudioPrompt, setShowSmallAudioPrompt] = useState(false);
+  const [showMicFailed, setShowMicFailed] = useState(false);
 
   const handleSubmitPress = () => {
-    // If audio is < 1 second (1000ms), warn user.
-    if (duration < 1000) {
+    // If audio is < 1 second (1000ms), warn user — unless the caller submits per
+    // step rather than per task, where a short take must never block the step.
+    if (confirmShortAudio && duration < 1000) {
       setShowSmallAudioPrompt(true);
     } else {
       onSubmit?.();
@@ -119,7 +130,10 @@ const SmartRecorder: React.FC<Props> = ({
   const handleStartRecording = async () => {
     setIsPreparing(true);
     try {
-      await startRecording();
+      // A denied permission or a failed prepare used to leave the mic looking
+      // live and doing nothing at all — say it instead of swallowing it.
+      const started = await startRecording();
+      if (!started) setShowMicFailed(true);
     } finally {
       setIsPreparing(false);
     }
@@ -302,6 +316,15 @@ const SmartRecorder: React.FC<Props> = ({
         cancelLabel="Cancel"
         accentColor={accent}
         onAccentColor={onAccent}
+      />
+
+      {/* Mic couldn't start — single acknowledge, no action we can take for them. */}
+      <Dialog
+        visible={showMicFailed}
+        onClose={() => setShowMicFailed(false)}
+        title="Microphone unavailable"
+        message="We couldn't start recording. Check that Speechworks has microphone access in your device settings, then try again."
+        cancelLabel="OK"
       />
     </View>
   );

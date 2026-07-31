@@ -34,6 +34,7 @@ import {
   space,
   radius,
   borderWidth,
+  withAlpha,
 } from "../../../../../../design-system";
 import {
   DEFAULT_REFRAME_SERIES_ID,
@@ -57,7 +58,7 @@ import { showErrorBottomSheet } from "../../../../../../util/functions/bottomShe
 import { EVENT_NAMES } from "../../../../../../stores/events/constants";
 import { dispatchCustomEvent } from "../../../../../../util/functions/events";
 import SyncLoader from "../../../../../../components/SyncLoader";
-import ReframeWeather from "./components/ReframeWeather";
+import ReframeWeather, { reframeSkyTop } from "./components/ReframeWeather";
 import ReframeCard from "./components/ReframeCard";
 
 /**
@@ -90,7 +91,9 @@ const Reframe = () => {
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  // Matches whatever sky the weather layer is currently painting.
+  const skyTop = reframeSkyTop(scheme);
   // Reframe Thoughts = the "info" (blue) accent from the Cognitive Practice list;
   // the flow inherits it (Start, selection, save + done screens).
   const accentColor = colors.accent.info;
@@ -725,10 +728,11 @@ const Reframe = () => {
         ]}
       />
 
-      {/* Soft dark cap so scrolled content fades out behind the status bar. */}
+      {/* Soft cap so scrolled content fades out behind the status bar — fades from
+          the scene's own sky, so it follows the scheme instead of forcing dusk. */}
       {insets.top > 0 ? (
         <Gradient
-          colors={["#10151F", "rgba(16,21,31,0)"]}
+          colors={[skyTop, withAlpha(skyTop, 0)]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={[styles.statusCap, { height: insets.top + spacing.sm }]}
