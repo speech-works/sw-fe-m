@@ -1,7 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -36,6 +35,7 @@ import {
   type ReminderCategory,
 } from "../../../../../constants/reminderTemplates";
 import type { ReminderType as StoreReminderType } from "../../../../../stores/reminders";
+import { showErrorBottomSheet } from "../../../../../util/functions/bottomSheet";
 
 interface ReminderProps {
   onReminderSet?: () => void;
@@ -206,13 +206,21 @@ const ReminderModal = ({
   };
 
   const handleSaveReminder = async () => {
-    const hasPermissions = await requestNotificationPermissionWithFallback();
-    if (!hasPermissions) {
+    const permission = await requestNotificationPermissionWithFallback();
+    if (permission === "blocked") {
+      // The OS will not ask again — point at the only route left. Single-button
+      // sheet rather than a dialog: this component has no confirm host, and
+      // Settings carries a permanent row for the same fix.
+      showErrorBottomSheet(
+        "Notifications are off",
+        "Turn them on for SpeechWorks in your device settings, then come back to set this reminder.",
+      );
       return;
     }
+    if (permission !== "granted") return;
 
     if (!reminderTitle.trim()) {
-      Alert.alert("Title Required", "Please enter a title for your reminder.");
+      showErrorBottomSheet("Title Required", "Please enter a title for your reminder.");
       return;
     }
 
@@ -229,7 +237,7 @@ const ReminderModal = ({
       reminderType === "ONE_TIME" &&
       reminderDateTime.getTime() <= now.getTime()
     ) {
-      Alert.alert(
+      showErrorBottomSheet(
         "Invalid Date/Time",
         "One-time reminders must be in the future.",
       );
@@ -237,7 +245,7 @@ const ReminderModal = ({
     }
 
     if (reminderType === "ROUTINE" && selectedWeekDays.length === 0) {
-      Alert.alert("No Days Selected", "Please select at least one day.");
+      showErrorBottomSheet("No Days Selected", "Please select at least one day.");
       return;
     }
 
@@ -272,7 +280,7 @@ const ReminderModal = ({
       closeModal();
     } catch (error: any) {
       console.error("Failed to save reminder:", error);
-      Alert.alert(
+      showErrorBottomSheet(
         "Error",
         error?.message || "Could not save reminder. Please try again.",
       );
@@ -314,7 +322,7 @@ const ReminderModal = ({
 
   const handleOpen = () => {
     if (!isEditing && !canAddMore()) {
-      Alert.alert(
+      showErrorBottomSheet(
         "Limit Reached",
         "You've set 3 reminders — that's a solid routine! Delete one to add a new one.",
       );

@@ -15,6 +15,7 @@ import { useMoodCheckStore } from "../../stores/mood";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
+import NotificationPermissionPrompt from "../../components/NotificationPermissionPrompt";
 import { IdentityBlock } from "./components/IdentityBlock";
 import GrowthSummary from "./components/GrowthSummary";
 import MoodCheckBanner from "./components/MoodCheckBanner";
@@ -250,6 +251,10 @@ const Home = () => {
       </Page>
 
       {interactionsDone && <MoodCheckPopup />}
+      {/* Renderless. Gated on the same interactionsDone so it can't ask while
+          Home is still settling, and it stands down if MoodCheckPopup (or
+          anything else) took the moment first. */}
+      {interactionsDone && <NotificationPermissionPrompt />}
 
     </>
   );

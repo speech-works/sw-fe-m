@@ -5,11 +5,18 @@ import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 import { useInboxStore } from "../stores/inbox";
 import { useCommunityDock } from "../stores/communityDock";
+import {
+  useNotificationPermissionStore,
+  selectNotificationsNeedAttention,
+} from "../stores/notificationPermission";
 
 const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const { isTabBarVisible } = useUIStore();
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const hasBuddy = useInboxStore((s) => s.hasBuddy);
+  const notificationsNeedAttention = useNotificationPermissionStore(
+    selectNotificationsNeedAttention,
+  );
 
   // Community owns this dock while focused — it morphs into the Us/Timeline switcher.
   const dockActive = useCommunityDock((s) => s.active);
@@ -80,6 +87,10 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
       label: (options.tabBarLabel as string) || route.name,
       icon,
       badge,
+      // Notifications are off at the OS level and the user hasn't waved it away:
+      // mark Settings, because that is where the fix lives. Only on the global
+      // nav dock — the Community tabs dock is a different context.
+      badgeDot: routeName === ROUTE_NAMES.SETTINGS && notificationsNeedAttention,
     };
   });
 

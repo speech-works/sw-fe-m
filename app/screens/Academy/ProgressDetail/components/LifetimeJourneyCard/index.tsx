@@ -5,11 +5,13 @@ import {
   useTheme,
   spacing,
   radius,
+  borderWidth,
   size,
   Text,
   Icon,
   icons,
 } from "../../../../../design-system";
+import { insetSurface } from "../../insetSurface";
 
 type LifetimeJourneyCardProps = {
   journey: LifetimeJourneySummary | null;
@@ -29,7 +31,7 @@ const LifetimeJourneyCard = ({
   loading = false,
   hasError = false,
 }: LifetimeJourneyCardProps) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
 
   if ((loading && !journey) || !journey) {
     return null;
@@ -56,7 +58,13 @@ const LifetimeJourneyCard = ({
   if (!hasAnyHistory) return null;
 
   const stat = (value: string | number, label: string) => (
-    <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
+    <View
+      style={[
+        styles.statCard,
+        // Same inset rule as every other card on this screen.
+        insetSurface(colors, scheme),
+      ]}
+    >
       <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
         {value}
       </Text>
@@ -119,9 +127,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   statCard: {
+    borderWidth: borderWidth.hairline,
     width: "48%",
     flexGrow: 1,
-    borderRadius: radius.input,
+    borderRadius: radius.card,
     padding: spacing.lg,
     minHeight: 92,
     justifyContent: "space-between",

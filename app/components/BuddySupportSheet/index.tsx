@@ -2,7 +2,6 @@ import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   View,
 } from "react-native";
@@ -13,6 +12,7 @@ import { SUPPORT_NOTES } from "../../constants/supportNotes";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 
 interface BuddySupportSheetProps {
   visible: boolean;
@@ -78,7 +78,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
       setSentNotes((prev) => [...prev, noteId]);
       onSupported?.();
     } catch (e) {
-      Alert.alert("Couldn't send", "Please try again.");
+      showErrorBottomSheet("Couldn't send", "Please try again.");
     } finally {
       setSendingNote(null);
     }
@@ -93,7 +93,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
       setLifelineSent(true);
       onSupported?.();
     } catch (e) {
-      Alert.alert("Couldn't send", "Please try again.");
+      showErrorBottomSheet("Couldn't send", "Please try again.");
     } finally {
       setSendingLifeline(false);
     }

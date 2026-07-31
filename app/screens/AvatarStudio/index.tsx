@@ -5,6 +5,7 @@ import { Directions, Gesture, GestureDetector } from "react-native-gesture-handl
 import { updateMyUser } from "../../api/users";
 import { useUserStore } from "../../stores/user";
 import { useAvatarDraftStore } from "../../stores/avatarDraft";
+import { useAvatarSavedStore } from "../../stores/avatarSaved";
 import { stageIndexForLevel } from "../../types/avatar";
 import {
   BG_COLORS,
@@ -67,6 +68,7 @@ const AvatarStudio = () => {
   const { user, setUser } = useUserStore();
   const { draft, loadFromUser, setPart, setColor, isDirty, clear } =
     useAvatarDraftStore();
+  const markAvatarSaved = useAvatarSavedStore((s) => s.mark);
 
   const [tab, setTab] = useState<SlotTab>("skin");
   const [saving, setSaving] = useState(false);
@@ -141,6 +143,10 @@ const AvatarStudio = () => {
       const saved = await updateMyUser({ avatarManifest: draft });
       setUser(saved);
       clear();
+      // Only on the success path, and only after the server has agreed. Home
+      // greets the new avatar as they land on it; marking this any earlier would
+      // celebrate a save that might still fail.
+      markAvatarSaved();
       showToast("Avatar saved");
       navigation.goBack();
     } catch (error) {

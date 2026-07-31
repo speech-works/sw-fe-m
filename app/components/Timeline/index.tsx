@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 
 import {
@@ -17,8 +17,9 @@ import { useInboxStore } from "../../stores/inbox";
 import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering } from "../../design-system";
+import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
 import SignalCard from "../SignalCard";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 
 interface TimelineProps {
   threadId: string;
@@ -42,6 +43,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
   const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const myId = useUserStore((s) => s.user?.id);
   const { colors } = useTheme();
   const reduced = useReducedMotion();
@@ -92,7 +94,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       track(ANALYTICS_EVENTS.POST_REACTION_SENT, { type });
     } catch (e) {
       setSignals(prev);
-      Alert.alert("Couldn't send", "Please try again.");
+      showErrorBottomSheet("Couldn't send", "Please try again.");
     }
   };
 
@@ -105,7 +107,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       if (removed) track(ANALYTICS_EVENTS.POST_REACTION_REMOVED, { type: removed });
     } catch (e) {
       setSignals(prev);
-      Alert.alert("Couldn't update", "Please try again.");
+      showErrorBottomSheet("Couldn't update", "Please try again.");
     }
   };
 
@@ -125,31 +127,28 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       setSignals((ss) => ss.map((s) => (s.id === signalId ? updated : s)));
     } catch (e) {
       setSignals(prev);
-      Alert.alert("Couldn't send", "Please try again.");
+      showErrorBottomSheet("Couldn't send", "Please try again.");
     } finally {
       setReplyingId(null);
     }
   };
 
-  const handleDelete = (signalId: string) => {
-    Alert.alert("Delete post?", "This removes it from your buddy's timeline.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          const prev = signals;
-          setSignals((ss) => ss.filter((s) => s.id !== signalId));
-          try {
-            await deleteSignal(signalId);
-            track(ANALYTICS_EVENTS.POST_DELETED);
-          } catch (e) {
-            setSignals(prev);
-            Alert.alert("Couldn't delete", "Please try again.");
-          }
-        },
-      },
-    ]);
+  const handleDelete = (signalId: string) => setPendingDeleteId(signalId);
+
+  const confirmDelete = async () => {
+    const signalId = pendingDeleteId;
+    setPendingDeleteId(null);
+    if (!signalId) return;
+
+    const prev = signals;
+    setSignals((ss) => ss.filter((s) => s.id !== signalId));
+    try {
+      await deleteSignal(signalId);
+      track(ANALYTICS_EVENTS.POST_DELETED);
+    } catch (e) {
+      setSignals(prev);
+      showErrorBottomSheet("Couldn't delete", "Please try again.");
+    }
   };
 
   if (loading) {
@@ -235,6 +234,17 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
           <Text variant="bodySm" color="accent" style={styles.bold}>Load more</Text>
         </TouchableOpacity>
       ) : null}
+
+      <Dialog
+        visible={pendingDeleteId !== null}
+        onClose={() => setPendingDeleteId(null)}
+        title="Delete post?"
+        message="This removes it from your buddy's timeline."
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDelete}
+      />
     </View>
   );
 });

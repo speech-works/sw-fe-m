@@ -155,6 +155,13 @@ module.exports = {
     android: {
       usesCleartextTraffic: allowsInsecureNetworkTraffic,
       package: "com.speechworks.app",
+      // Registers the app with Firebase Cloud Messaging, which is the ONLY
+      // route push can take to an Android device. Without it Firebase never
+      // initializes, getExpoPushTokenAsync() throws, and the device silently
+      // never obtains a token — so the server has nothing to send to and every
+      // Android user receives nothing, with no error anywhere.
+      // iOS needs no equivalent: Apple's APNs key is managed by EAS.
+      googleServicesFile: "./google-services.json",
       permissions: [
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",

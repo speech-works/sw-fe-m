@@ -2,7 +2,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   TextInput,
   View,
@@ -46,6 +45,7 @@ import {
   mix,
   AA_LARGE,
 } from "../../design-system";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 
 const CAPTION_MAX = 280;
 
@@ -257,7 +257,7 @@ const PracticeComposer = () => {
       params.onShared?.();
       navigation.goBack();
     } catch (e) {
-      Alert.alert("Couldn't share", "Please try again.");
+      showErrorBottomSheet("Couldn't share", "Please try again.");
     } finally {
       setPosting(false);
     }

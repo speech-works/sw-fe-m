@@ -39,4 +39,9 @@ export const ASYNC_KEYS_NAME = {
   // answer (`hasCompletedOnboarding`) and only the server's. This decides
   // volume, never access.
   SW_ZSTORE_ONBOARDING_NUDGE: "SW_ZSTORE_ONBOARDING_NUDGE",
+  // Stores only our own bookkeeping — whether the one proactive permission ask
+  // has happened, and any "Not now" snooze. The OS permission itself is never
+  // cached here; it is read fresh, because the user can change it in system
+  // settings without the app ever being told.
+  SW_ZSTORE_NOTIFICATION_PERMISSION: "SW_ZSTORE_NOTIFICATION_PERMISSION",
 };

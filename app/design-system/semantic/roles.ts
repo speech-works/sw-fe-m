@@ -12,6 +12,20 @@ export type SemanticColors = {
     rowSelected: string;
     control: string;
     inverse: string; // a bright (white) disc — avatars, switch thumbs
+    /**
+     * The one high-contrast card fill: near-black on paper, near-white on ink.
+     *
+     * NOT `inverse`, which despite the name is WHITE IN BOTH SCHEMES and is
+     * relied on that way by ~30 call sites (avatar discs, the toggle thumb,
+     * every practice-icon housing, and eight cards that write
+     * `isDark ? action.secondary : surface.inverse` to get a white pill on a
+     * coloured fill). Repointing it would break all of them, several twice.
+     *
+     * Use sparingly — at most one per screen. It is the loudest object the
+     * system has, and it earns its place only on something that is genuinely
+     * about the user rather than about the app.
+     */
+    contrast: string;
     material: string; // translucent blur tint for floating chrome (toast/banner)
   };
   border: { hairline: string; default: string; strong: string; selected: string; focus: string };
@@ -22,6 +36,10 @@ export type SemanticColors = {
     disabled: string;
     inverse: string; // dark text that sits on the brand/orange fill
     onInverse: string; // near-black text that sits on the white `surface.inverse` disc
+    /** Body text on `surface.contrast`. Flips with it, unlike `onInverse`. */
+    onContrast: string;
+    /** Muted text on `surface.contrast` — labels under a hero number. */
+    onContrastMuted: string;
     link: string;
     // The brand orange used AS foreground (text / small meaningful icon) on a
     // surface — per-scheme: bright orange on dark, AA-legible amber on light.

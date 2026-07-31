@@ -19,6 +19,8 @@ export const lightColors: SemanticColors = {
     rowSelected: p.orange[400],
     control: p.paper.control,
     inverse: p.white,
+    // Dark card on paper — 14.19:1 against the canvas.
+    contrast: p.ink.panel,
     material: p.paperA(0.85),
   },
   border: {
@@ -38,6 +40,8 @@ export const lightColors: SemanticColors = {
     disabled: p.paper.textDisabled,
     inverse: p.orange.on,
     onInverse: p.ink.canvas,
+    onContrast: p.ink.textPrimary,
+    onContrastMuted: p.ink.textSecondary,
     link: p.orange.textOnLight,
     accent: p.orange.textOnLight, // #A84600 amber — AA on paper, keeps warm brand
   },

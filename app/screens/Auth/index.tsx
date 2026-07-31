@@ -1,7 +1,6 @@
 import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Platform,
   ScrollView,
@@ -31,6 +30,7 @@ import { handleLinkPress } from "../../util/functions/externalLinks";
 import {
   borderWidth,
   Button,
+  Dialog,
   radius,
   SchemeStatusBar,
   Sheet,
@@ -44,6 +44,7 @@ import {
 } from "../../design-system";
 import LoginBackground from "./components/LoginBackground";
 import { apiErrorMessage } from "../../util/functions/apiError";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
 
@@ -81,6 +82,7 @@ const LoginScreen = () => {
    */
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isCodeAdded, setIsCodeAdded] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
   /**
    * Sign-in failed. Offers support HERE rather than from a permanent link on
@@ -89,10 +91,7 @@ const LoginScreen = () => {
    * An error with no recovery path is the thing worth avoiding — not the link.
    */
   const showError = (message: string) => {
-    Alert.alert("Couldn't sign you in", message, [
-      { text: "Get help", onPress: () => handleLinkPress(SUPPORT_URL) },
-      { text: "Try again", style: "cancel" },
-    ]);
+    setSignInError(message);
   };
 
   const onPressOAuth = async (provider: string) => {
@@ -270,7 +269,7 @@ const LoginScreen = () => {
         // The server's own words: it distinguishes an invalid code from your
         // own code, from already having a buddy, from theirs being taken. A
         // generic "something went wrong" would throw all of that away.
-        Alert.alert(
+        showErrorBottomSheet(
           "Couldn't pair you up",
           `${apiErrorMessage(e, "That code didn't work.")}\n\nYou're all signed up — you can add a code from the Community tab.`,
         );
@@ -426,6 +425,22 @@ const LoginScreen = () => {
           />
         </View>
       </Sheet>
+
+      {/* Support is offered HERE, at the only moment anyone wants it — see the
+          note on showError. "Try again" is the cancel, because dismissing the
+          dialog already returns them to the buttons. */}
+      <Dialog
+        visible={signInError !== null}
+        onClose={() => setSignInError(null)}
+        title="Couldn't sign you in"
+        message={signInError ?? ""}
+        cancelLabel="Try again"
+        confirmLabel="Get help"
+        onConfirm={() => {
+          setSignInError(null);
+          handleLinkPress(SUPPORT_URL);
+        }}
+      />
     </View>
   );
 };

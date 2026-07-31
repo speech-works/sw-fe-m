@@ -1,7 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Alert,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -31,6 +30,7 @@ import { getMoment, momentsByValence } from "../../constants/momentMessages";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -109,7 +109,7 @@ const ShareMomentScreen = () => {
       onCreated?.(signal);
       dismissSheet(() => navigation.goBack()); // close the sheet, THEN leave the composer
     } catch (e) {
-      Alert.alert("Couldn't share", "Please try again.");
+      showErrorBottomSheet("Couldn't share", "Please try again.");
     } finally {
       setPosting(false);
     }

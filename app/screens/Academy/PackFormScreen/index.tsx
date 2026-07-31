@@ -2,15 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { submitFormResponse } from "../../../api";
 import {
   FormConfiguration,
   FormField,
   FormFieldType,
 } from "../../../api/packs/types";
-import { BreakthroughMetadata } from "../../../api/forms/types";
-import BreakthroughModal from "../../../components/BreakthroughModal";
 import PressableScale from "../../../components/PressableScale";
 import {
   Button,
@@ -284,7 +282,6 @@ const PackFormScreen = () => {
 
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [breakthroughData, setBreakthroughData] = useState<BreakthroughMetadata | null>(null);
 
   const updateAnswer = (fieldId: string, value: any) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
@@ -302,7 +299,7 @@ const PackFormScreen = () => {
 
   const handleSubmit = async () => {
     if (!allRequiredFilled) {
-      Alert.alert(
+      showErrorBottomSheet(
         "Incomplete",
         "Please answer all required fields before submitting.",
       );
@@ -311,23 +308,19 @@ const PackFormScreen = () => {
 
     try {
       setSubmitting(true);
-      const { breakthrough } = await submitFormResponse(formId, answers, { packId, moduleId });
+      await submitFormResponse(formId, answers, { packId, moduleId });
 
       // Persist completion locally
       const storageKey = `pack-${packId}-module-${moduleId}-form-${blockId}`;
       await AsyncStorage.setItem(storageKey, "true");
 
-      if (breakthrough) {
-        // EXCLUSIVE SIGNALING: Breakthrough Modal takes precedence
-        setBreakthroughData(breakthrough);
-      } else {
-        // EXCLUSIVE SIGNALING: Fallback to standard snackbar
-        showSuccessBottomSheet(
-          "Reflection Saved",
-          "Your response has been recorded.",
-        );
-        navigation.goBack();
-      }
+      // ONE OUTCOME, ALWAYS. A "breakthrough" modal used to pre-empt this —
+      // see the note in `api/forms/types.ts` for why it is gone.
+      showSuccessBottomSheet(
+        "Reflection Saved",
+        "Your response has been recorded.",
+      );
+      navigation.goBack();
     } catch (error: any) {
       console.error("Form submission failed:", error);
       showErrorBottomSheet(
@@ -416,15 +409,6 @@ const PackFormScreen = () => {
           </Surface>
         ))}
       </Page>
-
-      <BreakthroughModal
-        visible={!!breakthroughData}
-        data={breakthroughData}
-        onClose={() => {
-          setBreakthroughData(null);
-          navigation.goBack();
-        }}
-      />
     </>
   );
 };

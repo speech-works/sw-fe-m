@@ -4,7 +4,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import type { ReminderCategory } from "../../constants/reminderTemplates";
+import { normalizeReminderDate } from "./normalizeDate";
 import {
+  cancelAllReminderNotifications,
   cancelReminderNotifications,
   scheduleOneTime,
   scheduleRoutine,
@@ -113,15 +115,16 @@ export const useReminderStore = create<ReminderState>()(
           return;
         }
 
-        // 1. Cancel existing notifications
-        if (oldRem.notificationIds && oldRem.notificationIds.length > 0) {
-          await cancelReminderNotifications(oldRem);
-        }
-
-        // 2. Create the updated reminder object
         const updatedRem: Reminder = { ...oldRem, ...changes };
 
-        // 3. Re-schedule if active and not globally paused
+        // Schedule the NEW notifications BEFORE cancelling the old ones. The
+        // reverse order meant a failed edit (a past date, a denied permission)
+        // left the user with a reminder still listed and toggled ON whose
+        // notifications had already been destroyed — it simply never fired
+        // again. Scheduling first means a failure here changes nothing: we
+        // throw, the old notifications are still armed, and the store is
+        // untouched. The two sets overlap only for the few ms below, during
+        // which neither can fire.
         let newNotificationIds: string[] = [];
         if (updatedRem.active && !get().globalPaused) {
           try {
@@ -142,6 +145,11 @@ export const useReminderStore = create<ReminderState>()(
           if (newNotificationIds.length === 0) {
             throw new Error("Failed to reschedule reminder notification.");
           }
+        }
+
+        // Only now is it safe to retire the previous generation.
+        if (oldRem.notificationIds && oldRem.notificationIds.length > 0) {
+          await cancelReminderNotifications(oldRem);
         }
 
         updatedRem.notificationIds = newNotificationIds;
@@ -181,17 +189,33 @@ export const useReminderStore = create<ReminderState>()(
             ),
           }));
         } else {
-          // Resuming — reschedule notifications
+          // Resuming — reschedule notifications. A failure here used to be
+          // swallowed and then written as `active: true, notificationIds: []`:
+          // the switch flipped on and nothing ever fired. Leave the reminder
+          // OFF and surface the failure so the UI can say so — the same
+          // contract addReminder already has.
           let newNotificationIds: string[] = [];
           if (!get().globalPaused) {
-            try {
-              if (rem.type === "ONE_TIME") {
-                newNotificationIds.push(await scheduleOneTime(rem));
-              } else if (rem.type === "ROUTINE") {
-                newNotificationIds = await scheduleRoutine(rem);
+            if (rem.type === "ONE_TIME") {
+              // Its moment may have passed while it was switched off. iOS
+              // rejects a past trigger and Android drops it while still
+              // handing back an id, so check here and say why rather than
+              // letting the platform decide how to fail.
+              const [y, m, d] = rem.date.split("-").map(Number);
+              const [h, min] = rem.time.split(":").map(Number);
+              const when = new Date(y, m - 1, d, h, min).getTime();
+              if (Number.isNaN(when) || when <= Date.now()) {
+                throw new Error(
+                  "That reminder's time has already passed. Edit it to a future time to switch it back on.",
+                );
               }
-            } catch (error) {
-              console.error(`Failed to reschedule reminder ${id}:`, error);
+              newNotificationIds.push(await scheduleOneTime(rem));
+            } else if (rem.type === "ROUTINE") {
+              newNotificationIds = await scheduleRoutine(rem);
+            }
+
+            if (newNotificationIds.length === 0) {
+              throw new Error("Failed to reschedule reminder notification.");
             }
           }
           set((s) => ({
@@ -206,6 +230,17 @@ export const useReminderStore = create<ReminderState>()(
 
       setGlobalPaused: async (paused) => {
         set({ globalPaused: paused });
+        if (paused) {
+          // rescheduleAllActiveNotifications early-returns on globalPaused —
+          // BEFORE its cancel step — so delegating here would have flipped the
+          // flag and left every notification armed. Pausing has to do its own
+          // cancelling.
+          await cancelAllReminderNotifications();
+          set((s) => ({
+            reminders: s.reminders.map((r) => ({ ...r, notificationIds: [] })),
+          }));
+          return;
+        }
         await get().rescheduleAllActiveNotifications();
       },
 
@@ -257,7 +292,19 @@ export const useReminderStore = create<ReminderState>()(
 
         console.log("Rescheduling all active notifications...");
 
-        // 1. Cancel existing notifications
+        // 1. Cancel the previous generation — by stored id AND by what is
+        // actually pending on the device.
+        //
+        // The stored ids alone are not enough: a reschedule mints ~21 new ids
+        // across as many native calls but persists once at the end, so a kill
+        // in between leaves the store pointing at the previous generation
+        // while the new one stays armed. Those orphans are weekly repeats, so
+        // they would arrive forever with nothing left holding their ids.
+        //
+        // The device sweep alone is not enough either — it can fail to
+        // enumerate, and skipping the cancel entirely would let this pass
+        // duplicate every reminder. Doing both means the targeted cancel still
+        // happens if the sweep fails, and duplicate cancels are harmless.
         await Promise.all(
           get().reminders.map(async (rem) => {
             if (rem.notificationIds.length > 0) {
@@ -265,6 +312,7 @@ export const useReminderStore = create<ReminderState>()(
             }
           }),
         );
+        await cancelAllReminderNotifications();
 
         // 2. Filter expired one-time reminders
         const now = new Date();
@@ -313,6 +361,24 @@ export const useReminderStore = create<ReminderState>()(
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_REMINDERS,
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // v0 → v1: repair dates written as MM/DD/YYYY by the Settings screen.
+      // Every consumer parses `date` with split("-"), so a slashed value became
+      // NaN — the trigger silently never fired, and `NaN > now` is false, so it
+      // was also classified as expired forever and could never self-heal.
+      // Untouched: ROUTINE rows (date is ""), and any value already ISO.
+      migrate: (persisted, version) => {
+        if (version >= 1) return persisted as ReminderState;
+        const state = persisted as ReminderState | undefined;
+        if (!state?.reminders) return state as ReminderState;
+        return {
+          ...state,
+          reminders: state.reminders.map((rem) => ({
+            ...rem,
+            date: normalizeReminderDate(rem.date),
+          })),
+        };
+      },
     },
   ),
 );

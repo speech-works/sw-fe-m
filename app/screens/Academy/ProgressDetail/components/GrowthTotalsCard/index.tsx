@@ -8,12 +8,14 @@ import {
   spacing,
   radius,
   size,
+  borderWidth,
   withAlpha,
   type IconName,
 } from "../../../../../design-system";
 import { GrowthAxis, GrowthTotals, visibleTotals } from "../../../../../api/dailyPlan";
 import { FIRST_STEP, lastAtPhrase } from "../../../../../util/growth/format";
 import { axisAccent } from "../../../../../util/growth/accents";
+import { insetSurface } from "../../insetSurface";
 
 /**
  * ============================================================================
@@ -56,7 +58,7 @@ import { axisAccent } from "../../../../../util/growth/accents";
 const AXIS_ICON: Record<string, IconName> = {
   [GrowthAxis.BRAVER]: icons.courage,
   [GrowthAxis.WIDER]: icons.globe,
-  [GrowthAxis.REGULAR]: icons.routine,
+  [GrowthAxis.REGULAR]: icons.streak,
 };
 
 interface Props {
@@ -64,7 +66,7 @@ interface Props {
 }
 
 const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const rows = visibleTotals(totals);
 
   // Nothing loaded yet, or the call failed. Render nothing rather than an
@@ -73,11 +75,27 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
   if (!totals || rows.length === 0) return null;
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
+    <View
+      style={[
+        styles.card,
+        {
+          // No border on the OUTER card — the weekly card has none, and two
+          // nested outlines read as a table. The inset blocks carry the edges.
+          backgroundColor: colors.surface.elevated,
+        },
+      ]}
+    >
       <View style={styles.headerRow}>
         <View style={styles.flex1}>
+          {/* "YOUR GROWTH", not "WHAT YOU'VE DONE".
+              The old eyebrow described the card instead of naming it, and it
+              was the same sentence as the Home row that opens this — the two
+              screens said one thing twice. Deliberately NOT "Growth Profile":
+              that is the name of the five-score clinical widget deleted in
+              `baa856f7` for being unable to move, and reviving the words would
+              promise the chart this card exists to not be. */}
           <Text variant="label" color="tertiary" style={styles.eyebrow}>
-            WHAT YOU&apos;VE DONE
+            YOUR GROWTH
           </Text>
           {/* TWO LINES REMOVED HERE, NOT ONE.
               "Three things we watch" restated the eyebrow, and "None of them
@@ -92,7 +110,12 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
       </View>
 
       {!totals.hasAny ? (
-        <View style={[styles.invite, { backgroundColor: colors.surface.default }]}>
+        <View
+          style={[
+            styles.invite,
+            insetSurface(colors, scheme),
+          ]}
+        >
           <Icon name={icons.tip} size={16} color={colors.text.secondary} />
           <Text variant="bodySm" color="secondary" style={styles.flex1}>
             This fills in as you practise. Nothing to set up.
@@ -107,7 +130,13 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
           return (
             <View
               key={row.axis}
-              style={[styles.row, { backgroundColor: colors.surface.default }]}
+              style={[
+                styles.row,
+                // One shared rule for every inset on this screen — see
+                // `insetSurface`. Sunken read as a hole punched in the card;
+                // this is the softer panel the weekly card has always used.
+                insetSurface(colors, scheme),
+              ]}
             >
               {/* SOLID DISC ONCE EARNED, TINTED WHILE IT IS STILL EMPTY.
                   The one place a tint is right: an axis at zero should read as
@@ -139,9 +168,15 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
                 <Text variant="caption" color="tertiary">
                   {row.subtitle}
                 </Text>
+                {/* A PROMPT, NOT A VALUE. It used to open with "None yet."
+                    and then say what to do — but the row has no number beside
+                    it, which states the absence already. Saying it in words
+                    too made the sentence about what is missing rather than
+                    about the way out of it, and pushed the useful half onto a
+                    second line. */}
                 {!earned ? (
-                  <Text variant="bodySm" color="secondary" style={styles.value}>
-                    {FIRST_STEP[row.axis] ?? "None yet."}
+                  <Text variant="caption" color="tertiary" style={styles.value}>
+                    {FIRST_STEP[row.axis] ?? "Not started."}
                   </Text>
                 ) : null}
               </View>
@@ -199,7 +234,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: spacing.sm,
-    borderRadius: radius.input,
+    borderRadius: radius.card,
+    borderWidth: borderWidth.hairline,
     padding: spacing.lg,
   },
   rows: { gap: spacing.md },
@@ -207,7 +243,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    borderRadius: radius.input,
+    // `radius.card`, matching the weekly stat badges — `radius.input` made
+    // these read as form fields sitting in a card.
+    borderRadius: radius.card,
+    borderWidth: borderWidth.hairline,
     padding: spacing.lg,
   },
   rowIcon: {

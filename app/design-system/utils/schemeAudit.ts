@@ -86,6 +86,11 @@ const buildPairings = (): Pairing[] => {
   // Chrome.
   pairings.push({ label: "nav.onActive on nav.activePill", fg: (c) => c.nav.onActive, bg: (c) => c.nav.activePill });
   pairings.push({ label: "text.onInverse on surface.inverse", fg: (c) => c.text.onInverse, bg: (c) => c.surface.inverse });
+  // The high-contrast card. Both foregrounds are audited because the muted one
+  // carries the axis labels under the hero numbers, and a muted grey that is
+  // fine on ink can fail on paper — which is the whole reason this pair flips.
+  pairings.push({ label: "text.onContrast on surface.contrast", fg: (c) => c.text.onContrast, bg: (c) => c.surface.contrast });
+  pairings.push({ label: "text.onContrastMuted on surface.contrast", fg: (c) => c.text.onContrastMuted, bg: (c) => c.surface.contrast });
   pairings.push({ label: "input.placeholder on input.bg", fg: (c) => c.input.placeholder, bg: (c) => c.input.bg });
   pairings.push({ label: "input.error on input.bg", fg: (c) => c.input.error, bg: (c) => c.input.bg });
   pairings.push({ label: "text.inverse on surface.rowSelected", fg: (c) => c.text.inverse, bg: (c) => c.surface.rowSelected });
@@ -98,8 +103,21 @@ const buildPairings = (): Pairing[] => {
 };
 
 /** Run the audit over both schemes; warn a table of failures (dev only). */
-export const runSchemeAudit = (): void => {
-  if (typeof __DEV__ === "undefined" || !__DEV__) return;
+/**
+ * Every pairing that fails AA, in both schemes. PURE — no `__DEV__` gate and no
+ * logging, so a test can assert on it.
+ *
+ * Split out because `runSchemeAudit` was dev-only, console-based, and had NO
+ * CALLERS anywhere in the app. Registering a pairing in it therefore documented
+ * an intention rather than enforcing anything, which is worth exactly nothing
+ * the day somebody retunes a token.
+ */
+export const auditSchemes = (): {
+  scheme: Scheme;
+  label: string;
+  ratio: string;
+  need: number;
+}[] => {
   const pairings = buildPairings();
   const failures: { scheme: Scheme; label: string; ratio: string; need: number }[] = [];
 
@@ -116,6 +134,12 @@ export const runSchemeAudit = (): void => {
       }
     }
   });
+  return failures;
+};
+
+export const runSchemeAudit = (): void => {
+  if (typeof __DEV__ === "undefined" || !__DEV__) return;
+  const failures = auditSchemes();
 
   if (failures.length) {
     // eslint-disable-next-line no-console

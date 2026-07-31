@@ -138,7 +138,6 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
   const [crisisEnded, setCrisisEnded] = useState(false);
 
   const defer = useFirstCallStore((s) => s.defer);
-  const markNoHeadphones = useFirstCallStore((s) => s.markNoHeadphones);
   const clearDeferral = useFirstCallStore((s) => s.clearDeferral);
 
   const scenario = offer?.scenario;
@@ -456,14 +455,6 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
               attempts: gateAttempts.current,
             });
             defer();
-            leave();
-          }}
-          onNoHeadphones={() => {
-            track(ANALYTICS_EVENTS.FIRST_CALL_GATE_DEFERRED, {
-              reason: "no_headphones",
-              attempts: gateAttempts.current,
-            });
-            markNoHeadphones();
             leave();
           }}
         />

@@ -9,7 +9,6 @@ import {
   useTheme,
   spacing,
   radius,
-  borderWidth,
 } from "../../../../design-system";
 import {
   fetchGrowthTotals,
@@ -140,22 +139,43 @@ const GrowthSummary: React.FC = () => {
       scaleTo={0.98}
       onPress={open}
       accessibilityRole="button"
-      accessibilityLabel={`What you've done. ${rows
+      // Spells the unit out — "6 times", "2 kinds of situation" — because a
+      // screen reader gets the chip without the visual grouping that makes a
+      // bare number legible.
+      accessibilityLabel={`So far. ${rows
         .map((r) => `${r.label}, ${countPhrase(r.axis, r.count)}`)
         .join(". ")}. Opens your progress report.`}
       style={[
         styles.card,
         {
-          backgroundColor: colors.surface.elevated,
-          borderColor: colors.border.hairline,
+          // THE ONE HIGH-CONTRAST OBJECT ON HOME, and the only card here that
+          // is about the person rather than about the app — the level ring is
+          // progression, the mood card is a prompt, the pack cards are selling.
+          // At 1.11:1 on `surface.elevated` this was text floating on paper;
+          // `surface.contrast` puts it at 14.19:1 and makes it a thing you
+          // notice without it having to shout. Used exactly once per screen.
+          backgroundColor: colors.surface.contrast,
         },
       ]}
     >
       <View style={styles.headerRow}>
-        <Text variant="bodySm" color="secondary" style={styles.bold}>
-          What you&apos;ve done
-        </Text>
-        <Icon name={icons.chevronRight} size={16} color={colors.text.tertiary} />
+        <View style={styles.flex1}>
+          {/* AN EYEBROW AND A TITLE, not one flat label. A single grey line
+              gives the eye nothing to land on first; the pair does, and it is
+              what every card on this screen that already works is doing. */}
+          <Text variant="label" color={colors.text.onContrastMuted} style={styles.eyebrow}>
+            SO FAR
+          </Text>
+          <Text variant="h3" color={colors.text.onContrast}>
+            Your record
+          </Text>
+        </View>
+        {/* A FILLED DISC, not a hairline chevron. The thin glyph is what made
+            this read as a settings row rather than a card — it is the same
+            affordance a list item uses, at the same weight. */}
+        <View style={[styles.action, { backgroundColor: colors.text.onContrast }]}>
+          <Icon name={icons.forward} size={18} color={colors.surface.contrast} />
+        </View>
       </View>
 
       {/* ONLY IF THE COMPLETION SCREEN NEVER GOT THERE.
@@ -178,11 +198,18 @@ const GrowthSummary: React.FC = () => {
           // the first version ended up as three grey figures.
           const accent = axisAccent(row.axis, colors);
           return (
-          <View
-            key={row.axis}
-            style={[styles.stat, { backgroundColor: accent.fill }]}
-          >
-            <Text variant="h3" color={accent.on}>
+          // No pill fill: the card is already a committed surface, and a
+          // coloured chip ON a coloured card is two objects fighting. The hue
+          // now lives in the number itself.
+          <View key={row.axis} style={styles.stat}>
+            {/* Number then name, on one line. Stacked, the label sat under a
+                figure with nothing binding them, so a lone chip read as a
+                number that happened to have a word beneath it. Side by side
+                it reads as one phrase — "6 Braver" — which is how somebody
+                would say it out loud. */}
+            {/* THE NUMBER IS THE CARD. It was 15px inside a pill — the
+                smallest thing on a card that exists to show it. */}
+            <Text variant="display" color={accent.onContrast}>
               {row.count}
             </Text>
             {/* The label alone is safe here ONLY because it sits under a
@@ -190,7 +217,7 @@ const GrowthSummary: React.FC = () => {
                 tapping through reaches the subtitles immediately. Nothing in
                 this component may ever present "Wider" as a standalone
                 claim. */}
-            <Text variant="caption" color={accent.on} numberOfLines={1}>
+            <Text variant="caption" color={colors.text.onContrastMuted} numberOfLines={1}>
               {row.label}
             </Text>
           </View>
@@ -206,25 +233,30 @@ export default GrowthSummary;
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
-    borderWidth: borderWidth.hairline,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
+    padding: spacing["2xl"],
+    gap: spacing.lg,
   },
   bold: { fontWeight: "600" },
   headerRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  intro: { marginTop: -spacing.xxs },
-  stats: { flexDirection: "row", gap: spacing.xs },
-  stat: {
-    flex: 1,
     alignItems: "flex-start",
-    borderRadius: radius.input,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.xxs,
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  eyebrow: { letterSpacing: 1, textTransform: "uppercase" },
+  flex1: { flex: 1 },
+  intro: { marginTop: -spacing.xxs },
+  // WRAPS, AND NEVER STRETCHES. Each chip used to be `flex: 1`, so a person
+  // with ONE earned axis — which is everybody on their first day — got a
+  // single full-width slab of colour with a "1" adrift in the corner. Sizing
+  // to content means one chip is a chip and three still fill the row.
+  stats: { flexDirection: "row", flexWrap: "wrap", gap: spacing["2xl"] },
+  stat: { alignItems: "flex-start", gap: spacing.xxs },
+  action: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

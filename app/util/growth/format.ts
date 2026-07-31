@@ -62,12 +62,32 @@ export function lastAtPhrase(iso: string | null): string | null {
 /**
  * What would move this axis next, for somebody it has never moved for.
  *
- * Names concrete things in the app rather than restating the subtitle, because
- * the question a stuck user is actually asking is "what do I press". Finisher
- * is absent for the same reason it is absent from VISIBLE_AXES.
+ * NAMES THINGS THAT EXIST AND ARE FINDABLE. Both of the first attempts were
+ * wrong rather than merely vague:
+ *
+ *   "Speak to someone outside the app" — false in both directions. Talking to
+ *   a real person moves NOTHING unless it is logged through an Exposure
+ *   activity, so it promised credit we cannot detect; and it implied the
+ *   in-app interviews and social challenges, which DO move Wider, do not
+ *   count. It described the spirit of the axis instead of its mechanics.
+ *
+ *   "Try a phone call or a challenge" — "a challenge" names nothing. The app
+ *   has social challenges, real-life challenges AND a separate buddy weekly
+ *   quest, so the one word points at three different things, one of which
+ *   moves neither axis.
+ *
+ * Every activity behind Braver and Wider lives under Exposure, so the copy
+ * names the two most recognisable ones rather than the category — "phone call"
+ * and "interview" are things a person pictures; "Exposure" is a menu heading.
+ *
+ * NO "None yet." PREFIX. The row shows no number, which already says it; the
+ * words are for what to do about it. Finisher is absent for the same reason it
+ * is absent from VISIBLE_AXES.
  */
 export const FIRST_STEP: Record<string, string> = {
-  [GrowthAxis.BRAVER]: "None yet. Try a phone call or a challenge.",
-  [GrowthAxis.WIDER]: "None yet. Speak to someone outside the app.",
-  [GrowthAxis.REGULAR]: "None yet. Any practice counts.",
+  [GrowthAxis.BRAVER]: "Try a phone call or an interview.",
+  // The axis counts DISTINCT kinds, so the prompt is about variety rather
+  // than volume — doing another phone call moves Braver but not this.
+  [GrowthAxis.WIDER]: "Try a new kind of situation.",
+  [GrowthAxis.REGULAR]: "Any practice counts.",
 };

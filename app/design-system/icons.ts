@@ -89,11 +89,20 @@ export const icons = {
   trendDown: "arrow-trending-down", // trend, downward
   chartPie: "chart-pie", // pie/breakdown chart
   refresh: "arrow-sync", // sync / refresh
-  // Growth-profile radar domains (ClinicalStatsWidget)
-  confidence: "sun", // confidence — owning your voice
-  mastery: "graduation-cap", // mastery / skill level
-  ease: "sunset", // ease — calm, settled speech (was "droplet", a Feather outline amid filled Fluent)
-  social: "users", // social participation
+  // FOUR KEYS WERE REMOVED HERE — confidence, mastery, ease, social.
+  //
+  // They were the five-domain clinical radar's icons, and the radar went in
+  // `baa856f7`. Their last consumer was BreakthroughModal, now also gone. A
+  // registry key with no consumer is not inert: it is a standing invitation to
+  // reach for the retired vocabulary, and `ease` is the specific word this
+  // product must never put on a screen — in a stuttering app "ease" is read as
+  // *my speech got easier*, which is the claim we cannot make and the reason
+  // Steadier was renamed Finisher.
+  //
+  // The fifth, `courage`, survives: it is Braver's icon on the completion
+  // screen and the growth card, and "Faced a fear" in the moment picker. Same
+  // meaning in all three, which is reuse working as intended rather than a
+  // collision.
   growthSeed: "sprout", // growth (seedling)
   locked: "lock", // locked achievement
   weekly: "calendar", // "This week" scope

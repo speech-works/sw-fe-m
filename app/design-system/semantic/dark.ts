@@ -11,6 +11,8 @@ export const darkColors: SemanticColors = {
     rowSelected: p.orange[400],
     control: p.ink.control,
     inverse: p.white,
+    // Light card on ink — the same idea, flipped.
+    contrast: p.paper.panel,
     material: "rgba(42,38,31,0.82)",
   },
   border: {
@@ -27,6 +29,8 @@ export const darkColors: SemanticColors = {
     disabled: p.ink.textDisabled,
     inverse: p.orange.on,
     onInverse: p.ink.canvas,
+    onContrast: p.paper.textPrimary,
+    onContrastMuted: p.paper.textSecondary,
     link: p.orange[300],
     accent: p.orange[300], // bright orange foreground reads on the dark canvas
   },

@@ -3,7 +3,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert, Linking, Platform } from "react-native";
+import { Platform } from "react-native";
 import {
   getTemplateForCategory,
   type ReminderCategory,
@@ -30,6 +30,64 @@ const hasGrantedNotificationPermission = (
 ) =>
   settings.granted ||
   settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+
+/** The OS-level answer, read fresh. The user can change it in system settings
+ *  at any time without the app knowing, so never cache this beyond a foreground. */
+export async function isNotificationPermissionGranted(): Promise<boolean> {
+  try {
+    return hasGrantedNotificationPermission(
+      await Notifications.getPermissionsAsync(),
+    );
+  } catch (error) {
+    // Unknown is not the same as denied — don't accuse the user's device of
+    // something we failed to read.
+    console.warn("[Push] could not read notification permission:", error);
+    return true;
+  }
+}
+
+/**
+ * Ask the OS directly, once. Returns whether we ended up granted.
+ *
+ * Distinct from requestNotificationPermissionWithFallback(): that one is for a
+ * user who just tapped something that NEEDS notifications, so it may show an
+ * "Open Settings" alert. This is the proactive ask, and it must stay silent —
+ * if the user has already denied, iOS cannot re-prompt and pushing an alert at
+ * someone who didn't ask for one is the wrong trade.
+ */
+export async function requestNotificationPermissionQuietly(): Promise<boolean> {
+  try {
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync(
+        DEFAULT_REMINDER_CHANNEL_ID,
+        {
+          name: "Default Reminders",
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#FF231F7C",
+          sound: "default",
+          showBadge: true,
+        },
+      );
+    }
+
+    const settings = await Notifications.getPermissionsAsync();
+    if (hasGrantedNotificationPermission(settings)) return true;
+    // iOS turns this false permanently after one denial; asking again is a
+    // silent no-op, so don't bother the user with a dialog that can't appear.
+    if (!settings.canAskAgain) return false;
+
+    const result = await Notifications.requestPermissionsAsync({
+      ios: { allowAlert: true, allowBadge: true, allowSound: true },
+    });
+    const granted = hasGrantedNotificationPermission(result);
+    if (granted) void registerPushToken();
+    return granted;
+  } catch (error) {
+    console.warn("[Push] quiet permission request failed:", error);
+    return false;
+  }
+}
 
 const buildRoutineTrigger = (
   weekday: number,
@@ -141,8 +199,14 @@ export const setupNotificationHandlers = () => {
  * This should be called once, typically on app startup.
  * Returns true if permissions are granted, false otherwise.
  */
-export async function registerForNotifications(): Promise<boolean> {
-  if (Platform.OS === "android") {
+/**
+ * Create the Android notification channel. Safe to call on every launch, needs
+ * no permission, and must run before anything is scheduled or any push arrives
+ * — a message naming a channel that doesn't exist is dropped on Android 8+.
+ */
+export async function ensureNotificationChannel(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  try {
     await Notifications.setNotificationChannelAsync(
       DEFAULT_REMINDER_CHANNEL_ID,
       {
@@ -154,37 +218,46 @@ export async function registerForNotifications(): Promise<boolean> {
         showBadge: true,
       },
     );
+  } catch (error) {
+    console.warn("[Push] could not create notification channel:", error);
   }
+}
 
-  // On emulators/simulators, skip the permission request but still set up channels
+/**
+ * Startup work only: make sure the channel exists, and if permission was
+ * ALREADY granted on a previous run, refresh this device's push token.
+ *
+ * This deliberately no longer REQUESTS permission. It used to, from a bare
+ * mount effect, which fired the system dialog over the pre-auth welcome screen
+ * before the person had signed up or seen what the app does. iOS grants exactly
+ * one dialog per install, so that spent the only ask we get at the worst
+ * possible moment. The ask now lives in NotificationPermissionPrompt, on Home,
+ * after onboarding.
+ *
+ * @returns whether notifications are currently permitted.
+ */
+export async function registerForNotifications(): Promise<boolean> {
+  await ensureNotificationChannel();
+
+  // Expo push tokens require a real device; the channel above is still worth
+  // creating on an emulator so local reminders behave the same there.
   if (!Device.isDevice) {
     console.log(
-      "Running on simulator/emulator — skipping notification permission request.",
+      "Running on simulator/emulator — skipping push token registration.",
     );
     return false;
   }
 
-  const existingSettings = await Notifications.getPermissionsAsync();
-  let isGranted = hasGrantedNotificationPermission(existingSettings);
+  const isGranted = hasGrantedNotificationPermission(
+    await Notifications.getPermissionsAsync(),
+  );
 
-  // Only ask if permissions have not already been determined
-  if (!isGranted) {
-    const requestSettings = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-      },
-    });
-    isGranted = hasGrantedNotificationPermission(requestSettings);
+  if (isGranted) {
+    // Returning user who already said yes — keep their token fresh.
+    void registerPushToken();
   }
 
-  if (!isGranted) {
-    console.warn("Permission for notifications not granted!");
-    return false;
-  }
-
-  return true;
+  return isGranted;
 }
 
 /**
@@ -230,12 +303,42 @@ export async function unregisterPushToken(): Promise<void> {
 }
 
 /**
- * Request notification permission with a user-friendly fallback.
- * If permission was permanently denied, shows an alert guiding the user
- * to the device settings screen.
- * Returns true if permission is granted, false otherwise.
+ * What came of asking for notification permission.
+ *
+ * `blocked` is the case worth distinguishing: the OS will not show its dialog
+ * again, so the only route left is system settings. Callers use it to offer
+ * that route in OUR dialog — this module renders nothing itself.
  */
-export async function requestNotificationPermissionWithFallback(): Promise<boolean> {
+export type NotificationPermissionOutcome = "granted" | "denied" | "blocked";
+
+/**
+ * Request notification permission, reporting enough for the caller to respond
+ * well. Never renders anything.
+ */
+export async function requestNotificationPermissionWithFallback(): Promise<NotificationPermissionOutcome> {
+  const granted = await resolveNotificationPermission();
+
+  if (!granted) {
+    // Distinguish "said no just now, could be asked again" from "the OS will
+    // never ask again". Only the latter needs a trip to system settings.
+    const settings = await Notifications.getPermissionsAsync();
+    return settings.canAskAgain ? "denied" : "blocked";
+  }
+
+  // A grant obtained HERE is the late path: the user declined at first launch
+  // (or was never asked), so App.tsx's startup registration already ran and
+  // gave up. Without this, local reminders would start working while every
+  // server-sent push stayed dead until the next cold start — which reads as
+  // "buddy notifications are broken".
+  //
+  // Deliberately NOT awaited: callers are save handlers, and this makes a
+  // network round-trip. registerPushToken never throws, so nothing here can
+  // delay or fail the save.
+  void registerPushToken();
+  return "granted";
+}
+
+async function resolveNotificationPermission(): Promise<boolean> {
   // 1. Ensure Android channel exists regardless of permission state
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync(
@@ -269,25 +372,11 @@ export async function requestNotificationPermissionWithFallback(): Promise<boole
     return hasGrantedNotificationPermission(requestResult);
   }
 
-  // 4. Permission was permanently denied — guide the user to settings
-  return new Promise<boolean>((resolve) => {
-    Alert.alert(
-      "Notifications Disabled",
-      "To receive reminders, please enable notifications for SpeechWorks in your device settings.",
-      [
-        { text: "Not Now", style: "cancel", onPress: () => resolve(false) },
-        {
-          text: "Open Settings",
-          onPress: async () => {
-            await Linking.openSettings();
-            // Re-check after user returns from settings
-            const updated = await Notifications.getPermissionsAsync();
-            resolve(hasGrantedNotificationPermission(updated));
-          },
-        },
-      ],
-    );
-  });
+  // 4. Permanently denied. This module cannot render — it is imported by save
+  // handlers, not mounted — so it reports the fact and the CALLER decides how
+  // to say it. It used to raise a native OS alert here, which was the only
+  // system-styled dialog left in the product.
+  return false;
 }
 
 /**
@@ -323,26 +412,73 @@ export async function scheduleRoutine(rem: Reminder): Promise<string[]> {
   const ids: string[] = [];
   const [hour, minute] = rem.time.split(":").map(Number);
 
-  for (const weekday of rem.weekDays || []) {
-    // Input Weekday (0=Sun...6=Sat) to Expo Weekday (1=Sun...7=Sat)
-    // 0 (Sunday) -> 1
-    // 1 (Monday) -> 2
-    // ...
-    // 6 (Saturday) -> 7
-    const expoWeekday = weekday + 1;
+  try {
+    for (const weekday of rem.weekDays || []) {
+      // Input Weekday (0=Sun...6=Sat) to Expo Weekday (1=Sun...7=Sat)
+      // 0 (Sunday) -> 1
+      // 1 (Monday) -> 2
+      // ...
+      // 6 (Saturday) -> 7
+      const expoWeekday = weekday + 1;
 
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: rem.title,
-        body: rem.body || "Time for your practice!",
-        data: { reminderId: rem.id, category: rem.category },
-        sound: "default",
-      },
-      trigger: buildRoutineTrigger(expoWeekday, hour, minute),
-    });
-    ids.push(id);
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: rem.title,
+          body: rem.body || "Time for your practice!",
+          data: { reminderId: rem.id, category: rem.category },
+          sound: "default",
+        },
+        trigger: buildRoutineTrigger(expoWeekday, hour, minute),
+      });
+      ids.push(id);
+    }
+  } catch (error) {
+    // Partial failure would otherwise strand the days that DID schedule: every
+    // caller discards the return value on throw, and these are `repeats: true`
+    // weekly triggers, so the orphans would arrive forever with nothing left
+    // holding their ids. Undo our own work before surfacing the failure.
+    for (const id of ids) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(id);
+      } catch {
+        // Best-effort: the reconciling sweep in cancelAllReminderNotifications
+        // is the backstop if this also fails.
+      }
+    }
+    throw error;
   }
+
   return ids;
+}
+
+/**
+ * Cancel every reminder notification actually pending ON THE DEVICE, not just
+ * the ids this store happens to remember.
+ *
+ * Those two sets drift: a reschedule mints new ids across ~21 native calls and
+ * persists once at the end, so a kill in between leaves the store holding the
+ * previous generation while the new one stays armed. Cancelling by stored id
+ * can then never reach the orphans, and they repeat weekly forever.
+ *
+ * Only requests carrying a `reminderId` in their data are touched, so this
+ * cannot cancel notifications scheduled by any other part of the app.
+ */
+export async function cancelAllReminderNotifications(): Promise<void> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const req of scheduled) {
+      const data = req.content?.data as { reminderId?: unknown } | undefined;
+      if (typeof data?.reminderId !== "string") continue;
+      try {
+        await Notifications.cancelScheduledNotificationAsync(req.identifier);
+      } catch (error) {
+        console.warn(`[Reminders] failed to cancel ${req.identifier}:`, error);
+      }
+    }
+  } catch (error) {
+    // Never block the caller — the per-reminder cancel still runs.
+    console.warn("[Reminders] could not enumerate scheduled notifications:", error);
+  }
 }
 
 

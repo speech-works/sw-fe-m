@@ -1,8 +1,10 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import PressableScale from "../../../../components/PressableScale";
+import { useAvatarSavedStore } from "../../../../stores/avatarSaved";
 import { useUserStore } from "../../../../stores/user";
 import {
   useTheme,
@@ -14,6 +16,7 @@ import {
   fonts,
   ProgressRing,
 } from "../../../../design-system";
+import { AvatarSheen } from "./AvatarSheen";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
 
@@ -74,6 +77,28 @@ export const IdentityBlock: React.FC = () => {
     useCallback(() => {
       fetchUser();
     }, [fetchUser]),
+  );
+
+  /**
+   * The new-avatar greeting. Claimed on focus, because that is the moment the
+   * user actually arrives back on Home — the save resolves while the studio is
+   * still on screen, and a blade drawn then would be spent behind it.
+   *
+   * The flag is TAKEN, not read: whether or not we end up drawing anything, the
+   * save has been accounted for. Under reduced motion that means the greeting
+   * is skipped rather than queued — the studio's "Avatar saved" toast has
+   * already done the telling, and a swept band is pure movement with no gentler
+   * form to fall back to.
+   */
+  const reduced = useReducedMotion();
+  const takeAvatarSaved = useAvatarSavedStore((s) => s.take);
+  const [greeting, setGreeting] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      const justSaved = takeAvatarSaved();
+      if (justSaved && !reduced) setGreeting(true);
+    }, [takeAvatarSaved, reduced]),
   );
 
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
@@ -247,6 +272,14 @@ export const IdentityBlock: React.FC = () => {
               </View>
             </View>
           </View>
+
+          {/* Mounted only for the ~1s it takes to cross, so the card carries no
+              extra layer for the 99.99% of its life when nothing is being
+              celebrated. `styles.card` already clips (overflow: hidden), so the
+              blade is cut to the card's corners for free. */}
+          {greeting ? (
+            <AvatarSheen play onDone={() => setGreeting(false)} />
+          ) : null}
         </PressableScale>
       </View>
     </View>

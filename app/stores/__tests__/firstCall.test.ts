@@ -1,7 +1,4 @@
-import {
-  FIRST_CALL_DEFER_MS,
-  isFirstCallQuieted,
-} from "../firstCall";
+import { FIRST_CALL_DEFER_MS, isFirstCallQuieted } from "../firstCall";
 
 /**
  * ============================================================================
@@ -16,20 +13,21 @@ import {
  * So every case below is really the same assertion from a different angle:
  * quieted or not, there is still a call, and the server is the only thing that
  * can say otherwise.
+ *
+ * The "I don't have headphones" answer USED to live here too, as a permanent
+ * quiet. It was removed: it was a caption-sized control that ended the feature
+ * for good, with nothing in the app able to undo it. Its absence is now itself
+ * a rule — see the last case.
  * ============================================================================
  */
 
 describe("First call — how loudly Home offers it", () => {
   it("is loud for somebody who has never put it off", () => {
-    expect(
-      isFirstCallQuieted({ deferredAt: null, noHeadphones: false }),
-    ).toBe(false);
+    expect(isFirstCallQuieted({ deferredAt: null })).toBe(false);
   });
 
   it("goes quiet right after a 'remind me later'", () => {
-    expect(
-      isFirstCallQuieted({ deferredAt: Date.now(), noHeadphones: false }),
-    ).toBe(true);
+    expect(isFirstCallQuieted({ deferredAt: Date.now() })).toBe(true);
   });
 
   it("comes back on its own once the reminder is due", () => {
@@ -38,23 +36,7 @@ describe("First call — how loudly Home offers it", () => {
     // the offer forever after. A "remind me later" that never reminds is just
     // a dismissal with better manners.
     const stale = Date.now() - FIRST_CALL_DEFER_MS - 1000;
-    expect(
-      isFirstCallQuieted({ deferredAt: stale, noHeadphones: false }),
-    ).toBe(false);
-  });
-
-  it("stops asking somebody who told us they have no headphones", () => {
-    // The other direction, and the reason this is not just a timer. Calls need
-    // headphones today; re-offering every three days to somebody who does not
-    // own a pair is nagging about hardware, not reminding about a call. It
-    // stays quiet even long after the deferral window has passed.
-    const ancient = Date.now() - FIRST_CALL_DEFER_MS * 10;
-    expect(
-      isFirstCallQuieted({ deferredAt: ancient, noHeadphones: true }),
-    ).toBe(true);
-    expect(
-      isFirstCallQuieted({ deferredAt: null, noHeadphones: true }),
-    ).toBe(true);
+    expect(isFirstCallQuieted({ deferredAt: stale })).toBe(false);
   });
 
   it("never has a state that means the call is gone", () => {
@@ -63,16 +45,9 @@ describe("First call — how loudly Home offers it", () => {
     // is still a call here". If a state ever needed a third answer, somebody
     // would eventually read it as "no call", which is not this store's fact to
     // hold. Asserted structurally: the function is total and boolean over every
-    // combination it can be given.
-    const combos = [
-      { deferredAt: null, noHeadphones: false },
-      { deferredAt: null, noHeadphones: true },
-      { deferredAt: Date.now(), noHeadphones: false },
-      { deferredAt: Date.now(), noHeadphones: true },
-      { deferredAt: 0, noHeadphones: false },
-    ];
-    for (const c of combos) {
-      expect(typeof isFirstCallQuieted(c)).toBe("boolean");
+    // input it can be given.
+    for (const deferredAt of [null, Date.now(), 0]) {
+      expect(typeof isFirstCallQuieted({ deferredAt })).toBe("boolean");
     }
   });
 
@@ -82,8 +57,15 @@ describe("First call — how loudly Home offers it", () => {
     // past, which is harmless here (it would un-quiet), but reading it as
     // "deferred" would quiet the offer forever on a falsy value. Falsy means
     // never.
-    expect(isFirstCallQuieted({ deferredAt: 0, noHeadphones: false })).toBe(
-      false,
-    );
+    expect(isFirstCallQuieted({ deferredAt: 0 })).toBe(false);
+  });
+
+  it("always wears off — no input can quiet it permanently", () => {
+    // The rule that replaced the no-headphones flag. Whatever is persisted, a
+    // stale enough deferral un-quiets. Nothing device-local may shut someone
+    // out of the offer for good, because nothing in the app could let them
+    // back in.
+    const ancient = Date.now() - FIRST_CALL_DEFER_MS * 100;
+    expect(isFirstCallQuieted({ deferredAt: ancient })).toBe(false);
   });
 });

@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "-s", ".lab", "-l", "4321"],
       "port": 4321
+    },
+    {
+      "name": "design-lab-files",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", ".lab", "-l", "4322"],
+      "port": 4322
     }
   ]
 }

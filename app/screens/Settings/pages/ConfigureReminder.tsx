@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, TouchableOpacity, Platform } from "react-native";
+import { Linking, StyleSheet, View, TouchableOpacity, Platform } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -7,7 +7,10 @@ import {
   useReminderStore,
   ReminderType as StoreReminderType,
 } from "../../../stores/reminders";
-import { ReminderCategory } from "../../../constants/reminderTemplates";
+import {
+  ReminderCategory,
+  getRandomMessage,
+} from "../../../constants/reminderTemplates";
 import { requestNotificationPermissionWithFallback } from "../../../util/functions/notifications";
 import { showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
 import {
@@ -45,11 +48,17 @@ const DEFAULT_REMINDER_TITLES: Record<ReminderCategory, string> = {
 
 const DAYS_OF_WEEK = ["S", "M", "T", "W", "T", "F", "S"];
 
-const getFormattedDate = (date: Date) => {
+/**
+ * The store's `date` contract is ISO `YYYY-MM-DD`, and every consumer parses it
+ * with split("-"). This used to emit MM/DD/YYYY, which parsed to NaN: the
+ * trigger silently never fired, yet the row still saved and displayed as ON.
+ * Must stay byte-identical to getStorageDate() in the Academy reminder screen.
+ */
+const getStorageDate = (date: Date) => {
+  const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const day = date.getDate().toString().padStart(2, "0");
-  const year = date.getFullYear();
-  return `${month}/${day}/${year}`;
+  return `${year}-${month}-${day}`;
 };
 
 export default function ConfigureReminder() {
@@ -104,7 +113,11 @@ export default function ConfigureReminder() {
         setSelectedTime(t);
 
         if (existing.type === "ONE_TIME" && existing.date) {
-          const [mo, d, y] = existing.date.split("/").map(Number);
+          // ISO `YYYY-MM-DD`, matching what the store holds and what this screen
+          // now writes. This read still split on "/" after the write side moved
+          // to ISO, so opening a saved one-time reminder to edit it produced an
+          // Invalid Date and reset the picker to today.
+          const [y, mo, d] = existing.date.split("-").map(Number);
           setSelectedDate(new Date(y, mo - 1, d));
         } else if (existing.type === "ROUTINE") {
           setSelectedWeekDays(existing.weekDays || []);
@@ -125,8 +138,24 @@ export default function ConfigureReminder() {
   };
 
   const handleSave = async () => {
-    const hasPermission = await requestNotificationPermissionWithFallback();
-    if (!hasPermission) return;
+    const permission = await requestNotificationPermissionWithFallback();
+    if (permission === "blocked") {
+      // The OS won't ask again, so offer the only route left — in our own
+      // dialog, not the system's.
+      setPromptConfig({
+        title: "Notifications are off",
+        message:
+          "Turn them on for SpeechWorks in your device settings, then come back to set this reminder.",
+        primaryLabel: "Open Settings",
+        primaryAction: () => {
+          void Linking.openSettings();
+        },
+        secondaryLabel: "Not now",
+      });
+      setPromptVisible(true);
+      return;
+    }
+    if (permission !== "granted") return;
 
     if (reminderType === "ROUTINE" && selectedWeekDays.length === 0) {
       setPromptConfig({
@@ -139,13 +168,39 @@ export default function ConfigureReminder() {
       return;
     }
 
+    // The date picker's minimumDate only constrains the DAY; the time defaults
+    // to now, so "today" plus an earlier hour is already in the past. iOS
+    // rejects a past trigger outright and Android drops it while still
+    // resolving with an id — so without this the save appears to succeed.
+    // Matches the Academy reminder screen's check.
+    const reminderDateTime = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      selectedTime.getHours(),
+      selectedTime.getMinutes(),
+    );
+    if (reminderType === "ONE_TIME" && reminderDateTime.getTime() <= Date.now()) {
+      setPromptConfig({
+        title: "Invalid Date/Time",
+        message: "One-time reminders must be in the future.",
+        primaryLabel: "Got it",
+        primaryAction: () => {},
+      });
+      setPromptVisible(true);
+      return;
+    }
+
     const timeStr = `${selectedTime.getHours().toString().padStart(2, "0")}:${selectedTime.getMinutes().toString().padStart(2, "0")}`;
 
     const payload = {
       title: reminderTitle.trim() || DEFAULT_REMINDER_TITLES[selectedCategory],
+      // Without a body every reminder from this screen fell back to "Time for
+      // your practice!" — including the mood check-in and the breathing one.
+      body: getRandomMessage(selectedCategory).message.body,
       category: selectedCategory,
       type: reminderType,
-      date: reminderType === "ONE_TIME" ? getFormattedDate(selectedDate) : "",
+      date: reminderType === "ONE_TIME" ? getStorageDate(selectedDate) : "",
       time: timeStr,
       weekDays: reminderType === "ROUTINE" ? selectedWeekDays : undefined,
       active: true,

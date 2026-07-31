@@ -60,12 +60,34 @@ const Reminders = () => {
   const isAllOff = reminders.length === 0 || reminders.every((r) => !r.active);
   const isMasterOn = isAllOn;
 
+  // Both toggles can now fail (scheduling is refused, or permission was
+  // revoked). Previously the failure was swallowed and the switch flipped on
+  // regardless, leaving a reminder that displayed as ON and never fired — so
+  // surface it instead of letting the promise reject unhandled.
+  const FALLBACK_SCHEDULE_ERROR =
+    "We couldn't schedule this reminder. Check that notifications are enabled for SpeechWorks in your device settings, then try again.";
+
+  const showScheduleFailure = (error: unknown) => {
+    // The store raises a specific message for the case a user can actually act
+    // on (the one-time reminder's moment has passed); anything else falls back
+    // to the permissions hint.
+    const message =
+      error instanceof Error && error.message ? error.message : FALLBACK_SCHEDULE_ERROR;
+    setPromptConfig({
+      title: "Couldn't Set Reminder",
+      message,
+      primaryLabel: "Got it",
+      primaryAction: () => {},
+    });
+    setPromptVisible(true);
+  };
+
   const handleToggleMaster = () => {
-    setAllActive(!isMasterOn);
+    setAllActive(!isMasterOn).catch(showScheduleFailure);
   };
 
   const handleToggleIndividual = (id: string) => {
-    toggleActive(id);
+    toggleActive(id).catch(showScheduleFailure);
   };
 
   const handleDeleteReminder = (id: string, title: string) => {

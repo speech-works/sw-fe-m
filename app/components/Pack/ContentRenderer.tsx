@@ -2,7 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import React, { useState } from "react";
-import { Alert, View } from "react-native";
+import { View } from "react-native";
 import {
     createPracticeActivityFromPack,
     PracticeActivityContentType,
@@ -143,7 +143,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       const handleStartActivity = async () => {
         console.log("Full Content Block:", JSON.stringify(content, null, 2));
         if (!packId || !moduleId) {
-          Alert.alert("Error", "Pack context missing");
+          showErrorBottomSheet("Error", "Pack context missing");
           return;
         }
 
@@ -305,11 +305,11 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       const handleStartForm = () => {
         if (!packId || !moduleId) {
-          Alert.alert("Error", "Pack context missing");
+          showErrorBottomSheet("Error", "Pack context missing");
           return;
         }
         if (!config) {
-          Alert.alert("Error", "Form configuration is missing");
+          showErrorBottomSheet("Error", "Form configuration is missing");
           return;
         }
         (navigation as any).navigate("PackForm", {

@@ -3,7 +3,6 @@ import { Audio, AVPlaybackStatus } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StyleProp,
   StyleSheet,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
   ViewStyle,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { showErrorBottomSheet } from "../util/functions/bottomSheet";
 
 interface AudioPlaybackButtonProps {
   audioUrl: string | null | undefined;
@@ -90,7 +90,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       setIsBuffering(false);
       if ((status as any).error) {
         console.error(`Playback Status Error: ${(status as any).error}`);
-        Alert.alert(
+        showErrorBottomSheet(
           "Audio Error",
           `An error occurred during playback: ${(status as any).error}`,
         );
@@ -109,7 +109,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
 
   const handlePlayPause = async () => {
     if (!audioUrl) {
-      Alert.alert("Audio Error", "No audio URL provided.");
+      showErrorBottomSheet("Audio Error", "No audio URL provided.");
       return;
     }
 
@@ -135,7 +135,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         }
       } catch (error) {
         console.error("Error controlling playback:", error);
-        Alert.alert("Error", "Could not control audio playback.");
+        showErrorBottomSheet("Error", "Could not control audio playback.");
         // Attempt to clean up on error
         if (soundInstanceRef.current) {
           try {
@@ -196,7 +196,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         } else if (typeof error === "string") {
           errorMessage = error;
         }
-        Alert.alert(
+        showErrorBottomSheet(
           "Error",
           `Could not load audio: ${errorMessage}\n\nURI: ${audioUrl}`,
         );

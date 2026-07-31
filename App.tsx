@@ -36,11 +36,11 @@ import { configurePurchases } from "./app/services/purchases";
 import { navigationRef } from "./app/util/functions/navigation";
 import {
   registerForNotifications,
-  registerPushToken,
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
 import { getThread } from "./app/api/threads";
 import { useInboxStore } from "./app/stores/inbox";
+import { useNotificationPermissionStore } from "./app/stores/notificationPermission";
 import {
   applyAnalyticsConsent,
   initAnalytics,
@@ -212,17 +212,16 @@ const App: React.FC = () => {
   useEffect(() => {
     // 1. Register for notifications and set up channels (Android)
     // This function also requests permissions.
-    registerForNotifications().then((granted) => {
-      if (granted) {
-        console.log("Notification permissions granted.");
-        // Register this device's Expo push token so the backend can deliver buddy pushes.
-        void registerPushToken();
-      } else {
-        console.log("Notification permissions denied.");
-        // Consider showing a persistent UI message to the user
-        // explaining why notifications won't work and how to enable them.
-      }
-    });
+    // Channel setup + token refresh for an already-granted user. This no longer
+    // REQUESTS permission — iOS allows one dialog per install, and firing it
+    // here spent it on someone who had not yet signed up. The ask now happens
+    // on Home after onboarding (NotificationPermissionPrompt); if it was ever
+    // declined, Settings carries the recovery row and the dock the dot.
+    void registerForNotifications();
+
+    // Seed the permission state for this launch. The foreground listener keeps
+    // it current afterwards; this covers the first paint.
+    void useNotificationPermissionStore.getState().refresh();
 
     // 2. Set up notification listeners for foreground and tap interactions
     const cleanupNotificationHandlers = setupNotificationHandlers();
@@ -230,6 +229,15 @@ const App: React.FC = () => {
     // 3. Hydration listener for Zustand store to re-schedule notifications
     // This ensures notifications are restored/updated after the app fully loads
     // and the persisted state is available.
+    //
+    // onFinishHydration fires ONCE, and only for a hydration that completes
+    // after we subscribe. The store starts hydrating at module import, so on
+    // launches where AsyncStorage resolves before this effect runs, the
+    // listener alone would never fire and nothing would be rescheduled. Check
+    // first, then subscribe — same shape as the analytics consent store above.
+    if (useReminderStore.persist.hasHydrated()) {
+      rescheduleAllActiveNotifications();
+    }
     const unsubscribe = useReminderStore.persist.onFinishHydration(() => {
       console.log(
         "Zustand store rehydrated. Attempting to reschedule notifications.",
@@ -248,6 +256,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === "active") {
+        // Re-read the OS notification permission on every foreground, ahead of
+        // and outside the debounce below. The commonest way this changes is the
+        // user leaving for system settings and coming straight back, so it must
+        // not be skipped as a "rapid" event — that is exactly the case that
+        // matters. Cheap, local, and never throws.
+        void useNotificationPermissionStore.getState().refresh();
+
         void (async () => {
           // Bug Fix #3: Debounce rapid foreground events (common on Android).
           const now = Date.now();

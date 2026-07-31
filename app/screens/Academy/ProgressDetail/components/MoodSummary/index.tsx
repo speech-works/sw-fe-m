@@ -4,12 +4,14 @@ import {
   useTheme,
   spacing,
   radius,
+  borderWidth,
   size,
   Text,
   Skeleton,
   Icon,
   icons,
 } from "../../../../../design-system";
+import { insetSurface } from "../../insetSurface";
 import { getMoodRemark } from "./helper";
 
 const SEGMENTS = 8;
@@ -60,7 +62,7 @@ const MoodSummary = ({
   loading = false,
   hasError = false,
 }: MoodSummaryProps) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
 
   if (loading && !moodStats) {
     return <MoodSummarySkeleton />;
@@ -144,7 +146,12 @@ const MoodSummary = ({
       )}
 
       {/* Remark */}
-      <View style={[styles.remark, { backgroundColor: colors.surface.default }]}>
+      <View
+        style={[
+          styles.remark,
+          insetSurface(colors, scheme),
+        ]}
+      >
         <Text variant="bodySm" color="secondary">
           {getMoodRemark(moodStats)}
         </Text>
@@ -211,6 +218,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   remark: {
+    borderWidth: borderWidth.hairline,
     borderRadius: radius.md,
     padding: spacing.lg,
   },

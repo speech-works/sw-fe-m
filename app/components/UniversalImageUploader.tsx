@@ -1,7 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   Image,
   ScrollView,
@@ -17,6 +16,7 @@ import {
   Text,
   Icon,
 } from "../design-system";
+import { showErrorBottomSheet } from "../util/functions/bottomSheet";
 
 type UploaderState = "ready" | "uploading" | "complete";
 
@@ -106,7 +106,7 @@ const UniversalImageUploader = ({
     const { status } = await permissionMethod();
 
     if (status !== "granted") {
-      Alert.alert(
+      showErrorBottomSheet(
         "Permission required",
         `Please grant ${useCamera ? "camera" : "gallery"} permissions to upload ${label}.`,
       );
@@ -124,7 +124,7 @@ const UniversalImageUploader = ({
 
     if (!result.canceled && result.assets && result.assets[0].uri) {
       if (images.length >= maxImages) {
-        Alert.alert(
+        showErrorBottomSheet(
           "Limit reached",
           `You can upload up to ${maxImages} images.`,
         );

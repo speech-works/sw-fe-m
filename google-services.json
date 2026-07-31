@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "129706376852",
+    "project_id": "speechworks-prod",
+    "storage_bucket": "speechworks-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:129706376852:android:1cc47a78371b98696a7e81",
+        "android_client_info": {
+          "package_name": "com.speechworks.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDv40mN2CrptbXP35hA_etjFH2GJF4V8Vo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

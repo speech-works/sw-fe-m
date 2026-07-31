@@ -38,11 +38,13 @@ import { isHeadsetConnected } from "../../util/functions/headset";
  * headline is all the continuity it needs — the picture is free to show the one
  * thing this screen is actually about.
  *
- * A THREE-TIER FOOTER, not three orange things. The previous version stacked a
- * filled pill and two accent-coloured links at equal size, which gave three
- * choices identical weight and made the screen read as a menu. Tiering them
- * (button → bodySm → caption) is the same ladder ActOneWelcome uses, and it
- * lets the rarest answer stay reachable without shouting.
+ * ONE WAY IN, ONE WAY OUT. There used to be a third option, "I don't have
+ * headphones", which permanently ended the offer — and nothing in the app could
+ * undo it. A caption-sized control that quietly kills a feature for good is a
+ * trap, not a choice, and asking somebody to classify themselves thirty seconds
+ * in is a question the screen does not need answered. "Remind me later" covers
+ * both people; if repeat reminders ever turn out to bother anyone, that is a
+ * cheap thing to learn and a cheap thing to change.
  * ============================================================================
  */
 
@@ -52,16 +54,9 @@ interface Props {
   onReady: () => void;
   /** "Remind me later" — quiet for a few days. */
   onDefer: () => void;
-  /** "I don't have headphones" — stop asking, keep the offer. */
-  onNoHeadphones: () => void;
 }
 
-const HeadphoneGate: React.FC<Props> = ({
-  callerName,
-  onReady,
-  onDefer,
-  onNoHeadphones,
-}) => {
+const HeadphoneGate: React.FC<Props> = ({ callerName, onReady, onDefer }) => {
   const styles = useStyles();
   const motion = useMotion();
   const [checking, setChecking] = useState(false);
@@ -147,7 +142,7 @@ const HeadphoneGate: React.FC<Props> = ({
           />
         </Animated.View>
 
-        {/* Tier two: the ordinary way out. */}
+        {/* The one way out. */}
         <Animated.View entering={motion.stagger(4)}>
           <Text
             variant="bodySm"
@@ -157,21 +152,6 @@ const HeadphoneGate: React.FC<Props> = ({
             onPress={onDefer}
           >
             Remind me later
-          </Text>
-        </Animated.View>
-
-        {/* Tier three: a real answer, and the rarest. Quiet, not hidden —
-            re-offering every few days to somebody who owns no headphones is
-            nagging about hardware rather than reminding about a call. */}
-        <Animated.View entering={motion.stagger(5)}>
-          <Text
-            variant="caption"
-            color="tertiary"
-            center
-            style={styles.noteRow}
-            onPress={onNoHeadphones}
-          >
-            I don&apos;t have headphones
           </Text>
         </Animated.View>
       </View>
@@ -217,11 +197,6 @@ const useStyles = () =>
     },
     deferRow: {
       paddingTop: spacing["2xl"],
-      paddingBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
-    },
-    noteRow: {
-      paddingTop: spacing.xs,
       paddingBottom: spacing.sm,
       paddingHorizontal: spacing.md,
     },

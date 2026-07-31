@@ -32,6 +32,12 @@ export interface TabDockItem {
   icon: IconName;
   /** Optional unread/count badge. */
   badge?: number;
+  /**
+   * Countless attention marker — a plain dot, for "something here needs you"
+   * where there is nothing to count. Ignored when `badge` > 0, since a number
+   * already says more than a dot can.
+   */
+  badgeDot?: boolean;
 }
 
 export interface TabDockProps {
@@ -123,6 +129,7 @@ export const TabDock: React.FC<TabDockProps> = ({
           label={item.label}
           iconName={item.icon}
           badge={item.badge ?? 0}
+          badgeDot={item.badgeDot ?? false}
           fitContent={fitContent}
           reduceMotion={reduceMotion}
           onPress={() => onSelect(item.key)}
@@ -170,6 +177,7 @@ interface DockItemProps {
   label: string;
   iconName: IconName;
   badge: number;
+  badgeDot: boolean;
   fitContent: boolean;
   reduceMotion: boolean;
   onPress: () => void;
@@ -183,6 +191,7 @@ const DockItem: React.FC<DockItemProps> = ({
   label,
   iconName,
   badge,
+  badgeDot,
   fitContent,
   reduceMotion,
   onPress,
@@ -251,7 +260,13 @@ const DockItem: React.FC<DockItemProps> = ({
         style={fitContent ? styles.touchableFit : styles.touchable}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
-        accessibilityLabel={badge > 0 ? `${label}, ${badge} unread` : label}
+        accessibilityLabel={
+          badge > 0
+            ? `${label}, ${badge} unread`
+            : badgeDot
+              ? `${label}, needs attention`
+              : label
+        }
       >
         <Animated.View style={[styles.pill, pillStyle]}>
           <View style={styles.iconBox}>
@@ -267,6 +282,15 @@ const DockItem: React.FC<DockItemProps> = ({
                   {badge > 9 ? "9+" : badge}
                 </Text>
               </Animated.View>
+            ) : badgeDot ? (
+              // Same fill and the same animated border as the count badge, so the
+              // two read as one family — this is a countless version of it, not a
+              // second idea. Deliberately NOT animated on entry: the dock is on
+              // screen constantly, and a marker that re-animates on every
+              // navigation is noise, not information.
+              <Animated.View
+                style={[styles.badge, styles.badgeDot, { backgroundColor: colors.nav.badge }, badgeBorderStyle]}
+              />
             ) : null}
           </View>
 
@@ -417,5 +441,21 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontFamily: fonts.extrabold,
+  },
+  // Overrides the count badge's box: no text, so it collapses to a true circle.
+  //
+  // The offsets are not arbitrary — they place this dot's centre on exactly the
+  // same point as the numeric badge's (4 below the icon box top, 1 inside its
+  // right edge). Same red, same 2px border, same anchor: the countless marker
+  // and the counted one are the same object, and a tab gaining a number never
+  // makes its marker jump.
+  badgeDot: {
+    minWidth: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    paddingHorizontal: 0,
+    top: -2,
+    right: -5,
   },
 });

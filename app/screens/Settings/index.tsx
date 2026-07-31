@@ -35,6 +35,12 @@ import { AvatarButton } from "../../components/AvatarButton";
 import FullProfile from "./components/FullProfile";
 import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
+import NotificationPermissionRow from "./components/NotificationPermissionRow";
+import {
+  useNotificationPermissionStore,
+  selectShowNotificationRow,
+  selectNotificationsNeedAttention,
+} from "../../stores/notificationPermission";
 import { showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
 const Settings = () => {
@@ -43,6 +49,10 @@ const Settings = () => {
   const navigation = useNavigation<any>();
   const { logout, deleteAccount } = useContext(AuthContext);
   const { user } = useUserStore();
+  const showNotificationRow = useNotificationPermissionStore(selectShowNotificationRow);
+  const notificationsNeedAttention = useNotificationPermissionStore(
+    selectNotificationsNeedAttention,
+  );
 
   const [, setSessionCount] = useState<number>(0);
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
@@ -242,6 +252,17 @@ const Settings = () => {
           entering={m.stagger(1)}
           style={[styles.group, { backgroundColor: colors.surface.default }]}
         >
+          {/* Sits above Preferences, and only exists while the OS has
+              notifications switched off. `granted === null` means we haven't
+              read the permission yet — show nothing rather than accuse the
+              device of something we don't know. */}
+          {showNotificationRow ? (
+            <NotificationPermissionRow
+              urgent={notificationsNeedAttention}
+              divider
+            />
+          ) : null}
+
           {menuItems.map((item, index) => (
             <ListItem
               key={item.text}

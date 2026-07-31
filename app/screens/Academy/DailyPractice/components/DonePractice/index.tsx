@@ -1,7 +1,14 @@
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 import ScreenView from "../../../../../components/ScreenView";
@@ -17,6 +24,10 @@ import {
   icons,
   onColor,
   withAlpha,
+  AnimatedNumber,
+  duration,
+  spring,
+  type IconName,
 } from "../../../../../design-system";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
@@ -27,12 +38,23 @@ import {
   AXIS_LABEL,
   AXIS_SUBTITLE,
   VISIBLE_AXES,
+  GrowthAxis,
+  fetchGrowthTotals,
 } from "../../../../../api/dailyPlan";
+import { axisAccent } from "../../../../../util/growth/accents";
+import { countPhrase } from "../../../../../util/growth/format";
 import { useCelebrationStore } from "../../../../../stores/celebration";
 import { useOnboardingNudgeStore } from "../../../../../stores/onboardingNudge";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
 import { LevelUpTakeover } from "./LevelUpTakeover";
+
+/** Same glyphs as the growth card — one axis, one icon, wherever it appears. */
+const AXIS_ICON: Record<string, IconName> = {
+  [GrowthAxis.BRAVER]: icons.courage,
+  [GrowthAxis.WIDER]: icons.globe,
+  [GrowthAxis.REGULAR]: icons.streak,
+};
 
 interface DonePracticeProps {
   practiceName?: string;
@@ -99,13 +121,21 @@ const DonePractice = ({
    */
   const earnedAxes = useCelebrationStore((s) => s.earnedFor(activityId));
   const shownAxis = VISIBLE_AXES.find((axis) => earnedAxes.includes(axis));
-  // "Regular — days you've practised". The name, then what it counts, and
-  // nothing else. The earlier wording — "That counts as Regular — turning up."
-  // — spent four words getting to the point and then landed on an idiom, so
-  // the one line meant to explain the vocabulary needed explaining itself.
-  const earnedLabel = shownAxis
-    ? `${AXIS_LABEL[shownAxis]} — ${AXIS_SUBTITLE[shownAxis].toLowerCase()}`
-    : null;
+  /**
+   * The chip's own colour, and the ink that is legible ON it.
+   *
+   * From the shared axis map so this screen cannot invent a hue, and so the
+   * chip here is the same purple as the Regular block on Home and the Regular
+   * disc on the growth card. `on`, never `fill`, for the text — the bright
+   * fills are a documented contrast failure as foreground.
+   *
+   * The chip sits on an accent-coloured page (`accentColor`) on some screens,
+   * so its own solid fill is what keeps it readable there too.
+   */
+  const accent = axisAccent(shownAxis ?? "", colors);
+  const axisAccentFill = accent.fill;
+  const axisAccentOn = accent.on;
+
 
   /**
    * THE ONE TIME WE EXPLAIN THE VOCABULARY, if this screen gets there first.
@@ -126,11 +156,76 @@ const DonePractice = ({
   const markGrowthIntroduced = useOnboardingNudgeStore(
     (s) => s.markGrowthIntroduced,
   );
-  const showIntro = !isAborted && !!earnedLabel && !growthIntroduced;
+  const showIntro = !isAborted && !!shownAxis && !growthIntroduced;
   useEffect(() => {
     if (!showIntro) return;
     return () => markGrowthIntroduced();
   }, [showIntro, markGrowthIntroduced]);
+
+  /**
+   * THE RUNNING TOTAL, because "3 days" is a reward and "days you've practised"
+   * is a definition.
+   *
+   * A definition is worth reading once; a number that went up because of what
+   * you just did is worth reading every time. Fetched here rather than passed
+   * down, so no completion screen has to know about growth to show it, and
+   * alongside the buddy check this screen already makes.
+   *
+   * The chip renders on the label alone if this fails or is slow — the axis is
+   * still true without its count, and a success screen must never wait on a
+   * network call to say well done.
+   */
+  const [axisCount, setAxisCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!shownAxis || isAborted) return;
+    let alive = true;
+    void fetchGrowthTotals().then((totals) => {
+      const n = totals?.axes.find((a) => a.axis === shownAxis)?.count ?? null;
+      if (alive) setAxisCount(n);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [shownAxis, isAborted]);
+
+  /**
+   * The unit, spelled out beside the number.
+   *
+   * "3 days" not "3" — inside a chip there is no subtitle above it to say what
+   * is being counted, and the three axes deliberately count different things.
+   * `countPhrase` owns the singular/plural so "1 days" cannot slip through;
+   * the number itself is stripped because `AnimatedNumber` renders it.
+   */
+  const countUnit =
+    shownAxis && axisCount !== null
+      ? countPhrase(shownAxis, axisCount).replace(/^\d+\s/, "")
+      : "";
+
+  /**
+   * The chip lands AFTER the tick, not with it.
+   *
+   * Two things popping at once is one event; two things in sequence is a
+   * consequence — the tick says "done", then the thing you earned arrives
+   * because of it. `spring.bouncy` is the DS preset documented for exactly this
+   * ("celebration / reaction pop — small overshoot"), so the overshoot is the
+   * system's, not a number picked here.
+   *
+   * Reduced motion keeps the delay and the opacity and drops the scale, per the
+   * house rule: gentler, never zero.
+   */
+  const chipIn = useSharedValue(0);
+  useEffect(() => {
+    if (!shownAxis || isAborted) return;
+    chipIn.value = reduced
+      ? withDelay(200, withTiming(1, { duration: duration.base }))
+      : withDelay(260, withSpring(1, spring.bouncy));
+  }, [shownAxis, isAborted, reduced, chipIn]);
+  const chipStyle = useAnimatedStyle(() => ({
+    opacity: chipIn.value,
+    transform: [
+      { scale: reduced ? 1 : interpolate(chipIn.value, [0, 1], [0.82, 1]) },
+    ],
+  }));
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
@@ -241,25 +336,59 @@ const DonePractice = ({
           <Text variant="h1" color={foreground} center>
             {isAborted ? "That's okay." : "Great Job!"}
           </Text>
-          <Text variant="body" color={mutedForeground} center style={styles.descText}>
-            {isAborted
-              ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.`
-              : `You've completed your daily ${practiceName}. Keep up the momentum!`}
-          </Text>
+          {/* THE GENERIC LINE IS GONE ON SUCCESS, and that is the point of the
+              chip below rather than a side effect of it. "You've completed your
+              daily word practice. Keep up the momentum!" was the most
+              prominent sentence on this screen and carried no information —
+              they had just done the practice, so it told them something they
+              had watched happen, in a bigger and brighter style than the one
+              line that said something new. Removing it is what let the earned
+              thing stop reading as fine print.
 
-          {/* WHAT THIS COUNTED AS.
-              The four words are explained here, at the instant they are
-              demonstrated, because this is the highest-attention and
-              lowest-defensiveness moment in the product — and because until
-              now they made their first appearance as unlabelled adjectives on
-              a screen the user reached by backing OUT of a practice.
-              Quiet and factual on purpose: DonePractice already bursts
-              confetti on every completion, and LevelUpTakeover is reserved
-              for something rare, so more celebration here would flatten both.
-              Nothing at all when the activity moved no VISIBLE axis. */}
-          {!isAborted && earnedLabel ? (
+              The ABORTED branch keeps its sentence. It is doing real work
+              there: it names the way back, and it is the warmest copy in the
+              app. */}
+          {isAborted ? (
+            <Text variant="body" color={mutedForeground} center style={styles.descText}>
+              {`Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.`}
+            </Text>
+          ) : null}
+
+          {/* WHAT THIS COUNTED AS — an object you earned, not a caption.
+              The axis was a third paragraph of muted text among four, which
+              read as a footnote to a celebration rather than the substance of
+              it. It is now a solid chip in the axis's own colour carrying its
+              running total, because "3 days" is a reward and "days you've
+              practised" is a definition — a definition is worth reading once,
+              a number that moved because of what you just did is worth reading
+              every time. Nothing at all when the activity moved no VISIBLE
+              axis. */}
+          {!isAborted && shownAxis ? (
+            <Animated.View style={[styles.earnedChip, { backgroundColor: axisAccentFill }, chipStyle]}>
+              <Icon name={AXIS_ICON[shownAxis] ?? icons.growth} size={18} color={axisAccentOn} />
+              <Text variant="title" color={axisAccentOn}>
+                {AXIS_LABEL[shownAxis]}
+              </Text>
+              {axisCount !== null ? (
+                <>
+                  <Text variant="title" color={axisAccentOn} style={styles.chipDot}>
+                    ·
+                  </Text>
+                  {/* Counts up rather than appearing, so the number is seen to
+                      MOVE. The count is the whole reason it is here. */}
+                  <AnimatedNumber value={axisCount} variant="title" color={axisAccentOn} />
+                  <Text variant="title" color={axisAccentOn}>
+                    {` ${countUnit}`}
+                  </Text>
+                </>
+              ) : null}
+            </Animated.View>
+          ) : null}
+
+          {/* The plain meaning, once and quietly, under the thing it explains. */}
+          {!isAborted && shownAxis ? (
             <Text variant="bodySm" color={mutedForeground} center style={styles.earnedText}>
-              {earnedLabel}
+              {AXIS_SUBTITLE[shownAxis]}
             </Text>
           ) : null}
 
@@ -430,6 +559,17 @@ const styles = StyleSheet.create({
   descText: {
     lineHeight: 24,
   },
+  earnedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  chipDot: { opacity: 0.55 },
   earnedText: {
     lineHeight: 20,
     marginTop: spacing.sm,

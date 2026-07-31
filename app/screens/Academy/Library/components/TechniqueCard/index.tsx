@@ -1,5 +1,5 @@
-import React from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import PressableScale from "../../../../../components/PressableScale";
 import { EVENT_NAMES } from "../../../../../stores/events/constants";
 import { useEventStore } from "../../../../../stores/events";
@@ -12,6 +12,7 @@ import {
   spacing,
   radius,
   size,
+  Dialog,
 } from "../../../../../design-system";
 import { SemanticColors } from "../../../../../design-system";
 
@@ -54,6 +55,7 @@ const TechniqueCard = ({
 }: TechniqueCardProps) => {
   const { colors } = useTheme();
   const { emit } = useEventStore();
+  const [safetyVisible, setSafetyVisible] = useState(false);
   const isLocked = !hasFree && !isPaidUser;
 
   const accent = getAccent(level);
@@ -85,15 +87,12 @@ const TechniqueCard = ({
 
   const iconName = getIcon(title);
 
-  const showSafetyInfo = () => {
-    Alert.alert(
-      "Deep Practice",
-      "Optional, more advanced. Use gently. Stop if uncomfortable.",
-      [{ text: "Got it" }],
-    );
-  };
+  // Informational, not an error — so this uses the neutral Dialog rather than
+  // the error sheet, whose red disc would frame optional guidance as a fault.
+  const showSafetyInfo = () => setSafetyVisible(true);
 
   return (
+    <>
     <PressableScale
       onPress={handlePress}
       disabled={disabled}
@@ -153,6 +152,17 @@ const TechniqueCard = ({
         </View>
       </View>
     </PressableScale>
+
+    {/* Sibling of the card, not a child of it — a modal inside a PressableScale
+        would be scaled and swallowed by the card's own press handling. */}
+    <Dialog
+      visible={safetyVisible}
+      onClose={() => setSafetyVisible(false)}
+      title="Deep Practice"
+      message="Optional, more advanced. Use gently. Stop if uncomfortable."
+      cancelLabel="Got it"
+    />
+    </>
   );
 };
 

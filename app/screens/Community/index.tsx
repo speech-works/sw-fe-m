@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
-  Alert,
   Dimensions,
   RefreshControl,
   ScrollView,
@@ -26,6 +25,7 @@ import BuddySupportSheet from "../../components/BuddySupportSheet";
 import PressableScale from "../../components/PressableScale";
 import {
   SchemeStatusBar,
+  Dialog,
   useTheme,
   spacing,
   space,
@@ -73,6 +73,7 @@ import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { apiErrorMessage } from "../../util/functions/apiError";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -210,6 +211,7 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [, setBusy] = useState(false);
+  const [leaveVisible, setLeaveVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
@@ -406,34 +408,24 @@ const Community = () => {
       track(ANALYTICS_EVENTS.BUDDY_REPORT_CONSENT_SET, { shared });
       setSummary((prev) => (prev ? { ...prev, link: updated } : prev));
     } catch (e) {
-      Alert.alert("Couldn't update", "Please try again.");
+      showErrorBottomSheet("Couldn't update", "Please try again.");
     }
   };
 
-  const handleLeave = () => {
-    Alert.alert(
-      "Leave buddy?",
-      "You'll stop sharing progress with each other, and your slot frees up to invite someone else.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Leave",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setBusy(true);
-              await leaveBuddy();
-              track(ANALYTICS_EVENTS.BUDDY_LEFT, { by: "me" });
-              await load();
-            } catch (e) {
-              Alert.alert("Couldn't leave", "Please try again.");
-            } finally {
-              setBusy(false);
-            }
-          },
-        },
-      ],
-    );
+  const handleLeave = () => setLeaveVisible(true);
+
+  const confirmLeave = async () => {
+    setLeaveVisible(false);
+    try {
+      setBusy(true);
+      await leaveBuddy();
+      track(ANALYTICS_EVENTS.BUDDY_LEFT, { by: "me" });
+      await load();
+    } catch (e) {
+      showErrorBottomSheet("Couldn't leave", "Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const buddyName = link?.buddy?.name ?? "Your Buddy";
@@ -1034,6 +1026,17 @@ const Community = () => {
         signal={supportSignal}
         onClose={() => setSupportSignal(null)}
         onSupported={() => setFeedRefreshKey((k) => k + 1)}
+      />
+
+      <Dialog
+        visible={leaveVisible}
+        onClose={() => setLeaveVisible(false)}
+        title="Leave buddy?"
+        message="You'll stop sharing progress with each other, and your slot frees up to invite someone else."
+        cancelLabel="Cancel"
+        confirmLabel="Leave"
+        destructive
+        onConfirm={confirmLeave}
       />
     </ScreenView>
   );

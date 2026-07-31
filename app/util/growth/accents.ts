@@ -1,5 +1,19 @@
 import type { SemanticColors } from "../../design-system/semantic/roles";
+import { palette as p } from "../../design-system/primitives/palette";
+import { bestForeground } from "../../design-system/utils/contrast";
 import { GrowthAxis } from "../../api/dailyPlan";
+
+/**
+ * Both scheme cuts of each hue as FOREGROUND, so `onContrast` can pick whichever
+ * suits the contrast card in the scheme currently active. Reaching into the raw
+ * palette is deliberate and confined to this: `colors` only ever exposes the cut
+ * for the CURRENT scheme, and the contrast card needs the other one.
+ */
+const FG_CUTS: Record<string, readonly string[]> = {
+  [GrowthAxis.BRAVER]: [p.orange[300], p.orange.textOnLight],
+  [GrowthAxis.WIDER]: [p.lime.textOnDark, p.lime.textOnLight],
+  [GrowthAxis.REGULAR]: [p.purple.textOnDark, p.purple.textOnLight],
+};
 
 /**
  * ============================================================================
@@ -37,6 +51,20 @@ export interface AxisAccent {
   on: string;
   /** The hue as TEXT on an ordinary surface. Never use `fill` for this. */
   text: string;
+  /**
+   * The hue as TEXT on `surface.contrast` — the high-contrast card.
+   *
+   * A THIRD CUT IS NOT OVER-ENGINEERING; `text` is actively wrong there.
+   * `surface.contrast` deliberately flips against the scheme: it is dark on
+   * paper and light on ink. So on the light scheme the card is DARK, and
+   * `text` — which is tuned to be legible on a light canvas — lands at
+   * 2.80–2.94:1 on it. Every axis fails, and only in light mode, which is
+   * exactly the class of bug that ships.
+   *
+   * Resolved with `bestForeground` over both cuts rather than a scheme
+   * conditional, so it stays correct if `surface.contrast` is ever retuned.
+   */
+  onContrast: string;
 }
 
 export function axisAccent(
@@ -51,18 +79,30 @@ export function axisAccent(
         // `text.accent`, not `action.primary` — the bright orange fill is a
         // documented fail as a foreground on paper.
         text: colors.text.accent,
+        onContrast: bestForeground(
+          colors.surface.contrast,
+          FG_CUTS[GrowthAxis.BRAVER],
+        ),
       };
     case GrowthAxis.WIDER:
       return {
         fill: colors.accent.lime,
         on: colors.accentOn.lime,
         text: colors.accentText.lime,
+        onContrast: bestForeground(
+          colors.surface.contrast,
+          FG_CUTS[GrowthAxis.WIDER],
+        ),
       };
     case GrowthAxis.REGULAR:
       return {
         fill: colors.accent.purple,
         on: colors.accentOn.purple,
         text: colors.accentText.purple,
+        onContrast: bestForeground(
+          colors.surface.contrast,
+          FG_CUTS[GrowthAxis.REGULAR],
+        ),
       };
     default:
       // Finisher, or anything added later that has not been given a hue.
@@ -72,6 +112,7 @@ export function axisAccent(
         fill: colors.surface.control,
         on: colors.text.primary,
         text: colors.text.secondary,
+        onContrast: colors.text.onContrastMuted,
       };
   }
 }
