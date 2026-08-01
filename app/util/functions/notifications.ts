@@ -22,6 +22,9 @@ const DEFAULT_REMINDER_CHANNEL_ID = "default_reminders";
 /** AsyncStorage key for the last-registered Expo push token (so we can deregister on logout). */
 const PUSH_TOKEN_KEY = "SW_EXPO_PUSH_TOKEN";
 
+/** AsyncStorage key for the last notification response we have already acted on. */
+const HANDLED_RESPONSE_KEY = "SW_LAST_HANDLED_NOTIFICATION_RESPONSE";
+
 /** Buddy/community push data.type values that should deep-link to the Community tab. */
 const BUDDY_PUSH_TYPES = ["signal", "reaction", "support_note", "support_lifeline"];
 
@@ -113,6 +116,115 @@ const buildRoutineTrigger = (
   };
 };
 
+/**
+ * A stable name for ONE DELIVERY of one notification.
+ *
+ * BOTH HALVES ARE LOad-BEARING. The identifier alone is not enough: a repeating
+ * reminder (`repeats: true`) keeps the same request identifier for every
+ * trigger, so keying on it would let Monday's tap suppress Tuesday's. The date
+ * alone is not enough either — two notifications can land in the same
+ * millisecond. Together they name a single delivery.
+ *
+ * Returns null when either half is missing, and the caller then routes normally.
+ * Failing open is deliberate: dropping a tap the user really made is worse than
+ * the rare duplicate this exists to stop.
+ *
+ * The runtime guards look redundant against the TypeScript types — they are
+ * not. On the Android path that replays a stale launch Intent, the response is
+ * rebuilt from raw Intent extras (`NotificationSerializer.toResponseBundleFromExtras`),
+ * where `identifier` is `google.message_id` and `date` is `google.sent_time`.
+ * Anything that is not an FCM push arrives with those null and 0.
+ */
+export function notificationResponseKey(
+  response: Notifications.NotificationResponse,
+): string | null {
+  const identifier = response?.notification?.request?.identifier;
+  const date = response?.notification?.date;
+  if (typeof identifier !== "string" || identifier === "") return null;
+  if (typeof date !== "number" || !Number.isFinite(date) || date <= 0) {
+    return null;
+  }
+  return `${identifier}:${date}`;
+}
+
+/**
+ * Record a response and report whether we had already acted on it.
+ *
+ * PERSISTED, not in-memory, because the duplicate arrives in a DIFFERENT
+ * PROCESS. Android hands the launching Intent back to a recreated Activity, so
+ * one tap is replayed as a fresh response on every relaunch from the Recents
+ * list — a module-level Set would be empty each time and catch nothing.
+ *
+ * `Notifications.clearLastNotificationResponseAsync()` does NOT solve this; it
+ * only clears the native module's in-memory bundle, never the Intent.
+ */
+async function claimResponse(key: string): Promise<"fresh" | "already-handled"> {
+  try {
+    if ((await AsyncStorage.getItem(HANDLED_RESPONSE_KEY)) === key) {
+      return "already-handled";
+    }
+    await AsyncStorage.setItem(HANDLED_RESPONSE_KEY, key);
+  } catch (error) {
+    // Best effort. A storage failure puts us back to routing every time, which
+    // is where this started — not worse.
+    console.warn("[Push] could not read the handled-response marker:", error);
+  }
+  return "fresh";
+}
+
+/**
+ * Where a notification tap sends someone. Runs 500ms after the response so the
+ * app has finished foregrounding and the stores have had a moment to rehydrate.
+ */
+async function routeFromNotificationResponse(
+  response: Notifications.NotificationResponse,
+): Promise<void> {
+  // ONCE PER DELIVERY. Claimed BEFORE the session check on purpose: a response
+  // seen while logged out is spent, so signing in later cannot make an old
+  // replay suddenly navigate.
+  const key = notificationResponseKey(response);
+  if (key && (await claimResponse(key)) === "already-handled") return;
+
+  // NO SESSION → NO DEEP LINK, AND NO REDIRECT EITHER.
+  //
+  // This used to `navigate("Auth")`, which was harmless back when the
+  // logged-out half of the app WAS a single login screen: it navigated you to
+  // the screen you were already on. It stopped being harmless the moment Act 1
+  // moved in front of it. AuthNavigator now opens a stranger on the welcome
+  // screen, and this dragged them off it half a second later — onto the login
+  // wall the whole pre-signup flow exists to avoid.
+  //
+  // Doing nothing loses nothing: AuthNavigator has already put this person
+  // exactly where they belong, and every destination below needs an account.
+  if (!useUserStore.getState().user) return;
+
+  const data = response.notification.request.content.data;
+
+  // Buddy/community signal (reaction, moment, support…) → the Community tab.
+  const pushType =
+    typeof data?.type === "string" ? (data.type as string) : undefined;
+  if (data?.threadId || (pushType && BUDDY_PUSH_TYPES.includes(pushType))) {
+    navigate("Root", { screen: ROUTE_NAMES.COMMUNITY });
+    return;
+  }
+
+  const category = data?.category as ReminderCategory | undefined;
+
+  // Custom reminders, and anything with no category, land on Home.
+  if (!category || category === "CUSTOM") {
+    navigate("Root", { screen: ROUTE_NAMES.HOME });
+    return;
+  }
+
+  const template = getTemplateForCategory(category);
+  if (template?.deepLink) {
+    navigate(template.deepLink.screen, template.deepLink.params);
+  } else {
+    // Fallback to Home if template has no deep link
+    navigate("Root", { screen: ROUTE_NAMES.HOME });
+  }
+}
+
 // --- New Global Listener for handling notification interactions ---
 // This should be set up once, typically in your App.tsx or a top-level component.
 // It should be moved out of this file if this file is meant purely for scheduling functions.
@@ -138,55 +250,27 @@ export const setupNotificationHandlers = () => {
       // rather than the default system notification.
     });
 
-  // Listener for when the user taps on a notification — deep link to the relevant screen
+  // Listener for when the user taps on a notification — deep link to the
+  // relevant screen.
+  //
+  // "TAPPED" IS OPTIMISTIC. This fires on ordinary cold starts too: Android
+  // hands the launching Intent back to a recreated Activity, so a single tap
+  // days ago is replayed as a fresh response on every relaunch from the Recents
+  // list (`ExpoNotificationLifecycleListener.onCreate` →
+  // `NotificationManager.onNotificationResponseFromExtras`). Everything the
+  // routing does must therefore be safe to run on any launch, which is what
+  // `routeFromNotificationResponse` handles.
   const notificationResponseSubscription =
     Notifications.addNotificationResponseReceivedListener((response) => {
-    console.log("User tapped on notification:", response);
-
-    // 1. Check Auth Status: If not logged in, force navigation to Auth
-    const isLoggedIn = !!useUserStore.getState().user;
-    if (!isLoggedIn) {
+      console.log("User tapped on notification:", response);
+      // Deferred so the app can finish foregrounding before the navigator is
+      // touched, and so the stores have a moment to rehydrate — the session
+      // read inside would otherwise report "logged out" for someone who is
+      // merely still on disk.
       setTimeout(() => {
-        navigate("Auth");
+        void routeFromNotificationResponse(response);
       }, 500);
-      return;
-    }
-
-    const data = response.notification.request.content.data;
-
-    // 1b. Buddy/community signal (reaction, moment, support…) → open the Community tab.
-    const pushType = typeof data?.type === "string" ? (data.type as string) : undefined;
-    if (data?.threadId || (pushType && BUDDY_PUSH_TYPES.includes(pushType))) {
-      setTimeout(() => {
-        navigate("Root", { screen: ROUTE_NAMES.COMMUNITY });
-      }, 500);
-      return;
-    }
-
-    const category = data?.category as ReminderCategory | undefined;
-
-    // 2. Handle Custom Reminders or Fallbacks
-    if (!category || category === "CUSTOM") {
-      setTimeout(() => {
-        navigate("Root", { screen: ROUTE_NAMES.HOME });
-      }, 500);
-      return;
-    }
-
-    // 3. Handle Template Deep Links
-    const template = getTemplateForCategory(category);
-    if (template?.deepLink) {
-      // Small delay to ensure the app is fully foregrounded before navigating
-      setTimeout(() => {
-        navigate(template.deepLink.screen, template.deepLink.params);
-      }, 500);
-    } else {
-      // Fallback to Home if template has no deep link
-      setTimeout(() => {
-        navigate("Root", { screen: ROUTE_NAMES.HOME });
-      }, 500);
-    }
-  });
+    });
 
   return () => {
     notificationReceivedSubscription.remove();
