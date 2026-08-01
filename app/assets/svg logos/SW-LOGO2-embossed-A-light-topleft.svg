@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+  <defs>
+    <clipPath id="cc"><rect x="114.5" y="88.5" width="1025" height="1077" rx="177"/></clipPath>
+    <g id="flame"><path d="M829.42 861.48C825.14 862.02 821.99 859.67 821.13 855.43C820.31 851.36 822.62 847.93 823.78 844.25C824.59 841.65 825.52 837.5 825.88 834.8C826.64 829.04 827.44 822.33 826.98 816.53C826.85 814.82 826.41 813.4 826.24 811.75C826.04 809.78 826.16 807.7 825.93 805.79C825.62 803.18 824.71 799.96 824.2 797.31C822.51 788.59 820.36 780.53 817.06 772.27C804.54 740.99 784.41 716.87 758.9 695.25C751.56 689.04 744.19 683.23 736.62 677.31C732.18 673.84 726.97 670.83 722.75 667.19C707.26 653.84 706.96 636.77 719.88 621.6C727.67 612.45 736.23 607.64 745.65 600.62C755.11 593.57 773.75 580.49 767.85 566.72C763.34 556.19 751.92 557.45 742.64 556.72C737.6 556.33 733.41 555.97 728.29 555.95C723.43 555.93 718.1 556.23 713.29 555.86C711.08 555.69 709.09 555.21 706.95 555.03C702.06 554.63 698.15 555.05 693.18 553.71C679.38 549.99 673.95 535.95 669.78 523.64C667.94 518.19 666.1 512.72 664.44 507.22C661.45 497.32 657.71 483.35 646.27 480.45C629 476.08 622.89 498.17 618.89 510.37C616.74 516.92 614.59 523.47 612.42 530.02C611.16 533.82 609.79 538.83 607.66 542.18C598.28 556.88 587.91 548 577.78 540.38C570.24 534.71 562.89 528.98 555.46 523.18C529.87 503.18 503.11 482.24 487.27 453.23C471.38 424.11 468.85 390.41 478.05 358.78C487.31 326.97 505.07 299.76 529.85 277.82C553.6 256.8 584.56 241.1 616.23 237.59C619.78 237.19 622.64 237.21 626.11 236.96C630.04 236.68 633.35 235.99 637.45 236.13C640.17 236.22 642.23 236.73 644.8 236.95C646.6 237.1 648.47 236.93 650.28 237.07C657.62 237.62 673.75 239.46 679.39 244.06C682.38 246.5 683.83 249.46 683.99 253.31C684.37 262.43 677.38 265.81 670.2 269.17C664.1 272.02 658.55 274.91 652.91 278.68C632.01 292.67 614.8 316.76 616 342.78C616.48 353.24 618.55 360.86 622.99 370.32C633.19 392.05 649.61 407.79 668.29 422.32C679.77 431.25 692.22 439.56 704.17 447.9C732.17 467.47 760.31 486.85 788.21 506.55C801.51 515.95 814.75 525.14 827.64 535.09C853.84 555.32 877.94 576.85 895.93 604.99C909.85 626.76 916.7 648.29 920.09 673.69C921.17 681.83 921.01 688.88 921 697.06C920.98 728.73 910.94 762.33 895.26 789.83C887.22 803.92 877.92 816.75 867.3 828.97C865.31 831.26 863.09 833.24 861.06 835.44C855.06 841.95 848.64 848.37 841.68 853.88C838.93 856.05 832.88 861.04 829.42 861.48Z"/><path d="M616.45 1014.41C610.29 1014.91 603.18 1015.32 597.01 1014.77C584.97 1013.7 547.09 1010.61 543 996.86C541.95 993.33 543.14 989.7 545.79 987.18C549.91 983.27 558.96 983.11 564.39 981.76C587.14 976.1 606.8 962.45 619.79 942.92C627.52 931.31 634.02 915.58 635.88 901.74C636.08 900.27 635.97 898.77 636.16 897.29C636.32 895.99 636.8 894.78 636.93 893.48C637.27 889.83 637.28 883.16 636.92 879.52C636.81 878.37 636.34 877.33 636.19 876.22C635.34 869.95 634.25 864.64 632.5 858.52C625.77 835.04 611.31 816.22 593.15 800.37C588.62 796.41 584.45 792.49 579.7 788.72C570.83 781.7 561.35 775.11 552.22 768.39C524.95 748.32 497.16 728.9 469.91 708.78C458.39 700.28 446.76 692.21 435.95 682.8C412.64 662.5 397.34 638.99 387.09 609.93C383.36 599.36 381.41 589.16 379.89 578.14C379.71 576.84 379.26 575.61 379.13 574.3C378.91 572.13 379.12 569.97 378.95 567.82C378.73 564.87 378.23 562.57 378.2 559.46C378.15 555.38 378.71 552.02 378.96 548.09C379.13 545.46 378.84 542.73 379.09 540.11C379.65 534.28 380.85 527.57 382.01 521.8C383.76 513.09 385.82 504.57 388.66 496.11C395.08 476.98 405.19 458.46 416.26 441.65C419.63 436.54 430.25 417.58 438.06 425.1C440.98 427.91 439.72 433.69 440.07 437.41C441.44 452.27 447.62 466.84 455.51 479.41C471.32 504.58 496.2 524.15 519.77 541.66C523.62 544.52 532.87 550.32 534.83 554.26C536.72 558.08 536.04 562.94 532.97 565.98C529.75 569.16 525.47 568.45 522.15 573.17C519.72 576.62 519.7 579.92 520.57 583.86C523.6 597.74 543.56 609.49 554.78 616.99C567.88 625.75 580.64 634.35 578.81 652.22C577.93 660.86 574.76 670.68 572.58 679.18C570.03 689.14 560.87 713.39 570.53 720.84C580.84 728.79 601.73 710.99 609.88 704.66C614.24 701.28 618.83 697.85 623.06 694.35C631.84 687.07 638.18 680.05 650.48 680C660.36 679.96 665.51 684.57 673.35 689.65C677.57 692.38 681.91 695.07 686.08 697.89C710.68 714.58 736.73 730.78 754.33 755.29C766.7 772.52 774.55 790.85 779.21 811.47C781.21 820.34 782.53 829.19 782.92 838.29C784.15 867.16 775 898.35 761.17 923.52C746.82 949.67 725.15 972.09 699.87 987.86C674.56 1003.65 645.96 1011.99 616.45 1014.41Z"/></g>
+    <linearGradient id="card-g" x1="0.146" y1="0.146" x2="0.854" y2="0.854">
+      <stop offset="0" stop-color="#FF7A1F"/><stop offset=".45" stop-color="#F05A00"/><stop offset="1" stop-color="#D63F00"/>
+    </linearGradient>
+    <linearGradient id="face-g" x1="0.111" y1="0.111" x2="0.889" y2="0.889">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".5" stop-color="#FAF6F5"/><stop offset="1" stop-color="#E9D8D0"/>
+    </linearGradient>
+    <filter id="cast" x="-35%" y="-35%" width="180%" height="185%" color-interpolation-filters="sRGB">
+      <feOffset in="SourceAlpha" dx="42.43" dy="42.43" result="ao"/>
+      <feGaussianBlur in="ao" stdDeviation="40" result="ab"/>
+      <feFlood flood-color="#6E1A00" flood-opacity="0.3" result="ac"/>
+      <feComposite in="ac" in2="ab" operator="in" result="amb"/>
+      <feOffset in="SourceAlpha" dx="21.21" dy="21.21" result="co"/>
+      <feGaussianBlur in="co" stdDeviation="16" result="cb"/>
+      <feFlood flood-color="#6E1A00" flood-opacity="0.48" result="cc2"/>
+      <feComposite in="cc2" in2="cb" operator="in" result="ct"/>
+      <feMerge><feMergeNode in="amb"/><feMergeNode in="ct"/></feMerge>
+    </filter>
+    <filter id="bevel" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feOffset in="SourceAlpha" dx="-7.07" dy="-7.07" result="o"/>
+      <feGaussianBlur in="o" stdDeviation="11" result="b"/>
+      <feComposite in="SourceAlpha" in2="b" operator="out" result="band"/>
+      <feFlood flood-color="#D6BCB0" flood-opacity="0.85" result="c"/>
+      <feComposite in="c" in2="band" operator="in"/>
+    </filter>
+    <filter id="rim" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feOffset in="SourceAlpha" dx="7.07" dy="7.07" result="o"/>
+      <feGaussianBlur in="o" stdDeviation="4" result="b"/>
+      <feComposite in="SourceAlpha" in2="b" operator="out" result="band"/>
+      <feFlood flood-color="#FFFFFF" flood-opacity="1.0" result="c"/>
+      <feComposite in="c" in2="band" operator="in"/>
+    </filter>
+    <filter id="hot" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feOffset in="SourceAlpha" dx="2.83" dy="2.83" result="o"/>
+      <feGaussianBlur in="o" stdDeviation="2" result="b"/>
+      <feComposite in="SourceAlpha" in2="b" operator="out" result="band"/>
+      <feFlood flood-color="#FFFFFF" flood-opacity="1.0" result="c"/>
+      <feComposite in="c" in2="band" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="114.5" y="88.5" width="1025" height="1077" rx="177" fill="url(#card-g)"/>
+  <g clip-path="url(#cc)">
+    <g transform="translate(28.28,28.28)"><use href="#flame" filter="url(#cast)"/></g>
+    <g>
+      <use href="#flame" transform="translate(28.28,28.28)" fill="#A88F85"/>
+      <use href="#flame" transform="translate(27.11,27.11)" fill="#AE978E"/>
+      <use href="#flame" transform="translate(25.93,25.93)" fill="#B49E96"/>
+      <use href="#flame" transform="translate(24.75,24.75)" fill="#BAA69E"/>
+      <use href="#flame" transform="translate(23.57,23.57)" fill="#BFADA6"/>
+      <use href="#flame" transform="translate(22.39,22.39)" fill="#C5B4AD"/>
+      <use href="#flame" transform="translate(21.21,21.21)" fill="#CABAB4"/>
+      <use href="#flame" transform="translate(20.03,20.03)" fill="#CFC1BB"/>
+      <use href="#flame" transform="translate(18.86,18.86)" fill="#D3C7C2"/>
+      <use href="#flame" transform="translate(17.68,17.68)" fill="#D8CDC8"/>
+      <use href="#flame" transform="translate(16.50,16.50)" fill="#DCD2CE"/>
+      <use href="#flame" transform="translate(15.32,15.32)" fill="#E0D8D4"/>
+      <use href="#flame" transform="translate(14.14,14.14)" fill="#E4DDD9"/>
+      <use href="#flame" transform="translate(12.96,12.96)" fill="#E8E1DF"/>
+      <use href="#flame" transform="translate(11.79,11.79)" fill="#EBE6E3"/>
+      <use href="#flame" transform="translate(10.61,10.61)" fill="#EFEAE8"/>
+      <use href="#flame" transform="translate(9.43,9.43)" fill="#F2EEEC"/>
+      <use href="#flame" transform="translate(8.25,8.25)" fill="#F4F1F0"/>
+      <use href="#flame" transform="translate(7.07,7.07)" fill="#F7F4F3"/>
+      <use href="#flame" transform="translate(5.89,5.89)" fill="#F9F7F7"/>
+      <use href="#flame" transform="translate(4.71,4.71)" fill="#FBFAF9"/>
+      <use href="#flame" transform="translate(3.54,3.54)" fill="#FCFCFB"/>
+      <use href="#flame" transform="translate(2.36,2.36)" fill="#FEFDFD"/>
+      <use href="#flame" transform="translate(1.18,1.18)" fill="#FFFEFE"/>
+    </g>
+    <use href="#flame" fill="url(#face-g)"/>
+    <use href="#flame" filter="url(#bevel)"/>
+    <use href="#flame" filter="url(#rim)"/>
+    <use href="#flame" filter="url(#hot)"/>
+  </g>
+</svg>
