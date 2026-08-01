@@ -45,10 +45,15 @@ module.exports = {
     scheme: "speechworks",
     deeplinks: ["auth/callback"],
     platforms: ["ios", "android", "web"],
+    // Splash = the flash the OS shows before any of our JS runs. The background
+    // is the app's own dark canvas (palette ink.canvas), NOT white: a white
+    // splash handing off to a dark first screen is a visible flash of the wrong
+    // app. The mark is white for the same reason the background is dark — the
+    // black-transparent logo variant would be invisible on #141311.
     splash: {
       image: "./app/assets/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#141311",
     },
     ios: {
       bundleIdentifier: "com.speechworks.app",
@@ -172,9 +177,17 @@ module.exports = {
       // no draw-over-other-apps overlay, so strip it from the release manifest
       // (avoids an unnecessary sensitive-permission flag on the stores).
       blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
+      // Android masks the icon to whatever shape the launcher uses (circle,
+      // squircle, teardrop), so the two layers are kept separate: the mark
+      // alone in the foreground — recentred and scaled to 92% so it sits inside
+      // the 66.7% safe zone the mask can't clip — over the brand gradient as a
+      // background IMAGE. `backgroundColor` only accepts a flat colour, which
+      // would have thrown the gradient away; it stays below as the fallback for
+      // launchers that ignore backgroundImage.
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
-        backgroundColor: "#592D1C",
+        backgroundImage: "./app/assets/adaptive-icon-bg.png",
+        backgroundColor: "#F05A00",
       },
       intentFilters: [
         {
