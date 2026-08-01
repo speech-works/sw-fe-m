@@ -178,16 +178,21 @@ module.exports = {
       // (avoids an unnecessary sensitive-permission flag on the stores).
       blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
       // Android masks the icon to whatever shape the launcher uses (circle,
-      // squircle, teardrop), so the two layers are kept separate: the mark
-      // alone in the foreground — recentred and scaled to 92% so it sits inside
-      // the 66.7% safe zone the mask can't clip — over the brand gradient as a
-      // background IMAGE. `backgroundColor` only accepts a flat colour, which
-      // would have thrown the gradient away; it stays below as the fallback for
-      // launchers that ignore backgroundImage.
+      // squircle, teardrop), so the layers are kept separate: the mark alone in
+      // the foreground — scaled to 60% so its widest reach is 313px against the
+      // 341px safe circle a round mask can't clip — over the flat card colour as
+      // a background IMAGE. `backgroundColor` mirrors that same colour and stays
+      // below as the fallback for launchers that ignore backgroundImage.
+      // `monochromeImage` is the silhouette Android tints from the user's
+      // wallpaper when "Themed icons" is on. It is not optional any more: from
+      // Android 16 QPR2 the system auto-derives one for apps that don't ship it,
+      // and an auto-derived mark comes out muddy. Shipping our own keeps the
+      // star's negative space readable when tinted.
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
         backgroundImage: "./app/assets/adaptive-icon-bg.png",
-        backgroundColor: "#F05A00",
+        monochromeImage: "./app/assets/adaptive-icon-mono.png",
+        backgroundColor: "#141311",
       },
       intentFilters: [
         {
