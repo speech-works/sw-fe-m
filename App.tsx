@@ -334,21 +334,28 @@ const App: React.FC = () => {
               style={styles.safeAreaView}
               edges={["left", "right"]}
             >
-              <FontLoader />
               <ThemeProvider>
-                {/* Passive instrumentation for the intermittent "buttons don't
-                    respond" bug. Uses onTouch* notifications, not the responder
-                    system, so it never competes for a gesture. */}
-                <DeadTapDetector>
-                  <ThemedNavRoot>
-                    <MainNavigator />
-                    <UpsellModal />
-                    <OutcomeModal />
-                    <StaminaVignetteOverlay />
-                    <GlobalStaminaController />
-                    <OutOfStaminaController />
-                  </ThemedNavRoot>
-                </DeadTapDetector>
+                {/* WRAPS the tree — it used to sit beside it, which let every
+                    screen lay out against the fallback font and then keep those
+                    measurements once Inter swapped in (clipped chips, sliced
+                    button labels on Android). Inside ThemeProvider so its
+                    placeholder can paint the themed canvas; the App-level
+                    effects above are hooks and run regardless of this gate. */}
+                <FontLoader>
+                  {/* Passive instrumentation for the intermittent "buttons don't
+                      respond" bug. Uses onTouch* notifications, not the responder
+                      system, so it never competes for a gesture. */}
+                  <DeadTapDetector>
+                    <ThemedNavRoot>
+                      <MainNavigator />
+                      <UpsellModal />
+                      <OutcomeModal />
+                      <StaminaVignetteOverlay />
+                      <GlobalStaminaController />
+                      <OutOfStaminaController />
+                    </ThemedNavRoot>
+                  </DeadTapDetector>
+                </FontLoader>
               </ThemeProvider>
             </SafeAreaView>
           </SafeAreaProvider>

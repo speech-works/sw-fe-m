@@ -58,9 +58,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
       // routes to login. Intentionally no state updates after this point.
     } catch (e) {
       setIsDeleting(false);
-      setError(
-        "We couldn't delete your account. Please check your connection and try again.",
-      );
+      setError("Couldn't delete your account. Check your connection and try again.");
     }
   };
 
@@ -80,8 +78,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
         Delete your account?
       </Text>
       <Text variant="bodySm" color="secondary" center style={styles.body}>
-        This permanently deletes your account and all of your data, including your
-        practice recordings, progress, assessments, and history. This cannot be undone.
+        Erases your recordings, progress, and history. This can't be undone.
       </Text>
 
       <View style={styles.confirmBlock}>
@@ -110,7 +107,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          label="Delete my account"
+          label="Delete account"
           onPress={handleDelete}
           variant="danger"
           disabled={!canDelete}

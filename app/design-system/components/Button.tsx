@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, StyleProp, ViewStyle } from "react-native";
+import { ActivityIndicator, Platform, StyleProp, ViewStyle } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
 import { radius, hitTarget } from "../primitives/scale";
@@ -109,8 +109,30 @@ export const Button: React.FC<ButtonProps> = ({
         <>
           {leftIcon ? <Icon name={leftIcon} size={20} color={fg} /> : null}
           {/* center + single line: a button label must never wrap or left-align
-              (an un-centered wrapped label is the classic cramped-button defect). */}
-          <Text variant="title" color={fg} center numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+              (an un-centered wrapped label is the classic cramped-button defect).
+
+              flexShrink: RN defaults it to 0 (not 1 like the web), so in this
+              row the label could not give way — with an icon beside it, an
+              11-character label was overflowing a button with ~290pt to spare.
+              Shrinking makes the row share width properly; minWidth guards the
+              usual flexbox min-content floor.
+
+              adjustsFontSizeToFit is iOS-ONLY on purpose. RN Android maps it to
+              TextView auto-size, which locks its shrink factor to whatever the
+              first measurement said. When that measurement was taken against the
+              fallback font, the real glyphs draw wider than the box and — being
+              centred — get sliced at BOTH ends ("Let's start" -> "et's star"),
+              which is far worse than an honest ellipsis. Android now shrinks by
+              flex and ellipsizes as a last resort. iOS behaviour is unchanged. */}
+          <Text
+            variant="title"
+            color={fg}
+            center
+            numberOfLines={1}
+            adjustsFontSizeToFit={Platform.OS === "ios"}
+            minimumFontScale={0.7}
+            style={{ flexShrink: 1, minWidth: 0 }}
+          >
             {label}
           </Text>
           {rightIcon ? <Icon name={rightIcon} size={20} color={fg} /> : null}
