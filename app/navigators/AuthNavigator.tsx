@@ -7,6 +7,7 @@ import ActOneCallOffer from "../screens/PreAuth/ActOneCallOffer";
 import OnboardingQuestionScreen from "../screens/Onboarding/OnboardingQuestionScreen";
 import { useOnboardingDraftStore } from "../stores/onboardingDraft";
 import { PRE_AUTH_ONBOARDING_ENABLED } from "../constants/features";
+import { pickAuthEntryRoute } from "./authEntryRoute";
 
 export type AuthStackParamList = {
   ActOneWelcome: undefined;
@@ -57,11 +58,37 @@ export default function AuthNavigator() {
 
   if (!hydrated) return null;
 
-  const startAtActOne = PRE_AUTH_ONBOARDING_ENABLED && !draftCompleted;
+  // WHERE A RETURNING STRANGER LANDS — three states, not two.
+  //
+  //   · flag off                    → the old login-first app
+  //   · nothing answered yet        → the welcome screen
+  //   · Act 1 finished, no account  → their own result
+  //
+  // That last case used to open on `Auth`. The justification on record was a
+  // returning user who reinstalls — but reinstalling wipes AsyncStorage, so
+  // `completedAt` is null for precisely that person and the branch never fired
+  // for them. Who it actually caught was someone who answered all five
+  // questions, reached the payoff, and closed the app: handed a login wall on
+  // their next open, with no route back to the result their answers earned.
+  // That wall is the thing Act 1 exists to remove, so this is the one place it
+  // must not be the default.
+  //
+  // The teaser is safe as a stack root: it takes no route params and reads the
+  // draft store directly (cleared only after a successful post-signup replay),
+  // then hands off to the call offer and signup exactly as on the forward path.
+  // It carries its own way out to login when it is the root — see the note on
+  // the sign-in row there.
+  //
+  // The choice itself lives in `authEntryRoute` so it can be asserted without
+  // mounting this navigator.
+  const initialRouteName = pickAuthEntryRoute({
+    preAuthEnabled: PRE_AUTH_ONBOARDING_ENABLED,
+    draftCompleted,
+  });
 
   return (
     <Stack.Navigator
-      initialRouteName={startAtActOne ? "ActOneWelcome" : "Auth"}
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         animation: "slide_from_right",

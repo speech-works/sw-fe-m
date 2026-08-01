@@ -68,6 +68,21 @@ const ActOneTeaser: React.FC = () => {
 
   const named = joinPhrases(phrases.slice(0, 3));
 
+  /**
+   * True when this screen IS the stack root — nothing behind it to go back to.
+   *
+   * That happens for someone who finished Act 1 and closed the app before
+   * making an account: AuthNavigator now opens them here rather than on the
+   * login wall. It never happens on the forward path, where the welcome screen
+   * has already offered a way to sign in.
+   *
+   * The distinction is what keeps this screen's ONE CTA intact. A permanent
+   * second control would fight the Continue pill on every visit; this appears
+   * only for the person who has no other exit, which is the same rule the
+   * welcome screen's own sign-in row follows.
+   */
+  const isEntryPoint = !navigation.canGoBack();
+
   return (
     <ScreenView style={styles.screen}>
       <SchemeStatusBar />
@@ -139,6 +154,34 @@ const ActOneTeaser: React.FC = () => {
             onPress={() => navigation.navigate("ActOneCallOffer")}
           />
         </Animated.View>
+
+        {/* A TEXT LINK, NOT A SECOND BUTTON — copied from the welcome screen's
+            sign-in row, down to the padding, because it is the same exception
+            for the same reason: two stacked pills give the screen two things of
+            equal weight and no obvious path. It also dodges the DS Button's
+            label truncation at the `title` scale, which turned the full-width
+            ghost version of this into "I already have an acco…".
+
+            Only when there is no way back (see `isEntryPoint`). Otherwise the
+            welcome screen behind us has already offered this. */}
+        {isEntryPoint ? (
+          <Animated.View entering={motion.stagger(4)}>
+            <Text
+              variant="bodySm"
+              color="secondary"
+              center
+              style={styles.signInRow}
+              onPress={() => navigation.navigate("Auth")}
+            >
+              Already have an account?{" "}
+              {/* `link`, not the brand fill: the DS guards against bright
+                  accent hues used as text because they drop below AA. */}
+              <Text variant="bodySm" color="link">
+                Log in
+              </Text>
+            </Text>
+          </Animated.View>
+        ) : null}
       </View>
     </ScreenView>
   );
@@ -173,5 +216,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: space.screenX,
+  },
+  // Matches ActOneWelcome's row exactly: the large padding above separates it
+  // from the CTA, and the vertical padding is what carries a ~20pt line past
+  // the 44pt minimum tap target (RN's Text honours `style` reliably where
+  // `hitSlop` is only patchy).
+  signInRow: {
+    paddingTop: spacing["2xl"],
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
 });
