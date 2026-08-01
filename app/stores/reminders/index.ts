@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import type { ReminderCategory } from "../../constants/reminderTemplates";
-import { normalizeReminderDate } from "./normalizeDate";
+import { isSpentOneTime, normalizeReminderDate } from "./normalizeDate";
 import {
   cancelAllReminderNotifications,
   cancelReminderNotifications,
@@ -36,9 +36,22 @@ type NewReminderInput = Omit<
 
 const MAX_REMINDERS = 3;
 
+/**
+ * ONE way to silence reminders, not two.
+ *
+ * There used to be a `globalPaused` flag alongside per-reminder `active`, and
+ * four scheduling branches had to consult both. It had no UI and never had —
+ * Settings' "Master Control" toggle drives `setAllActive`, which is the same
+ * intent expressed through the state that already existed. With a cap of three
+ * reminders, a second concept whose only advantage is remembering which ones
+ * were on before a pause was not worth the branch it was written on.
+ *
+ * `clearExpired` is gone for the same reason: the reschedule that runs at every
+ * launch is the natural place to retire a spent one-time reminder, and it was
+ * already walking the list to decide what to schedule.
+ */
 interface ReminderState {
   reminders: Reminder[];
-  globalPaused: boolean;
   addReminder: (r: NewReminderInput) => Promise<void>;
   updateReminder: (
     id: string,
@@ -46,10 +59,8 @@ interface ReminderState {
   ) => Promise<void>;
   removeReminder: (id: string) => Promise<void>;
   toggleActive: (id: string) => Promise<void>;
-  setGlobalPaused: (paused: boolean) => Promise<void>;
   setAllActive: (active: boolean) => Promise<void>;
   removeAll: () => Promise<void>;
-  clearExpired: () => void;
   rescheduleAllActiveNotifications: () => Promise<void>;
   canAddMore: () => boolean;
 }
@@ -60,7 +71,6 @@ export const useReminderStore = create<ReminderState>()(
   persist(
     (set, get) => ({
       reminders: [],
-      globalPaused: false,
 
       canAddMore: () => get().reminders.length < MAX_REMINDERS,
 
@@ -78,9 +88,8 @@ export const useReminderStore = create<ReminderState>()(
           createdAt: new Date().toISOString(),
         };
 
-        // Only schedule if the reminder is active and global isn't paused
         let scheduledNotificationIds: string[] = [];
-        if (newRem.active && !get().globalPaused) {
+        if (newRem.active) {
           try {
             if (newRem.type === "ONE_TIME") {
               const notificationId = await scheduleOneTime(newRem);
@@ -126,7 +135,7 @@ export const useReminderStore = create<ReminderState>()(
         // untouched. The two sets overlap only for the few ms below, during
         // which neither can fire.
         let newNotificationIds: string[] = [];
-        if (updatedRem.active && !get().globalPaused) {
+        if (updatedRem.active) {
           try {
             if (updatedRem.type === "ONE_TIME") {
               const notificationId = await scheduleOneTime(updatedRem);
@@ -194,30 +203,26 @@ export const useReminderStore = create<ReminderState>()(
           // the switch flipped on and nothing ever fired. Leave the reminder
           // OFF and surface the failure so the UI can say so — the same
           // contract addReminder already has.
-          let newNotificationIds: string[] = [];
-          if (!get().globalPaused) {
-            if (rem.type === "ONE_TIME") {
-              // Its moment may have passed while it was switched off. iOS
-              // rejects a past trigger and Android drops it while still
-              // handing back an id, so check here and say why rather than
-              // letting the platform decide how to fail.
-              const [y, m, d] = rem.date.split("-").map(Number);
-              const [h, min] = rem.time.split(":").map(Number);
-              const when = new Date(y, m - 1, d, h, min).getTime();
-              if (Number.isNaN(when) || when <= Date.now()) {
-                throw new Error(
-                  "That reminder's time has already passed. Edit it to a future time to switch it back on.",
-                );
-              }
-              newNotificationIds.push(await scheduleOneTime(rem));
-            } else if (rem.type === "ROUTINE") {
-              newNotificationIds = await scheduleRoutine(rem);
+          const newNotificationIds: string[] = [];
+          if (rem.type === "ONE_TIME") {
+            // Its moment may have passed while it was switched off. iOS rejects
+            // a past trigger and Android drops it while still handing back an
+            // id, so check here and say why rather than letting the platform
+            // decide how to fail.
+            if (isSpentOneTime(rem, Date.now())) {
+              throw new Error(
+                "That reminder's time has already passed. Edit it to a future time to switch it back on.",
+              );
             }
-
-            if (newNotificationIds.length === 0) {
-              throw new Error("Failed to reschedule reminder notification.");
-            }
+            newNotificationIds.push(await scheduleOneTime(rem));
+          } else if (rem.type === "ROUTINE") {
+            newNotificationIds.push(...(await scheduleRoutine(rem)));
           }
+
+          if (newNotificationIds.length === 0) {
+            throw new Error("Failed to reschedule reminder notification.");
+          }
+
           set((s) => ({
             reminders: s.reminders.map((r) =>
               r.id === id
@@ -226,22 +231,6 @@ export const useReminderStore = create<ReminderState>()(
             ),
           }));
         }
-      },
-
-      setGlobalPaused: async (paused) => {
-        set({ globalPaused: paused });
-        if (paused) {
-          // rescheduleAllActiveNotifications early-returns on globalPaused —
-          // BEFORE its cancel step — so delegating here would have flipped the
-          // flag and left every notification armed. Pausing has to do its own
-          // cancelling.
-          await cancelAllReminderNotifications();
-          set((s) => ({
-            reminders: s.reminders.map((r) => ({ ...r, notificationIds: [] })),
-          }));
-          return;
-        }
-        await get().rescheduleAllActiveNotifications();
       },
 
       setAllActive: async (active) => {
@@ -260,37 +249,10 @@ export const useReminderStore = create<ReminderState>()(
             .reminders.filter((r) => r.notificationIds.length > 0)
             .map((r) => cancelReminderNotifications(r)),
         );
-        set({ reminders: [], globalPaused: false });
-      },
-
-      clearExpired: () => {
-        const now = new Date();
-        const updatedReminders = get().reminders.filter((rem) => {
-          if (rem.type === "ONE_TIME") {
-            const [y, m, d] = rem.date.split("-").map(Number);
-            const [h, min] = rem.time.split(":").map(Number);
-            const dt = new Date(y, m - 1, d, h, min);
-            return dt.getTime() > now.getTime();
-          }
-          return true;
-        });
-
-        get().reminders.forEach(async (rem) => {
-          if (!updatedReminders.some((ur) => ur.id === rem.id)) {
-            await cancelReminderNotifications(rem);
-          }
-        });
-
-        set({ reminders: updatedReminders });
+        set({ reminders: [] });
       },
 
       rescheduleAllActiveNotifications: async () => {
-        if (get().globalPaused) {
-          console.log("Global pause is on — skipping reschedule.");
-          return;
-        }
-
-        console.log("Rescheduling all active notifications...");
 
         // 1. Cancel the previous generation — by stored id AND by what is
         // actually pending on the device.
@@ -314,18 +276,18 @@ export const useReminderStore = create<ReminderState>()(
         );
         await cancelAllReminderNotifications();
 
-        // 2. Filter expired one-time reminders
-        const now = new Date();
-        const activeReminders = get().reminders.filter((rem) => {
-          if (!rem.active) return false;
-          if (rem.type === "ONE_TIME") {
-            const [y, m, d] = rem.date.split("-").map(Number);
-            const [h, min] = rem.time.split(":").map(Number);
-            const dt = new Date(y, m - 1, d, h, min);
-            return dt.getTime() > now.getTime();
-          }
-          return true;
-        });
+        // 2. RETIRE spent one-time reminders — don't just skip them.
+        //
+        // They used to be kept with an empty id list, which looked harmless but
+        // wasn't: canAddMore() counts the array, so three one-off reminders that
+        // had already fired silently consumed the entire budget of three and
+        // the user could never add another. There was a clearExpired() that
+        // would have removed them, and nothing ever called it. This pass runs at
+        // every launch and is already walking the list, so it is the right place
+        // — and now there is only one place.
+        const now = Date.now();
+        const surviving = get().reminders.filter((rem) => !isSpentOneTime(rem, now));
+        const activeReminders = surviving.filter((rem) => rem.active);
 
         // 3. Reschedule
         const updatedReminders = await Promise.all(
@@ -348,14 +310,16 @@ export const useReminderStore = create<ReminderState>()(
           }),
         );
 
-        // 4. Merge: keep inactive reminders as-is, update active ones
-        const allReminders = get().reminders.map((rem) => {
-          const updated = updatedReminders.find((u) => u.id === rem.id);
-          return updated || { ...rem, notificationIds: [] };
+        // 4. Merge over the SURVIVORS, so the retired ones are gone for good.
+        set({
+          reminders: surviving.map(
+            (rem) =>
+              updatedReminders.find((u) => u.id === rem.id) ?? {
+                ...rem,
+                notificationIds: [],
+              },
+          ),
         });
-
-        set({ reminders: allReminders });
-        console.log("All active notifications rescheduled.");
       },
     }),
     {
