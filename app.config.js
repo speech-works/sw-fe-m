@@ -177,17 +177,27 @@ module.exports = {
       // no draw-over-other-apps overlay, so strip it from the release manifest
       // (avoids an unnecessary sensitive-permission flag on the stores).
       blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
-      // Android masks the icon to whatever shape the launcher uses (circle,
-      // squircle, teardrop), so the layers are kept separate: the mark alone in
-      // the foreground — scaled to 60% so its widest reach is 313px against the
-      // 341px safe circle a round mask can't clip — over the flat card colour as
-      // a background IMAGE. `backgroundColor` mirrors that same colour and stays
-      // below as the fallback for launchers that ignore backgroundImage.
+      // The icon is `svg logos/sw-icon-white.svg`. iOS and web take that file
+      // whole; Android can't, because the launcher masks the icon to its own
+      // shape (circle, squircle, teardrop) and only the middle 72dp of the 108dp
+      // canvas survives. So the design is split across the two adaptive layers:
+      // the warm field as the background IMAGE, the mark ALONE as the
+      // foreground. The design's inset glass tile is dropped — the launcher's
+      // mask is that shape now, and an inner rounded rect sitting inside a
+      // circle mask reads as a stray box.
+      // The mark is drawn at 465px, the same 68% of the masked-in area that it
+      // occupies of the tile in the source file. It is NOT drawn to the canvas
+      // edges: a full-bleed foreground is the one thing this layer cannot be —
+      // the mask cuts its sides off and the star's negative space turns into a
+      // hole punched through to the background.
+      // `backgroundColor` mirrors the design's base colour and stays below as
+      // the fallback for launchers that ignore backgroundImage.
       // `monochromeImage` is the silhouette Android tints from the user's
       // wallpaper when "Themed icons" is on. It is not optional any more: from
       // Android 16 QPR2 the system auto-derives one for apps that don't ship it,
       // and an auto-derived mark comes out muddy. Shipping our own keeps the
-      // star's negative space readable when tinted.
+      // star's negative space readable when tinted — so it is the mark at the
+      // same size, never an inverted plate.
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
         backgroundImage: "./app/assets/adaptive-icon-bg.png",
