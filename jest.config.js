@@ -30,7 +30,15 @@ module.exports = {
     "/android/",
     "/.expo/",
     "/dist/",
+    // Agent worktrees are checkouts of THIS repo living inside it, so every
+    // suite here is collected twice — once from source and once from a copy
+    // that has no node_modules of its own and dies on "__fbBatchedBridgeConfig
+    // is not set". That reads as a wall of red with nothing wrong, which is
+    // exactly how a genuine failure gets lost. (`modulePathIgnorePatterns`
+    // below silences the haste-map collisions from the same duplication.)
+    "/.claude/",
   ],
+  modulePathIgnorePatterns: ["<rootDir>/.claude/"],
   // Every zustand store here persists through AsyncStorage, whose native module
   // does not exist under Jest — importing one throws before a single assertion
   // runs. The library ships an in-memory mock for exactly this; without it no
