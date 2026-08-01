@@ -1,7 +1,8 @@
 import * as SecureStore from "expo-secure-store"; // or AsyncStorage
 import React, { createContext, useEffect, useState } from "react";
-import { Text } from "react-native";
+import { View } from "react-native";
 import { logoutUser, deleteMe } from "../api";
+import { palette } from "../design-system/primitives/palette";
 import { resetAuthInterceptor } from "../api/axiosClient";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { setUpdateTokenFn } from "../util/functions/authToken";
@@ -82,7 +83,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // hook count differs between renders (rules-of-hooks violation → crash). The
   // functions below are plain closures, not hooks, so gating them is safe.
   if (token === undefined) {
-    return <Text>Loading..</Text>; // A simple loading screen
+    // CONTINUE THE SPLASH, DON'T FLASH AT IT.
+    //
+    // This was a bare `<Text>Loading..</Text>`: system font, default white
+    // background, no insets, top-left. The app ships no `expo-splash-screen`
+    // dependency, so the native splash hides on the first frame rather than
+    // covering this — meaning every cold start went dark splash → white frame
+    // with stray text → app. Rendering any text here is the bug (it is also
+    // above FontLoader, so it draws before Inter is registered); a bare fill is
+    // the whole fix.
+    //
+    // Imports the raw primitive rather than a semantic role on purpose: this
+    // provider sits ABOVE ThemeProvider (it has to — the tree it gates includes
+    // the theme's own consumers), so `useTheme()` is not available here. The
+    // literal matches `splash.backgroundColor` in app.config.js, which is
+    // unconditionally dark regardless of the user's light/dark preference, so
+    // matching the splash is what makes the handoff invisible.
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.ink.canvas }} />
+    );
   }
 
   const login = async (newToken: string) => {
