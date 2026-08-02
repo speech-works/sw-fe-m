@@ -18,6 +18,7 @@ import {
   REVENUECAT_IOS_API_KEY,
 } from "../constants/features";
 import { getWallet, createPurchaseIntent, type Wallet } from "../api";
+import { selectStoreProduct } from "./selectStoreProduct";
 
 const getPlatformApiKey = (): string =>
   Platform.OS === "ios" ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY;
@@ -129,15 +130,30 @@ export async function purchaseProductById(
     const products: PurchasesStoreProduct[] = await Purchases.getProducts([
       productId,
     ]);
-    const product = products[0];
-    if (!product) {
+
+    // NOT products[0] — a Play subscription returns one product per base plan.
+    // See selectStoreProduct.ts for why guessing here is a wrong-price charge.
+    const selection = selectStoreProduct(productId, products);
+    if (!selection.ok) {
+      if (selection.reason === "ambiguous") {
+        console.error(
+          `[purchases] AMBIGUOUS "${productId}": the store returned ${selection.candidates.length} ` +
+            `base plans (${selection.candidates.join(", ")}). Refusing to guess which one to bill. ` +
+            `Fix: request the fully-qualified "<subscriptionId>:<basePlanId>" instead.`,
+        );
+      } else {
+        console.error(
+          `[purchases] product "${productId}" not found in the store. ` +
+            `Check it exists, is ACTIVE, and that the id matches ProductCatalog.ts exactly.`,
+        );
+      }
       return {
         status: "error",
         message: "That item isn't available for purchase right now.",
       };
     }
 
-    await Purchases.purchaseStoreProduct(product);
+    await Purchases.purchaseStoreProduct(selection.product);
     return { status: "purchased" };
   } catch (error) {
     const purchasesError = error as PurchasesError;
