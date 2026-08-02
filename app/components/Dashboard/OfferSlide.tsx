@@ -17,6 +17,7 @@ import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
 import TopMatchBadge, { BADGE_OVERHANG, BADGE_LANE } from "./TopMatchBadge";
 import { programEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
+import type { StorePrice } from "../../services/priceDisplay";
 
 /**
  * One program in the Home carousel, in two tiers.
@@ -62,12 +63,14 @@ const CTA_LABEL = "See inside";
 
 export interface OfferSlideProps {
   item: OfferItem;
+  /** Local-currency price from the store; falls back to INR when absent. */
+  store?: StorePrice | null;
   /** The vivid treatment, reserved for a top match that earned a reason. */
   highlight?: boolean;
   onPress: (item: OfferItem) => void;
 }
 
-const OfferSlide: React.FC<OfferSlideProps> = ({ item, highlight, onPress }) => {
+const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress }) => {
   const { colors, scheme } = useTheme();
   const isDark = scheme === "dark";
 
@@ -206,6 +209,9 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, highlight, onPress }) => 
           <PriceTag
             priceInr={item.priceInr}
             anchorInr={item.anchorPriceInr}
+            priceUsd={item.priceUsd}
+            anchorUsd={item.anchorPriceUsd}
+            store={store}
             compact
             ink={skin.priceInk}
           />

@@ -6,6 +6,8 @@ import {
   pollWalletUntil,
 } from "../services/purchases";
 import { Text, Button, Icon, Sheet, space, spacing, useTheme } from "../design-system";
+import { useStorePrices } from "../hooks/useStorePrices";
+import { resolvePriceDisplay } from "../services/priceDisplay";
 
 interface ExhaustionSheetProps {
   visible: boolean;
@@ -35,6 +37,25 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [purchasing, setPurchasing] = useState<"credits" | "membership" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Local-currency prices for the two fixed SKUs. Empty ⇒ INR fallback.
+  const { prices: storePrices } = useStorePrices([
+    offers?.topup?.productId,
+    offers?.membership?.productId,
+  ]);
+  const topupPrice = offers?.topup
+    ? resolvePriceDisplay({
+        store: storePrices[offers.topup.productId],
+        inr: offers.topup.priceInr,
+        usd: offers.topup.priceUsd,
+      }).price
+    : null;
+  const membershipPrice = offers?.membership
+    ? resolvePriceDisplay({
+        store: storePrices[offers.membership.productId],
+        inr: offers.membership.priceInr,
+        usd: offers.membership.priceUsd,
+      }).price
+    : null;
 
   useEffect(() => {
     if (!visible) return;
@@ -147,7 +168,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
           <Button
             label={
               offers?.topup
-                ? `Get ${offers.topup.credits} calls · ₹${offers.topup.priceInr}`
+                ? `Get ${offers.topup.credits} calls · ${topupPrice}`
                 : "Get more calls"
             }
             loading={purchasing === "credits"}
@@ -157,7 +178,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
 
           {offers?.showMembershipOffer && offers.membership ? (
             <Button
-              label={`Membership · ₹${offers.membership.priceInr}/month`}
+              label={`Membership · ${membershipPrice}/month`}
               variant="secondary"
               loading={purchasing === "membership"}
               disabled={purchasing !== null}

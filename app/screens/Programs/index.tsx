@@ -23,6 +23,7 @@ import TopMatchBadge, {
   BADGE_LANE,
 } from "../../components/Dashboard/TopMatchBadge";
 import { programEyebrow, priceNoteFor } from "../../util/packs/offers";
+import { useStorePrices } from "../../hooks/useStorePrices";
 import { openOnboarding } from "../../util/functions/openOnboarding";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
 
@@ -54,6 +55,11 @@ const ProgramsScreen = () => {
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  // Local-currency prices for every tier on the shelf. Empty until the store
+  // answers (and forever, if payments are off) — PriceTag falls back to INR.
+  const { prices: storePrices } = useStorePrices(
+    (offers?.items ?? []).map((i) => i.tierProductId),
+  );
 
   // Refetched on focus so returning from a purchase shows the pack as owned
   // without a manual pull-to-refresh.
@@ -194,6 +200,9 @@ const ProgramsScreen = () => {
               <PriceTag
                 priceInr={item.priceInr}
                 anchorInr={item.anchorPriceInr}
+                priceUsd={item.priceUsd}
+                anchorUsd={item.anchorPriceUsd}
+                store={storePrices[item.tierProductId]}
                 note={priceNoteFor(item, offers?.isFounderCohort ?? false)}
                 ink={ink}
               />
@@ -315,6 +324,9 @@ const ProgramsScreen = () => {
             <PriceTag
               priceInr={item.priceInr}
               anchorInr={item.anchorPriceInr}
+              priceUsd={item.priceUsd}
+              anchorUsd={item.anchorPriceUsd}
+              store={storePrices[item.tierProductId]}
               compact
             />
           )}

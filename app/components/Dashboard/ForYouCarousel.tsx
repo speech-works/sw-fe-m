@@ -6,6 +6,7 @@ import { selectForYou } from "../../util/packs/forYou";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import OfferSlide, { SLIDE_MIN_HEIGHT } from "./OfferSlide";
+import { useStorePrices } from "../../hooks/useStorePrices";
 import RecHeroCard from "./RecHeroCard";
 import {
   Carousel,
@@ -96,6 +97,10 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   );
 
   const selection = selectForYou(offers);
+  // One lookup for the whole carousel rather than one per slide.
+  const { prices: storePrices } = useStorePrices(
+    selection.items.map((i) => i.tierProductId),
+  );
 
   const openDetail = (item: OfferItem) => {
     track(ANALYTICS_EVENTS.PACK_CLICKED, {
@@ -158,6 +163,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
         renderItem={({ item, index }) => (
           <OfferSlide
             item={item}
+            store={storePrices[item.tierProductId]}
             highlight={index === 0 && selection.highlightFirst}
             onPress={openDetail}
           />

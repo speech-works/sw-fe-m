@@ -38,6 +38,12 @@ import {
   withAlpha,
 } from "../../design-system";
 import PriceTag from "../../components/PriceTag";
+import { useStorePrices } from "../../hooks/useStorePrices";
+import {
+  resolvePriceDisplay,
+  savingLabelFor,
+  type StorePrice,
+} from "../../services/priceDisplay";
 import { OfferItem } from "../../api";
 import { PackBrochure } from "../../api/packs/types";
 
@@ -135,6 +141,20 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   const pitch = brochure?.description ?? offer.blurb ?? null;
 
   const discounted = offer.anchorPriceInr > offer.priceInr;
+  const { prices: storePrices } = useStorePrices([offer.tierProductId]);
+  const storePrice = storePrices[offer.tierProductId];
+  // The saving must be quoted in the SAME currency as the price above it.
+  // savingLabelFor returns null when there is no honest saving to state, and the
+  // whole line is then withheld rather than shown in the wrong money.
+  const savingLabel = savingLabelFor(
+    resolvePriceDisplay({
+      store: storePrice,
+      inr: offer.priceInr,
+      usd: offer.priceUsd,
+      anchorInr: offer.anchorPriceInr,
+      anchorUsd: offer.anchorPriceUsd,
+    }),
+  );
   const priceNote = discounted
     ? isFounder
       ? "Founder price"
@@ -276,12 +296,19 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
           pointerEvents="none"
         />
         <View style={[styles.buyBarInner, { paddingBottom: insets.bottom + spacing.md }]}>
-          <PriceTag priceInr={offer.priceInr} anchorInr={offer.anchorPriceInr} center />
-          {discounted && priceNote ? (
+          <PriceTag
+            priceInr={offer.priceInr}
+            anchorInr={offer.anchorPriceInr}
+            priceUsd={offer.priceUsd}
+            anchorUsd={offer.anchorPriceUsd}
+            store={storePrice}
+            center
+          />
+          {discounted && priceNote && savingLabel ? (
             // The REAL saving, derived from the two server prices — the honest
             // loss-aversion line, in the success green that pairs with brand orange.
             <Text variant="caption" color={colors.feedback.successText} center>
-              {priceNote} · Save ₹{(offer.anchorPriceInr - offer.priceInr).toLocaleString("en-IN")}
+              {priceNote} · Save {savingLabel}
             </Text>
           ) : null}
           <BuyButton
@@ -316,6 +343,10 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         bonusEligible={bonusEligible}
         priceInr={offer.priceInr}
         anchorInr={offer.anchorPriceInr}
+        priceUsd={offer.priceUsd}
+        anchorUsd={offer.anchorPriceUsd}
+        store={storePrice}
+        savingLabel={savingLabel}
         note={priceNote}
       />
     </View>
@@ -761,6 +792,11 @@ interface PurchaseSheetProps {
   bonusEligible: boolean;
   priceInr: number;
   anchorInr: number;
+  priceUsd: number;
+  anchorUsd: number;
+  store?: StorePrice | null;
+  /** Pre-formatted saving in the displayed currency; null ⇒ withhold the line. */
+  savingLabel: string | null;
   note?: string;
 }
 
@@ -787,6 +823,10 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
   bonusEligible,
   priceInr,
   anchorInr,
+  priceUsd,
+  anchorUsd,
+  store,
+  savingLabel,
   note,
 }) => {
   const { colors } = useTheme();
@@ -850,15 +890,21 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
             ) : null}
           </View>
           <View style={styles.offerPrice}>
-            <PriceTag priceInr={priceInr} anchorInr={anchorInr} />
+            <PriceTag
+              priceInr={priceInr}
+              anchorInr={anchorInr}
+              priceUsd={priceUsd}
+              anchorUsd={anchorUsd}
+              store={store}
+            />
           </View>
-          {discounted ? (
+          {discounted && savingLabel ? (
             <Text
               variant="bodySm"
               color={colors.feedback.successText}
               style={styles.saveLine}
             >
-              You save ₹{(anchorInr - priceInr).toLocaleString("en-IN")}
+              You save {savingLabel}
             </Text>
           ) : null}
           <Text variant="bodySm" color="secondary">

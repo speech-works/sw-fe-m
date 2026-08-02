@@ -42,6 +42,13 @@ import {
 } from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { useStorePrices } from "../../hooks/useStorePrices";
+import {
+  resolvePriceDisplay,
+  formatCurrency,
+  deriveAnchor,
+  savingPercentFor,
+} from "../../services/priceDisplay";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -78,23 +85,47 @@ const SubscribeScreen = () => {
 
   // Display strings, INR-first (matching the pack shop). Computed from the live
   // offer so the annual savings badge can never disagree with the prices shown.
-  const monthlyLabel = membership ? `₹${membership.priceInr}` : "—";
-  const annualLabel = membership ? `₹${membership.annualPriceInr}` : "—";
+  const { prices: storePrices } = useStorePrices([
+    membership?.productId,
+    membership?.annualProductId,
+  ]);
+  const monthly = membership
+    ? resolvePriceDisplay({
+        store: storePrices[membership.productId],
+        inr: membership.priceInr,
+        usd: membership.priceUsd,
+      })
+    : null;
+  const annual = membership
+    ? resolvePriceDisplay({
+        store: storePrices[membership.annualProductId],
+        // Annual has no "was" PRODUCT — its honest anchor is 12 × the monthly
+        // one, exactly as the backend derives it. Scaling the STORE's monthly
+        // figure keeps that same sum in the buyer's own currency, so the strike
+        // now works in every country rather than just INR/USD.
+        anchorStore: deriveAnchor(storePrices[membership.productId], 12),
+        inr: membership.annualPriceInr,
+        usd: membership.annualPriceUsd,
+        anchorInr: membership.annualAnchorInr,
+        anchorUsd: membership.annualAnchorUsd,
+      })
+    : null;
+  const monthlyLabel = monthly?.price ?? "—";
+  const annualLabel = annual?.price ?? "—";
   // Annual's honest anchor = 12 × monthly, struck through beside the annual price.
-  const annualAnchorLabel = membership ? `₹${membership.annualAnchorInr}` : "—";
-  const annualDiscounted =
-    !!membership && membership.annualAnchorInr > membership.annualPriceInr;
-  const annualPerMonthLabel = membership
-    ? `₹${Math.round(membership.annualPriceInr / 12)}`
-    : "—";
-  const annualSavingsPct = membership
-    ? Math.max(
-        0,
-        Math.round(
-          (1 - membership.annualPriceInr / (membership.priceInr * 12)) * 100,
-        ),
-      )
-    : 0;
+  // resolvePriceDisplay withholds it entirely in a currency we cannot price, so
+  // a GBP buyer sees the real annual price with no bogus rupee "was" beside it.
+  const annualAnchorLabel = annual?.anchor ?? "—";
+  const annualDiscounted = !!annual?.anchor;
+  // Derived, so it must be formatted in the SAME currency the prices resolved to.
+  const annualPerMonthLabel =
+    (annual?.priceAmount != null
+      ? formatCurrency(annual.priceAmount / 12, annual.currencyCode)
+      : null) ?? "—";
+  // Read off the pair ACTUALLY on screen. ₹1499-vs-₹2388 is 37% but
+  // $34.99-vs-$59.88 is 42%, so computing this from the INR book (as it did)
+  // under-claimed the saving to every dollar buyer.
+  const annualSavingsPct = annual ? (savingPercentFor(annual) ?? 0) : 0;
   const selectedPlanSummary =
     paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
       ? `${monthlyLabel}/month`

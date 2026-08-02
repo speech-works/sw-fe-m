@@ -19,6 +19,7 @@ import {
 } from "../constants/features";
 import { getWallet, createPurchaseIntent, type Wallet } from "../api";
 import { selectStoreProduct } from "./selectStoreProduct";
+import type { StorePrice } from "./priceDisplay";
 
 const getPlatformApiKey = (): string =>
   Platform.OS === "ios" ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY;
@@ -166,6 +167,52 @@ export async function purchaseProductById(
       message: purchasesError?.message || "Purchase failed. Please try again.",
     };
   }
+}
+
+/**
+ * Look up what the STORE says these products cost, in the user's own currency.
+ *
+ * Needed because the backend prices only in INR and USD, while Google/Apple
+ * charge in the buyer's local currency. Without this every paywall showed
+ * "₹499" to everyone on earth and then charged them something else entirely.
+ *
+ * Resolution goes through `selectStoreProduct` — the SAME function the purchase
+ * path uses — so the price on screen and the price charged can never disagree.
+ * If a product is ambiguous there (several base plans), it is omitted here too:
+ * better to fall back to the INR default than to advertise one price and bill
+ * another.
+ *
+ * Never throws and never rejects. Every failure mode — payments disabled, no
+ * network, product not yet created in the console — returns an empty/partial
+ * map, and callers fall back to the backend price.
+ */
+export async function getStorePrices(
+  productIds: string[],
+): Promise<Record<string, StorePrice>> {
+  const out: Record<string, StorePrice> = {};
+  if (!purchasesAvailable() || productIds.length === 0) return out;
+
+  const unique = Array.from(new Set(productIds.filter(Boolean)));
+  if (unique.length === 0) return out;
+
+  try {
+    configurePurchases();
+    const products: PurchasesStoreProduct[] =
+      await Purchases.getProducts(unique);
+
+    for (const id of unique) {
+      const selection = selectStoreProduct(id, products);
+      if (!selection.ok) continue;
+      const { priceString, price, currencyCode } = selection.product;
+      if (!priceString || !currencyCode || !Number.isFinite(price)) continue;
+      out[id] = { priceString, price, currencyCode };
+    }
+  } catch (error) {
+    // Offline, store unreachable, products not created yet — all benign here.
+    console.warn("[purchases] getStorePrices failed, using backend prices:", error);
+  }
+
+  return out;
 }
 
 /**
