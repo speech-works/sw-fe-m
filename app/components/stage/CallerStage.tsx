@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import FA5Icon from "react-native-vector-icons/FontAwesome5";
 import { useMotion, useTheme, withAlpha } from "../../design-system";
+import { callerGlyph } from "../../util/callerGlyph";
 import { StageBlobs } from "./StageBlobs";
 
 /**
@@ -141,7 +142,7 @@ const CallerStage: React.FC<{
       >
         <FA5Icon
           solid
-          name={icon || "user"}
+          name={callerGlyph(icon)}
           size={s.medallion * 0.34}
           color={colors.action.primary}
         />

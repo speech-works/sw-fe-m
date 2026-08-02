@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -32,14 +32,44 @@ import Slider from "@react-native-community/slider";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import Reanimated, {
+  runOnJS,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Video, { VideoRef } from "react-native-video";
-import { typography, useTheme } from "../design-system";
+import {
+  duration as motionDuration,
+  easing,
+  spring,
+  typography,
+  useTheme,
+} from "../design-system";
 import { useRegisterNativeModal } from "../stores/nativeModal";
+import { useScrubLock } from "../stores/scrubLock";
 import Button from "./Button";
 import SkeletonLoader from "./SkeletonLoader";
 
 const iconHitSlop = { top: 12, bottom: 12, left: 12, right: 12 };
+
+/**
+ * Chrome that sits on the video (or on a black scrim over it) is always on-dark,
+ * in every app scheme — the surface underneath is the video, not the canvas.
+ * `useTheme()` is resolved in this component's own scope, above the `ForceDark`
+ * wrapper, so a scheme-aware token here would still come back light-scheme ink:
+ * near-black text on black. The `ForceDark` wrappers are what fix nested DS
+ * components (the overlay `Button`), which resolve the theme themselves.
+ */
+const ON_VIDEO = "#FFFFFF";
 
 interface VideoPlayerProps {
   uri: string;
@@ -53,11 +83,34 @@ interface VideoPlayerProps {
   hideControls?: boolean;
   /** If known ahead of time, pass the aspect ratio to avoid any layout shift */
   initialAspectRatio?: number;
+  /**
+   * False when the player is mounted but no longer the thing on screen — e.g. a
+   * pager moved to another tab. Playback parks (position kept, never auto-resumed);
+   * pass this from any host that keeps the player mounted off-screen.
+   */
+  isActive?: boolean;
 }
 
 const AUTO_HIDE_MS = 3000;
+/** Longest we'll wait on a restore `onSeek` callback before showing the video anyway. */
+const RESTORE_TIMEOUT_MS = 3000;
 const SKIP_SECONDS = 10;
 const DOUBLE_TAP_THRESHOLD = 300;
+
+/* ── Pinch-to-exit (fullscreen) ──────────────────────────────────────────────
+   Pinching in tracks the fingers down to a floor, so the frame visibly answers
+   the gesture before it commits. Pinching out is damped to near-nothing: there
+   is nowhere further to go, and a hard wall reads as a bug. */
+/** Release below this scale and fullscreen exits. */
+const PINCH_EXIT_SCALE = 0.86;
+/** Floor for the live pinch-in, so the frame never collapses to nothing. */
+const PINCH_MIN_SCALE = 0.62;
+/** How much of a pinch-out actually moves the frame (friction, not a wall). */
+const PINCH_OUT_RESISTANCE = 0.1;
+/** A fast enough inward flick exits without reaching the distance threshold. */
+const PINCH_EXIT_VELOCITY = -1.2;
+/** Scale the frame keeps shrinking to while the modal fades out. */
+const PINCH_EXIT_REST_SCALE = 0.9;
 
 const formatTime = (sec: number) => {
   if (!sec || isNaN(sec)) return "0:00";
@@ -79,6 +132,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPressGoPremium,
   hideControls = false,
   initialAspectRatio,
+  isActive = true,
 }) => {
   const isFocused = useIsFocused();
   const { colors } = useTheme();
@@ -89,6 +143,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [playbackError, setPlaybackError] = useState(false);
+  // Bumped to remount <Video> on retry — the surest way to re-attempt a source.
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [videoAspectRatio, setVideoAspectRatio] = useState(
     initialAspectRatio || 16 / 9,
   );
@@ -132,10 +189,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const controlsVisibleRef = useRef(false);
   const [controlsVisible, setControlsVisible] = useState(false);
 
+  // Held while a finger is on the controls bar, so an enclosing pager/scroll view
+  // stops stealing slider drags. See `stores/scrubLock`.
+  const scrubLock = useScrubLock();
+
+  // Pinch-to-exit (fullscreen only)
+  const reducedMotion = useReducedMotion();
+  const pinchScale = useSharedValue(1);
+  const pinchStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pinchScale.value }],
+  }));
+
   // Animations
   const controlsAnim = useRef(new Animated.Value(0)).current;
-  const centerIconOpacity = useRef(new Animated.Value(0)).current;
-  const centerIconScale = useRef(new Animated.Value(0.8)).current;
   const metaAnim = useRef(new Animated.Value(1)).current;
 
   // Double Tap State
@@ -146,6 +212,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }>(null);
   const skipOverlayTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const hideTimer = useRef<NodeJS.Timeout | undefined>(undefined);
+  const restoreTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const videoContainerWidth = useRef<number>(0);
   const isRestoringRef = useRef(false);
   const lastSetVolumeRef = useRef<number>(-1);
@@ -255,6 +322,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         volumeListenerRef.current.remove();
       }
       clearAutoHide();
+      clearRestoreTimeout();
       if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
     };
   }, []);
@@ -267,6 +335,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       };
     }, []),
   );
+
+  const clearRestoreTimeout = () => {
+    if (restoreTimeout.current) {
+      clearTimeout(restoreTimeout.current);
+      restoreTimeout.current = undefined;
+    }
+  };
+
+  const retryPlayback = () => {
+    setPlaybackError(false);
+    setIsVideoLoaded(false);
+    setReloadNonce((n) => n + 1);
+  };
 
   const clearAutoHide = () => {
     if (hideTimer.current) {
@@ -310,25 +391,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     else clearAutoHide();
   };
 
-  const flashCenterIcon = () => {
-    centerIconOpacity.setValue(1);
-    centerIconScale.setValue(0.8);
-    Animated.parallel([
-      Animated.timing(centerIconOpacity, {
-        toValue: 0,
-        duration: 800,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.spring(centerIconScale, {
-        toValue: 1.2,
-        friction: 4,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   const handleSkipTap = (dir: "left" | "right") => {
     const jump = dir === "left" ? -SKIP_SECONDS : SKIP_SECONDS;
     const target = Math.max(0, Math.min(duration, currentTime + jump));
@@ -354,7 +416,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       handleSkipTap(dir);
       setLastTapAt(null);
       toggleControls(true);
-      flashCenterIcon();
       return;
     }
     setLastTapAt(now);
@@ -379,6 +440,93 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsFullScreen((prev) => !prev);
     startAutoHide();
   };
+
+  const exitFullScreen = () => {
+    lastFullScreenToggleAt.current = Date.now();
+    volumeBeforeToggle.current = volume;
+    setIsFullScreen(false);
+  };
+
+  // Every finger that lands on the controls bar holds the pager/scroll lock, not
+  // just the sliders: a page swipe should never start from the transport row.
+  const onControlsTouchStart = () => {
+    scrubLock.lock();
+    clearAutoHide();
+  };
+
+  const onControlsTouchEnd = () => {
+    scrubLock.unlock();
+    startAutoHide();
+  };
+
+  // Kept in a ref so the gesture object below stays stable across renders —
+  // rebuilding it mid-pinch would drop the gesture.
+  const exitFullScreenRef = useRef(exitFullScreen);
+  exitFullScreenRef.current = exitFullScreen;
+  const requestExitFullScreen = useCallback(
+    () => exitFullScreenRef.current(),
+    [],
+  );
+
+  const pinchGesture = useMemo(
+    () =>
+      Gesture.Pinch()
+        .onUpdate((e) => {
+          pinchScale.value =
+            e.scale < 1
+              ? Math.max(e.scale, PINCH_MIN_SCALE)
+              : 1 + (e.scale - 1) * PINCH_OUT_RESISTANCE;
+        })
+        .onEnd((e) => {
+          const flickedIn = e.velocity < PINCH_EXIT_VELOCITY && e.scale < 1;
+          if (e.scale < PINCH_EXIT_SCALE || flickedIn) {
+            // Keep shrinking through the modal's fade-out. Snapping back to 1
+            // here would pop the frame for the ~200ms it takes to leave.
+            pinchScale.value = withTiming(PINCH_EXIT_REST_SCALE, {
+              duration: motionDuration.sheetOut,
+              easing: easing.in,
+            });
+            runOnJS(requestExitFullScreen)();
+            return;
+          }
+          // Not far enough — settle back, carrying the fingers' momentum in
+          // (clamped, so a violent pinch can't fling the frame past zero).
+          pinchScale.value = reducedMotion
+            ? withTiming(1, { duration: motionDuration.base })
+            : withSpring(1, {
+                ...spring.gentle,
+                velocity: Math.max(-2, Math.min(2, e.velocity)),
+              });
+        }),
+    [reducedMotion, requestExitFullScreen],
+  );
+
+  // Fresh frame every time fullscreen opens (the exit leaves it mid-shrink).
+  useEffect(() => {
+    if (isFullScreen) pinchScale.value = 1;
+  }, [isFullScreen]);
+
+  // Leaving the stage is leaving the screen: a pager keeps this mounted, so the
+  // player has to be told. Park rather than stop — the position is kept, and
+  // coming back never auto-resumes (returning to a tab should not blast audio,
+  // and in Practice the tutorial would play straight into a live recording).
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  const skipFirstActiveRun = useRef(true);
+
+  useEffect(() => {
+    if (skipFirstActiveRun.current) {
+      skipFirstActiveRun.current = false;
+      return;
+    }
+    if (!isActive) {
+      setPaused(true);
+      return;
+    }
+    // Back on screen and parked: surface the play button rather than leaving a
+    // dead still frame. Auto-hide re-arms itself.
+    if (pausedRef.current) toggleControls(true);
+  }, [isActive]);
 
   const onSlidingStart = () => {
     setSeeking(true);
@@ -420,13 +568,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     outputRange: [0, 1],
   });
 
-  // Show a light skeleton placeholder until we know the correct aspect ratio
+  // The video fills the width it is given and takes its height from the aspect
+  // ratio, capped so a tall video can't eat the screen. Deriving the height from
+  // `Dimensions` instead guessed a box as wide as the *screen*, so inside any
+  // gutter the box came out too tall and `cover` quietly cropped the sides.
+  const maxVideoHeight = Dimensions.get("window").height * 0.65;
+  const videoBoxStyle = {
+    aspectRatio: videoAspectRatio,
+    maxHeight: maxVideoHeight,
+  };
+
+  // Placeholder until we know the real aspect ratio — same box the player will
+  // occupy, so the swap isn't a jolt.
   if (!aspectRatioReady) {
     return (
       <SkeletonLoader
         width="100%"
-        height={380}
+        height="auto"
         style={{
+          ...videoBoxStyle,
           borderRadius: 16,
           backgroundColor: colors.background.canvas,
         }}
@@ -434,25 +594,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     );
   }
 
-  const screenHeight = Dimensions.get("window").height;
-  const screenWidth = Dimensions.get("window").width;
-  const maxVideoHeight = screenHeight * 0.65;
-  // Compute height from full screen width, capped at maxHeight
-  const computedHeight = Math.min(
-    screenWidth / videoAspectRatio,
-    maxVideoHeight,
-  );
-
   const renderPlayer = () => (
     <View
       style={[
         styles.container,
-        { height: isFullScreen ? "100%" : computedHeight },
+        isFullScreen ? { height: "100%" as const } : videoBoxStyle,
         isFullScreen ? styles.fullScreenContainer : style,
       ]}
       onLayout={onContainerLayout}
     >
       <Video
+        key={reloadNonce}
         ref={videoRef}
         source={{
           uri: uri || "",
@@ -467,8 +619,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         repeat={isLocked}
         ignoreSilentSwitch="ignore"
         playInBackground={false}
-        poster={poster}
-        posterResizeMode="cover"
+        poster={poster ? { source: { uri: poster }, resizeMode: "cover" } : undefined}
         progressUpdateInterval={100}
         onLoad={(meta) => {
           setDuration(meta.duration);
@@ -483,11 +634,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             setVideoAspectRatio(newAspectRatio);
           }
 
+          setPlaybackError(false);
+
           // Restore playback position after remount (fullscreen toggle)
           if (currentTime > 0) {
             isRestoringRef.current = true;
-            setIsVideoLoaded(false); 
+            setIsVideoLoaded(false);
             videoRef.current?.seek(currentTime);
+            // The spinner hangs on `onSeek` firing. It usually does — but a
+            // dropped seek callback should cost a frame of the wrong position,
+            // not a permanent loader over a working video.
+            clearRestoreTimeout();
+            restoreTimeout.current = setTimeout(() => {
+              isRestoringRef.current = false;
+              setIsVideoLoaded(true);
+            }, RESTORE_TIMEOUT_MS);
           } else {
             setIsVideoLoaded(true);
           }
@@ -507,6 +668,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }}
         onSeek={() => {
           if (isRestoringRef.current) {
+            clearRestoreTimeout();
             isRestoringRef.current = false;
             setIsVideoLoaded(true);
           }
@@ -514,6 +676,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onError={(e) => {
           console.error("[VideoPlayer] Playback error:", e);
           console.error("[VideoPlayer] URI was:", uri);
+          // Say so. Without this the loader spins over a dimmed poster forever,
+          // with no message and no way back.
+          clearRestoreTimeout();
+          isRestoringRef.current = false;
+          setPlaybackError(true);
+          setPaused(true);
         }}
         onProgress={(data) => {
           if (!seeking && !isLocked) setCurrentTime(data.currentTime);
@@ -522,13 +690,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setPaused(true);
           toggleControls(true);
           videoRef.current?.seek(0);
+          // State has to follow the seek: `onProgress` is silent while paused, so
+          // nothing else resets it. Left at `duration` it pins the scrubber to the
+          // end, sends "back 10s" to duration-10, and — via the restore branch in
+          // `onLoad` — replays the END when you toggle fullscreen.
+          setCurrentTime(0);
         }}
       />
 
       {/* Loading Overlay */}
-      {!isVideoLoaded && (
+      {!isVideoLoaded && !playbackError && (
         <View style={[StyleSheet.absoluteFill, styles.loaderOverlay]}>
           <ActivityIndicator size="large" color="white" />
+        </View>
+      )}
+
+      {/* Playback Error — same shape as the locked overlay, so a dead video
+          reads as a state of the player rather than a broken screen. */}
+      {playbackError && !isLocked && (
+        <View style={styles.lockedOverlay}>
+          <Icon name="exclamation-triangle" size={36} color={ON_VIDEO} />
+          <Text style={styles.lockedText}>This video didn't load</Text>
+          <Button
+            text="Try again"
+            onPress={retryPlayback}
+            style={styles.premiumButton}
+          />
         </View>
       )}
 
@@ -551,32 +738,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Center Icon Animation - Pulse Effect */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.centerIcon, 
-          { 
-            opacity: centerIconOpacity,
-            transform: [{ scale: centerIconScale }]
-          }
-        ]}
-      >
-        <Icon
-          name={paused ? "play" : "pause"}
-          size={60}
-          color="rgba(255,255,255,0.9)"
-          solid
-        />
-      </Animated.View>
-
       {/* Locked Premium State Overlay */}
       {isLocked && onPressGoPremium && (
         <View style={styles.lockedOverlay}>
-          <Icon name="lock" size={48} color={colors.text.primary} />
-          <Text style={[styles.lockedText, { color: colors.text.primary }]}>
-            Unlock this tutorial with Premium
-          </Text>
+          <Icon name="lock" size={48} color={ON_VIDEO} />
+          <Text style={styles.lockedText}>Unlock this tutorial with Premium</Text>
           <Button
             text="Go Premium"
             onPress={onPressGoPremium}
@@ -609,8 +775,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.metaTextContent}>
-            {title && <Text style={[styles.videoMetaTitleText, { color: colors.text.primary }]}>{title}</Text>}
-            {subtitle && <Text style={[styles.videoMetaDescText, { color: colors.text.primary }]}>{subtitle}</Text>}
+            {title && <Text style={styles.videoMetaTitleText}>{title}</Text>}
+            {subtitle && (
+              <Text style={styles.videoMetaDescText}>{subtitle}</Text>
+            )}
           </View>
         </Animated.View>
       )}
@@ -624,7 +792,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               transform: [{ translateY: controlsTranslateY }],
               opacity: controlsOpacity,
             },
-            isFullScreen && styles.controlsContainerFullScreen,
           ]}
           pointerEvents={controlsVisible ? "auto" : "none"}
         >
@@ -634,7 +801,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           />
           <BlurView intensity={Platform.OS === 'ios' ? 40 : 80} tint="dark" style={StyleSheet.absoluteFill} />
           
-          <View style={styles.controlsContent}>
+          {/* Bubbling touch events (not responder events), so they still fire
+              when the native Slider owns the touch — that is what lets us take
+              the lock at touch-DOWN, before any pager can claim the drag. */}
+          <View
+            style={styles.controlsContent}
+            onTouchStart={onControlsTouchStart}
+            onTouchEnd={onControlsTouchEnd}
+            onTouchCancel={onControlsTouchEnd}
+          >
             {/* Row 1: Progress */}
             <View style={styles.progressContainer}>
               <Slider
@@ -690,6 +865,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                    minimumValue={0}
                    maximumValue={1}
                    value={muted ? 0 : volume}
+                    onSlidingStart={clearAutoHide}
                     onValueChange={(val: number) => {
                       lastSetVolumeRef.current = val;
                       setVolume(val);
@@ -700,11 +876,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         setMuted(false);
                         lastVolumeBeforeMute.current = val;
                       }
-                      startAutoHide();
                     }}
+                    // Auto-hide is armed once on release, not re-armed on every
+                    // frame of the drag.
+                    onSlidingComplete={startAutoHide}
                    minimumTrackTintColor={colors.action.primary}
                    maximumTrackTintColor="rgba(255,255,255,0.2)"
                    thumbTintColor="white"
+                   accessibilityLabel="Volume"
+                   accessibilityRole="adjustable"
                 />
             </View>
 
@@ -769,6 +949,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   style={styles.rightSideIcon}
                   hitSlop={iconHitSlop}
                   accessibilityLabel={isFullScreen ? "Exit full screen" : "Enter full screen"}
+                  accessibilityHint={
+                    isFullScreen ? "You can also pinch in to exit" : undefined
+                  }
                   accessibilityRole="button"
                 >
                   <Icon
@@ -782,8 +965,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </View>
         </Animated.View>
       )}
-
-      {/* No more vertical volume bar */}
     </View>
   );
 
@@ -795,19 +976,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           visible={true}
           transparent={false}
           animationType="fade"
-          supportedOrientations={[
-            "portrait",
-            "landscape",
-            "landscape-left",
-            "landscape-right",
-          ]}
-          onRequestClose={toggleFullScreen}
+          // Portrait only, deliberately: the app is portrait-locked and fullscreen
+          // does not rotate. Declaring landscape here was dead on iPhone anyway.
+          supportedOrientations={["portrait"]}
+          onRequestClose={exitFullScreen}
         >
-          {/* Scheme-locked dark — fullscreen video is a dark surface by design. */}
-          <ForceDark>{renderPlayer()}</ForceDark>
+          {/* Gestures inside a native <Modal> need their own root — the app-level
+              GestureHandlerRootView does not reach across the modal boundary.
+              The root stays black so the pinched-down frame shrinks into the
+              cinema, not onto a white system background. */}
+          <GestureHandlerRootView style={styles.fullScreenRoot}>
+            <GestureDetector gesture={pinchGesture}>
+              <Reanimated.View style={[styles.fullScreenRoot, pinchStyle]}>
+                <ForceDark>{renderPlayer()}</ForceDark>
+              </Reanimated.View>
+            </GestureDetector>
+          </GestureHandlerRootView>
         </Modal>
       ) : (
-        renderPlayer()
+        // Scheme-locked dark in BOTH modes: the player is a black surface whose
+        // overlays sit on video and black gradients, so its text must resolve
+        // on-dark even when the app is in the light scheme.
+        <ForceDark>{renderPlayer()}</ForceDark>
       )}
     </>
   );
@@ -821,7 +1011,10 @@ const styles = StyleSheet.create({
     position: "relative",
     justifyContent: "center",
     width: "100%",
-    minHeight: 220, // Strict fallback until aspect ratio propagates
+  },
+  fullScreenRoot: {
+    flex: 1,
+    backgroundColor: "black",
   },
   fullScreenContainer: {
     position: "absolute",
@@ -861,8 +1054,10 @@ const styles = StyleSheet.create({
   },
   lockedText: {
     ...typography.body,
+    color: ON_VIDEO,
     marginTop: 8,
     marginBottom: 8,
+    textAlign: "center",
   },
   premiumButton: {
     minWidth: 150,
@@ -880,14 +1075,13 @@ const styles = StyleSheet.create({
   metaTextContent: {
     padding: 16,
   },
-  videoMetaLocked: {
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
   videoMetaTitleText: {
     ...typography.title,
+    color: ON_VIDEO,
   },
   videoMetaDescText: {
     ...typography.bodySm,
+    color: ON_VIDEO,
     opacity: 0.9,
   },
   // Controls
@@ -905,10 +1099,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === "ios" ? 24 : 16,
-  },
-  controlsContainerFullScreen: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
   },
   progressContainer: {
     flexDirection: "row",
@@ -989,38 +1179,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  fullScreenButton: {
-    padding: 10,
-  },
   fixedActionButton: {
     width: 44,
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-  },
-  /* ── Vertical Volume ── */
-  volumeBarOuter: {
-    position: "absolute",
-    right: 10,
-    top: "15%",
-    width: 28,
-    height: 170,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    gap: 4,
-    zIndex: 30,
-  },
-  volumeSliderWrapper: {
-    width: 28,
-    height: 130,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  volumeSlider: {
-    width: 130,
-    height: 28,
-    transform: [{ rotate: "-90deg" }],
   },
   skipOverlay: {
     position: "absolute",
@@ -1043,11 +1206,6 @@ const styles = StyleSheet.create({
   skipText: {
     color: "white",
     fontWeight: "bold",
-  },
-  centerIcon: {
-    position: "absolute",
-    alignSelf: "center",
-    zIndex: 15,
   },
   centerPlayButton: {
     position: "absolute",

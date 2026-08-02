@@ -34,6 +34,7 @@ import * as Localization from "expo-localization";
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { makeStyles, useTheme, withAlpha, radius, spacing } from "../design-system";
+import { callerGlyph } from "../util/callerGlyph";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
@@ -2640,9 +2641,9 @@ const CallingWidget: React.FC<Props> = ({
   // Headset enforcement now happens inside `startCall` so we can surface
   // the modal prompt instead of silently disabling the action.
 
-  // We use the raw scenarioIcon from backend (FontAwesome) for the Orb
-  // to ensure it matches the list and isn't generic.
-  const orbIconName = scenarioIcon || "robot";
+  // The backend's scenario glyph, so the orb matches the caller rather than being
+  // generic — sanitised, because an unknown name renders a literal "?" here.
+  const orbIconName = callerGlyph(scenarioIcon, "robot");
 
   // --- ⬇️ ADDED: Modernized Animation for Visualizer ⬇️ ---
   const ripple1 = useRef(new Animated.Value(0)).current;

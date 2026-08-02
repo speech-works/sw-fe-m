@@ -1,5 +1,5 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, View, ScrollView, Dimensions, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
@@ -34,6 +34,7 @@ import {
   markTechniqueStage,
   TechniqueStage,
 } from "../../../../api/library";
+import { useIsScrubbing } from "../../../../stores/scrubLock";
 
 const STAGE_BY_INDEX: TechniqueStage[] = ["learn", "practice", "test"];
 
@@ -54,6 +55,7 @@ const TechniquePage = () => {
   const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
   const [contentHeight, setContentHeight] = useState(Dimensions.get("window").height);
   const [headerHeight, setHeaderHeight] = useState(200);
+  const isScrubbing = useIsScrubbing();
 
   const scrollY_0 = useSharedValue(0);
   const scrollY_1 = useSharedValue(0);
@@ -74,10 +76,15 @@ const TechniquePage = () => {
     );
   };
 
+  // Where you land on entry is a starting position, not a transition — it jumps.
+  // Only stage changes the user drives animate.
+  const hasUserMovedRef = useRef(false);
+
   const handleStepChange = (index: number) => {
     if (index > 0 && !isContentAccessible) {
       return;
     }
+    hasUserMovedRef.current = true;
     // Leaving a stage you actually visited marks it complete.
     if (index !== activeStageIndex && isContentAccessible) {
       markStageDone(activeStageIndex);
@@ -94,15 +101,29 @@ const TechniquePage = () => {
     handleStepChange(index);
   };
 
+  const scrollToStage = useCallback(
+    (index: number, animated: boolean) => {
+      if (!scrollViewRef.current || contentWidth <= 0) return;
+      scrollViewRef.current.scrollTo({ x: index * contentWidth, animated });
+    },
+    [contentWidth],
+  );
+
   useEffect(() => {
-    if (scrollViewRef.current && contentWidth > 0) {
-      scrollViewRef.current.scrollTo({
-        x: activeStageIndex * contentWidth,
-        animated: true,
-      });
-    }
+    scrollToStage(activeStageIndex, hasUserMovedRef.current);
     activeIndexSv.value = activeStageIndex;
-  }, [activeStageIndex, contentWidth]);
+  }, [activeStageIndex, scrollToStage]);
+
+  // Arriving with `stage: "EXERCISE"` used to land on the tutorial anyway: the
+  // index is set in an effect, which runs before the pager's content is laid
+  // out, so the scroll clamped to 0 and never retried (on a phone the container
+  // width never changes, so the effect above didn't re-run either). Re-apply the
+  // requested stage the moment the pages actually exist.
+  const onPagerContentSizeChange = (width: number) => {
+    if (hasUserMovedRef.current || contentWidth <= 0) return;
+    if (width < (activeStageIndex + 1) * contentWidth) return;
+    scrollToStage(activeStageIndex, false);
+  };
 
   useEffect(() => {
     if (stage === "TUTORIAL") {
@@ -236,7 +257,11 @@ const TechniquePage = () => {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            scrollEnabled={isContentAccessible}
+            // Stand down while a finger is on an in-place drag control (the video
+            // scrubber / volume slider): otherwise the pager cancels the child's
+            // touch mid-drag and swipes the stage instead of seeking.
+            scrollEnabled={isContentAccessible && !isScrubbing}
+            onContentSizeChange={onPagerContentSizeChange}
             onMomentumScrollEnd={(e) => {
               const offsetX = e.nativeEvent.contentOffset.x;
               const pageIndex = Math.round(offsetX / contentWidth);
@@ -255,6 +280,7 @@ const TechniquePage = () => {
                 techniqueId={techniqueId}
                 header={headerPlaceholder}
                 outerScrollY={scrollY_0}
+                isActive={activeStageIndex === 0}
               />
             </View>
             {isContentAccessible && (

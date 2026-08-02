@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import FA5Icon from "react-native-vector-icons/FontAwesome5";
+import { callerGlyph } from "../../util/callerGlyph";
 import {
   Icon,
   Text,
@@ -129,7 +130,7 @@ const RingingScreen: React.FC<Props> = ({
           <View style={styles.avatar}>
             <FA5Icon
               solid
-              name={icon || "user"}
+              name={callerGlyph(icon)}
               size={40}
               color={colors.accentText.purple}
             />

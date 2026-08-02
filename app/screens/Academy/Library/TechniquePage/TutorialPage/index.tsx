@@ -31,12 +31,15 @@ interface TutorialPageProps {
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
   header?: React.ReactNode;
   outerScrollY?: Animated.SharedValue<number>;
+  /** False while another stage is on screen — the pager keeps this page mounted. */
+  isActive?: boolean;
 }
 
 const TutorialPage = ({
   techniqueId,
   header,
   outerScrollY,
+  isActive = true,
 }: TutorialPageProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
@@ -156,6 +159,7 @@ const TutorialPage = ({
             subtitle={isLocked ? "15-Second Glimpse" : "Full Lesson"}
             isLocked={isLocked}
             autoPlay={true}
+            isActive={isActive}
             onPressGoPremium={() => emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL)}
           />
         </View>
