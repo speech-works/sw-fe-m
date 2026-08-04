@@ -203,7 +203,32 @@ export function guessFirstCallShape(args: {
 
 const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
   const navigation = useNavigation<any>();
-  const { colors, scheme } = useTheme();
+  const { colors, scheme, elevation } = useTheme();
+
+  /**
+   * THE RINGING PHONE WATERMARK, TUNED PER SCHEME — because amber is a LIGHT
+   * hue and the card it marks flips from near-black to near-white.
+   *
+   * `accent.warning` (#FFC53D) at 16% over the ink card reads as a warm brown
+   * at 1.46:1: present, decorative, exactly right. The same ink at the same
+   * alpha over the paper card is #ECE3D0 at 1.25:1 — the handset and its rings
+   * effectively disappear, which is what "looks good in dark, invisible in
+   * light" means in numbers.
+   *
+   * `accentText.warning` is the warning hue rendered AS ink for the scheme, so
+   * this is a no-op on ink (it resolves to the same amber family) and a deep
+   * #8A5B00 on paper. The alphas are then chosen to MATCH THE PRESENCE of the
+   * dark scheme rather than to match its alpha:
+   *
+   *     glyph  ink 16% → 1.46:1     paper 25% → 1.44:1
+   *     rings  ink 50% → 3.60:1     paper 80% → 3.83:1
+   *
+   * Matching the ratio is the point; matching the number would keep the bug.
+   */
+  const paper = scheme === "light";
+  const markHue = paper ? colors.accentText.warning : colors.accent.warning;
+  const markGlyphAlpha = paper ? 0.25 : 0.16;
+  const markRingAlpha = paper ? 0.8 : 0.5;
   const isDark = scheme === "dark";
   const [offer, setOffer] = useState<FirstCallOffer | null>(null);
 
@@ -379,7 +404,11 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
   if (quiet) {
     return (
       <Animated.View entering={enter().delay(ENTER_DELAY)}>
-        <PressableScale scaleTo={0.98} onPress={open} style={styles.shadow}>
+        <PressableScale
+          scaleTo={0.98}
+          onPress={open}
+          style={[styles.shadow, elevation.e1]}
+        >
           <View
             style={[
               styles.fill,
@@ -405,7 +434,7 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
                       key={i}
                       style={[
                         styles.markRing,
-                        { borderColor: withAlpha(colors.accent.warning, 0.5) },
+                        { borderColor: withAlpha(markHue, markRingAlpha) },
                         style,
                       ]}
                     />
@@ -417,7 +446,7 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
                 <Icon
                   name={icons.phone}
                   size={MARK_GLYPH}
-                  color={withAlpha(colors.accent.warning, 0.16)}
+                  color={withAlpha(markHue, markGlyphAlpha)}
                 />
               </Animated.View>
             </View>
@@ -537,6 +566,12 @@ export default FirstCallCard;
 
 // Geometry copied from Home's PromoCard so the two read as the same family.
 const styles = StyleSheet.create({
+  // Named for the elevation the call site applies to it, which is where the
+  // shadow has to live: `fill` below clips (`overflow: "hidden"`) and iOS will
+  // not paint a shadow on a clipping view. Empty on ink — a neutral card
+  // already steps clear of that canvas — and a soft lift on paper, where
+  // near-white on cream is about 1.02:1 and the card otherwise reads as a flat
+  // patch of page.
   shadow: {
     borderRadius: radius.card,
   },

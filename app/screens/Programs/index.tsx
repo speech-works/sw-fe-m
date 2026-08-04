@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import Svg, { Line } from "react-native-svg";
 import { getOffers, type OfferItem, type Offers } from "../../api";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
@@ -20,11 +21,11 @@ import {
 } from "../../design-system";
 import PressableScale from "../../components/PressableScale";
 import RecHeroCard, { CTA_ICON } from "../../components/Dashboard/RecHeroCard";
-import TopMatchBadge, {
-  BADGE_OVERHANG,
-  BADGE_LANE,
-} from "../../components/Dashboard/TopMatchBadge";
-import { programEyebrow, priceNoteFor } from "../../util/packs/offers";
+import {
+  programEyebrow,
+  programShelfLabel,
+  priceNoteFor,
+} from "../../util/packs/offers";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import { openOnboarding } from "../../util/functions/openOnboarding";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
@@ -156,6 +157,37 @@ const ProgramsScreen = () => {
   const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   /**
+   * The row card's comparable facts, as separate chips rather than one joined
+   * sentence — which is the entire point of the redesign. Nine cards of prose
+   * cannot be scanned; nine cards whose length, tier and extras land in the same
+   * place down the column can be compared without reading.
+   *
+   * SAME GATES AS `valueParts`, DELIBERATELY DUPLICATED RATHER THAN REUSED.
+   * That function joins its parts with "·" for the hero's single line, so it
+   * cannot be split back apart safely. What must not diverge is the CONDITIONS,
+   * so they are written identically here: AI calls only when the pack actually
+   * grants them, and the free month only when `bonusMembershipEligible` says
+   * this buyer would really get one. That flag is first-purchase-only, and a
+   * chip promising a free month to a repeat buyer is a lie in three words.
+   *
+   * The shelf word is derived from `programShelfLabel` rather than a local
+   * table, for the reason its own header gives: two places naming a shelf is
+   * two places to disagree about what a shelf is called.
+   */
+  const factChips = (item: OfferItem): string[] => {
+    const chips: string[] = [];
+    if (item.arcDays) chips.push(`${item.arcDays} days`);
+    chips.push(capitalise(programShelfLabel(item).toLowerCase()));
+    if (item.creditGrantAmount > 0) {
+      chips.push(`${item.creditGrantAmount} AI calls`);
+    }
+    if (item.bonusMembershipDays > 0 && offers?.bonusMembershipEligible) {
+      chips.push("1 month free");
+    }
+    return chips;
+  };
+
+  /**
    * The matched hero.
    *
    * THE REFERENCE CARDS HAVE NO TEXTURE AT ALL. Every previous pass tried to
@@ -190,9 +222,9 @@ const ProgramsScreen = () => {
     const islandInk = isDark ? colors.action.onSecondary : colors.text.primary;
 
     return (
-      // The badge is a SIBLING of the card, not a child — the card clips to its
-      // own radius, and a child badge would be cropped at exactly the corner it
-      // is meant to hang off.
+      // The claim is a STAMP INSIDE the card now, not a pill hung off its
+      // corner, so — unlike the badge it replaces — it wants to be a child and
+      // it wants to be clipped. See `styles.heroStamp`.
       <PressableScale
         key={item.key}
         scaleTo={0.98}
@@ -202,15 +234,74 @@ const ProgramsScreen = () => {
         {/* FLAT, not a gradient. At this size a ramp just muddies the middle of
             the card; both references commit to one saturated colour. */}
         <View style={[styles.hero, { backgroundColor: colors.action.primary }]}>
-          {/* ── 1. the pitch ─────────────────────────────────────────────── */}
-          <Text
-            variant="label"
-            color={withAlpha(ink, INK_MUTED)}
-            numberOfLines={1}
-            style={styles.eyebrowClear}
-          >
-            {programEyebrow(item)}
-          </Text>
+          {/* ── 0. the stub ──────────────────────────────────────────────
+              A DARK CHIP, NOT A LIME ONE — and that is the whole repair.
+              Lime is a bright hue and this card is a bright ground, so a lime
+              fill measures 1.81:1 against the orange: the words inside it are
+              legible but its EDGE dissolves, and the badge reads as a pale
+              smear rather than an object. Inverting fixes both numbers at once
+              — a chip in the card's own ink sits at 7.71:1 against the orange,
+              and lime on that dark ground reaches 13.97:1, the highest contrast
+              lime achieves anywhere in this design. The hue keeps its meaning
+              and finally gets a ground that suits it. */}
+          <View style={styles.stubRow}>
+            <View style={[styles.claimChip, { backgroundColor: ink }]}>
+              <Icon name={icons.star} size={13} color={colors.accent.lime} />
+              <Text variant="label" color={colors.accent.lime}>
+                TOP MATCH
+              </Text>
+            </View>
+            <Text
+              variant="label"
+              color={withAlpha(ink, INK_MUTED)}
+              numberOfLines={1}
+            >
+              {programEyebrow(item)}
+            </Text>
+          </View>
+
+          {/* The tear line. SVG rather than a dashed `borderTopWidth`, which
+              RN renders inconsistently across platforms — Android has long
+              ignored dash patterns unless every border width matches. */}
+          <View style={styles.perfRow} pointerEvents="none">
+            <Svg width="100%" height={2}>
+              <Line
+                x1="0"
+                y1="1"
+                x2="100%"
+                y2="1"
+                stroke={withAlpha(ink, 0.32)}
+                strokeWidth={2}
+                strokeDasharray="6 5"
+              />
+            </Svg>
+          </View>
+
+          {/* THE PUNCHES, AND WHY THEY ARE PAINT RATHER THAN A HOLE.
+              A notch is really a bite taken out of the card, which in RN means
+              an SVG-clipped container. These are two discs of the PAGE colour
+              laid over the edges instead: centred exactly on the border so the
+              card's own `overflow: "hidden"` crops each one to its inner half,
+              which is the same silhouette for a fraction of the cost. It works
+              only because this card sits on a flat canvas — move it onto a
+              gradient or an image and the discs stop matching. Drawn after the
+              tear line so they cover its ends. */}
+          <View
+            style={[
+              styles.notch,
+              styles.notchLeft,
+              { backgroundColor: colors.background.canvas },
+            ]}
+            pointerEvents="none"
+          />
+          <View
+            style={[
+              styles.notch,
+              styles.notchRight,
+              { backgroundColor: colors.background.canvas },
+            ]}
+            pointerEvents="none"
+          />
 
           <Text variant="h1" color={ink} style={styles.heroTitle}>
             {item.title}
@@ -268,7 +359,6 @@ const ProgramsScreen = () => {
           </View>
         </View>
 
-        <TopMatchBadge />
       </PressableScale>
     );
   };
@@ -297,8 +387,8 @@ const ProgramsScreen = () => {
   // is what a position metric has to mean. Indexing `items` instead would report
   // 1 for the first card whenever a hero was lifted out above it.
   const renderCard = (item: OfferItem, index: number) => {
-    const value = valueParts(item);
     const reason = item.match?.reason ?? null;
+    const facts = factChips(item);
 
     return (
       <PressableScale
@@ -307,44 +397,25 @@ const ProgramsScreen = () => {
         onPress={() => openDetail(item, "programs_list", index)}
         style={[
           styles.card,
+          // e1 — empty on ink, a soft lift on paper. A near-white card on a
+          // cream canvas is about 1.02:1, so without it nine of these read as
+          // one undivided field rather than as nine separate things to choose
+          // between, which is exactly what this redesign is for.
+          elevation.e1,
           {
             backgroundColor: colors.surface.default,
             borderColor: colors.border.default,
           },
         ]}
       >
-        <View style={styles.cardBody}>
-          <Text variant="label" color="tertiary">
-            {programEyebrow(item)}
-          </Text>
-          <Text variant="h3" color="primary">
+        {/* ── the header: what it is, and what it costs ───────────────
+            One row, because a title and its price are one fact when you are
+            comparing nine of these. The price never shrinks — a half-shown
+            price is worse than none — so the title yields instead. */}
+        <View style={styles.cardHead}>
+          <Text variant="h3" color="primary" style={styles.cardTitle}>
             {item.title}
           </Text>
-          {item.blurb ? (
-            <Text variant="bodySm" color="secondary" numberOfLines={2}>
-              {item.blurb}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Only when the server sent a reason it can stand behind. Bare accent
-            copy, not a chip: `accent` is the per-scheme foreground cut, and the
-            colour shift from the `secondary` blurb directly above it is what
-            marks this line as being about YOU. */}
-        {reason ? (
-          <Text variant="bodySm" color="accent" numberOfLines={2}>
-            {reason}
-          </Text>
-        ) : null}
-
-        {value ? (
-          // The row has no gift glyph to imply the verb, so it says it.
-          <Text variant="caption" color="tertiary">
-            Includes {value}
-          </Text>
-        ) : null}
-
-        <View style={styles.cardFooter}>
           {item.owned ? (
             <View style={styles.ownedTag}>
               <Icon
@@ -366,29 +437,36 @@ const ProgramsScreen = () => {
               compact
             />
           )}
+        </View>
 
-          {/* The same island the carousel slide ends with, down to the leading
-              glyph. An interactive `surface.control` container is ~1.1:1 on
-              paper, so the affordance needs a defined edge — a bare chevron
-              simply vanished there. */}
-          <View
-            style={[
-              styles.cta,
-              {
-                backgroundColor: colors.surface.control,
-                borderColor: colors.border.strong,
-              },
-            ]}
-          >
-            <Icon
-              name={icons.journey}
-              size={CTA_ICON}
-              color={colors.text.primary}
-            />
-            <Text variant="title" color="primary" numberOfLines={1}>
-              {item.owned ? "Open" : "See inside"}
-            </Text>
-          </View>
+        {/* THE BLURB IS GONE, AND THAT IS THE POINT. Every card used to carry a
+            marketing sentence AND this one, stacked at nearly the same weight —
+            two paragraphs a card, thirty-odd lines down the list, competing with
+            each other for the same job. This is the better line: it is the only
+            text on the card that could not be printed in a brochure. Rendered
+            only when the server sent a reason it can stand behind. */}
+        {reason ? (
+          <Text variant="bodySm" color="accent" numberOfLines={2}>
+            {reason}
+          </Text>
+        ) : null}
+
+        {/* The comparables. `surface.control` and not a low-alpha wash: a 6%
+            scrim reads at 1.10:1 against the paper card and the chips vanish,
+            which is the same near-white-on-cream failure the whole scheme is
+            prone to. `control` is the DS's answer to exactly this — 1.31:1 on
+            ink, 1.39:1 on paper — and its label clears AA on both. */}
+        <View style={styles.facts}>
+          {facts.map((fact) => (
+            <View
+              key={fact}
+              style={[styles.fact, { backgroundColor: colors.surface.control }]}
+            >
+              <Text variant="caption" color="secondary">
+                {fact}
+              </Text>
+            </View>
+          ))}
         </View>
       </PressableScale>
     );
@@ -506,16 +584,25 @@ export default ProgramsScreen;
  */
 const INK_MUTED = 0.72;
 
+/**
+ * The ticket geometry, in one place because the three values have to agree.
+ * `NOTCH_Y` is COMPUTED from the card's top padding, the stub's fixed height
+ * and the gap above the tear line — so the punches sit on the perforation by
+ * construction rather than by a hand-tuned offset that silently goes wrong the
+ * first time any of the three changes.
+ */
+const NOTCH_R = 11;
+const STUB_H = 26;
+const PERF_GAP = spacing.md;
+const NOTCH_Y = spacing["2xl"] + STUB_H + PERF_GAP;
+
 const styles = StyleSheet.create({
   centered: {
     paddingVertical: spacing["3xl"],
     alignItems: "center",
     gap: spacing.md,
   },
-  // Holds the badge's overhang. The fill below clips; this must not.
-  heroWrap: {
-    paddingTop: BADGE_OVERHANG,
-  },
+  heroWrap: {},
   hero: {
     borderRadius: radius.card,
     overflow: "hidden",
@@ -528,14 +615,44 @@ const styles = StyleSheet.create({
   // inside and ended up looking pasted on. Declared first, so it is behind
   // everything; the copy above it never needs to dodge it because it is texture,
   // not an object.
-  // The badge is absolutely positioned and takes no space, so the kicker — the
-  // one line level with it — keeps its lane clear rather than running under it.
-  eyebrowClear: {
-    marginRight: BADGE_LANE,
+  // Fixed height, and that is load-bearing: `NOTCH_Y` is derived from it, so
+  // the punches always land exactly on the tear line instead of being tuned by
+  // eye and drifting the next time the chip's padding changes.
+  stubRow: {
+    height: STUB_H,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
   },
-  heroTitle: {
-    marginTop: space.titleSub,
+  claimChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap - 2,
+    paddingHorizontal: space.inlineGap + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
   },
+  // Negative margins pull it out to the card's own edges — a perforation that
+  // stops inside the padding is a dashed rule, not a tear.
+  perfRow: {
+    marginTop: PERF_GAP,
+    marginHorizontal: -spacing.xl,
+    marginBottom: spacing.lg,
+    height: 2,
+  },
+  notch: {
+    position: "absolute",
+    top: NOTCH_Y - NOTCH_R,
+    width: NOTCH_R * 2,
+    height: NOTCH_R * 2,
+    borderRadius: NOTCH_R,
+  },
+  // Centred ON the border, so half of each disc is clipped away and the visible
+  // half reads as a punch.
+  notchLeft: { left: -NOTCH_R },
+  notchRight: { right: -NOTCH_R },
+  heroTitle: {},
   heroReason: {
     marginTop: spacing.md,
   },
@@ -584,23 +701,28 @@ const styles = StyleSheet.create({
     // No marginBottom — `Page` already puts `space.groupGap` between children,
     // and the old margin stacked on top of it for a 28px trench between cards.
   },
-  cardBody: {
-    gap: space.titleSub,
-  },
-  cardFooter: {
+  cardHead: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginTop: spacing.xs,
+    gap: space.inlineGap + 4,
   },
-  cta: {
+  // The title yields, the price does not — `flexShrink` on the title alone is
+  // what stops a long name pushing "₹499" off the card's right edge, which is
+  // the bug the previous layout's header row shipped with.
+  cardTitle: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  facts: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: space.inlineGap,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: borderWidth.hairline,
+    flexWrap: "wrap",
+    gap: space.inlineGap - 2,
+  },
+  fact: {
+    paddingHorizontal: space.inlineGap + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
   },
   ownedTag: {
     flexDirection: "row",

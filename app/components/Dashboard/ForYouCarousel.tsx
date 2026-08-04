@@ -518,6 +518,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
           data={selection.items}
           keyExtractor={(i) => i.key}
           onIndexChange={onIndexChange}
+          bleedRight={space.screenX}
           renderItem={({ item, index }) => (
             <OfferSlide
               item={item}
@@ -547,7 +548,12 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
 
   const singleSlide = selection.mode === "carousel" && selection.items.length <= 1;
   const carouselChrome = singleSlide ? 0 : spacing.xl + spacing.md;
-  const cardWidth = Math.max(0, shelfWidth - carouselChrome);
+  // `+ space.screenX` mirrors the carousel's `bleedRight`: the scroll viewport
+  // escapes the page gutter, so the slide is that much wider than the shelf box
+  // this component measures. Drop the term and the flying die lands a gutter's
+  // width left of the impression it is supposed to fall on.
+  const bleed = singleSlide ? 0 : space.screenX;
+  const cardWidth = Math.max(0, shelfWidth + bleed - carouselChrome);
   const impactLeft = cardWidth + spacing.md - STAMP_WIDTH;
   const impactTop =
     SHELF_GEOMETRY.cardTopInSection +
@@ -574,6 +580,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
         >
           <TopMatchImpact
             ink={colors.accent.lime}
+            inkEnd={colors.accentText.lime}
             onContact={onStampContact}
             onFinished={onImpactFinished}
           />

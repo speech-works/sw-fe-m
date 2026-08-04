@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useId } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { Line, Path } from "react-native-svg";
+import Svg, { Defs, Line, Path, RadialGradient, Stop } from "react-native-svg";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -91,7 +91,32 @@ export default TopMatchBadge;
 /** Variant 07: a broad ticket-punch stamp that crosses the card edge. */
 export const STAMP_WIDTH = 196;
 export const STAMP_HEIGHT = 80;
-const STAMP_OPACITY = 0.52;
+
+/**
+ * How much of the lime actually lands — and it is MORE on paper, not less.
+ *
+ * THE HUE IS THE SAME IN BOTH SCHEMES, and so is the card. `accent.*` and
+ * `accentOn.*` are identical in `light.ts` and `dark.ts`, so the top-match ramp
+ * is the same deep blue on cream as it is on ink. What differs is the surround:
+ * on ink the card is the brightest large object on screen and the wash reads as
+ * ink; on paper the card becomes the DARKEST object on a bright page, the eye
+ * adapts to the page rather than the card, and the same wash washes out.
+ *
+ * THE FIX IS PIGMENT, NOT DARKNESS, AND THAT IS COUNTER-INTUITIVE ENOUGH TO
+ * WRITE DOWN. "Make it darker" is the natural instinct when a mark looks weak,
+ * and here it is exactly backwards: the stamp sits on a DEEP BLUE, so it is
+ * lighter than its own ground, and every step toward a darker green closes the
+ * gap instead of opening it. Composited against the ramp's light stop
+ * (#396BAF):
+ *
+ *     lime @0.52  #83B47E  2.26:1        darkened 40% @0.52  #618A6F  1.38:1
+ *     lime @0.70  #9DCD6C  2.92:1        lime.textOnLight    #446D54  1.09:1
+ *     lime @0.85  #B3E25E  3.58:1   ← paper
+ *
+ * Darker bottoms out invisible. More of the same green is what reads.
+ */
+const STAMP_OPACITY_INK = 0.52;
+const STAMP_OPACITY_PAPER = 0.85;
 const IMPACT_DELAY = 160;
 const IMPACT_DURATION = 900;
 const CONTACT_AT = 0.56;
@@ -114,15 +139,59 @@ interface StampArtworkProps {
   ink: string;
   face?: string;
   solid?: boolean;
+  /**
+   * Colour for the far (bottom-right) end of the stroke. The stamp is
+   * deliberately misregistered off the card's bottom and right edges, so that
+   * tail is drawn on the PAGE, not on the card — and one flat ink cannot serve
+   * both grounds. See `TopMatchStamp` for the ramp this receives.
+   */
+  inkEnd?: string;
 }
 
-const StampArtwork: React.FC<StampArtworkProps> = ({ ink, face = "none", solid }) => (
+const StampArtwork: React.FC<StampArtworkProps> = ({
+  ink,
+  face = "none",
+  solid,
+  inkEnd,
+}) => {
+  // One id per artwork instance — the resting impression and the flying die are
+  // both on screen during the slam, and two <Defs> sharing an id would have the
+  // second silently win for both.
+  const gradId = useId().replace(/:/g, "");
+  const stroke = inkEnd ? `url(#${gradId})` : ink;
+
+  return (
   <View style={styles.stampArtwork}>
     <Svg width="100%" height="100%" viewBox="0 0 196 80" style={styles.stampArt}>
+      {inkEnd ? (
+        <Defs>
+          {/*
+            RADIAL, ANCHORED TOP-LEFT — because the exposed part is an L, not a
+            corner. The slot hangs the stamp off the card's RIGHT edge and its
+            BOTTOM edge, so the strip lying on the page runs down the whole
+            right side and along the whole bottom. A linear ramp can only ever
+            darken one axis: point it at the bottom-right corner and the
+            mid-height right edge stays lime; point it straight down and the
+            right edge does. A radial centred at the top-left darkens by
+            DISTANCE, so both arms of the L are covered by one gradient and the
+            middle of the stamp — the part on the card — stays untouched.
+
+            In objectBoundingBox units the circle stretches to the 196×80 box,
+            which is what makes r ≈ 0.9 reach the bottom edge and the right edge
+            at about the same value. Held flat to 0.55 so the ramp only starts
+            once the stroke is near an edge.
+          */}
+          <RadialGradient id={gradId} cx="0.15" cy="0.1" r="0.9">
+            <Stop offset="0" stopColor={ink} />
+            <Stop offset="0.55" stopColor={ink} />
+            <Stop offset="1" stopColor={inkEnd} />
+          </RadialGradient>
+        </Defs>
+      ) : null}
       <Path
         d="M4 4h188v18a16 16 0 000 32v22H4V54a16 16 0 000-32V4z"
         fill={face}
-        stroke={ink}
+        stroke={stroke}
         strokeWidth={solid ? 5 : 4}
         strokeLinejoin="round"
         strokeDasharray={solid ? undefined : "74 4 29 3 86 7"}
@@ -132,7 +201,7 @@ const StampArtwork: React.FC<StampArtworkProps> = ({ ink, face = "none", solid }
         y1="14"
         x2="50"
         y2="66"
-        stroke={ink}
+        stroke={stroke}
         strokeWidth={solid ? 3 : 2}
         strokeDasharray="5 5"
       />
@@ -147,13 +216,35 @@ const StampArtwork: React.FC<StampArtworkProps> = ({ ink, face = "none", solid }
       </Text>
     </View>
   </View>
-);
+  );
+};
 
-export const TopMatchStamp: React.FC<{ ink: string; revealed?: boolean }> = ({
-  ink,
-  revealed = true,
-}) => {
+/**
+ * THE TAIL IS DRAWN ON THE PAGE, NOT ON THE CARD, and that is the whole reason
+ * for `inkEnd`.
+ *
+ * The stamp is deliberately misregistered past the card's bottom and right
+ * edges — a mark that stops neatly inside the border reads as a sticker, not as
+ * something pressed onto the surface. But that means roughly the bottom fifth
+ * of the artwork sits on the canvas, and the two grounds want opposite inks.
+ * On paper, lime at the watermark's opacity measures 1.11:1 against the cream
+ * canvas — the overhang simply is not there — while the same lime is exactly
+ * right on the deep blue two millimetres above it.
+ *
+ * `accentText.lime` resolves this for free, without a scheme conditional: it is
+ * the lime hue rendered AS ink for the current scheme, so it is #4E6E00 on
+ * paper (3.93:1 on cream) and #C8F750 on ink — identical to `accent.lime`.
+ * The dark scheme therefore ramps from lime to lime, which is a flat stroke and
+ * pixel-for-pixel what it drew before.
+ */
+export const TopMatchStamp: React.FC<{
+  ink: string;
+  inkEnd?: string;
+  revealed?: boolean;
+}> = ({ ink, inkEnd, revealed = true }) => {
   const { reduced } = useMotion();
+  const { scheme } = useTheme();
+  const peak = scheme === "light" ? STAMP_OPACITY_PAPER : STAMP_OPACITY_INK;
   const reveal = useSharedValue(revealed ? 1 : 0);
   const scale = useSharedValue(revealed ? 1 : 0.94);
 
@@ -172,14 +263,14 @@ export const TopMatchStamp: React.FC<{ ink: string; revealed?: boolean }> = ({
   }, [reduced, reveal, revealed, scale]);
 
   const revealStyle = useAnimatedStyle(() => ({
-    opacity: reveal.value * STAMP_OPACITY,
+    opacity: reveal.value * peak,
     transform: [{ scale: scale.value }],
   }));
 
   return (
     <Animated.View style={[styles.stampReveal, revealStyle]} pointerEvents="none">
       <View style={styles.stampRotation}>
-        <StampArtwork ink={ink} />
+        <StampArtwork ink={ink} inkEnd={inkEnd} />
       </View>
     </Animated.View>
   );
@@ -187,6 +278,8 @@ export const TopMatchStamp: React.FC<{ ink: string; revealed?: boolean }> = ({
 
 interface TopMatchImpactProps {
   ink: string;
+  /** Same ramp as the resting impression — see `TopMatchStamp`. */
+  inkEnd?: string;
   onContact: () => void;
   onFinished: () => void;
 }
@@ -199,6 +292,7 @@ interface TopMatchImpactProps {
  */
 export const TopMatchImpact: React.FC<TopMatchImpactProps> = ({
   ink,
+  inkEnd,
   onContact,
   onFinished,
 }) => {
@@ -286,7 +380,7 @@ export const TopMatchImpact: React.FC<TopMatchImpactProps> = ({
   return (
     <Animated.View style={[styles.impact, impactStyle]} pointerEvents="none">
       <View style={styles.stampRotation}>
-        <StampArtwork ink={ink} face={withAlpha(ink, 0.28)} solid />
+        <StampArtwork ink={ink} inkEnd={inkEnd} face={withAlpha(ink, 0.28)} solid />
       </View>
     </Animated.View>
   );

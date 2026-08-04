@@ -292,6 +292,11 @@ const Home = () => {
           <Carousel
             data={cards}
             keyExtractor={(c) => c}
+            // Runs the peeking card off the screen edge instead of stopping it
+            // a gutter short — a card clipped by page padding reads as a
+            // mistake, not as "there's more this way". Collapses itself when
+            // there's only one card, which is most days.
+            bleedRight={space.screenX}
             renderItem={({ item }) => renderCard(item)}
           />
         ) : null}

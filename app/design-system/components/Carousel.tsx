@@ -28,6 +28,14 @@ export interface CarouselProps<T> {
   gap?: number;
   /** Width of the next slide left peeking in — the "there's more" hint. Default `spacing.xl`. */
   peek?: number;
+  /**
+   * How much page gutter to escape on the RIGHT, so the peeking slide runs off
+   * the screen edge instead of stopping short of it. Pass the screen's
+   * horizontal padding (`space.screenX`) when this sits inside a padded `Page`.
+   *
+   * Ignored for a lone slide, deliberately — see the note in the body.
+   */
+  bleedRight?: number;
   /** Show the paging dots (active dot stretches into a pill). Default true. */
   dots?: boolean;
   /** Active dot colour. Default `action.primary`. */
@@ -49,6 +57,7 @@ export function Carousel<T>({
   keyExtractor,
   gap = spacing.md,
   peek = spacing.xl,
+  bleedRight = 0,
   dots = true,
   dotColor,
   onIndexChange,
@@ -63,7 +72,38 @@ export function Carousel<T>({
   const single = data.length <= 1;
   const effPeek = single ? 0 : peek;
   const effGap = single ? 0 : gap;
-  const itemWidth = Math.max(0, width - effPeek - effGap);
+
+  /**
+   * ESCAPING THE PAGE GUTTER, RIGHT SIDE ONLY.
+   *
+   * Inside a padded `Page` the scroll viewport ends at the gutter, so the
+   * peeking slide gets clipped by padding a few points before the screen edge —
+   * and a card sliced off with a strip of empty page beside it does not read as
+   * "there is more this way", it reads as a layout mistake. Pulling the viewport
+   * out by the gutter width lets that slide run off the physical edge, which is
+   * the thing the peek was always trying to say.
+   *
+   * LEFT IS UNTOUCHED. The settled slide still starts on the page's gutter, in
+   * line with every heading and card above it. Only the overflow side moves.
+   *
+   * AND IT IS SUPPRESSED FOR A LONE SLIDE. With nothing to peek to, the single
+   * slide fills the viewport — so bleeding would drag that card off the screen
+   * edge and leave it with a gutter on the left and none on the right. Home's
+   * lower carousel is a single card most days, so this is the common case, not
+   * the corner one.
+   */
+  const effBleed = single ? 0 : bleedRight;
+
+  /**
+   * `width` is the OUTER box — the page's content width — because that is what
+   * the paging dots must centre on. The scroll viewport is that plus the bleed,
+   * since only the ScrollView carries the negative margin. Measuring the outer
+   * box and deriving the viewport (rather than bleeding the whole component)
+   * is what keeps the dots on the page's true centre instead of pushing them
+   * half the bleed to the right.
+   */
+  const viewport = width + effBleed;
+  const itemWidth = Math.max(0, viewport - effPeek - effGap);
   const interval = itemWidth + effGap;
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -100,6 +140,9 @@ export function Carousel<T>({
             snapToAlignment="start"
             onScroll={scrollHandler}
             scrollEventThrottle={16}
+            // The bleed lives here and nowhere else, so the dots below stay
+            // centred on the page rather than on the widened scroll viewport.
+            style={{ marginRight: -effBleed }}
             contentContainerStyle={{ paddingRight: effPeek }}
           >
             {data.map((item, i) => (

@@ -140,9 +140,14 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
   // Reserved for the card's own ink, so nothing here can be mistaken for a
   // `text.*` role that would flip with the scheme — this fill is dark in both.
   const heroInk = "#FFFFFF";
-  // The stamp component applies its own watermark opacity. Contrast is asserted
-  // for functional copy only; decorative ink behind that copy is not content.
+  // The stamp component applies its own watermark opacity, and picks it per
+  // scheme — see STAMP_OPACITY_PAPER. Contrast is asserted for functional copy
+  // only; decorative ink behind that copy is not content.
   const stampInk = colors.accent.lime;
+  // The far end of the stroke, for the tail that overhangs onto the page —
+  // `accentText.lime` is the same lime on ink (so dark is unchanged) and a deep
+  // olive on paper, where plain lime measures 1.11:1 against the cream canvas.
+  const stampInkEnd = colors.accentText.lime;
   if (__DEV__ && highlight) {
     // Copy spans the whole card, so its worst ground is the lightest stop.
     assertContrast(heroInk, liftStop, "OfferSlide top-match ramp (light stop)");
@@ -226,7 +231,14 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
         // The house geometry, unchanged — it is the reference the top match is
         // measured against, so it must stay exactly what every other Home card is.
         radius: radius.card,
-        elevate: undefined as ReturnType<typeof Object> | undefined,
+        // e1, WHICH IS EMPTY ON INK AND A SOFT SHADOW ON PAPER — so this adds
+        // nothing to the dark scheme (where the fill already separates it from
+        // the canvas) and rescues the one place paper was failing badly: the
+        // 20pt of this card that peeks past the settled slide. A near-white
+        // card on cream is ~1.02:1, so that sliver had only a hairline holding
+        // it apart from the page and simply vanished. It is the carousel's
+        // whole "there is more this way" signal, so it cannot be invisible.
+        elevate: elevation.e1 as ReturnType<typeof Object> | undefined,
         titleVariant: "h3" as const,
         // The runner-ups get chips too, and they have to: the meta row is what
         // sets where every title starts, so a chip on one tier and a bare line
@@ -322,7 +334,11 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
             a mark on paper does anyway. */}
         {highlight ? (
           <View style={styles.stampSlot} pointerEvents="none">
-            <TopMatchStamp ink={stampInk} revealed={stampRevealed} />
+            <TopMatchStamp
+              ink={stampInk}
+              inkEnd={stampInkEnd}
+              revealed={stampRevealed}
+            />
           </View>
         ) : null}
 

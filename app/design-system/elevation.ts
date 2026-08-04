@@ -36,7 +36,26 @@ export const elevationDark = {
 // dark so cards don't smudge on the bright canvas.
 export const elevationLight = {
   e0: {} as ViewStyle,
-  e1: {} as ViewStyle, // surface.card + border.hairline (no shadow on light either)
+  /**
+   * A RESTING CARD ON PAPER NEEDS A SHADOW. On the ink scheme it does not — the
+   * card fill (#24211B) sits a clear step above the canvas (#141311) and the
+   * edge reads on its own, which is why `elevationDark.e1` is empty and should
+   * stay empty. Paper is the opposite problem: `surface.default` (#FFFDF8) and
+   * `surface.elevated` (#FFFEFB) are both near-white on a cream canvas
+   * (#F7F2EA), roughly 1.02:1, so a neutral card has almost nothing but its
+   * hairline to separate it from the page and reads as a flat patch.
+   *
+   * Deliberately much softer than `e2`. This is "a card is sitting here", not
+   * "this floats above the page" — at e2's weight every list row on paper would
+   * look like a dialog.
+   */
+  e1: {
+    shadowColor: "#2A2018",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 1,
+  } as ViewStyle,
   e2: {
     shadowColor: "#2A2018",
     shadowOffset: { width: 0, height: 2 },
