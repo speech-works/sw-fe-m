@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
-  ScrollView,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -10,11 +9,16 @@ import {
   ListRenderItem,
   RefreshControlProps,
 } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
 import { useTheme } from "../useTheme";
 import { useNavBarInset } from "../useNavBarInset";
 import { useKeyboardInset } from "../useKeyboardInset";
+import { PageScrollContext, PageScrollState } from "../pageScroll";
 import { spacing, space, size, zIndex } from "../primitives/scale";
 import { PageHeader } from "./PageHeader";
 import { Gradient } from "./Gradient";
@@ -95,6 +99,30 @@ export const Page: React.FC<PageProps> = ({
   // (varies by content) and the last element always clears the pinned footer.
   const [footerH, setFooterH] = useState(FOOTER_RESERVE);
 
+  // ── Scroll geometry, published to descendants (see ../pageScroll) ──────────
+  // Read by `useInView` so a section can tell whether it is genuinely visible
+  // rather than merely mounted. Stays at 0 for the `list`/static bodies, which
+  // is honest for the static one and simply unused by the list one today.
+  const scrollY = useSharedValue(0);
+  const hostRef = useRef<View>(null);
+  const [viewport, setViewport] = useState({ top: 0, height: 0 });
+
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+
+  // measureInWindow, NOT Dimensions.get("window"): under Android edge-to-edge
+  // the two disagree, and the difference is exactly the band we're trying to
+  // reason about.
+  const measureViewport = useCallback(() => {
+    hostRef.current?.measureInWindow((_x, y, _w, h) => {
+      if (h <= 0) return;
+      setViewport((prev) =>
+        prev.top === y && prev.height === h ? prev : { top: y, height: h },
+      );
+    });
+  }, []);
+
   const topPad = insets.top + space.inlineGap; // safe area + 8, matches Header
   // `size.tabBarSafe` is derived from the dock's own geometry (bottom 30 +
   // height 70 + gap). Under edge-to-edge the dock moves up by the nav bar, so
@@ -103,6 +131,18 @@ export const Page: React.FC<PageProps> = ({
   const bottomPad =
     (footer ? footerH + space.sectionGap : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
+
+  // What the dock COVERS, which is less than the clearance we reserve for it.
+  const occludedBottom = tabBarSafe ? size.dockOcclusion + navBarInset : 0;
+  const pageScroll = useMemo<PageScrollState>(
+    () => ({
+      scrollY,
+      viewportTop: viewport.top,
+      viewportHeight: viewport.height,
+      occludedBottom,
+    }),
+    [scrollY, viewport.top, viewport.height, occludedBottom],
+  );
 
   // No own horizontal padding — the container applies space.screenX so the title
   // and the content (and list rows) all share one gutter. The back bar only
@@ -141,10 +181,16 @@ export const Page: React.FC<PageProps> = ({
     );
   } else if (scroll) {
     body = (
-      <ScrollView
+      // Animated.ScrollView, not ScrollView — the only difference that reaches
+      // the user is that `onScroll` now runs as a worklet. `refreshControl`,
+      // `keyboardShouldPersistTaps` and the content padding are untouched, and
+      // CustomScrollView already runs this exact swap in this app.
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: colors.background.canvas }}
         contentContainerStyle={{
           paddingTop: topPad,
@@ -155,7 +201,7 @@ export const Page: React.FC<PageProps> = ({
       >
         {titleBlock}
         <View style={{ marginTop: space.titleGap, gap }}>{children}</View>
-      </ScrollView>
+      </Animated.ScrollView>
     );
   } else {
     body = (
@@ -165,6 +211,17 @@ export const Page: React.FC<PageProps> = ({
       </View>
     );
   }
+
+  // One measurable host around whichever body we built. A `flex: 1` View around
+  // a `flex: 1` child is layout-neutral, and measuring the host rather than the
+  // ScrollView itself avoids depending on which native methods a given RN
+  // scroll container happens to expose. `collapsable={false}` keeps Android from
+  // optimising the view away, which would make measureInWindow return nothing.
+  body = (
+    <View ref={hostRef} onLayout={measureViewport} collapsable={false} style={{ flex: 1 }}>
+      {body}
+    </View>
+  );
 
   if (keyboardAvoiding) {
     body = (
@@ -184,6 +241,7 @@ export const Page: React.FC<PageProps> = ({
   }
 
   return (
+    <PageScrollContext.Provider value={pageScroll}>
     <ScreenView style={{ backgroundColor: colors.background.canvas }}>
       {/* Solid dark canvas behind everything — covers the legacy light `BgWrapper`
        * gradient so an overscroll bounce (top/bottom) never flashes white. Matches
@@ -273,5 +331,6 @@ export const Page: React.FC<PageProps> = ({
         </View>
       ) : null}
     </ScreenView>
+    </PageScrollContext.Provider>
   );
 };

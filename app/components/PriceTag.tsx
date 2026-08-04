@@ -40,6 +40,19 @@ interface PriceTagProps {
 }
 
 /**
+ * How far the struck anchor and the note are muted when this tag sits on a vivid
+ * accent fill.
+ *
+ * WAS 0.55, WHICH DID NOT MEET AA. At 12px (`compact`), the on-ink for
+ * `accent.info` at 55% composites to roughly #2C5893 over #5B9DF9 — 2.6:1, when
+ * normal-size text needs 4.5:1. The lime shop hero was no better at 3.2:1. 0.85
+ * clears it on both (≈4.7:1 on info, ≈7.4:1 on lime) and the hierarchy survives
+ * intact, because what separates an anchor from a price here was never the
+ * opacity: it is four type steps and a line through it.
+ */
+const ANCHOR_INK_ALPHA = 0.85;
+
+/**
  * The single place the app renders a (possibly slashed) price. Used by the shop
  * list, the program detail, and the paywall so the strikethrough looks identical
  * everywhere and no screen ever hardcodes a price or a fake anchor.
@@ -68,7 +81,7 @@ export const PriceTag = ({
   // On a bright fill, everything is dark ink — the price at full strength, the
   // strike/note muted. Off a fill, the canvas text roles carry that hierarchy.
   const priceColor = ink ?? "primary";
-  const mutedColor = ink ? withAlpha(ink, 0.55) : "tertiary";
+  const mutedColor = ink ? withAlpha(ink, ANCHOR_INK_ALPHA) : "tertiary";
   return (
     <View style={center ? styles.wrapCenter : undefined}>
       <View style={[styles.row, center && styles.rowCenter]}>

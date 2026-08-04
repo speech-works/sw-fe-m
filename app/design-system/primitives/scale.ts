@@ -58,6 +58,11 @@ export const size = {
   // Clearance a scroll body must keep below it on tab-ROOT screens so content
   // isn't hidden behind the floating CustomTabBar (bottom:30 + height:70 + gap).
   tabBarSafe: 120,
+  // The band the dock PHYSICALLY covers (bottom:30 + height:70), without the
+  // 20pt breathing gap `tabBarSafe` adds on top. `tabBarSafe` answers "where may
+  // content end"; this answers "what can the user actually see" — which is what
+  // visibility/impression maths needs. Kept adjacent so the two can't drift.
+  dockOcclusion: 100,
   backBtn: 44,
   tabIcon: 24,
   iconLg: 28,

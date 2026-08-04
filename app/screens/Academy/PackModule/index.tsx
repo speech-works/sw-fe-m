@@ -331,6 +331,9 @@ const PackModuleScreen = () => {
           // Programs lives in the Explore tab's stack, reached through the
           // parent navigator the same way navigateToHomeFallback does.
           if (kind === "NOT_OWNED") {
+            track(ANALYTICS_EVENTS.PROGRAMS_LIST_OPENED, {
+              source: "pack_not_owned",
+            });
             const appNavigation = navigation.getParent();
             if (appNavigation) {
               (appNavigation.navigate as any)("Root", {

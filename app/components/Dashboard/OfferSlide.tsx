@@ -5,16 +5,19 @@ import PriceTag from "../PriceTag";
 import {
   Text,
   Icon,
+  Gradient,
   icons,
   useTheme,
   withAlpha,
+  mix,
+  assertContrast,
   spacing,
   space,
   radius,
   borderWidth,
 } from "../../design-system";
 import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
-import TopMatchBadge, { BADGE_OVERHANG, BADGE_LANE } from "./TopMatchBadge";
+import TopMatchBadge, { BADGE_OVERHANG } from "./TopMatchBadge";
 import { programEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
 import type { StorePrice } from "../../services/priceDisplay";
@@ -38,11 +41,12 @@ import type { StorePrice } from "../../services/priceDisplay";
  * Now every slide renders the SAME nodes in the same order and `skin` carries
  * the entire difference, so a tier cannot gain or lose a part on its own.
  *
- * The highlighted tier deliberately reuses the Home vivid-card language —
- * `PromoCard` / `RecHeroCard`: the same `accent.info` fill, the same `accentOn`
- * ink, the same TWO ink-circle blobs, the same padding rhythm, and the same
- * solid dark-island CTA pill with a label. The blue does not change for anyone;
- * it just moved into a deck.
+ * The highlighted tier USED to reuse the Home vivid-card language verbatim —
+ * flat `accent.info`, dark `accentOn` ink, two ink circles, a dark-island CTA —
+ * and that was the problem: the one card on Home that sells looked like one more
+ * instance of the house style. It now deliberately departs from it (deep ramp,
+ * white ink, a light CTA, `radius.sheet`, elevation), while the plain tier holds
+ * the house geometry exactly. The distance between them IS the ranking.
  */
 
 /**
@@ -52,6 +56,17 @@ import type { StorePrice } from "../../services/priceDisplay";
  * back instead.
  */
 export const SLIDE_MIN_HEIGHT = 260;
+
+/** The card box itself, with the badge's overhang taken back off. */
+export const SLIDE_CARD_HEIGHT = SLIDE_MIN_HEIGHT - BADGE_OVERHANG;
+
+/**
+ * Distance from the card's top edge down to the BOTTOM of the CTA island — the
+ * last pixel that has to clear the floating dock for this card's action to be
+ * visible at all. Exported so the shelf can report whether it did, rather than
+ * counting a card whose entire footer is under the dock as "shown".
+ */
+export const CTA_BOTTOM_FROM_CARD_TOP = SLIDE_CARD_HEIGHT - spacing["2xl"];
 
 /**
  * Same words and the same glyph in both tiers — the tier changes the weight of
@@ -71,8 +86,7 @@ export interface OfferSlideProps {
 }
 
 const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress }) => {
-  const { colors, scheme } = useTheme();
-  const isDark = scheme === "dark";
+  const { colors, elevation } = useTheme();
 
   // Only ever rendered when the backend supplied one. `signalLevel: "none"`
   // never reaches here — `selectForYou` returns nothing in that state.
@@ -81,30 +95,100 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
   const fill = colors.accent[REC_HERO_ACCENT];
   const ink = colors.accentOn[REC_HERO_ACCENT];
 
+  /**
+   * WHITE TYPE ON A DEEP FILL — the one rule this card is allowed to break.
+   *
+   * Every vivid surface in the app is a BRIGHT accent with dark `accentOn` ink,
+   * and that rule exists for a good reason: white on `accent.info` measures
+   * 2.7:1 and is illegible. But the rule is really "match the ink to the fill",
+   * and the reverse pairing is just as valid once the fill is dark enough —
+   * white on a deep blue is the pairing that makes a card read as premium
+   * rather than as a coloured rectangle, which is the whole ask here.
+   *
+   * So the ramp is not a lightened accent, it is a DEEPENED one: `accent.info`
+   * carried 40–62% of the way toward its own on-ink. Every stop lands between
+   * 5.5:1 and 8.2:1 against white — comfortably past AA for the 14px reason
+   * line, which is the smallest type on the card and therefore the constraint.
+   * It stays unmistakably the info hue; it is the same blue with the lights
+   * turned down, not a new colour.
+   *
+   * THE TOP MATCH IS A DIFFERENT KIND OF OBJECT, not a louder one.
+   *
+   * Every vivid card on Home is the same recipe — flat accent fill, two ink
+   * circles, `radius.card`, no shadow — so the one card that sells was reading
+   * as another instance of the house style rather than as the thing to look at.
+   * The fix is to break the recipe on SEVEN axes at once (ramp, light, radius,
+   * elevation, type scale, action width, head-room), none of which is "turn it
+   * up": a gradient is not a brighter blue, a wider button is not a shoutier
+   * one. Distinctiveness, not volume — volume is what makes a card read as an
+   * advertisement and get skipped.
+   *
+   * A TONAL RAMP, NOT A SECOND HUE. Lighter top-left → deeper bottom-right. One
+   * colour lit from a direction, which is what gives a flat rectangle the sense
+   * of being a surface. A blue→purple ramp was the obvious alternative and is
+   * worse: purple is the mood card's fill, and a second hue would make this read
+   * as a different PRODUCT rather than as the same family, lit.
+   */
+  const liftStop = mix(fill, ink, 0.4);
+  const deepStop = mix(fill, ink, 0.62);
+  // Reserved for the card's own ink, so nothing here can be mistaken for a
+  // `text.*` role that would flip with the scheme — this fill is dark in both.
+  const heroInk = "#FFFFFF";
+  if (__DEV__ && highlight) {
+    // The LIGHTEST stop is the one that can fail, so it is the one asserted.
+    assertContrast(heroInk, liftStop, "OfferSlide top-match ramp (light stop)");
+  }
+
   // Every part of the tier difference, in one object. Both skins name the same
   // keys, so neither can quietly drop a part the other has.
   const skin = highlight
     ? {
-        bg: fill,
+        bg: liftStop,
+        // Rendered as a layer INSIDE the same card node, not as a different
+        // wrapper element — so the two tiers keep one skeleton and the ramp is
+        // just another optional texture, exactly like the circles below.
+        gradient: [liftStop, deepStop] as readonly [string, string],
         border: undefined as string | undefined,
-        // Texture at 10% ink, the Home vivid-card recipe.
-        blob: withAlpha(ink, 0.1),
-        // On a bright fill there is exactly one legible ink, so every text role
-        // collapses to it — the hierarchy is carried by type scale alone.
-        eyebrow: ink,
-        title: ink,
+        // Light catching the surface, not depth pressed into it. A dark disc on
+        // a deep fill would just be a hole.
+        blob: withAlpha(heroInk, 0.1),
+        // 28, not 24. Four points is barely nameable on its own and that is the
+        // point — it changes the silhouette without announcing itself.
+        radius: radius.sheet,
+        elevate: elevation.e2,
+        // The only h2 in the deck, so the size difference IS the ranking,
+        // visible before a word is read. NOT h1, tempting as the reference's
+        // three huge lines are: that card carries a title and nothing else,
+        // while this one still owes the reader a price and the sentence about
+        // why it was picked for them. h1 buys ~20pt of title and costs the
+        // reason line, which is the only part of this card that is about them.
+        titleVariant: "h2" as const,
+        // A pane of light laid over the ramp rather than a second surface
+        // colour. Only works on a fill, which is exactly why it is the top
+        // match's and not the deck's.
+        chipBg: withAlpha(heroInk, 0.18),
+        chipInk: heroInk,
+        // One ink for everything; the hierarchy is carried by type scale alone.
+        eyebrow: heroInk,
+        title: heroInk,
         // Bare copy: on an accent surface content is the only borderless thing
         // and actions are the only enclosed shapes.
-        reasonText: ink,
-        blurbText: ink,
-        priceInk: ink as string | undefined,
-        // The one loud CTA — a solid dark island (pure inverse in light mode).
-        ctaBg: isDark ? colors.action.secondary : colors.surface.inverse,
-        ctaInk: isDark ? colors.action.onSecondary : colors.text.primary,
+        reasonText: heroInk,
+        blurbText: heroInk,
+        priceInk: heroInk as string | undefined,
+        // FLIPPED WITH THE FILL. The dark island that reads as the loudest
+        // object on a pale card all but disappears on a deep one — it is the
+        // same value as the surface it sits on. White is now the high-contrast
+        // move, and it is the same inversion the reference makes.
+        ctaBg: heroInk,
+        ctaInk: deepStop,
         ctaBorder: undefined as string | undefined,
       }
     : {
         bg: colors.surface.default,
+        // Flat. The ramp is the top match's signature and a fainter version
+        // here would blunt it — the same argument that removed the circles.
+        gradient: undefined as readonly [string, string, string] | undefined,
         // Load-bearing on the paper scheme, where `surface.default` sits at
         // roughly 1.02:1 against the canvas and the card edge vanishes.
         border: colors.border.default as string | undefined,
@@ -116,6 +200,17 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
         // same slots, same order, same geometry — which is the part that
         // actually has to match.
         blob: undefined as string | undefined,
+        // The house geometry, unchanged — it is the reference the top match is
+        // measured against, so it must stay exactly what every other Home card is.
+        radius: radius.card,
+        elevate: undefined as ReturnType<typeof Object> | undefined,
+        titleVariant: "h3" as const,
+        // The runner-ups get chips too, and they have to: the meta row is what
+        // sets where every title starts, so a chip on one tier and a bare line
+        // on the other would make titles jump by 8pt as you swipe. Same shape,
+        // one volume down — a control-surface pill instead of a pane of light.
+        chipBg: colors.surface.control,
+        chipInk: colors.text.tertiary,
         eyebrow: "tertiary",
         title: "primary",
         // Was `accent`. Two lines of full-strength orange were the loudest thing
@@ -128,12 +223,21 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
         reasonText: "secondary",
         blurbText: "secondary",
         priceInk: undefined,
-        // An OUTLINE, not a fill. The top match ends on a solid dark island; a
-        // filled control pill here read as a second button of equal weight. A
-        // hairline pill is one clear step down while keeping the affordance —
-        // and `border.strong` is what stops it vanishing on the paper scheme,
-        // where an unfilled control is otherwise ~1.1:1.
-        ctaBg: undefined as string | undefined,
+        // FILLED NOW, AND THE REASON IT WASN'T IS GONE.
+        //
+        // This was a bare outline because the top match used to end on a solid
+        // DARK island, and a filled control pill on a dark card read as a second
+        // button of the same weight. The top match's action is now a solid WHITE
+        // pill on a deep fill — several steps louder than anything a neutral
+        // card can do — so the collision that argument was avoiding cannot
+        // happen, and all the outline was buying was a button you had to look
+        // for. `surface.control` on `surface.default` is a visible step up
+        // while staying obviously subordinate.
+        //
+        // The border STAYS on top of the fill rather than being replaced by it:
+        // that is what keeps the pill enclosed on the paper scheme, where the
+        // control/default surfaces sit much closer together than they do here.
+        ctaBg: colors.surface.control as string | undefined,
         ctaInk: colors.text.primary,
         ctaBorder: colors.border.strong as string | undefined,
       };
@@ -163,10 +267,26 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
             backgroundColor: skin.bg,
             borderColor: skin.border,
             borderWidth: skin.border ? borderWidth.hairline : 0,
+            borderRadius: skin.radius,
           },
+          skin.elevate,
         ]}
       >
-        {/* Two ink circles — the Explore / PromoCard texture. Depth without art,
+        {/* The tonal ramp, clipped by the card's own radius. Diagonal because a
+            vertical ramp reads as a background and a diagonal one reads as a lit
+            surface — the light has to come from somewhere for the eye to accept
+            it. Drawn first so every other layer sits on top of it. */}
+        {skin.gradient ? (
+          <Gradient
+            colors={skin.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        ) : null}
+
+        {/* Two circles — the Explore / PromoCard texture. Depth without art,
             and the vivid tier's alone: `skin.blob` is undefined on the runners-up
             so they render nothing at all rather than a fainter version. */}
         {skin.blob ? (
@@ -183,38 +303,55 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
         ) : null}
 
         <View style={styles.body}>
-          {/* Reserves the badge's horizontal lane so a long shelf label can never
-              run under it — the eyebrow is the one line at the badge's height. */}
-          <Text
-            variant="label"
-            color={skin.eyebrow}
-            numberOfLines={1}
-            style={highlight ? styles.eyebrowClear : undefined}
-          >
-            {programEyebrow(item)}
-          </Text>
-          {/* h3, not h2: at slide width minus the peek, h2 wraps to three
-              lines and swallows the card. */}
-          <Text variant="h3" color={skin.title} numberOfLines={2}>
+          {/* ONE META ROW, TWO ENDS — what it is on the left, what it costs on
+              the right.
+              These were two stacked lines, and with the title and the reason
+              beneath them that made FOUR blocks sharing 3pt gaps at the top
+              while `space-between` pooled every spare point into a single void
+              above the button. The top read as crammed and the bottom as empty,
+              from the same cause. Folding the price up beside the chip removes a
+              row, which is what pays for real separation between the three
+              blocks that remain.
+              It does NOT put the price back in the footer. The last band of this
+              card is what the dock crops, and a price nobody can see is not a
+              price — that is why it left in the first place. It stays in the top
+              half, just on a line that was already there.
+              No badge lane needed: `padTop` (32) starts this row well below the
+              badge, which overhangs from -6 to +14 relative to the card. */}
+          <View style={styles.metaRow}>
+            <View style={[styles.chip, { backgroundColor: skin.chipBg }]}>
+              <Text variant="label" color={skin.chipInk} numberOfLines={1}>
+                {programEyebrow(item)}
+              </Text>
+            </View>
+            <PriceTag
+              priceInr={item.priceInr}
+              anchorInr={item.anchorPriceInr}
+              priceUsd={item.priceUsd}
+              anchorUsd={item.anchorPriceUsd}
+              store={store}
+              compact
+              ink={skin.priceInk}
+            />
+          </View>
+
+          <Text variant={skin.titleVariant} color={skin.title} numberOfLines={2}>
             {item.title}
           </Text>
+
+          {/* Two lines, not three — a truncated third line of reason is worth
+              less than the air that keeps these blocks apart. */}
           {support ? (
-            <Text variant="bodySm" color={supportColor} numberOfLines={3}>
+            <Text variant="bodySm" color={supportColor} numberOfLines={2}>
               {support}
             </Text>
           ) : null}
         </View>
 
+        {/* The CTA hugs its label. A pill that spans the card stops reading as a
+            button and starts reading as a banner — and at that width the label
+            floats alone in the middle of a stripe with nothing to anchor it. */}
         <View style={styles.footer}>
-          <PriceTag
-            priceInr={item.priceInr}
-            anchorInr={item.anchorPriceInr}
-            priceUsd={item.priceUsd}
-            anchorUsd={item.anchorPriceUsd}
-            store={store}
-            compact
-            ink={skin.priceInk}
-          />
           <View
             style={[
               styles.cta,
@@ -230,6 +367,7 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
               {CTA_LABEL}
             </Text>
           </View>
+
         </View>
       </View>
 
@@ -247,6 +385,13 @@ const styles = StyleSheet.create({
   wrap: {
     paddingTop: BADGE_OVERHANG,
   },
+  // `borderRadius` is set per tier from `skin`; the value here is the fallback.
+  //
+  // `paddingTop` is deliberately NOT per-tier. The top match briefly took 20 so
+  // its bigger type had less head-room, and the cost was that its title started
+  // 12pt higher than every other slide's — a visible jolt on every swipe, which
+  // is exactly the drift the eyebrow row above exists to prevent. Every tier
+  // starts its chip at the same y, so every tier starts its title at the same y.
   slide: {
     minHeight: SLIDE_MIN_HEIGHT - BADGE_OVERHANG,
     borderRadius: radius.card,
@@ -274,19 +419,46 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 45,
   },
+  // 3 → 10. `space.titleSub` is the gap for a title and its own subtitle — two
+  // parts of one thing. These are three separate things (what it is and costs,
+  // what it is called, why it was picked for you) and at 3pt they read as one
+  // undifferentiated block. Ten is enough to group without drifting apart.
+  //
+  // Height budget against the 254pt box, worst case:
+  //   32 pad + 24 meta + 10 + 56 title(2 lines) + 10 + 40 reason
+  //   + 16 footer gap + 38 CTA + 24 pad = 250.
+  // With the common one-line title it comes to 222, and the 32pt left over
+  // lands above the CTA — which is where air belongs on a card that ends in an
+  // action, rather than pooled there because the top had none to spare.
   body: {
-    gap: space.titleSub,
+    gap: 10,
   },
-  // Keeps the eyebrow out of the badge's lane. Applied only on the highlighted
-  // slide, so the other two get the full width for their label.
-  eyebrowClear: {
-    marginRight: BADGE_LANE,
+  // The chip yields first if a long store price (e.g. "$12.99") needs the room;
+  // the price never truncates, because a half-shown price is worse than none.
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.inlineGap,
+  },
+  // `alignSelf: flex-start` is what makes the chip hug its text — without it a
+  // chip in the `body` column stretches to the card's full width and stops
+  // being a chip.
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexShrink: 1,
+    gap: space.inlineGap - 2,
+    paddingHorizontal: space.inlineGap,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: spacing.xl,
+    justifyContent: "flex-start",
+    marginTop: spacing.lg,
   },
   cta: {
     flexDirection: "row",

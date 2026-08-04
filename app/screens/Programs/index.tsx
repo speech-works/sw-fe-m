@@ -1,7 +1,9 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getOffers, type OfferItem, type Offers } from "../../api";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PriceTag from "../../components/PriceTag";
 import {
   Page,
@@ -85,12 +87,43 @@ const ProgramsScreen = () => {
     }, []),
   );
 
-  const openDetail = (item: OfferItem) => {
+  /**
+   * THIS SCREEN USED TO FIRE NOTHING AT ALL. Not a view, not a click — so a
+   * purchase that started in the shop was indistinguishable from one that
+   * started anywhere else, and the only measured arm of the funnel was Home's.
+   * `PACK_CLICKED` is reused rather than given a shop-specific name so
+   * Home → shop → detail → payment joins up in one query; `source` is what tells
+   * the two apart.
+   */
+  const openDetail = (
+    item: OfferItem,
+    source: "programs_hero" | "programs_list",
+    position: number,
+  ) => {
+    track(ANALYTICS_EVENTS.PACK_CLICKED, {
+      source,
+      catalogKey: item.key,
+      packId: item.packId,
+      priceInr: item.priceInr,
+      hasMatchReason: !!item.match?.reason,
+      position,
+    });
     navigation.navigate("ProgramDetail", {
       catalogKey: item.key,
       packId: item.packId,
     });
   };
+
+  // Reset per visit so a return counts as a new view.
+  const listViewedRef = useRef(false);
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        listViewedRef.current = false;
+      },
+      [],
+    ),
+  );
 
   // Was: fetch and `startFresh` ONLY when `state.flow` was null. `flow` is
   // persisted, so for any returning user both were skipped and this CTA emitted
@@ -163,7 +196,7 @@ const ProgramsScreen = () => {
       <PressableScale
         key={item.key}
         scaleTo={0.98}
-        onPress={() => openDetail(item)}
+        onPress={() => openDetail(item, "programs_hero", 0)}
         style={[styles.heroWrap, elevation.e2]}
       >
         {/* FLAT, not a gradient. At this size a ramp just muddies the middle of
@@ -260,7 +293,10 @@ const ProgramsScreen = () => {
    * Shelf and length moved up into the eyebrow, which frees the header for the
    * title, kills the overflowing row outright, and gives the price the footer.
    */
-  const renderCard = (item: OfferItem) => {
+  // `index` is the position within `restItems` — the position on screen, which
+  // is what a position metric has to mean. Indexing `items` instead would report
+  // 1 for the first card whenever a hero was lifted out above it.
+  const renderCard = (item: OfferItem, index: number) => {
     const value = valueParts(item);
     const reason = item.match?.reason ?? null;
 
@@ -268,7 +304,7 @@ const ProgramsScreen = () => {
       <PressableScale
         key={item.key}
         scaleTo={0.98}
-        onPress={() => openDetail(item)}
+        onPress={() => openDetail(item, "programs_list", index)}
         style={[
           styles.card,
           {
@@ -367,6 +403,29 @@ const ProgramsScreen = () => {
     ? items.find((i) => i.match?.level === "top" && !i.owned)
     : undefined;
   const restItems = heroItem ? items.filter((i) => i.key !== heroItem.key) : items;
+
+  // Gated on the branch that actually renders the shelf, NOT on the fetch
+  // resolving — loading, failed and empty all resolve too, and none of them is
+  // somebody looking at programs.
+  const listRendered = !loading && !failed && items.length > 0;
+  useEffect(() => {
+    if (!listRendered || listViewedRef.current) return;
+    listViewedRef.current = true;
+    track(ANALYTICS_EVENTS.PROGRAMS_LIST_VIEWED, {
+      count: items.length,
+      hasSignal,
+      signalLevel: offers?.signalLevel ?? null,
+      heroCatalogKey: heroItem?.key ?? null,
+      bonusEligible: offers?.bonusMembershipEligible ?? false,
+    });
+  }, [
+    listRendered,
+    items.length,
+    hasSignal,
+    offers?.signalLevel,
+    offers?.bonusMembershipEligible,
+    heroItem?.key,
+  ]);
 
   return (
     <Page

@@ -38,9 +38,45 @@ export const ANALYTICS_EVENTS = {
     //        | 'home_for_you' (ForYouCarousel — carousel | browse_fallback)
     // The 'home' surface stopped emitting top_pick/browse_fallback when selling
     // moved to the carousel; those variants now arrive under 'home_for_you'.
+    // NOT AN IMPRESSION. This fires when the offers FETCH SETTLES, which is a
+    // fact about the network, not about the person: it counts a shelf sitting
+    // entirely behind the tab dock exactly the same as one filling the screen.
+    // It stays because dashboards are built on it — but every ratio computed
+    // against it is a ratio against a denominator nobody saw. Use
+    // FOR_YOU_SHELF_VIEWED for reach and this one only for "did we have
+    // something to offer".
     RECOMMENDATION_SHOWN: 'recommendation_shown',   // props: { surface, variant, state, catalogKey, packId, strategy, priceInr, hasMatchReason, isRefresher, signalLevel?, count?, remaining? }
     PACK_CLICKED: 'pack_clicked',                   // props: { source, catalogKey, packId, priceInr, hasMatchReason, position? }
     PROGRAM_DETAIL_VIEWED: 'program_detail_viewed', // props: { catalogKey, packId }
+
+    // ── For-you shelf: what was actually SEEN ──────────────────────────
+    // Measured against the viewport minus the band the floating dock covers, so
+    // "shown" means a human could have read it. Two properties carry the whole
+    // fold question and are the reason this exists:
+    //   `trigger: 'at_rest'` — it was visible on arrival, without scrolling.
+    //                          The share of these IS the above-the-fold rate.
+    //   `ctaVisible`        — the price + "See inside" band cleared the dock.
+    //                          A shelf that is 60% visible with its price hidden
+    //                          is a different product from one that isn't.
+    FOR_YOU_SHELF_VIEWED: 'for_you_shelf_viewed',
+    // props: { surface, variant, trigger: 'at_rest' | 'scroll', msToVisible,
+    //          cardVisiblePct, ctaVisible, signalLevel, count, remaining,
+    //          catalogKey, packId, hasMatchReason }
+
+    // One per slide the person actually settled on, deduped per screen focus and
+    // held back until they stop for SLIDE_DWELL_MS — a flick from 1 to 3 passes
+    // over slide 2 without ever showing it. Slide 0 is seeded explicitly when
+    // the shelf qualifies: the carousel reports index CHANGES, so without the
+    // seed the top match — the one card with a badge — reports zero forever.
+    FOR_YOU_SLIDE_VIEWED: 'for_you_slide_viewed',
+    // props: { surface, index, catalogKey, packId, priceInr, highlight,
+    //          dwellMs, trigger: 'initial' | 'swipe' }
+
+    // The shop. `_opened` names who sent them (Home's link and Home's browse
+    // fallback were one untracked function until now); `_viewed` fires only from
+    // the branch that renders the list, never from loading/failed/empty.
+    PROGRAMS_LIST_OPENED: 'programs_list_opened',   // props: { source: 'home_for_you_more' | 'home_browse_fallback' | 'explore_entry' | 'pack_not_owned' }
+    PROGRAMS_LIST_VIEWED: 'programs_list_viewed',   // props: { count, hasSignal, signalLevel, heroCatalogKey, bonusEligible }
 
     // ── Paywall & Payments ────────────────────────────────────────────
     PAYWALL_VIEWED: 'paywall_viewed',             // props: none

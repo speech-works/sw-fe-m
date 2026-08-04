@@ -16,7 +16,6 @@ import {
   Text,
   easing,
   icons,
-  press,
   radius,
   space,
   spacing,
@@ -43,10 +42,12 @@ import PressableScale from "../PressableScale";
  * idea what it is, and invites the question of what it costs next time — on the
  * one screen where we want them thinking about the conversation instead.
  *
- * TWO SHAPES, NEVER ZERO. Somebody who said "not now" gets a single quiet row
- * instead of the hero card; the call is still one tap away in both, because
- * the offer is theirs and nothing on the device may take it back. The card
- * renders nothing at all only when the SERVER says there is nothing to offer.
+ * TWO SHAPES, NEVER ZERO. Somebody who said "not now" gets a quiet card — the
+ * same 260pt `PromoCard` shape in the same carousel slot, on a neutral surface
+ * with the ringing phone reduced to a watermark. The call is still one tap away
+ * in both, because the offer is theirs and nothing on the device may take it
+ * back. This renders nothing at all only when the SERVER says there is nothing
+ * to offer.
  * ============================================================================
  */
 
@@ -86,7 +87,7 @@ const RINGING = {
   // so the handset actually reaches 9.7° — 35ms in, then 4.4°, 2.0°, 0.9°, 0.4°,
   // rest. Change it by measuring the peak, not by reading this number.
   amp: 14,
-  max: 1.5, // ~11.5pt past the 46pt disc, inside the 12pt gap to the title
+  max: 1.5, // half the mark's radius again; the card crops what runs past it
   alpha: 0.32, // light. One ring at a time carries it; it does not need weight
 } as const;
 
@@ -154,11 +155,53 @@ function useRippleStyle(clock: SharedValue<number>, layer: number) {
   });
 }
 
-/** Entrance delay — the row lands AFTER its Home neighbours have settled, so the
- *  last thing to move on the screen is the thing we want looked at. */
+/** Entrance delay — the card lands AFTER its Home neighbours have settled, so
+ *  the last thing to move on the screen is the thing we want looked at. */
 const ENTER_DELAY = 190;
 
-const FirstCallCard: React.FC = () => {
+/**
+ * The quiet card's watermark: the ring at rest, and the handset inside it.
+ *
+ * 150 is `PromoCard`'s big ink circle exactly — this mark stands in that slot,
+ * so it inherits that size rather than picking a new one. The glyph is a little
+ * over half of it, which leaves the ring reading as space around a phone rather
+ * than as a badge drawn on top of one.
+ */
+const MARK = 150;
+const MARK_GLYPH = 84;
+
+/**
+ * Which of the three shapes this is currently rendering.
+ *
+ * Both visible shapes are carousel slides, so Home does not need this to place
+ * them — it needs it to know whether there is a slide AT ALL. A shape of "none"
+ * means the server has nothing to offer, and the slide (and its paging dot) must
+ * not be reserved for it. Home guesses synchronously from the same two stores
+ * this reads, so nothing waits on the network to lay out; the callback only
+ * corrects the guess once the server has actually answered.
+ */
+export type FirstCallShape = "none" | "quiet" | "hero";
+
+export interface FirstCallCardProps {
+  /** Reports the shape being rendered, so Home can place it. */
+  onShapeChange?: (shape: FirstCallShape) => void;
+}
+
+/**
+ * Home's synchronous guess at the shape, from persisted state alone. Mirrors the
+ * component's own `alreadyTaken` optimisation — the server still has the final
+ * word, delivered through `onShapeChange`.
+ */
+export function guessFirstCallShape(args: {
+  /** Truthiness is all that is read — the field is a Date on the user model. */
+  takenAt?: Date | string | null;
+  deferredAt: number | null;
+}): FirstCallShape {
+  if (args.takenAt) return "none";
+  return isFirstCallQuieted({ deferredAt: args.deferredAt }) ? "quiet" : "hero";
+}
+
+const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
   const navigation = useNavigation<any>();
   const { colors, scheme } = useTheme();
   const isDark = scheme === "dark";
@@ -228,6 +271,24 @@ const FirstCallCard: React.FC = () => {
 
   const scenario = offer?.available ? offer.scenario : undefined;
 
+  // Mirrors the render guards below exactly — `!scenario || alreadyTaken` is
+  // the same condition that returns null, so Home can never be told a shape
+  // this component is not drawing. Held back until the offer has landed:
+  // reporting "none" while the request is still in flight would drop the slide
+  // out of the carousel and put it back a moment later.
+  const shape: FirstCallShape =
+    alreadyTaken || (offer !== null && !scenario)
+      ? "none"
+      : quiet
+        ? "quiet"
+        : "hero";
+  const pending = !alreadyTaken && offer === null;
+
+  useEffect(() => {
+    if (pending) return;
+    onShapeChange?.(shape);
+  }, [shape, pending, onShapeChange]);
+
   /**
    * ONE clock drives all three rings. Every ring's radius and opacity is pure
    * arithmetic off it in a worklet, so the rings cannot drift apart and the
@@ -291,83 +352,106 @@ const FirstCallCard: React.FC = () => {
 
   const open = () => navigation.navigate("FirstCall", { offer });
 
+  /**
+   * THE QUIET SHAPE IS THE SAME CARD, TURNED DOWN — and it earns that by using
+   * the same geometry, not a rebuilt one.
+   *
+   * An earlier attempt made this a 260pt card by stretching the row's own
+   * layout to fit, and it failed for a reason worth keeping written down: the
+   * ringing disc, which worked at 46pt BESIDE two lines of text, was left
+   * stranded alone in a corner with `space-between` scattering everything else
+   * into clumps. A row layout does not become a card layout by being made
+   * taller.
+   *
+   * So it uses `styles.fill` — the literal style object the hero uses, copied
+   * from Home's `PromoCard` — and the same title/subtitle/CTA arrangement its
+   * carousel neighbours have. The geometry cannot drift between the two shapes
+   * because there is only one of it.
+   *
+   * AND THE DISC BECOMES A WATERMARK. That is what solves the orphaned-glyph
+   * problem rather than working around it: at card scale a small solid disc is
+   * an object with no job, but a large faint handset is TEXTURE — it takes the
+   * place `PromoCard` fills with two ink circles, and unlike those circles it
+   * says something. It still rings. The shake and the ripples are unchanged
+   * worklets; only their size and opacity moved, because the ripple is pure
+   * `scale`/`opacity` and never cared how big it started.
+   */
   if (quiet) {
     return (
       <Animated.View entering={enter().delay(ENTER_DELAY)}>
-        <PressableScale scaleTo={press.scale} onPress={open}>
+        <PressableScale scaleTo={0.98} onPress={open} style={styles.shadow}>
           <View
             style={[
-              styles.row,
+              styles.fill,
               {
                 backgroundColor: colors.surface.default,
-                borderColor: colors.border.hairline,
+                borderColor: colors.border.default,
+                borderWidth: StyleSheet.hairlineWidth,
               },
             ]}
           >
-            {/* A SOLID DISC. The original objection stands and is unchanged: a
-                12%-alpha wash behind a small icon is the weakest object the
-                system can make, and this row is somebody asking to speak to
-                you. Quiet is the right prominence for a person who said "not
-                now"; characterless is not the same as quiet.
-                The glyph inside it is a PHONE rather than her initial, because
-                rings leaving a letter mean nothing — leaving a handset they are
-                immediately, wordlessly a call. Her name is in the title anyway. */}
-            <View style={styles.glyphWrap}>
-              {/* Drawn BEFORE the disc, so each ring is only ever the part that
-                  has already travelled beyond it. Absent entirely under reduced
+            {/* Bottom-right and bleeding off two edges, where the card clips it —
+                a watermark that stops short of the corner reads as a picture of
+                a phone rather than as the surface being marked. Nothing is laid
+                over it: the copy is top-left and the CTA bottom-left, so it never
+                has to compete with type for legibility. */}
+            <View style={styles.mark} pointerEvents="none">
+              {/* Drawn BEFORE the glyph, so each ring is only ever the part that
+                  has already travelled past it. Absent entirely under reduced
                   motion, as in `PulseDot`. */}
               {!reduced
                 ? ripples.map((style, i) => (
                     <Animated.View
                       key={i}
                       style={[
-                        styles.ring,
-                        { borderColor: colors.accent.purple },
+                        styles.markRing,
+                        { borderColor: withAlpha(colors.accent.warning, 0.5) },
                         style,
                       ]}
-                      pointerEvents="none"
                     />
                   ))
                 : null}
-              <View
-                style={[
-                  styles.rowGlyph,
-                  { backgroundColor: colors.accent.purple },
-                ]}
-              >
-                {/* Only the handset swings; the disc it sits in stays put. A
-                    disc that shakes too is a wobbling button, not a ringing
-                    phone — the thing that rings has to be the thing that moves. */}
-                <Animated.View style={shakeStyle}>
-                  <Icon
-                    name={icons.phone}
-                    size={20}
-                    color={colors.accentOn.purple}
-                  />
-                </Animated.View>
-              </View>
+              {/* Only the handset swings — the rings leave it, they do not carry
+                  it. The thing that rings has to be the thing that moves. */}
+              <Animated.View style={shakeStyle}>
+                <Icon
+                  name={icons.phone}
+                  size={MARK_GLYPH}
+                  color={withAlpha(colors.accent.warning, 0.16)}
+                />
+              </Animated.View>
             </View>
-            <View style={styles.rowText}>
-              <Text variant="title" color="primary">
+
+            <View>
+              <Text variant="label" color="tertiary" style={styles.eyebrow}>
+                STILL WAITING
+              </Text>
+              <Text variant="h2" color="primary" style={styles.title}>
                 {scenario.callerName} still wants to call
               </Text>
-              <Text variant="bodySm" color="secondary">
-                Whenever you're ready. It's waiting for you
+              <Text variant="body" color="secondary">
+                Whenever you&apos;re ready. Nothing to prepare.
               </Text>
             </View>
-            {/* A filled action, not a hairline chevron — the thin glyph is what
-                made this read as a settings row rather than a card. */}
+
+            {/* Filled, not an outline — the same call the programs shelf made for
+                its runner-up slides, and for the same reason: an unfilled pill on
+                a neutral card is a button you have to look for. It is still a
+                clear step below the hero's dark island. */}
             <View
               style={[
-                styles.rowAction,
-                { backgroundColor: colors.text.primary },
+                styles.cta,
+                {
+                  backgroundColor: colors.surface.control,
+                  borderColor: colors.border.strong,
+                  borderWidth: StyleSheet.hairlineWidth,
+                },
               ]}
             >
-              <Icon
-                name={icons.forward}
-                size={16}
-                color={colors.surface.default}
-              />
+              <Icon name={icons.phone} size={14} color={colors.text.primary} />
+              <Text variant="title" color="primary">
+                Take the call
+              </Text>
             </View>
           </View>
         </PressableScale>
@@ -375,8 +459,19 @@ const FirstCallCard: React.FC = () => {
     );
   }
 
-  const fill = colors.accent.purple;
-  const ink = colors.accentOn.purple;
+  // AMBER, NOT PURPLE — because this card now shares a carousel with the mood
+  // nudge, which IS purple. Two identical fills one swipe apart read as the
+  // same card twice.
+  //
+  // Of the accents left, `warning` is the only honest one. Green is the
+  // onboarding nudge's, and it may be in this same deck. Blue is the programs
+  // shelf's. Red would be the natural "phone" colour and is exactly wrong —
+  // red on a call is the decline button, and this card's whole argument is that
+  // picking up is easy. Amber reads as something waiting for you, which is what
+  // it is. The dark `accentOn` ink and the CTA island are unchanged, so the
+  // card's contrast story does not move.
+  const fill = colors.accent.warning;
+  const ink = colors.accentOn.warning;
 
   // The hero shape gets the same entrance and for the same reason: this card
   // mounts a beat AFTER Home has painted, when the offer request comes back, so
@@ -486,49 +581,27 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
-  row: {
-    flexDirection: "row",
+  // The watermark's box, sized to the ring at rest. Bled off the right and
+  // bottom so the card's own `overflow: hidden` crops it — a mark that fits
+  // neatly inside its card is an illustration, not a watermark.
+  mark: {
+    position: "absolute",
+    right: -MARK / 3,
+    bottom: -MARK / 4,
+    width: MARK,
+    height: MARK,
     alignItems: "center",
-    gap: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.card,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
-  // Sized to the disc exactly, and NOT clipped — the rings have to travel past
-  // these bounds. `styles.row` carries no overflow rule for the same reason.
-  glyphWrap: {
-    height: 46,
-    width: 46,
+    justifyContent: "center",
   },
   // An OUTLINE, not a filled circle. A disc expanding from under another disc
-  // is a blob; only a ring that leaves an edge behind looks like sound. Hairline
-  // thin, because one ripple at a time carries the signal on its own.
-  ring: {
+  // is a blob; only a ring that leaves an edge behind looks like sound. The
+  // ripple worklet drives `scale` and `opacity` alone, so this size is the only
+  // thing that had to change when the glyph grew from a 46pt disc to a mark.
+  markRing: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    height: 46,
-    width: 46,
-    borderRadius: 23,
-    borderWidth: 1.25,
-  },
-  rowGlyph: {
-    height: 46,
-    width: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowAction: {
-    height: 32,
-    width: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowText: {
-    flex: 1,
-    gap: spacing.xxs,
+    width: MARK,
+    height: MARK,
+    borderRadius: MARK / 2,
+    borderWidth: 1.5,
   },
 });

@@ -6,6 +6,10 @@ export { ThemeProvider, ForceDark, useThemeContext } from "./ThemeProvider";
 export { useTheme, makeStyles } from "./useTheme";
 export { useNavBarInset } from "./useNavBarInset";
 export { useKeyboardInset } from "./useKeyboardInset";
+export { usePageScroll } from "./pageScroll";
+export type { PageScrollState } from "./pageScroll";
+export { useInView } from "./useInView";
+export type { UseInViewOptions, InViewRect } from "./useInView";
 
 // Primitive components.
 export * from "./components";

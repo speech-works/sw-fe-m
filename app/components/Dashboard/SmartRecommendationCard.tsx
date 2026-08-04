@@ -14,6 +14,7 @@ import {
   Button,
   Icon,
   icons,
+  Skeleton,
   Spinner,
   useTheme,
   makeStyles,
@@ -21,6 +22,7 @@ import {
   spacing,
   space,
   radius,
+  typography,
 } from "../../design-system";
 
 interface SmartRecommendationCardProps {
@@ -167,10 +169,20 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
     await fetchRecommendations();
   };
 
+  // A ROW, NOT A CARD.
+  //
+  // This was a 200pt card-shaped box with a spinner in it, reserving room for a
+  // card that — for anybody who has not bought a program, which is everybody we
+  // are trying to sell to — resolves to `null`. So on every cold open, 200pt of
+  // placeholder for nothing sat directly on top of the one shelf on Home that
+  // sells, and pushed its price and CTA under the tab dock. The 96pt row still
+  // says "something is loading here" and still stops the layout snapping when an
+  // owner's real card lands; it just stops claiming space it usually gives back.
   if (loading) {
     return (
       <View style={[styles.loadingContainer, style]}>
-        <Spinner />
+        <Skeleton width="55%" height={typography.h3.lineHeight} radius={radius.sm} />
+        <Skeleton width="80%" height={typography.bodySm.lineHeight} radius={radius.sm} />
       </View>
     );
   }
@@ -513,10 +525,11 @@ const useStyles = makeStyles((c) => ({
     elevation: 8,
   },
   loadingContainer: {
-    height: 200,
+    height: 96,
     backgroundColor: c.surface.default,
     justifyContent: "center",
-    alignItems: "center",
+    gap: space.inlineGap,
+    paddingHorizontal: space.cardPad,
     borderRadius: radius.card,
   },
   gradient: {

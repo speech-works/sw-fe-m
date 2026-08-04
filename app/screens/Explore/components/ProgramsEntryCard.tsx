@@ -4,6 +4,8 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import PressableScale from "../../../components/PressableScale";
 import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/types";
+import { track } from "../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import { Text, Icon, icons, useTheme, spacing, radius } from "../../../design-system";
 
 /**
@@ -19,7 +21,10 @@ const ProgramsEntryCard = () => {
 
   return (
     <PressableScale
-      onPress={() => navigation.navigate("Programs")}
+      onPress={() => {
+        track(ANALYTICS_EVENTS.PROGRAMS_LIST_OPENED, { source: "explore_entry" });
+        navigation.navigate("Programs");
+      }}
       scaleTo={0.98}
     >
       <View

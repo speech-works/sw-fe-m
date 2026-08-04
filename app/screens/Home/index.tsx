@@ -20,7 +20,11 @@ import { IdentityBlock } from "./components/IdentityBlock";
 import GrowthSummary from "./components/GrowthSummary";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import ForYouCarousel from "../../components/Dashboard/ForYouCarousel";
-import FirstCallCard from "../../components/Dashboard/FirstCallCard";
+import FirstCallCard, {
+  guessFirstCallShape,
+  type FirstCallShape,
+} from "../../components/Dashboard/FirstCallCard";
+import { useFirstCallStore } from "../../stores/firstCall";
 import {
   Page,
   Carousel,
@@ -67,8 +71,43 @@ const Home = () => {
     user && !user.hasCompletedOnboarding && onboardingTotal > 0;
   const showMoodCheck = !hasRecordedToday;
 
+  /**
+   * THE FIRST CALL LIVES IN THE NUDGE CAROUSEL — BOTH OF ITS SHAPES.
+   *
+   * It is a 260pt card for a once-in-a-lifetime offer, and the loud shape used
+   * to sit on top of the programs shelf — the only thing on Home that sells —
+   * pushing its price and CTA behind the tab dock for every new user, who is
+   * exactly the person we most want to reach.
+   *
+   * BOTH SHAPES ARE SLIDES. The offer has one address, and deferring only
+   * changes how loud it is there — the hero is an amber fill, the quiet card is
+   * a neutral surface with a ringing watermark, and both are the same 260pt
+   * `PromoCard` shape as the mood nudge beside them.
+   *
+   * An earlier pass had the quiet shape as a compact row pinned inline above the
+   * shelf, which meant saying "not now" promoted the card up the page; a later
+   * one moved that row to the very bottom, which fixed the promotion but left
+   * two different objects in two different places for one offer. Same slot, two
+   * volumes, is the version that is both correct and learnable.
+   *
+   * The shape is guessed synchronously from the same two stores the card reads,
+   * so the layout does not wait on a request; `onShapeChange` corrects it if the
+   * server says there is nothing to offer.
+   */
+  const deferredAt = useFirstCallStore((s) => s.deferredAt);
+  const [serverFirstCallShape, setServerFirstCallShape] =
+    useState<FirstCallShape | null>(null);
+  const firstCallShape =
+    serverFirstCallShape ??
+    guessFirstCallShape({ takenAt: user?.firstCallTakenAt, deferredAt });
+
   const cards: string[] = [];
   if (showOnboarding) cards.push("onboarding");
+
+  // Before the mood check: the call is a standing offer that expires with the
+  // account, the mood check is a thing to do today. Today's business goes last
+  // because it comes back tomorrow.
+  if (firstCallShape !== "none") cards.push("firstCall");
 
   if (showMoodCheck) cards.push("mood");
 
@@ -163,6 +202,13 @@ const Home = () => {
     }
   }, [setUser, user?.level]);
 
+  // Pull-to-refresh remounts the card (via its key) and it re-asks the server,
+  // so drop the last answer and fall back to the synchronous guess until the
+  // new one lands.
+  useEffect(() => {
+    setServerFirstCallShape(null);
+  }, [refreshKey]);
+
   const currentHour = new Date().getHours();
   const greeting =
     currentHour < 12
@@ -173,6 +219,14 @@ const Home = () => {
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
   const renderCard = (cardType: string) => {
+    if (cardType === "firstCall") {
+      return (
+        <FirstCallCard
+          key={`first-call-${refreshKey}`}
+          onShapeChange={setServerFirstCallShape}
+        />
+      );
+    }
     if (cardType === "onboarding") {
       return (
         <OnboardingReminderCard
@@ -221,13 +275,6 @@ const Home = () => {
       >
         <IdentityBlock />
 
-        {/* Above the recommendation on purpose. It renders nothing at all once
-            the server says the call has been taken, so it only outranks
-            "what to do today" for the short window where somebody has a call
-            waiting and has never had one — which is exactly the window it is
-            for. Quieted, it collapses to a single row and stops competing. */}
-        <FirstCallCard key={`first-call-${refreshKey}`} />
-
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
         {/* The only thing on Home that sells. SmartRecommendationCard above
@@ -248,6 +295,7 @@ const Home = () => {
             renderItem={({ item }) => renderCard(item)}
           />
         ) : null}
+
       </Page>
 
       {interactionsDone && <MoodCheckPopup />}

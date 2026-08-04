@@ -70,6 +70,19 @@ export function programEyebrow(item: OfferItem): string {
 }
 
 /**
+ * Just the shelf word, ALL CAPS.
+ *
+ * For surfaces that render the shelf and the length as two separate objects
+ * rather than as one eyebrow line — Home's top match puts the shelf in a chip at
+ * the top and the length beside its CTA at the bottom. Reads the same table as
+ * `programEyebrow` so the two can never disagree about what a shelf is called,
+ * which is the entire reason that function exists.
+ */
+export function programShelfLabel(item: OfferItem): string {
+  return (SHELF_LABEL[item.shelf] || "Program").toUpperCase();
+}
+
+/**
  * Why a struck-through price is struck through — "Founder price" / "Launch
  * offer" — or null when nothing is actually discounted.
  *
