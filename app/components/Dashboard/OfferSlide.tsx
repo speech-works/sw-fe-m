@@ -17,7 +17,7 @@ import {
   borderWidth,
 } from "../../design-system";
 import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
-import TopMatchBadge, { BADGE_OVERHANG } from "./TopMatchBadge";
+import { TopMatchStamp, STAMP_HEIGHT, STAMP_WIDTH } from "./TopMatchBadge";
 import { programEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
 import type { StorePrice } from "../../services/priceDisplay";
@@ -50,15 +50,13 @@ import type { StorePrice } from "../../services/priceDisplay";
  */
 
 /**
- * The height of a whole SLOT — card plus the badge's overhang above it. Matches
- * Home's `PromoCard` so the shelf is the same height as its neighbours, and so
- * adding the badge did not push the carousel 8px taller; the card gave the room
- * back instead.
+ * The visible card keeps Home's 260pt card rhythm. The slot buys a little room
+ * below it for the stamp impression to continue past the paper edge instead of
+ * being cropped by the carousel's vertical viewport.
  */
-export const SLIDE_MIN_HEIGHT = 260;
-
-/** The card box itself, with the badge's overhang taken back off. */
-export const SLIDE_CARD_HEIGHT = SLIDE_MIN_HEIGHT - BADGE_OVERHANG;
+export const SLIDE_CARD_HEIGHT = 260;
+export const STAMP_BLEED_BOTTOM = spacing["2xl"];
+export const SLIDE_MIN_HEIGHT = SLIDE_CARD_HEIGHT + STAMP_BLEED_BOTTOM;
 
 /**
  * Distance from the card's top edge down to the BOTTOM of the CTA island — the
@@ -82,10 +80,18 @@ export interface OfferSlideProps {
   store?: StorePrice | null;
   /** The vivid treatment, reserved for a top match that earned a reason. */
   highlight?: boolean;
+  /** Revealed at the exact contact frame of the full-screen rubber die. */
+  stampRevealed?: boolean;
   onPress: (item: OfferItem) => void;
 }
 
-const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress }) => {
+const OfferSlide: React.FC<OfferSlideProps> = ({
+  item,
+  store,
+  highlight,
+  stampRevealed = true,
+  onPress,
+}) => {
   const { colors, elevation } = useTheme();
 
   // Only ever rendered when the backend supplied one. `signalLevel: "none"`
@@ -134,8 +140,11 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
   // Reserved for the card's own ink, so nothing here can be mistaken for a
   // `text.*` role that would flip with the scheme — this fill is dark in both.
   const heroInk = "#FFFFFF";
+  // The stamp component applies its own watermark opacity. Contrast is asserted
+  // for functional copy only; decorative ink behind that copy is not content.
+  const stampInk = colors.accent.lime;
   if (__DEV__ && highlight) {
-    // The LIGHTEST stop is the one that can fail, so it is the one asserted.
+    // Copy spans the whole card, so its worst ground is the lightest stop.
     assertContrast(heroInk, liftStop, "OfferSlide top-match ramp (light stop)");
   }
 
@@ -185,13 +194,27 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
         ctaBorder: undefined as string | undefined,
       }
     : {
-        bg: colors.surface.default,
+        // `elevated`, NOT `default` — AND THAT IS ABOUT THE 20pt OF THIS CARD
+        // NOBODY SCROLLS TO.
+        //
+        // A carousel's peek is a promise that there is another card. This tier
+        // only ever gets to keep that promise with the narrow strip of itself
+        // showing past the settled slide, and on the ink scheme `surface.default`
+        // (#24211B) sits at 1.18:1 against the canvas (#141311). At full width
+        // that is a perfectly legible card. At 20pt, immediately beside a bright
+        // blue one the eye has adapted to, it is nothing — the shelf reads as a
+        // card clipped by the page padding, which is exactly what it got
+        // reported as. `surface.elevated` lifts the same neutral to 1.32:1.
+        bg: colors.surface.elevated,
         // Flat. The ramp is the top match's signature and a fainter version
         // here would blunt it — the same argument that removed the circles.
         gradient: undefined as readonly [string, string, string] | undefined,
-        // Load-bearing on the paper scheme, where `surface.default` sits at
-        // roughly 1.02:1 against the canvas and the card edge vanishes.
-        border: colors.border.default as string | undefined,
+        // `strong` (12% white) rather than `default` (8%), for the same reason
+        // the fill moved up: at a 20pt sliver the EDGE is most of what there is
+        // to see, so it has to survive standing next to the vivid tier. Still
+        // load-bearing on the paper scheme, where `surface` sits at roughly
+        // 1.02:1 against the canvas and the card edge vanishes outright.
+        border: colors.border.strong as string | undefined,
         // NO TEXTURE. A tinted echo of the hero's blobs used to sit here so the
         // deck would "read as one family", but decoration on a runner-up is
         // exactly what gave these slides a main-character feel: two big accent
@@ -272,34 +295,35 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
           skin.elevate,
         ]}
       >
-        {/* The tonal ramp, clipped by the card's own radius. Diagonal because a
-            vertical ramp reads as a background and a diagonal one reads as a lit
-            surface — the light has to come from somewhere for the eye to accept
-            it. Drawn first so every other layer sits on top of it. */}
-        {skin.gradient ? (
-          <Gradient
-            colors={skin.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-        ) : null}
+        {/* Only the card artwork is clipped to the rounded paper. The stamp is
+            deliberately a sibling of this canvas so its impression can carry
+            through the lower-right edge. */}
+        <View
+          style={[styles.cardCanvas, { borderRadius: skin.radius }]}
+          pointerEvents="none"
+        >
+          {skin.gradient ? (
+            <Gradient
+              colors={skin.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          ) : null}
 
-        {/* Two circles — the Explore / PromoCard texture. Depth without art,
-            and the vivid tier's alone: `skin.blob` is undefined on the runners-up
-            so they render nothing at all rather than a fainter version. */}
-        {skin.blob ? (
-          <>
-            <View
-              style={[styles.blobA, { backgroundColor: skin.blob }]}
-              pointerEvents="none"
-            />
-            <View
-              style={[styles.blobB, { backgroundColor: skin.blob }]}
-              pointerEvents="none"
-            />
-          </>
+          {skin.blob ? (
+            <View style={[styles.blobA, { backgroundColor: skin.blob }]} />
+          ) : null}
+        </View>
+
+        {/* IN THE TEXTURE LAYER, not over the content. A long reason line can
+            reach into this corner, and when it does the words have to win —
+            drawn here, the copy always paints on top of the stamp, which is what
+            a mark on paper does anyway. */}
+        {highlight ? (
+          <View style={styles.stampSlot} pointerEvents="none">
+            <TopMatchStamp ink={stampInk} revealed={stampRevealed} />
+          </View>
         ) : null}
 
         <View style={styles.body}>
@@ -370,8 +394,6 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
 
         </View>
       </View>
-
-      {highlight ? <TopMatchBadge /> : null}
     </PressableScale>
   );
 };
@@ -379,11 +401,11 @@ const OfferSlide: React.FC<OfferSlideProps> = ({ item, store, highlight, onPress
 export default OfferSlide;
 
 const styles = StyleSheet.create({
-  // Not on the card itself: the card clips, and the badge's overhang has to live
-  // in a parent that doesn't. The padding buys back the vertical overhang so the
-  // carousel's ScrollView frame never crops it.
+  // The ScrollView measures layout boxes, not transformed overflow. Reserving
+  // this narrow band keeps the off-card part of the stamp visible above the
+  // paging dots.
   wrap: {
-    paddingTop: BADGE_OVERHANG,
+    paddingBottom: STAMP_BLEED_BOTTOM,
   },
   // `borderRadius` is set per tier from `skin`; the value here is the fallback.
   //
@@ -393,15 +415,19 @@ const styles = StyleSheet.create({
   // is exactly the drift the eyebrow row above exists to prevent. Every tier
   // starts its chip at the same y, so every tier starts its title at the same y.
   slide: {
-    minHeight: SLIDE_MIN_HEIGHT - BADGE_OVERHANG,
+    minHeight: SLIDE_CARD_HEIGHT,
     borderRadius: radius.card,
-    overflow: "hidden",
+    overflow: "visible",
     // The Home vivid-card padding rhythm (PromoCard / RecHeroCard), not a
     // uniform box — the extra head-room is what makes the type sit right.
     paddingHorizontal: spacing.xl,
     paddingTop: spacing["3xl"],
     paddingBottom: spacing["2xl"],
     justifyContent: "space-between",
+  },
+  cardCanvas: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
   },
   blobA: {
     position: "absolute",
@@ -411,13 +437,15 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 75,
   },
-  blobB: {
+  // Oversized and deliberately misregistered past two edges, like a rubber
+  // stamp pressed partly off the paper. It is still drawn before body/footer,
+  // so the content remains completely dominant.
+  stampSlot: {
     position: "absolute",
-    bottom: -20,
-    right: 40,
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    right: -spacing.md,
+    bottom: -spacing.sm,
+    width: STAMP_WIDTH,
+    height: STAMP_HEIGHT,
   },
   // 3 → 10. `space.titleSub` is the gap for a title and its own subtitle — two
   // parts of one thing. These are three separate things (what it is and costs,

@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  LayoutChangeEvent,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Animated, {
   useAnimatedStyle,
@@ -22,8 +29,14 @@ import OfferSlide, {
   SLIDE_CARD_HEIGHT,
   CTA_BOTTOM_FROM_CARD_TOP,
 } from "./OfferSlide";
-import { BADGE_OVERHANG } from "./TopMatchBadge";
+import {
+  STAMP_HEIGHT,
+  STAMP_WIDTH,
+  TopMatchImpact,
+} from "./TopMatchBadge";
 import { useStorePrices } from "../../hooks/useStorePrices";
+import { useClearView } from "../../hooks/useClearView";
+import { canSlam, useTopMatchStampStore } from "../../stores/topMatchStamp";
 import RecHeroCard from "./RecHeroCard";
 import {
   Carousel,
@@ -36,9 +49,11 @@ import {
   space,
   spacing,
   typography,
+  zIndex,
   useInView,
   useMotion,
   usePageScroll,
+  useTheme,
   type InViewRect,
 } from "../../design-system";
 
@@ -86,13 +101,14 @@ const SLIDE_DWELL_MS = 600;
 const REVEAL_RISE = 12;
 
 /**
- * Where the card sits inside the section — the "For you" heading, the gap under
- * it, and the overhang `OfferSlide`'s wrapper pads in for the badge. Lets one
- * rect for the whole section answer questions about the CARD, which is the thing
- * whose visibility we actually care about.
+ * Where the card sits inside the section — the "For you" heading and the gap
+ * under it. Lets one rect for the whole section answer questions about the CARD,
+ * which is the thing whose visibility we actually care about. (There used to be
+ * a third term here for the badge's overhang; the claim is a stamp inside the
+ * card now, so the card starts exactly where the heading's gap ends.)
  */
 const SHELF_GEOMETRY: ShelfGeometry = {
-  cardTopInSection: typography.h3.lineHeight + space.rowGap + BADGE_OVERHANG,
+  cardTopInSection: typography.h3.lineHeight + space.rowGap,
   cardHeight: SLIDE_CARD_HEIGHT,
   ctaBottomFromCardTop: CTA_BOTTOM_FROM_CARD_TOP,
 };
@@ -128,6 +144,17 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   const lastFetchRef = useRef<number>(0);
   const m = useMotion();
   const page = usePageScroll();
+  const [shelfWidth, setShelfWidth] = useState(0);
+  const [stampRevealed, setStampRevealed] = useState(false);
+  const [impactVisible, setImpactVisible] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const { colors } = useTheme();
+
+  // Live answer to "can the user actually see Home right now" — focus, app
+  // state, our own sheets, the OS's dialogs, and a quiet period so the moment
+  // has proved itself. Read continuously, not once: it going false mid-slam is
+  // the abort signal.
+  const clearView = useClearView();
 
   const load = useCallback(async () => {
     try {
@@ -282,7 +309,128 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     onEnter: onShelfVisible,
   });
 
+  const onShelfLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      measureShelf();
+      const nextWidth = event.nativeEvent.layout.width;
+      setShelfWidth((current) => (current === nextWidth ? current : nextWidth));
+    },
+    [measureShelf],
+  );
+
+  const hasTopMatch = selection.mode === "carousel" && selection.highlightFirst;
+
+  // ── The stamp slam ────────────────────────────────────────────────────────
+  //
+  // ONE ANIMATION, A HANDFUL OF TIMES PER LIFETIME — so the rule that matters
+  // is not when to play it but when to RECORD it as played. Every gate below
+  // exists to stop the budget being spent on a moment nobody saw: covered by a
+  // sheet, off-screen, backgrounded, or on a card the user has swiped past.
+  //
+  // The two halves are deliberately independent:
+  //   `stampRevealed` — is the watermark on the card? Yes, always, eventually.
+  //                     An abort still reveals it, because a top match with no
+  //                     mark on it is just wrong.
+  //   `commit()`      — did the ANIMATION land? Only ever from `onFinished`.
+  const topMatchKey = hasTopMatch ? (selection.items[0]?.key ?? null) : null;
+  const stampEligible = useTopMatchStampStore((s) =>
+    topMatchKey ? canSlam(s, topMatchKey) : false,
+  );
+  const commitStamp = useTopMatchStampStore((s) => s.commit);
+
+  // Read by the two callbacks below, which must stay referentially stable:
+  // `TopMatchImpact` lists them in its effect deps, so a fresh identity would
+  // restart the animation from the top mid-flight.
+  const topMatchKeyRef = useRef<string | null>(topMatchKey);
+  topMatchKeyRef.current = topMatchKey;
+  const commitStampRef = useRef(commitStamp);
+  commitStampRef.current = commitStamp;
+  // Guards a late `onFinished`: aborting unmounts `TopMatchImpact`, but its
+  // reanimated completion callback can still land afterwards, and that would
+  // commit a slam that was cancelled halfway.
+  const slamLiveRef = useRef(false);
+
+  // Everything that has to be true to BEGIN. `clearView` covers focus, app
+  // state, sheets, OS dialogs and the quiet period; the rest is local.
+  const canStartSlam =
+    !!topMatchKey &&
+    stampEligible &&
+    !m.reduced &&
+    shelfWidth > 0 &&
+    // The stamp belongs to the first card. Once they have swiped on, slamming
+    // it would decorate a slide that is no longer on screen.
+    slideIndex === 0 &&
+    (!page || hasQualified) &&
+    clearView;
+
+  // TEMP DIAGNOSTIC — remove before commit.
+  useEffect(() => {
+    if (!__DEV__) return;
+    void AsyncStorage.setItem(
+      "__SLAM_DEBUG__",
+      JSON.stringify({
+        topMatchKey,
+        stampEligible,
+        reduced: m.reduced,
+        shelfWidth,
+        slideIndex,
+        hasPage: !!page,
+        hasQualified,
+        clearView,
+        canStartSlam,
+        impactVisible,
+      }),
+    );
+  });
+
+  useEffect(() => {
+    if (!hasTopMatch) {
+      slamLiveRef.current = false;
+      setImpactVisible(false);
+      setStampRevealed(false);
+      return;
+    }
+    // Not eligible (already slammed, capped, or still hydrating) and reduced
+    // motion both land here: show the mark, skip the entrance, spend nothing.
+    // Reduced motion deliberately does NOT commit — the budget counts slams
+    // that were seen, and someone who turns motion back on has still seen none.
+    if (!stampEligible || m.reduced) {
+      setStampRevealed(true);
+      return;
+    }
+    if (impactVisible || !canStartSlam) return;
+    slamLiveRef.current = true;
+    setImpactVisible(true);
+  }, [canStartSlam, hasTopMatch, impactVisible, m.reduced, stampEligible]);
+
+  // ABORT. The view stopped being clear (a sheet opened, they left Home, the
+  // app went to the background) or they swiped off the first slide while the
+  // die was still in the air. Cancel, reveal the mark so the card still reads
+  // correctly, and record NOTHING — the next genuinely quiet Home visit gets
+  // the attempt back.
+  useEffect(() => {
+    if (!impactVisible) return;
+    if (clearView && slideIndex === 0) return;
+    slamLiveRef.current = false;
+    setImpactVisible(false);
+    setStampRevealed(true);
+  }, [clearView, impactVisible, slideIndex]);
+
+  const onStampContact = useCallback(() => setStampRevealed(true), []);
+
+  const onImpactFinished = useCallback(() => {
+    // The ONLY place the budget is spent, and only if the run was never
+    // cancelled underneath us.
+    if (!slamLiveRef.current) return;
+    slamLiveRef.current = false;
+    setImpactVisible(false);
+    setStampRevealed(true);
+    const key = topMatchKeyRef.current;
+    if (key) commitStampRef.current(key);
+  }, []);
+
   const onIndexChange = useCallback((index: number) => {
+    setSlideIndex(index);
     slides.settleAt(index);
   }, []);
 
@@ -396,6 +544,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
               item={item}
               store={storePrices[item.tierProductId]}
               highlight={index === 0 && selection.highlightFirst}
+              stampRevealed={stampRevealed}
               onPress={openDetail}
             />
           )}
@@ -417,13 +566,40 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     );
   }
 
+  const singleSlide = selection.mode === "carousel" && selection.items.length <= 1;
+  const carouselChrome = singleSlide ? 0 : spacing.xl + spacing.md;
+  const cardWidth = Math.max(0, shelfWidth - carouselChrome);
+  const impactLeft = cardWidth + spacing.md - STAMP_WIDTH;
+  const impactTop =
+    SHELF_GEOMETRY.cardTopInSection +
+    SLIDE_CARD_HEIGHT +
+    spacing.sm -
+    STAMP_HEIGHT;
+
   return (
     // Two boxes on purpose. The OUTER one is what gets measured, and it never
     // moves — putting the ref on the animated child would mean measuring a box
     // mid-reveal and asking "is it visible" of something that is 12pt away from
     // where it will settle.
-    <View ref={shelfRef} onLayout={measureShelf} collapsable={false} style={style}>
+    <View
+      ref={shelfRef}
+      onLayout={onShelfLayout}
+      collapsable={false}
+      style={[styles.shelf, style, impactVisible && styles.shelfImpact]}
+    >
       <Animated.View style={revealStyle}>{inner}</Animated.View>
+      {impactVisible && cardWidth > 0 ? (
+        <View
+          pointerEvents="none"
+          style={[styles.impactAnchor, { left: impactLeft, top: impactTop }]}
+        >
+          <TopMatchImpact
+            ink={colors.accent.lime}
+            onContact={onStampContact}
+            onFinished={onImpactFinished}
+          />
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -431,6 +607,19 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
 export default ForYouCarousel;
 
 const styles = StyleSheet.create({
+  shelf: {
+    position: "relative",
+    overflow: "visible",
+  },
+  shelfImpact: {
+    zIndex: zIndex.overlay,
+  },
+  impactAnchor: {
+    position: "absolute",
+    width: STAMP_WIDTH,
+    height: STAMP_HEIGHT,
+    zIndex: zIndex.overlay,
+  },
   heading: {
     marginBottom: space.rowGap,
   },

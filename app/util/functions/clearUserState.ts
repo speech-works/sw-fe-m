@@ -51,6 +51,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useOnboardingNudgeStore },
       { useFirstCallStore },
       { useCallHintsStore },
+      { useTopMatchStampStore },
     ] = await Promise.all([
       import("../../stores/user"),
       import("../../stores/toolConsent"),
@@ -68,6 +69,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/onboardingNudge"),
       import("../../stores/firstCall"),
       import("../../stores/callHints"),
+      import("../../stores/topMatchStamp"),
     ]);
     resets.push(
       ["user", () => useUserStore.getState().clearUser()],
@@ -106,6 +108,10 @@ export async function clearAllPersistedUserState(): Promise<void> {
       // Discovering the call controls is a per-person thing, not a per-device
       // one: the next user gets shown the hourglass too.
       ["callHints", () => useCallHintsStore.getState().reset()],
+      // The next person on this phone has never been shown a top match, and
+      // their first one should arrive the way anybody's does. A previous
+      // account's spent budget must not silence it.
+      ["topMatchStamp", () => useTopMatchStampStore.getState().reset()],
     );
   } catch (e) {
     console.warn("[clearUserState] loading stores for reset failed:", e);

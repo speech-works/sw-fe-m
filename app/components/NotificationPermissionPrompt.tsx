@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useUserStore } from "../stores/user";
 import { useNotificationPermissionStore } from "../stores/notificationPermission";
 import { hasOpenModalExcept } from "../stores/nativeModal";
+import { useSystemDialogStore } from "../stores/systemDialog";
 import { requestNotificationPermissionQuietly } from "../util/functions/notifications";
 
 /**
@@ -61,7 +62,21 @@ export const NotificationPermissionPrompt: React.FC = () => {
         // and slow, and a second mount (tab switch, remount) while it is open
         // would otherwise queue a duplicate request behind it.
         markAsked();
-        await requestNotificationPermissionQuietly();
+
+        // ANNOUNCE THE OS DIALOG. This one covers the screen without mounting
+        // anything, so `nativeModal` cannot see it and neither can anybody
+        // asking that store whether the user has a clear view of Home. On iOS
+        // the system alert also drops AppState to "inactive", which would catch
+        // it — but Android does not reliably do the same, and a one-shot
+        // animation firing behind this dialog is spent for good. Say so
+        // explicitly rather than inferring it.
+        const { begin, end } = useSystemDialogStore.getState();
+        begin();
+        try {
+          await requestNotificationPermissionQuietly();
+        } finally {
+          end();
+        }
         // Whatever they chose, the row and the dot read from this.
         await refresh();
       })();

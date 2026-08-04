@@ -44,4 +44,8 @@ export const ASYNC_KEYS_NAME = {
   // cached here; it is read fresh, because the user can change it in system
   // settings without the app ever being told.
   SW_ZSTORE_NOTIFICATION_PERMISSION: "SW_ZSTORE_NOTIFICATION_PERMISSION",
+  // Which top-matched program has already had its stamp slammed, and how often.
+  // Holds NO entitlement and gates nothing but an animation — the TOP MATCH
+  // watermark itself renders from the server's ranking either way.
+  SW_ZSTORE_TOP_MATCH_STAMP: "SW_ZSTORE_TOP_MATCH_STAMP",
 };
