@@ -46,6 +46,10 @@ export const icons = {
   success: "circle-check", // confirmed / done
   warning: "circle-alert", // caution / error state
   danger: "triangle-alert", // severe warning
+  // Deliberately NOT "flag", even though that is the universal report glyph:
+  // `challenge` already owns it, and the registry rule is one glyph per concept.
+  report: "alert-octagon", // report content or a person (moderation)
+  trash: "trash-2", // delete something of your own
   seen: "eye", // seen / viewed
   info: "info", // contextual explanation / learn more
 

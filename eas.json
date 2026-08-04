@@ -14,7 +14,8 @@
       "env": {
         "API_BASE_URL": "https://api.speechworks.in",
         "PAYMENTS_ENABLED": "true",
-        "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav"
+        "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav",
+        "REVENUECAT_IOS_API_KEY": "appl_YDUpxLTgbLvrcgxWiapEerUUTBn"
       }
     },
     "preview": {
@@ -25,7 +26,8 @@
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_wFqhyXAxiNUrLp6uMaLSSkVoLAEk6Rzf6awp8SPoEXKx",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com",
         "PAYMENTS_ENABLED": "true",
-        "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav"
+        "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav",
+        "REVENUECAT_IOS_API_KEY": "appl_YDUpxLTgbLvrcgxWiapEerUUTBn"
       }
     },
     "preview-apk": {
@@ -43,11 +45,19 @@
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_wFqhyXAxiNUrLp6uMaLSSkVoLAEk6Rzf6awp8SPoEXKx",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com",
         "PAYMENTS_ENABLED": "true",
-        "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav"
+        "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav",
+        "REVENUECAT_IOS_API_KEY": "appl_YDUpxLTgbLvrcgxWiapEerUUTBn"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleTeamId": "VU29K7J26H",
+        "ascAppId": "6797639049",
+
+        "//auth": "Authenticate with an App Store Connect API KEY, not an Apple ID and password: the key is not tied to a person, does not trip 2FA, and does not break when someone changes their password. Create it at App Store Connect -> Users and Access -> Integrations -> App Store Connect, then set these THREE things as environment variables (NOT here, and NOT in git): EXPO_ASC_API_KEY_PATH=/absolute/path/to/AuthKey_XXXX.p8, EXPO_ASC_KEY_ID=XXXX, EXPO_ASC_ISSUER_ID=<uuid>. The .p8 downloads once and cannot be re-downloaded; keep it outside this repo."
+      }
+    }
   }
 }

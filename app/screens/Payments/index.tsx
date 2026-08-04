@@ -17,7 +17,6 @@ import Animated, {
 } from "react-native-reanimated";
 import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { PAYMENTS_ENABLED } from "../../constants/features";
 import { getOffers, type MembershipOffer } from "../../api";
 import {
   purchaseProductById,
@@ -35,6 +34,7 @@ import {
   icons,
   Sheet,
   useTheme,
+  useNavBarInset,
   makeStyles,
   spacing,
   radius,
@@ -43,6 +43,12 @@ import {
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useStorePrices } from "../../hooks/useStorePrices";
+import { useRestorePurchases } from "../../hooks/useRestorePurchases";
+import { handleLinkPress } from "../../util/functions/externalLinks";
+import {
+  PRIVACY_POLICY_URL,
+  TERMS_OF_USE_URL,
+} from "../Auth/constants";
 import {
   resolvePriceDisplay,
   formatCurrency,
@@ -55,10 +61,95 @@ export enum PAYMENT_PLAN_TYPE {
   ANNUALLY = 1,
 }
 
+/** Caption-sized legal links need help reaching a 44pt target. */
+const LEGAL_HIT_SLOP = { top: 10, bottom: 10, left: 8, right: 8 };
+
+/**
+ * The premium carousel. Hoisted out of the JSX so the pagination dots can be
+ * derived from it: they used to be a hardcoded [0,1,2,3,4], which meant
+ * removing a slide left a fifth dot that could never light up.
+ */
+const PREMIUM_SLIDES = [
+  {
+    // Was: "Deep tracking across 5 clinical domains with weekly
+    // breakthrough reports." That sold something we could not
+    // deliver — the five domain scores were written twice per
+    // user, both inside the first three days, so the numbers
+    // were frozen for the entire life of the subscription. The
+    // clinical view has been removed for exactly that reason.
+    //
+    // What replaces it is real, daily, and already built: how
+    // much you practised, on how many days, across which kinds
+    // of practice, and how that week compares to the last.
+    //
+    // THE COLUMNS MATCH ON PURPOSE — DO NOT RE-SPLIT THEM.
+    // The replacement promised `free: "This week"` /
+    // `pro: "Full history"`, and that was the SECOND unbacked
+    // claim on this one row inside a month: `ProgressDetail`
+    // has no entitlement check of any kind, so the lifetime tab
+    // has always been free to everybody. Rather than build a
+    // gate to make the sentence true, we made the sentence
+    // true — deliberately. Gating somebody's own evidence that
+    // they are getting better is the wrong lever to pull on
+    // people whose problem is avoidance: the week they most
+    // need to see it is the week they have practised least and
+    // are likeliest to let a subscription lapse.
+    //
+    // If the business ever does want history behind Pro, that
+    // is a real entitlement check in `ProgressDetail`, not a
+    // word change here.
+    label: "Your progress",
+    free: "All of it",
+    pro: "All of it",
+    icon: "bar-chart-2",
+    desc: "Every session and day you've built, weekly and lifetime. Yours either way. We don't hold your own history back.",
+  },
+  {
+    // The numbers here are REAL and must stay that way.
+    // They read "1 / Day" and "No Limits", and both were false:
+    // the free bar is FREE_STAMINA_CONFIG (35 max, 41 min per
+    // point) at 7 per activity, which is about five a day, and
+    // paid is the level pool (80-110, 15-18 min per point),
+    // which is about twelve. So we were understating our own
+    // free tier fivefold and promising an unlimited we do not
+    // sell. "Five to twelve, and it refills faster" is both
+    // true and a better sell to an audience that has been
+    // promised things before. If the stamina tiers in
+    // sw-be-2 config/LevelStages.ts change, change these.
+    label: "Daily practice",
+    free: "About 5 a day",
+    pro: "About 12 a day",
+    icon: "calendar",
+    desc: "Free gives you around five activities a day. Premium roughly doubles that and refills faster, so a good session doesn't stop because the bar ran out.",
+  },
+  {
+    // 4 credits per 30 days with a bank cap of 8 — see
+    // MEMBERSHIP_CREDIT_GRANT in sw-be-2 config/ProductCatalog.ts
+    // and MEMBERSHIP_BANK_CAP in services/wallet.service.ts.
+    label: "Live AI calls",
+    free: "Basic",
+    pro: "4 a month",
+    icon: "bot",
+    desc: "Practice the call you keep putting off, with someone who won't finish your sentences. Four a month, and unused ones bank up to eight.",
+  },
+  {
+    // Was "Clinical Depth" / "clinical packs". They are guided
+    // programs, not clinical treatment, and calling them
+    // clinical is both a claim we can't back and a category
+    // Apple reads as medical.
+    label: "Guided programs",
+    free: "Preview",
+    pro: "All of them",
+    icon: "layers",
+    desc: "Every program in the library, start to finish. Structured arcs that build week to week, not a pile of loose exercises you have to sequence yourself.",
+  },
+];
+
 const SubscribeScreen = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const styles = useStyles();
+  const navBarInset = useNavBarInset();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     PAYMENT_PLAN_TYPE.ANNUALLY,
   );
@@ -66,6 +157,8 @@ const SubscribeScreen = () => {
   const [loading, setLoading] = useState(false);
   const [membership, setMembership] = useState<MembershipOffer | null>(null);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
+  // Guideline 3.1.1 — shared with Settings so there is one restore path.
+  const { restoring, restore } = useRestorePurchases();
 
   // Prices come from the server (GET /users/me/offers), never a hardcoded
   // literal — a stale price in a button is how a user ends up charged something
@@ -91,24 +184,24 @@ const SubscribeScreen = () => {
   ]);
   const monthly = membership
     ? resolvePriceDisplay({
-        store: storePrices[membership.productId],
-        inr: membership.priceInr,
-        usd: membership.priceUsd,
-      })
+      store: storePrices[membership.productId],
+      inr: membership.priceInr,
+      usd: membership.priceUsd,
+    })
     : null;
   const annual = membership
     ? resolvePriceDisplay({
-        store: storePrices[membership.annualProductId],
-        // Annual has no "was" PRODUCT — its honest anchor is 12 × the monthly
-        // one, exactly as the backend derives it. Scaling the STORE's monthly
-        // figure keeps that same sum in the buyer's own currency, so the strike
-        // now works in every country rather than just INR/USD.
-        anchorStore: deriveAnchor(storePrices[membership.productId], 12),
-        inr: membership.annualPriceInr,
-        usd: membership.annualPriceUsd,
-        anchorInr: membership.annualAnchorInr,
-        anchorUsd: membership.annualAnchorUsd,
-      })
+      store: storePrices[membership.annualProductId],
+      // Annual has no "was" PRODUCT — its honest anchor is 12 × the monthly
+      // one, exactly as the backend derives it. Scaling the STORE's monthly
+      // figure keeps that same sum in the buyer's own currency, so the strike
+      // now works in every country rather than just INR/USD.
+      anchorStore: deriveAnchor(storePrices[membership.productId], 12),
+      inr: membership.annualPriceInr,
+      usd: membership.annualPriceUsd,
+      anchorInr: membership.annualAnchorInr,
+      anchorUsd: membership.annualAnchorUsd,
+    })
     : null;
   const monthlyLabel = monthly?.price ?? "—";
   const annualLabel = annual?.price ?? "—";
@@ -184,10 +277,7 @@ const SubscribeScreen = () => {
           w.entitlements.includes("membership"),
         );
         if (wallet) {
-          showSuccessBottomSheet(
-            "You're in",
-            "Welcome to Premium — your access is active.",
-          );
+          showSuccessBottomSheet("You're in", "Your access is active.");
           navigation.goBack();
         } else {
           showErrorBottomSheet(
@@ -278,7 +368,12 @@ const SubscribeScreen = () => {
           </View>
 
           <CustomScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              // The pinned footer grew by the nav bar (see below), so its
+              // clearance has to grow too or the last card hides behind it.
+              { paddingBottom: 180 + navBarInset },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             {/* Hero Section */}
@@ -291,17 +386,33 @@ const SubscribeScreen = () => {
                   </DSText>
                 </View>
               </View>
+              {/* Was "Control Your Voice." Control over speech output is
+                  fluency's cousin, and making it the headline promise on the
+                  screen that asks for money is the one thing this product
+                  refuses to sell. "Say it anyway" is the approach principle
+                  instead: it promises nothing about how the speech will
+                  sound. */}
               <DSText variant="h1" color="primary" center style={styles.heroTitle}>
-                Control Your Voice.
+                Say it anyway.
               </DSText>
+              {/* Capability, not efficacy. This read "the clinically-proven
+                  power of Speechworks" — an unsubstantiated efficacy claim
+                  (App Store 1.4.1 / 2.3.1), and one this codebase spends real
+                  effort avoiding everywhere else (see the NEVER A FLUENCY
+                  CLAIM rule in constants/reminderTemplates.ts). Say what the
+                  user gets to do; never what it will do to their speech. */}
+              {/* The hero hooks; it does not list features. Naming a
+                  behaviour the reader already recognises in themselves is the
+                  most persuasive honest move available to us, and the carousel
+                  below carries the specifics. */}
               <DSText
                 variant="body"
                 color="secondary"
                 center
                 style={styles.heroSubtitle}
               >
-                Unlock the clinically-proven power of Speechworks and turn your
-                limitations into strengths.
+                You already rehearse the sentence in your head. This gives you
+                somewhere to do it on purpose.
               </DSText>
             </View>
 
@@ -335,70 +446,7 @@ const SubscribeScreen = () => {
                     (SCREEN_WIDTH - (SCREEN_WIDTH * 0.8 + 16)) / 2 + 8,
                 }}
               >
-                {[
-                  {
-                    // Was: "Deep tracking across 5 clinical domains with weekly
-                    // breakthrough reports." That sold something we could not
-                    // deliver — the five domain scores were written twice per
-                    // user, both inside the first three days, so the numbers
-                    // were frozen for the entire life of the subscription. The
-                    // clinical view has been removed for exactly that reason.
-                    //
-                    // What replaces it is real, daily, and already built: how
-                    // much you practised, on how many days, across which kinds
-                    // of practice, and how that week compares to the last.
-                    //
-                    // THE COLUMNS MATCH ON PURPOSE — DO NOT RE-SPLIT THEM.
-                    // The replacement promised `free: "This week"` /
-                    // `pro: "Full history"`, and that was the SECOND unbacked
-                    // claim on this one row inside a month: `ProgressDetail`
-                    // has no entitlement check of any kind, so the lifetime tab
-                    // has always been free to everybody. Rather than build a
-                    // gate to make the sentence true, we made the sentence
-                    // true — deliberately. Gating somebody's own evidence that
-                    // they are getting better is the wrong lever to pull on
-                    // people whose problem is avoidance: the week they most
-                    // need to see it is the week they have practised least and
-                    // are likeliest to let a subscription lapse.
-                    //
-                    // If the business ever does want history behind Pro, that
-                    // is a real entitlement check in `ProgressDetail`, not a
-                    // word change here.
-                    label: "Your progress",
-                    free: "All of it",
-                    pro: "All of it",
-                    icon: "bar-chart-2",
-                    desc: "Every session, day and streak you've built, weekly and lifetime. Yours either way — we don't hold your own progress back.",
-                  },
-                  {
-                    label: "Daily Activities",
-                    free: "1 / Day",
-                    pro: "No Limits",
-                    icon: "calendar",
-                    desc: "Progress shouldn't be gated. Practice as much as you need to reach your goals.",
-                  },
-                  {
-                    label: "Real-World Practice",
-                    free: "Basic",
-                    pro: "Full Access",
-                    icon: "bot",
-                    desc: "Simulate pressure with AI phone calls and social challenge drills.",
-                  },
-                  {
-                    label: "Stamina System",
-                    free: "Static",
-                    pro: "Smart Refill",
-                    icon: "zap",
-                    desc: "Passive regeneration means you're always ready for a breakthrough.",
-                  },
-                  {
-                    label: "Clinical Depth",
-                    free: "Preview",
-                    pro: "Full Access",
-                    icon: "layers",
-                    desc: "Unlock the entire library of clinical packs designed by Speechworks.",
-                  },
-                ].map((slide, i) => (
+                {PREMIUM_SLIDES.map((slide, i) => (
                   <View key={i} style={styles.carouselSlide}>
                     <View style={styles.slideInner}>
                       <View style={styles.watermarkIcon}>
@@ -467,7 +515,7 @@ const SubscribeScreen = () => {
               </ScrollView>
 
               <View style={styles.paginationDots}>
-                {[0, 1, 2, 3, 4].map((i) => (
+                {PREMIUM_SLIDES.map((_, i) => (
                   <View
                     key={i}
                     style={[
@@ -497,11 +545,17 @@ const SubscribeScreen = () => {
                 color={colors.premium.gold}
                 style={{ opacity: 0.2, marginBottom: spacing.lg }}
               />
+              {/* "the real data to prove you're winning" implied a scoreboard,
+                  and the only number a reader would picture is the one we
+                  deliberately refuse to keep. The closing line gives something
+                  up on purpose: against an audience that has been sold cures,
+                  admitting what we will not promise is the most convincing
+                  sentence on the screen. */}
               <DSText variant="title" color="primary" center style={styles.noteText}>
-                We built Premium because progress shouldn't be limited by a
-                timer. It's the commitment you make to your future self—having
-                the right support when anxiety hits and the real data to prove
-                you’re winning.
+                We built Premium because five activities a day runs out fast
+                when you&apos;re actually working at this. You get the full
+                library, room to keep going, and calls to practice the
+                conversations you&apos;d otherwise avoid. You get more chances to do the hard thing.
               </DSText>
               <View style={styles.noteSignature}>
                 <View style={styles.signatureLine} />
@@ -683,9 +737,22 @@ const SubscribeScreen = () => {
             </View>
           </CustomScrollView>
 
-          {/* Persistent Footer */}
-          <View style={styles.footer}>
-            {PAYMENTS_ENABLED ? (
+          {/* Persistent Footer — the SafeAreaView above deliberately omits the
+              bottom edge, so under edge-to-edge this absolute footer would sit
+              under the nav bar with the purchase CTA in it. 0 on iOS. */}
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: spacing["2xl"] + navBarInset },
+            ]}
+          >
+            {/* purchasesAvailable(), not the raw PAYMENTS_ENABLED flag. With
+                the flag alone, an iOS build with no RevenueCat key rendered
+                "Get Premium · ₹1,499/yr" and then answered the tap with a
+                "you're in test mode" sheet — advertising a price we cannot
+                charge, which is an App Store 2.1 rejection. Now a build that
+                can't sell says so instead of showing a button. */}
+            {purchasesAvailable() ? (
               <>
                 <TouchableOpacity
                   style={[
@@ -741,6 +808,64 @@ const SubscribeScreen = () => {
                     Secure Payment • Cancel Anytime
                   </DSText>
                 </View>
+
+                {/* App Store Guideline 3.1.2 requires all of this ON the
+                    purchase surface, in the binary: what renews, when it
+                    renews, and functional links to the Terms of Use and the
+                    Privacy Policy. Title / length / price are already on the
+                    plan cards above; the renewal mechanics were missing
+                    entirely, and neither link existed anywhere but the
+                    sign-in screen. */}
+                <DSText
+                  variant="caption"
+                  color="tertiary"
+                  center
+                  style={styles.renewalDisclosure}
+                >
+                  {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                    ? `${annualLabel} per year. Renews automatically unless cancelled 24 hours before the period ends.`
+                    : `${monthlyLabel} per month. Renews automatically unless cancelled 24 hours before the period ends.`}
+                </DSText>
+
+                <View style={styles.legalRow}>
+                  <TouchableOpacity
+                    onPress={restore}
+                    disabled={restoring}
+                    hitSlop={LEGAL_HIT_SLOP}
+                    accessibilityRole="button"
+                    accessibilityLabel="Restore purchases"
+                  >
+                    <DSText variant="caption" color="tertiary" style={styles.legalLink}>
+                      {restoring ? "Restoring…" : "Restore Purchases"}
+                    </DSText>
+                  </TouchableOpacity>
+                  <DSText variant="caption" color="tertiary">
+                    ·
+                  </DSText>
+                  <TouchableOpacity
+                    onPress={() => handleLinkPress(TERMS_OF_USE_URL)}
+                    hitSlop={LEGAL_HIT_SLOP}
+                    accessibilityRole="link"
+                    accessibilityLabel="Terms of Use"
+                  >
+                    <DSText variant="caption" color="tertiary" style={styles.legalLink}>
+                      Terms of Use
+                    </DSText>
+                  </TouchableOpacity>
+                  <DSText variant="caption" color="tertiary">
+                    ·
+                  </DSText>
+                  <TouchableOpacity
+                    onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+                    hitSlop={LEGAL_HIT_SLOP}
+                    accessibilityRole="link"
+                    accessibilityLabel="Privacy Policy"
+                  >
+                    <DSText variant="caption" color="tertiary" style={styles.legalLink}>
+                      Privacy Policy
+                    </DSText>
+                  </TouchableOpacity>
+                </View>
               </>
             ) : (
               <DSText
@@ -749,7 +874,7 @@ const SubscribeScreen = () => {
                 center
                 style={styles.guaranteeText}
               >
-                Premium is coming soon — there's nothing to purchase yet.
+                Premium isn't available yet.
               </DSText>
             )}
           </View>
@@ -1141,6 +1266,23 @@ const useStyles = makeStyles((c) => ({
   },
   guaranteeText: {
     // guarantee type styling from variant
+  },
+  renewalDisclosure: {
+    marginTop: spacing.sm,
+    // Required disclosure, so it must stay legible — not shrunk below the
+    // caption ramp to win back vertical space.
+    lineHeight: 16,
+  },
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  legalLink: {
+    textDecorationLine: "underline",
   },
   testModeModalContent: {
     paddingHorizontal: spacing["2xl"],

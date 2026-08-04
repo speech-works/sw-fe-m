@@ -44,6 +44,7 @@ import {
   size,
   Sheet,
   FloatingControls,
+  useNavBarInset,
 } from "../../../design-system";
 
 // --- Data Definitions ---
@@ -146,6 +147,7 @@ type LibraryScreenNavigationProp = CompositeNavigationProp<
 
 const Library = () => {
   const { colors } = useTheme();
+  const navBarInset = useNavBarInset();
   const exploreNavigation = useNavigation<LibraryScreenNavigationProp>();
   const route = useRoute<any>();
   const { from } = (route.params || {}) as {
@@ -344,7 +346,12 @@ const Library = () => {
 
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          // Clearance follows the floating dock, which edge-to-edge moves up by
+          // the nav bar. 0 on iOS.
+          { paddingBottom: size.tabBarSafe + navBarInset },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

@@ -35,6 +35,7 @@ import {
   radius,
   borderWidth,
   withAlpha,
+  useNavBarInset,
 } from "../../../../../../design-system";
 import {
   DEFAULT_REFRAME_SERIES_ID,
@@ -91,6 +92,7 @@ const Reframe = () => {
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
   const { colors, scheme } = useTheme();
   // Matches whatever sky the weather layer is currently painting.
   const skyTop = reframeSkyTop(scheme);
@@ -482,7 +484,7 @@ const Reframe = () => {
           {
             paddingTop: insets.top + space.inlineGap,
             // Clears the floating-control slot (bottom 110 + 46 button + gap).
-            paddingBottom: 180,
+            paddingBottom: 180 + navBarInset,
           },
         ]}
         showsVerticalScrollIndicator={false}

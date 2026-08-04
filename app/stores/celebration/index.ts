@@ -75,9 +75,35 @@ interface CelebrationState {
    * snapshot: this only renders a line of text, so a re-render must be able to
    * read it again, and the id match is what stops it describing the wrong
    * activity.
+   *
+   * SAFE TO CALL FROM A SELECTOR — see NO_AXES. Both branches return a
+   * referentially stable array.
    */
-  earnedFor: (activityId?: string | null) => string[];
+  earnedFor: (activityId?: string | null) => readonly string[];
 }
+
+/**
+ * THE EMPTY RESULT IS A SINGLETON, AND THAT IS LOAD-BEARING — not a
+ * micro-optimisation.
+ *
+ * `earnedFor` is read through a zustand selector on the success screen
+ * (`useCelebrationStore((s) => s.earnedFor(activityId))`). zustand v5 dropped
+ * the `useSyncExternalStoreWithSelector` equality shim and hands the selector
+ * straight to React's `useSyncExternalStore`, which compares snapshots with
+ * `Object.is`. A fresh `[]` per call is therefore a snapshot that NEVER
+ * compares equal: React force-re-renders after every commit, loops, and throws
+ * "Maximum update depth exceeded" — a render-phase error, so it escapes to the
+ * root error boundary and the user gets the "Something went wrong" screen
+ * instead of their completion.
+ *
+ * It only bit on the miss path (`earned.axes` on the hit path is already the
+ * one array the response was stored with), which made it look intermittent: it
+ * fired exactly when a completion moved no axis, when the server omitted
+ * `axesMoved`, or when the caller passed no activity id (Mirror Work).
+ *
+ * Frozen so a caller cannot mutate the shared instance.
+ */
+const NO_AXES: readonly string[] = Object.freeze([]);
 
 export const useCelebrationStore = create<CelebrationState>((set, get) => ({
   snapshot: null,
@@ -119,7 +145,8 @@ export const useCelebrationStore = create<CelebrationState>((set, get) => ({
 
   earnedFor: (activityId) => {
     const earned = get().earned;
-    if (!earned || !activityId || earned.activityId !== activityId) return [];
+    if (!earned || !activityId || earned.activityId !== activityId)
+      return NO_AXES;
     return earned.axes;
   },
 }));

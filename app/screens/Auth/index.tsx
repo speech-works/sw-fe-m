@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -43,26 +43,21 @@ import {
   useTheme,
 } from "../../design-system";
 import LoginBackground from "./components/LoginBackground";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
+import { signInWithApple } from "../../api/auth";
 import { apiErrorMessage } from "../../util/functions/apiError";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
-// Define the providers to display
-const ALL_PROVIDERS = ["google", "facebook", "apple"];
-
-// Filter providers based on the platform
-const getDisplayProviders = () => {
-  if (Platform.OS === "ios") {
-    // Show all providers on iOS
-    return ALL_PROVIDERS;
-  }
-  // On Android/Web/Other, filter out 'apple'
-  return ALL_PROVIDERS.filter((provider) => provider !== "apple");
-};
+// The WEB-redirect providers. Apple is deliberately absent: it now uses the
+// native ASAuthorization flow below, not the Safari round trip, so it has no
+// business in this list or in the generic button map.
+const ALL_PROVIDERS = ["google", "facebook"];
 
 // Required to ensure the WebBrowser closes correctly on Android redirects
 WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = () => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const motion = useMotion();
   const insets = useSafeAreaInsets();
 
@@ -90,6 +85,23 @@ const LoginScreen = () => {
    * standing "Need help?" at the door was clutter for everyone it never helped.
    * An error with no recovery path is the thing worth avoiding — not the link.
    */
+  // Gates the BUTTON only. Not the handler (an unrendered button can't be
+  // pressed), and not the whole actions block — on a device where Sign in with
+  // Apple is unavailable, Google and Facebook must still render or there is no
+  // way into the app at all. isAvailableAsync is the only correct signal here:
+  // it accounts for OS version and device management, which Platform.OS cannot.
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    let alive = true;
+    AppleAuthentication.isAvailableAsync()
+      .then((ok) => alive && setAppleAvailable(ok))
+      .catch(() => alive && setAppleAvailable(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const showError = (message: string) => {
     setSignInError(message);
   };
@@ -212,6 +224,71 @@ const LoginScreen = () => {
   };
 
   /** Shared logic to exchange the OAuth code for tokens and log the user in. */
+  /**
+   * Native Sign in with Apple (App Store Guideline 4.8).
+   *
+   * Nothing here touches the web flow: no browser, no deep link, no five-minute
+   * poll. The device authorizes directly and we exchange the identity token.
+   *
+   * THE NONCE IS THE EASY THING TO GET BACKWARDS. Apple wants the SHA-256 HASH,
+   * and embeds it in the token. Supabase wants the RAW value so it can hash and
+   * compare. Swap them and you get an opaque "invalid nonce" with nothing in
+   * the logs to explain it.
+   */
+  const onPressApple = async () => {
+    if (loadingProvider) return;
+    setLoadingProvider("apple");
+    try {
+      const bytes = await Crypto.getRandomBytesAsync(32);
+      const rawNonce = Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (!credential.identityToken) {
+        throw new Error("Apple didn't return an identity token.");
+      }
+
+      // ONE SHOT, EVER. Apple sends the name only on the first authorization
+      // for this Apple ID and app, and only to the client — it is not in the
+      // token, so the server cannot recover it later. Forward it or lose it.
+      const fullName =
+        [credential.fullName?.givenName, credential.fullName?.familyName]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || undefined;
+
+      await completeSignIn(
+        await signInWithApple({
+          identityToken: credential.identityToken,
+          nonce: rawNonce,
+          fullName,
+        }),
+      );
+    } catch (e: any) {
+      // Cancelling is a choice, not a failure. Dropping someone into the
+      // "couldn't sign you in" dialog because they tapped Cancel is the
+      // classic mistake here. Both codes: the module renamed it across SDKs.
+      if (e?.code === "ERR_REQUEST_CANCELED" || e?.code === "ERR_CANCELED") {
+        setLoadingProvider(null);
+        return;
+      }
+      showError(apiErrorMessage(e, "Couldn't sign you in with Apple."));
+      setLoadingProvider(null);
+    }
+  };
+
   const processAuthRedirect = async (url: string) => {
     console.log("[OAuth 5] processAuthRedirect called with URL:", url);
 
@@ -232,7 +309,27 @@ const LoginScreen = () => {
     console.log("[OAuth 5] Authorization code received");
 
     console.log("[OAuth 6] Calling handleOAuthCallback...");
-    const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
+    await completeSignIn(await handleOAuthCallback(code));
+  };
+
+  /**
+   * The half of sign-in that is identical for every provider: store the tokens,
+   * redeem a pending invite code, then flip the app into its logged-in state.
+   *
+   * Extracted so the native Apple path reuses it rather than copying it. The
+   * invite-code block below carries load-bearing ordering (see its own note) —
+   * an Apple path that skipped it would silently drop buddy pairing for every
+   * iOS signup.
+   */
+  const completeSignIn = async ({
+    user,
+    appJwt,
+    refreshToken,
+  }: {
+    user: any;
+    appJwt: string;
+    refreshToken: string;
+  }) => {
     console.log("[OAuth 6] ✅ Authenticated user:", user?.id ?? "(unknown)");
 
     await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
@@ -271,7 +368,7 @@ const LoginScreen = () => {
         // generic "something went wrong" would throw all of that away.
         showErrorBottomSheet(
           "Couldn't pair you up",
-          `${apiErrorMessage(e, "That code didn't work.")}\n\nYou're all signed up — you can add a code from the Community tab.`,
+          `${apiErrorMessage(e, "That code didn't work.")}\n\nYou're all signed up. You can add a code from the Community tab.`,
         );
       }
     }
@@ -281,7 +378,9 @@ const LoginScreen = () => {
     setUser(user);
   };
 
-  const providers = getDisplayProviders();
+  const providers = ALL_PROVIDERS;
+  // The Apple button takes slot 1 when present, so everything after it shifts.
+  const staggerBase = appleAvailable ? 2 : 1;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
@@ -321,6 +420,30 @@ const LoginScreen = () => {
         </Animated.View>
 
         <View style={styles.actions}>
+          {/* FIRST, deliberately. Guideline 4.8 asks that Sign in with Apple be
+              presented as an equivalent option, and first position removes the
+              argument. AppleAuthenticationButton renders Apple's own native
+              view — it cannot be restyled beyond these props, and it must not
+              be wrapped in PressableScale (the press would be double-handled
+              and a scale transform on a native view breaks the HIG). */}
+          {appleAvailable ? (
+            <Animated.View entering={motion.stagger(1)}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={
+                  AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+                }
+                buttonStyle={
+                  scheme === "dark"
+                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                }
+                cornerRadius={radius.pill}
+                style={styles.appleButton}
+                onPress={onPressApple}
+              />
+            </Animated.View>
+          ) : null}
+
           {providers.map((provider, i) => {
             const isLoading = loadingProvider === provider;
             const label = `Continue with ${
@@ -328,7 +451,7 @@ const LoginScreen = () => {
             }`;
 
             return (
-              <Animated.View key={provider} entering={motion.stagger(1 + i)}>
+              <Animated.View key={provider} entering={motion.stagger(staggerBase + i)}>
                 <PressableScale
                   onPress={() => onPressOAuth(provider)}
                   disabled={isLoading}
@@ -370,7 +493,7 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.footer}>
-          <Animated.View entering={motion.stagger(1 + providers.length)}>
+          <Animated.View entering={motion.stagger(staggerBase + providers.length)}>
             <Text
               variant="bodySm"
               color={isCodeAdded ? (colors.feedback.successText as any) : "link"}
@@ -382,7 +505,7 @@ const LoginScreen = () => {
             </Text>
           </Animated.View>
 
-          <Animated.View entering={motion.stagger(2 + providers.length)}>
+          <Animated.View entering={motion.stagger(staggerBase + 1 + providers.length)}>
             <Text variant="caption" color="tertiary" center>
               By continuing, you agree to our{" "}
               <Text
@@ -471,6 +594,12 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: space.rowGap,
+  },
+  appleButton: {
+    // Height only. Apple's native button owns its colour, type and typography;
+    // anything more here is both ineffective and a HIG violation.
+    height: 56,
+    marginBottom: spacing.md,
   },
   oauthButton: {
     flexDirection: "row",

@@ -1,10 +1,17 @@
 import Constants from "expo-constants";
 
-// Dormant monetization switch. Kept false until billing is reconnected via
-// Apple In-App Purchase (StoreKit) + Google Play Billing — NOT a third-party web
-// processor (those are disallowed for digital goods on both stores). While
-// false, all premium UI (paywall CTA, BuyPro card, upsell modals) is hidden.
-// TODO(payments): wire IAP / Play Billing, then flip this on.
+// Master monetization switch, set per build profile in eas.json. Billing is
+// Apple In-App Purchase (StoreKit) + Google Play Billing via RevenueCat — NOT a
+// third-party web processor (those are disallowed for digital goods on both
+// stores).
+//
+// Turned ON in b13d6ba2. It was dormant for a long time and this comment used
+// to say so.
+//
+// DO NOT gate purchase UI on this flag directly — use `purchasesAvailable()`
+// from services/purchases, which also requires a RevenueCat key for the CURRENT
+// platform. The flag alone is true on a build with no iOS key, and a paywall
+// that advertises a price it cannot charge is an App Store 2.1 rejection.
 export const PAYMENTS_ENABLED =
   String(Constants.expoConfig?.extra?.PAYMENTS_ENABLED ?? "false").toLowerCase() ===
   "true";

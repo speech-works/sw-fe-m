@@ -267,7 +267,7 @@ const DetailedWeeklySummary = ({
               <View style={styles.flex1}>
                 <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
                 <Text variant="caption" color="secondary">
-                  Keep practicing — your trend will appear after your first full week.
+                  Keep practicing. Your trend appears after your first full week.
                 </Text>
               </View>
             </View>

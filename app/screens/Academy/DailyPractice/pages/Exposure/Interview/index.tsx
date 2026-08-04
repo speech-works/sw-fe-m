@@ -55,7 +55,7 @@ const Interview = () => {
   return (
     <Page
       title="Interviews"
-      description="Ace the interview — confidence in every question."
+      description="Practice the questions you'd rather not be asked."
       onBack={() => navigation.goBack()}
     >
       <View style={styles.cardsContainer}>

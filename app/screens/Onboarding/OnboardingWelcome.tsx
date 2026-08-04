@@ -197,7 +197,7 @@ const OnboardingWelcome: React.FC = () => {
             <Text variant="h3" color="secondary">
               {isReask
                 ? "We've improved how we match programs to people. Yours will fit properly."
-                : "The rest of the picture — how speaking actually feels for you."}
+                : "The rest of the picture: how speaking actually feels for you."}
             </Text>
           </Animated.View>
         </View>

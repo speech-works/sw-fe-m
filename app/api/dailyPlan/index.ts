@@ -50,7 +50,7 @@ export const AXIS_SUBTITLE: Record<GrowthAxis, string> = {
   [GrowthAxis.WIDER]: "Different situations you've spoken in",
   // Hidden from users (see VISIBLE_AXES) but kept accurate.
   [GrowthAxis.STEADIER]: "Times you saw it through",
-  [GrowthAxis.REGULAR]: "Days you've practised",
+  [GrowthAxis.REGULAR]: "Days you've practiced",
 };
 
 /**

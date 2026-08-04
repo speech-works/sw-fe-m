@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
+import { Animated, Easing, Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
@@ -15,12 +15,16 @@ const StaminaVignetteOverlay: React.FC = () => {
   const { events, clear } = useEventStore();
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const isAnimating = useRef(false);
+  // Corner radius: iPhone X and later have rounded screens (~50-55pt); older
+  // devices (iPhone SE) are square.
+  //
+  // This was `insets.bottom > 0`, which happened to work only because Android
+  // reported 0 there. Under edge-to-edge Android reports the real nav bar, so
+  // that test would flip every Android device from square to 50pt — a silent,
+  // app-wide change to a full-screen overlay. The intent was always "iOS with a
+  // home indicator", so test that directly.
   const insets = useSafeAreaInsets();
-
-  // Dynamic corner radius: Devices with a physical safe area at the bottom
-  // (iPhone X and later) feature rounded screens (usually ~50-55pt).
-  // Older devices (iPhone SE) have square screens (0pt).
-  const CORNER_RADIUS = insets.bottom > 0 ? 50 : 0;
+  const CORNER_RADIUS = Platform.OS === "ios" && insets.bottom > 0 ? 50 : 0;
 
   useEffect(() => {
     const triggered = events.find(

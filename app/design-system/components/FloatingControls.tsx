@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { useTheme } from "../useTheme";
+import { useNavBarInset } from "../useNavBarInset";
 import { spacing, size } from "../primitives/scale";
 import { Icon, IconName } from "./Icon";
 
@@ -76,6 +77,9 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
   style,
 }) => {
   const { colors } = useTheme();
+  // `inline` slots are positioned by their parent; only the absolute lower-right
+  // slot is window-anchored and needs the nav bar added back. 0 on iOS.
+  const navBarInset = useNavBarInset();
 
   if (__DEV__ && items.length > 3) {
     console.warn(`FloatingControls: expected at most 3 items, got ${items.length} — extras are ignored.`);
@@ -85,7 +89,12 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
 
   return (
     <View
-      style={[inline ? styles.stackInline : styles.stack, style]}
+      style={[
+        inline
+          ? styles.stackInline
+          : [styles.stack, { bottom: DOCK_CLEARANCE + navBarInset }],
+        style,
+      ]}
       pointerEvents="box-none"
     >
       {shown.map((item, i) =>

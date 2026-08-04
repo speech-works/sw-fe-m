@@ -6,6 +6,27 @@
 // GET /users/me/wallet until the grant lands (delivered via RC webhook, with
 // a lazy reconcile fallback baked into that endpoint). Nothing in this file
 // ever reads `CustomerInfo` to decide what the user owns.
+//
+// ── WE DELIBERATELY DO NOT USE REVENUECAT "OFFERINGS" ─────────────────────
+// An Offering is a set of products configured in the RevenueCat dashboard that
+// the app fetches with `getOfferings()` and renders — a remote-controlled
+// paywall you can re-merchandise without shipping an app update.
+//
+// We don't, because OUR BACKEND already owns that decision. The app asks the
+// server for the offer, gets a `tierProductId` back, and asks the store for
+// that ONE product by id (`getProducts`, resolved through selectStoreProduct).
+// Turning Offerings on would put a second system in charge of what is for sale
+// and at what price, and the two would drift — on the one thing least tolerable
+// to get wrong, which is the amount a real person is charged.
+//
+// CONSEQUENCE, so nobody "fixes" it: in dev you will see the SDK log
+// `[RevenueCat] Error fetching offerings ... no App Store products registered`.
+// That is the SDK's own background fetch of an offering we never read. It is
+// harmless, it is invisible in release builds (LogBox is __DEV__-only), and
+// registering the products in App Store Connect will NOT silence it — only
+// attaching them to an offering would, which buys us nothing. RevenueCat's own
+// message says as much: "If you don't want to use the offerings system, you can
+// safely ignore this message."
 import { Platform } from "react-native";
 import Purchases, {
   PURCHASES_ERROR_CODE,

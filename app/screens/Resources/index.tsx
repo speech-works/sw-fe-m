@@ -40,7 +40,7 @@ interface ResourceItem {
  */
 const SUPPORT: ResourceItem[] = [
   {
-    label: "TISA — The Indian Stammering Association",
+    label: "TISA, the Indian Stammering Association",
     desc: "Peer-led self-help groups across India, plus online meets. Free.",
     icon: "users",
     url: "https://stammer.in",
@@ -52,7 +52,7 @@ const SUPPORT: ResourceItem[] = [
     url: "https://westutter.org",
   },
   {
-    label: "STAMMA — British Stammering Association",
+    label: "STAMMA, the British Stammering Association",
     desc: "UK helpline, guidance for work and study, and local groups.",
     icon: "message-circle",
     url: "https://stamma.org",
@@ -78,7 +78,7 @@ const SUPPORT: ResourceItem[] = [
 const FALLBACK_CRISIS: ResourceItem[] = [
   {
     label: "988 Crisis Helpline",
-    desc: "Call or text 988 — free and confidential, 24/7.",
+    desc: "Call or text 988. Free and confidential, 24/7.",
     icon: "phone-call",
     action: "tel:988",
   },
@@ -142,8 +142,8 @@ const Resources = () => {
   return (
     <Page title="Help & Resources" onBack={() => navigation.goBack()}>
       <Text variant="body" color="secondary">
-        You're not alone. These trusted organizations are here for you — and so is a
-        person, any time you need one.
+        You're not alone. These organizations are here for you. So is a person,
+        any time you need one.
       </Text>
 
       <View>

@@ -11,7 +11,11 @@ export const libraryData: Array<Library> = [
       {
         id: "t2",
         name: "Pull-Outs",
-        desc: "Learn pull-out technique for smoother speech",
+        // Was "for smoother speech" — the only desc in this file that named an
+        // outcome rather than the act. Its siblings all describe what you do
+        // ("Learn to identify your stuttering patterns", "Practice gentle voice
+        // initiation"); this one promised a result we don't measure.
+        desc: "Learn to ease out of a block mid-word",
         level: "Intermediate",
       },
     ],
@@ -28,7 +32,11 @@ export const libraryData: Array<Library> = [
       {
         id: "t4",
         name: "Pull-Outs",
-        desc: "Learn pull-out technique for smoother speech",
+        // Was "for smoother speech" — the only desc in this file that named an
+        // outcome rather than the act. Its siblings all describe what you do
+        // ("Learn to identify your stuttering patterns", "Practice gentle voice
+        // initiation"); this one promised a result we don't measure.
+        desc: "Learn to ease out of a block mid-word",
         level: "Intermediate",
       },
     ],

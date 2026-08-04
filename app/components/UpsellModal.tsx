@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Dimensions,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { navigationRef } from "../util/functions/navigation";
-import { PAYMENTS_ENABLED } from "../constants/features";
+import { purchasesAvailable } from "../services/purchases";
 // Deliberately the DARK elevation set: the premium card is gold-on-slate in both
 // schemes, so its inner shadows stay dark-tuned (see design-system/elevation.ts).
 import { elevationDark } from "../design-system/elevation";
@@ -34,30 +35,41 @@ export enum PAYMENT_PLAN_TYPE {
   ANNUALLY = 1,
 }
 
+// Keep these in step with PREMIUM_SLIDES in screens/Payments — the two screens
+// sell the same thing and must not quote different numbers. The figures are
+// real: free is FREE_STAMINA_CONFIG (35 max at 7 per activity, about five a
+// day) and paid is the level pool (80-110, about twelve); calls are 4 per 30
+// days banking to 8. Both of the old values here were false in opposite
+// directions ("1 / Day" understated our own free tier fivefold, "No Limits"
+// promised something we do not sell).
 const ALL_BENEFITS = [
   {
     id: "unrestricted",
-    label: "Unrestricted Practice",
-    free: "1 / Day",
-    pro: "No Limits",
+    label: "Daily practice",
+    free: "About 5 a day",
+    pro: "About 12 a day",
     icon: "calendar-check",
-    desc: "Progress shouldn't be gated. Practice as much as you need to reach your goals.",
+    desc: "Premium roughly doubles your daily practice and refills faster, so a good session doesn't stop because the bar ran out.",
   },
   {
     id: "library",
-    label: "Clinical Library",
+    // Was "Clinical Library" / "clinical packs designed by Speechworks
+    // experts" — two claims we can't substantiate (clinical treatment, and
+    // expert authorship) on a screen that asks for money. See the matching
+    // slide in screens/Payments.
+    label: "Guided programs",
     free: "Preview",
-    pro: "Full Access",
+    pro: "All of them",
     icon: "folder-open",
-    desc: "Unlock the entire library of clinical packs designed by Speechworks experts.",
+    desc: "Every program in the library, start to finish. Structured arcs that build week to week, not loose exercises.",
   },
   {
     id: "ai_calls",
-    label: "AI Calls",
+    label: "Live AI calls",
     free: "Basic",
-    pro: "Full Access",
+    pro: "4 a month",
     icon: "robot",
-    desc: "Simulate pressure with AI phone calls and social challenge drills.",
+    desc: "Practice the call you keep putting off, with someone who won't finish your sentences. Four a month, banking up to eight.",
   },
 ];
 
@@ -272,17 +284,25 @@ const UpsellModal = () => {
   // "when billing ships" was the point: 15 of the 64 lint errors that kept
   // `npm run lint` out of CI came from this one component, and a permanently
   // red report is how a genuine conditional-hook crash in Onboarding stayed
-  // invisible. `PAYMENTS_ENABLED` is also not the compile-time constant the
-  // old note claimed — it is read from `Constants.expoConfig.extra` at
-  // runtime (app/constants/features.ts). Fixed for the process lifetime, so
-  // the old code was safe in practice, but not for the stated reason.
+  // invisible.
+  //
+  // The gate is `purchasesAvailable()`, not the raw PAYMENTS_ENABLED flag: it
+  // additionally requires a RevenueCat key for THIS platform, so a build that
+  // cannot actually charge never shows an upsell. Both are read from
+  // `Constants.expoConfig.extra` at runtime (app/constants/features.ts) and
+  // are fixed for the process lifetime — so this is stable to call in render,
+  // but it was never the compile-time constant an older note here claimed.
+  //
+  // OutOfStaminaController gates on the SAME predicate, inverted. Exactly one
+  // of the two consumes SHOW_STAMINA_UPSELL — change one and you must change
+  // the other, or the event fires twice or not at all.
   const insets = useSafeAreaInsets();
   const { events, clear } = useEventStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [modalTag, setModalTag] = useState("");
-  const [modalCta, setModalCta] = useState("Unlock Full Access");
+  const [modalCta, setModalCta] = useState("See what's included");
 
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [orderedBenefits, setOrderedBenefits] = useState(ALL_BENEFITS);
@@ -299,7 +319,7 @@ const UpsellModal = () => {
   }));
 
   useEffect(() => {
-    if (!PAYMENTS_ENABLED) return;
+    if (!purchasesAvailable()) return;
     if (modalVisible) {
       const duration = 350;
       const easing = Easing.bezier(0.33, 1, 0.68, 1);
@@ -317,7 +337,7 @@ const UpsellModal = () => {
   }, [modalVisible]);
 
   useEffect(() => {
-    if (!PAYMENTS_ENABLED) return;
+    if (!purchasesAvailable()) return;
     if (!events || events.length === 0) return;
 
     for (const event of events) {
@@ -342,9 +362,14 @@ const UpsellModal = () => {
           event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL ||
           event.name === EVENT_NAMES.SHOW_LIBRARY_UPSELL
         ) {
-          title = "Master Speech Management";
+          // Was "Master Speech Management" / "…directly from expert SLPs."
+          // Two problems: "master" frames speech as something to be conquered,
+          // which is the framing this product exists to avoid; and the expert
+          // authorship is a credential claim we cannot back (the same claim was
+          // already cut from the benefits list below).
+          title = "Take it into a real conversation";
           message =
-            "Learn advanced tools and strategies directly from expert SLPs.";
+            "Guided programs, and live calls to try a technique before the day you need it.";
         }
 
         setModalTitle(title);
@@ -376,13 +401,11 @@ const UpsellModal = () => {
         });
         setOrderedBenefits(newOrder);
 
-        const ctaText =
-          event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL
-            ? "Explore Premium"
-            : event.name === EVENT_NAMES.SHOW_LIBRARY_UPSELL
-              ? "Unlock Entire Library"
-              : "Unlock Stamina";
-        setModalCta(ctaText);
+        // One label, because all three tapped the same button: this navigates
+        // to PremiumModal, it does not buy anything. "Unlock Entire Library" /
+        // "Unlock Stamina" both promised the tap would unlock something, and
+        // what actually happens is a pricing screen opens.
+        setModalCta("See what's included");
 
         setModalVisible(true);
         clear(event.name);
@@ -396,7 +419,7 @@ const UpsellModal = () => {
    * both effects above return early, so behaviour is identical to when the
    * guard sat at the top of the component.
    */
-  if (!PAYMENTS_ENABLED) return null;
+  if (!purchasesAvailable()) return null;
 
   const renderPortalContent = () => (
     <View style={styles.portalContainer}>
@@ -529,8 +552,13 @@ const UpsellModal = () => {
         </TouchableOpacity>
         <View style={styles.buyProTrustRow}>
           <Icon name="lock" size={12} color="rgba(255,255,255,0.4)" />
+          {/* Not Apple Pay / Google Pay — this is StoreKit and Play Billing.
+              Naming a payment product we don't use is factually wrong on a
+              purchase screen, and Apple rejects Apple Pay claims for IAP. */}
           <Text style={styles.buyProTrustText}>
-            Secure payment via Apple/Google Pay
+            {Platform.OS === "ios"
+              ? "Secure payment through the App Store"
+              : "Secure payment through Google Play"}
           </Text>
         </View>
       </View>

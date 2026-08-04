@@ -70,7 +70,7 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
         </View>
 
         <View style={styles.sliderSection}>
-          <Text style={styles.question}>Looking at the summary — how well does this match what you experienced?</Text>
+          <Text style={styles.question}>Looking at the summary, how well does this match what you experienced?</Text>
           <Slider
             style={styles.slider}
             minimumValue={1}

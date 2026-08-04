@@ -250,7 +250,7 @@ const PhoneCallReport: React.FC<Props> = ({
               </View>
             ))}
             <Text variant="bodySm" color="tertiary" style={styles.caveat}>
-              AI-assessed from your transcript — a guide, not a verdict.
+              AI-assessed from your transcript. A guide, not a verdict.
             </Text>
           </SectionCard>
         )}
@@ -337,7 +337,7 @@ const PhoneCallReport: React.FC<Props> = ({
               </View>
             ))}
             <Text variant="bodySm" color="tertiary" style={styles.caveat}>
-              Stuttering is a natural way of talking — these are shown for
+              Stuttering is a natural way of talking. These are shown for
               transparency, not as something to change. (From the transcript
               text, not audio.)
             </Text>

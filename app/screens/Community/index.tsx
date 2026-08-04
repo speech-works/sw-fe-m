@@ -50,6 +50,7 @@ import {
   zIndex,
   Page,
   Surface,
+  useNavBarInset,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -72,8 +73,10 @@ import { shareBuddyInvite } from "../../util/functions/share";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { blockUser, type ReportReason } from "../../api/moderation";
+import ReportSheet from "../../components/ReportSheet";
 import { apiErrorMessage } from "../../util/functions/apiError";
-import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -201,6 +204,7 @@ const WatermarkModal = ({
 
 const Community = () => {
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
   const navigation = useNavigation<any>();
   const { colors, elevation } = useTheme();
 
@@ -348,6 +352,8 @@ const Community = () => {
   );
 
   const link = summary?.link ?? null;
+  const [blockConfirmVisible, setBlockConfirmVisible] = useState(false);
+  const [blockReasonVisible, setBlockReasonVisible] = useState(false);
   const isPaired = link?.status === "active";
   const isPending = link?.status === "pending";
 
@@ -414,6 +420,46 @@ const Community = () => {
 
   const handleLeave = () => setLeaveVisible(true);
 
+  /**
+   * Block is a SEPARATE action from Leave, deliberately.
+   *
+   * Merging them would make every amicable break-up accuse a friend of abuse.
+   * Most unpairings are "we drifted" or "I'm taking a break", and forcing those
+   * through a block corrupts the report data — if 95% of blocks are benign you
+   * can no longer triage the 5% that aren't, which is exactly what Guideline
+   * 1.2's "timely responses" depends on.
+   */
+  const handleBlock = () => setBlockConfirmVisible(true);
+
+  const confirmBlock = () => {
+    // Confirm first (this IS destructive and irreversible from the UI), then
+    // ask why. The reason rides along as the report.
+    setBlockConfirmVisible(false);
+    setBlockReasonVisible(true);
+  };
+
+  const submitBlock = async (reason: ReportReason) => {
+    setBlockReasonVisible(false);
+    const buddyId = link?.buddy?.id;
+    if (!buddyId) return;
+    try {
+      setBusy(true);
+      await blockUser(buddyId, reason);
+      track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { reason });
+      // load() returns summary.link as null, which flips the screen back to the
+      // invite state and clears the timeline.
+      await load();
+      showSuccessBottomSheet(
+        "Blocked",
+        "You've been unpaired, and you won't be matched again. We'll review your report.",
+      );
+    } catch (e) {
+      showErrorBottomSheet("Couldn't block", "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const confirmLeave = async () => {
     setLeaveVisible(false);
     try {
@@ -445,7 +491,7 @@ const Community = () => {
         title="Community"
         description={
           isPaired
-            ? `You & ${buddyFirstName} — keep it up together.`
+            ? `You & ${buddyFirstName}. Keep it up together.`
             : "Practice sticks when someone's in it with you."
         }
         standalone
@@ -514,7 +560,7 @@ const Community = () => {
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">Grow together</Text>
-            <Text variant="bodySm" color="secondary">Keep each other going — share wins and cheer each other on.</Text>
+            <Text variant="bodySm" color="secondary">Keep each other going. Share wins and cheer each other on.</Text>
           </View>
         </View>
       </View>
@@ -553,7 +599,7 @@ const Community = () => {
                 color={copied ? colors.feedback.successText : colors.text.accent} 
                 style={{ marginRight: space.iconText }} 
               />
-              <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
+              <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "Generating…"}</Text>
             </View>
           </PressableScale>
           <PressableScale
@@ -611,13 +657,17 @@ const Community = () => {
       stage: myStage?.title ?? "—",
       level: myStage?.level ?? user?.level ?? 1,
       xp: myStage?.totalXp ?? user?.totalXp,
-      active: relativeAgo(user?.lastLogin) ?? "—",
+      // "—" told the reader nothing. No lastLogin means this is a new account,
+      // so say that.
+      active: relativeAgo(user?.lastLogin) ?? "New here",
     };
     const them = {
       stage: stageTitleForLevel(myStage, report?.level),
       level: report?.level ?? 1,
       xp: report?.totalXp,
-      active: relativeAgo(report?.lastPracticeAt) ?? "—",
+      // No lastPracticeAt means the buddy hasn't practiced yet, which is a real
+      // state worth naming rather than blanking.
+      active: relativeAgo(report?.lastPracticeAt) ?? "Not yet",
     };
 
     // Both sides render the OWNED avatar, never the OAuth photo — a buddy sees
@@ -831,6 +881,21 @@ const Community = () => {
                 <Text variant="bodySm" color="secondary">End this partnership.</Text>
               </View>
             </PressableScale>
+
+            <View style={[styles.actionDivider, { backgroundColor: colors.border.default }]} />
+
+            {/* Block & report (App Store 1.2). Sits BELOW Leave and looks
+                heavier, because leaving a buddy is normal and blameless while
+                this one is an accusation. Two rows, not one — see handleBlock. */}
+            <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleBlock}>
+              <View style={[styles.actionIconSquare, { backgroundColor: colors.accentTint.danger }]}>
+                <Icon name={icons.report} size={24} color={colors.feedback.dangerText} />
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text variant="title" color={colors.feedback.dangerText}>Block &amp; report {buddyFirstName}</Text>
+                <Text variant="bodySm" color="secondary">Unpair now, and tell us what happened.</Text>
+              </View>
+            </PressableScale>
           </View>
         </Animated.View>
       </View>
@@ -916,7 +981,7 @@ const Community = () => {
               {/* Us page */}
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130 + navBarInset, flexGrow: 1 }]}
                   onScrollY={handleScrollY}
                   refreshControl={
                     <RefreshControl
@@ -936,7 +1001,7 @@ const Community = () => {
               {/* Timeline page */}
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130 + navBarInset, flexGrow: 1 }]}
                   onScrollY={handleScrollY}
                   onEndReached={() => timelineRef.current?.loadMore()}
                   refreshControl={
@@ -1037,6 +1102,25 @@ const Community = () => {
         confirmLabel="Leave"
         destructive
         onConfirm={confirmLeave}
+      />
+
+      <Dialog
+        visible={blockConfirmVisible}
+        onClose={() => setBlockConfirmVisible(false)}
+        title={`Block ${buddyFirstName}?`}
+        message="You'll be unpaired right away. They won't see your progress, and you two won't be matched again."
+        cancelLabel="Cancel"
+        confirmLabel="Block"
+        destructive
+        onConfirm={confirmBlock}
+      />
+
+      <ReportSheet
+        visible={blockReasonVisible}
+        onClose={() => setBlockReasonVisible(false)}
+        target="user"
+        personName={buddyFirstName}
+        onSubmit={submitBlock}
       />
     </ScreenView>
   );

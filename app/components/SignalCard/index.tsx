@@ -66,6 +66,8 @@ interface SignalCardProps {
   onReact?: (type: ReactionType) => void;
   onUnreact?: () => void;
   onDelete?: () => void;
+  /** Report someone else's post (App Store 1.2). Omitted for your own. */
+  onReport?: () => void;
   onReachOut?: () => void;
   onReplyPrompt?: (replyId: string) => void;
   replyPending?: boolean;
@@ -144,6 +146,8 @@ const SignalCard = ({
   variant = "feed",
   onReact,
   onUnreact,
+  onDelete,
+  onReport,
   onReachOut,
   onReplyPrompt,
   replyPending,
@@ -420,6 +424,36 @@ const SignalCard = ({
         <View style={styles.headerRow}>
           <Text variant="caption" color={onSecondary} style={[styles.statusLabel, styles.bold]} numberOfLines={1}>{statusText}</Text>
           <Text variant="caption" color={onTertiary} style={styles.bold}>{relativeTime}</Text>
+          {/* Authored signals only — system beats and cards have no author to
+              report and nothing of yours to delete.
+
+              `onDelete` was declared in the props and passed in by Timeline but
+              never destructured, so the delete path has been dead the whole
+              time: there was no way to remove your own post. This slot fixes
+              that and adds the report affordance (App Store 1.2) in one place.
+
+              A plain touchable rather than an IconButton: a surface.control
+              circle in a card header reads as heavy chrome next to a timestamp.
+              hitSlop carries it to a 44pt target. Long-press is already bound
+              to the reaction picker, so it can't be the gesture here. */}
+          {(isPractice(signal) || isMoment(signal)) &&
+          (signal.authorIsMe ? onDelete : onReport) ? (
+            <TouchableOpacity
+              onPress={signal.authorIsMe ? onDelete : onReport}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                signal.authorIsMe ? "Delete this post" : "Report this post"
+              }
+              style={styles.headerAction}
+            >
+              <Icon
+                name={signal.authorIsMe ? icons.trash : icons.report}
+                size={16}
+                color={onTertiary}
+              />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* Content */}
@@ -566,6 +600,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: spacing.md,
+  },
+  headerAction: {
+    marginLeft: spacing.sm,
   },
   statusLabel: {
     letterSpacing: 0.8,

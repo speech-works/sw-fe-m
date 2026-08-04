@@ -9,14 +9,15 @@ import {
   ListItem,
   Page,
 } from "../../../../design-system";
+import { SUPPORT_EMAIL, SUPPORT_URL } from "../../../Auth/constants";
 
 const ContactSupport = () => {
   const { colors } = useTheme();
   const navigation = useNavigation();
-  const handleEmailPress = () =>
-    Linking.openURL("mailto:contact@speechworks.in");
-  const handleWhatsAppPress = () =>
-    Linking.openURL("https://wa.me/917350075986");
+  // Both come from the shared constants now — these were duplicated literals,
+  // and the auth screen had drifted onto a different (UAE) number entirely.
+  const handleEmailPress = () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
+  const handleWhatsAppPress = () => Linking.openURL(SUPPORT_URL);
 
   return (
     <Page title="Contact Support" onBack={() => navigation.goBack()}>

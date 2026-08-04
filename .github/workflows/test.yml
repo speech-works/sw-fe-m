@@ -58,3 +58,11 @@ jobs:
 
       - name: Test
         run: npm run test:ci
+
+      # A grep for private iOS Settings URL schemes (prefs:root: / App-Prefs:),
+      # which Apple rejects under Guideline 2.5.1 and which can put the whole
+      # developer account at risk. The script has existed for a while but only
+      # ran when someone remembered to type it — which is not a guard, it is a
+      # hope. Cheap enough (one grep over app/) to run on every push.
+      - name: Store compliance
+        run: npm run check:store-compliance

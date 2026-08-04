@@ -272,8 +272,7 @@ const ActOneWelcome: React.FC = () => {
           </Text>
           <Text variant="body" color="secondary">
             Fewer questions is better for everyone, so we look at anonymous
-            usage — how far people get before they stop — to see what we can
-            cut.
+            usage: how far people get before they stop. That tells us what to cut.
           </Text>
           <Text variant="body" color="secondary">
             Your answers stay on this device until you make an account.

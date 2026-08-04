@@ -13,6 +13,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
 import { useTheme } from "../useTheme";
+import { useNavBarInset } from "../useNavBarInset";
+import { useKeyboardInset } from "../useKeyboardInset";
 import { spacing, space, size, zIndex } from "../primitives/scale";
 import { PageHeader } from "./PageHeader";
 import { Gradient } from "./Gradient";
@@ -86,13 +88,18 @@ export const Page: React.FC<PageProps> = ({
 }) => {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
+  const keyboardInset = useKeyboardInset();
 
   // Measured at runtime so the scroll body reserves the footer's REAL height
   // (varies by content) and the last element always clears the pinned footer.
   const [footerH, setFooterH] = useState(FOOTER_RESERVE);
 
   const topPad = insets.top + space.inlineGap; // safe area + 8, matches Header
-  const tabPad = tabBarSafe ? size.tabBarSafe : 0;
+  // `size.tabBarSafe` is derived from the dock's own geometry (bottom 30 +
+  // height 70 + gap). Under edge-to-edge the dock moves up by the nav bar, so
+  // the clearance has to follow it or the last row sits under the dock.
+  const tabPad = tabBarSafe ? size.tabBarSafe + navBarInset : 0;
   const bottomPad =
     (footer ? footerH + space.sectionGap : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
@@ -161,7 +168,16 @@ export const Page: React.FC<PageProps> = ({
 
   if (keyboardAvoiding) {
     body = (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      // `undefined` on Android used to be fine: the window itself resized under
+      // `adjustResize`, so KAV had nothing to do. Edge-to-edge stops that
+      // resizing, which would leave the IME covering the input on every form
+      // built on Page. "height" is the Android equivalent of the iOS "padding"
+      // behaviour and works off RN's keyboard events, which still fire
+      // correctly (ReactRootView reads WindowInsets.Type.ime() on API 30+).
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         {body}
       </KeyboardAvoidingView>
     );
@@ -213,7 +229,19 @@ export const Page: React.FC<PageProps> = ({
       {footer ? (
         <View
           pointerEvents="box-none"
-          style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: zIndex.sticky + 2 }}
+          // This footer sits OUTSIDE the KeyboardAvoidingView above (which only
+          // wraps the scrolling body), so nothing else lifts it clear of the
+          // IME. Before edge-to-edge `adjustResize` shrank the window and
+          // `bottom: 0` cleared the keyboard for free; now it is the bottom of
+          // the SCREEN, and the keyboard draws straight over the CTA. 0 on iOS
+          // and whenever the keyboard is closed — see useKeyboardInset.
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: keyboardInset,
+            zIndex: zIndex.sticky + 2,
+          }}
         >
           {/* Bottom fade — scrolling content dissolves into the canvas before it
            * reaches the floating action, so nothing stays hidden behind an opaque

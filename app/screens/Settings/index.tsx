@@ -1,4 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
+import * as Application from "expo-application";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -14,8 +15,8 @@ import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
 import { getLevelStage, LevelStage } from "../../api/users";
-import { PAYMENTS_ENABLED } from "../../constants/features";
-import { restorePurchasesAndReconcile } from "../../services/purchases";
+import { purchasesAvailable } from "../../services/purchases";
+import { useRestorePurchases } from "../../hooks/useRestorePurchases";
 import {
   useTheme,
   useMotion,
@@ -104,29 +105,12 @@ const Settings = () => {
     }
   };
 
-  const [restoring, setRestoring] = useState(false);
+  // Shared with the paywall, which also has to offer Restore (Guideline
+  // 3.1.1 wants it on the purchase surface, not only here).
+  const { restoring, restore: handleRestorePurchases } = useRestorePurchases();
 
   const onViewProfile = () => {
     setIsVisible(true);
-  };
-
-  const handleRestorePurchases = async () => {
-    if (restoring) return;
-    setRestoring(true);
-    try {
-      const wallet = await restorePurchasesAndReconcile();
-      await useUserStore.getState().fetchUser();
-      if (wallet) {
-        showSuccessBottomSheet(
-          "Purchases restored",
-          `Your account now shows ${wallet.balance} call credit${wallet.balance === 1 ? "" : "s"} and any active entitlements.`,
-        );
-      }
-    } catch (error) {
-      console.error("Error restoring purchases:", error);
-    } finally {
-      setRestoring(false);
-    }
   };
 
   const closeModal = () => {
@@ -165,11 +149,18 @@ const Settings = () => {
       desc: "Stuttering organizations & crisis support",
       onClick: () => navigation.navigate("Resources"),
     },
-    ...(PAYMENTS_ENABLED
+    // purchasesAvailable(), not the raw flag: restorePurchasesAndReconcile()
+    // returns null immediately without a RevenueCat key for this platform, so
+    // on a keyless build this row is a button that cannot do anything.
+    ...(purchasesAvailable()
       ? [
           {
             icon: "refresh-cw" as IconName,
-            text: "Restore Purchases",
+            // The in-flight label is the only feedback this row has. Restore
+            // can take a few seconds against the store, and a row that looks
+            // inert while it works reads as a dead button — which is exactly
+            // how a reviewer would report it.
+            text: restoring ? "Restoring…" : "Restore Purchases",
             desc: "Recover past purchases on this account",
             onClick: handleRestorePurchases,
           },
@@ -294,8 +285,16 @@ const Settings = () => {
               Delete Account
             </Text>
           </TouchableOpacity>
+          {/* Read from the binary, not hardcoded. This string is what support
+              and App Review identify a build by, so an invented number is
+              worse than none — it was "v2.4.0 (Build 302)" against a real
+              1.0.1 (1). expo-application reports what actually shipped, which
+              is the number that matters once OTA updates can move the JS
+              bundle underneath a given binary. */}
           <Text variant="caption" color="tertiary">
-            v2.4.0 (Build 302)
+            {`v${Application.nativeApplicationVersion ?? "—"} (Build ${
+              Application.nativeBuildVersion ?? "—"
+            })`}
           </Text>
         </Reanimated.View>
       </Page>

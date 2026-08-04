@@ -259,7 +259,7 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
   const markActivityStart = useMarkActivityStart({
     contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
     contentId: scenario?.activityId,
-    contentTitle: scenario ? `First call — ${scenario.callerName}` : undefined,
+    contentTitle: scenario ? `First call: ${scenario.callerName}` : undefined,
     initialActivity: undefined,
     packContext: undefined,
     currentActivityId: activityId,
@@ -421,14 +421,14 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
           </Text>
           <Text variant="body" color="secondary" center style={styles.goneLine}>
             {offer?.reason === "already_taken"
-              ? "There are plenty more waiting in your practice — those ones you start yourself."
+              ? "There are plenty more waiting in your practice. Those ones you start yourself."
               : offer?.reason === "not_eligible"
                 ? // Unreachable in practice: the Home card renders nothing for
                   // these accounts, so nobody navigates here. Worded anyway,
                   // because a dead end that says "error" to somebody who did
                   // nothing wrong is worse than one extra string.
                   "This one's a welcome for new accounts. Your calls live in your practice, ready when you are."
-                : "We couldn't set this up just now. Nothing's been used — try again in a bit."}
+                : "We couldn't set this up just now. Nothing's been used. Try again in a bit."}
           </Text>
           <Button label="Back" variant="ghost" onPress={leave} />
         </View>

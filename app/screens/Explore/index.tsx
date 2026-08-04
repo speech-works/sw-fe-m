@@ -9,8 +9,8 @@ import usePullToRefresh from "../../hooks/usePullToRefresh";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
-import { SchemeStatusBar, useTheme, useMotion, spacing, space, radius, size, PageHeader } from "../../design-system";
-import { PAYMENTS_ENABLED } from "../../constants/features";
+import { SchemeStatusBar, useTheme, useMotion, useNavBarInset, spacing, space, radius, size, PageHeader } from "../../design-system";
+import { purchasesAvailable } from "../../services/purchases";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import ProgramsEntryCard from "./components/ProgramsEntryCard";
@@ -19,6 +19,7 @@ import WorldExplorationGraph from "./components/WorldExplorationGraph";
 
 const Explore = () => {
   const { colors } = useTheme();
+  const navBarInset = useNavBarInset();
   const m = useMotion();
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
@@ -98,6 +99,10 @@ const Explore = () => {
     }
   }, [route.params?.scrollToJumpIn, jumpInY]);
 
+  // Both inputs are process-lifetime constants read from expoConfig.extra, so
+  // this is stable across renders — no memo needed.
+  const canSell = purchasesAvailable();
+
   return (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       <SchemeStatusBar />
@@ -114,7 +119,12 @@ const Explore = () => {
       <ScrollView
         ref={scrollViewRef}
         refreshControl={refreshControl}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          // The floating dock moves up by the nav bar under edge-to-edge, so its
+          // clearance has to follow or the last row hides behind it. 0 on iOS.
+          { paddingBottom: size.tabBarSafe + navBarInset },
+        ]}
         showsVerticalScrollIndicator={false}
         onScrollBeginDrag={dismissDaySelection}
       >
@@ -143,14 +153,18 @@ const Explore = () => {
             <PracticeGrid />
           </Animated.View>
 
-          {PAYMENTS_ENABLED ? (
+          {/* purchasesAvailable(), not the raw flag: this card is the entrance
+              to the paid-program shop, and on a build with no RevenueCat key
+              for this platform every route out of it dead-ends at a paywall
+              that can't sell. */}
+          {canSell ? (
             <Animated.View entering={m.stagger(2)} style={styles.section}>
               <ProgramsEntryCard />
             </Animated.View>
           ) : null}
 
           {/* Inline Library Section */}
-          <Animated.View entering={m.stagger(PAYMENTS_ENABLED ? 3 : 2)} style={styles.section}>
+          <Animated.View entering={m.stagger(canSell ? 3 : 2)} style={styles.section}>
             <LibrarySection onLayoutCapture={() => {}} />
           </Animated.View>
         </Pressable>

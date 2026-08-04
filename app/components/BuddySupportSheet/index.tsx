@@ -196,13 +196,13 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
         </PressableScale>
         {guideOpen ? (
           <View style={styles.guideBody}>
-            <GuideLine icon={icons.listen} text="Listen — you don't have to fix it. Just stay with them." />
+            <GuideLine icon={icons.listen} text="Listen. You don't have to fix it. Just stay with them." />
             <GuideLine icon={icons.heart} text="Take it seriously. Don't minimise or rush to reassure." />
             <GuideLine icon={icons.professionalHelp} text="Gently encourage talking to a professional, together if it helps." />
             <GuideLine icon={icons.danger} text={`If ${name} may be in immediate danger, call your local emergency number.`} />
             <PressableScale style={[styles.selfHelpRow, { backgroundColor: colors.surface.control }]} haptic={false} scaleTo={0.98} onPress={self988}>
               <Icon name={icons.call} size={15} color={colors.text.accent} />
-              <Text variant="caption" color="accent" style={[styles.flex1, styles.bold]}>This is heavy for you too — 988 is there for you</Text>
+              <Text variant="caption" color="accent" style={[styles.flex1, styles.bold]}>This is heavy for you too. 988 is there for you</Text>
             </PressableScale>
           </View>
         ) : null}

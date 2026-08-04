@@ -908,7 +908,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
             </Text>
           ) : null}
           <Text variant="bodySm" color="secondary">
-            One payment. Yours to keep — no subscription.
+            One payment. Yours to keep. No subscription.
           </Text>
         </View>
 

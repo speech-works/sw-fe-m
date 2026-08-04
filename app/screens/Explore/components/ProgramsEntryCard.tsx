@@ -8,8 +8,9 @@ import { Text, Icon, icons, useTheme, spacing, radius } from "../../../design-sy
 
 /**
  * Entry point into the Interview Ready pack (Phase E — purchase mechanics;
- * Phase F fills in the day-by-day content). Gated by PAYMENTS_ENABLED at the
- * call site (Explore/index.tsx) — there's nothing to sell while it's off.
+ * Phase F fills in the day-by-day content). Gated by `purchasesAvailable()` at
+ * the call site (Explore/index.tsx) — there's nothing to sell unless payments
+ * are on AND this platform has a RevenueCat key.
  */
 const ProgramsEntryCard = () => {
   const navigation =

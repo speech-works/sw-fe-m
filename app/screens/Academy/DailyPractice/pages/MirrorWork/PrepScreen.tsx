@@ -20,6 +20,7 @@ import { useMarkActivityStart } from '../../../../../hooks/useMarkActivityStart'
 import { getCognitivePracticeByType } from '../../../../../api/dailyPractice';
 import { CognitivePracticeType } from '../../../../../api/dailyPractice/types';
 import { PracticeActivityContentType } from '../../../../../api/practiceActivities/types';
+import { NOT_A_DIAGNOSIS_SHORT } from './copy';
 
 /**
  * Confidence-cue colours. These MUST mirror the in-session `AwarenessOverlay`
@@ -41,7 +42,7 @@ const CUE_LEGEND = [
     key: 'soft',
     label: 'Soft observation',
     desc:
-      "Subtler cues — brow tension, cheek puffing. We'll phrase these gently because they're harder to detect precisely.",
+      "Subtler cues like brow tension or cheek puffing. We phrase these gently because they're harder to detect precisely.",
     fill: 'rgba(230, 180, 80, 0.15)',
     border: 'rgba(230, 180, 80, 0.60)',
     dashed: true,
@@ -49,8 +50,14 @@ const CUE_LEGEND = [
   {
     key: 'head',
     label: 'Head movement',
-    desc:
-      "Gaze shifts and head movements. These are informational — they don't affect your overall score.",
+    // Was "...they don't affect your overall score." That was the only string
+    // in the app telling the user a score exists, and it contradicted this same
+    // screen twice ("no score, no right answer" below, and "No scores, no
+    // performance" in the intro). `overallEaseScore` IS real, but it is never
+    // rendered: it feeds the reflection phrases and the backend, and the user
+    // never sees a number. So we don't claim nothing is scored, which would be
+    // false in the data layer. We just don't raise it.
+    desc: "Gaze shifts and head movements. Informational only.",
     fill: 'rgba(147, 112, 219, 0.20)',
     border: 'rgba(147, 112, 219, 0.70)',
     dashed: false,
@@ -70,7 +77,7 @@ export const PrepScreen: React.FC = () => {
   const mirrorWorkData: MirrorWorkData = practiceData.mirrorWorkData || {
     tips: [
       "This isn't a performance. There's no audience, no score, no right answer.",
-      "If you see a gentle note appear on screen, it's pointing out something your body is doing. You don't have to act on it — just notice it.",
+      "If you see a gentle note appear on screen, it's pointing out something your body is doing. You don't have to act on it. Just notice it.",
       "Speak at whatever pace feels right. Silences are fine. There's no timer pushing you forward."
     ],
     cognitivePrompts: [
@@ -183,7 +190,7 @@ export const PrepScreen: React.FC = () => {
       onBack={() => navigation.goBack()}
       description={
         practiceData.description ||
-        'Speak to your camera and notice what your body does. No scores, no performance — just observation.'
+        'Speak to your camera and notice what your body does. No scores, no performance. Just observation.'
       }
       footer={
         <Button
@@ -270,7 +277,7 @@ export const PrepScreen: React.FC = () => {
         ))}
 
         <Text variant="caption" color="tertiary" center style={styles.legendFootnote}>
-          None of this is a diagnosis. It's just a mirror with a memory.
+          {NOT_A_DIAGNOSIS_SHORT}
         </Text>
       </View>
     </Page>

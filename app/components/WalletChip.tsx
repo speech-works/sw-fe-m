@@ -19,6 +19,13 @@ const WalletChip: React.FC<WalletChipProps> = ({ refreshKey }) => {
   const { colors } = useTheme();
   const [balance, setBalance] = useState<number | null>(null);
 
+  // Deliberately gated on PAYMENTS_ENABLED and NOT on purchasesAvailable():
+  // this displays credits the user already OWNS, and the backend grants those
+  // independently of the store (signup bonus, membership refresh). On a build
+  // with no RevenueCat key for this platform we still can't sell — but hiding
+  // a real balance the user holds would be lying to them in the other
+  // direction. The question here is "is the credits economy on?", not "can we
+  // charge?".
   const fetchBalance = useCallback(() => {
     if (!PAYMENTS_ENABLED) return;
     getWallet()

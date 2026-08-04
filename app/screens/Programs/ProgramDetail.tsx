@@ -143,7 +143,7 @@ const ProgramDetailScreen = () => {
           if (wallet.entitlements.includes("membership")) {
             setBonusEligible(false); // spent — never advertise it twice
             showSuccessBottomSheet(
-              "You're in — and the first month is on us",
+              "You're in. The first month is on us",
               "Your program is unlocked, plus a free month of membership: 4 AI practice calls to use whenever you want them.",
             );
           }
@@ -256,7 +256,7 @@ const ProgramDetailScreen = () => {
         <View style={styles.ownedRow}>
           <Icon name={icons.success} size={18} color={colors.feedback.successText} />
           <Text variant="title" color={colors.feedback.successText}>
-            You own this — it&apos;s unlocked.
+            You own this. It&apos;s unlocked.
           </Text>
         </View>
       </Page>

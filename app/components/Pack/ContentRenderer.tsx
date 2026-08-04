@@ -236,7 +236,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       const activityDescription =
         content.descriptionOverride ||
-        "Use your techniques in this clinical challenge.";
+        // Not "clinical challenge" — this is a practice activity, and calling
+        // it clinical implies treatment we don't provide.
+        "Use your techniques in this practice challenge.";
 
       // Done → calm success card; active → solid action.primary CTA hero.
       if (isCompleted) {

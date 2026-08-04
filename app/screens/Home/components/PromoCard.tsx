@@ -33,7 +33,7 @@ const VARIANTS: Record<PromoVariant, VariantConfig> = {
   onboarding: {
     accentKey: "success",
     title: "Which situations are hardest?",
-    subtitle: "Answer these and we'll match programs to them — until then we're only guessing.",
+    subtitle: "Answer these and we'll match programs to them. Until then we're guessing.",
     cta: "Continue",
   },
   mood: {

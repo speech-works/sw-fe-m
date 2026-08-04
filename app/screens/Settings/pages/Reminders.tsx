@@ -65,7 +65,7 @@ const Reminders = () => {
   // regardless, leaving a reminder that displayed as ON and never fired — so
   // surface it instead of letting the promise reject unhandled.
   const FALLBACK_SCHEDULE_ERROR =
-    "We couldn't schedule this reminder. Check that notifications are enabled for SpeechWorks in your device settings, then try again.";
+    "Couldn't schedule this reminder. Enable notifications for Speechworks, then try again.";
 
   const showScheduleFailure = (error: unknown) => {
     // The store raises a specific message for the case a user can actually act

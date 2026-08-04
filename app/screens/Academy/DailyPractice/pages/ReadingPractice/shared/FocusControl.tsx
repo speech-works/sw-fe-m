@@ -76,7 +76,7 @@ export function FocusControl({
         visible={gateVisible}
         onClose={() => setGateVisible(false)}
         title="Add your sounds first"
-        message="Choose the sounds you find difficult in Settings, then focus mode practises words that contain them."
+        message="Choose the sounds you find difficult in Settings, then focus mode practices words that contain them."
         confirmLabel="Go to Settings"
         accentColor={accent}
         onAccentColor={onAccent}

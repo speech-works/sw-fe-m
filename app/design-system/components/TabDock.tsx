@@ -11,6 +11,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
+import { useNavBarInset } from "../useNavBarInset";
 import { fonts } from "../primitives/fonts";
 import { size } from "../primitives/scale";
 import { spring, duration } from "../motion";
@@ -79,6 +80,9 @@ export const TabDock: React.FC<TabDockProps> = ({
 }) => {
   const { colors, elevation } = useTheme();
   const reduceMotion = useReducedMotion();
+  // Under edge-to-edge the window reaches the screen edge, so the dock's fixed
+  // 30dp offset would put it under the nav bar. 0 on iOS — see useNavBarInset.
+  const navBarInset = useNavBarInset();
 
   // Center-the-selected-tab scroller. Each item reports its centre within the
   // bar (onLayout); the content is padded by half the viewport so ANY tab —
@@ -166,7 +170,14 @@ export const TabDock: React.FC<TabDockProps> = ({
   }
 
   return (
-    <View style={inline ? styles.containerInline : styles.container} pointerEvents="box-none">
+    <View
+      style={
+        inline
+          ? styles.containerInline
+          : [styles.container, { bottom: DOCK_BOTTOM + navBarInset }]
+      }
+      pointerEvents="box-none"
+    >
       {bar}
     </View>
   );
@@ -336,10 +347,15 @@ const DockItem: React.FC<DockItemProps> = ({
   );
 };
 
+/** Floating dock's resting offset from the bottom of the CONTENT area. Under
+ *  edge-to-edge the window reaches the screen edge, so the live `bottom` adds
+ *  `useNavBarInset()` on top of this to hold the same visual position. */
+const DOCK_BOTTOM = 30;
+
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 30,
+    bottom: DOCK_BOTTOM,
     left: 20,
     right: 20,
     alignItems: "center",

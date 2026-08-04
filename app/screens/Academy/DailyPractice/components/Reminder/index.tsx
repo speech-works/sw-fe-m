@@ -1,6 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Linking,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -26,7 +27,10 @@ import {
   type Reminder,
   useReminderStore,
 } from "../../../../../stores/reminders";
-import { showSuccessBottomSheet } from "../../../../../util/functions/bottomSheet";
+import {
+  showSuccessBottomSheet,
+  type BottomSheetAction,
+} from "../../../../../util/functions/bottomSheet";
 import { requestNotificationPermissionWithFallback } from "../../../../../util/functions/notifications";
 import {
   REMINDER_TEMPLATES,
@@ -93,11 +97,20 @@ const ReminderModal = ({
 
   const isEditing = !!editReminder;
 
-  // Success feedback is deferred until the sheet has fully dismissed. The success
-  // toast is the global OutcomeModal (a native Modal); firing it while this Sheet
-  // (also a native Modal) is still up stacks two native modals and freezes touch on
-  // iOS. We stash the message here and fire it from the Sheet's onDismissed.
-  const pendingSuccessRef = useRef<{ title: string; message: string } | null>(null);
+  // Feedback (success OR error) is deferred until the sheet has fully dismissed.
+  // The toast is the global OutcomeModal (a native Modal); firing it while this
+  // Sheet (also a native Modal) is still up stacks two native modals and freezes
+  // touch on iOS — OutcomeModal just queues silently until this Sheet closes,
+  // which reads as "nothing happened" for permission failures the user needs to
+  // see right away. We stash the message here, close the sheet, and fire it from
+  // the Sheet's onDismissed.
+  const pendingFeedbackRef = useRef<{
+    kind: "success" | "error";
+    title: string;
+    message: string;
+    primaryAction?: BottomSheetAction;
+    dismissLabel?: string;
+  } | null>(null);
 
   const getFormattedDate = (date: Date) => {
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -196,28 +209,49 @@ const ReminderModal = ({
     }
   };
 
-  // Fires once the sheet has fully animated out — safe to show the success toast now.
-  const firePendingSuccess = () => {
-    const pending = pendingSuccessRef.current;
+  // Fires once the sheet has fully animated out — safe to show the toast now.
+  const firePendingFeedback = () => {
+    const pending = pendingFeedbackRef.current;
     if (pending) {
-      pendingSuccessRef.current = null;
-      showSuccessBottomSheet(pending.title, pending.message);
+      pendingFeedbackRef.current = null;
+      if (pending.kind === "success") {
+        showSuccessBottomSheet(pending.title, pending.message);
+      } else {
+        showErrorBottomSheet(
+          pending.title,
+          pending.message,
+          pending.primaryAction,
+          pending.dismissLabel,
+        );
+      }
     }
   };
 
   const handleSaveReminder = async () => {
     const permission = await requestNotificationPermissionWithFallback();
-    if (permission === "blocked") {
-      // The OS will not ask again — point at the only route left. Single-button
-      // sheet rather than a dialog: this component has no confirm host, and
-      // Settings carries a permanent row for the same fix.
-      showErrorBottomSheet(
-        "Notifications are off",
-        "Turn them on for SpeechWorks in your device settings, then come back to set this reminder.",
-      );
+    if (permission === "blocked" || permission === "denied") {
+      // Either the OS won't prompt again ("blocked"), or the user just tapped
+      // "Don't Allow" ("denied") — both leave Settings as the fastest fix, so
+      // offer it directly instead of a plain acknowledgement. Close first — the
+      // toast is deferred by the Sheet stacking guard otherwise, and would sit
+      // hidden until the user happens to dismiss this sheet themselves.
+      pendingFeedbackRef.current = {
+        kind: "error",
+        title:
+          permission === "blocked" ? "Notifications are off" : "Notifications needed",
+        message:
+          permission === "blocked"
+            ? "Turn them on so we can remind you at the time you picked."
+            : "Allow notifications so we can remind you at the time you picked.",
+        primaryAction: {
+          label: "Open Settings",
+          onPress: () => void Linking.openSettings(),
+        },
+        dismissLabel: "I'll do it later",
+      };
+      closeModal();
       return;
     }
-    if (permission !== "granted") return;
 
     if (!reminderTitle.trim()) {
       showErrorBottomSheet("Title Required", "Please enter a title for your reminder.");
@@ -263,13 +297,15 @@ const ReminderModal = ({
     try {
       if (isEditing && editReminder) {
         await updateReminder(editReminder.id, reminderData);
-        pendingSuccessRef.current = {
+        pendingFeedbackRef.current = {
+          kind: "success",
           title: "Reminder Updated",
           message: "Your changes have been saved.",
         };
       } else {
         await addReminder(reminderData);
-        pendingSuccessRef.current = {
+        pendingFeedbackRef.current = {
+          kind: "success",
           title: "Reminder Set",
           message: "We'll remind you at the time you picked.",
         };
@@ -324,7 +360,7 @@ const ReminderModal = ({
     if (!isEditing && !canAddMore()) {
       showErrorBottomSheet(
         "Limit Reached",
-        "You've set 3 reminders — that's a solid routine! Delete one to add a new one.",
+        "Three reminders is a solid routine. Delete one to add another.",
       );
       return;
     }
@@ -577,7 +613,7 @@ const ReminderModal = ({
       <Sheet
         visible={isVisible}
         onClose={closeModal}
-        onDismissed={firePendingSuccess}
+        onDismissed={firePendingFeedback}
         title={step === "configure" && selectedTemplate ? selectedTemplate.label : undefined}
         right={
           step === "configure" && !isEditing ? (

@@ -49,6 +49,7 @@ import {
   size as controlSize,
   duration,
   easing,
+  useNavBarInset,
 } from "../../../../../../design-system";
 import {
   showErrorBottomSheet,
@@ -77,6 +78,7 @@ const PhoneCall = () => {
   const { user } = useUserStore();
   const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
   /** Shared by the header row and the label absolutely centred inside it. */
   const headerPaddingTop = insets.top + (Platform.OS === "android" ? 12 : 10);
   const { colors } = useTheme();
@@ -501,7 +503,10 @@ const PhoneCall = () => {
         </View>
 
         {/* Main Calling UI Place */}
-        <View style={styles.mainContent}>
+        {/* CallingWidget deliberately owns no safe-area logic — FirstCall's
+            <Screen edges={["top","bottom"]}> pads it there, and this screen pads
+            it here. Applying it in both places would double-pad. 0 on iOS. */}
+        <View style={[styles.mainContent, { paddingBottom: navBarInset }]}>
           <CallingWidget
             // Keyed so a scenario change resets the widget cleanly. That makes
             // the picker DESTRUCTIVE mid-call — remounting hangs up a call the

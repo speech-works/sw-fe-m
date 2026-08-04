@@ -1,5 +1,6 @@
 const { withGradleProperties } = require("@expo/config-plugins");
 const withMediaPipeDuplicateFix = require("./plugins/withMediaPipeDuplicateFix");
+const withAndroid16Compat = require("./plugins/withAndroid16Compat");
 
 const apiBaseUrl = process.env.API_BASE_URL || "";
 const allowsInsecureNetworkTraffic =
@@ -13,6 +14,26 @@ const withCustomJvmArgs = (config) => {
       property.value = newArgs;
     } else {
       config.modResults.push({ type: "property", key: "org.gradle.jvmargs", value: newArgs });
+    }
+    return config;
+  });
+};
+
+/**
+ * AGP 8.8.2 (pinned by RN 0.79's version catalog) predates compileSdk 36 and
+ * warns twice per build that it was "tested up to compileSdk = 35". Verified on
+ * 2026-08-03 that this is WARNINGS ONLY — the build succeeds without it — so
+ * this is log hygiene, not a requirement. Delete it when the toolchain reaches
+ * AGP 8.9.1+, which is where the warning goes away on its own.
+ */
+const withSuppressCompileSdkWarning = (config) => {
+  return withGradleProperties(config, (config) => {
+    const key = "android.suppressUnsupportedCompileSdk";
+    const property = config.modResults.find((p) => p.key === key);
+    if (property) {
+      property.value = "36";
+    } else {
+      config.modResults.push({ type: "property", key, value: "36" });
     }
     return config;
   });
@@ -35,6 +56,8 @@ module.exports = {
       policy: "appVersion",
     },
     orientation: "portrait",
+    // Canonical 1024px, opaque store icon generated from
+    // `app/assets/svg logos/app-logo.png` by scripts/build-logo-assets.mjs.
     icon: "./app/assets/icon.png",
     // "automatic" lets iOS/Android report the real device appearance so the
     // in-app Light/Dark/System preference can follow it (System mode reads
@@ -48,8 +71,8 @@ module.exports = {
     // Splash = the flash the OS shows before any of our JS runs. The background
     // is the app's own dark canvas (palette ink.canvas), NOT white: a white
     // splash handing off to a dark first screen is a visible flash of the wrong
-    // app. The mark is white for the same reason the background is dark — the
-    // black-transparent logo variant would be invisible on #141311.
+    // app. The mark is white for the same reason the background is dark, while
+    // the negative space in the logo remains transparent.
     splash: {
       image: "./app/assets/splash-icon.png",
       resizeMode: "contain",
@@ -57,7 +80,20 @@ module.exports = {
     },
     ios: {
       bundleIdentifier: "com.speechworks.app",
-      supportsTablet: true,
+      // Explicit even though the top-level icon already applies to iOS, so the
+      // App Store source cannot silently diverge if another platform changes.
+      icon: "./app/assets/icon.png",
+      // iPhone only. Every screen is designed portrait-first at phone widths,
+      // and declaring iPad support means App Review opens the app on an iPad
+      // and requires a separate 13" screenshot set for a layout we have never
+      // tested. The app still runs on iPad in iPhone compatibility mode. Flip
+      // this on when iPad layouts are a feature we've actually built.
+      supportsTablet: false,
+      // Generates the com.apple.developer.applesignin entitlement. Needed as
+      // well as the plugin entry below: without this you get a native module
+      // that fails at signInAsync; without the plugin you get an entitlement
+      // with no module behind it.
+      usesAppleSignIn: true,
       language: "objective-c",
       // Apple Privacy Manifest — declares the data the app collects.
       // (Expo auto-generates NSPrivacyAccessedAPITypes for linked modules;
@@ -131,16 +167,47 @@ module.exports = {
               "NSPrivacyCollectedDataTypePurposeAppFunctionality",
             ],
           },
+          // Health. Apple's definition includes "any other user provided health
+          // or medical data", which covers the onboarding answers about how
+          // speaking feels, the mood check-ins, and the self-rated effort and
+          // autonomy scores in app/utils/vitals.ts. None of it is HealthKit,
+          // but it is health-adjacent and was undeclared. Under-declaring is
+          // the expensive mistake here, not over-declaring.
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeHealth",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          // Other User Content. Free text that reaches another human: the
+          // practice-share caption, and the display name (user-editable, and it
+          // renders in the buddy's push notifications).
+          {
+            NSPrivacyCollectedDataType:
+              "NSPrivacyCollectedDataTypeOtherUserContent",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
         ],
       },
       infoPlist: {
+        // These three are ALSO written by config plugins (expo-image-picker,
+        // react-native-vision-camera, expo-speech-recognition), and the plugin
+        // wins the merge. They are kept identical here so the built plist is
+        // correct whichever source lands last. "This app needs camera access to
+        // record videos" was never true — we never record video.
         NSPhotoLibraryUsageDescription:
-          "Allow access to your photo library to upload images.",
+          "Speechworks uses your photo library so you can choose a profile photo.",
         ITSAppUsesNonExemptEncryption: false,
         NSMicrophoneUsageDescription:
-          "This app needs microphone access to record your voice.",
+          "Speechworks uses your microphone for recording practice and live calls.",
         NSCameraUsageDescription:
-          "This app needs camera access to record videos.",
+          "Speechworks uses your camera for on-device awareness exercises, and to take a profile photo. No video is recorded or sent.",
         NSMotionUsageDescription:
           "This app uses motion data to tell your head movements apart from phone movement during awareness exercises.",
         CFBundleURLTypes: [
@@ -158,8 +225,19 @@ module.exports = {
       },
     },
     android: {
+      // Android 16 IGNORES `windowOptOutEdgeToEdgeEnforcement` at target 36, so
+      // bumping targetSdk would otherwise flip the app's entire layout model in
+      // the same action. Enabling it here, deliberately, at target 35 decouples
+      // the two: this is provable and revertable on its own, and the later
+      // targetSdk bump then changes almost nothing.
+      // Rollback for the whole edge-to-edge migration is this one boolean.
+      // See docs/android-16-target-sdk-plan.md.
+      edgeToEdgeEnabled: true,
       usesCleartextTraffic: allowsInsecureNetworkTraffic,
       package: "com.speechworks.app",
+      // Combined icon for legacy launchers. Google Play's 512px store-listing
+      // icon is app/assets/play-store-icon.png and is uploaded in Play Console.
+      icon: "./app/assets/icon.png",
       // Registers the app with Firebase Cloud Messaging, which is the ONLY
       // route push can take to an Android device. Without it Firebase never
       // initializes, getExpoPushTokenAsync() throws, and the device silently
@@ -177,27 +255,15 @@ module.exports = {
       // no draw-over-other-apps overlay, so strip it from the release manifest
       // (avoids an unnecessary sensitive-permission flag on the stores).
       blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
-      // The icon is `svg logos/sw-icon-white.svg`. iOS and web take that file
-      // whole; Android can't, because the launcher masks the icon to its own
-      // shape (circle, squircle, teardrop) and only the middle 72dp of the 108dp
-      // canvas survives. So the design is split across the two adaptive layers:
-      // the warm field as the background IMAGE, the mark ALONE as the
-      // foreground. The design's inset glass tile is dropped — the launcher's
-      // mask is that shape now, and an inner rounded rect sitting inside a
-      // circle mask reads as a stray box.
-      // The mark is drawn at 465px, the same 68% of the masked-in area that it
-      // occupies of the tile in the source file. It is NOT drawn to the canvas
-      // edges: a full-bleed foreground is the one thing this layer cannot be —
-      // the mask cuts its sides off and the star's negative space turns into a
-      // hole punched through to the background.
-      // `backgroundColor` mirrors the design's base colour and stays below as
-      // the fallback for launchers that ignore backgroundImage.
+      // Adaptive icons override both expo.icon and android.icon. Keep the full
+      // canonical app-logo artwork here so Android and both stores share the
+      // same identity; launchers apply their own circle/squircle mask.
+      // `backgroundColor` and `backgroundImage` stay underneath as fallbacks.
       // `monochromeImage` is the silhouette Android tints from the user's
       // wallpaper when "Themed icons" is on. It is not optional any more: from
       // Android 16 QPR2 the system auto-derives one for apps that don't ship it,
       // and an auto-derived mark comes out muddy. Shipping our own keeps the
-      // star's negative space readable when tinted — so it is the mark at the
-      // same size, never an inverted plate.
+      // transparent negative space readable when tinted.
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
         backgroundImage: "./app/assets/adaptive-icon-bg.png",
@@ -221,6 +287,10 @@ module.exports = {
     },
     plugins: [
       withCustomJvmArgs,
+      withSuppressCompileSdkWarning,
+      // Keeps predictive back and the portrait lock behaving as they do today,
+      // both of which Android changes by default at targetSdk 36.
+      withAndroid16Compat,
       withMediaPipeDuplicateFix,
       [
         "react-native-permissions",
@@ -229,28 +299,65 @@ module.exports = {
         },
       ],
       [
+        // NSCameraUsageDescription is written by THREE sources: this plugin,
+        // react-native-vision-camera below, and the static `ios.infoPlist`
+        // above. Whichever runs last wins, and the one that was winning said
+        // "Allow access to your camera to take photos" — for a face-detection
+        // exercise. Apple rejects usage strings that don't describe the actual
+        // use (5.1.1), so all three now carry the SAME truthful sentence
+        // covering both uses. If you change one, change all three.
         "expo-image-picker",
         {
           photosPermission:
-            "Allow access to your photo library to upload images.",
-          cameraPermission: "Allow access to your camera to take photos.",
+            "Speechworks uses your photo library so you can choose a profile photo.",
+          cameraPermission:
+            "Speechworks uses your camera for on-device awareness exercises, and to take a profile photo. No video is recorded or sent.",
+        },
+      ],
+      // Declared explicitly rather than left to Expo's default so
+      // `enforceNavigationBarContrast` can be turned OFF. While the framework
+      // contrast scrim is enforced, `SystemBars.setNavigationBarStyle` is a
+      // no-op — nav-bar icon colours would follow the OS night mode instead of
+      // the in-app Light/Dark preference (see SchemeSystemBars).
+      [
+        "react-native-edge-to-edge",
+        {
+          android: {
+            parentTheme: "Default",
+            enforceNavigationBarContrast: false,
+          },
         },
       ],
       "expo-font",
+      "expo-apple-authentication",
       "expo-secure-store",
       "expo-notifications",
       "expo-web-browser",
       [
+        // These land in the iOS system permission dialogs, so they are among
+        // the most-read strings we ship and App Review sees every one of them.
+        // Two things were wrong: the brand was cased "SpeechWorks" (it is one
+        // word, capital S only), and the speech-recognition string claimed we
+        // "analyze speech patterns". We do not. `useSpeechDetection` only
+        // timestamps whether sound is arriving, so the mirror exercise knows if
+        // you are mid-sentence or paused. Claiming analysis was both inaccurate
+        // (an Apple 5.1.1 problem in its own right) and a promise to score
+        // speech, which is the one thing this product refuses to do — so the
+        // denial is stated outright, where the user is deciding whether to
+        // grant it.
         "expo-speech-recognition",
         {
-          "microphonePermission": "SpeechWorks needs your microphone for awareness exercises.",
-          "speechRecognitionPermission": "SpeechWorks uses speech recognition to analyze speech patterns during exercises."
+          "microphonePermission": "Speechworks uses your microphone for recording practice and live calls.",
+          "speechRecognitionPermission": "Speechworks uses speech recognition to tell when you're speaking or paused. It doesn't score your speech."
         }
       ],
       [
         "react-native-vision-camera",
         {
-          cameraPermissionText: "SpeechWorks uses your camera for on-device body awareness exercises. No video is recorded or sent anywhere.",
+          // Same sentence as expo-image-picker's cameraPermission — see the
+          // note there. Three writers, one string.
+          cameraPermissionText:
+            "Speechworks uses your camera for on-device awareness exercises, and to take a profile photo. No video is recorded or sent.",
           enableCodeScanner: false,
         },
       ],
@@ -259,6 +366,20 @@ module.exports = {
         {
           android: {
             minSdkVersion: 26,
+            // Google Play blocks submissions below target 36 from 2026-08-31.
+            //
+            // Expo SDK 53 defaults to 35; these three overrides are what make
+            // the app compliant WITHOUT an SDK upgrade (54 = RN + Reanimated
+            // majors, 55 = expo-av removal across 11 audio files).
+            //
+            // Safe to raise ONLY because edge-to-edge was enabled and verified
+            // first, at target 35, on its own — Android ignores the
+            // `windowOptOutEdgeToEdgeEnforcement` attribute at 36, so bumping
+            // this before that work would have flipped the whole layout model
+            // in the same commit. See docs/android-16-target-sdk-plan.md.
+            compileSdkVersion: 36,
+            targetSdkVersion: 36,
+            buildToolsVersion: "36.0.0",
           },
           ios: {
             deploymentTarget: "16.4",

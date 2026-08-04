@@ -352,7 +352,7 @@ const FirstCallCard: React.FC = () => {
                 {scenario.callerName} still wants to call
               </Text>
               <Text variant="bodySm" color="secondary">
-                Whenever you're ready — it's waiting for you
+                Whenever you're ready. It's waiting for you
               </Text>
             </View>
             {/* A filled action, not a hairline chevron — the thin glyph is what
@@ -405,7 +405,7 @@ const FirstCallCard: React.FC = () => {
             {/* And the only thing anyone needs to know about it: they can just
                 pick up. No brief, no preparation, no score afterwards. */}
             <Text variant="body" color={ink}>
-              {scenario.callerDesignation}. Pick up when it rings — there's
+              {scenario.callerDesignation}. Pick up when it rings. There's
               nothing to prepare.
             </Text>
           </View>

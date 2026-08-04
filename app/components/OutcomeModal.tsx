@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
+import type { BottomSheetAction } from "../util/functions/bottomSheet";
 import {
   useTheme,
   spacing,
@@ -27,6 +28,8 @@ const OutcomeModal = () => {
   const [title, setTitle] = useState("");
   const [tag, setTag] = useState("");
   const [message, setMessage] = useState("");
+  const [primaryAction, setPrimaryAction] = useState<BottomSheetAction | undefined>(undefined);
+  const [dismissLabel, setDismissLabel] = useState("");
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -54,6 +57,8 @@ const OutcomeModal = () => {
         setTitle(nextTitle);
         setTag(nextTag);
         setMessage(nextMessage);
+        setPrimaryAction(event.detail?.primaryAction);
+        setDismissLabel(event.detail?.dismissLabel || "");
         setVisible(true);
         clear(event.name);
       }
@@ -82,7 +87,25 @@ const OutcomeModal = () => {
           <Text variant="bodySm" color="secondary" center>{message}</Text>
         ) : null}
         <View style={styles.action}>
-          <Button label="Got it" variant="primary" onPress={() => setVisible(false)} />
+          {primaryAction ? (
+            <>
+              <Button
+                label={primaryAction.label}
+                variant="primary"
+                onPress={() => {
+                  setVisible(false);
+                  primaryAction.onPress();
+                }}
+              />
+              <Button
+                label={dismissLabel || "Not now"}
+                variant="secondary"
+                onPress={() => setVisible(false)}
+              />
+            </>
+          ) : (
+            <Button label="Got it" variant="primary" onPress={() => setVisible(false)} />
+          )}
         </View>
       </View>
     </Sheet>
@@ -105,5 +128,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tag: { letterSpacing: 1 },
-  action: { width: "100%", marginTop: spacing.xs },
+  action: { width: "100%", marginTop: spacing.xs, gap: spacing.sm },
 });

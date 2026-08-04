@@ -1,4 +1,4 @@
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
@@ -19,7 +19,10 @@ import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
 import SignalCard from "../SignalCard";
-import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
+import { reportContent, type ReportReason } from "../../api/moderation";
+import { CRISIS_REPORT_REASON } from "../../constants/reportReasons";
+import ReportSheet from "../ReportSheet";
 
 interface TimelineProps {
   threadId: string;
@@ -44,7 +47,9 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   const [error, setError] = useState(false);
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [reportingId, setReportingId] = useState<string | null>(null);
   const myId = useUserStore((s) => s.user?.id);
+  const navigation = useNavigation<any>();
   const { colors } = useTheme();
   const reduced = useReducedMotion();
 
@@ -134,6 +139,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   };
 
   const handleDelete = (signalId: string) => setPendingDeleteId(signalId);
+  const openReport = (signalId: string) => setReportingId(signalId);
 
   const confirmDelete = async () => {
     const signalId = pendingDeleteId;
@@ -148,6 +154,40 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
     } catch (e) {
       setSignals(prev);
       showErrorBottomSheet("Couldn't delete", "Please try again.");
+    }
+  };
+
+  const handleReport = async (reason: ReportReason) => {
+    const signalId = reportingId;
+    setReportingId(null);
+    if (!signalId) return;
+
+    // Optimistic, and NOT rolled back on failure — deliberately unlike
+    // confirmDelete above. If the request fails the right outcome is still
+    // "you don't have to look at it"; putting an abusive card back on screen
+    // because a POST 500'd is the worst available failure mode.
+    setSignals((ss) => ss.filter((s) => s.id !== signalId));
+
+    if (reason === CRISIS_REPORT_REASON) {
+      // Reporting a friend's distress as "content" and getting "thanks, we'll
+      // review it" is the wrong response. Send them to the real resources.
+      navigation.navigate("Resources" as never);
+    }
+
+    try {
+      await reportContent({ targetType: "signal", signalId, reason });
+      track(ANALYTICS_EVENTS.CONTENT_REPORT_SENT, { target: "signal", reason });
+      if (reason !== CRISIS_REPORT_REASON) {
+        showSuccessBottomSheet(
+          "Report sent",
+          "Our team will review this within 24 hours. You can block and unpair from the Community tab.",
+        );
+      }
+    } catch {
+      showErrorBottomSheet(
+        "Report didn't send",
+        "We've hidden it on this device. Please try again, or contact support.",
+      );
     }
   };
 
@@ -182,7 +222,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
           <Text variant="h3" style={styles.emptyTitle}>Your wins and moments live here</Text>
           <Text variant="bodySm" color="secondary" style={styles.muted}>
             Finish a practice and tap <Text variant="bodySm" color="primary" style={styles.bold}>Share</Text>, or{" "}
-            <Text variant="bodySm" color="primary" style={styles.bold}>Share a moment</Text> to tell {who} how it's going — they'll
+            <Text variant="bodySm" color="primary" style={styles.bold}>Share a moment</Text> to tell {who} how it's going. They'll
             see it here and can cheer you on.
           </Text>
           {onStartPractice ? (
@@ -213,6 +253,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
             onReact={(type) => handleReact(signal.id, type)}
             onUnreact={() => handleUnreact(signal.id)}
             onDelete={() => handleDelete(signal.id)}
+            onReport={() => openReport(signal.id)}
             onReplyPrompt={(replyId) => handleReplyPrompt(signal.id, replyId)}
             replyPending={replyingId === signal.id}
             onReachOut={() => {
@@ -244,6 +285,14 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
         confirmLabel="Delete"
         destructive
         onConfirm={confirmDelete}
+      />
+
+      <ReportSheet
+        visible={reportingId !== null}
+        onClose={() => setReportingId(null)}
+        target="signal"
+        personName={buddyName}
+        onSubmit={handleReport}
       />
     </View>
   );

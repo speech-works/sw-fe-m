@@ -213,8 +213,22 @@ export const Sheet: React.FC<SheetProps> = ({
     </>
   );
 
+  // `statusBarTranslucent` below is REQUIRED, not cosmetic. Measured on Android
+  // 16: without it this dialog gets its own window that is NOT edge-to-edge
+  // (own insets t0 b0), while the `insets` used above come from the HOST window
+  // via React context and report the full nav bar (b48) — so the sheet would pad
+  // for a bar its own window already clears, double-padding every one of its ~40
+  // call sites. With it, the dialog window matches the host and the existing
+  // inset maths is correct. It also makes the backdrop cover the status bar
+  // instead of stopping short of it.
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

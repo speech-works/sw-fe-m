@@ -1,7 +1,9 @@
 import React from "react";
-import { Text, View, Linking } from "react-native";
+import { Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { makeStyles, useTheme } from "../../design-system";
+import { handleLinkPress } from "../../util/functions/externalLinks";
+import { toSafeExternalUrl } from "../../util/functions/url";
 
 export const SimpleMarkdown = ({
   content,
@@ -175,6 +177,20 @@ const parseLinksAndBold = (
     }
     const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
     if (linkMatch) {
+      // This markdown comes from the server (pack content), so the href is
+      // untrusted input. Everything else in the app routes through
+      // toSafeExternalUrl before opening; this call site was handing the raw
+      // captured group straight to Linking.openURL, which would happily launch
+      // a `javascript:` or `intent:` URL. If it isn't http/https, render the
+      // label as plain text rather than a link that silently does nothing.
+      const safeHref = toSafeExternalUrl(linkMatch[2]);
+      if (!safeHref) {
+        return (
+          <Text key={i} style={textColor ? { color: textColor } : {}}>
+            {linkMatch[1]}
+          </Text>
+        );
+      }
       return (
         <Text
           key={i}
@@ -182,7 +198,7 @@ const parseLinksAndBold = (
             color: linkColor,
             textDecorationLine: "underline",
           }}
-          onPress={() => Linking.openURL(linkMatch[2])}
+          onPress={() => handleLinkPress(safeHref)}
         >
           {linkMatch[1]}
         </Text>

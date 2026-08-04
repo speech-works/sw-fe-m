@@ -27,6 +27,7 @@ import {
   AnimatedNumber,
   duration,
   spring,
+  useNavBarInset,
   type IconName,
 } from "../../../../../design-system";
 import Reminder from "../Reminder";
@@ -79,6 +80,7 @@ const DonePractice = ({
   onAccentColor,
 }: DonePracticeProps) => {
   const { colors } = useTheme();
+  const navBarInset = useNavBarInset();
   const navigation = useNavigation<any>();
   /** Whether this screen is the one the user is looking at. The takeover is
    *  gated on it so a celebration can NEVER surface over another screen — the
@@ -119,6 +121,9 @@ const DonePractice = ({
    * variety of exercises", the wrong meaning, and this is the one screen where
    * a user meets the word for the first time.
    */
+  // Reads through a selector, so `earnedFor` MUST return a referentially stable
+  // array on both branches (see NO_AXES in the celebration store) — under
+  // zustand v5 a fresh `[]` here is an infinite re-render, not a wasted one.
   const earnedAxes = useCelebrationStore((s) => s.earnedFor(activityId));
   const shownAxis = VISIBLE_AXES.find((axis) => earnedAxes.includes(axis));
   /**
@@ -305,7 +310,11 @@ const DonePractice = ({
           Gated on reduced motion here: ConfettiAnimation does not self-gate. */}
       {!isAborted && !reduced && <ConfettiAnimation />}
 
-      <View style={styles.content}>
+      {/* This screen reads no insets of its own and centres its content in the
+          window. Under edge-to-edge the window grows by the nav bar, which would
+          drag the centred block down; pad it back so the composition sits where
+          it does today. 0 on iOS. */}
+      <View style={[styles.content, { paddingBottom: navBarInset }]}>
         {/* Status disc — green success on completion, a calm neutral disc when aborted. */}
         <Animated.View
           style={[

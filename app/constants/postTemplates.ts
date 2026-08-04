@@ -62,7 +62,7 @@ export const POST_TEMPLATES: PostTemplate[] = [
     icon: "card-text-outline",
     gradient: ["#A1A4AA", "#737780"],
     emphasizes: ["activityName"],
-    blurb: "Clean and simple — your words",
+    blurb: "Clean and simple, your words",
   },
 ];
 

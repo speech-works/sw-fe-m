@@ -22,7 +22,7 @@ export const readingTips = {
     "Respect line breaks and pauses that feel right for the tone. Poetry doesn’t always follow grammar rules.",
     "Gently elongate words that carry emotion or emphasis to improve expressiveness.",
     "Try choral reading. Read along with a recorded version to build confidence and internalize the flow.",
-    "Poems allow space to breathe. Take your time — each line is a moment to reset.",
+    "Poems allow space to breathe. Take your time. Each line is a moment to reset.",
   ],
   quote: [
     "Read with intention.Understand the meaning before you speak. Let it guide your tone and delivery",

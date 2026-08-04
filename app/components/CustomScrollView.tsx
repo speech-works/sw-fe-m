@@ -142,9 +142,17 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     });
 
     const bottomButtonStyle = useAnimatedStyle(() => {
-      // If we haven't measured yet, hide
+      // If we haven't measured yet, hide.
+      //
+      // `transform` MUST be present here even though the button is invisible.
+      // Reanimated snapshots the shape of the FIRST style this worklet returns
+      // and then merges later ones into it — so returning `{ opacity }` alone
+      // on the pre-measurement pass left `last.transform` undefined, and the
+      // first post-measurement pass crashed with "Cannot set property 'scale'
+      // of undefined". It fired on any scroll of a CustomScrollView (seen on
+      // the paywall), and the hook runs even when `showScrollButtons` is false.
       if (contentHeight.value === 0 || layoutHeight.value === 0) {
-        return { opacity: 0 };
+        return { opacity: 0, transform: [{ scale: 0.8 }] };
       }
       const isScrollableDown =
         scrollY.value + layoutHeight.value < contentHeight.value - 20; // 20px buffer

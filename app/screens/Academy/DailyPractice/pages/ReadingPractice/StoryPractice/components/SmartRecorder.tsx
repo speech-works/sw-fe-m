@@ -333,7 +333,13 @@ const SmartRecorder: React.FC<Props> = ({
 const useStyles = makeStyles((c, t) => ({
   container: {
     marginHorizontal: space.screenX,
-    marginBottom: 34, // Safe area margin
+    // A plain visual gap, NOT a safe-area value (it was mislabelled as one).
+    // The nav-bar inset is owned by whichever container anchors this dock to the
+    // window — ReadingStage/PracticePage `deckFloat`, ChatSession `dockFloat` —
+    // because this component also renders inside a <Sheet> (MoodCheck's
+    // ExpressYourself), which already pads its own bottom. Adding it here too
+    // would double-pad that one.
+    marginBottom: 34,
   },
   dock: {
     flexDirection: "row",

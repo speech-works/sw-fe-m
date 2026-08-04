@@ -268,7 +268,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         <View style={styles.emptyState}>
           <Icon name={icons.weekly} size={36} color={colors.text.secondary} />
           <Text variant="bodySm" color="secondary" center style={styles.emptyText}>
-            No practice yet this week — start today to build your rhythm.
+            No practice yet this week. Start today to build your rhythm.
           </Text>
         </View>
       ) : (

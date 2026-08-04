@@ -83,6 +83,29 @@ export async function handleOAuthCallback(code: string) {
   }
 }
 
+export interface AppleSignInPayload {
+  identityToken: string;
+  /** The RAW nonce. We hashed it before handing it to Apple; the server needs the raw one. */
+  nonce: string;
+  /** Apple returns this ONLY on the first-ever authorization for this Apple ID. */
+  fullName?: string;
+}
+
+/**
+ * Native Sign in with Apple. No redirect, no polling — the device already
+ * authorized, and this exchanges the resulting identity token for our session.
+ *
+ * Deliberately does NOT log its payload: identityToken is a bearer credential.
+ */
+export async function signInWithApple(payload: AppleSignInPayload) {
+  const res = await axiosClient.post("/auth/apple", payload);
+  return res.data as {
+    user: { id: string; email: string; name: string };
+    appJwt: string;
+    refreshToken: string;
+  };
+}
+
 // refresh token
 interface RefreshTokenProps {
   refreshToken: string;

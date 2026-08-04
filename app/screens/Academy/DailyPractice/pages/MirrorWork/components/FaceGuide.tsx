@@ -98,7 +98,7 @@ function computeAlignment(
 // "the face is to the right in the oval" means the user needs to move LEFT.
 function getHint(r: AlignmentResult): string {
   switch (r.alignment) {
-    case 'ok':      return 'Looking good — hold steady';
+    case 'ok':      return 'Looking good. Hold steady';
     case 'no-face': return 'Look straight at the camera';
     default: {
       // Size cues take priority — clearest signal.

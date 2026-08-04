@@ -143,7 +143,7 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       },
       {
         title: "Your reading session awaits",
-        body: "Stories, poems, or quotes — pick one and start.",
+        body: "Stories, poems, or quotes. Pick one and start.",
       },
       {
         title: "Give your voice some range",
@@ -231,7 +231,7 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       },
       {
         title: "A minute for your mind",
-        body: "Log how you're feeling — it's a small act of self-awareness.",
+        body: "Log how you're feeling. A small act of self-awareness.",
       },
       {
         title: "Your feelings matter",

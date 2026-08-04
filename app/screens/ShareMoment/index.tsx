@@ -24,6 +24,7 @@ import {
   TextLink,
   Sheet,
   ConnectedAvatarRow,
+  useNavBarInset,
 } from "../../design-system";
 import { createMomentSignal, MomentId, MomentValence } from "../../api/threads";
 import { getMoment, momentsByValence } from "../../constants/momentMessages";
@@ -38,6 +39,7 @@ const ShareMomentScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
   const { colors } = useTheme();
 
   const threadId = route.params?.threadId ?? "";
@@ -186,7 +188,7 @@ const ShareMomentScreen = () => {
             <Text variant="h2" color={onFill} center>You don&apos;t have to carry this alone</Text>
             <Text variant="title" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
             <Text variant="bodySm" color={onFill} center>
-              Support is here — free and confidential, 24/7.
+              Support is here. Free and confidential, 24/7.
             </Text>
 
             {/* Care actions only: 988 the single solid island, resources an outline pill. */}
@@ -217,7 +219,7 @@ const ShareMomentScreen = () => {
           {/* One Share island; 988 stays a tap away as a still-here outline. */}
           <View style={[styles.actionGroup, styles.actionGroupTop]}>
             <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
-            <Button label="Still here — call or text 988" variant="outline" size="md" leftIcon="phone" onColor={onFill} onPress={call988} />
+            <Button label="Still here. Call or text 988" variant="outline" size="md" leftIcon="phone" onColor={onFill} onPress={call988} />
           </View>
 
           <TextLink label="← Back to support" color={onFill} onPress={() => setSensitiveStep("support")} />
@@ -237,7 +239,7 @@ const ShareMomentScreen = () => {
         <Text variant="h1" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
         <Text variant="bodySm" color={onFill} center>
           {isStruggle
-            ? `Showing up honestly is the brave part — ${buddyFirstName} can be there for you.`
+            ? `Showing up honestly is the brave part. ${buddyFirstName} can be there for you.`
             : `${buddyFirstName} will see this and can cheer you on.`}
         </Text>
 
@@ -260,7 +262,7 @@ const ShareMomentScreen = () => {
       {/* Canonical header (shared with every page) */}
       <PageHeader
         title="Share a moment"
-        description={`Let ${buddyFirstName} know how it's really going — the hard ones count too.`}
+        description={`Let ${buddyFirstName} know how it's really going. The hard ones count too.`}
         onBack={handleDismiss}
         standalone
       />
@@ -280,14 +282,14 @@ const ShareMomentScreen = () => {
       >
         <ScrollView
           style={{ width: screenWidth }}
-          contentContainerStyle={styles.pageContent}
+          contentContainerStyle={[styles.pageContent, { paddingBottom: 130 + navBarInset }]}
           showsVerticalScrollIndicator={false}
         >
           {renderGroup("win")}
         </ScrollView>
         <ScrollView
           style={{ width: screenWidth }}
-          contentContainerStyle={styles.pageContent}
+          contentContainerStyle={[styles.pageContent, { paddingBottom: 130 + navBarInset }]}
           showsVerticalScrollIndicator={false}
         >
           {renderGroup("struggle")}

@@ -712,8 +712,8 @@ const Breathing = () => {
             Breathing Library
           </Text>
           <Text variant="body" color="secondary" style={styles.librarySubtitle}>
-            Different breaths for different moments. Each one settles your body —
-            none of them are about your speech.
+            Different breaths for different moments. Each one settles your body.
+            None of them are about your speech.
           </Text>
         </View>
 

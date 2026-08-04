@@ -67,8 +67,11 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
             <Text variant="h2" color={ink} style={styles.title}>
               Video Tutorials
             </Text>
+            {/* Not "Master speech techniques" — mastery framing makes speech a
+                thing to be conquered, which is the framing this product exists
+                to avoid. "Curated collection" was filler on top. */}
             <Text variant="body" color={ink}>
-              Master speech techniques with our curated video collection.
+              Short videos on each technique, whenever you need one.
             </Text>
           </View>
 

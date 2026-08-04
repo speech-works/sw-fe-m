@@ -118,7 +118,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
         >
           <Icon name={icons.tip} size={16} color={colors.text.secondary} />
           <Text variant="bodySm" color="secondary" style={styles.flex1}>
-            This fills in as you practise. Nothing to set up.
+            This fills in as you practice. Nothing to set up.
           </Text>
         </View>
       ) : null}

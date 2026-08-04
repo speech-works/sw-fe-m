@@ -74,7 +74,18 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, {
   [MirrorBehaviorSignal.FACIAL_GRIMACING]: {
     line1: 'There is some struggle in your facial muscles.',
     line1Soft: 'You may have strained a little there.',
-    line2: "Take a breath. The word is yours — it'll come.",
+    // Was "Take a breath. The word is yours — it'll come."
+    //
+    // The breath cue was not the problem; the promise was. "It'll come" tells
+    // someone mid-block how their speech is about to turn out, which is the one
+    // thing we never claim, and it lands at the worst possible moment: on a
+    // person who is blocking, looking at their own face. The other cues in this
+    // file are fine because each names a specific muscle in response to a
+    // specific detected signal. This one predicted an outcome instead.
+    //
+    // Permission, not prediction — matching the two best lines here
+    // ("It's okay." / "Come back when you're ready.").
+    line2: "That effort is normal. You don't have to hide it.",
   },
   [MirrorBehaviorSignal.CHEEK_PUFFING]: {
     line1: 'You filled your cheeks with air.',
@@ -98,7 +109,8 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, {
   },
   [MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE]: {
     line1: 'A lot is happening in your face right now.',
-    line2: "Take a breath. The word is yours — it'll come.",
+    // Same change as FACIAL_GRIMACING above, same reason.
+    line2: 'You can let some of it go, or carry on as you are.',
   },
 };
 

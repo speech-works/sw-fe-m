@@ -812,7 +812,7 @@ const PackModuleScreen = () => {
             feel bad. "Not right now" is explicitly NOT counted against them.
           */}
           <Text variant="body" color="secondary" center>
-            No problem — it just helps to know why, so your progress reflects
+            No problem. It just helps to know why, so your progress reflects
             what actually happened.
           </Text>
 

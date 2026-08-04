@@ -32,6 +32,7 @@ import {
   floatingControlSurface,
   FLOATING_CONTROL_SIZE,
   IconButton,
+  useNavBarInset,
 } from "../../../../../../design-system";
 import { FocusConfig, FocusControl } from "./FocusControl";
 import FocusLamp from "../../../components/FocusLamp";
@@ -102,6 +103,7 @@ export function ReadingStage({
   const { colors } = useTheme();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
   const reduceMotion = useReducedMotion();
   const accentColor = accent ?? colors.accent.info;
   // The pager chevrons are colored foreground on the elevated pager surface —
@@ -294,7 +296,11 @@ export function ReadingStage({
       </View>
 
       {/* FIXED control stack + dock — measured; every control here is solid + never moves. */}
-      <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
+      <View
+        style={[styles.deckFloat, { paddingBottom: navBarInset }]}
+        pointerEvents="box-none"
+        onLayout={onDeckLayout}
+      >
         {renderControls()}
         {dock}
       </View>
@@ -367,6 +373,11 @@ const useStyles = makeStyles((c) => ({
     // Above the lamp layer so the controls + dock never get dimmed.
     zIndex: zIndex.sticky + 2,
   },
+  // NOTE: the nav-bar inset for this cluster is applied inline at the usage site
+  // (`deckFloat` + paddingBottom), not here — it is a runtime value. It lives on
+  // THIS container, which is what anchors the cluster to the window, rather than
+  // on the dock/controls inside it, because those same components also render
+  // inside a <Sheet> that pads its own bottom.
   // The floating control stack, right-aligned above the dock (gutter + gap).
   deckStack: {
     alignSelf: "stretch",

@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MirrorWorkFeedbackModal } from './components/MirrorWorkFeedbackModal';
 import { FaceRegion } from './types';
+import { NOT_A_DIAGNOSIS } from './copy';
 import { completeMirrorWorkActivity, getMirrorWorkComparison } from '../../../../../api/practiceActivities';
 import { useUserStore } from '../../../../../stores/user';
 import { useRegisterNativeModal } from '../../../../../stores/nativeModal';
@@ -142,8 +143,8 @@ export const SummaryScreen: React.FC = () => {
             tier: 'A',
             text: 'Your session is saved. Nothing else to flag this time.',
           }],
-          encouragement: 'Noticing is the whole game — and you showed up today.',
-          caveat: "None of this is a diagnosis. It's a mirror with a memory — and noticing is the start of change.",
+          encouragement: 'Noticing is the whole game, and you showed up today.',
+          caveat: NOT_A_DIAGNOSIS,
         });
       }
     })();
@@ -323,7 +324,7 @@ export const SummaryScreen: React.FC = () => {
         <Text variant="bodySm" color="#9CA3AF" style={styles.footnote}>
           {reflection
             ? reflection.caveat
-            : "None of this is a diagnosis. It's a mirror with a memory — and noticing is the start of change."}
+            : NOT_A_DIAGNOSIS}
         </Text>
 
         <TouchableOpacity

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
-import { Gradient, makeStyles, spacing, zIndex } from "../../../../../design-system";
+import { Gradient, makeStyles, spacing, useNavBarInset, zIndex } from "../../../../../design-system";
 import { ChatThread } from "./ChatThread";
 import { InputDock } from "./InputDock";
 import type { ChatSessionOption, ChatSessionProps } from "./types";
@@ -33,6 +33,7 @@ export default function ChatSession<O extends ChatSessionOption>({
 }: ChatSessionProps<O>) {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
 
   const [armedOptionId, setArmedOptionId] = useState<string | null>(null);
   const [turnRecordingUri, setTurnRecordingUri] = useState<string | null>(null);
@@ -73,7 +74,9 @@ export default function ChatSession<O extends ChatSessionOption>({
         options={options}
         armedOptionId={armedOptionId}
         onArm={handleArm}
-        bottomPadding={DOCK_RESERVE}
+        // The dock cluster below is lifted by the nav bar under edge-to-edge
+        // (see `dockFloat`), so the list's reserve has to follow it. 0 on iOS.
+        bottomPadding={DOCK_RESERVE + navBarInset}
         accentColor={accentColor}
         onAccentColor={onAccentColor}
       />
@@ -85,7 +88,10 @@ export default function ChatSession<O extends ChatSessionOption>({
       </View>
 
       {/* Floating dock — absolute over the thread; conversation scrolls behind it. */}
-      <View style={styles.dockFloat} pointerEvents="box-none">
+      <View
+        style={[styles.dockFloat, { paddingBottom: navBarInset }]}
+        pointerEvents="box-none"
+      >
         <InputDock
           hasOptions={hasOptions}
           isEnded={isEnded}

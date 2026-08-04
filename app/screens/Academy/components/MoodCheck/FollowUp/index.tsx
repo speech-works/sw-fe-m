@@ -131,7 +131,7 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
 const moodContentMap = {
   [MoodType.HAPPY]: {
     title: "What’s been making you smile today?",
-    desc: "Celebrating wins—big or small—boosts confidence. Share your joy.",
+    desc: "Celebrating wins, big or small, builds confidence. Share yours.",
     FaceComponent: HappyFace,
     accentKey: "warning" as AccentKey,
   },
@@ -149,7 +149,7 @@ const moodContentMap = {
   },
   [MoodType.CALM]: {
     title: "Feeling peaceful right now?",
-    desc: "Capture this calm—it’ll be your anchor when things get hectic.",
+    desc: "Capture this calm. It’ll be your anchor when things get hectic.",
     FaceComponent: CalmFace,
     accentKey: "success" as AccentKey,
   },

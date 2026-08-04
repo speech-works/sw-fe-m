@@ -33,6 +33,7 @@ import {
   FloatingControlItem,
   floatingControlSurface,
   FLOATING_CONTROL_SIZE,
+  useNavBarInset,
 } from "../../../../../design-system";
 
 interface PracticePageProps {
@@ -71,6 +72,7 @@ const PracticePage = ({
   outerScrollY,
 }: PracticePageProps) => {
   const { colors } = useTheme();
+  const navBarInset = useNavBarInset();
   // Data State
   const [mode, setMode] = useState<PracticeMode>("READ_ALOUD");
   const [reflectionPrompt, setReflectionPrompt] = useState<string>("");
@@ -334,7 +336,7 @@ const PracticePage = ({
               </Text>
             </View>
             <Text variant="bodySm" color="secondary" style={styles.reflectionHint}>
-              Nothing to record — this one is just for you.
+              Nothing to record. This one is just for you.
             </Text>
           </View>
         </Animated.ScrollView>
@@ -464,7 +466,11 @@ const PracticePage = ({
       </Animated.ScrollView>
 
       {/* FIXED control stack + dock — measured; nothing here ever moves. */}
-      <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
+      <View
+        style={[styles.deckFloat, { paddingBottom: navBarInset }]}
+        pointerEvents="box-none"
+        onLayout={onDeckLayout}
+      >
         <FloatingControls inline items={controls} style={styles.deckStack} />
         <SmartRecorder
           onRecorded={setVoiceRecordingUri}

@@ -196,7 +196,7 @@ const RingingScreen: React.FC<Props> = ({
 
       {/* Said before they decide, not after they flinch. */}
       <Text variant="bodySm" color="tertiary" center style={styles.footnote}>
-        Declining costs you nothing — the call stays waiting.
+        Declining costs you nothing. The call stays waiting.
       </Text>
     </View>
   );

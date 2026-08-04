@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, TextInput, View } from "react-native";
 
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
@@ -15,6 +15,7 @@ import {
   radius,
   size,
   gradients,
+  duration,
   Sheet,
   Text,
   Icon,
@@ -83,6 +84,7 @@ const ExpressYourself = ({
     useRecordedVoice(user?.id);
   const [writtenText, setWrittenText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const writeInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!expressionType) {
@@ -91,6 +93,18 @@ const ExpressYourself = ({
       resetRecording();
     }
   }, [expressionType, resetRecording]);
+
+  // Writing is the whole point of this sheet, so open it ready to type. The sheet is a
+  // native Modal: focusing while it is still presenting is a no-op (the window isn't
+  // focused yet), so wait out the enter animation before asking for the keyboard.
+  useEffect(() => {
+    if (expressionType !== EXPRESSION_TYPE_ENUM.WRITE) return;
+    const t = setTimeout(
+      () => writeInputRef.current?.focus(),
+      duration.sheetIn + 60,
+    );
+    return () => clearTimeout(t);
+  }, [expressionType]);
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
@@ -204,6 +218,7 @@ const ExpressYourself = ({
             pointerEvents={isSubmitting ? "none" : "auto"}
           >
             <TextField
+              ref={writeInputRef}
               multiline
               numberOfLines={6}
               placeholder="Start writing here..."

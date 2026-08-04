@@ -13,7 +13,7 @@ import ErrorFallback from "./app/components/ErrorFallback";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
 import FontLoader from "./app/util/components/FontLoader";
-import { ThemeProvider, useTheme } from "./app/design-system";
+import { SchemeSystemBars, ThemeProvider, useTheme } from "./app/design-system";
 import { DevPreview } from "./app/design-system/_DevPreview";
 import { runSchemeAudit } from "./app/design-system/utils/schemeAudit";
 import { noteScreen } from "./app/util/diagnostics/deadTap";
@@ -324,7 +324,17 @@ const App: React.FC = () => {
 
   return (
     <Sentry.ErrorBoundary
-      fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}
+      fallback={({ resetError, error, componentStack }) => (
+        // `error`/`componentStack` are forwarded so the fallback can show what
+        // broke in dev builds — the boundary is at the ROOT, so without them a
+        // report of this screen names no suspect and "Try again" has already
+        // remounted the tree and lost the state that would.
+        <ErrorFallback
+          resetError={resetError}
+          error={error}
+          componentStack={componentStack}
+        />
+      )}
     >
       <PostHogProvider client={posthogClient} autocapture={false}>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -335,6 +345,11 @@ const App: React.FC = () => {
               edges={["left", "right"]}
             >
               <ThemeProvider>
+                {/* Window-level, so it lives here rather than per-screen: keeps
+                    the nav-bar icons legible against our own canvas, following
+                    the in-app Light/Dark preference instead of the OS night
+                    mode. Outside FontLoader so it applies during the gate too. */}
+                <SchemeSystemBars />
                 {/* WRAPS the tree — it used to sit beside it, which let every
                     screen lay out against the fallback font and then keep those
                     measurements once Inter swapped in (clipped chips, sliced

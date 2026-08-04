@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { PAYMENTS_ENABLED } from "../constants/features";
+import { purchasesAvailable } from "../services/purchases";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { useUserStore } from "../stores/user";
@@ -24,11 +24,11 @@ import OutOfStaminaModal from "./OutOfStaminaModal";
 function buildMessage(user: User | null): string {
   const { isFull, msUntilFull } = estimateStaminaRecharge(user, Date.now());
   if (!isFull && msUntilFull > 0) {
-    return `You've used up your energy for now. It refills over time — you'll be topped up in about ${formatRechargeDuration(
+    return `You've used up your energy for now. It refills over time. You'll be topped up in about ${formatRechargeDuration(
       msUntilFull,
-    )}. Rest your voice and come back stronger.`;
+    )}.`;
   }
-  return "You've used up your energy for now. It refills over time — rest your voice and check back in a little while.";
+  return "You've used up your energy for now. It refills over time. Check back in a little while.";
 }
 
 /**
@@ -49,18 +49,21 @@ function buildMessage(user: User | null): string {
 const OutOfStaminaController: React.FC = () => {
   // The guard now sits below the hooks (mirrors UpsellModal, which got the same
   // treatment). Note the condition is INVERTED relative to UpsellModal: exactly
-  // one of the two consumes the event, and this one owns it while billing is
-  // off. `PAYMENTS_ENABLED` is read at runtime from `Constants.expoConfig.extra`
-  // — fixed for the process lifetime, so the old top-of-component guard was
-  // safe in practice, but not "compile-time" as the previous note claimed.
+  // one of the two consumes the event, and this one owns it while we cannot
+  // sell. The predicate is `purchasesAvailable()` — the flag AND a RevenueCat
+  // key for this platform — so on a build with no iOS key this controller
+  // correctly keeps ownership instead of both components going silent. Both
+  // inputs are read at runtime from `Constants.expoConfig.extra` and fixed for
+  // the process lifetime, so the old top-of-component guard was safe in
+  // practice, but not "compile-time" as a previous note claimed.
   const { events, clear } = useEventStore();
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Stays inert when billing ships — UpsellModal takes the event over, and
-    // both must never consume it at once.
-    if (PAYMENTS_ENABLED) return;
+    // Stays inert once we can actually sell — UpsellModal takes the event
+    // over, and both must never consume it at once.
+    if (purchasesAvailable()) return;
     if (!events || events.length === 0) return;
 
     const hit = events.find(
@@ -78,7 +81,7 @@ const OutOfStaminaController: React.FC = () => {
   }, [events, clear]);
 
   // EVERY hook must stay above this line.
-  if (PAYMENTS_ENABLED) return null;
+  if (purchasesAvailable()) return null;
 
   return (
     <OutOfStaminaModal

@@ -29,6 +29,7 @@ import {
   PageHeader,
   icons,
   type IconName,
+  useNavBarInset,
 } from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
@@ -59,6 +60,7 @@ const ProgressDetail = () => {
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const route = useRoute<ExploreStackRouteProp<"ProgressDetail">>();
   const insets = useSafeAreaInsets();
+  const navBarInset = useNavBarInset();
   const scrollRef = useRef<ScrollView>(null);
   const horizontalScrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
@@ -327,7 +329,12 @@ const ProgressDetail = () => {
       >
         <View style={{ width: screenWidth }}>
           <ScrollView
-            contentContainerStyle={[styles.scrollView, { paddingTop: insets.top + space.inlineGap }]}
+            contentContainerStyle={[
+              styles.scrollView,
+              // Clearance follows the in-page dock, which edge-to-edge moves up by the
+              // nav bar. 0 on iOS.
+              { paddingTop: insets.top + space.inlineGap, paddingBottom: 140 + navBarInset },
+            ]}
             showsVerticalScrollIndicator={false}
             refreshControl={refreshControl}
           >
@@ -338,7 +345,12 @@ const ProgressDetail = () => {
         <View style={{ width: screenWidth }}>
           <ScrollView
             ref={scrollRef}
-            contentContainerStyle={[styles.scrollView, { paddingTop: insets.top + space.inlineGap }]}
+            contentContainerStyle={[
+              styles.scrollView,
+              // Clearance follows the in-page dock, which edge-to-edge moves up by the
+              // nav bar. 0 on iOS.
+              { paddingTop: insets.top + space.inlineGap, paddingBottom: 140 + navBarInset },
+            ]}
             showsVerticalScrollIndicator={false}
             refreshControl={refreshControl}
           >

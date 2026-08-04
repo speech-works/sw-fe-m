@@ -23,6 +23,7 @@ import {
   Toast,
   Dialog,
   useTheme,
+  useNavBarInset,
   spacing,
   space,
   icons,
@@ -54,6 +55,8 @@ const SLOT_TABS: { key: SlotTab; label: string; icon: string }[] = [
 ];
 
 const TOAST_MS = 2600;
+/** Resting gap above the pinned Save footer; the nav-bar inset is added on top. */
+const TOAST_BOTTOM = 120;
 
 /**
  * The Avatar Studio — where the user builds the character they own. Free
@@ -65,6 +68,7 @@ const TOAST_MS = 2600;
 const AvatarStudio = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const navBarInset = useNavBarInset();
   const { user, setUser } = useUserStore();
   const { draft, loadFromUser, setPart, setColor, isDirty, clear } =
     useAvatarDraftStore();
@@ -152,7 +156,7 @@ const AvatarStudio = () => {
     } catch (error) {
       console.error("Avatar save failed:", error);
       // The draft is persisted — the user's labor survives the failure.
-      showToast("Couldn't save — your changes are kept", icons.warning);
+      showToast("Couldn't save. Your changes are kept", icons.warning);
     } finally {
       setSaving(false);
     }
@@ -164,7 +168,7 @@ const AvatarStudio = () => {
     <>
       <Page
         title="Your Avatar"
-        description={`${STAGE_NAMES[stage]} gear unlocked so far — practice to earn the rest.`}
+        description={`${STAGE_NAMES[stage]} gear unlocked so far. Practice to earn the rest.`}
         onBack={() => navigation.goBack()}
         footer={
           <Button
@@ -363,7 +367,16 @@ const AvatarStudio = () => {
 
       {/* Inline result toast (EditProfile precedent — never the global modal). */}
       {toast ? (
-        <View style={styles.toastWrap} pointerEvents="none">
+        // Rendered OUTSIDE <Page>, so it is anchored to the window, not to the
+        // page body — and its offset is a fixed 120 rather than an inset-aware
+        // one. Under edge-to-edge the Page's pinned Save footer rose by the nav
+        // bar height while this did not, so on Android the toast landed on top
+        // of the Save button. useNavBarInset() restores the original gap and is
+        // 0 on iOS, which is untouched. See design-system/useNavBarInset.ts.
+        <View
+          style={[styles.toastWrap, { bottom: TOAST_BOTTOM + navBarInset }]}
+          pointerEvents="none"
+        >
           <Toast
             message={toast.message}
             icon={(toast.icon as any) ?? undefined}
@@ -416,7 +429,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 120, // floats above the pinned Save footer
+    // `bottom` is applied inline — it needs the Android nav-bar inset added.
     alignItems: "center",
   },
 });

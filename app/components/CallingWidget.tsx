@@ -103,7 +103,13 @@ type Props = {
 const DEFAULT_SAMPLE_RATE = 24000;
 
 /** The container's bottom padding — shared so the floating suggestions panel
- *  and the dock can never disagree about where the bottom of the screen is. */
+ *  and the dock can never disagree about where the bottom of the screen is.
+ *
+ *  A plain visual offset, NOT a safe-area value. This widget renders in two
+ *  contexts with different owners: FirstCall wraps it in `<Screen
+ *  edges={["top","bottom"]}>`, which already applies the bottom inset, while
+ *  PhoneCall's `mainContent` applies it itself. Adding a nav-bar inset here as
+ *  well would double-pad the FirstCall case. */
 const DOCK_BOTTOM_INSET = 40;
 const CALL_DEBUG_LOGS_ENABLED = __DEV__;
 
@@ -3277,7 +3283,7 @@ const CallingWidget: React.FC<Props> = ({
                 takeYourTime && styles.glassControlBtnActive,
               ]}
               onPress={toggleTakeYourTime}
-              accessibilityLabel="Take your time — silence won't end the call"
+              accessibilityLabel="Take your time. Silence won't end the call"
             >
               {/* Breathes until it has been pressed once, ever. This is the
                   entire hint: no label, no dot, no coach-mark — the screen at
@@ -3299,7 +3305,7 @@ const CallingWidget: React.FC<Props> = ({
             <TouchableOpacity
               style={styles.glassControlBtn}
               onPress={sendEndOfTurn}
-              accessibilityLabel="I'm done — hand the turn back"
+              accessibilityLabel="I'm done. Hand the turn back"
             >
               <Icon name="check" size={22} color={colors.text.primary} />
             </TouchableOpacity>

@@ -112,7 +112,7 @@ const HeadphoneGate: React.FC<Props> = ({ callerName, onReady, onDefer }) => {
           <Animated.View entering={motion.stagger(2)}>
             {/* Ours to fix, said as ours. Never "your setup won't work". */}
             <Text variant="h3" color="secondary">
-              Calls need headphones for now — we&apos;re still working on that.
+              Calls need headphones for now. We&apos;re still working on that.
             </Text>
           </Animated.View>
 

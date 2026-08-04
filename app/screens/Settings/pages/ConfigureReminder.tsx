@@ -145,7 +145,7 @@ export default function ConfigureReminder() {
       setPromptConfig({
         title: "Notifications are off",
         message:
-          "Turn them on for SpeechWorks in your device settings, then come back to set this reminder.",
+          "Turn on notifications for Speechworks in your device settings.",
         primaryLabel: "Open Settings",
         primaryAction: () => {
           void Linking.openSettings();

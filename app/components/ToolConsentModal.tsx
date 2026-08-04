@@ -31,7 +31,7 @@ const CONSENT_COPY: Partial<Record<ToolType, ToolConsentCopy>> = {
     title: "About Delayed Auditory Feedback (DAF)",
     body:
       "DAF can make speech feel smoother by playing back your voice with a slight delay. Many people find it helpful in practice sessions.\n\n" +
-      "Research shows DAF works best as a companion to other techniques — not as a standalone solution. Its effect can diminish with extended use.\n\n" +
+      "Research shows DAF works best as a companion to other techniques, not as a standalone solution. Its effect can diminish with extended use.\n\n" +
       "It's always okay to practice without it. Your voice is enough.",
   },
   [ToolType.CHORUS]: {
@@ -39,7 +39,7 @@ const CONSENT_COPY: Partial<Record<ToolType, ToolConsentCopy>> = {
     title: "About the Guide",
     body:
       "The Guide plays a gentle second voice alongside yours, which can make speech feel smoother. Many people find it helpful in practice.\n\n" +
-      "Like other fluency aids, it works best as a companion to other techniques — not on its own — and its effect can fade with heavy use.\n\n" +
+      "Like other fluency aids, it works best alongside other techniques rather than on its own. The effect can fade with heavy use.\n\n" +
       "It's always okay to practice without it. Your voice is enough.",
   },
 };
@@ -82,7 +82,7 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
 
         <View style={styles.buttons}>
           <Button
-            label="Got it — let's go"
+            label="Got it, let's go"
             onPress={onAcknowledge}
             accentColor={accentColor}
             onAccentColor={onAccentColor}

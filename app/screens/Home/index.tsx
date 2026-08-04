@@ -151,7 +151,7 @@ const Home = () => {
         // OutcomeModal is mounted and works.
         showSuccessBottomSheet(
           "Level adjusted",
-          "Your level settled after a sync — every practice grows it again.",
+          "Your level settled after a sync. Every practice grows it again.",
         );
       }
 

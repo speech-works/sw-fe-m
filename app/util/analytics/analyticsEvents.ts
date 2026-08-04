@@ -108,6 +108,12 @@ export const ANALYTICS_EVENTS = {
     BUDDY_SUPPORT_GUIDE_VIEWED: 'buddy_support_guide_viewed',
     BUDDY_SUPPORT_SELF_RESOURCE_TAPPED: 'buddy_support_self_resource_tapped', // props: { resource: '988' | 'resources' }
 
+    // ── Moderation (App Store Guideline 1.2) ──
+    // Volume here is a safety signal, not a growth one: a rising report rate on
+    // one reason is the thing worth waking up for.
+    CONTENT_REPORT_SENT: 'content_report_sent',               // props: { target: 'signal' | 'user', reason }
+    BUDDY_BLOCKED: 'buddy_blocked',                           // props: { reason }
+
     // ── The once-in-a-lifetime first call ──
     // A funnel, not a counter: each user appears at most once at each step, so
     // the drop between any two steps IS the conversion rate for that step. The
