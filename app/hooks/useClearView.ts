@@ -43,7 +43,7 @@ import { useSystemDialogStore } from "../stores/systemDialog";
  * animation on the card that sells is the least important thing competing for
  * that moment, so it goes last and takes what is left.
  */
-export const CLEAR_VIEW_QUIET_MS = 60000; // TEMP for testing — restore to 1400
+export const CLEAR_VIEW_QUIET_MS = 1400;
 
 export function useClearView(quietMs: number = CLEAR_VIEW_QUIET_MS): boolean {
   const isFocused = useIsFocused();

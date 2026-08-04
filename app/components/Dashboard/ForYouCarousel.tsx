@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   LayoutChangeEvent,
   StyleProp,
@@ -362,26 +361,6 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     slideIndex === 0 &&
     (!page || hasQualified) &&
     clearView;
-
-  // TEMP DIAGNOSTIC — remove before commit.
-  useEffect(() => {
-    if (!__DEV__) return;
-    void AsyncStorage.setItem(
-      "__SLAM_DEBUG__",
-      JSON.stringify({
-        topMatchKey,
-        stampEligible,
-        reduced: m.reduced,
-        shelfWidth,
-        slideIndex,
-        hasPage: !!page,
-        hasQualified,
-        clearView,
-        canStartSlam,
-        impactVisible,
-      }),
-    );
-  });
 
   useEffect(() => {
     if (!hasTopMatch) {
