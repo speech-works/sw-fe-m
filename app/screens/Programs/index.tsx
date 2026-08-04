@@ -455,7 +455,7 @@ const ProgramsScreen = () => {
           <View
             style={[styles.tierChip, { backgroundColor: colors.accent.purple }]}
           >
-            <Icon name="target" size={13} color={colors.accentOn.purple} />
+            <Icon name={icons.pro} size={13} color={colors.accentOn.purple} />
             <Text variant="label" color={colors.accentOn.purple}>
               {programShelfLabel(item).toUpperCase()}
             </Text>
@@ -715,7 +715,7 @@ type TierFilter = "all" | "regular" | "deep";
 const TIER_FILTERS: { value: TierFilter; label: string; icon: IconName }[] = [
   { value: "all", label: "All", icon: "layout-grid" },
   { value: "regular", label: shelfLabel("regular"), icon: "layers" },
-  { value: "deep", label: shelfLabel("deep"), icon: "target" },
+  { value: "deep", label: shelfLabel("deep"), icon: icons.pro },
 ];
 
 /**
