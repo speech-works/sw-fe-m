@@ -10,6 +10,8 @@ import {
   Page,
   Text,
   Icon,
+  Chip,
+  type IconName,
   icons,
   useTheme,
   spacing,
@@ -24,6 +26,7 @@ import RecHeroCard, { CTA_ICON } from "../../components/Dashboard/RecHeroCard";
 import {
   programEyebrow,
   programShelfLabel,
+  shelfLabel,
   priceNoteFor,
 } from "../../util/packs/offers";
 import { useStorePrices } from "../../hooks/useStorePrices";
@@ -116,6 +119,7 @@ const ProgramsScreen = () => {
   };
 
   // Reset per visit so a return counts as a new view.
+  const [tier, setTier] = useState<TierFilter>("all");
   const listViewedRef = useRef(false);
   useFocusEffect(
     useCallback(
@@ -174,6 +178,36 @@ const ProgramsScreen = () => {
    * table, for the reason its own header gives: two places naming a shelf is
    * two places to disagree about what a shelf is called.
    */
+  /**
+   * What a deep-work pack includes, as ticked lines.
+   *
+   * EVERY LINE IS DERIVED FROM A FIELD, none is written here. The repo's rule is
+   * that product copy never lives in the app, and a hardcoded list of benefits
+   * per pack would both break that and go stale the first time a pack changed.
+   * So this renders only what the payload can prove: the arc length, the calls
+   * the pack actually grants, and the bonus month — the last gated on
+   * `bonusMembershipEligible`, which is first-purchase-only.
+   *
+   * THE LINE THIS CANNOT YET SHOW is what the arc actually covers ("mock panels,
+   * phone screens, salary talk"). That is the most persuasive line on the card
+   * and there is no field for it: offers carries exactly one piece of prose per
+   * pack, `blurb`. The backend already stores the module outline, it is simply
+   * not projected into this response — so it is a controller change rather than
+   * new modelling. Until it lands, this list renders what it can and the card
+   * shortens by a row rather than inventing anything.
+   */
+  const inclusions = (item: OfferItem): string[] => {
+    const lines: string[] = [];
+    if (item.arcDays) lines.push(`${item.arcDays}-day guided arc`);
+    if (item.creditGrantAmount > 0) {
+      lines.push(`${item.creditGrantAmount} AI practice calls`);
+    }
+    if (item.bonusMembershipDays > 0 && offers?.bonusMembershipEligible) {
+      lines.push("First month of membership free");
+    }
+    return lines;
+  };
+
   const factChips = (item: OfferItem): string[] => {
     const chips: string[] = [];
     if (item.arcDays) chips.push(`${item.arcDays} days`);
@@ -388,7 +422,9 @@ const ProgramsScreen = () => {
   // 1 for the first card whenever a hero was lifted out above it.
   const renderCard = (item: OfferItem, index: number) => {
     const reason = item.match?.reason ?? null;
+    const isDeep = item.shelf === "deep";
     const facts = factChips(item);
+    const lines = inclusions(item);
 
     return (
       <PressableScale
@@ -408,6 +444,24 @@ const ProgramsScreen = () => {
           },
         ]}
       >
+        {/* PREMIUM GETS A DIFFERENT CARD, not a louder one. The tier chip is
+            purple — the one accent the shop does not otherwise use, so it cannot
+            be confused with the orange hero or the lime TOP MATCH — and the
+            ticked list replaces the fact chips, because at this price the
+            question stops being "what is this" and becomes "what do I get".
+            Label text reads from `programShelfLabel`, not a literal here — see
+            its header for why "Deep work" was retired. */}
+        {isDeep ? (
+          <View
+            style={[styles.tierChip, { backgroundColor: colors.accent.purple }]}
+          >
+            <Icon name="target" size={13} color={colors.accentOn.purple} />
+            <Text variant="label" color={colors.accentOn.purple}>
+              {programShelfLabel(item).toUpperCase()}
+            </Text>
+          </View>
+        ) : null}
+
         {/* ── the header: what it is, and what it costs ───────────────
             One row, because a title and its price are one fact when you are
             comparing nine of these. The price never shrinks — a half-shown
@@ -451,23 +505,46 @@ const ProgramsScreen = () => {
           </Text>
         ) : null}
 
-        {/* The comparables. `surface.control` and not a low-alpha wash: a 6%
-            scrim reads at 1.10:1 against the paper card and the chips vanish,
-            which is the same near-white-on-cream failure the whole scheme is
-            prone to. `control` is the DS's answer to exactly this — 1.31:1 on
-            ink, 1.39:1 on paper — and its label clears AA on both. */}
-        <View style={styles.facts}>
-          {facts.map((fact) => (
-            <View
-              key={fact}
-              style={[styles.fact, { backgroundColor: colors.surface.control }]}
-            >
-              <Text variant="caption" color="secondary">
-                {fact}
-              </Text>
-            </View>
-          ))}
-        </View>
+        {isDeep ? (
+          /* THE TICKS ARE `accentText.success`, NOT LIME — deliberately. Lime on
+             a paper card measures about 1.8:1 and would disappear, but the real
+             reason is that lime is the TOP MATCH mark. Spending it on nine
+             inclusion bullets is how a signal stops meaning anything. Success
+             green says "included", which is what a tick means, and
+             `accentText.*` resolves per scheme so it is legible on both. */
+          <View style={[styles.incl, { borderTopColor: colors.border.default }]}>
+            {lines.map((line) => (
+              <View key={line} style={styles.inclLine}>
+                <Icon
+                  name={icons.success}
+                  size={15}
+                  color={colors.accentText.success}
+                />
+                <Text variant="bodySm" color="secondary" style={styles.inclText}>
+                  {line}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          /* The comparables. `surface.control` and not a low-alpha wash: a 6%
+             scrim reads at 1.10:1 against the paper card and the chips vanish,
+             which is the same near-white-on-cream failure the whole scheme is
+             prone to. `control` is the DS's answer to exactly this — 1.31:1 on
+             ink, 1.39:1 on paper — and its label clears AA on both. */
+          <View style={styles.facts}>
+            {facts.map((fact) => (
+              <View
+                key={fact}
+                style={[styles.fact, { backgroundColor: colors.surface.control }]}
+              >
+                <Text variant="caption" color="secondary">
+                  {fact}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </PressableScale>
     );
   };
@@ -481,6 +558,12 @@ const ProgramsScreen = () => {
     ? items.find((i) => i.match?.level === "top" && !i.owned)
     : undefined;
   const restItems = heroItem ? items.filter((i) => i.key !== heroItem.key) : items;
+  // Filtered, never re-sorted. `items` arrives ranked for this user and a
+  // previous `groupByShelf` was deleted precisely because grouping threw that
+  // ranking away; `filter` preserves order by definition, which is the whole
+  // reason this is a filter and not a set of sections.
+  const shownItems =
+    tier === "all" ? restItems : restItems.filter((i) => i.shelf === tier);
 
   // Gated on the branch that actually renders the shelf, NOT on the fetch
   // resolving — loading, failed and empty all resolve too, and none of them is
@@ -568,7 +651,33 @@ const ProgramsScreen = () => {
             </Text>
           ) : null}
 
-          {restItems.map(renderCard)}
+          {/* BELOW THE HERO, AND THE HERO IS NEVER FILTERED. The top match is
+              the answer to "which one is for me", and a shelf filter is a
+              different question entirely — hiding the best-matched pack because
+              somebody tapped "Premium" would trade the one card most likely to
+              convert for a tidier list. So the pills govern the list underneath
+              them and nothing above. */}
+          {restItems.length > 1 ? (
+            <View style={styles.filterBar}>
+              {TIER_FILTERS.map((f) => (
+                <Chip
+                  key={f.value}
+                  label={f.label}
+                  icon={f.icon}
+                  selected={tier === f.value}
+                  onPress={() => setTier(f.value)}
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {shownItems.length ? (
+            shownItems.map(renderCard)
+          ) : (
+            <Text variant="bodySm" color="secondary" center>
+              Nothing on this shelf yet.
+            </Text>
+          )}
         </>
       )}
     </Page>
@@ -583,6 +692,31 @@ export default ProgramsScreen;
  * hierarchy with no rules, boxes or indents at all.
  */
 const INK_MUTED = 0.72;
+
+/**
+ * The shelf filter.
+ *
+ * KEYED TO `shelf`, NOT TO `arcDays`, and that distinction is the whole reason
+ * this reads correctly: the obvious rule — "premium is longer than 7 days" —
+ * quietly drags `speech_toolkit` in, which is an 8-day pack on the REGULAR
+ * shelf at half the price. `shelf === "deep"` is exactly the two ₹1,999-anchor
+ * packs and exactly the two that bundle AI calls, so it is the only axis where
+ * length, price and what-you-get all agree.
+ *
+ * `small` is deliberately absent. The catalog defines a third shelf and no pack
+ * has ever used it, so offering a "Focused" pill would be offering a filter that
+ * can only ever return nothing.
+ */
+type TierFilter = "all" | "regular" | "deep";
+
+// Labels come from `shelfLabel`, not literals — see its header. A pill and the
+// card it filters to reading different words for the same shelf is exactly
+// the drift `programEyebrow`/`programShelfLabel` already exist to prevent.
+const TIER_FILTERS: { value: TierFilter; label: string; icon: IconName }[] = [
+  { value: "all", label: "All", icon: "layout-grid" },
+  { value: "regular", label: shelfLabel("regular"), icon: "layers" },
+  { value: "deep", label: shelfLabel("deep"), icon: "target" },
+];
 
 /**
  * The ticket geometry, in one place because the three values have to agree.
@@ -713,6 +847,36 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     flexShrink: 1,
+  },
+  // Edge-to-edge would need the row to escape `Page`'s gutter; these are few
+  // enough to wrap instead of scroll, which keeps every option visible at once —
+  // a filter you have to scroll to discover is a filter nobody uses.
+  filterBar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  tierChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: space.inlineGap - 2,
+    paddingHorizontal: space.inlineGap + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
+  },
+  incl: {
+    borderTopWidth: borderWidth.hairline,
+    paddingTop: space.rowGap,
+    gap: space.inlineGap,
+  },
+  inclLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap + 1,
+  },
+  inclText: {
+    flex: 1,
   },
   facts: {
     flexDirection: "row",

@@ -54,9 +54,7 @@
     "production": {
       "ios": {
         "appleTeamId": "VU29K7J26H",
-        "ascAppId": "6797639049",
-
-        "//auth": "Authenticate with an App Store Connect API KEY, not an Apple ID and password: the key is not tied to a person, does not trip 2FA, and does not break when someone changes their password. Create it at App Store Connect -> Users and Access -> Integrations -> App Store Connect, then set these THREE things as environment variables (NOT here, and NOT in git): EXPO_ASC_API_KEY_PATH=/absolute/path/to/AuthKey_XXXX.p8, EXPO_ASC_KEY_ID=XXXX, EXPO_ASC_ISSUER_ID=<uuid>. The .p8 downloads once and cannot be re-downloaded; keep it outside this repo."
+        "ascAppId": "6797639049"
       }
     }
   }

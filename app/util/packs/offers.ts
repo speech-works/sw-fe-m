@@ -47,12 +47,38 @@ export function isOpenable(item: OfferItem): boolean {
   return item.packId !== null && item.packId !== undefined;
 }
 
-/** Shelf → the one word the app uses for it. */
+/**
+ * Shelf → the one word the app uses for it.
+ *
+ * WAS "Full program" / "Deep work" — retired because the pair contradicted
+ * itself. "Full" already claims completeness, so a pack priced at double next
+ * to it under "Deep work" invited the question "wasn't the first one already
+ * the full thing?" "Deep work" also sells the wrong idea: it's productivity
+ * jargon for MORE EFFORT, which is backwards for a tier charging more per day
+ * (₹71–111 vs ₹62–71 — deep is not better value, so it can't be sold as one).
+ *
+ * "Standard" / "Premium" is a plain price-tier pairing that claims nothing
+ * about completeness, so it can't be contradicted by its own sibling. It
+ * carries no information scent on its own — that's fine here because it never
+ * has to. Every surface that renders it also renders the ticked
+ * inclusion list right below it, and that is where the true reason to pay
+ * more actually lives (the AI calls). See `Programs/index.tsx` for that list.
+ */
 const SHELF_LABEL: Record<Shelf, string> = {
   small: "Focused",
-  regular: "Full program",
-  deep: "Deep work",
+  regular: "Standard",
+  deep: "Premium",
 };
+
+/**
+ * The bare shelf word, for callers that have a `Shelf` and no `OfferItem` to
+ * hand `programShelfLabel` — the filter pills, which label a TIER rather than
+ * a product. Reads the same table, so a shelf can never be called one thing on
+ * a card and another thing in the control that filters to it.
+ */
+export function shelfLabel(shelf: Shelf): string {
+  return SHELF_LABEL[shelf] || "Program";
+}
 
 /**
  * The ALL-CAPS eyebrow every program surface prints above a title. The shop list

@@ -53,6 +53,23 @@ import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 // business in this list or in the generic button map.
 const ALL_PROVIDERS = ["google", "facebook"];
 
+/**
+ * Icon size for the Google/Facebook rows — deliberately NOT `size.icon` (20).
+ *
+ * `AppleAuthenticationButton` draws its own glyph and there is no prop to
+ * change it; measured off-device it renders at roughly 12.7×11.7pt inside a
+ * 56pt-tall button, well under the DS's standard 20pt control icon. At 20 the
+ * FontAwesome5 google/facebook marks measured ~18.7×14.3pt and ~19×14.7pt —
+ * already near-identical to EACH OTHER, but visibly larger than Apple's, which
+ * is what actually read as "the icons don't match."
+ *
+ * Since Apple's size is the one fixed point, matching means shrinking the
+ * other two toward it rather than trying to inflate Apple's. 14 lands their
+ * rendered width close to Apple's (~13pt) without leaving them so small they
+ * look like a mistake next to the label.
+ */
+const OAUTH_ICON_SIZE = 14;
+
 // Required to ensure the WebBrowser closes correctly on Android redirects
 WebBrowser.maybeCompleteAuthSession();
 
@@ -473,15 +490,21 @@ const LoginScreen = () => {
                       <View style={styles.oauthIcon}>
                         <FontAwesome5
                           name={provider as any}
-                          size={size.icon}
+                          size={OAUTH_ICON_SIZE}
                           color={colors.text.onInverse}
                           brand
                         />
                       </View>
-                      <Text
-                        variant="title"
-                        color={colors.text.onInverse}
-                      >
+                      {/* h3, NOT `title`. `AppleAuthenticationButton` sizes its
+                          own label off the button height — at 56pt that lands
+                          near 20pt — and there is no prop to change it. Left at
+                          `title` (16pt) the Apple row read a quarter larger than
+                          the two beneath it, which is the other half of what was
+                          reported as a broken button. 18pt closes most of that
+                          gap while staying on the type scale; matching it
+                          exactly is not possible without abandoning Apple's
+                          native view. */}
+                      <Text variant="h3" color={colors.text.onInverse}>
                         {label}
                       </Text>
                     </>
@@ -604,12 +627,22 @@ const styles = StyleSheet.create({
   oauthButton: {
     flexDirection: "row",
     alignItems: "center",
-    // flex-start, NOT center. Centring the [icon + label] group put every icon
-    // and every label at a different x, because the three labels differ in
-    // length and the three glyphs differ in width — three buttons, three left
-    // edges. Left-aligning against a fixed icon slot gives all three a single
-    // shared edge, which is also what the left-aligned headline above wants.
-    justifyContent: "flex-start",
+    // CENTRED, reversing an earlier decision — and the reason that decision was
+    // wrong is sitting directly above these buttons.
+    //
+    // The old comment argued for `flex-start` so all three would share one left
+    // edge, since centring puts each icon at a different x once the labels
+    // differ in length. That reasoning is sound in isolation and it ignored the
+    // fourth button: `AppleAuthenticationButton` is a NATIVE iOS view whose
+    // content is centred by the system and cannot be restyled. So the screen
+    // shipped as one centred button above two left-aligned ones, which does not
+    // read as a considered left edge — it reads as a bug, and was reported as
+    // one.
+    //
+    // Three centred buttons cost a few points of icon drift between rows. One
+    // centred button over two left-aligned ones costs the user's confidence in
+    // the screen. Matching the element we cannot change is the cheaper trade.
+    justifyContent: "center",
     gap: space.iconText,
     height: 56,
     borderRadius: radius.pill,
