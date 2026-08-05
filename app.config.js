@@ -56,8 +56,9 @@ module.exports = {
       policy: "appVersion",
     },
     orientation: "portrait",
-    // Canonical 1024px, opaque store icon generated from
-    // `app/assets/svg logos/app-logo.png` by scripts/build-logo-assets.mjs.
+    // Canonical 1024px, opaque, full-bleed store icon generated from the
+    // cropped `app-logo.png`. The uncropped render is preserved beside it as
+    // `app-logo-original.png` by scripts/build-logo-assets.mjs.
     icon: "./app/assets/icon.png",
     // "automatic" lets iOS/Android report the real device appearance so the
     // in-app Light/Dark/System preference can follow it (System mode reads

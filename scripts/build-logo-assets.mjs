@@ -8,6 +8,7 @@ const projectRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const assetRoot = join(projectRoot, "app", "assets");
 const svgRoot = join(assetRoot, "svg logos");
 const logoSource = join(svgRoot, "sw-logo.svg");
+const appLogoOriginalSource = join(svgRoot, "app-logo-original.png");
 const appLogoSource = join(svgRoot, "app-logo.png");
 
 const source = readFileSync(logoSource, "utf8");
@@ -101,29 +102,91 @@ const render = (input, output, size) => {
   ]);
 };
 
-const renderAppLogo = async (output, size, removeTransparency) => {
-  const { source: resizedLogo } = await generateImageAsync(
-    { projectRoot },
-    {
-      src: appLogoSource,
-      name: output,
-      resizeMode: "cover",
-      width: size,
-      height: size,
-      removeTransparency,
-    },
+import { PNG } from "pngjs";
+
+const cropAndScalePNG = (inputBuffer, cropX, cropY, cropW, cropH, targetW, targetH) => {
+  const src = PNG.sync.read(inputBuffer);
+  const dst = new PNG({ width: targetW, height: targetH });
+
+  for (let y = 0; y < targetH; y++) {
+    for (let x = 0; x < targetW; x++) {
+      const srcX = cropX + (x / targetW) * cropW;
+      const srcY = cropY + (y / targetH) * cropH;
+
+      const x0 = Math.floor(srcX);
+      const x1 = Math.min(x0 + 1, src.width - 1);
+      const y0 = Math.floor(srcY);
+      const y1 = Math.min(y0 + 1, src.height - 1);
+
+      const dx = srcX - x0;
+      const dy = srcY - y0;
+
+      const idx00 = (src.width * y0 + x0) << 2;
+      const idx10 = (src.width * y0 + x1) << 2;
+      const idx01 = (src.width * y1 + x0) << 2;
+      const idx11 = (src.width * y1 + x1) << 2;
+
+      const dstIdx = (targetW * y + x) << 2;
+
+      for (let c = 0; c < 4; c++) {
+        const val =
+          (1 - dx) * (1 - dy) * src.data[idx00 + c] +
+          dx * (1 - dy) * src.data[idx10 + c] +
+          (1 - dx) * dy * src.data[idx01 + c] +
+          dx * dy * src.data[idx11 + c];
+        dst.data[dstIdx + c] = Math.round(val);
+      }
+    }
+  }
+  return PNG.sync.write(dst);
+};
+
+/**
+ * The original render includes a second black frame around the wavy tile. Store
+ * masks then shrink that whole framed object, which makes the actual mark look
+ * much smaller than neighbouring app icons. Crop from the preserved original
+ * to a square fully inside the tile instead: the texture becomes full bleed and
+ * the 544x605 orange mark sits in a 605px square safe area with 122px of equal
+ * padding on every side. Its narrower horizontal silhouette naturally leaves a
+ * little more visible texture at left and right. The extra space also keeps its
+ * shadow clear of Android's circular legacy mask.
+ */
+const APP_LOGO_SOURCE_SIZE = 1254;
+const APP_LOGO_CROP = { x: 219, y: 183, size: 850 };
+const appLogoOriginal = readFileSync(appLogoOriginalSource);
+const appLogoCropped = cropAndScalePNG(
+  appLogoOriginal,
+  APP_LOGO_CROP.x,
+  APP_LOGO_CROP.y,
+  APP_LOGO_CROP.size,
+  APP_LOGO_CROP.size,
+  APP_LOGO_SOURCE_SIZE,
+  APP_LOGO_SOURCE_SIZE,
+);
+writeFileSync(appLogoSource, appLogoCropped);
+
+const renderAppLogo = async (output, size) => {
+  const appLogoBuf = readFileSync(appLogoSource);
+  const resized = cropAndScalePNG(
+    appLogoBuf,
+    0,
+    0,
+    APP_LOGO_SOURCE_SIZE,
+    APP_LOGO_SOURCE_SIZE,
+    size,
+    size,
   );
-  writeFileSync(output, resizedLogo);
+  writeFileSync(output, resized);
 };
 
 // The photographic logo is the canonical store/launcher artwork. Apple gets
 // an opaque 1024px source; Google Play Console needs a separate 512px upload.
-await renderAppLogo(join(assetRoot, "icon.png"), 1024, true);
-await renderAppLogo(join(assetRoot, "play-store-icon.png"), 512, false);
+await renderAppLogo(join(assetRoot, "icon.png"), 1024);
+await renderAppLogo(join(assetRoot, "play-store-icon.png"), 512);
 
 // android.adaptiveIcon overrides expo.icon, so its foreground must also use
 // the canonical artwork or Android would continue shipping the previous mark.
-await renderAppLogo(join(assetRoot, "adaptive-icon.png"), 1024, false);
+await renderAppLogo(join(assetRoot, "adaptive-icon.png"), 1024);
 render(join(svgRoot, "sw-icon-rounded-white.svg"), join(assetRoot, "favicon.png"), 96);
 render(splashSource, join(assetRoot, "splash-icon.png"), 1024);
 render(adaptiveSource, join(assetRoot, "adaptive-icon-mono.png"), 1024);
