@@ -1,6 +1,7 @@
 const { withGradleProperties } = require("@expo/config-plugins");
 const withMediaPipeDuplicateFix = require("./plugins/withMediaPipeDuplicateFix");
 const withAndroid16Compat = require("./plugins/withAndroid16Compat");
+const withAndroidLegacyIcon = require("./plugins/withAndroidLegacyIcon");
 
 const apiBaseUrl = process.env.API_BASE_URL || "";
 const allowsInsecureNetworkTraffic =
@@ -266,8 +267,10 @@ module.exports = {
       // and an auto-derived mark comes out muddy. Shipping our own keeps the
       // transparent negative space readable when tinted.
       adaptiveIcon: {
+        // The foreground already fills the whole 72dp viewport a launcher mask
+        // reveals, so a background *image* would never be seen; the ink colour
+        // behind it only matters for the sliver a mask antialiases against.
         foregroundImage: "./app/assets/adaptive-icon.png",
-        backgroundImage: "./app/assets/adaptive-icon-bg.png",
         monochromeImage: "./app/assets/adaptive-icon-mono.png",
         backgroundColor: "#141311",
       },
@@ -293,6 +296,10 @@ module.exports = {
       // both of which Android changes by default at targetSdk 36.
       withAndroid16Compat,
       withMediaPipeDuplicateFix,
+      // Expo derives the Android 7-and-older launcher images from the adaptive
+      // foreground, which is inset for the adaptive viewport. Regenerate that
+      // pair from the full-bleed icon so they do not come out undersized.
+      withAndroidLegacyIcon,
       [
         "react-native-permissions",
         {

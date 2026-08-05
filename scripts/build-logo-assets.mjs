@@ -184,9 +184,36 @@ const renderAppLogo = async (output, size) => {
 await renderAppLogo(join(assetRoot, "icon.png"), 1024);
 await renderAppLogo(join(assetRoot, "play-store-icon.png"), 512);
 
-// android.adaptiveIcon overrides expo.icon, so its foreground must also use
-// the canonical artwork or Android would continue shipping the previous mark.
-await renderAppLogo(join(assetRoot, "adaptive-icon.png"), 1024);
+// android.adaptiveIcon overrides expo.icon, so its foreground must also use the
+// canonical artwork. It cannot be full bleed though: a launcher only ever
+// reveals the central 72 of an adaptive layer's 108dp, so a full-bleed
+// foreground is shown zoomed ~1.5x with its edges clipped. Draw the same
+// composition scaled down into exactly that viewport instead, and what the mask
+// reveals matches the iOS icon 1:1. The wave background layer shows through
+// only in the corners a circular mask cuts away.
+const ADAPTIVE_VIEWPORT = 72 / 108;
+
+const renderAdaptiveForeground = (output, size) => {
+  const viewport = Math.round(size * ADAPTIVE_VIEWPORT);
+  const inset = Math.round((size - viewport) / 2);
+  const scaled = PNG.sync.read(
+    cropAndScalePNG(
+      readFileSync(appLogoSource),
+      0,
+      0,
+      APP_LOGO_SOURCE_SIZE,
+      APP_LOGO_SOURCE_SIZE,
+      viewport,
+      viewport,
+    ),
+  );
+  // A fresh PNG is zero-filled, so everything outside the viewport is transparent.
+  const layer = new PNG({ width: size, height: size });
+  PNG.bitblt(scaled, layer, 0, 0, viewport, viewport, inset, inset);
+  writeFileSync(output, PNG.sync.write(layer));
+};
+
+renderAdaptiveForeground(join(assetRoot, "adaptive-icon.png"), 1024);
 render(join(svgRoot, "sw-icon-rounded-white.svg"), join(assetRoot, "favicon.png"), 96);
 render(splashSource, join(assetRoot, "splash-icon.png"), 1024);
 render(adaptiveSource, join(assetRoot, "adaptive-icon-mono.png"), 1024);
