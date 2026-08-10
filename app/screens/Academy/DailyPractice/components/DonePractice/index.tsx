@@ -33,6 +33,7 @@ import {
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
 import { getMyBuddy } from "../../../../../api/buddies";
+import { useInboxStore } from "../../../../../stores/inbox";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
 import {
@@ -89,7 +90,14 @@ const DonePractice = ({
    *  modal on top of PackModule. Focus is an event, so this holds for every exit
    *  path — present and future — without per-button timer bookkeeping. */
   const isFocused = useIsFocused();
-  const [hasBuddy, setHasBuddy] = useState(false);
+  // The inbox store is the source of truth for "do I have a buddy". This screen
+  // used to keep its own independently-fetched copy, which meant blocking
+  // someone in Community left this showing "Share with your buddy" — pointing
+  // at the person just blocked. Fetch only to FILL the store when it hasn't
+  // been determined yet, and write the answer back so there is one value.
+  const storeHasBuddy = useInboxStore((s) => s.hasBuddy);
+  const [fetchedHasBuddy, setFetchedHasBuddy] = useState<boolean | null>(null);
+  const hasBuddy = storeHasBuddy ?? fetchedHasBuddy ?? false;
   const [hasShared, setHasShared] = useState(false);
   const pageColor = accentColor ?? colors.background.canvas;
   const foreground = onAccentColor ?? (accentColor ? onColor(accentColor, colors) : colors.text.primary);
@@ -294,10 +302,15 @@ const DonePractice = ({
 
   useEffect(() => {
     if (isAborted) return;
+    if (storeHasBuddy !== null) return; // store already knows — don't refetch
     getMyBuddy()
-      .then((s) => setHasBuddy(s.link?.status === "active"))
+      .then((s) => {
+        const v = s.link?.status === "active";
+        setFetchedHasBuddy(v);
+        useInboxStore.getState().setHasBuddy(v);
+      })
       .catch(() => { }); // silently ignore — default is show the button
-  }, [isAborted]);
+  }, [isAborted, storeHasBuddy]);
 
   return (
     <ScreenView style={styles.screen}>

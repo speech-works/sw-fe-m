@@ -133,6 +133,29 @@ describe("notification tap routing", () => {
     });
   });
 
+  it("sends a buddy REQUEST to the Community tab, with no threadId to lean on", async () => {
+    // Every other buddy push carries a threadId and would route on that alone.
+    // A request has no thread — none exists until it is accepted — so this can
+    // only work if the type itself is recognised.
+    setSignedIn(true);
+
+    await fireResponse({ type: "buddy_request", requestId: "r1" });
+
+    expect(navigate).toHaveBeenCalledWith("Root", {
+      screen: ROUTE_NAMES.COMMUNITY,
+    });
+  });
+
+  it("sends an accepted-request push to the Community tab", async () => {
+    setSignedIn(true);
+
+    await fireResponse({ type: "buddy_request_accepted", threadId: "t1" });
+
+    expect(navigate).toHaveBeenCalledWith("Root", {
+      screen: ROUTE_NAMES.COMMUNITY,
+    });
+  });
+
   it("reads the session when it navigates, not when the tap arrives", async () => {
     // The store rehydrates from AsyncStorage asynchronously and this listener
     // fires at the very start of a cold launch, so a session read taken at

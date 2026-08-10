@@ -7,6 +7,7 @@ import ExploreStackNavigator from "./stacks/ExploreStack";
 import PracticeComposer from "../screens/PracticeComposer";
 import Resources from "../screens/Resources";
 import ShareMomentScreen from "../screens/ShareMoment";
+import Discover from "../screens/Discover";
 import AvatarStudio from "../screens/AvatarStudio";
 import FirstCall from "../screens/FirstCall";
 
@@ -45,6 +46,10 @@ export default function AppNavigator() {
         name="ShareMoment"
         component={ShareMomentScreen}
       />
+      {/* Buddy discovery. Root-registered rather than pushed from a Community
+          stack, because Community is a bare tab screen with no stack of its
+          own — same reason ShareMoment lives here. */}
+      <Stack.Screen name="Discover" component={Discover} />
       {/* The avatar editor — root-registered so Home's identity card (and later
           Settings) reach it by name from any stack. */}
       <Stack.Screen name="AvatarStudio" component={AvatarStudio} />

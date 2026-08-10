@@ -16,6 +16,8 @@ export type SettingsStackParamList = {
   PracticeGoal: undefined;
   ReadingVoice: undefined;
   Appearance: undefined;
+  BlockedPeople: undefined;
+  Discoverability: undefined;
 };
 export type SettingsStackNavigationProp<
   T extends keyof SettingsStackParamList,

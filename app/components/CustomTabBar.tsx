@@ -14,6 +14,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
   const { isTabBarVisible } = useUIStore();
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const hasBuddy = useInboxStore((s) => s.hasBuddy);
+  const pendingRequestCount = useInboxStore((s) => s.pendingRequestCount);
   const notificationsNeedAttention = useNotificationPermissionStore(
     selectNotificationsNeedAttention,
   );
@@ -90,7 +91,14 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
       // Notifications are off at the OS level and the user hasn't waved it away:
       // mark Settings, because that is where the fix lives. Only on the global
       // nav dock — the Community tabs dock is a different context.
-      badgeDot: routeName === ROUTE_NAMES.SETTINGS && notificationsNeedAttention,
+      //
+      // Community also dots for an unanswered buddy request. A dot, not a
+      // count, because "needs attention" is what a request is — and TabDock
+      // suppresses the dot whenever `badge > 0`, which is exactly right here:
+      // an unpaired user has no thread and so no unread count to compete with.
+      badgeDot:
+        (routeName === ROUTE_NAMES.SETTINGS && notificationsNeedAttention) ||
+        (routeName === ROUTE_NAMES.COMMUNITY && pendingRequestCount > 0),
     };
   });
 

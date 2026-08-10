@@ -23,9 +23,19 @@ export const showErrorBottomSheet = (
   });
 };
 
-export const showSuccessBottomSheet = (title: string, desc: string) => {
+/** Mirrors the error variant's action support — OutcomeModal already renders
+ *  `primaryAction`/`dismissLabel` on the success branch; only this helper
+ *  failed to expose them. Use it for a success that has an obvious next step. */
+export const showSuccessBottomSheet = (
+  title: string,
+  desc: string,
+  primaryAction?: BottomSheetAction,
+  dismissLabel?: string,
+) => {
   dispatchCustomEvent(EVENT_NAMES.SHOW_SUCCESS_MODAL, {
     title,
     message: desc,
+    primaryAction,
+    dismissLabel,
   });
 };

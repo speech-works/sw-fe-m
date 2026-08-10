@@ -50,6 +50,10 @@ import {
   zIndex,
   Page,
   Surface,
+  Sheet,
+  SectionHeader,
+  ListItem,
+  Button,
   useNavBarInset,
 } from "../../design-system";
 import {
@@ -60,6 +64,10 @@ import {
   getMyBuddy,
   leaveBuddy,
   setReportConsent,
+  getBuddyRequests,
+  acceptBuddyRequest,
+  declineBuddyRequest,
+  type BuddyRequest,
   attachInviteCode,
 } from "../../api/buddies";
 import { Signal, Thread, getThread } from "../../api/threads";
@@ -76,6 +84,7 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { blockUser, type ReportReason } from "../../api/moderation";
 import ReportSheet from "../../components/ReportSheet";
 import { apiErrorMessage } from "../../util/functions/apiError";
+import { resetBuddyLocalState } from "../../util/functions/buddyReset";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
 const screenWidth = Dimensions.get("window").width;
@@ -214,7 +223,11 @@ const Community = () => {
   const [myStage, setMyStage] = useState<LevelStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [, setBusy] = useState(false);
+  // `busy` drives the UI (rows dim while a block/leave is in flight). The ref
+  // is what actually prevents a double submit: two presses in the same frame
+  // both read the same stale state value, so state alone cannot guard this.
+  const [busy, setBusy] = useState(false);
+  const actionInFlight = useRef(false);
   const [leaveVisible, setLeaveVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
@@ -264,6 +277,9 @@ const Community = () => {
       setSummary(data);
       if (data.link?.status === "active") {
         useInboxStore.getState().setHasBuddy(true);
+        // Paired: any leftover request is moot, and the badge must not linger.
+        setRequests([]);
+        useInboxStore.getState().setPendingRequestCount(0);
         try {
           const t = await getThread();
           setThread(t);
@@ -292,7 +308,23 @@ const Community = () => {
           setTeam(null);
         }
       } else {
-        useInboxStore.getState().setHasBuddy(false);
+        // Covers the case where the server ended the pairing without us doing
+        // it — they left, or they blocked us. Same cleanup as our own actions,
+        // including the unread badge, which used to survive.
+        resetBuddyLocalState();
+        // Only meaningful while unpaired — you cannot accept a request you have
+        // no free slot for, and the server refuses it anyway.
+        try {
+          const reqs = await getBuddyRequests();
+          setRequests(reqs);
+          useInboxStore
+            .getState()
+            .setPendingRequestCount(
+              reqs.filter((r) => r.direction === "incoming").length,
+            );
+        } catch {
+          setRequests([]);
+        }
         setThread(null);
         setMyStage(null);
         setReport(null);
@@ -352,6 +384,9 @@ const Community = () => {
   );
 
   const link = summary?.link ?? null;
+  const [requests, setRequests] = useState<BuddyRequest[]>([]);
+  const [requestBusyId, setRequestBusyId] = useState<string | null>(null);
+  const [pendingDecline, setPendingDecline] = useState<BuddyRequest | null>(null);
   const [blockConfirmVisible, setBlockConfirmVisible] = useState(false);
   const [blockReasonVisible, setBlockReasonVisible] = useState(false);
   const isPaired = link?.status === "active";
@@ -418,6 +453,58 @@ const Community = () => {
     }
   };
 
+  /**
+   * Accept a request — this is what actually forms the pairing.
+   *
+   * Everything is re-validated server-side, because a request can sit for days
+   * and either side may have paired with someone else or blocked the other in
+   * the meantime. So the error here is real information, not boilerplate: show
+   * what the server said.
+   */
+  const acceptRequest = async (requestId: string) => {
+    if (requestBusyId) return;
+    setRequestBusyId(requestId);
+    try {
+      await acceptBuddyRequest(requestId);
+      track(ANALYTICS_EVENTS.BUDDY_REQUEST_ACCEPTED);
+      await load();
+      setShowWelcome(true);
+    } catch (e) {
+      showErrorBottomSheet(
+        "Couldn't pair",
+        apiErrorMessage(e, "Please try again."),
+      );
+      // Refresh either way: the most likely failure IS that the request is no
+      // longer valid, and leaving it on screen invites a second futile tap.
+      await load();
+    } finally {
+      setRequestBusyId(null);
+    }
+  };
+
+  const confirmDecline = async (alsoBlock: boolean) => {
+    const req = pendingDecline;
+    setPendingDecline(null);
+    if (!req || requestBusyId) return;
+    setRequestBusyId(req.id);
+    try {
+      if (alsoBlock) {
+        // Block first: it cancels the pending row on the server as part of the
+        // block, so declining afterwards would 404 on a request that is gone.
+        await blockUser(req.profile.id);
+        track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { source: "request" });
+      } else {
+        await declineBuddyRequest(req.id);
+        track(ANALYTICS_EVENTS.BUDDY_REQUEST_DECLINED);
+      }
+      await load();
+    } catch (e) {
+      showErrorBottomSheet("Couldn't do that", apiErrorMessage(e, "Please try again."));
+    } finally {
+      setRequestBusyId(null);
+    }
+  };
+
   const handleLeave = () => setLeaveVisible(true);
 
   /**
@@ -434,18 +521,43 @@ const Community = () => {
   const confirmBlock = () => {
     // Confirm first (this IS destructive and irreversible from the UI), then
     // ask why. The reason rides along as the report.
+    //
+    // Closing the Dialog and opening the sheet in the SAME TICK is safe, but
+    // only because ReportSheet is `exclusive`: a Dialog is an AnimatedModal and
+    // stays mounted through its ~200ms exit, so the sheet waits for the native
+    // modal registry to clear before presenting. Without that, two live native
+    // Modals overlap and freeze touch input on iOS — which is exactly why this
+    // whole flow used to do nothing at all. Do not "fix" this into a setTimeout
+    // and do not drop `exclusive` from ReportSheet.
     setBlockConfirmVisible(false);
     setBlockReasonVisible(true);
   };
 
   const submitBlock = async (reason: ReportReason) => {
-    setBlockReasonVisible(false);
+    if (actionInFlight.current) return;
+
     const buddyId = link?.buddy?.id;
-    if (!buddyId) return;
+    if (!buddyId) {
+      // Used to be a silent `return`, which looked identical to the modal bug:
+      // you tap a reason and nothing whatsoever happens.
+      setBlockReasonVisible(false);
+      showErrorBottomSheet(
+        "Couldn't block",
+        "We couldn't tell who to block. Pull to refresh and try again.",
+      );
+      return;
+    }
+
+    actionInFlight.current = true;
+    setBusy(true);
     try {
-      setBusy(true);
       await blockUser(buddyId, reason);
-      track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { reason });
+      track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { reason, source: "community" });
+      // Close only once the request is done — the sheet staying up with its
+      // rows dimmed IS the in-flight feedback. Closing first left the user
+      // looking at an unchanged screen for the length of the round-trip.
+      setBlockReasonVisible(false);
+      resetBuddyLocalState();
       // load() returns summary.link as null, which flips the screen back to the
       // invite state and clears the timeline.
       await load();
@@ -454,22 +566,28 @@ const Community = () => {
         "You've been unpaired, and you won't be matched again. We'll review your report.",
       );
     } catch (e) {
-      showErrorBottomSheet("Couldn't block", "Please try again.");
+      setBlockReasonVisible(false);
+      showErrorBottomSheet("Couldn't block", apiErrorMessage(e, "Please try again."));
     } finally {
+      actionInFlight.current = false;
       setBusy(false);
     }
   };
 
   const confirmLeave = async () => {
+    if (actionInFlight.current) return;
     setLeaveVisible(false);
+    actionInFlight.current = true;
     try {
       setBusy(true);
       await leaveBuddy();
       track(ANALYTICS_EVENTS.BUDDY_LEFT, { by: "me" });
+      resetBuddyLocalState();
       await load();
     } catch (e) {
-      showErrorBottomSheet("Couldn't leave", "Please try again.");
+      showErrorBottomSheet("Couldn't leave", apiErrorMessage(e, "Please try again."));
     } finally {
+      actionInFlight.current = false;
       setBusy(false);
     }
   };
@@ -531,8 +649,86 @@ const Community = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  /**
+   * Incoming requests, above everything else.
+   *
+   * A person waiting on an answer outranks the evergreen "how it works"
+   * explainer. Rendered only when there is something to answer, so the screen
+   * is byte-identical to before for everyone else.
+   */
+  const renderRequests = () => {
+    const incoming = requests.filter((r) => r.direction === "incoming");
+    if (incoming.length === 0) return null;
+    return (
+      <View style={styles.requestsSection}>
+        <SectionHeader icon={icons.addPerson} title="Requests" />
+        <View style={[styles.requestGroup, { backgroundColor: colors.surface.default }]}>
+          {incoming.map((req, i, arr) => (
+            <View
+              key={req.id}
+              style={[
+                styles.requestRow,
+                i < arr.length - 1 && {
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border.default,
+                },
+              ]}
+            >
+              <View style={[styles.requestAvatar, { borderColor: colors.border.default }]}>
+                <UserAvatar manifest={req.profile.avatarManifest} size={40} />
+              </View>
+              <View style={styles.requestTextWrap}>
+                <Text variant="title" numberOfLines={1}>
+                  {req.profile.name?.split(" ")[0] || "Someone"}
+                </Text>
+                <Text variant="bodySm" color="secondary">wants to practice together</Text>
+              </View>
+              <View style={styles.requestActions}>
+                <Button
+                  label="Accept"
+                  size="sm"
+                  fullWidth={false}
+                  disabled={requestBusyId === req.id}
+                  onPress={() => acceptRequest(req.id)}
+                />
+                <PressableScale
+                  onPress={() => setPendingDecline(req)}
+                  disabled={requestBusyId === req.id}
+                  hitSlop={8}
+                >
+                  <Text variant="bodySm" color="secondary">Decline</Text>
+                </PressableScale>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   const renderInvite = () => (
     <View style={{ marginTop: space.groupGap, gap: space.groupGap, paddingBottom: 100 }}>
+      {renderRequests()}
+
+      {/* Finding someone when you don't know anyone. Sits above the invite card
+          rather than inside it: the card's bottom block is already a dense
+          three-CTA stack, and this is a different answer to a different
+          problem ("I have nobody to send a code to"). */}
+      <Surface level="elevated" style={styles.findCard}>
+        <View style={styles.findTextWrap}>
+          <Text variant="title">Don&apos;t know anyone here?</Text>
+          <Text variant="bodySm" color="secondary">
+            Find someone else looking for a practice buddy.
+          </Text>
+        </View>
+        <Button
+          label="Find a buddy"
+          size="sm"
+          fullWidth={false}
+          onPress={() => navigation.navigate("Discover")}
+        />
+      </Surface>
+
       <View style={styles.howItWorksSection}>
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
@@ -1104,6 +1300,32 @@ const Community = () => {
         onConfirm={confirmLeave}
       />
 
+      {/* A Sheet, not a Dialog: there are THREE outcomes here (decline, decline
+          and block, change my mind) and a Dialog gives two buttons plus a
+          backdrop tap — which would have made "dismiss" ambiguous with an
+          actual choice. Declining offers blocking in the same breath because
+          "no" and "don't contact me again" are often one intent, and a request
+          from a stranger is exactly where that matters. */}
+      <Sheet
+        visible={pendingDecline !== null}
+        onClose={() => setPendingDecline(null)}
+        title={`Decline ${pendingDecline?.profile.name?.split(" ")[0] ?? "this request"}?`}
+      >
+        <View style={styles.declineSheetBody}>
+          <Text variant="bodySm" color="secondary" style={styles.declineIntro}>
+            They won't be told either way, and they won't be able to ask again.
+          </Text>
+          <View style={[styles.requestGroup, { backgroundColor: colors.surface.default }]}>
+            <ListItem label="Decline" divider onPress={() => confirmDecline(false)} />
+            <ListItem
+              label="Decline and block"
+              sublabel="They also won't be able to pair with you later"
+              onPress={() => confirmDecline(true)}
+            />
+          </View>
+        </View>
+      </Sheet>
+
       <Dialog
         visible={blockConfirmVisible}
         onClose={() => setBlockConfirmVisible(false)}
@@ -1117,9 +1339,13 @@ const Community = () => {
 
       <ReportSheet
         visible={blockReasonVisible}
+        // Left dismissable while busy on purpose: the ref guard already stops a
+        // second POST, so a backdrop tap costs nothing and a stuck request
+        // shouldn't trap the user behind an undismissable sheet.
         onClose={() => setBlockReasonVisible(false)}
         target="user"
         personName={buddyFirstName}
+        submitting={busy}
         onSubmit={submitBlock}
       />
     </ScreenView>
@@ -1370,6 +1596,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   bottomBlock: { alignItems: "center", width: "100%", gap: spacing.lg },
+
+  findCard: {
+    borderRadius: radius.card,
+    padding: space.cardPad,
+    gap: spacing.md,
+  },
+  findTextWrap: { gap: 2 },
+
+  // Incoming buddy requests, above the evergreen explainer.
+  requestsSection: { gap: spacing.md },
+  requestGroup: { borderRadius: radius.card, overflow: "hidden" },
+  requestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.iconText,
+    padding: space.cardPad,
+  },
+  requestAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.hairline,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  requestTextWrap: { flex: 1, gap: 2 },
+  requestActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  declineSheetBody: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  declineIntro: { marginBottom: spacing.md },
 
   howItWorksSection: {
     // Free floating, no extra container padding needed.

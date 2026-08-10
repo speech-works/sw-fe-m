@@ -34,6 +34,11 @@ export const ASYNC_KEYS_NAME = {
   // Which call-screen controls the user has discovered. Teaching state only —
   // holds no entitlement and gates nothing but a hint.
   SW_ZSTORE_CALL_HINTS: "SW_ZSTORE_CALL_HINTS",
+  // Whether we have already offered to list the user in buddy discovery.
+  // Holds NO entitlement — whether they ARE discoverable is the server's answer
+  // (`user_preferences.discoverable`) and only the server's. This decides
+  // whether the ask is made loudly or sits quietly, never whether they appear.
+  SW_ZSTORE_DISCOVERY_PROMPT: "SW_ZSTORE_DISCOVERY_PROMPT",
   // Whether the user has asked to be left alone about finishing onboarding.
   // Holds NO entitlement — whether onboarding is COMPLETE is the server's
   // answer (`hasCompletedOnboarding`) and only the server's. This decides

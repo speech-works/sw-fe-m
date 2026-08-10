@@ -2,7 +2,7 @@ import React from "react";
 import { View, ViewStyle } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
-import { radius, space, size, borderWidth } from "../primitives/scale";
+import { radius, space, size, borderWidth, opacity } from "../primitives/scale";
 import { Icon, IconName } from "./Icon";
 import { Text } from "./Text";
 
@@ -20,6 +20,12 @@ export interface ListItemProps {
   divider?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
+  /**
+   * Inert and visibly dimmed. Use while an action started from this row is
+   * still in flight — a row that stays pressable during a request is how one
+   * tap becomes two POSTs.
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -37,6 +43,7 @@ export const ListItem: React.FC<ListItemProps> = ({
   divider,
   onPress,
   onLongPress,
+  disabled,
 }) => {
   const { colors } = useTheme();
   const rowStyle: ViewStyle = {
@@ -47,6 +54,7 @@ export const ListItem: React.FC<ListItemProps> = ({
     paddingHorizontal: PAD_H,
     paddingVertical: space.cardPad,
     backgroundColor: colors.surface.default,
+    opacity: disabled ? opacity.disabled : 1,
   };
   const textInset = leftIcon ? PAD_H + CHIP + space.iconText : PAD_H;
 
@@ -98,7 +106,7 @@ export const ListItem: React.FC<ListItemProps> = ({
     </>
   );
 
-  if (onPress || onLongPress) {
+  if ((onPress || onLongPress) && !disabled) {
     return (
       <PressableScale onPress={onPress} onLongPress={onLongPress} style={rowStyle}>
         {content}

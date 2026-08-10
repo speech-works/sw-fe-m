@@ -13,6 +13,8 @@ import FearedSounds from "../../../screens/Settings/pages/FearedSounds";
 import PracticeGoal from "../../../screens/Settings/pages/PracticeGoal";
 import ReadingVoice from "../../../screens/Settings/pages/ReadingVoice";
 import Appearance from "../../../screens/Settings/pages/Appearance";
+import BlockedPeople from "../../../screens/Settings/pages/BlockedPeople";
+import Discoverability from "../../../screens/Settings/pages/Discoverability";
 import PaymentStackNavigator from "../PaymentStack";
 import { SettingsStackParamList } from "./types";
 
@@ -36,6 +38,8 @@ export default function SettingsStackNavigator() {
       <Stack.Screen name="PracticeGoal" component={PracticeGoal} />
       <Stack.Screen name="ReadingVoice" component={ReadingVoice} />
       <Stack.Screen name="Appearance" component={Appearance} />
+      <Stack.Screen name="BlockedPeople" component={BlockedPeople} />
+      <Stack.Screen name="Discoverability" component={Discoverability} />
     </Stack.Navigator>
   );
 }

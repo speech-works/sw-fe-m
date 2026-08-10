@@ -151,3 +151,100 @@ export async function leaveBuddy(): Promise<void> {
     throw error;
   }
 }
+
+// ── Buddy requests ──────────────────────────────────────────────────────────
+// Unlike `attachInviteCode`, which pairs you the instant the code is accepted,
+// these put a consent step in front of pairing — which is what makes it safe to
+// reach someone who never handed you a code.
+
+export interface BuddyRequest {
+  id: string;
+  /** "incoming" = they asked you. "outgoing" = you asked them. */
+  direction: "incoming" | "outgoing";
+  profile: BuddyProfile;
+  createdAt: string;
+}
+
+/** Everything unanswered, both directions. */
+export async function getBuddyRequests(): Promise<BuddyRequest[]> {
+  const res = await axiosClient.get("/buddies/requests");
+  return res.data as BuddyRequest[];
+}
+
+/** Ask someone to pair. */
+export async function sendBuddyRequest(userId: string): Promise<BuddyRequest> {
+  const res = await axiosClient.post("/buddies/requests", { userId });
+  return res.data as BuddyRequest;
+}
+
+/** Accept an incoming request — this is what forms the pairing. */
+export async function acceptBuddyRequest(requestId: string): Promise<BuddyLink> {
+  const res = await axiosClient.post(`/buddies/requests/${requestId}/accept`);
+  return res.data as BuddyLink;
+}
+
+/** Refuse a request. The sender is never told, and can't ask again. */
+export async function declineBuddyRequest(requestId: string): Promise<void> {
+  await axiosClient.post(`/buddies/requests/${requestId}/decline`);
+}
+
+/** Withdraw a request you sent. */
+export async function cancelBuddyRequest(requestId: string): Promise<void> {
+  await axiosClient.delete(`/buddies/requests/${requestId}`);
+}
+
+// ── Discovery ───────────────────────────────────────────────────────────────
+// For people who don't already know anyone here. Opt-in on BOTH ends: you only
+// appear if you asked to, and your card says what you chose to say — never your
+// onboarding answers republished.
+
+export interface DiscoveryProfile {
+  discoverable: boolean;
+  /** The tag ids currently shown on your card. */
+  tags: string[];
+  /** Tags you could pick, drawn from your own onboarding answers. */
+  suggestions: string[];
+  /** Why you can't be listed yet, or null. */
+  blockedReason: string | null;
+}
+
+export interface DiscoveryCandidate {
+  userId: string;
+  name: string;
+  avatarManifest?: AvatarManifest | null;
+  /** Already phrased for display by the server. */
+  tags: string[];
+  /**
+   * Why they were surfaced, or NULL when there's nothing honest to say. Render
+   * nothing at all when null — never substitute a vaguer line.
+   */
+  matchReason: string | null;
+}
+
+export interface DiscoveryPage {
+  candidates: DiscoveryCandidate[];
+  nextCursor: string | null;
+}
+
+export async function getDiscoveryProfile(): Promise<DiscoveryProfile> {
+  const res = await axiosClient.get("/buddies/discovery-profile");
+  return res.data as DiscoveryProfile;
+}
+
+export async function setDiscoveryProfile(
+  discoverable: boolean,
+  tags: string[],
+): Promise<DiscoveryProfile> {
+  const res = await axiosClient.patch("/buddies/discovery-profile", {
+    discoverable,
+    tags,
+  });
+  return res.data as DiscoveryProfile;
+}
+
+export async function discoverBuddies(cursor?: string): Promise<DiscoveryPage> {
+  const res = await axiosClient.get("/buddies/discover", {
+    params: cursor ? { cursor } : undefined,
+  });
+  return res.data as DiscoveryPage;
+}

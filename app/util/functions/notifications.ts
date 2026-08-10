@@ -10,6 +10,7 @@ import {
 } from "../../constants/reminderTemplates";
 import type { Reminder } from "../../stores/reminders";
 import { useUserStore } from "../../stores/user";
+import { useInboxStore } from "../../stores/inbox";
 import {
   registerPushToken as apiRegisterPushToken,
   removePushToken as apiRemovePushToken,
@@ -26,7 +27,20 @@ const PUSH_TOKEN_KEY = "SW_EXPO_PUSH_TOKEN";
 const HANDLED_RESPONSE_KEY = "SW_LAST_HANDLED_NOTIFICATION_RESPONSE";
 
 /** Buddy/community push data.type values that should deep-link to the Community tab. */
-const BUDDY_PUSH_TYPES = ["signal", "reaction", "support_note", "support_lifeline"];
+const BUDDY_PUSH_TYPES = [
+  "signal",
+  "reaction",
+  "support_note",
+  "support_lifeline",
+  // Requests carry NO threadId — there is no thread until one is accepted — so
+  // they route on type alone. Both land on the Community tab, which is where
+  // the Requests section lives (and, unpaired, is the whole screen).
+  "buddy_request",
+  "buddy_request_accepted",
+];
+
+/** Buddy request arriving while the app is open — badge it without a tap. */
+const REQUEST_PUSH_TYPE = "buddy_request";
 
 const hasGrantedNotificationPermission = (
   settings: Notifications.NotificationPermissionsStatus,
@@ -246,8 +260,19 @@ export const setupNotificationHandlers = () => {
         "Notification received while app is foregrounded:",
         notification,
       );
-      // You might want to display a custom in-app banner or toast here
-      // rather than the default system notification.
+
+      // A buddy request arriving while the app is open must badge the Community
+      // tab immediately. Without this the badge waits for the inbox store to be
+      // hydrated, which only happens when the Community screen loads — i.e. the
+      // badge would only appear once you had already gone where it was sending
+      // you, which is no badge at all.
+      const data = notification?.request?.content?.data as
+        | Record<string, unknown>
+        | undefined;
+      if (data?.type === REQUEST_PUSH_TYPE) {
+        const inbox = useInboxStore.getState();
+        inbox.setPendingRequestCount(inbox.pendingRequestCount + 1);
+      }
     });
 
   // Listener for when the user taps on a notification — deep link to the

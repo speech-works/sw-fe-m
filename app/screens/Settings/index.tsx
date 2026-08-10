@@ -149,6 +149,21 @@ const Settings = () => {
       desc: "Stuttering organizations & crisis support",
       onClick: () => navigation.navigate("Resources"),
     },
+    // Never conditionally hidden when the list is empty: this is the undo for
+    // an irreversible-looking action, and it has to be findable before you have
+    // blocked anyone — including by an App Review tester (Guideline 1.2).
+    {
+      icon: "search",
+      text: "Being findable",
+      desc: "Whether others can find you as a buddy",
+      onClick: () => navigation.navigate("Discoverability"),
+    },
+    {
+      icon: "users",
+      text: "Blocked people",
+      desc: "Manage who you've blocked",
+      onClick: () => navigation.navigate("BlockedPeople"),
+    },
     // purchasesAvailable(), not the raw flag: restorePurchasesAndReconcile()
     // returns null immediately without a RevenueCat key for this platform, so
     // on a keyless build this row is a button that cannot do anything.
