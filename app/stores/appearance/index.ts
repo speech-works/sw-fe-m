@@ -8,6 +8,10 @@ import { createJSONStorage, persist } from "zustand/middleware";
  * scheme. Like SW_ANALYTICS_CONSENT, this is intentionally NOT one of the
  * `SW_ZSTORE_*` keys cleared on logout — it's the person's display choice for
  * this device and must survive sign-out.
+ *
+ * The default is "dark", not "system": the signature dark canvas is how the app
+ * is meant to look, so a light-mode device still opens dark until the person
+ * picks otherwise in Settings → Appearance.
  */
 export type AppearanceMode = "light" | "dark" | "system";
 
@@ -19,7 +23,7 @@ interface AppearanceState {
 export const useAppearanceStore = create<AppearanceState>()(
   persist(
     (set) => ({
-      mode: "system",
+      mode: "dark",
       setMode: (mode) => set({ mode }),
     }),
     {

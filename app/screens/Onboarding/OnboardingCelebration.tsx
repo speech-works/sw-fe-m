@@ -117,8 +117,33 @@ const Sunburst: React.FC<{ reduced: boolean; color: string }> = ({
     };
   }, [reduced, rot, pulse]);
 
+  /*
+   * EVERY REDUCED-MOTION BRANCH IN THIS FILE RETURNS AN IDENTITY TRANSFORM
+   * RATHER THAN OMITTING THE KEY, and the four of them should stay that way.
+   *
+   * Reanimated snapshots the shape of the first style a worklet returns and
+   * merges later ones into it — `last[propName][prop] = obj[prop]` in
+   * useAnimatedStyle's frame callback. A branch returning `{ opacity }` alone
+   * leaves `last.transform` undefined, and a later pass animating a transform
+   * dies on "Cannot set property 'scale' of undefined" — the crash already
+   * commented in CustomScrollView.
+   *
+   * Nothing here can reach that today, and it takes TWO independent things
+   * going wrong: that frame callback only runs for styles returning an inline
+   * `withTiming`/`withSpring` (these return plain `interpolate` output, so
+   * `hasAnimations` stays false), and `useReducedMotion()` reads a module
+   * constant captured at app start, so only one branch ever runs per mount.
+   *
+   * Both are one ordinary edit away from being untrue — dropping a `withTiming`
+   * into one of these styles is a completely normal thing to do, and it would
+   * arm the bug silently for anyone with reduce-motion switched on. The
+   * identity values cost nothing and render identically, so keep the shapes
+   * matched rather than relying on either condition holding.
+   */
   const style = useAnimatedStyle(() => {
-    if (reduced) return { opacity: 0.32 };
+    if (reduced) {
+      return { opacity: 0.32, transform: [{ rotate: "0deg" }, { scale: 1 }] };
+    }
     return {
       opacity: interpolate(pulse.value, [0, 1], [0.34, 0.52]),
       transform: [
@@ -192,7 +217,8 @@ const Sparkle: React.FC<{
   }, [reduced, index, t]);
 
   const style = useAnimatedStyle(() => {
-    if (reduced) return { opacity: 0.5 };
+    // Identity transform, not omission — see the note on Sunburst's style.
+    if (reduced) return { opacity: 0.5, transform: [{ scale: 1 }] };
     return {
       opacity: interpolate(t.value, [0, 0.5, 1], [0, 1, 0]),
       transform: [{ scale: interpolate(t.value, [0, 0.5, 1], [0.3, 1, 0.3]) }],
@@ -246,7 +272,10 @@ const Hero: React.FC<{ reduced: boolean }> = ({ reduced }) => {
   }, [reduced, pop, floatV]);
 
   const style = useAnimatedStyle(() => {
-    if (reduced) return { opacity: pop.value };
+    // Identity transform, not omission — see the note on Sunburst's style.
+    if (reduced) {
+      return { opacity: pop.value, transform: [{ translateY: 0 }, { scale: 1 }] };
+    }
     const scale = 0.55 + pop.value * 0.45 + tap.value * 0.14;
     const drift = interpolate(floatV.value, [0, 1], [-5, 5]);
     return {
@@ -382,7 +411,10 @@ const CheerBubble: React.FC<{ reduced: boolean }> = ({ reduced }) => {
   }, [reduced, pop, wiggle]);
 
   const style = useAnimatedStyle(() => {
-    if (reduced) return { opacity: pop.value };
+    // Identity transform, not omission — see the note on Sunburst's style.
+    if (reduced) {
+      return { opacity: pop.value, transform: [{ scale: 1 }, { rotate: "0deg" }] };
+    }
     return {
       opacity: Math.min(1, pop.value * 1.4),
       transform: [

@@ -196,12 +196,27 @@ const StampArtwork: React.FC<StampArtworkProps> = ({
         strokeLinejoin="round"
         strokeDasharray={solid ? undefined : "74 4 29 3 86 7"}
       />
+      {/*
+        FLAT `ink` HERE, NEVER `stroke` — this one is a crash, not a preference.
+        A radialGradient in objectBoundingBox units is resolved against EACH
+        element's own box, and this perforation is exactly vertical, so its box
+        is zero wide. react-native-svg notices the radius came out at 0 and
+        substitutes the box's own width (Brush.setupPaint) — still 0 — and
+        Android's RadialGradient rejects that with `ending radius must be > 0`,
+        which is an uncaught IllegalArgumentException on the draw pass: the
+        process dies the first time the stamp is painted. The Path above has a
+        real box, which is why it never showed the problem.
+
+        Nothing is given up by hardcoding the flat ink. The perforation sits at
+        x=50, well inside the 0→0.55 shelf where the ramp is still solid `ink`,
+        and on the dark scheme `inkEnd` resolves to `ink` regardless.
+      */}
       <Line
         x1="50"
         y1="14"
         x2="50"
         y2="66"
-        stroke={stroke}
+        stroke={ink}
         strokeWidth={solid ? 3 : 2}
         strokeDasharray="5 5"
       />
