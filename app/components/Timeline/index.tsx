@@ -1,5 +1,5 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 
@@ -20,7 +20,9 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
 import SignalCard from "../SignalCard";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
-import { reportContent, type ReportReason } from "../../api/moderation";
+import { blockUser, reportContent, type ReportReason } from "../../api/moderation";
+import { apiErrorMessage } from "../../util/functions/apiError";
+import { resetBuddyLocalState } from "../../util/functions/buddyReset";
 import { CRISIS_REPORT_REASON } from "../../constants/reportReasons";
 import ReportSheet from "../ReportSheet";
 
@@ -48,6 +50,18 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [reportingId, setReportingId] = useState<string | null>(null);
+  const [pendingBlock, setPendingBlock] = useState<{ userId: string; name: string } | null>(null);
+  const [blocking, setBlocking] = useState(false);
+  /**
+   * Work to run once the ReportSheet has FULLY animated out.
+   *
+   * Two things need this: opening the block confirm (a second native Modal —
+   * stacking them freezes touch input on iOS) and navigating to Resources for
+   * the crisis reason (a native Modal still on screen ends up floating over the
+   * screen you just pushed). One ref serves both.
+   */
+  const afterSheetDismissed = useRef<(() => void) | null>(null);
+  const blockInFlight = useRef(false);
   const myId = useUserStore((s) => s.user?.id);
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
@@ -170,8 +184,11 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
 
     if (reason === CRISIS_REPORT_REASON) {
       // Reporting a friend's distress as "content" and getting "thanks, we'll
-      // review it" is the wrong response. Send them to the real resources.
-      navigation.navigate("Resources" as never);
+      // review it" is the wrong response. Send them to the real resources —
+      // but only once the sheet is gone. The sheet is a native Modal, and
+      // navigating while it is still animating out leaves it hanging over the
+      // screen we just pushed.
+      afterSheetDismissed.current = () => navigation.navigate("Resources" as never);
     }
 
     try {
@@ -188,6 +205,50 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
         "Report didn't send",
         "We've hidden it on this device. Please try again, or contact support.",
       );
+    }
+  };
+
+  /**
+   * Block from a post.
+   *
+   * Queued behind the sheet's dismissal rather than opening straight away —
+   * see `afterSheetDismissed`. Reporting is about one post; this is about the
+   * person, so it still gets its own confirm, exactly as the Community tab does
+   * for the same irreversible action.
+   */
+  const askBlockFromPost = () => {
+    const signal = signals.find((s) => s.id === reportingId);
+    const author = signal?.author;
+    setReportingId(null);
+    if (!author?.id) return;
+    afterSheetDismissed.current = () =>
+      setPendingBlock({ userId: author.id, name: author.name?.split(" ")[0] || "them" });
+  };
+
+  const confirmBlockFromPost = async () => {
+    const target = pendingBlock;
+    setPendingBlock(null);
+    if (!target || blockInFlight.current) return;
+    blockInFlight.current = true;
+    setBlocking(true);
+    try {
+      // No reason, and no companion report. "I don't want to accuse them, I
+      // just want out" is a legitimate and common intent — forcing every block
+      // through an accusation is what corrupts the report data the review queue
+      // depends on. Guideline 1.2 asks for a way to block AND a way to report,
+      // separately.
+      await blockUser(target.userId);
+      track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { source: "post" });
+      resetBuddyLocalState();
+      showSuccessBottomSheet(
+        "Blocked",
+        "You've been unpaired, and you won't be matched again.",
+      );
+    } catch (e) {
+      showErrorBottomSheet("Couldn't block", apiErrorMessage(e, "Please try again."));
+    } finally {
+      blockInFlight.current = false;
+      setBlocking(false);
     }
   };
 
@@ -292,7 +353,36 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
         onClose={() => setReportingId(null)}
         target="signal"
         personName={buddyName}
+        submitting={blocking}
         onSubmit={handleReport}
+        // Only offered on someone else's post — you can't block yourself, and
+        // system beats/cards have no real author to block.
+        onBlock={
+          signals.find((s) => s.id === reportingId)?.author?.id && !signals.find((s) => s.id === reportingId)?.authorIsMe
+            ? askBlockFromPost
+            : undefined
+        }
+        blockLabel={`Block ${buddyName?.split(" ")[0] || "them"}`}
+        onDismissed={() => {
+          const run = afterSheetDismissed.current;
+          afterSheetDismissed.current = null;
+          run?.();
+        }}
+      />
+
+      <Dialog
+        // `exclusive` as well as being opened from onDismissed: the sheet is
+        // provably gone by then, but this costs nothing and means a future
+        // caller that opens it some other way still can't stack two modals.
+        exclusive
+        visible={pendingBlock !== null}
+        onClose={() => setPendingBlock(null)}
+        title={`Block ${pendingBlock?.name ?? "them"}?`}
+        message="You'll be unpaired right away. They won't see your progress, and you two won't be matched again."
+        cancelLabel="Cancel"
+        confirmLabel="Block"
+        destructive
+        onConfirm={confirmBlockFromPost}
       />
     </View>
   );

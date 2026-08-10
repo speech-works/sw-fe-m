@@ -22,6 +22,20 @@ interface ReportSheetProps {
   personName?: string;
   /** Called with the chosen reason. Tapping a reason submits; there is no second step. */
   onSubmit: (reason: ReportReason) => void;
+  /**
+   * Fires once the sheet has FULLY animated out and unmounted. Chain anything
+   * that opens another native modal (or navigates) off this, never off the tap.
+   */
+  onDismissed?: () => void;
+  /** A submit is in flight — every row goes inert so one tap can't become two. */
+  submitting?: boolean;
+  /**
+   * Optional "block this person" action, rendered apart from the reasons. Given
+   * a handler, the caller is responsible for its own confirm step — see the
+   * Timeline usage, which waits for `onDismissed` before opening one.
+   */
+  onBlock?: () => void;
+  blockLabel?: string;
 }
 
 /**
@@ -43,6 +57,10 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({
   target,
   personName,
   onSubmit,
+  onDismissed,
+  submitting,
+  onBlock,
+  blockLabel,
 }) => {
   const styles = useStyles();
   const who = personName?.trim() || "them";
@@ -51,6 +69,20 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({
     <Sheet
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
+      // ALWAYS exclusive, because this sheet is always a handoff target.
+      //
+      // Community opens it the instant it closes the "Block X?" confirm Dialog.
+      // A Dialog is an AnimatedModal, which stays mounted through its ~200ms
+      // exit — so without this the two native <Modal>s overlapped and froze
+      // touch input on iOS, which meant the reason list never became usable and
+      // blockUser() was never called. The block button simply did nothing.
+      //
+      // `exclusive` defers presentation until the modal registry clears, so the
+      // same-tick close/open in the caller is safe. Where nothing else is open
+      // (Timeline's report tap) hasOpenModalExcept is false and this presents
+      // immediately — identical behaviour to before.
+      exclusive
       title={target === "signal" ? "Report this post" : `Report ${who}`}
     >
       <View style={styles.body}>
@@ -64,9 +96,23 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({
             key={reason.id}
             label={reason.label}
             divider={i < REPORT_REASONS.length - 1}
+            disabled={submitting}
             onPress={() => onSubmit(reason.id)}
           />
         ))}
+
+        {/* Blocking is not a seventh reason — it's a different act, so it sits
+            in its own group with a gap above it. Reporting is about the
+            content; this is about the person. */}
+        {onBlock ? (
+          <View style={styles.blockGroup}>
+            <ListItem
+              label={blockLabel ?? `Block ${who}`}
+              disabled={submitting}
+              onPress={onBlock}
+            />
+          </View>
+        ) : null}
       </View>
     </Sheet>
   );
@@ -79,6 +125,9 @@ const useStyles = makeStyles(() => ({
   },
   intro: {
     marginBottom: spacing.md,
+  },
+  blockGroup: {
+    marginTop: spacing.lg,
   },
 }));
 

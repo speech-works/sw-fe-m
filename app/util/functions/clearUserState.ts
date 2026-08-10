@@ -52,6 +52,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useFirstCallStore },
       { useCallHintsStore },
       { useTopMatchStampStore },
+      { useDiscoveryPromptStore },
     ] = await Promise.all([
       import("../../stores/user"),
       import("../../stores/toolConsent"),
@@ -70,6 +71,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/firstCall"),
       import("../../stores/callHints"),
       import("../../stores/topMatchStamp"),
+      import("../../stores/discoveryPrompt"),
     ]);
     resets.push(
       ["user", () => useUserStore.getState().clearUser()],
@@ -108,6 +110,14 @@ export async function clearAllPersistedUserState(): Promise<void> {
       // Discovering the call controls is a per-person thing, not a per-device
       // one: the next user gets shown the hourglass too.
       ["callHints", () => useCallHintsStore.getState().reset()],
+      // Being findable is a disclosure, so the next account on this phone must
+      // be ASKED, not inherit a previous user's answer. Without this reset the
+      // record survives in memory across a logout inside one session and the
+      // new user silently gets the quiet row instead of the offer.
+      [
+        "discoveryPrompt",
+        () => useDiscoveryPromptStore.setState({ offeredAt: null }),
+      ],
       // The next person on this phone has never been shown a top match, and
       // their first one should arrive the way anybody's does. A previous
       // account's spent budget must not silence it.

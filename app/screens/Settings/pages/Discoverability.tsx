@@ -1,0 +1,195 @@
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import React, { useCallback, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
+
+import {
+  useTheme,
+  spacing,
+  radius,
+  Page,
+  Text,
+  Chip,
+  Toggle,
+  Button,
+  Banner,
+  Spinner,
+  ErrorState,
+} from "../../../design-system";
+import PressableScale from "../../../components/PressableScale";
+import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
+import {
+  getDiscoveryProfile,
+  setDiscoveryProfile,
+  type DiscoveryProfile,
+} from "../../../api/buddies";
+import { apiErrorMessage } from "../../../util/functions/apiError";
+import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
+import { TAG_LABELS, MAX_DISCOVERY_TAGS } from "../../../constants/discoveryTags";
+
+/**
+ * Being findable — off unless you say otherwise.
+ *
+ * Appearing in a list inside a stuttering-support app is itself a disclosure,
+ * so this is opt-in for everyone including existing users, and the card shows
+ * only what you pick here. The app never republishes your onboarding answers to
+ * strangers: those are the same signals the recommendation trace is admin-gated
+ * for. What you see below are SUGGESTIONS drawn from your own answers — nothing
+ * is published until you choose it.
+ */
+const Discoverability = () => {
+  const navigation = useNavigation<SettingsStackNavigationProp<"Discoverability">>();
+  const { colors } = useTheme();
+
+  const [profile, setProfile] = useState<DiscoveryProfile | null>(null);
+  const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [discoverable, setDiscoverable] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const inFlight = useRef(false);
+
+  const load = useCallback(async () => {
+    try {
+      setError(false);
+      const p = await getDiscoveryProfile();
+      setProfile(p);
+      setDiscoverable(p.discoverable);
+      setTags(p.tags);
+    } catch {
+      setError(true);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const toggleTag = (tag: string) => {
+    setTags((prev) => {
+      if (prev.includes(tag)) return prev.filter((t) => t !== tag);
+      if (prev.length >= MAX_DISCOVERY_TAGS) return prev;
+      return [...prev, tag];
+    });
+  };
+
+  const save = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true);
+    try {
+      const updated = await setDiscoveryProfile(discoverable, tags);
+      setProfile(updated);
+      setDiscoverable(updated.discoverable);
+      setTags(updated.tags);
+      navigation.goBack();
+    } catch (e) {
+      showErrorBottomSheet("Couldn't save", apiErrorMessage(e, "Please try again."));
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
+    }
+  };
+
+  if (profile === null && !error) {
+    return (
+      <Page title="Being findable" onBack={() => navigation.goBack()}>
+        <Spinner label="Loading…" />
+      </Page>
+    );
+  }
+
+  if (error) {
+    return (
+      <Page title="Being findable" onBack={() => navigation.goBack()}>
+        <ErrorState
+          title="Couldn't load"
+          message="Check your connection and try again."
+          onRetry={load}
+        />
+      </Page>
+    );
+  }
+
+  const suggestions = profile?.suggestions ?? [];
+
+  return (
+    <Page
+      title="Being findable"
+      description="Off unless you turn it on. Only people looking for a buddy see this."
+      onBack={() => navigation.goBack()}
+      footer={
+        <Button
+          label={saving ? "Saving…" : "Save"}
+          disabled={saving || !!profile?.blockedReason}
+          onPress={save}
+        />
+      }
+    >
+      {profile?.blockedReason ? (
+        <Banner
+          tone="warning"
+          icon="alert-triangle"
+          title="You can't be listed yet"
+          message={profile.blockedReason}
+        />
+      ) : null}
+
+      <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text variant="title">Let others find me</Text>
+            <Text variant="bodySm" color="secondary">
+              You&apos;ll appear to people looking for a practice buddy. They see
+              your first name, your avatar, and whatever you pick below.
+            </Text>
+          </View>
+          <Toggle
+            value={discoverable}
+            onChange={() => setDiscoverable((v) => !v)}
+          />
+        </View>
+      </View>
+
+      {discoverable ? (
+        <View style={styles.tagSection}>
+          <Text variant="title">What should your card say?</Text>
+          <Text variant="bodySm" color="secondary">
+            Pick up to {MAX_DISCOVERY_TAGS}. Nothing here is shared until you
+            choose it — and you can change it any time.
+          </Text>
+
+          {suggestions.length === 0 ? (
+            <Text variant="bodySm" color="secondary">
+              Finish onboarding and we&apos;ll suggest a few things you could
+              show here.
+            </Text>
+          ) : (
+            <View style={styles.chipWrap}>
+              {suggestions.map((tag) => (
+                <PressableScale key={tag} onPress={() => toggleTag(tag)}>
+                  <Chip label={TAG_LABELS[tag] ?? tag} selected={tags.includes(tag)} />
+                </PressableScale>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : null}
+    </Page>
+  );
+};
+
+export default Discoverability;
+
+const styles = StyleSheet.create({
+  group: { borderRadius: radius.card, overflow: "hidden" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.lg,
+    padding: spacing.lg,
+  },
+  rowText: { flex: 1, gap: 4 },
+  tagSection: { gap: spacing.md },
+  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+});

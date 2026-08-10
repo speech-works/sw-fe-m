@@ -16,6 +16,12 @@ export interface DialogProps {
   cancelLabel?: string;
   accentColor?: string;
   onAccentColor?: string;
+  /**
+   * Defer presenting until no other native modal is open. Set this when the
+   * dialog is opened as a HANDOFF from another sheet/modal — two live native
+   * Modals freeze touch input on iOS. See AnimatedModal.
+   */
+  exclusive?: boolean;
 }
 
 /** Centered confirmation dialog (distinct from the bottom Sheet) — for short, often destructive, confirms. */
@@ -30,9 +36,10 @@ export const Dialog: React.FC<DialogProps> = ({
   cancelLabel = "Cancel",
   accentColor,
   onAccentColor,
+  exclusive,
 }) => {
   return (
-    <AnimatedModal visible={visible} onClose={onClose}>
+    <AnimatedModal visible={visible} onClose={onClose} exclusive={exclusive}>
       <Text variant="h2">{title}</Text>
       {message ? (
         <Text variant="bodySm" color="secondary" style={{ marginTop: 8, lineHeight: 21 }}>

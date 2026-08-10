@@ -148,7 +148,19 @@ export const ANALYTICS_EVENTS = {
     // Volume here is a safety signal, not a growth one: a rising report rate on
     // one reason is the thing worth waking up for.
     CONTENT_REPORT_SENT: 'content_report_sent',               // props: { target: 'signal' | 'user', reason }
-    BUDDY_BLOCKED: 'buddy_blocked',                           // props: { reason }
+    // `source` distinguishes the two entry points; without it the Community-tab
+    // block and the from-a-post block are indistinguishable in the funnel.
+    // `reason` is absent for a block from a post — those are deliberately
+    // reasonless, which is itself worth being able to count.
+    BUDDY_BLOCKED: 'buddy_blocked',                           // props: { reason?, source: 'community' | 'post' }
+    BUDDY_UNBLOCKED: 'buddy_unblocked',                       // props: { source: 'settings' }
+
+    // ── Buddy requests ──
+    // The accept/decline ratio is the health metric for pairing-by-request:
+    // a low one means people are being asked by the wrong people.
+    BUDDY_REQUEST_SENT: 'buddy_request_sent',
+    BUDDY_REQUEST_ACCEPTED: 'buddy_request_accepted',
+    BUDDY_REQUEST_DECLINED: 'buddy_request_declined',
 
     // ── The once-in-a-lifetime first call ──
     // A funnel, not a counter: each user appears at most once at each step, so
