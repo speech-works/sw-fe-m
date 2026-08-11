@@ -273,6 +273,11 @@ const AvatarStudio = () => {
                 "headgear.crown",
                 "headgear.tophat",
                 "headgear.pirate",
+                "headgear.viking",
+                "headgear.newsboy",
+                "headgear.hardhat",
+                "headgear.santa",
+                "headgear.bandana",
               ]}
               draft={draft}
               stage={stage}
@@ -294,6 +299,10 @@ const AvatarStudio = () => {
                 "eyewear.heart",
                 "eyewear.star",
                 "eyewear.cateye",
+                "eyewear.daisy",
+                "eyewear.threed",
+                "eyewear.oversized",
+                "eyewear.goggles",
               ]}
               draft={draft}
               stage={stage}
@@ -331,6 +340,10 @@ const AvatarStudio = () => {
                   "collar.cascade",
                   "collar.square",
                   "collar.wrap",
+                  "collar.clerical",
+                  "collar.eton",
+                  "collar.horseshoe",
+                  "collar.chelsea",
                 ]}
                 draft={draft}
                 stage={stage}

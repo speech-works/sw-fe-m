@@ -5,6 +5,7 @@ import {
   BG_COLORS,
   COLLAR_COLORS,
   PART_REGISTRY,
+  partTier,
 } from "../../../assets/avatar/registry";
 import type { AvatarManifest, AvatarSlot } from "../../../types/avatar";
 
@@ -63,23 +64,34 @@ describe("crowdAvatar", () => {
     }
   });
 
-  it("never puts earned stage gear on a stranger", () => {
-    // Tourist/explorer/cowboy/crown are granted by LEVELLING. Dressing a
-    // stranger in them would show gear they may not own and make the wall lie
-    // about progression. Everyday hats only.
-    const earned = new Set([
-      "headgear.tourist",
-      "headgear.explorer",
-      "headgear.cowboy",
-      "headgear.crown",
-      "headgear.party",
-      "headgear.tophat",
-      "headgear.pirate",
-    ]);
-    for (let i = 0; i < 40; i++) {
-      const gear = crowdAvatar(`g${i}`).parts.headgear;
-      expect(earned.has(gear ?? "")).toBe(false);
+  it("dresses strangers in EVERYDAY parts only", () => {
+    // The one rule the wall has to hold, and it is about ownership rather than
+    // taste: journey gear implies a level nobody reached, and a collection
+    // piece implies something nobody was granted. Everyday parts are the only
+    // ones every person in the picture plausibly owns.
+    for (let i = 0; i < 60; i++) {
+      const a = crowdAvatar(`t${i}`);
+      for (const [slot, id] of Object.entries(a.parts)) {
+        if (id === null || slot === "head" || slot === "face" || slot === "hair") continue;
+        expect(partTier(id)).toBe("everyday");
+      }
     }
+  });
+
+  it("still names the specific pieces that must never appear", () => {
+    // The tier check above is the principle; this is the regression guard. If
+    // someone re-tags one of these as everyday, the wall should fail loudly
+    // rather than quietly put a crown on a stranger.
+    const banned = ["headgear.tourist", "headgear.explorer", "headgear.cowboy",
+      "headgear.crown", "headgear.party", "headgear.tophat", "headgear.pirate",
+      "headgear.santa", "headgear.viking", "eyewear.aviator"];
+    const worn = new Set(
+      Array.from({ length: 60 }, (_, i) => {
+        const p = crowdAvatar(`b${i}`).parts;
+        return [p.headgear, p.eyewear, p.collar];
+      }).flat(),
+    );
+    banned.forEach((id) => expect(worn.has(id)).toBe(false));
   });
 
   it("leaves the large majority of heads bare", () => {
@@ -109,13 +121,6 @@ describe("crowdAvatar", () => {
         expect(PART_REGISTRY[slot as AvatarSlot][id]).toBeDefined();
       }
     }
-  });
-
-  it("never puts earned eyewear on a stranger", () => {
-    // Aviators are granted at Voyager. Same rule as the stage hats: a stranger
-    // wearing earned gear implies progression nobody made.
-    const eyes = Array.from({ length: 40 }, (_, i) => crowdAvatar(`e${i}`).parts.eyewear);
-    expect(eyes).not.toContain("eyewear.aviator");
   });
 
   it("keeps glasses and beards to a minority of the crowd", () => {

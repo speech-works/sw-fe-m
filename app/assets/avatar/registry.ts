@@ -58,6 +58,20 @@ import {
   CascadeCollar,
   SquareCollar,
   WrapCollar,
+  ClericalCollar,
+  EtonCollar,
+  HorseshoeCollar,
+  ChelseaCollar,
+  // Headgear + eyewear, second wave
+  VikingHelm,
+  NewsboyCap,
+  HardHat,
+  SantaHat,
+  BandanaWrap,
+  DaisyShades,
+  ThreeDGlasses,
+  OversizedShades,
+  SkiGoggles,
   PartProps,
 } from "./parts";
 
@@ -108,6 +122,11 @@ export const PART_REGISTRY: Record<AvatarSlot, Record<string, PartComponent>> = 
     "headgear.crown": Crown,
     "headgear.tophat": TopHat,
     "headgear.pirate": PirateHat,
+    "headgear.viking": VikingHelm,
+    "headgear.newsboy": NewsboyCap,
+    "headgear.hardhat": HardHat,
+    "headgear.santa": SantaHat,
+    "headgear.bandana": BandanaWrap,
   },
   eyewear: {
     "eyewear.round": RoundGlasses,
@@ -119,6 +138,10 @@ export const PART_REGISTRY: Record<AvatarSlot, Record<string, PartComponent>> = 
     "eyewear.heart": HeartGlasses,
     "eyewear.star": StarGlasses,
     "eyewear.cateye": CatEye,
+    "eyewear.daisy": DaisyShades,
+    "eyewear.threed": ThreeDGlasses,
+    "eyewear.oversized": OversizedShades,
+    "eyewear.goggles": SkiGoggles,
   },
   collar: {
     "collar.scarf": Scarf,
@@ -133,6 +156,10 @@ export const PART_REGISTRY: Record<AvatarSlot, Record<string, PartComponent>> = 
     "collar.cascade": CascadeCollar,
     "collar.square": SquareCollar,
     "collar.wrap": WrapCollar,
+    "collar.clerical": ClericalCollar,
+    "collar.eton": EtonCollar,
+    "collar.horseshoe": HorseshoeCollar,
+    "collar.chelsea": ChelseaCollar,
   },
   prop: {
     "prop.mic": MicProp,
@@ -160,6 +187,52 @@ export const EARN_STAGE: Record<string, StageIndex> = {
   "headgear.cowboy": 4,
   "prop.flag": 4,
 };
+
+/**
+ * The catalog's three tiers.
+ *
+ * These exist because "which parts may an illustrated stranger wear?" was being
+ * answered by two different rules wearing one name: a real one (earned gear
+ * implies progression nobody made) and a taste one (a room full of party hats
+ * stops reading as a room of people). The second was a judgment dressed up as a
+ * principle. Tiering the catalog makes the crowd rule fall out of ownership
+ * instead — the wall wears everyday parts, because those are the only ones
+ * everybody owns.
+ *
+ *   journey    — earned by levelling. The tourist→guide story; see EARN_STAGE.
+ *   collection — costume pieces. Free to wear TODAY: this tag records what they
+ *                are, and deliberately does not gate them, because the unlock
+ *                belongs to the Sparks economy rather than to the stage ladder.
+ *                Level-gating them here would spend the same items twice, and
+ *                would put a Santa hat on a narrative about becoming a guide.
+ *   everyday   — everything else. Ordinary clothes, owned by everyone.
+ */
+export type PartTier = "journey" | "collection" | "everyday";
+
+/** Costume pieces. Membership is the only judgment call in the tier system, so
+ *  it is a list you can argue with rather than a rule buried in a filter. */
+const COLLECTION_PARTS = new Set([
+  "headgear.party",
+  "headgear.crown",
+  "headgear.tophat",
+  "headgear.pirate",
+  "headgear.viking",
+  "headgear.santa",
+  "headgear.hardhat",
+  "eyewear.heart",
+  "eyewear.star",
+  "eyewear.daisy",
+  "eyewear.threed",
+  "eyewear.goggles",
+  // Not a costume — a vocation. A stranger in one implies a calling the way
+  // earned gear implies a level, which is the same honesty problem.
+  "collar.clerical",
+]);
+
+export function partTier(partId: string): PartTier {
+  if (partId in EARN_STAGE) return "journey";
+  return COLLECTION_PARTS.has(partId) ? "collection" : "everyday";
+}
 
 /** Is this part wearable at this stage? Free parts always are. */
 export function isPartEarned(partId: string, stage: StageIndex): boolean {
@@ -270,6 +343,11 @@ export const PART_LABELS: Record<string, string> = {
   "headgear.crown": "Crown",
   "headgear.tophat": "Top hat",
   "headgear.pirate": "Pirate hat",
+  "headgear.viking": "Viking helm",
+  "headgear.newsboy": "Newsboy cap",
+  "headgear.hardhat": "Hard hat",
+  "headgear.santa": "Santa hat",
+  "headgear.bandana": "Bandana",
   "eyewear.round": "Round",
   "eyewear.square": "Square",
   "eyewear.wayfarer": "Wayfarers",
@@ -279,6 +357,10 @@ export const PART_LABELS: Record<string, string> = {
   "eyewear.heart": "Heart glasses",
   "eyewear.star": "Star shades",
   "eyewear.cateye": "Cat-eye",
+  "eyewear.daisy": "Daisy shades",
+  "eyewear.threed": "3D glasses",
+  "eyewear.oversized": "Oversized",
+  "eyewear.goggles": "Ski goggles",
   "collar.scarf": "Knit scarf",
   "collar.bowtie": "Bow tie",
   "collar.cowl": "Turtleneck",
@@ -291,6 +373,10 @@ export const PART_LABELS: Record<string, string> = {
   "collar.cascade": "Cascade frill",
   "collar.square": "Square neck",
   "collar.wrap": "Wrap",
+  "collar.clerical": "Clerical",
+  "collar.eton": "Eton",
+  "collar.horseshoe": "Horseshoe",
+  "collar.chelsea": "Chelsea",
   "prop.mic": "Mic",
   "prop.book": "Book",
   "prop.camera": "Camera",

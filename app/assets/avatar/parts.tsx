@@ -1410,3 +1410,271 @@ export const WrapCollar: React.FC<PartProps> = ({ colors, layer }) => {
     </>
   );
 };
+
+/** Clerical — a dark shirt with the white tab at the throat. The one collar
+ *  whose fabric colour is deliberately overridden: it reads as clergy only if
+ *  the shirt is dark, so the user's swatch is darkened rather than used raw. */
+export const ClericalCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const cloth = shade(colors.collar, -0.55);
+  const band = shade(trimOf(cloth), 0.2);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(cloth, -0.2)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={GARMENT} fill={cloth} />
+          <Dome
+            d="M5.4 31.6 Q13.6 36.4 24.675 38.4 Q35.75 36.4 43.95 31.6 L44.55 36.4 Q35.95 41.4 24.675 43.4 Q13.4 41.4 4.8 36.4 Z"
+            fill={cloth}
+          />
+          <Dome d="M20.9 37.8 L28.45 37.8 L28.45 43.4 L20.9 43.4 Z" fill={band} />
+          <Path
+            d="M6.4 33.4 Q14 38 24.675 40 Q35.35 38 42.95 33.4"
+            fill="none"
+            stroke={shade(cloth, 0.35)}
+            strokeWidth={0.6}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+          <Dome d="M22.4 43.4 L26.95 43.4 L27.6 56 L21.75 56 Z" fill={shade(cloth, 0.1)} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Eton — the wide stiff collar lying over a darker jacket. */
+export const EtonCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const coat = shade(colors.collar, -0.42);
+  const stiff = shade(trimOf(coat), 0.2);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(coat, -0.2)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={GARMENT} fill={coat} />
+          <Dome
+            d="M4 32.6 Q13.4 38.6 24.675 40.8 Q35.95 38.6 45.35 32.6 Q47.35 37.4 44.35 42.6 Q35.35 46.4 24.675 46.4 Q14 46.4 5 42.6 Q2 37.4 4 32.6 Z"
+            fill={stiff}
+          />
+          <Path
+            d="M7.4 36.4 Q15.4 41.6 24.675 43.6 Q33.95 41.6 41.95 36.4"
+            fill="none"
+            stroke={shade(stiff, -0.2)}
+            strokeWidth={0.55}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+          <Dome d="M22.4 44.6 L26.95 44.6 L27.6 56 L21.75 56 Z" fill={coat} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Horseshoe — one continuous rounded collar open at the throat. */
+export const HorseshoeCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.26)} />}
+      {layer !== "back" && (
+        <>
+          <CollarBase c={c} />
+          <Dome
+            d="M5 34.2 Q13.4 39.2 24.675 41.2 Q35.95 39.2 44.35 34.2 L45.75 38.6 Q37.35 45.4 24.675 47.6 Q12 45.4 3.6 38.6 Z"
+            fill={shade(c, 0.1)}
+          />
+          <Path
+            d="M8.4 36.6 Q15.6 41.4 24.675 43.4 Q33.75 41.4 40.95 36.6"
+            fill="none"
+            stroke={shade(c, -0.22)}
+            strokeWidth={0.6}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+          <Dome d="M22.6 45.4 L26.75 45.4 L27.4 56 L21.95 56 Z" fill={shade(c, -0.06)} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Chelsea — long lapels sweeping down a deep open V. */
+export const ChelseaCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const lapel = shade(c, 0.1);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.28)} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 56 L-2 38.4 Q2.6 34.2 6.6 33 L24.675 49.6 L42.75 33 Q46.75 34.2 51.35 38.4 L51.35 56 Z"
+            fill={c}
+          />
+          <Dome d="M6.6 32.8 Q13.4 39.4 24.675 46.4 L21.4 52.6 Q10.4 44.6 4.6 36.6 Z" fill={lapel} />
+          <Dome d="M42.75 32.8 Q35.95 39.4 24.675 46.4 L27.95 52.6 Q38.95 44.6 44.75 36.6 Z" fill={lapel} />
+          <Path
+            d="M9.4 34.6 Q15.4 40.6 22.4 46.4 M39.95 34.6 Q33.95 40.6 26.95 46.4"
+            fill="none"
+            stroke={shade(c, -0.24)}
+            strokeWidth={0.55}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+// ── Headgear, second wave ────────────────────────────────────────────────────
+//
+// Every crown here closes over the head's TOP EDGE (crown y≈8, measured sides
+// x 6.07→43.27) so no scalp or hair shows above the hat, and every lower edge
+// stays above y≈18.8 at the eye columns (x 16 / 32).
+//
+// The hard constraint is the tile, not the head: the circular housing clips
+// everything above y≈0 and narrows fast — x 14.4→33.6 at y=2, x 9.3→38.7 at
+// y=5. A true tall crown simply disappears above the frame, so these are
+// proportioned to peak just inside it. That is why the whole hat catalog reads
+// low-crowned; it is the housing, not the drawing.
+
+/** A riveted iron helm with bone horns. */
+export const VikingHelm: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M6.6 15.6 C5.8 6.8 10 3 24.675 3 C39.35 3 43.55 6.8 42.75 15.6 C34 13.4 15 13.4 6.6 15.6 Z" fill="#9AA3AD" />
+    <Dome d="M6.8 12.6 Q24.675 10.2 42.55 12.6 L42.55 15.4 Q24.675 13 6.8 15.4 Z" fill="#6E7681" />
+    <Path d="M24.675 3 L24.675 13" fill="none" stroke="#6E7681" strokeWidth={0.9} strokeLinecap="round" opacity={0.8} />
+    <Dome d="M8 13.4 C1.6 12.6 -1.4 7 0.4 1.8 C2.4 6 5.4 9 9.4 9.8 Z" fill="#EDE4CE" />
+    <Dome d="M41.35 13.4 C47.75 12.6 50.75 7 48.95 1.8 C46.95 6 43.95 9 39.95 9.8 Z" fill="#EDE4CE" />
+    <Circle cx={12.4} cy={13.4} r={0.85} fill="#CBD3DB" />
+    <Circle cx={CX} cy={11.6} r={0.85} fill="#CBD3DB" />
+    <Circle cx={36.95} cy={13.4} r={0.85} fill="#CBD3DB" />
+  </>
+);
+
+/** A soft panelled flat cap with its short stitched brim. */
+export const NewsboyCap: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M5.6 15.2 C4.8 6 9 2.6 24.675 2.6 C40.35 2.6 44.55 6 43.75 15.2 C34 13 15 13 5.6 15.2 Z" fill="#7D8A6A" />
+    <Path
+      d="M24.675 2.8 Q23.4 8.4 24.675 14 M15.4 3.8 Q16.6 9 15.6 14 M33.95 3.8 Q32.75 9 33.75 14"
+      fill="none"
+      stroke="#5E6B4E"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      opacity={0.7}
+    />
+    <Circle cx={CX} cy={3.4} r={1.3} fill="#5E6B4E" stroke={INK} strokeWidth={0.5} />
+    <Sheen d="M6.2 14.8 Q24.675 12.2 43.15 14.8 Q41.35 18.2 24.675 17.6 Q8 18.2 6.2 14.8 Z" fill="#6B7759" />
+  </>
+);
+
+/** A safety helmet — ridged shell, short all-round brim. */
+export const HardHat: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M6 15.4 C5.2 6.6 9.4 3 24.675 3 C39.95 3 44.15 6.6 43.35 15.4 C34 13.2 15 13.2 6 15.4 Z" fill="#F2A833" />
+    <Path d="M24.675 3.2 L24.675 14" fill="none" stroke="#C07E1C" strokeWidth={1.1} strokeLinecap="round" opacity={0.85} />
+    <Path
+      d="M14.4 4.6 Q13.4 9.4 14 14.2 M34.95 4.6 Q35.95 9.4 35.35 14.2"
+      fill="none"
+      stroke="#C07E1C"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      opacity={0.6}
+    />
+    <Sheen d="M4.4 15.2 Q24.675 12.4 44.95 15.2 Q43 18.4 24.675 17.8 Q6.35 18.4 4.4 15.2 Z" fill="#D9911F" />
+  </>
+);
+
+/** Santa's hat — the flop and bobble kept INSIDE the tile; drawn at the
+ *  reference's x≈49 they fell outside the circle entirely and never rendered. */
+export const SantaHat: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M6 15 C5.2 6.6 9.4 3 24.675 3 C37 3 42.6 5.8 43.8 10.4 C44.6 13.4 41 13.6 36 12.8 C26 11.4 13.4 12.8 6 15 Z" fill="#C0362F" />
+    <Dome d="M38.6 9.4 C43.6 8 45.8 10.6 44.6 13.6 C43.8 15.6 41 15.8 39.4 14.4 Z" fill="#C0362F" />
+    <Sheen d="M4.8 14.4 Q24.675 11.4 44.4 14.4 L44.4 18 Q24.675 15 4.8 18 Z" fill="#F4F1EA" />
+    <Circle cx={43.2} cy={14.8} r={2.5} fill="#F4F1EA" stroke={INK} strokeWidth={0.8} />
+    <Path d="M10.4 6.4 Q16.4 4 23.4 4" fill="none" stroke="#DE6A62" strokeWidth={1} strokeLinecap="round" opacity={0.5} />
+  </>
+);
+
+/** A tied head bandana — wrap, side knot, and a spotted print. */
+export const BandanaWrap: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M5.4 16.6 C4.6 7 9 3.4 24.675 3.4 C40.35 3.4 44.75 7 43.95 16.6 C34 14.4 15 14.4 5.4 16.6 Z" fill="#B4443E" />
+    <Dome d="M41.4 13.4 L46.9 15.4 L44.4 19.2 L40.4 16.6 Z" fill="#963630" />
+    <Dome d="M43.4 17.4 L47.4 20.2 L42.9 21.2 Z" fill="#963630" />
+    <Circle cx={13.4} cy={9.4} r={0.8} fill="#F2E4E2" />
+    <Circle cx={21.4} cy={6.6} r={0.8} fill="#F2E4E2" />
+    <Circle cx={30.4} cy={7.4} r={0.8} fill="#F2E4E2" />
+    <Circle cx={36.4} cy={11.4} r={0.8} fill="#F2E4E2" />
+    <Circle cx={17.4} cy={13} r={0.7} fill="#F2E4E2" />
+    <Circle cx={27.4} cy={12.4} r={0.7} fill="#F2E4E2" />
+  </>
+);
+
+// ── Eyewear, second wave (lenses on the eye anchors 16,22 / 32,22) ───────────
+
+/** Daisy shades — petal rings around dark lenses. */
+export const DaisyShades: React.FC<PartProps> = () => (
+  <>
+    <Path d="M10.4 21 L6.5 19.6 M37.6 21 L41.5 19.6" fill="none" stroke="#D9A21B" strokeWidth={1.4} strokeLinecap="round" />
+    <Path d="M21.4 21.4 H27.95" fill="none" stroke="#D9A21B" strokeWidth={1.4} strokeLinecap="round" />
+    {[16, 32].map((cx) => (
+      <G key={cx}>
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => (
+          <Circle
+            key={k}
+            cx={cx + Math.cos((k * Math.PI) / 4) * 4.6}
+            cy={22 + Math.sin((k * Math.PI) / 4) * 4.6}
+            r={2.4}
+            fill="#F2B826"
+            stroke={INK}
+            strokeWidth={0.45}
+          />
+        ))}
+        <Circle cx={cx} cy={22} r={3.6} fill="#23202B" />
+        <Circle cx={cx - 1.1} cy={20.9} r={1} fill="#FFFFFF" opacity={0.55} />
+      </G>
+    ))}
+  </>
+);
+
+/** Cinema 3D glasses — one red lens, one cyan, white card frame. */
+export const ThreeDGlasses: React.FC<PartProps> = () => (
+  <>
+    <Rect x={9.8} y={17.8} width={12.4} height={8.8} rx={1.4} fill="#D93B3B" />
+    <Rect x={27.15} y={17.8} width={12.4} height={8.8} rx={1.4} fill="#2FA8C4" />
+    <Path d="M9.8 18.4 H39.55" fill="none" stroke="#F4F1EA" strokeWidth={2.6} />
+    <Rect x={9.8} y={17.8} width={12.4} height={8.8} rx={1.4} fill="none" stroke="#F4F1EA" strokeWidth={1.3} />
+    <Rect x={27.15} y={17.8} width={12.4} height={8.8} rx={1.4} fill="none" stroke="#F4F1EA" strokeWidth={1.3} />
+    <Path d="M22.2 21 H27.15" fill="none" stroke="#F4F1EA" strokeWidth={1.6} strokeLinecap="round" />
+    <Path d="M9.8 20 L6 18.8 M39.55 20 L43.35 18.8" fill="none" stroke="#F4F1EA" strokeWidth={1.6} strokeLinecap="round" />
+  </>
+);
+
+/** Oversized shades — big soft-cornered dark lenses. */
+export const OversizedShades: React.FC<PartProps> = () => (
+  <>
+    <Rect x={8.6} y={16.6} width={13.4} height={11.4} rx={3.4} fill="#23202B" />
+    <Rect x={27.35} y={16.6} width={13.4} height={11.4} rx={3.4} fill="#23202B" />
+    <Rect x={8.6} y={16.6} width={13.4} height={11.4} rx={3.4} fill="none" stroke="#2A2530" strokeWidth={1.5} />
+    <Rect x={27.35} y={16.6} width={13.4} height={11.4} rx={3.4} fill="none" stroke="#2A2530" strokeWidth={1.5} />
+    <Path d="M22 19.4 H27.35" fill="none" stroke="#2A2530" strokeWidth={1.6} strokeLinecap="round" />
+    <Path d="M8.6 19 L5 17.8 M40.75 19 L44.35 17.8" fill="none" stroke="#2A2530" strokeWidth={1.6} strokeLinecap="round" />
+    <Path d="M11 19.6 L15.4 18.6 M29.8 19.6 L34.2 18.6" fill="none" stroke="#FFFFFF" strokeWidth={1.1} strokeLinecap="round" opacity={0.45} />
+  </>
+);
+
+/** Ski goggles — one wide lens on a strap across the head. */
+export const SkiGoggles: React.FC<PartProps> = () => (
+  <>
+    <Path d="M4.4 20.6 Q24.675 17.6 44.95 20.6" fill="none" stroke="#B4443E" strokeWidth={3.4} />
+    <Dome d="M7.4 18.4 Q24.675 15.8 41.95 18.4 Q43.35 24.6 39.35 26.8 Q24.675 28.6 9.95 26.8 Q5.95 24.6 7.4 18.4 Z" fill="#E2E6EA" />
+    <Dome d="M9.6 20 Q24.675 17.8 39.75 20 Q40.75 24 37.75 25.4 Q24.675 26.8 11.6 25.4 Q8.6 24 9.6 20 Z" fill="#4A9BD1" />
+    <Path d="M12.4 21 Q18.4 19.6 24.4 19.4" fill="none" stroke="#CFE9F7" strokeWidth={1.2} strokeLinecap="round" opacity={0.7} />
+  </>
+);
