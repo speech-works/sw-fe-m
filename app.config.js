@@ -44,7 +44,7 @@ module.exports = {
   expo: {
     name: "Speechworks",
     slug: "sw-fe-m",
-    version: "1.0.1",
+    version: "1.0.2",
     sdkVersion: "53.0.0",
     // Over-the-air updates (EAS Update): lets us ship JS-only fixes without a
     // Play Store rebuild + review. `runtimeVersion` uses the "appVersion"
