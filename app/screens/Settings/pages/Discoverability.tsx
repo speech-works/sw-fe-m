@@ -156,7 +156,7 @@ const Discoverability = () => {
           <Text variant="title">What should your card say?</Text>
           <Text variant="bodySm" color="secondary">
             Pick up to {MAX_DISCOVERY_TAGS}. Nothing here is shared until you
-            choose it — and you can change it any time.
+            choose it, and you can change it any time.
           </Text>
 
           {suggestions.length === 0 ? (

@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { AvatarManifest, normalizeManifest } from "../types/avatar";
-import { AvatarDefs, TILE } from "../assets/avatar/avatarKit";
+import { AvatarDefs, TILE, TILE_SQUARE } from "../assets/avatar/avatarKit";
 import { PART_REGISTRY } from "../assets/avatar/registry";
 import { easing, useMotion } from "../design-system";
 
@@ -24,6 +24,15 @@ export interface UserAvatarProps {
   size: number;
   /** Idle float. Forced off by OS reduced motion. */
   animate?: boolean;
+  /**
+   * Housing silhouette. "circle" is the identity everywhere in the app and the
+   * default — see the sw-faces skeleton rule.
+   *
+   * "square" exists for ONE surface: the Community wall, where avatars tile
+   * edge to edge and circles leave lozenge-shaped holes between them. Every
+   * layer above the housing is unchanged; only the outline differs.
+   */
+  shape?: "circle" | "square";
   accessibilityLabel?: string;
 }
 
@@ -51,7 +60,7 @@ export interface UserAvatarProps {
  * L0–L7 are masked to the tile circle; the prop alone escapes it.
  */
 export const UserAvatar = React.memo<UserAvatarProps>(
-  ({ manifest, size, animate = false, accessibilityLabel }) => {
+  ({ manifest, size, animate = false, shape = "circle", accessibilityLabel }) => {
     const { reduced } = useMotion();
     const m = useMemo(() => normalizeManifest(manifest), [manifest]);
 
@@ -109,8 +118,8 @@ export const UserAvatar = React.memo<UserAvatarProps>(
       >
         <Svg viewBox="-8 -8 64 64" width={size} height={size}>
           <AvatarDefs />
-          <G mask="url(#av-circ)">
-            <Path d={TILE} fill={m.colors.bg} />
+          <G mask={shape === "square" ? "url(#av-square)" : "url(#av-circ)"}>
+            <Path d={shape === "square" ? TILE_SQUARE : TILE} fill={m.colors.bg} />
             {collar("back")}
             {hair("back")}
             {part("head")}

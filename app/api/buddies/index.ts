@@ -64,12 +64,26 @@ export async function getMyBuddy(): Promise<BuddySummary> {
   }
 }
 
-// Attach an invite code (new sign-ups only) — forms the pending buddy link.
-// Server enforces "new sign-ups only" and same-device/email anti-fraud.
-export async function attachInviteCode(code: string): Promise<BuddyLink> {
+/**
+ * What entering a code did.
+ *
+ * Two honest outcomes rather than one optimistic one. A brand-new account
+ * redeeming a code it was plainly sent is paired on the spot; everyone else
+ * has ASKED, and the code's owner still has to say yes. The screen renders the
+ * difference — it never claims a pairing that is waiting on someone.
+ */
+export interface PairResult {
+  status: "paired" | "requested";
+  /** Present only when `status` is "paired". */
+  link: BuddyLink | null;
+}
+
+// Pair with the owner of a code. Either pairs you or sends them a request —
+// the server decides which, and says so.
+export async function attachInviteCode(code: string): Promise<PairResult> {
   try {
     const response = await axiosClient.post("/buddies/redeem", { code });
-    return response.data;
+    return response.data as PairResult;
   } catch (error) {
     // A rejected code is an ANSWER, not a fault — the server distinguishes six
     // reasons and every one is something the person can act on. `console.error`

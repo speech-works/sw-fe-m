@@ -152,6 +152,7 @@ export const icons = {
   home: "home",
   explore: "layout-grid",
   community: "users", // the Community tab / "Us" buddy pair
+  find: "search", // looking for something/someone — buddy discovery, filters
   settings: "settings",
   menu: "menu",
   timeline: "history", // the Timeline view

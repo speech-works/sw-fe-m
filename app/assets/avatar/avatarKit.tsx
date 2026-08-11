@@ -45,10 +45,27 @@ export const INK = "#241F26";
  * Snoo-adapted style: NO gradients anywhere — every shape is a flat fill plus
  * the shared `INK` outline. The defs are just the two masks.
  */
+/**
+ * The rounded-square housing, as an alternative to the circle.
+ *
+ * A 48-unit square with a generous corner (r=11 ≈ 23%), matching the ratio the
+ * web mock used. Same footprint as TILE so every layer above it — head plate,
+ * hair, collar — lands identically; only the silhouette changes.
+ *
+ * Used ONLY by the Community wall, where dozens of avatars tile edge to edge
+ * and circles leave lozenge-shaped gaps between them. Everywhere else the
+ * circle housing is the identity (see the sw-faces skeleton rule) and stays.
+ */
+export const TILE_SQUARE =
+  "M0 11C0 4.925 4.925 0 11 0h26c6.075 0 11 4.925 11 11v26c0 6.075-4.925 11-11 11H11C4.925 48 0 43.075 0 37z";
+
 export const AvatarDefs: React.FC = () => (
   <Defs>
     <Mask id="av-circ" maskUnits="userSpaceOnUse" x={-8} y={-8} width={64} height={64}>
       <Path fill="#fff" d={TILE} />
+    </Mask>
+    <Mask id="av-square" maskUnits="userSpaceOnUse" x={-8} y={-8} width={64} height={64}>
+      <Path fill="#fff" d={TILE_SQUARE} />
     </Mask>
     {/* The head silhouette as a mask. Hair is drawn as a big filled shape and
         clipped to this — so the hairline is the only edge that needs sculpting,

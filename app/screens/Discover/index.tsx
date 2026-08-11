@@ -1,13 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import {
   useTheme,
   spacing,
   space,
   radius,
-  Page,
+  size,
   Surface,
   Text,
   Chip,
@@ -17,13 +18,21 @@ import {
   ErrorState,
   Spinner,
   Toggle,
+  Icon,
+  IconButton,
+  SchemeStatusBar,
   icons,
+  borderWidth,
+  withAlpha,
 } from "../../design-system";
 import CustomScrollView from "../../components/CustomScrollView";
+import ScreenView from "../../components/ScreenView";
 import { UserAvatar } from "../../components/UserAvatar";
+import { useUserStore } from "../../stores/user";
 import ReportSheet from "../../components/ReportSheet";
 import {
   discoverBuddies,
+  getMyBuddy,
   sendBuddyRequest,
   getDiscoveryProfile,
   setDiscoveryProfile,
@@ -40,6 +49,7 @@ import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
+import { shareBuddyInvite } from "../../util/functions/share";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
@@ -58,6 +68,8 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 const Discover = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const user = useUserStore((s) => s.user);
+  const insets = useSafeAreaInsets();
 
   const [candidates, setCandidates] = useState<DiscoveryCandidate[] | null>(null);
   const [profile, setProfile] = useState<DiscoveryProfile | null>(null);
@@ -128,6 +140,22 @@ const Discover = () => {
       setLoadingMore(false);
     }
   }, [nextCursor, loadingMore]);
+
+  /**
+   * Share the invite code from the empty state.
+   *
+   * Fetched on tap rather than with the page: the code is needed by exactly one
+   * branch of one state, and paying a request on every visit to Discover for
+   * something most people never see is the wrong trade.
+   */
+  const shareMyCode = async () => {
+    try {
+      const summary = await getMyBuddy();
+      await shareBuddyInvite(summary.referralCode);
+    } catch (e) {
+      showErrorBottomSheet("Couldn't share", apiErrorMessage(e, "Please try again."));
+    }
+  };
 
   const ask = async (person: DiscoveryCandidate) => {
     if (inFlight.current) return;
@@ -224,13 +252,49 @@ const Discover = () => {
 
     if (shouldOfferDiscovery(profile.discoverable, offeredAt)) {
       return (
-        <Surface level="elevated" padded rounded="card" style={styles.consent}>
-          <Text variant="title">Want to be findable too?</Text>
+        /**
+         * SHOW, DON'T RECITE.
+         *
+         * This was five lines of grey prose in a heavy tinted box — the first
+         * thing on the screen, and a wall you had to read past to get to the
+         * people you came for. Every fact in it survives, but the central one
+         * ("they'd see your first name and your avatar") is now the user's OWN
+         * card rendered exactly as a stranger would see it. A preview answers
+         * the question the prose was trying to answer, and answers it faster.
+         *
+         * The heavy accent fill is gone with it: a hairline rim carries "this
+         * is an offer" without the card shouting over the list.
+         */
+        <Surface
+          level="elevated"
+          padded
+          rounded="card"
+          style={[
+            styles.consent,
+            { borderColor: withAlpha(colors.action.primary, 0.3), borderWidth: borderWidth.hairline },
+          ]}
+        >
+          <View style={styles.consentHead}>
+            <Text variant="title">Let others find you</Text>
+            <Text variant="bodySm" color="secondary">
+              Right now you can see them. They can&apos;t see you.
+            </Text>
+          </View>
+
+          <View style={[styles.preview, { backgroundColor: colors.background.sunken }]}>
+            <View style={styles.previewAvatar}>
+              <UserAvatar manifest={user?.avatarManifest} size={44} shape="square" />
+            </View>
+            <View style={styles.previewText}>
+              <Text variant="title" numberOfLines={1}>
+                {user?.name?.split(" ")[0] || "You"}
+              </Text>
+              <Text variant="caption" color="tertiary">What they&apos;d see</Text>
+            </View>
+          </View>
+
           <Text variant="bodySm" color="secondary">
-            Right now you can see other people, but they can&apos;t see you. If
-            you turn this on, they can reach out to you as well — they&apos;ll
-            see your first name, your avatar, and anything you choose to add.
-            You can turn it off whenever you like.
+            Plus anything you choose to add. Turn it off whenever you like.
           </Text>
           <View style={styles.consentActions}>
             <Button
@@ -240,16 +304,21 @@ const Discover = () => {
               disabled={listing}
               onPress={() => setListed(true)}
             />
-            <Button
-              label="Not now"
-              variant="ghost"
-              size="sm"
-              fullWidth={false}
-              disabled={listing}
-              // Records only that we asked. Browsing continues untouched, and
-              // the quiet row below keeps the door open without another ask.
+            {/* A DECLINE IS NOT A PEER OF AN ACCEPT. As a ghost `Button` this
+                rendered in accent at the same size as "Yes, list me", so the
+                two choices carried equal weight and the accent — the page's one
+                emphasis colour — was spent on the option we are not asking for.
+                A muted touchable keeps it entirely available and stops it
+                competing. Records only that we asked; browsing is untouched and
+                the quiet row below keeps the door open without a second ask. */}
+            <TouchableOpacity
               onPress={markOffered}
-            />
+              disabled={listing}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+            >
+              <Text variant="bodySm" color="tertiary">Not now</Text>
+            </TouchableOpacity>
           </View>
         </Surface>
       );
@@ -266,21 +335,35 @@ const Discover = () => {
     );
   };
 
+  /**
+   * One person.
+   *
+   * THE FACE IS THE CONTENT, so it is 64pt and SQUARE — the same tile the
+   * Community room is built from. That shape is the whole visual bond between
+   * the two screens: over there the room is dimmed illustration with one lit
+   * tile (you), and here every tile is lit, because here they are real.
+   *
+   * REPORT IS NOT A PEER OF "ASK TO PAIR". It used to be a ghost Button beside
+   * it, the same size and the same row, which made every stranger look like a
+   * suspect and put a moderation action one mis-tap from the primary one. It is
+   * now the app's existing card-header affordance — a plain touchable with a
+   * 16pt glyph and hitSlop out to 44 (see SignalCard, which does exactly this
+   * and explains why an IconButton is too heavy for a card header).
+   */
   const renderCard = (person: DiscoveryCandidate) => (
     <Surface
       key={person.userId}
-      level="default"
+      level="elevated"
       padded
-      bordered
       rounded="card"
       style={styles.card}
     >
       <View style={styles.cardTop}>
-        <View style={[styles.avatar, { borderColor: colors.border.default }]}>
-          <UserAvatar manifest={person.avatarManifest} size={44} />
+        <View style={styles.avatar}>
+          <UserAvatar manifest={person.avatarManifest} size={64} shape="square" />
         </View>
         <View style={styles.cardText}>
-          <Text variant="title" numberOfLines={1}>
+          <Text variant="h3" numberOfLines={1}>
             {person.name.split(" ")[0]}
           </Text>
           {/* Null means we have nothing honest to say — show nothing at all
@@ -289,6 +372,15 @@ const Discover = () => {
             <Text variant="bodySm" color="secondary">{person.matchReason}</Text>
           ) : null}
         </View>
+        <TouchableOpacity
+          onPress={() => setReporting(person)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Report ${person.name.split(" ")[0]}`}
+          style={styles.reportAction}
+        >
+          <Icon name={icons.report} size={16} color={colors.text.tertiary} />
+        </TouchableOpacity>
       </View>
 
       {person.tags.length > 0 ? (
@@ -299,22 +391,12 @@ const Discover = () => {
         </View>
       ) : null}
 
-      <View style={styles.cardActions}>
-        <Button
-          label={asking === person.userId ? "Sending…" : "Ask to pair"}
-          size="sm"
-          fullWidth={false}
-          disabled={asking !== null}
-          onPress={() => ask(person)}
-        />
-        <Button
-          label="Report"
-          variant="ghost"
-          size="sm"
-          fullWidth={false}
-          onPress={() => setReporting(person)}
-        />
-      </View>
+      {/* Full width, and the only filled thing on the card. One card, one verb. */}
+      <Button
+        label={asking === person.userId ? "Sending…" : "Ask to pair"}
+        disabled={asking !== null}
+        onPress={() => ask(person)}
+      />
     </Surface>
   );
 
@@ -330,12 +412,30 @@ const Discover = () => {
       );
     }
     if (!candidates?.length) {
-      // A genuinely common answer, not a failure: the pool is opt-in and small.
+      /**
+       * A common answer, not a failure, and the copy has to say so honestly.
+       *
+       * This used to read "Not many people are open to new buddies right now",
+       * which is a claim about other people's WILLINGNESS that we cannot make
+       * and do not know. The list is short because being findable is opt-in and
+       * new; nobody has turned this user down. In an app about a stutter, "not
+       * many people want a buddy" is one short step from "not many people want
+       * you", and that is not a sentence to put in front of someone who just
+       * asked to meet somebody.
+       *
+       * So it leads with the action instead of the absence. The code is the
+       * path that actually works today, and it is now a button rather than the
+       * tail of a sentence you could not act on without backing out of the
+       * screen. The icon changed too: two people was a picture of exactly the
+       * thing that is missing.
+       */
       return (
         <EmptyState
-          icon={icons.community}
-          title="No one to show yet"
-          message="Not many people are open to new buddies right now. Try again in a few days, or invite someone you know with your code."
+          icon={icons.addPerson}
+          title="Bring someone you know"
+          message="Being findable is new here, and it's opt-in, so this list is still small. Your invite code works right now."
+          actionLabel="Share your code"
+          onAction={shareMyCode}
         />
       );
     }
@@ -348,9 +448,60 @@ const Discover = () => {
   };
 
   return (
-    <Page title="Find a buddy" onBack={() => navigation.goBack()} scroll={false}>
+    /**
+     * NOT `Page`. Page owns its own header slot and renders it OUTSIDE the
+     * scroll container whenever the body is a custom scroller — and this screen
+     * needs a custom scroller for `onEndReached`. Anything handed to Page here
+     * is therefore pinned, back arrow included, which is not how the rest of
+     * the app behaves: `PageHeader` puts the back bar inside the scroll body so
+     * the whole header travels with the content.
+     *
+     * So the scaffold is hand-rolled — canvas, status bar, status cap and the
+     * top inset are four lines — and EVERYTHING lives in one scroller.
+     */
+    <ScreenView>
+      <SchemeStatusBar />
       <CustomScrollView onEndReached={loadMore}>
-        <View style={styles.scrollBody}>
+        <View style={[styles.scrollBody, { paddingTop: insets.top + space.inlineGap }]}>
+          {/* The canonical back bar, matching PageHeader's geometry exactly
+              (`size.backBtn` tall, DS `IconButton`) so this screen's header sits
+              at the same height as every other screen's. */}
+          <View style={styles.backBar}>
+            <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
+          </View>
+
+          {/**
+           * A poster header, not a page title — this screen is the second half
+           * of the Community room and reads in the same register: a kicker, a
+           * display line, and one quiet line of reassurance.
+           *
+           * The headline echoes the room's ("There's a space next to you").
+           * Your seat is empty; so are theirs. It is also literally true — the
+           * candidate query excludes anyone who already has an active link.
+           *
+           * WHAT IS NOT HERE: the illustrated crowd. Bonding the screens by
+           * reusing that art would put generated faces directly above a list of
+           * real people and invite the reading that both are real. The bond is
+           * type, colour and tile shape instead.
+           */}
+          {/* NO EYEBROW. The Community room earns a kicker because it has no
+              other title and the tab label is a 12px word beside an icon. Here
+              it repeated itself three times over: you arrived by tapping "Find
+              someone" from Community, the back arrow already establishes the
+              hierarchy, and the headline says what the page is. A label whose
+              only job is to name where you came from is chrome. */}
+          <View style={styles.titleBlock}>
+            <Text variant="h1" style={styles.headline}>
+              People with a space{" "}
+              <Text variant="h1" style={[styles.headline, { color: colors.text.accent }]}>
+                next to them.
+              </Text>
+            </Text>
+            <Text variant="bodySm" color="secondary">
+              Everyone here chose to be findable.
+            </Text>
+          </View>
+
           {/* Above the list, and outside `body()`, so it still shows when the
               list is empty or failed — "nobody to show" is exactly when being
               findable yourself matters most. */}
@@ -358,6 +509,20 @@ const Discover = () => {
           {body()}
         </View>
       </CustomScrollView>
+
+      {/* Opaque cap so scrolled content passes BEHIND the system clock rather
+          than through it — the one thing `Page` was still providing. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.background.canvas,
+        }}
+      />
 
       <ReportSheet
         visible={reporting !== null}
@@ -391,35 +556,53 @@ const Discover = () => {
         destructive
         onConfirm={confirmBlock}
       />
-    </Page>
+    </ScreenView>
   );
 };
 
 export default Discover;
 
 const styles = StyleSheet.create({
+  // ── Poster header ─────────────────────────────────────────────────────────
+  // Matches PageHeader's back bar so the header lands at the same height as
+  // every other screen's.
+  backBar: { minHeight: size.backBtn, flexDirection: "row", alignItems: "center" },
+  titleBlock: { marginTop: space.titleGap },
+  // Same display cut as the room's stage — 28pt h1 is a section title, and this
+  // screen has to answer the room in its own voice.
+  headline: { fontSize: 30, lineHeight: 31, letterSpacing: -0.9, marginBottom: spacing.xxs },
+
   scrollBody: {
     paddingHorizontal: space.screenX,
     paddingBottom: 120,
     gap: space.groupGap,
   },
   consent: { gap: spacing.md },
+  consentHead: { gap: spacing.xxs },
+  // An inset well, not another card: this is a sample of something, and a
+  // sunken surface is how the app already says "contained sample".
+  preview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.iconText,
+    padding: spacing.sm,
+    borderRadius: radius.card,
+  },
+  previewAvatar: { borderRadius: radius.sm, overflow: "hidden" },
+  previewText: { flex: 1, gap: 2 },
   consentActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   quietRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   quietText: { flex: 1, gap: 2 },
   list: { gap: space.groupGap },
   card: { gap: spacing.md },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: space.iconText },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  cardText: { flex: 1, gap: 2 },
+  // `flex-start`, not `center`: the report glyph belongs at the top of the card,
+  // and centring the row would float it against the middle of a 64pt tile.
+  cardTop: { flexDirection: "row", alignItems: "flex-start", gap: space.iconText },
+  // No ring and no circle. The square tile IS the bond with the Community room;
+  // a circular avatar in a hairline ring is the generic list-row idiom this
+  // screen was trying to stop looking like.
+  avatar: { borderRadius: radius.card, overflow: "hidden" },
+  cardText: { flex: 1, gap: 2, paddingTop: spacing.xs },
+  reportAction: { paddingTop: spacing.xxs },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  cardActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
 });

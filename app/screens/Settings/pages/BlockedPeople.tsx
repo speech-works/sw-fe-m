@@ -157,7 +157,7 @@ const BlockedPeople = () => {
         visible={pending !== null}
         onClose={() => setPending(null)}
         title={`Unblock ${pending?.name?.split(" ")[0] ?? "them"}?`}
-        message="They'll be able to send you an invite code again. You won't be paired automatically — you'd both have to choose to."
+        message="They'll be able to send you an invite code again. You won't be paired automatically. You'd both have to choose to."
         cancelLabel="Cancel"
         confirmLabel="Unblock"
         // NOT destructive: unblocking is the recovery, not the damage.

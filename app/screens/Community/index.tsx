@@ -11,9 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { useReducedMotion } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Clipboard from "expo-clipboard";
 // Exception: the bond-stage glyph is SERVER-DRIVEN as a MaterialCommunityIcons name,
 // so it must render via MCI until the backend emits DS/Lucide names (see bondStageIcon).
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -48,13 +52,14 @@ import {
   staggerEntering,
   bestForeground,
   zIndex,
-  Page,
-  Surface,
   Sheet,
   SectionHeader,
   ListItem,
   Button,
   useNavBarInset,
+  size,
+  duration,
+  easing,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -83,6 +88,7 @@ import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { blockUser, type ReportReason } from "../../api/moderation";
 import ReportSheet from "../../components/ReportSheet";
+import CommunityRoom from "../../components/CommunityRoom";
 import { apiErrorMessage } from "../../util/functions/apiError";
 import { resetBuddyLocalState } from "../../util/functions/buddyReset";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
@@ -215,7 +221,7 @@ const Community = () => {
   const insets = useSafeAreaInsets();
   const navBarInset = useNavBarInset();
   const navigation = useNavigation<any>();
-  const { colors, elevation } = useTheme();
+  const { colors, elevation, scheme } = useTheme();
 
   const [summary, setSummary] = useState<BuddySummary | null>(null);
   const [report, setReport] = useState<BuddyReport | null>(null);
@@ -248,7 +254,6 @@ const Community = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [copied, setCopied] = useState(false);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
@@ -384,6 +389,7 @@ const Community = () => {
   );
 
   const link = summary?.link ?? null;
+  const [codeOpen, setCodeOpen] = useState(false);
   const [requests, setRequests] = useState<BuddyRequest[]>([]);
   const [requestBusyId, setRequestBusyId] = useState<string | null>(null);
   const [pendingDecline, setPendingDecline] = useState<BuddyRequest | null>(null);
@@ -422,13 +428,23 @@ const Community = () => {
     if (!buddyCode.trim()) return;
     setSubmittingCode(true);
     try {
-      await attachInviteCode(buddyCode.trim().toUpperCase());
+      const result = await attachInviteCode(buddyCode.trim().toUpperCase());
       setBuddyCode("");
-      track(ANALYTICS_EVENTS.BUDDY_INVITE_SHARED, { source: "community_redeem" });
+      setCodeOpen(false);
+      track(ANALYTICS_EVENTS.BUDDY_CODE_ENTERED, { outcome: result.status });
       await load();
-      // Show welcome if buddy link is now active
-      const fresh = useInboxStore.getState().hasBuddy;
-      if (fresh) setShowWelcome(true);
+      // Say which of the two things happened. A brand-new account the code was
+      // plainly sent to is paired on the spot; everyone else has ASKED, and
+      // the owner still has to say yes. Claiming a pairing here for the second
+      // case would be a straight lie the next screen immediately contradicts.
+      if (result.status === "paired") {
+        setShowWelcome(true);
+      } else {
+        showSuccessBottomSheet(
+          "Request sent",
+          "They'll get a notification. You'll be paired as soon as they say yes.",
+        );
+      }
     } catch (e: any) {
       // `data.message` was always undefined — the API serialises as
       // `{ error }` — so this silently showed the generic fallback every time
@@ -642,13 +658,6 @@ const Community = () => {
   // below the fixed header.
   const headerPlaceholder = <View style={{ height: headerHeight }} />;
 
-  const handleCopyCode = async () => {
-    if (!summary?.referralCode) return;
-    await Clipboard.setStringAsync(summary.referralCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   /**
    * Incoming requests, above everything else.
    *
@@ -706,139 +715,242 @@ const Community = () => {
     );
   };
 
-  const renderInvite = () => (
-    <View style={{ marginTop: space.groupGap, gap: space.groupGap, paddingBottom: 100 }}>
-      {renderRequests()}
+  /**
+   * The unpaired screen's copy and actions — everything that sits OVER the room.
+   *
+   * ONE BUTTON. The screen argues for something, and a screen that argues only
+   * needs one way to say yes; the two code paths are text links because they
+   * apply to a minority (you already know someone) and ranking them as buttons
+   * is what made every earlier version read as a menu.
+   *
+   * NO CARD. There is nothing to contain — the scrim already separates this
+   * from the art, and a filled surface here would just be a second, weaker
+   * background sitting on the real one.
+   *
+   * The type carries the screen. `h1` is 28pt, which is a heading; this is a
+   * poster line, so the size and tracking are overridden locally rather than
+   * added to the scale — nothing else in the app wants a 34pt display cut.
+   */
+  /**
+   * The primary slot's crossfade.
+   *
+   * ONE DRIVER, not two animations. "Find someone" and the code field occupy
+   * the same 54pt box, and their opacities are `1 - v` and `v` off a single
+   * shared value — so the pair always sums to one and there is never a frame
+   * where the slot is empty or doubly-lit. Two independent fades, however
+   * carefully timed, produce exactly that flicker.
+   *
+   * Nothing unmounts. A mount/unmount swap has to lay out a fresh TextInput in
+   * the same frame the keyboard is rising, which is where the jank came from;
+   * keeping both children resident makes the transition pure opacity, on the UI
+   * thread, and interruptible — tap Cancel mid-open and it reverses from
+   * wherever it got to instead of restarting.
+   *
+   * 200ms, ease-out. Symmetric on purpose: the usual "exit faster than enter"
+   * rule applies to an element LEAVING, but this is one slot changing its
+   * contents, and mismatched halves of a crossfade read as a stumble.
+   */
+  const codeSwap = useSharedValue(0);
+  const codeInputRef = useRef<TextInput>(null);
+  const canJoin = buddyCode.trim().length >= 4;
+  const joinIn = useSharedValue(0);
 
-      {/* Finding someone when you don't know anyone. Sits above the invite card
-          rather than inside it: the card's bottom block is already a dense
-          three-CTA stack, and this is a different answer to a different
-          problem ("I have nobody to send a code to"). */}
-      <Surface level="elevated" style={styles.findCard}>
-        <View style={styles.findTextWrap}>
-          <Text variant="title">Don&apos;t know anyone here?</Text>
-          <Text variant="bodySm" color="secondary">
-            Find someone else looking for a practice buddy.
+  useEffect(() => {
+    codeSwap.value = reduceMotion
+      ? Number(codeOpen)
+      : withTiming(Number(codeOpen), { duration: duration.base, easing: easing.out });
+  }, [codeOpen, reduceMotion, codeSwap]);
+
+  useEffect(() => {
+    joinIn.value = reduceMotion
+      ? Number(canJoin)
+      : withTiming(Number(canJoin), { duration: duration.fast, easing: easing.out });
+  }, [canJoin, reduceMotion, joinIn]);
+
+  const closedStyle = useAnimatedStyle(() => ({ opacity: 1 - codeSwap.value }));
+  const openStyle = useAnimatedStyle(() => ({ opacity: codeSwap.value }));
+  // Never from scale(0): a control that grows out of nothing reads as a pop.
+  const joinStyle = useAnimatedStyle(() => ({
+    opacity: joinIn.value,
+    transform: [{ scale: 0.92 + 0.08 * joinIn.value }],
+  }));
+
+  /** Focus is imperative now that the field is always mounted — `autoFocus`
+   *  only fires on mount, and a hidden input does not reliably take it. */
+  const openCode = () => {
+    setCodeOpen(true);
+    requestAnimationFrame(() => codeInputRef.current?.focus());
+  };
+
+  const closeCode = () => {
+    codeInputRef.current?.blur();
+    setBuddyCode("");
+    setCodeOpen(false);
+  };
+
+  const renderStage = () => {
+    // The halo has to invert with the canvas the room dissolves into. In light
+    // mode the scrim resolves to cream, and a black halo behind dark ink reads
+    // as a smudge rather than as separation.
+    const halo = {
+      textShadowColor: scheme === "dark" ? "rgba(0, 0, 0, 0.85)" : "rgba(255, 255, 255, 0.9)",
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 12,
+    } as const;
+
+    return (
+      <View style={styles.stage}>
+        {/* NO KICKER. It said "COMMUNITY" in 12pt accent, and it sat at the top
+            of the stage where the scrim is still thin — so it landed on a lit
+            avatar and was the one illegible thing on the screen. Rather than
+            fight for contrast: the dock below already says Community, in an
+            orange pill, and you tapped that pill to get here. The label was
+            never carrying anything the page didn't already say. */}
+        <Text variant="h1" style={[styles.headline, halo]}>
+          There&apos;s a space{" "}
+          <Text variant="h1" style={[styles.headline, { color: colors.text.accent }]}>
+            next to you.
           </Text>
-        </View>
-        <Button
-          label="Find a buddy"
-          size="sm"
-          fullWidth={false}
-          onPress={() => navigation.navigate("Discover")}
-        />
-      </Surface>
+        </Text>
 
-      <View style={styles.howItWorksSection}>
-        <View style={styles.stepItem}>
-          <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.share} size={24} color={colors.text.accent} />
+        <Text variant="bodySm" color="secondary" style={[styles.stageSub, halo]}>
+          Practice sticks when someone&apos;s in it with you.
+        </Text>
+
+        {isPending && (
+          <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint, alignSelf: "flex-start" }]}>
+            <Icon name={icons.soon} size={14} color={colors.text.accent} />
+            <Text variant="caption" color="accent" style={styles.bold}>Waiting for them to join…</Text>
           </View>
-          <View style={styles.stepTextContent}>
-            <Text variant="title">Share your code</Text>
-            <Text variant="bodySm" color="secondary">Send your invite code to a friend.</Text>
-          </View>
+        )}
+
+        {/* ONE PRIMARY SLOT, two occupants.
+            "Find someone" and the code field are alternatives, not a stack, so
+            the field REPLACES the button rather than appearing under it. Two
+            reasons, and the second is the real one:
+
+            Leaving the CTA up put two filled orange controls sixty points apart
+            while only one of them was relevant. The field sits low, the thumb
+            travels up to it, and the nearest big orange thing was the button
+            that navigates AWAY from the code you were about to type. That is a
+            mis-tap waiting to happen, not merely clutter.
+
+            And opening the field is a declaration of intent: "I have a code."
+            Ranking the other path above it at that moment gets the hierarchy
+            backwards. Cancel puts the button straight back.
+
+            Both occupants are 54pt in the same slot, so the swap costs no
+            layout shift and nothing below it moves. */}
+        <View style={styles.primarySlot}>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, closedStyle]}
+            pointerEvents={codeOpen ? "none" : "auto"}
+          >
+            <PressableScale
+              onPress={() => navigation.navigate("Discover")}
+              style={[styles.heroCta, { backgroundColor: colors.action.primary }]}
+            >
+              <Icon name={icons.find} size={18} color={colors.action.onPrimary} />
+              <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>
+                Find someone
+              </Text>
+            </PressableScale>
+          </Animated.View>
+
+          <Animated.View
+            style={[StyleSheet.absoluteFill, openStyle]}
+            pointerEvents={codeOpen ? "auto" : "none"}
+          >
+            <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
+              <TextInput
+                ref={codeInputRef}
+                style={[styles.codeInput, { color: colors.text.primary }]}
+                placeholder="Their code"
+                placeholderTextColor={colors.input.placeholder}
+                value={buddyCode}
+                onChangeText={setBuddyCode}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={10}
+                onSubmitEditing={handleSubmitCode}
+                returnKeyType="go"
+                editable={!submittingCode}
+              />
+              {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
+                  the fourth character stole width from the TextInput and shoved
+                  the text and caret left mid-keystroke — a jolt at the exact
+                  moment you are watching what you type. Out of flow, it changes
+                  nothing; `codeInput` reserves the space with paddingRight. */}
+              <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
+                {submittingCode ? (
+                  <ActivityIndicator color={colors.text.accent} size="small" style={styles.codeSpinner} />
+                ) : (
+                  <PressableScale
+                    onPress={handleSubmitCode}
+                    style={[styles.joinBtn, { backgroundColor: colors.action.primary }]}
+                  >
+                    <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
+                      Join
+                    </Text>
+                  </PressableScale>
+                )}
+              </Animated.View>
+            </View>
+          </Animated.View>
         </View>
 
-        <View style={styles.stepItem}>
-          <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.addPerson} size={24} color={colors.text.accent} />
-          </View>
-          <View style={styles.stepTextContent}>
-            <Text variant="title">They sign up</Text>
-            <Text variant="bodySm" color="secondary">They enter it when they create their account.</Text>
-          </View>
-        </View>
+        {/* THE SECOND SLOT, same treatment as the first.
+            Both occupants live in one fixed-height box and crossfade on a
+            single driver, so the block below never changes height and nothing
+            on the screen shifts when you open or close the field.
 
-        <View style={[styles.stepItem, { marginBottom: 0 }]}>
-          <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.launch} size={24} color={colors.text.accent} />
-          </View>
-          <View style={styles.stepTextContent}>
-            <Text variant="title">Grow together</Text>
-            <Text variant="bodySm" color="secondary">Keep each other going. Share wins and cheer each other on.</Text>
-          </View>
+            A LINK, not a field: most people arriving here have no code to
+            enter, and a permanently-open input made the screen look like a form
+            waiting to be filled.
+
+            CANCEL is always there, always closes, and clears the field on the
+            way out so reopening never starts mid-typo. Before it existed, once
+            the field was open nothing on screen could close it. */}
+        <View style={styles.secondarySlot}>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.slotCentre, closedStyle]}
+            pointerEvents={codeOpen ? "none" : "auto"}
+          >
+            <View style={styles.underRow}>
+              <PressableScale onPress={openCode} hitSlop={12} style={styles.underItem}>
+                <Text variant="caption" color="tertiary">Got a code? </Text>
+                <Text variant="caption" color="accent" style={styles.bold}>Enter it</Text>
+              </PressableScale>
+              <Text variant="caption" color="tertiary"> · </Text>
+              {/* Share, not copy: the OS share sheet offers copy as one of its
+                  options, so a separate copy affordance was a second control
+                  for a subset of one action. */}
+              <PressableScale
+                onPress={handleShare}
+                disabled={!summary?.referralCode}
+                hitSlop={12}
+                style={styles.underItem}
+              >
+                <Text variant="caption" color="tertiary">or share </Text>
+                <Text variant="caption" color="accent" style={styles.codeInline}>
+                  {summary?.referralCode ?? "\u2026"}
+                </Text>
+              </PressableScale>
+            </View>
+          </Animated.View>
+
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.slotCentre, openStyle]}
+            pointerEvents={codeOpen ? "auto" : "none"}
+          >
+            <PressableScale onPress={closeCode} disabled={submittingCode} hitSlop={12}>
+              <Text variant="caption" color="tertiary">Cancel</Text>
+            </PressableScale>
+          </Animated.View>
         </View>
       </View>
-
-      <Surface level="elevated" style={styles.inviteCard}>
-        {/* Watermark Layer */}
-        <View style={styles.watermarkLayer} pointerEvents="none">
-          <Icon name={icons.gift} size={260} color={colors.action.primary} style={styles.watermarkIcon} />
-        </View>
-
-        <View style={styles.inviteTextContainer}>
-          <Text variant="h2">Don't practice alone</Text>
-          <Text variant="bodySm" color="secondary" style={styles.inviteSubtitleText}>
-            You'll both show up more often when someone's counting on you.
-          </Text>
-        </View>
-
-        {/* Fixed spacer for consistent breathing room */}
-        <View style={{ height: spacing["2xl"] }} />
-
-        <View style={styles.bottomBlock}>
-          {isPending && (
-            <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint }]}>
-              <Icon name={icons.soon} size={14} color={colors.text.accent} />
-              <Text variant="caption" color="accent" style={styles.bold}>Waiting for them to join…</Text>
-            </View>
-          )}
-          <PressableScale
-            onPress={handleCopyCode}
-            style={[styles.codeBox, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}
-          >
-            <View style={styles.codeRow}>
-              <Icon 
-                name={copied ? icons.success : icons.copy} 
-                size={20} 
-                color={copied ? colors.feedback.successText : colors.text.accent} 
-                style={{ marginRight: space.iconText }} 
-              />
-              <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "Generating…"}</Text>
-            </View>
-          </PressableScale>
-          <PressableScale
-            onPress={handleShare}
-            disabled={!summary?.referralCode}
-            style={[styles.sharePill, { backgroundColor: colors.action.primary }]}
-          >
-            <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Invite my buddy</Text>
-          </PressableScale>
-
-          <View style={styles.dividerBox}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border.default }]} />
-            <Text variant="caption" color="tertiary" style={styles.dividerText}>OR</Text>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border.default }]} />
-          </View>
-
-          <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
-            <TextInput
-              style={[styles.codeInput, { color: colors.text.primary }]}
-              placeholder="Enter invite code"
-              placeholderTextColor={colors.input.placeholder}
-              value={buddyCode}
-              onChangeText={setBuddyCode}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={10}
-            />
-            <PressableScale
-              onPress={handleSubmitCode}
-              disabled={submittingCode || !buddyCode.trim()}
-              style={[styles.submitCodeBtn, { backgroundColor: colors.action.primary }, (!buddyCode.trim() || submittingCode) && { opacity: 0.5 }]}
-            >
-              {submittingCode ? (
-                <ActivityIndicator color={colors.action.onPrimary} size="small" />
-              ) : (
-                <Icon name={icons.forward} size={20} color={colors.action.onPrimary} />
-              )}
-            </PressableScale>
-          </View>
-        </View>
-      </Surface>
-    </View>
-  );
+    );
+  };
 
   const renderPaired = () => {
     const buddy = link?.buddy;
@@ -1101,9 +1213,34 @@ const Community = () => {
   if (!isPaired && !loading && !error) {
     return (
       <>
-        <Page title="Community" description="Practice sticks when someone's in it with you." tabBarSafe>
-          {renderInvite()}
-        </Page>
+        {/* NOT `Page`. Page caps the status bar with an opaque strip and paints
+            its body on solid canvas — either one would draw a hard line across
+            the top of a full-bleed room. What Page gives this screen (canvas,
+            status bar, dock clearance) is three lines here, so the scaffold is
+            hand-rolled rather than fought. */}
+        <ScreenView>
+          <SchemeStatusBar />
+          <CommunityRoom
+            manifest={user?.avatarManifest}
+            onSeatPress={() => navigation.navigate("Discover")}
+          />
+          <View
+            style={[
+              styles.stageRoot,
+              {
+                paddingTop: insets.top + space.inlineGap,
+                // Clears the floating dock, which the room deliberately runs
+                // underneath — the art has no floor, the content does.
+                paddingBottom: size.tabBarSafe + navBarInset,
+              },
+            ]}
+            pointerEvents="box-none"
+          >
+            {renderRequests()}
+            <View style={styles.stageSpacer} pointerEvents="none" />
+            {renderStage()}
+          </View>
+        </ScreenView>
         {/* ── Buddy Welcome Modal ── */}
         <WatermarkModal
           visible={showWelcome}
@@ -1561,50 +1698,55 @@ const styles = StyleSheet.create({
   },
   actionTextWrap: { flex: 1, paddingRight: spacing.sm },
 
-  // Invite Referral Card
-  // Invite Referral Card
-  inviteCard: {
-    width: "100%",
-    borderRadius: radius.sheet,
-    paddingTop: spacing["3xl"],
-    paddingBottom: spacing["2xl"],
-    paddingHorizontal: spacing["2xl"],
-    marginTop: spacing.xl,
+  // ── The unpaired stage, laid over the room ────────────────────────────────
+  // Owns the gutters and the safe areas that `Page` would normally apply. The
+  // room underneath is absolutely positioned and unaffected by any of it.
+  stageRoot: { flex: 1, paddingHorizontal: space.screenX },
+  // Pushes the copy to the bottom without a fixed height, so a long headline or
+  // a large text size grows upward into the art instead of clipping.
+  stageSpacer: { flex: 1 },
+  stage: { gap: spacing.sm },
+  // A display cut, not a heading: h1's 28/34 reads as a section title next to
+  // artwork this size. Tight tracking and a line height BELOW the font size is
+  // what makes three short lines read as one block.
+  headline: { fontSize: 34, lineHeight: 34, letterSpacing: -1.1 },
+  stageSub: { marginTop: spacing.xxs, maxWidth: 280 },
+  // The one filled button on the screen.
+  heroCta: {
+    flexDirection: "row",
     alignItems: "center",
-    zIndex: 1,
-  },
-  watermarkLayer: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: radius.sheet,
-    overflow: "hidden",
-    zIndex: -1,
-  },
-  watermarkIcon: {
-    position: "absolute",
-    right: -50,
-    bottom: -50,
-    opacity: 0.06,
-    transform: [{ rotate: "-15deg" }],
-  },
-  inviteTextContainer: {
-    alignItems: "center",
-    marginTop: spacing.md,
-  },
-  inviteSubtitleText: {
-    textAlign: "center",
+    justifyContent: "center",
+    gap: space.inlineGap,
+    height: 54,
+    borderRadius: radius.pill,
     marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
   },
-  bottomBlock: { alignItems: "center", width: "100%", gap: spacing.lg },
-
-  findCard: {
-    borderRadius: radius.card,
-    padding: space.cardPad,
-    gap: spacing.md,
+  // Both code paths on one line, at caption size. They serve the minority who
+  // already know someone; ranking them as buttons is what made this a menu.
+  underRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  underItem: { flexDirection: "row", alignItems: "center" },
+  codeInline: { letterSpacing: 1, fontFamily: fonts.semibold },
+  codeSpinner: { marginRight: spacing.md },
+  // Field + its escape hatch, as one group.
+  // Fixed-height slots. Their heights never change, so opening or closing the
+  // field cannot move anything above or below them.
+  primarySlot: { height: 54, marginTop: spacing.sm },
+  secondarySlot: { height: 28 },
+  slotCentre: { alignItems: "center", justifyContent: "center" },
+  // Sits INSIDE the field's right edge, so the row height never changes as it
+  // appears and the layout doesn't jump on the fourth character.
+  // Out of flow, pinned to the field's right edge.
+  joinWrap: { position: "absolute", right: 0, top: 0, bottom: 0, justifyContent: "center" },
+  joinBtn: {
+    height: 36,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
   },
-  findTextWrap: { gap: 2 },
 
-  // Incoming buddy requests, above the evergreen explainer.
+  // Incoming buddy requests, above everything else.
   requestsSection: { gap: spacing.md },
   requestGroup: { borderRadius: radius.card, overflow: "hidden" },
   requestRow: {
@@ -1627,51 +1769,6 @@ const styles = StyleSheet.create({
   declineSheetBody: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
   declineIntro: { marginBottom: spacing.md },
 
-  howItWorksSection: {
-    // Free floating, no extra container padding needed.
-  },
-  stepItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.xl,
-    gap: spacing.lg,
-  },
-  stepIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepTextContent: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  codeBox: {
-    width: "100%",
-    height: 58,
-    borderWidth: borderWidth.thick,
-    borderStyle: "dashed",
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  codeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  codeValueImm: {
-    letterSpacing: 1,
-  },
-  sharePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: 58,
-    borderRadius: radius.pill,
-  },
   pendingPillImm: {
     flexDirection: "row",
     alignItems: "center",
@@ -1680,24 +1777,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
   },
-  dividerBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    marginVertical: spacing.xl,
-  },
-  dividerLine: {
-    flex: 1,
-    height: borderWidth.thin,
-  },
-  dividerText: {
-    marginHorizontal: 14,
-    letterSpacing: 1,
-  },
   inputBox: {
     flexDirection: "row",
     width: "100%",
-    height: 58,
+    // 54, matching `heroCta`: the field takes the CTA's slot, so any difference
+    // here becomes a visible jump the moment you tap "Enter it".
+    height: 54,
     borderRadius: radius.pill,
     borderWidth: borderWidth.thin,
     paddingHorizontal: 6,
@@ -1706,17 +1791,13 @@ const styles = StyleSheet.create({
   codeInput: {
     flex: 1,
     height: "100%",
-    paddingHorizontal: 14,
+    paddingLeft: 14,
+    // Clears the absolutely-positioned Join so a full-length code never runs
+    // underneath it.
+    paddingRight: 96,
     ...typography.body,
     fontFamily: fonts.bold,
     letterSpacing: 1,
-  },
-  submitCodeBtn: {
-    height: 46,
-    width: 46,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });
 
