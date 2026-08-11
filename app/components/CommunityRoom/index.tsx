@@ -17,7 +17,12 @@ import {
   borderWidth,
   duration,
   easing,
+  fonts,
+  icons,
+  Icon,
   Gradient,
+  spacing,
+  Text,
   withAlpha,
   mix,
 } from "../../design-system";
@@ -78,6 +83,11 @@ const IDLE_MS = 4000;
 /** Half a breath. Ambient, so exempt from the sub-300ms UI rule the way
  *  `duration.shimmer` is — a fast pulse reads as an alert, not an invitation. */
 const BREATH = 900;
+
+/** The seat label's box. Wider than the seat on purpose so the line never wraps
+ *  — a two-line hint under a square reads as a caption on artwork rather than as
+ *  a label on a control. Clamped to the viewport by the caller. */
+const HINT_WIDTH = 200;
 
 export interface CommunityRoomProps {
   /** The viewer's own avatar. Undefined renders the default — never an empty tile. */
@@ -324,8 +334,15 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
         <UserAvatar manifest={manifest} size={room.subjectSize} animate={false} shape="square" />
 
         {/* THE SEAT.
-            A hole in the wall, not a button and not a placeholder. The first
-            build filled it with `background.sunken` and hairlined it in accent,
+            A hole in the wall, not a button and not a placeholder — but no
+            longer an unmarked one. It used to share the screen with a filled
+            "Find someone" CTA that did the same thing, and the redundancy was
+            silent: two doors into the same room with nothing saying so. The CTA
+            is gone, which promotes this from the shortcut to the ONLY route
+            into discovery, and a route has to be readable. Hence the plus and
+            the label below. Everything else about the shape is unchanged.
+
+            The first build filled it with `background.sunken` and hairlined it in accent,
             which at 130pt square read as a failed image load — pure black is
             what a broken tile looks like, and a hairline is invisible at that
             scale. So: a warm tint rather than black (the light is falling on
@@ -365,8 +382,31 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
                 borderRadius: room.subjectSize * 0.14,
                 borderWidth: borderWidth.hairline,
                 borderColor: withAlpha(accent, 0.2),
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
+            >
+              {/* THE ONE MARK THE SHAPE NEEDED.
+                  The seat is now the screen's only route into discovery — the
+                  filled button that used to carry it is gone — so it can no
+                  longer afford to be a shape you have to guess at. A plus is the
+                  cheapest thing that says "something goes here" without turning
+                  the hole into a button: it adds no fill, no chrome, and no
+                  second colour, and it survives at a glance the way a hairline
+                  rim does not.
+
+                  `text.accent`, NOT the bright `action.primary` the rim uses.
+                  This mark carries meaning rather than decorating, and at 34px
+                  it is under the size where a hero glyph gets to stay a fill —
+                  the brand orange sits at roughly 2.2:1 on the seat's pale
+                  light-scheme tint, which is exactly the dark→light collapse
+                  the per-scheme foreground cut exists to prevent. */}
+              <Icon
+                name={icons.add}
+                size={Math.round(room.subjectSize * 0.26)}
+                color={colors.text.accent}
+              />
+            </View>
             {/* PRESS FEEDBACK THE SHAPE CAN ACTUALLY SHOW.
                 `PressableScale` already springs to 0.97, but a 3% scale needs
                 internal detail to read against and this square is deliberately
@@ -388,6 +428,47 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
           </View>
         </PressableScale>
       </View>
+
+      {/* THE SEAT'S LABEL.
+          A separate absolutely-positioned line rather than a child of the
+          subject row, because the row is sized to the two tiles and anything
+          hung below it would be clipped on Android.
+
+          The halo is the CANVAS colour rather than a literal black, which makes
+          it invert for free: on dark it deepens, on the cream light canvas it
+          lightens. A fixed black glow behind dark ink on cream reads as a
+          smudge, which is the bug the stage copy's halo already had to solve. */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.seatHint,
+          {
+            top: room.subjectTop + room.subjectSize + spacing.sm,
+            left: Math.max(
+              0,
+              Math.min(
+                width - HINT_WIDTH,
+                (width - pairWidth) / 2 +
+                  room.subjectSize +
+                  SUBJECT_GAP +
+                  room.subjectSize / 2 -
+                  HINT_WIDTH / 2,
+              ),
+            ),
+          },
+        ]}
+      >
+        <Text
+          variant="caption"
+          color="accent"
+          style={[
+            styles.seatHintText,
+            { textShadowColor: withAlpha(canvas, 0.9) },
+          ]}
+        >
+          Tap to find someone
+        </Text>
+      </View>
     </View>
   );
 };
@@ -401,4 +482,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", marginLeft: -GAP * 2 },
   subject: { position: "absolute", flexDirection: "row" },
   glow: { position: "absolute" },
+  seatHint: { position: "absolute", width: HINT_WIDTH, alignItems: "center" },
+  seatHintText: {
+    fontFamily: fonts.bold,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
 });

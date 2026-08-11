@@ -250,6 +250,7 @@ const Community = () => {
   const timelineRef = useRef<TimelineHandle>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
   const [buddyCode, setBuddyCode] = useState("");
+  const codeInputRef = useRef<TextInput>(null);
   const [submittingCode, setSubmittingCode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -389,7 +390,6 @@ const Community = () => {
   );
 
   const link = summary?.link ?? null;
-  const [codeOpen, setCodeOpen] = useState(false);
   const [requests, setRequests] = useState<BuddyRequest[]>([]);
   const [requestBusyId, setRequestBusyId] = useState<string | null>(null);
   const [pendingDecline, setPendingDecline] = useState<BuddyRequest | null>(null);
@@ -429,8 +429,10 @@ const Community = () => {
     setSubmittingCode(true);
     try {
       const result = await attachInviteCode(buddyCode.trim().toUpperCase());
+      // Clearing the field is the only reset now that there is no open/closed
+      // state to fall back to; the field itself never goes away.
       setBuddyCode("");
-      setCodeOpen(false);
+      codeInputRef.current?.blur();
       track(ANALYTICS_EVENTS.BUDDY_CODE_ENTERED, { outcome: result.status });
       await load();
       // Say which of the two things happened. A brand-new account the code was
@@ -718,10 +720,19 @@ const Community = () => {
   /**
    * The unpaired screen's copy and actions — everything that sits OVER the room.
    *
-   * ONE BUTTON. The screen argues for something, and a screen that argues only
-   * needs one way to say yes; the two code paths are text links because they
-   * apply to a minority (you already know someone) and ranking them as buttons
-   * is what made every earlier version read as a menu.
+   * NO BUTTON. There used to be a filled "Find someone" CTA here, and it did
+   * exactly what pressing the empty seat did. Redundancy is not automatically a
+   * bug, but SILENT redundancy is: nothing on the screen connected the two, so
+   * they read as unrelated doors that happened to open into the same room. The
+   * screen now has one route per intention — the seat (which is what the
+   * headline points at, and now carries a plus and a label) for "find me
+   * someone", and the field below for "I already have a code".
+   *
+   * ONE SLOT, ONE OCCUPANT. That CTA also forced a crossfade: the code field
+   * lived in the same 54pt box and the two swapped on a shared driver. With the
+   * button gone the field simply stays, which removes the swap, the open/close
+   * state, and the Cancel affordance that only existed to undo it. Fewer moving
+   * parts for strictly more capability.
    *
    * NO CARD. There is nothing to contain — the scrim already separates this
    * from the art, and a filled surface here would just be a second, weaker
@@ -731,35 +742,8 @@ const Community = () => {
    * poster line, so the size and tracking are overridden locally rather than
    * added to the scale — nothing else in the app wants a 34pt display cut.
    */
-  /**
-   * The primary slot's crossfade.
-   *
-   * ONE DRIVER, not two animations. "Find someone" and the code field occupy
-   * the same 54pt box, and their opacities are `1 - v` and `v` off a single
-   * shared value — so the pair always sums to one and there is never a frame
-   * where the slot is empty or doubly-lit. Two independent fades, however
-   * carefully timed, produce exactly that flicker.
-   *
-   * Nothing unmounts. A mount/unmount swap has to lay out a fresh TextInput in
-   * the same frame the keyboard is rising, which is where the jank came from;
-   * keeping both children resident makes the transition pure opacity, on the UI
-   * thread, and interruptible — tap Cancel mid-open and it reverses from
-   * wherever it got to instead of restarting.
-   *
-   * 200ms, ease-out. Symmetric on purpose: the usual "exit faster than enter"
-   * rule applies to an element LEAVING, but this is one slot changing its
-   * contents, and mismatched halves of a crossfade read as a stumble.
-   */
-  const codeSwap = useSharedValue(0);
-  const codeInputRef = useRef<TextInput>(null);
   const canJoin = buddyCode.trim().length >= 4;
   const joinIn = useSharedValue(0);
-
-  useEffect(() => {
-    codeSwap.value = reduceMotion
-      ? Number(codeOpen)
-      : withTiming(Number(codeOpen), { duration: duration.base, easing: easing.out });
-  }, [codeOpen, reduceMotion, codeSwap]);
 
   useEffect(() => {
     joinIn.value = reduceMotion
@@ -767,26 +751,11 @@ const Community = () => {
       : withTiming(Number(canJoin), { duration: duration.fast, easing: easing.out });
   }, [canJoin, reduceMotion, joinIn]);
 
-  const closedStyle = useAnimatedStyle(() => ({ opacity: 1 - codeSwap.value }));
-  const openStyle = useAnimatedStyle(() => ({ opacity: codeSwap.value }));
   // Never from scale(0): a control that grows out of nothing reads as a pop.
   const joinStyle = useAnimatedStyle(() => ({
     opacity: joinIn.value,
     transform: [{ scale: 0.92 + 0.08 * joinIn.value }],
   }));
-
-  /** Focus is imperative now that the field is always mounted — `autoFocus`
-   *  only fires on mount, and a hidden input does not reliably take it. */
-  const openCode = () => {
-    setCodeOpen(true);
-    requestAnimationFrame(() => codeInputRef.current?.focus());
-  };
-
-  const closeCode = () => {
-    codeInputRef.current?.blur();
-    setBuddyCode("");
-    setCodeOpen(false);
-  };
 
   const renderStage = () => {
     // The halo has to invert with the canvas the room dissolves into. In light
@@ -824,129 +793,91 @@ const Community = () => {
           </View>
         )}
 
-        {/* ONE PRIMARY SLOT, two occupants.
-            "Find someone" and the code field are alternatives, not a stack, so
-            the field REPLACES the button rather than appearing under it. Two
-            reasons, and the second is the real one:
+        {/* THE CODE FIELD, always here.
+            It used to hide behind a "Got a code? Enter it" link because a
+            permanently-open input made the screen look like a form waiting to
+            be filled. That reasoning belonged to a screen whose primary action
+            was a filled button sitting directly above it — two filled orange
+            controls sixty points apart, only one of them ever relevant. With
+            the button gone the field is the only control in this block, so
+            there is nothing for it to compete with and no reason to make
+            someone open it first. The open/close state, its crossfade and the
+            Cancel affordance that existed only to undo it all go with it.
 
-            Leaving the CTA up put two filled orange controls sixty points apart
-            while only one of them was relevant. The field sits low, the thumb
-            travels up to it, and the nearest big orange thing was the button
-            that navigates AWAY from the code you were about to type. That is a
-            mis-tap waiting to happen, not merely clutter.
+            It stays LABELLED as a code field rather than becoming a general
+            search box. There is no name search to back that promise — the
+            discover endpoint takes a cursor, not a query — and a field that
+            invites you to type a name and then cannot find one is worse than no
+            field at all. Discovery is the seat's job, and the seat now says so.
 
-            And opening the field is a declaration of intent: "I have a code."
-            Ranking the other path above it at that moment gets the hierarchy
-            backwards. Cancel puts the button straight back.
-
-            Both occupants are 54pt in the same slot, so the swap costs no
-            layout shift and nothing below it moves. */}
+            Join still appears on the fourth character rather than sitting there
+            disabled: a control that cannot do anything yet is noise, and its
+            arrival is the confirmation that what you typed is long enough. */}
         <View style={styles.primarySlot}>
-          <Animated.View
-            style={[StyleSheet.absoluteFill, closedStyle]}
-            pointerEvents={codeOpen ? "none" : "auto"}
-          >
-            <PressableScale
-              onPress={() => navigation.navigate("Discover")}
-              style={[styles.heroCta, { backgroundColor: colors.action.primary }]}
-            >
-              <Icon name={icons.find} size={18} color={colors.action.onPrimary} />
-              <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>
-                Find someone
-              </Text>
-            </PressableScale>
-          </Animated.View>
-
-          <Animated.View
-            style={[StyleSheet.absoluteFill, openStyle]}
-            pointerEvents={codeOpen ? "auto" : "none"}
-          >
-            <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
-              <TextInput
-                ref={codeInputRef}
-                style={[styles.codeInput, { color: colors.text.primary }]}
-                placeholder="Their code"
-                placeholderTextColor={colors.input.placeholder}
-                value={buddyCode}
-                onChangeText={setBuddyCode}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={10}
-                onSubmitEditing={handleSubmitCode}
-                returnKeyType="go"
-                editable={!submittingCode}
-              />
-              {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
-                  the fourth character stole width from the TextInput and shoved
-                  the text and caret left mid-keystroke — a jolt at the exact
-                  moment you are watching what you type. Out of flow, it changes
-                  nothing; `codeInput` reserves the space with paddingRight. */}
-              <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
-                {submittingCode ? (
-                  <ActivityIndicator color={colors.text.accent} size="small" style={styles.codeSpinner} />
-                ) : (
-                  <PressableScale
-                    onPress={handleSubmitCode}
-                    style={[styles.joinBtn, { backgroundColor: colors.action.primary }]}
-                  >
-                    <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
-                      Join
-                    </Text>
-                  </PressableScale>
-                )}
-              </Animated.View>
-            </View>
-          </Animated.View>
+          <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
+            <TextInput
+              ref={codeInputRef}
+              style={[styles.codeInput, { color: colors.text.primary }]}
+              placeholder="Their code"
+              placeholderTextColor={colors.input.placeholder}
+              value={buddyCode}
+              onChangeText={setBuddyCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={10}
+              onSubmitEditing={handleSubmitCode}
+              returnKeyType="go"
+              editable={!submittingCode}
+              accessibilityLabel="Their invite code"
+            />
+            {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
+                the fourth character stole width from the TextInput and shoved
+                the text and caret left mid-keystroke — a jolt at the exact
+                moment you are watching what you type. Out of flow, it changes
+                nothing; `codeInput` reserves the space with paddingRight. */}
+            <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
+              {submittingCode ? (
+                <ActivityIndicator color={colors.action.primary} size="small" style={styles.codeSpinner} />
+              ) : (
+                <PressableScale
+                  onPress={handleSubmitCode}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Join with this code"
+                  style={[styles.joinBtn, { backgroundColor: colors.action.primary }]}
+                >
+                  <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
+                    Join
+                  </Text>
+                </PressableScale>
+              )}
+            </Animated.View>
+          </View>
         </View>
 
-        {/* THE SECOND SLOT, same treatment as the first.
-            Both occupants live in one fixed-height box and crossfade on a
-            single driver, so the block below never changes height and nothing
-            on the screen shifts when you open or close the field.
+        {/* The one line left under the field.
+            Share, not copy: the OS share sheet offers copy as one of its
+            options, so a separate copy affordance was a second control for a
+            subset of one action.
 
-            A LINK, not a field: most people arriving here have no code to
-            enter, and a permanently-open input made the screen look like a form
-            waiting to be filled.
-
-            CANCEL is always there, always closes, and clears the field on the
-            way out so reopening never starts mid-typo. Before it existed, once
-            the field was open nothing on screen could close it. */}
-        <View style={styles.secondarySlot}>
-          <Animated.View
-            style={[StyleSheet.absoluteFill, styles.slotCentre, closedStyle]}
-            pointerEvents={codeOpen ? "none" : "auto"}
+            "Got a code? Enter it" used to sit beside it and is gone — the field
+            directly above IS that path now, so the link pointed at something
+            already on screen. With one occupant instead of two, this no longer
+            needs a fixed-height slot to hold the layout still. */}
+        <View style={styles.underRow}>
+          <PressableScale
+            onPress={handleShare}
+            disabled={!summary?.referralCode}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Share your invite code"
+            style={styles.underItem}
           >
-            <View style={styles.underRow}>
-              <PressableScale onPress={openCode} hitSlop={12} style={styles.underItem}>
-                <Text variant="caption" color="tertiary">Got a code? </Text>
-                <Text variant="caption" color="accent" style={styles.bold}>Enter it</Text>
-              </PressableScale>
-              <Text variant="caption" color="tertiary"> · </Text>
-              {/* Share, not copy: the OS share sheet offers copy as one of its
-                  options, so a separate copy affordance was a second control
-                  for a subset of one action. */}
-              <PressableScale
-                onPress={handleShare}
-                disabled={!summary?.referralCode}
-                hitSlop={12}
-                style={styles.underItem}
-              >
-                <Text variant="caption" color="tertiary">or share </Text>
-                <Text variant="caption" color="accent" style={styles.codeInline}>
-                  {summary?.referralCode ?? "\u2026"}
-                </Text>
-              </PressableScale>
-            </View>
-          </Animated.View>
-
-          <Animated.View
-            style={[StyleSheet.absoluteFill, styles.slotCentre, openStyle]}
-            pointerEvents={codeOpen ? "auto" : "none"}
-          >
-            <PressableScale onPress={closeCode} disabled={submittingCode} hitSlop={12}>
-              <Text variant="caption" color="tertiary">Cancel</Text>
-            </PressableScale>
-          </Animated.View>
+            <Text variant="caption" color="tertiary">or share yours · </Text>
+            <Text variant="caption" color="accent" style={styles.codeInline}>
+              {summary?.referralCode ?? "\u2026"}
+            </Text>
+          </PressableScale>
         </View>
       </View>
     );
@@ -1711,28 +1642,15 @@ const styles = StyleSheet.create({
   // what makes three short lines read as one block.
   headline: { fontSize: 34, lineHeight: 34, letterSpacing: -1.1 },
   stageSub: { marginTop: spacing.xxs, maxWidth: 280 },
-  // The one filled button on the screen.
-  heroCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: space.inlineGap,
-    height: 54,
-    borderRadius: radius.pill,
-    marginTop: spacing.sm,
-  },
-  // Both code paths on one line, at caption size. They serve the minority who
-  // already know someone; ranking them as buttons is what made this a menu.
+  // The share line, at caption size. It serves the minority who already know
+  // someone; ranking it as a button is what made earlier versions read as a menu.
   underRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   underItem: { flexDirection: "row", alignItems: "center" },
   codeInline: { letterSpacing: 1, fontFamily: fonts.semibold },
   codeSpinner: { marginRight: spacing.md },
-  // Field + its escape hatch, as one group.
-  // Fixed-height slots. Their heights never change, so opening or closing the
-  // field cannot move anything above or below them.
+  // The field's row. Fixed at 54 so a long headline growing upward is the only
+  // thing that ever moves in this block.
   primarySlot: { height: 54, marginTop: spacing.sm },
-  secondarySlot: { height: 28 },
-  slotCentre: { alignItems: "center", justifyContent: "center" },
   // Sits INSIDE the field's right edge, so the row height never changes as it
   // appears and the layout doesn't jump on the fourth character.
   // Out of flow, pinned to the field's right edge.
@@ -1780,8 +1698,9 @@ const styles = StyleSheet.create({
   inputBox: {
     flexDirection: "row",
     width: "100%",
-    // 54, matching `heroCta`: the field takes the CTA's slot, so any difference
-    // here becomes a visible jump the moment you tap "Enter it".
+    // Fills `primarySlot` exactly. It used to match a 54pt CTA it swapped with;
+    // the CTA is gone, but the height stays — a full-width pill is what reads as
+    // a control on a scrim rather than as a box drawn on artwork.
     height: 54,
     borderRadius: radius.pill,
     borderWidth: borderWidth.thin,
@@ -1795,9 +1714,27 @@ const styles = StyleSheet.create({
     // Clears the absolutely-positioned Join so a full-length code never runs
     // underneath it.
     paddingRight: 96,
-    ...typography.body,
+    // NO `...typography.body` HERE, deliberately — and no `lineHeight` at all.
+    //
+    // Spreading the variant brought `lineHeight: 24` with it, and a lineHeight
+    // on a single-line TextInput is applied to the VALUE but not to the
+    // placeholder. The result was a control whose text jumped a couple of
+    // points the instant you typed the first character: placeholder sitting at
+    // the box's centre, entered text sitting at the centre of a 24pt line box
+    // inside it. Two different baselines for what has to read as one field.
+    //
+    // So the font is set by hand from the same token (identical size, no line
+    // box) and the row does the centring: `inputBox` is a fixed 54 with
+    // `alignItems: "center"`, which centres placeholder and value by the same
+    // rule. `paddingVertical: 0` + `includeFontPadding: false` remove Android's
+    // implicit input padding and font padding, which are the same bug wearing a
+    // different hat — without them the two platforms centre differently.
+    fontSize: typography.body.fontSize,
     fontFamily: fonts.bold,
     letterSpacing: 1,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });
 
