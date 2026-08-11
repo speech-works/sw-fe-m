@@ -2,11 +2,16 @@ import React from "react";
 import { View } from "react-native";
 import {
   Sheet,
-  ListItem,
   Text,
+  Button,
   makeStyles,
+  useTheme,
   spacing,
+  radius,
+  borderWidth,
+  fonts,
 } from "../../design-system";
+import PressableScale from "../PressableScale";
 import {
   REPORT_REASONS,
   CRISIS_REPORT_REASON,
@@ -41,6 +46,19 @@ interface ReportSheetProps {
 /**
  * The report sheet.
  *
+ * BUILT TO MATCH `BuddySupportSheet`, the nearest sibling — same feature area,
+ * same kind of decision. Every piece of its vocabulary is reused deliberately:
+ * the title lives INSIDE the body as an `h2` with a `bodySm` subtitle (the
+ * `Sheet` `title` prop floats on the backdrop, detached from the card, which is
+ * what made this sheet look like it came from another app); groups are labelled
+ * with uppercase `caption tertiary`; and every choice is a `surface.control`
+ * card with a thin border, a leading icon and a bold `bodySm` label.
+ *
+ * Two earlier attempts got this wrong in instructive ways. `ListItem` is the
+ * SETTINGS row — 72pt tall with a `title`-weight label — so six of them made a
+ * preferences screen. Replacing them with one divided surface fixed the height
+ * but still matched nothing else in the app.
+ *
  * ONE TAP SUBMITS, deliberately. The reason list *is* the confirmation: you
  * cannot mis-tap into filing a report without also choosing why. A DS `Dialog`
  * confirm is the right pattern for destructive actions someone might regret;
@@ -63,6 +81,7 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({
   blockLabel,
 }) => {
   const styles = useStyles();
+  const { colors } = useTheme();
   const who = personName?.trim() || "them";
 
   return (
@@ -83,35 +102,74 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({
       // (Timeline's report tap) hasOpenModalExcept is false and this presents
       // immediately — identical behaviour to before.
       exclusive
-      title={target === "signal" ? "Report this post" : `Report ${who}`}
     >
-      <View style={styles.body}>
-        <Text variant="bodySm" color="secondary" style={styles.intro}>
+      <View style={styles.container}>
+        <Text variant="h2">
+          {target === "signal" ? "Report this post" : `Report ${who}`}
+        </Text>
+        <Text variant="bodySm" color="secondary" style={styles.subtitle}>
           Only our team sees this. {personName ? `${who} won't` : "They won't"} be
           told.
         </Text>
 
-        {REPORT_REASONS.map((reason, i) => (
-          <ListItem
+        {REPORT_REASONS.map((reason) => (
+          <PressableScale
             key={reason.id}
-            label={reason.label}
-            divider={i < REPORT_REASONS.length - 1}
+            style={[
+              styles.reasonCard,
+              { backgroundColor: colors.surface.control, borderColor: "transparent" },
+              submitting && styles.dimmed,
+            ]}
+            scaleTo={0.98}
             disabled={submitting}
-            onPress={() => onSubmit(reason.id)}
-          />
+            // Guarded INSIDE the handler, not by `disabled` alone. `disabled`
+            // stops a touch reaching Pressable, but it is a render-time gate:
+            // a second tap arriving before `submitting` has propagated still
+            // gets through, which is how one tap becomes two POSTs.
+            onPress={() => {
+              if (submitting) return;
+              onSubmit(reason.id);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Report for ${reason.label}`}
+          >
+            <Text variant="bodySm" style={[styles.flex1, styles.bold]}>
+              {reason.label}
+            </Text>
+          </PressableScale>
         ))}
 
-        {/* Blocking is not a seventh reason — it's a different act, so it sits
-            in its own group with a gap above it. Reporting is about the
-            content; this is about the person. */}
+        {/* Blocking is not a seventh reason, it is a different act — reporting
+            is about the content, this is about the person. So it gets its own
+            labelled group.
+
+            IT IS A ROW, NOT A CENTRED PILL. The previous attempt centred a pale
+            `dangerText` label on a 12%-alpha danger tint, which reads exactly
+            like a disabled button: low-contrast text, no icon, floating in a
+            muddy field. Danger lives in the BORDER and the icon here — the same
+            device `BuddySupportSheet` uses to mark its state — over the same
+            `surface.control` every other row sits on, where #FF9296 clears AA
+            comfortably instead of dissolving into the fill. */}
         {onBlock ? (
-          <View style={styles.blockGroup}>
-            <ListItem
-              label={blockLabel ?? `Block ${who}`}
-              disabled={submitting}
-              onPress={onBlock}
-            />
-          </View>
+          /* THE DS `Button`, not a hand-rolled row.
+             `variant="danger"` is deliberately NOT used: it renders an OUTLINE
+             (transparent fill, pink label, red rim), which is the treatment
+             that read as disabled here. The app's action buttons are solid
+             pills — "Find someone", "Ask to pair", "Got it", "Try Again" — so
+             the consistent destructive button is that same pill in the danger
+             hue, which is exactly what `accentColor`/`onAccentColor` exist for.
+             Dark ink on a bright fill, per the DS contrast rule. */
+          <Button
+            label={blockLabel ?? `Block ${who}`}
+            accentColor={colors.feedback.danger}
+            onAccentColor={colors.accentOn.danger}
+            disabled={submitting}
+            style={styles.blockButton}
+            onPress={() => {
+              if (submitting) return;
+              onBlock();
+            }}
+          />
         ) : null}
       </View>
     </Sheet>
@@ -119,16 +177,28 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({
 };
 
 const useStyles = makeStyles(() => ({
-  body: {
+  container: { paddingTop: spacing.sm, paddingBottom: spacing.sm },
+  bold: { fontFamily: fonts.bold },
+  flex1: { flex: 1 },
+  subtitle: { marginTop: spacing.sm, marginBottom: spacing.md },
+
+  reasonCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    borderRadius: radius.input,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    marginBottom: spacing.sm,
+    borderWidth: borderWidth.thin,
   },
-  intro: {
-    marginBottom: spacing.md,
-  },
-  blockGroup: {
-    marginTop: spacing.lg,
-  },
+
+  // Separated by space, not by a label. A solid red pill after a gap is
+  // already unmistakably a different kind of thing from the neutral cards
+  // above it; a heading saying so was words doing what the design does.
+  blockButton: { marginTop: spacing.lg },
+
+  dimmed: { opacity: 0.45 },
 }));
 
 export { CRISIS_REPORT_REASON };
