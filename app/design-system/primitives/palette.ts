@@ -16,6 +16,11 @@ export const palette = {
     textSecondary: "#ADA7A0",
     textTertiary: "#9E988F", // AA on card surfaces (≥4.5:1), still dimmer than secondary
     textDisabled: "#5C574F",
+    // Unfilled part of a progress ring/bar — 3.17:1 on `row`, the card fill these
+    // sit on. `control` (#393430) is only 1.16:1 there, which is why a partial
+    // arc read as a floating crescent with no circle behind it. This is a
+    // NON-TEXT contrast job (WCAG 1.4.11), so 3:1 is the target, not 4.5:1.
+    track: "#7D766B",
   },
 
   // Warm "paper" ramp — the light-scheme mirror of `ink`. Every neutral carries
@@ -32,6 +37,13 @@ export const palette = {
     textSecondary: "#57514A",
     textTertiary: "#736C61", // AA on canvas/card/row (≥4.5:1) — same "cards only, not control" rule as dark
     textDisabled: "#A8A196",
+    // The paper cut of `ink.track`. DARKER than the dark scheme's, because here
+    // the track has to sit under a near-white card rather than over a near-black
+    // one. Tuned against `canvas`, not `card`: canvas is the darkest of the
+    // three paper fills, so it is the binding constraint — at #948C7E this
+    // measured 2.99:1 there and cleared 3:1 on both the others, which is exactly
+    // the near-miss the audit exists to catch.
+    track: "#928A7C",
   },
 
   // Warm shadow + border/scrim ink for the LIGHT scheme. A shadow/border must

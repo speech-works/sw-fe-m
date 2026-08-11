@@ -1,6 +1,6 @@
 import React from "react";
 import { G, Path, Circle, Ellipse, Rect, ClipPath } from "react-native-svg";
-import { HEAD, CX, GOLD, INK, shade } from "./avatarKit";
+import { HEAD, CX, GOLD, INK, shade, trimOf } from "./avatarKit";
 
 /**
  * The avatar part catalog, drawn in the construction language of the
@@ -1152,6 +1152,259 @@ export const ShawlCollar: React.FC<PartProps> = ({ colors, layer }) => {
           <Dome d="M39.75 37.6 L24.675 50 Q29.75 46.6 32.95 42.8 Q35.95 39.2 39.75 37.6 Z" fill={roll} />
           <Path d="M12 38.8 Q15.4 41.2 20.4 47" fill="none" stroke={sheen} strokeWidth={0.7} strokeLinecap="round" opacity={0.7} />
           <Path d="M37.35 38.8 Q33.95 41.2 28.95 47" fill="none" stroke={sheen} strokeWidth={0.7} strokeLinecap="round" opacity={0.7} />
+        </>
+      )}
+    </>
+  );
+};
+
+// ── Collars drawn as real garments ───────────────────────────────────────────
+//
+// The collars above are a fabric band plus marks on top. These are built the
+// way a tailoring reference draws one, from four SEPARATE inked pieces:
+//
+//   1. GARMENT — the blouse underneath. Its shoulder line shows outside the
+//      collar and its body fills below, so the collar sits ON something.
+//   2. STAND   — the band around the neck. Its top edge stays VISIBLE above the
+//      leaves the whole way across; that strip is the main reason a drawn
+//      collar reads as a collar rather than as a shape.
+//   3. LEAVES  — the fold-down parts: closed shapes with their own fold edge,
+//      so the eye sees two pieces of cloth, not one silhouette.
+//   4. DETAIL  — placket, buttons, trim, and a shadow under the fold (the cue
+//      that puts cloth above cloth).
+//
+// SCALE is the other half of it. A real collar FRAMES the neck, so the stand
+// runs up beside the jaw to y≈31 — into the background slivers either side of
+// the head, which is the only part of the tile with room to show structure.
+// Every piece clears the mouth (x 19–30, down to y 35.7) at every x.
+
+/** The blouse under the collar, cut low enough for the stand to clear it. */
+const GARMENT =
+  "M-2 56 L-2 40.6 Q1.6 36.4 5.4 35.6 Q13.6 41 24.675 43 Q35.75 41 43.95 35.6 Q47.75 36.4 51.35 40.6 L51.35 56 Z";
+/** The collar stand — the band around the neck; its top edge is what shows. */
+const STAND =
+  "M5.4 31.6 Q13.6 36.4 24.675 38.4 Q35.75 36.4 43.95 31.6 L44.55 35.6 Q35.95 40.6 24.675 42.6 Q13.4 40.6 4.8 35.6 Z";
+/** The stand carrying on round the BACK of the neck — the "it goes all the way
+ *  around" cue, seen in the slivers beside the jaw. */
+const COLLAR_BACK =
+  "M2 47 Q0.8 31.4 24.675 30.4 Q48.55 31.4 47.35 47 L47.35 48.8 Q24.675 36.4 2 48.8 Z";
+/** Long-point leaves, hinged along the stand's lower edge. */
+const LEAF_L = "M5 34.4 Q13.4 39.4 24.675 41.4 L17.4 46.6 Q9.6 43.6 3.8 37.4 Z";
+const LEAF_R = "M44.35 34.4 Q35.95 39.4 24.675 41.4 L31.95 46.6 Q39.75 43.6 45.55 37.4 Z";
+/** The band that finishes a frill ring at the neck. */
+const FRILL_BAND =
+  "M6 31.8 Q13.6 37 24.675 39.2 Q35.75 37 43.35 31.8 L43.75 34.8 Q35.95 40.2 24.675 42.4 Q13.4 40.2 5.6 34.8 Z";
+
+/** A collar piece: flat fill + the shared ink edge at a chosen line weight — a
+ *  frill pleat needs a finer edge than a collar leaf. */
+const Piece: React.FC<{ d: string; fill: string; w?: number }> = ({ d, fill, w = 1.1 }) => (
+  <>
+    <Path d={d} fill={fill} />
+    <Path d={d} fill="none" stroke={INK} strokeWidth={w} strokeLinejoin="round" />
+  </>
+);
+
+/** Garment + stand + the shadow the stand casts on it. */
+const CollarBase: React.FC<{ c: string }> = ({ c }) => (
+  <>
+    <Dome d={GARMENT} fill={c} />
+    <Path
+      d="M1.4 38.6 Q7.4 35.6 11.4 37.4 M47.95 38.6 Q41.95 35.6 37.95 37.4"
+      fill="none"
+      stroke={shade(c, -0.22)}
+      strokeWidth={0.7}
+      strokeLinecap="round"
+      opacity={0.5}
+    />
+    <Dome d={STAND} fill={shade(c, -0.18)} />
+  </>
+);
+
+/** The shadow a pair of leaves casts along its fold. */
+const FoldShade: React.FC<{ c: string }> = ({ c }) => (
+  <Path
+    d="M6.2 35.8 Q13.8 40.4 24.2 42.4 M43.15 35.8 Q35.55 40.4 25.15 42.4"
+    fill="none"
+    stroke={shade(c, -0.2)}
+    strokeWidth={0.6}
+    strokeLinecap="round"
+    opacity={0.5}
+  />
+);
+
+/** A point on an ellipse around the neck: 180° = left of the neck, 90° =
+ *  straight down the front, 0° = right of the neck. */
+const ell = (deg: number, rx: number, ry: number): [number, number] => {
+  const r = (deg * Math.PI) / 180;
+  return [CX + rx * Math.cos(r), 32 + ry * Math.sin(r)];
+};
+
+/**
+ * A frill ring: `n` SEPARATE inked wedges between an inner and an outer
+ * ellipse. Drawing every pleat as its own piece is what makes a ruffle read as
+ * folded cloth — the same frill drawn as one band with shading lines on top
+ * reads flat at every size. `bow` rounds each hem into a scallop.
+ */
+function frillRing(
+  n: number,
+  r1: [number, number],
+  r2: [number, number],
+  fills: string[],
+  bow: number,
+): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  const A0 = 178;
+  const A1 = 2;
+  for (let i = 0; i < n; i++) {
+    const d0 = A0 + ((A1 - A0) * i) / n;
+    const d1 = A0 + ((A1 - A0) * (i + 1)) / n;
+    const i0 = ell(d0, r1[0], r1[1]);
+    const i1 = ell(d1, r1[0], r1[1]);
+    const o0 = ell(d0, r2[0], r2[1]);
+    const o1 = ell(d1, r2[0], r2[1]);
+    const om = ell((d0 + d1) / 2, r2[0] * (1 + bow), r2[1] * (1 + bow));
+    out.push(
+      <Piece
+        key={i}
+        w={0.75}
+        fill={fills[i % fills.length]}
+        d={
+          `M${i0[0].toFixed(2)} ${i0[1].toFixed(2)} L${o0[0].toFixed(2)} ${o0[1].toFixed(2)}` +
+          ` Q${om[0].toFixed(2)} ${om[1].toFixed(2)} ${o1[0].toFixed(2)} ${o1[1].toFixed(2)}` +
+          ` L${i1[0].toFixed(2)} ${i1[1].toFixed(2)} Z`
+        }
+      />,
+    );
+  }
+  return out;
+}
+
+/** Barrymoore — the long-point shirt collar: the stand showing above the
+ *  leaves, placket and buttons filling the V between the points. */
+export const BarrymooreCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const leaf = shade(c, 0.08);
+  const btn = trimOf(c);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.28)} />}
+      {layer !== "back" && (
+        <>
+          <CollarBase c={c} />
+          <Dome d="M22.2 41.4 L27.15 41.4 L27.8 56 L21.55 56 Z" fill={shade(c, -0.05)} />
+          <Dome d={LEAF_L} fill={leaf} />
+          <Dome d={LEAF_R} fill={leaf} />
+          <FoldShade c={c} />
+          <Circle cx={CX} cy={45.4} r={1} fill={btn} stroke={INK} strokeWidth={0.35} />
+          <Circle cx={CX} cy={50.4} r={1} fill={btn} stroke={INK} strokeWidth={0.35} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Cascade — a frill collar spilling into a jabot down the front. */
+export const CascadeCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const a = shade(c, 0.16);
+  const b = shade(c, -0.02);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.26)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={GARMENT} fill={c} />
+          {frillRing(8, [18.4, 8.4], [21.8, 12.6], [a, b], 0.05)}
+          <Dome
+            d="M20.6 41.4 Q24.675 44 29 41.4 Q30.35 45.4 27.55 47 Q24.675 48.2 21.8 47 Q19.2 45.4 20.6 41.4 Z"
+            fill={a}
+          />
+          <Dome
+            d="M21.4 45.8 Q24.675 48.2 27.95 45.8 Q29.35 50 26.95 51.8 Q24.675 53 22.4 51.8 Q20 50 21.4 45.8 Z"
+            fill={b}
+          />
+          <Dome d={FRILL_BAND} fill={shade(c, -0.18)} />
+          <Circle cx={CX} cy={39.8} r={0.9} fill={trimOf(c)} stroke={INK} strokeWidth={0.3} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Square — a square-cut neckline with a mitred border. */
+export const SquareCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.26)} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 56 L-2 37.4 Q3 33.4 8.4 33.2 L8.4 44.4 L40.95 44.4 L40.95 33.2 Q46.35 33.4 51.35 37.4 L51.35 56 Z"
+            fill={c}
+          />
+          <Dome
+            d="M8.4 33.2 L12.2 33.2 L12.2 41 L37.15 41 L37.15 33.2 L40.95 33.2 L40.95 44.4 L8.4 44.4 Z"
+            fill={shade(c, 0.11)}
+          />
+          <Path
+            d="M10.2 34.4 L10.2 42.8 L39.15 42.8 L39.15 34.4"
+            fill="none"
+            stroke={trimOf(c)}
+            strokeWidth={0.7}
+            strokeLinecap="round"
+            opacity={0.9}
+          />
+          <Path
+            d="M13.8 42.2 L35.55 42.2"
+            fill="none"
+            stroke={shade(c, -0.26)}
+            strokeWidth={0.5}
+            strokeLinecap="round"
+            opacity={0.45}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Wrap — collar panels crossed over each other down a deep V. */
+export const WrapCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.28)} />}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M-2 56 L-2 39.4 Q2.6 35.2 6.6 33.4 L24.675 47.4 L42.75 33.4 Q46.75 35.2 51.35 39.4 L51.35 56 Z"
+            fill={c}
+          />
+          <Dome
+            d="M42.75 33.2 Q35.35 39.4 24.675 43.2 L20.9 50.6 Q34.35 46.4 44.35 37.4 Z"
+            fill={shade(c, -0.18)}
+          />
+          <Dome
+            d="M6.6 33.2 Q14 39.4 24.675 43.2 L28.45 50.6 Q15 46.4 5 37.4 Z"
+            fill={shade(c, 0.11)}
+          />
+          <Path
+            d="M8.6 34.8 Q15.4 40.2 24.2 43.6"
+            fill="none"
+            stroke={shade(c, 0.32)}
+            strokeWidth={0.6}
+            strokeLinecap="round"
+            opacity={0.6}
+          />
+          <Path
+            d="M40.75 34.8 Q33.95 40.2 25.15 43.6"
+            fill="none"
+            stroke={shade(c, -0.36)}
+            strokeWidth={0.6}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
         </>
       )}
     </>

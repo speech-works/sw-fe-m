@@ -10,6 +10,7 @@ export const darkColors: SemanticColors = {
     row: p.ink.row,
     rowSelected: p.orange[400],
     control: p.ink.control,
+    track: p.ink.track,
     inverse: p.white,
     // Light card on ink — the same idea, flipped.
     contrast: p.paper.panel,

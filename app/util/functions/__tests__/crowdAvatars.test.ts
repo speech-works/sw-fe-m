@@ -4,7 +4,9 @@ import {
   HAIR_COLORS,
   BG_COLORS,
   COLLAR_COLORS,
+  PART_REGISTRY,
 } from "../../../assets/avatar/registry";
+import type { AvatarManifest, AvatarSlot } from "../../../types/avatar";
 
 /**
  * The Community wall's faces are ILLUSTRATIONS, not users. They are generated
@@ -94,6 +96,39 @@ describe("crowdAvatar", () => {
     const gear = Array.from({ length: 40 }, (_, i) => crowdAvatar(`c${i}`).parts.headgear);
     expect(gear).not.toContain("headgear.cap");
   });
+
+  it("only ever uses parts the registry can actually draw", () => {
+    // The pools are string literals, and an unknown part id renders NOTHING by
+    // design (UserAvatar's layer table) — so a typo or a catalog rename does not
+    // crash, it silently strips clothing off the wall. This is the check that
+    // makes the literals safe.
+    for (let i = 0; i < 60; i++) {
+      const a = crowdAvatar(`r${i}`);
+      for (const [slot, id] of Object.entries(a.parts)) {
+        if (id === null) continue;
+        expect(PART_REGISTRY[slot as AvatarSlot][id]).toBeDefined();
+      }
+    }
+  });
+
+  it("never puts earned eyewear on a stranger", () => {
+    // Aviators are granted at Voyager. Same rule as the stage hats: a stranger
+    // wearing earned gear implies progression nobody made.
+    const eyes = Array.from({ length: 40 }, (_, i) => crowdAvatar(`e${i}`).parts.eyewear);
+    expect(eyes).not.toContain("eyewear.aviator");
+  });
+
+  it("keeps glasses and beards to a minority of the crowd", () => {
+    // Both slots exist to break up a uniform wall. Past roughly a third they
+    // stop reading as variety and start reading as a uniform of their own.
+    const crowd = Array.from({ length: 60 }, (_, i) => crowdAvatar(`v${i}`));
+    const rate = (f: (a: AvatarManifest) => string | null) =>
+      crowd.filter((a) => f(a) !== null).length / crowd.length;
+    expect(rate((a) => a.parts.eyewear)).toBeGreaterThan(0.1);
+    expect(rate((a) => a.parts.eyewear)).toBeLessThan(0.45);
+    expect(rate((a) => a.parts.beard)).toBeGreaterThan(0.15);
+    expect(rate((a) => a.parts.beard)).toBeLessThan(0.5);
+  });
 });
 
 describe("illustrativeCrowd", () => {
@@ -120,5 +155,18 @@ describe("illustrativeCrowd", () => {
   it("fills a three-row wall with plenty of distinct looks", () => {
     const looks = new Set(illustrativeCrowd(15).map((a) => JSON.stringify(a)));
     expect(looks.size).toBeGreaterThanOrEqual(13);
+  });
+
+  it("varies the silhouette, not just the colours", () => {
+    // At crowd size (small tiles, 0.3 opacity) detail resolves to nothing and
+    // outline is the only variety the eye gets. A wall that varied only its
+    // palettes would be thirty-three of the same shape in different colours.
+    const wall = illustrativeCrowd(33);
+    const distinct = (f: (a: AvatarManifest) => string | null) =>
+      new Set(wall.map(f)).size;
+    expect(distinct((a) => a.parts.collar)).toBeGreaterThanOrEqual(6);
+    expect(distinct((a) => a.parts.hair)).toBeGreaterThanOrEqual(4);
+    expect(distinct((a) => a.parts.beard)).toBeGreaterThanOrEqual(3);
+    expect(distinct((a) => a.parts.eyewear)).toBeGreaterThanOrEqual(3);
   });
 });

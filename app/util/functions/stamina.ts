@@ -75,3 +75,33 @@ export function formatRechargeDuration(msUntilFull: number): string {
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
   return `${m}m`;
 }
+
+/** Drops a trailing ".0" so 1.0 renders as "1", not "1.0". */
+const trim1 = (n: number): string => n.toFixed(1).replace(/\.0$/, "");
+
+/**
+ * ONE UNIT, ONE DECIMAL — "1.3h", "43m", "under a minute".
+ *
+ * The Home meter used to build its own string at seconds precision, which gave
+ * "~42m 46s to full": four numbers and two units inside a 12px caption sharing a
+ * row with the energy percentage. It was the longest string on the card and the
+ * only one that changed every second.
+ *
+ * THE SECONDS WERE NOT INFORMATION. Nobody schedules around a stamina refill to
+ * the second, and a digit that ticks constantly in peripheral vision is a cost
+ * with no matching benefit. One decimal keeps the estimate honest — "1.3h" is a
+ * real distinction from "1h" — while changing at most every six seconds.
+ *
+ * Separate from `formatRechargeDuration` on purpose: that one is for the
+ * out-of-energy modal, which is a single static reading with room to be
+ * conversational, and where "1h 20m" is friendlier than "1.3h".
+ */
+export function formatRechargeShort(msUntilFull: number): string {
+  const ms = Math.max(0, msUntilFull);
+  const minutes = ms / 60000;
+  // Below the resolution we report, say so in words rather than showing "0.1m",
+  // which reads as a broken number rather than a small one.
+  if (minutes < 0.5) return "under a minute";
+  if (minutes >= 60) return `${trim1(minutes / 60)}h`;
+  return `${trim1(minutes)}m`;
+}

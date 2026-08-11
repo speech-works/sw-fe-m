@@ -1,5 +1,5 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { getLevelStage, LevelStage } from "../../../../api/users";
@@ -15,10 +15,14 @@ import {
   icons,
   fonts,
   ProgressRing,
+  SegmentRing,
 } from "../../../../design-system";
 import { AvatarSheen } from "./AvatarSheen";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
+import { fetchDailyPlan, isVisibleAxis, GrowthAxis } from "../../../../api/dailyPlan";
+import { useOnboardingNudgeStore } from "../../../../stores/onboardingNudge";
+import { RingsInfoSheet } from "./RingsInfoSheet";
 
 /**
  * Home's identity block — two sibling cards, one visual grammar:
@@ -45,10 +49,59 @@ import { UserAvatar } from "../../../../components/UserAvatar";
  */
 
 const LEVEL_RING = { size: 34, stroke: 3 };
-const ENERGY_RING = { size: 62, stroke: 3 };
-/** Sized to leave ~5px inside the ring — the avatar's idle float is ±2px, so a
- *  tighter fit would let the character graze its own energy ring. */
-const AVATAR_SIZE = 46;
+
+/**
+ * THE AVATAR CARD CARRIES TWO RINGS, AND BORROWS THE LEVEL CARD'S SKELETON.
+ *
+ * Outer is TODAY (segmented), inner is ENERGY, avatar innermost. Both rings are
+ * DS components nested — `SegmentRing` takes `ProgressRing` as its child, which
+ * takes the avatar — so neither re-derives any arc maths.
+ *
+ * TODAY IS OUTSIDE (owner's directive), reversing an earlier build. The reason
+ * for putting it inside was that a CONTINUOUS today arc lost to energy's
+ * near-complete circle — a short crescent against a full ring reads as the
+ * decoration, not the point. Segmenting killed that argument: gaps make slots
+ * read as slots at any radius, so today wins the outer position on merit and
+ * energy becomes the calm outline it always was.
+ *
+ * ── THE VERTICAL BUDGET, AND WHY THE TEXT IS ONE ROW ─────────────────────────
+ * `cardInner` uses `justify-content: space-between`, so the gap between the
+ * anchor and the nameplate IS WHATEVER IS LEFT OVER. It is not a spacing
+ * decision; it is a remainder. At minHeight 138 with 16 of padding each side
+ * the budget is 106, and two layouts ago the card was spending:
+ *
+ *   ring 62 + hero 28 + 4 + caption 16  =  110   → 4 OVER. Gap: zero.
+ *
+ * That was the whole "no gap" defect — nothing left to distribute, and the card
+ * silently grew to 142 instead. Shrinking the ring fixed the gap and cost the
+ * avatar; it went to 26, which is a silhouette rather than a face.
+ *
+ * FOLDING THE CAPTION INTO THE HERO ROW IS WHAT PAYS FOR THE AVATAR. One row of
+ * 28 instead of 48 frees 20pt, and every one of them goes to the ring:
+ *
+ *   ring 70 + one row 28                =  98    → 8pt gap, and it fits.
+ *
+ * 8 is deliberately tight (owner's call): the trade was a bigger character
+ * against a roomier column, and the character won. ANY future addition comes
+ * out of that 8 — check the sum before adding a line, because `space-between`
+ * will not warn you, it will just quietly close up again.
+ *
+ * ── WHAT THE AVATAR GETS ─────────────────────────────────────────────────────
+ *   outer 70 / stroke 2.5  → inner edge at r 32.5
+ *   1.5pt of card showing through, which is what separates the two arcs
+ *   inner 62 / stroke 2    → inner edge at r 29
+ *   avatar 52              → r 26, leaving 3pt of clearance for the ±2pt float
+ *
+ * 52 is larger than the 46 this card started with, before it carried a second
+ * ring at all — so the character is now the biggest it has ever been here, not
+ * merely restored.
+ */
+const TODAY_RING = { size: 70, stroke: 2.5 };
+const ENERGY_RING = { size: 62, stroke: 2 };
+const AVATAR_SIZE = 52;
+/** The pre-rings size, kept for the single-ring fallback — see `today` below. */
+const SOLO_RING = { size: 62, stroke: 3 };
+const SOLO_AVATAR_SIZE = 46;
 /** At or below this %, the energy ring switches to the caution hue. */
 const LOW_ENERGY = 25;
 
@@ -130,6 +183,98 @@ export const IdentityBlock: React.FC = () => {
     ? Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
     : 0;
 
+  /**
+   * TODAY'S PROGRESS, ON THE SAME TERMS THE REST OF THE APP USES.
+   *
+   * The denominator is `loops` — the axes the SERVER says something in today's
+   * plan can actually close — filtered through `isVisibleAxis`, exactly as
+   * `TodayStrip` does. That filtering is not cosmetic here: an outer ring that
+   * counts Finisher in its denominator could never reach full, and a ring that
+   * cannot be finished is the precise harm the daily-plan design forbids.
+   *
+   * NULL WHEN THERE IS NOTHING HONEST TO DRAW — no plan, a failed request, or a
+   * day whose only closable loop is hidden. The card then renders exactly what
+   * it renders today: one energy ring, avatar at its old size. A second ring
+   * that sits permanently at zero because we could not load a plan would be
+   * worse than no second ring at all.
+   */
+  /**
+   * THE AXES ARE CARRIED, NOT JUST THE COUNT, because the info sheet names them.
+   * The card has no room to say "three of WHAT"; the sheet does, and it must not
+   * invent the answer — these are the same axes the ring's segments are drawn
+   * from, in the same order.
+   */
+  const [today, setToday] = useState<{
+    loops: GrowthAxis[];
+    closed: GrowthAxis[];
+  } | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void fetchDailyPlan().then((plan) => {
+        if (!alive) return;
+        if (!plan) {
+          setToday(null);
+          return;
+        }
+        const loops = plan.loops.filter(isVisibleAxis) as GrowthAxis[];
+        if (loops.length === 0) {
+          setToday(null);
+          return;
+        }
+        // Only closures that belong to a loop we are actually drawing, so the
+        // numerator can never exceed the denominator.
+        const closed = plan.closed.filter(
+          (a) => isVisibleAxis(a) && loops.includes(a as GrowthAxis),
+        ) as GrowthAxis[];
+        setToday({ loops, closed });
+      });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  const todayTotal = today?.loops.length ?? 0;
+  const todayDone = today?.closed.length ?? 0;
+  const hasToday = today !== null;
+
+  const [infoOpen, setInfoOpen] = useState(false);
+  const growthIntroduced = useOnboardingNudgeStore(
+    (s) => s.growthIntroducedAt !== null,
+  );
+  const markGrowthIntroduced = useOnboardingNudgeStore(
+    (s) => s.markGrowthIntroduced,
+  );
+
+  /**
+   * OPENING IS THE ACKNOWLEDGEMENT — the store's own rule, and the reason this
+   * fires here rather than on the sheet's render: a sheet that opened behind
+   * something, or was dismissed in half a second, would otherwise burn the one
+   * introduction the axis vocabulary gets. Idempotent, so a user who already
+   * met the words on the completion screen keeps that earlier timestamp.
+   */
+  const openInfo = useCallback(() => {
+    markGrowthIntroduced();
+    setInfoOpen(true);
+  }, [markGrowthIntroduced]);
+
+  /**
+   * NAVIGATE AFTER THE SHEET IS GONE, NEVER WHILE IT IS OPEN.
+   *
+   * `Sheet` is a native Modal. Pushing a screen underneath one leaves it
+   * hovering over the destination, and stacking a second native Modal on top of
+   * it is the documented iOS touch-freeze this codebase already has an
+   * `exclusive` prop to avoid. The ref holds the intent; `onDismissed` fires it
+   * once the sheet has fully animated out and unmounted.
+   */
+  const afterSheet = useRef<(() => void) | null>(null);
+  const closeSheetThen = useCallback((run: () => void) => {
+    afterSheet.current = run;
+    setInfoOpen(false);
+  }, []);
+
   const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
   const isLow = staminaPercentage <= LOW_ENERGY;
   // Named via the gamification token (not action.primary) so Energy's hue is
@@ -137,13 +282,27 @@ export const IdentityBlock: React.FC = () => {
   const energyHue = isLow ? colors.accent.warning : colors.gamification.stamina;
 
   const hasAvatar = !!user?.avatarManifest;
-  const energyLabel = hasAvatar
-    ? staminaPercentage === 100
+
+  /**
+   * THE STATUS LINE DESCRIBES ENERGY. ONLY ENERGY.
+   *
+   * It used to read "Create yours" whenever `avatarManifest` was null — an
+   * invitation to make the avatar that was, at that exact moment, rendering
+   * three lines above it. `UserAvatar` falls back to `DEFAULT_MANIFEST`, so
+   * "no manifest" has never meant "no avatar on screen"; it means "never opened
+   * the studio". Every one of those users was being told to create something
+   * they could see, in the slot that is supposed to explain the ⚡ figure beside
+   * it.
+   *
+   * Losing the prompt costs nothing: the card's whole surface already opens the
+   * studio.
+   */
+  const energyLabel =
+    staminaPercentage === 100
       ? "Charged"
       : rechargeTimeLeft
         ? `~${rechargeTimeLeft} to full`
-        : "Recharging…"
-    : "Create yours";
+        : "Recharging…";
 
   return (
     <View style={styles.container}>
@@ -210,68 +369,206 @@ export const IdentityBlock: React.FC = () => {
             The character the user owns, ringed by their energy. Always shows a
             REAL avatar (null manifest renders the default), never an empty slot;
             the status line carries create-vs-energy state instead. */}
+        {/* ── TWO REGIONS, AND A MISS BETWEEN THEM COSTS NOTHING ──
+            This card used to have THREE tap destinations inside 159×138pt: the
+            whole surface went to the avatar studio, a 28pt "i" went to the info
+            sheet, and the ⚡ figure went to the paywall. Nested targets have no
+            gap by definition — the 8pt minimum between adjacent targets cannot
+            exist — so a 3pt slip off the "i" did not miss, it navigated
+            somewhere unrelated. The target was never too small (28 + 12 hitSlop
+            = 52pt, comfortably over 44); the problem was the COST of a miss.
+
+            Now there are two: the ringed avatar opens the studio, and every
+            other pixel — including the "i" and the space around it — opens the
+            sheet. A near-miss on the "i" lands on the sheet, which is where it
+            was going anyway. The ⚡ is no longer a target at all; upgrading
+            moved into the sheet, where there is room to say what it buys. */}
         <PressableScale
-          onPress={() => navigation.navigate("AvatarStudio")}
+          onPress={hasToday ? openInfo : () => navigation.navigate("AvatarStudio")}
           style={[
             styles.card,
             { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
             elevation.e2,
           ]}
           accessibilityRole="button"
+          // TWO RINGS ARE TWO FACTS, and neither is visible to a screen reader.
+          // Today leads because it is the value that changes, and because a
+          // screen reader gets no help at all from which ring is drawn where.
           accessibilityLabel={`${
-            hasAvatar ? "Your avatar" : "Create your avatar"
-          }. Energy ${staminaPercentage} percent, ${energyLabel}. Opens the avatar studio.`}
+            hasToday ? `Today, ${todayDone} of ${todayTotal} done. ` : ""
+          }Energy ${staminaPercentage} percent, ${energyLabel}. ${
+            hasToday ? "Explains these rings." : "Opens the avatar studio."
+          }`}
         >
           <View style={styles.cardInner}>
-            {/* top anchor: the character, ringed by energy, + an edit affordance */}
-            <View style={styles.anchorRow}>
-              <ProgressRing
-                progress={staminaPercentage / 100}
-                size={ENERGY_RING.size}
-                strokeWidth={ENERGY_RING.stroke}
-                color={energyHue}
-                trackColor={colors.surface.control}
+            {/* THE SAME ANCHOR SHAPE AS THE LEVEL CARD: a ringed thing, then its
+                word. `styles.levelAnchor` is reused verbatim rather than copied,
+                so the two cards cannot drift apart — the whole point of this
+                layout is that they rhyme. */}
+            <View style={styles.levelAnchor}>
+              {/* THE CHARACTER IS THE DOOR TO THE CHARACTER EDITOR.
+                  A 70pt circle — the largest, most distinct object on the card
+                  and the only one that is obviously a picture of you rather than
+                  a number. It sits inside the card's own pressable, and RN gives
+                  the innermost responder the touch, so no propagation guard is
+                  needed: hit the ring and you get the studio, miss it by any
+                  margin and you get the sheet. */}
+              <PressableScale
+                haptic={false}
+                onPress={() => navigation.navigate("AvatarStudio")}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  hasAvatar
+                    ? "Your avatar. Opens the avatar studio."
+                    : "Your avatar, not personalised yet. Opens the avatar studio."
+                }
               >
-                <UserAvatar manifest={user?.avatarManifest} size={AVATAR_SIZE} animate />
-              </ProgressRing>
-              <View style={[styles.affordance, { backgroundColor: colors.surface.control }]}>
-                <Icon name={icons.chevronRight} size={16} color={colors.text.secondary} />
-              </View>
+              {hasToday ? (
+                // ONE SLOT PER LOOP, not one arc for a fraction. The denominator
+                // stops being a claim in the hero line and becomes the shape —
+                // and an untouched day reads as three visible empty bays instead
+                // of an arc of length zero.
+                <SegmentRing
+                  total={todayTotal}
+                  done={todayDone}
+                  size={TODAY_RING.size}
+                  strokeWidth={TODAY_RING.stroke}
+                  // The same green a closed loop takes in `TodayStrip`, so a
+                  // filled slot and a ticked chip mean one thing across the app.
+                  color={colors.accent.success}
+                  trackColor={colors.surface.track}
+                >
+                  <ProgressRing
+                    progress={staminaPercentage / 100}
+                    size={ENERGY_RING.size}
+                    strokeWidth={ENERGY_RING.stroke}
+                    color={energyHue}
+                    trackColor={colors.surface.track}
+                  >
+                    <UserAvatar manifest={user?.avatarManifest} size={AVATAR_SIZE} animate />
+                  </ProgressRing>
+                </SegmentRing>
+              ) : (
+                // Exactly what shipped before any of this: one energy ring at 62,
+                // avatar at 46. A day with no closable loop has no today ring to
+                // draw, so the avatar gets its old size back rather than sitting
+                // shrunken inside a ring that is not there.
+                <ProgressRing
+                  progress={staminaPercentage / 100}
+                  size={SOLO_RING.size}
+                  strokeWidth={SOLO_RING.stroke}
+                  color={energyHue}
+                  trackColor={colors.surface.track}
+                >
+                  <UserAvatar manifest={user?.avatarManifest} size={SOLO_AVATAR_SIZE} animate />
+                </ProgressRing>
+              )}
+              </PressableScale>
+              {/* The word, beside the ring — `LEVEL`'s opposite number, in the
+                  today ring's own green so the eyebrow, the segments and the
+                  hero line below are visibly one object. Rendered only with a
+                  ring to label. */}
+              {hasToday ? (
+                <Text
+                  variant="label"
+                  color={colors.accent.success}
+                  // ONE LINE, NON-NEGOTIABLE. A 70pt ring plus the row gap leaves
+                  // this about 45pt of the card's 127, and "TODAY" fills roughly
+                  // 42 of it. At a larger accessibility text size it would wrap,
+                  // and a two-line eyebrow grows the anchor row — which spends
+                  // the 8pt gap that is the whole cost of this layout. Truncating
+                  // is the safe failure; closing the gap is not.
+                  numberOfLines={1}
+                  style={styles.anchorLabel}
+                >
+                  TODAY
+                </Text>
+              ) : null}
             </View>
 
-            {/* nameplate + the energy readout */}
-            <View style={styles.heroBlock}>
-              <Text variant="h2" color="primary" numberOfLines={1} style={styles.heroName}>
-                Avatar
+            {/* ── ONE ROW, WHICH IS WHAT BUYS THE 52pt AVATAR ──
+                Two rows cost 48 of the 106; this costs 28, and the 20 saved is
+                exactly the ring's increase. The line it replaces was the
+                recharge estimate ("~35.3m to full"), which has not been deleted
+                — it is in the info sheet, next to the energy ring it describes,
+                and in the accessibility label below. It was the least actionable
+                thing on the card: nobody schedules around a stamina refill.
+
+                COLOUR-LINKED, and that is the entire legend. The count takes the
+                outer ring's green and the ⚡ figure takes the inner ring's
+                orange, so the palette says which number belongs to which arc
+                without spending a word on it. Colour alone is not an accessible
+                signal — that is what the "i" sheet and the label below are for.
+
+                "1 of 3", not "1 of 3 today": the eyebrow says TODAY directly
+                above, and the hero must not repeat a word the anchor owns. It
+                also keeps this to one line at large text sizes. */}
+            <View style={styles.heroRow}>
+              <Text
+                variant="h2"
+                color={hasToday ? colors.accent.success : colors.text.primary}
+                numberOfLines={1}
+                style={[styles.heroName, styles.heroCount]}
+              >
+                {hasToday ? `${todayDone} of ${todayTotal}` : "Avatar"}
               </Text>
-              <View style={styles.baseline}>
-                {/* Free users keep their upgrade path: the status line itself is
-                    a tap target, so the card can still open the studio. */}
-                {hasAvatar && !user?.isPaid ? (
-                  <PressableScale
-                    haptic={false}
-                    onPress={() => navigation.navigate("PremiumModal")}
-                    accessibilityRole="button"
-                    accessibilityLabel="Upgrade energy"
-                  >
-                    <Text variant="caption" color={colors.text.link} numberOfLines={1}>
-                      Upgrade
-                    </Text>
-                  </PressableScale>
-                ) : (
-                  <Text variant="caption" color="tertiary" numberOfLines={1}>
-                    {energyLabel}
-                  </Text>
-                )}
-                <View style={styles.energyReadout}>
-                  <Icon name={icons.energy} size={11} color={energyHue} />
-                  <Text variant="caption" style={[styles.pct, { color: energyHue }]}>
-                    {staminaPercentage}%
-                  </Text>
-                </View>
+
+              {/* NOT A TAP TARGET ANY MORE — a reading.
+                  It was briefly the upgrade button, which made it the card's
+                  THIRD destination and a 36pt-tall one at that, under the 44
+                  minimum. Upgrading now lives in the sheet's energy section,
+                  where there is room to say what it actually buys instead of
+                  making a percentage secretly clickable. */}
+              <View style={styles.energyReadout}>
+                <Icon name={icons.energy} size={11} color={energyHue} />
+                <Text variant="caption" style={[styles.pct, { color: energyHue }]}>
+                  {staminaPercentage}%
+                </Text>
               </View>
             </View>
           </View>
+
+          {/* THE "i" SITS IN THE CARD'S CORNER, NOT IN THE ANCHOR ROW.
+              Inline it was a peer of the ring and ate that row's horizontal
+              budget, which is what pushed the TODAY eyebrow off the end. Pinned
+              to the corner it reads as chrome — the thing you reach for when you
+              want an explanation, and invisible otherwise. It replaces a chevron
+              that pointed at the avatar studio, which stopped being what this
+              card is about the moment it started reporting today.
+
+              Absolute, so it costs the 106pt budget nothing at all.
+
+              A DOT UNTIL IT HAS BEEN READ, ONCE, EVER. The whole of the
+              coach-mark idea and none of its cost: no bubble, no timing, nothing
+              to dismiss, and it cannot be missed-once-and-lost because the
+              button stays put afterwards. It rides the same `growthIntroducedAt`
+              flag every other introduction uses, so anyone who met the words on
+              the completion screen never sees it. */}
+          {hasToday ? (
+            <PressableScale
+              haptic={false}
+              onPress={openInfo}
+              // The card underneath is itself pressable, so this needs a real
+              // target without a real footprint.
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="What these rings mean"
+              style={[styles.infoBtn, { backgroundColor: colors.surface.control }]}
+            >
+              <Icon name={icons.info} size={16} color={colors.text.secondary} />
+              {!growthIntroduced ? (
+                <View
+                  style={[
+                    styles.unread,
+                    {
+                      backgroundColor: colors.accent.success,
+                      borderColor: colors.surface.elevated,
+                    },
+                  ]}
+                />
+              ) : null}
+            </PressableScale>
+          ) : null}
 
           {/* Mounted only for the ~1s it takes to cross, so the card carries no
               extra layer for the 99.99% of its life when nothing is being
@@ -282,6 +579,40 @@ export const IdentityBlock: React.FC = () => {
           ) : null}
         </PressableScale>
       </View>
+
+      {/* Rendered outside the card's PressableScale — a native Modal nested in a
+          pressable is a touch-handling trap, and the sheet must outlive any
+          press state on the card. */}
+      {today ? (
+        <RingsInfoSheet
+          visible={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          onDismissed={() => {
+            const run = afterSheet.current;
+            afterSheet.current = null;
+            run?.();
+          }}
+          onEditAvatar={() =>
+            closeSheetThen(() => navigation.navigate("AvatarStudio"))
+          }
+          // Only for free users — a member has nothing to buy here.
+          onUpgrade={
+            user?.isPaid
+              ? undefined
+              : () => closeSheetThen(() => navigation.navigate("PremiumModal"))
+          }
+          loops={today.loops}
+          closed={today.closed}
+          // Computed, not asserted — the two constants above are the only place
+          // the ring order is decided, so the sheet's wording AND its diagram
+          // both follow them.
+          todayIsOuter={TODAY_RING.size > ENERGY_RING.size}
+          avatarManifest={user?.avatarManifest}
+          staminaPercentage={staminaPercentage}
+          energyHue={energyHue}
+          energyLabel={energyLabel}
+        />
+      ) : null}
     </View>
   );
 };
@@ -308,13 +639,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
   },
-  // Avatar card: ringed character on the left, edit affordance pushed right.
-  anchorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  // Level card: ring and its label read as one object, so they stay adjacent.
+  // BOTH cards: ring and its label read as one object, so they stay adjacent.
+  // Shared deliberately — the avatar card used to have its own `anchorRow` with
+  // `space-between` to push a chevron to the far edge, and that is exactly the
+  // divergence that let the two cards stop rhyming.
   levelAnchor: {
     flexDirection: "row",
     alignItems: "center",
@@ -335,6 +663,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     fontFamily: fonts.extrabold,
   },
+  // Row-only. NOT folded into `heroName`, which the level card also uses inside a
+  // COLUMN — where `flexShrink` acts on the vertical axis and would let
+  // "Pathfinder" lose height instead of width.
+  heroCount: {
+    flexShrink: 1,
+  },
   baseline: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -343,17 +677,48 @@ const styles = StyleSheet.create({
   pct: {
     fontFamily: fonts.bold,
   },
-  // bolt + % — one object, so it never wraps apart
+  // The avatar card's single text row: the count on the left, the ⚡ figure hard
+  // right. `center` rather than `baseline` because the right-hand item is an
+  // icon+text pair, and RN derives a View's baseline from its last text child —
+  // predictable enough to look wrong at some font scales, and there is nothing
+  // to gain over centring two items whose line boxes already differ by 12pt.
+  heroRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  // bolt + % — one object, so it never wraps apart. `flexShrink: 0` because the
+  // count beside it is the item allowed to truncate; a clipped percentage would
+  // be a wrong number rather than a shortened phrase.
   energyReadout: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
+    flexShrink: 0,
   },
-  affordance: {
+  // Pinned to the card's top-right. `spacing.sm` from each edge rather than the
+  // card's own `spacing.lg` padding, because chrome should sit nearer the corner
+  // than content does — at 16 it read as a third column of content.
+  infoBtn: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.sm,
     width: 28,
     height: 28,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Bordered in the card's own fill so the dot reads as a separate object
+  // sitting on the button rather than a notch cut out of it.
+  unread: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    borderWidth: 1.5,
   },
 });

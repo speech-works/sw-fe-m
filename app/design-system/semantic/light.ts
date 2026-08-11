@@ -18,6 +18,7 @@ export const lightColors: SemanticColors = {
     row: p.paper.row,
     rowSelected: p.orange[400],
     control: p.paper.control,
+    track: p.paper.track,
     inverse: p.white,
     // Dark card on paper — 14.19:1 against the canvas.
     contrast: p.ink.panel,

@@ -99,6 +99,22 @@ const buildPairings = (): Pairing[] => {
   pairings.push({ label: "border.focus vs input.bg (UI 3:1)", fg: (c) => c.input.borderFocus, bg: (c) => c.input.bg, large: true });
   pairings.push({ label: "border.selected vs card (UI 3:1)", fg: (c) => c.border.selected, bg: (c) => c.surface.default, large: true });
 
+  // The unfilled remainder of a ring or bar, on every fill one is drawn on.
+  //
+  // REGISTERED BECAUSE THE ABSENCE OF IT COST US A DEFECT. `surface.control` was
+  // being used for this and measures 1.16:1 on `elevated` — so a one-third arc
+  // rendered as a crescent floating in nothing, with no circle to be one third
+  // OF. It looked deliberate, it shipped, and no test could have caught it
+  // because a track was not something this audit knew existed.
+  for (const [sName, sGet] of SURFACES) {
+    pairings.push({
+      label: `surface.track on ${sName} (UI 3:1)`,
+      fg: (c) => c.surface.track,
+      bg: sGet,
+      large: true,
+    });
+  }
+
   return pairings;
 };
 

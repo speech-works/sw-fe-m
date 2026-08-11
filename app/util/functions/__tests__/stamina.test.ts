@@ -1,5 +1,9 @@
 import { User } from "../../../api/users";
-import { estimateStaminaRecharge, staminaCapFor } from "../stamina";
+import {
+  estimateStaminaRecharge,
+  formatRechargeShort,
+  staminaCapFor,
+} from "../stamina";
 
 /**
  * The cap fallback is only used in one window: after /auth/callback returns the
@@ -76,5 +80,45 @@ describe("estimateStaminaRecharge regen fallback", () => {
     );
     expect(estimatedStamina).toBe(35);
     expect(isFull).toBe(true);
+  });
+});
+
+/**
+ * The Home meter's label is the one string on the identity card that changes on
+ * a timer, so its exact output is behaviour, not formatting trivia. It replaced
+ * "42m 46s", which was the longest string on the card and the only one that
+ * moved every second.
+ */
+describe("formatRechargeShort", () => {
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+
+  it("uses minutes below an hour, to one decimal", () => {
+    expect(formatRechargeShort(42.8 * MIN)).toBe("42.8m");
+  });
+
+  it("uses hours at an hour and above, to one decimal", () => {
+    expect(formatRechargeShort(1.32 * HOUR)).toBe("1.3h");
+    expect(formatRechargeShort(59.9 * MIN)).toBe("59.9m");
+    expect(formatRechargeShort(60 * MIN)).toBe("1h");
+  });
+
+  it("drops a trailing .0 rather than rendering 1.0h", () => {
+    expect(formatRechargeShort(2 * HOUR)).toBe("2h");
+    expect(formatRechargeShort(30 * MIN)).toBe("30m");
+  });
+
+  it("says it in words below the resolution it reports", () => {
+    // "0.1m" reads as a broken number rather than a small one.
+    expect(formatRechargeShort(20_000)).toBe("under a minute");
+    expect(formatRechargeShort(0)).toBe("under a minute");
+    expect(formatRechargeShort(-5000)).toBe("under a minute");
+  });
+
+  it("never returns a string long enough to crowd the energy readout", () => {
+    for (const ms of [0, 30_000, 5 * MIN, 42.8 * MIN, 59.9 * MIN, HOUR, 3.7 * HOUR, 40 * HOUR]) {
+      const out = formatRechargeShort(ms);
+      expect(out === "under a minute" || out.length <= 6).toBe(true);
+    }
   });
 });

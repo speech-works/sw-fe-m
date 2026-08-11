@@ -8,8 +8,10 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withDelay,
+  withRepeat,
   withSequence,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 
 import {
@@ -18,8 +20,6 @@ import {
   duration,
   easing,
   fonts,
-  icons,
-  Icon,
   Gradient,
   spacing,
   Text,
@@ -84,6 +84,51 @@ const IDLE_MS = 4000;
  *  `duration.shimmer` is — a fast pulse reads as an alert, not an invitation. */
 const BREATH = 900;
 
+/** One dot's hop, and the beat between neighbours as a fraction of it. Tuned to
+ *  a chat typing indicator, which is where the shape's meaning comes from. */
+const DOT_CYCLE = 1400;
+const DOT_STAGGER = 0.16;
+/** How many hops the dots take before settling. Bounded for the same reason
+ *  `invite` is: see the motion note below. */
+const DOT_RUNS = 4;
+
+/**
+ * One of the seat's three dots.
+ *
+ * A child component rather than three animated styles in the parent because
+ * `useAnimatedStyle` is a hook and cannot be called in a loop. All three read
+ * ONE clock a beat apart — three dots rising together is a pulse; the stagger
+ * is what makes it "somebody is on their way".
+ */
+const SeatDot: React.FC<{
+  index: number;
+  clock: SharedValue<number>;
+  size: number;
+  color: string;
+}> = ({ index, clock, size, color }) => {
+  const style = useAnimatedStyle(() => {
+    const phase = (clock.value + 1 - index * DOT_STAGGER) % 1;
+    // The hop occupies the first 45% of the cycle; the rest is rest, which is
+    // what keeps it a typing indicator rather than a wave.
+    const hop = phase < 0.45 ? Math.sin((phase / 0.45) * Math.PI) : 0;
+    // Movement only — no opacity in the hop. The dots are STILL almost all the
+    // time, so the resting state is the one that has to carry contrast, and the
+    // plus this replaced was a full-strength mark. Fading the resting dots to
+    // make the hop pop would trade the legibility of the default state for a
+    // flourish on the rare one, and it is the light scheme (accent on a pale
+    // tint, ~2.2:1) that would pay for it.
+    return { transform: [{ translateY: -hop * size * 0.5 }] };
+  });
+  return (
+    <Animated.View
+      style={[
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: color },
+        style,
+      ]}
+    />
+  );
+};
+
 /** The seat label's box. Wider than the seat on purpose so the line never wraps
  *  — a two-line hint under a square reads as a caption on artwork rather than as
  *  a label on a control. Clamped to the viewport by the caller. */
@@ -127,7 +172,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   const glowSize = room.subjectSize * 2.6;
 
   /**
-   * The seat's three pieces of motion, and why there are exactly three.
+   * The seat's four pieces of motion, and why none of them is a loop.
    *
    * The seat is the SUBJECT of the screen's sentence; the orange button below is
    * the verb. Motion has to support that sentence rather than compete with it,
@@ -141,6 +186,16 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
    *   exactly when somebody is stuck and never while they are already acting, so
    *   by construction it can only run when nothing else has won their attention.
    *   Capped at two, then silent for the rest of the visit.
+   * `bob` — the three dots hopping, on the SAME idle trigger as `invite` and
+   *   bounded the same way ({@link DOT_RUNS} hops, then still).
+   *
+   *   The dots are the one mark here whose meaning is carried by movement, so
+   *   the obvious build is an endless typing indicator — and that is exactly the
+   *   loop this component has always refused. It does not need one: three dots
+   *   in a row read as "pending" standing perfectly still (every chat app has
+   *   taught that), and the hop is what upgrades "pending" to "someone is on
+   *   their way" at the moment somebody has stalled. Still by default, alive
+   *   when it can help.
    * `press` — the wash under your thumb.
    *
    * The breath is SCALE-led, not opacity-led, on purpose. A soft shape fading in
@@ -156,12 +211,17 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   const isFocused = useIsFocused();
   const arrive = useSharedValue(reduceMotion ? 1 : 0);
   const invite = useSharedValue(0);
+  const bob = useSharedValue(0);
   const press = useSharedValue(0);
 
   useEffect(() => {
     if (reduceMotion || !isFocused) {
       cancelAnimation(invite);
+      cancelAnimation(bob);
       invite.value = 0;
+      // Rest is phase 0 — every dot down, evenly spaced. Reduced motion gets
+      // three still dots, which is the readable state, not a blank square.
+      bob.value = 0;
       if (reduceMotion) arrive.value = 1;
       return;
     }
@@ -184,14 +244,32 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
       ),
     );
 
-    return () => cancelAnimation(invite);
-  }, [reduceMotion, isFocused, arrive, invite]);
+    // A linear clock, because SeatDot shapes the hop itself — easing this would
+    // ease the whole three-dot sequence rather than each individual hop.
+    bob.value = withDelay(
+      IDLE_MS,
+      withRepeat(
+        withTiming(1, { duration: DOT_CYCLE, easing: easing.linear }),
+        DOT_RUNS,
+        false,
+      ),
+    );
+
+    return () => {
+      cancelAnimation(invite);
+      cancelAnimation(bob);
+    };
+  }, [reduceMotion, isFocused, arrive, invite, bob]);
 
   /** Stops the invitation for good once the seat has been touched — it has done
    *  its job, and a hint that keeps arriving after you've answered is nagging. */
   const answerInvite = () => {
     cancelAnimation(invite);
+    cancelAnimation(bob);
     invite.value = withTiming(0, { duration: duration.base, easing: easing.out });
+    // Straight to rest rather than eased: mid-hop, an eased return reads as a
+    // fourth dot movement instead of as the animation stopping.
+    bob.value = 0;
   };
 
   const glowStyle = useAnimatedStyle(() => ({
@@ -387,25 +465,44 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
               }}
             >
               {/* THE ONE MARK THE SHAPE NEEDED.
-                  The seat is now the screen's only route into discovery — the
-                  filled button that used to carry it is gone — so it can no
-                  longer afford to be a shape you have to guess at. A plus is the
-                  cheapest thing that says "something goes here" without turning
-                  the hole into a button: it adds no fill, no chrome, and no
-                  second colour, and it survives at a glance the way a hairline
-                  rim does not.
+                  The seat is the screen's only route into discovery — the
+                  filled button that used to carry it is gone — so it cannot
+                  afford to be a shape you have to guess at.
+
+                  It was a plus, which was legible and wrong: a plus is the verb
+                  ADD, and it turned a person-shaped absence into an operation on
+                  a list. Three dots are borrowed from the one place everybody
+                  has already learned them — a chat typing indicator — where they
+                  mean a PERSON is about to appear. That is the sentence this
+                  screen is trying to say, and the dots say it without a label.
+
+                  Still by default; they hop only when someone stalls (see the
+                  motion note above). Sizing follows the plus it replaces: the
+                  row spans the same optical width the 0.26 glyph did.
 
                   `text.accent`, NOT the bright `action.primary` the rim uses.
-                  This mark carries meaning rather than decorating, and at 34px
-                  it is under the size where a hero glyph gets to stay a fill —
-                  the brand orange sits at roughly 2.2:1 on the seat's pale
-                  light-scheme tint, which is exactly the dark→light collapse
-                  the per-scheme foreground cut exists to prevent. */}
-              <Icon
-                name={icons.add}
-                size={Math.round(room.subjectSize * 0.26)}
-                color={colors.text.accent}
-              />
+                  This mark carries meaning rather than decorating, and at this
+                  size it is under the threshold where a hero glyph gets to stay
+                  a fill — the brand orange sits at roughly 2.2:1 on the seat's
+                  pale light-scheme tint, which is exactly the dark→light
+                  collapse the per-scheme foreground cut exists to prevent. */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: Math.round(room.subjectSize * 0.068),
+                }}
+              >
+                {[0, 1, 2].map((i) => (
+                  <SeatDot
+                    key={i}
+                    index={i}
+                    clock={bob}
+                    size={Math.round(room.subjectSize * 0.075)}
+                    color={colors.text.accent}
+                  />
+                ))}
+              </View>
             </View>
             {/* PRESS FEEDBACK THE SHAPE CAN ACTUALLY SHOW.
                 `PressableScale` already springs to 0.97, but a 3% scale needs

@@ -11,6 +11,17 @@ export type SemanticColors = {
     row: string;
     rowSelected: string;
     control: string;
+    /**
+     * The unfilled remainder of a progress ring or bar.
+     *
+     * Deliberately NOT `control`, which is a pressable-surface fill and lands at
+     * ~1.2:1 on the cards these sit on — enough for a button you can see the
+     * edge of, not enough for the part of a ring that has to communicate "of
+     * how much". WCAG 1.4.11 asks 3:1 for meaningful non-text graphics, and an
+     * unfilled track is exactly that: without it a 33% arc is a mark, not a
+     * third.
+     */
+    track: string;
     inverse: string; // a bright (white) disc — avatars, switch thumbs
     /**
      * The one high-contrast card fill: near-black on paper, near-white on ink.

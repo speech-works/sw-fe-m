@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { User } from "../../../../api/users";
 import {
   estimateStaminaRecharge,
+  formatRechargeShort,
   staminaCapFor,
 } from "../../../../util/functions/stamina";
 
@@ -68,12 +69,10 @@ export function useStaminaEstimate(user: User | null): StaminaEstimate {
         return;
       }
 
-      const totalSeconds = Math.floor(msUntilFull / 1000);
-      const h = Math.floor(totalSeconds / 3600);
-      const m = Math.floor((totalSeconds % 3600) / 60);
-      const s = totalSeconds % 60;
-
-      const newTime = h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+      // One unit, one decimal — see `formatRechargeShort`. The seconds this
+      // replaces were the only thing on the card that changed every tick, and
+      // they were never information anybody acted on.
+      const newTime = formatRechargeShort(msUntilFull);
       setRechargeTimeLeft((prev) => (prev !== newTime ? newTime : prev));
     };
 

@@ -53,6 +53,11 @@ import {
   SailorCollar,
   WingCollar,
   ShawlCollar,
+  // Collars built as real garments (garment + stand + leaves + detail)
+  BarrymooreCollar,
+  CascadeCollar,
+  SquareCollar,
+  WrapCollar,
   PartProps,
 } from "./parts";
 
@@ -124,6 +129,10 @@ export const PART_REGISTRY: Record<AvatarSlot, Record<string, PartComponent>> = 
     "collar.sailor": SailorCollar,
     "collar.wing": WingCollar,
     "collar.shawl": ShawlCollar,
+    "collar.barrymoore": BarrymooreCollar,
+    "collar.cascade": CascadeCollar,
+    "collar.square": SquareCollar,
+    "collar.wrap": WrapCollar,
   },
   prop: {
     "prop.mic": MicProp,
@@ -278,6 +287,10 @@ export const PART_LABELS: Record<string, string> = {
   "collar.sailor": "Sailor",
   "collar.wing": "Wing tip",
   "collar.shawl": "Shawl",
+  "collar.barrymoore": "Point collar",
+  "collar.cascade": "Cascade frill",
+  "collar.square": "Square neck",
+  "collar.wrap": "Wrap",
   "prop.mic": "Mic",
   "prop.book": "Book",
   "prop.camera": "Camera",

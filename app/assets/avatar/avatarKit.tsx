@@ -27,6 +27,21 @@ export function shade(hex: string, amt: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
+/**
+ * A trim tone that always CONTRASTS the fabric it edges — dark piping on a
+ * white collar, light piping on a navy one.
+ *
+ * Needed because the collar catalog recolors from one user-chosen fabric: a
+ * fixed `shade(c, +0.5)` trim vanishes on the white swatch and a fixed
+ * `shade(c, -0.4)` vanishes on charcoal. Perceived-lightness math, so the
+ * decision is made per fabric instead of guessed once at design time.
+ */
+export function trimOf(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return shade(hex, lum > 0.55 ? -0.42 : 0.62);
+}
+
 export const GOLD = "#FFC53D";
 
 /**

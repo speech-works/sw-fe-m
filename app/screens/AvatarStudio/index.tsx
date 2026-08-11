@@ -327,6 +327,10 @@ const AvatarStudio = () => {
                   "collar.sailor",
                   "collar.wing",
                   "collar.shawl",
+                  "collar.barrymoore",
+                  "collar.cascade",
+                  "collar.square",
+                  "collar.wrap",
                 ]}
                 draft={draft}
                 stage={stage}

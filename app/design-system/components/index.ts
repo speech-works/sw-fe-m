@@ -21,6 +21,8 @@ export { ConnectedAvatarRow } from "./ConnectedAvatarRow";
 export type { ConnectedAvatarRowProps } from "./ConnectedAvatarRow";
 export { ProgressRing } from "./ProgressRing";
 export type { ProgressRingProps } from "./ProgressRing";
+export { SegmentRing } from "./SegmentRing";
+export type { SegmentRingProps } from "./SegmentRing";
 export { AnimatedNumber } from "./AnimatedNumber";
 export type { AnimatedNumberProps } from "./AnimatedNumber";
 export { FlipDigit } from "./FlipDigit";
