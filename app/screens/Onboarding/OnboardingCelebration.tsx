@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
+  Extrapolation,
+  type SharedValue,
   cancelAnimation,
   interpolate,
   useAnimatedStyle,
@@ -48,24 +50,48 @@ import {
 // flag), and its disc is 0.75 × size — so 160 gives a ~120px disc plus room
 // for the summit flag to fly past the edge.
 const HERO_SIZE = 160;
-const STAGE = 232; // stage height that the light layers center within
+const STAGE = 286; // stage height that the light layers center within
+// (232 before the caption block was added under the hero)
 
 /**
- * The celebration hero is the app's OWN avatar — the circular tile + squircle
- * head everyone recognises — dressed as an eager BEGINNER setting out: a joyful
- * face, the stage-0 tourist bucket hat, and heart fun-glasses. The tourist hat
- * is the beginner's own kit (STAGE_KITS[0], unlocked at level 1) and the glasses
- * are free wardrobe, so nothing here shows off gear a brand-new user hasn't got.
+ * The hero DRESSES ITSELF: bare, then the hat, then the camera.
+ *
+ * Those two are the Seeker kit (`STAGE_KITS[0]`), which every account owns from
+ * the first minute. The screen used to show them already worn, which told
+ * nobody anything — a hat on a drawing is just a drawing. Putting them on, one
+ * at a time, with their names underneath, is the whole point: it says these are
+ * PIECES, they go on, and by implication they come off.
+ *
+ * The heart glasses the hero used to wear are gone. They are free wardrobe
+ * rather than Seeker kit, and with the captions naming two items, a third
+ * unnamed one on the same face muddies the sentence.
  */
-const HERO_MANIFEST: AvatarManifest = {
+const HERO_BASE: AvatarManifest = {
   ...DEFAULT_MANIFEST,
-  parts: {
-    ...DEFAULT_MANIFEST.parts,
-    face: "face.joy",
-    headgear: "headgear.tourist",
-    eyewear: "eyewear.heart",
-  },
+  parts: { ...DEFAULT_MANIFEST.parts, face: "face.joy" },
 };
+const HERO_HAT: AvatarManifest = {
+  ...HERO_BASE,
+  parts: { ...HERO_BASE.parts, headgear: "headgear.tourist" },
+};
+const HERO_FULL: AvatarManifest = {
+  ...HERO_HAT,
+  parts: { ...HERO_HAT.parts, prop: "prop.camera" },
+};
+
+/**
+ * One linear clock for the whole sequence, 0 to 1.
+ *
+ * Every beat below is a fraction of it rather than its own delayed animation,
+ * so the hat, the camera, the four captions and the speech bubble physically
+ * cannot drift apart. Times: hat at 1.0s, camera at 2.1s, bubble at 3.2s.
+ */
+const SEQ_MS = 4600;
+const HAT_IN = [0.217, 0.283] as const;
+const CAM_IN = [0.457, 0.522] as const;
+const BUB_IN = [0.696, 0.761] as const;
+/** Caption swap points, one per beat. */
+const CAP = [0.217, 0.24, 0.457, 0.48, 0.696, 0.72] as const;
 
 /** A 4-point twinkle star. */
 const SPARK_PATH =
@@ -119,7 +145,10 @@ const Sparkle: React.FC<{
 };
 
 /** The single celebration hero — pops in over the burst, floats, tap to bounce. */
-const Hero: React.FC<{ reduced: boolean }> = ({ reduced }) => {
+const Hero: React.FC<{ reduced: boolean; seq: SharedValue<number> }> = ({
+  reduced,
+  seq,
+}) => {
   const pop = useSharedValue(0);
   const floatV = useSharedValue(0);
   // Tap-to-bounce — the "interactive" bit. A quick squash toward the finger,
@@ -165,17 +194,111 @@ const Hero: React.FC<{ reduced: boolean }> = ({ reduced }) => {
     };
   });
 
+  // Cross-fades rather than per-part animation: `UserAvatar` draws a whole
+  // manifest, so three stacked copies is both simpler and impossible to get
+  // half-drawn. Identity transforms in every branch, as everywhere here.
+  const hatStyle = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 1, transform: [{ translateY: 0 }] };
+    const v = interpolate(seq.value, [HAT_IN[0], HAT_IN[1]], [0, 1], Extrapolation.CLAMP);
+    return { opacity: v, transform: [{ translateY: (1 - v) * -7 }] };
+  });
+  const camStyle = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 1, transform: [{ translateY: 0 }] };
+    const v = interpolate(seq.value, [CAM_IN[0], CAM_IN[1]], [0, 1], Extrapolation.CLAMP);
+    return { opacity: v, transform: [{ translateY: (1 - v) * 6 }] };
+  });
+
   return (
     <Pressable onPress={onPoke} accessibilityRole="image">
       <Animated.View style={style}>
-        <UserAvatar
-          manifest={HERO_MANIFEST}
-          size={HERO_SIZE}
-          animate={false}
-          accessibilityLabel="Your celebration avatar"
-        />
+        <View style={styles.heroBox}>
+          <UserAvatar
+            manifest={HERO_BASE}
+            size={HERO_SIZE}
+            animate={false}
+            accessibilityLabel="Your character"
+          />
+          <Animated.View style={[styles.heroLayer, hatStyle]} pointerEvents="none">
+            <UserAvatar manifest={HERO_HAT} size={HERO_SIZE} animate={false} />
+          </Animated.View>
+          <Animated.View style={[styles.heroLayer, camStyle]} pointerEvents="none">
+            <UserAvatar manifest={HERO_FULL} size={HERO_SIZE} animate={false} />
+          </Animated.View>
+        </View>
       </Animated.View>
     </Pressable>
+  );
+};
+
+/**
+ * The four lines under the hero, stacked so the block never changes height
+ * mid-sequence. Only one is ever visible; the last one is written to stand on
+ * its own, because it is the one that stays on screen and most people will
+ * never see the three before it.
+ */
+const Caption: React.FC<{ reduced: boolean; seq: SharedValue<number> }> = ({
+  reduced,
+  seq,
+}) => {
+  const s1 = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 0 };
+    return {
+      opacity: interpolate(seq.value, [CAP[0], CAP[1]], [1, 0], Extrapolation.CLAMP),
+    };
+  });
+  const s2 = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 0 };
+    return {
+      opacity: interpolate(
+        seq.value,
+        [CAP[0], CAP[1], CAP[2], CAP[3]],
+        [0, 1, 1, 0],
+        Extrapolation.CLAMP,
+      ),
+    };
+  });
+  const s3 = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 0 };
+    return {
+      opacity: interpolate(
+        seq.value,
+        [CAP[2], CAP[3], CAP[4], CAP[5]],
+        [0, 1, 1, 0],
+        Extrapolation.CLAMP,
+      ),
+    };
+  });
+  const s4 = useAnimatedStyle(() => {
+    // The one that stays. Under reduced motion it is the only one shown.
+    if (reduced) return { opacity: 1 };
+    return {
+      opacity: interpolate(seq.value, [CAP[4], CAP[5]], [0, 1], Extrapolation.CLAMP),
+    };
+  });
+
+  return (
+    <View style={styles.caps}>
+      <Animated.View style={[styles.cap, s1]}>
+        <Text variant="bodySm" color="secondary" center>
+          Meet your character
+        </Text>
+      </Animated.View>
+      <Animated.View style={[styles.cap, s2]}>
+        <Text variant="bodySm" color="secondary" center>
+          A sun hat
+        </Text>
+      </Animated.View>
+      <Animated.View style={[styles.cap, s3]}>
+        <Text variant="bodySm" color="secondary" center>
+          and a camera
+        </Text>
+      </Animated.View>
+      <Animated.View style={[styles.cap, s4]}>
+        <Text variant="bodySm" color="secondary" center>
+          Your sun hat and camera are already yours.
+        </Text>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -264,21 +387,19 @@ export const CelebrationConfetti: React.FC = () => {
   );
 };
 
-/** "Let's go!" speech bubble — lands with a bounce, then a tiny idle wiggle. */
-const CheerBubble: React.FC<{ reduced: boolean }> = ({ reduced }) => {
+/** "Let's go!" speech bubble. Lands AFTER the gear, on the shared clock: it is
+ *  the payoff to the dressing, so arriving first would step on it. */
+const CheerBubble: React.FC<{ reduced: boolean; seq: SharedValue<number> }> = ({
+  reduced,
+  seq,
+}) => {
   const { colors } = useTheme();
-  const pop = useSharedValue(0);
   const wiggle = useSharedValue(0);
 
   useEffect(() => {
-    const delay = 520; // lands just after the hero settles
-    if (reduced) {
-      pop.value = withDelay(delay, withTiming(1, { duration: duration.reveal }));
-      return;
-    }
-    pop.value = withDelay(delay, withSpring(1, spring.bouncy));
+    if (reduced) return;
     wiggle.value = withDelay(
-      delay + 300,
+      SEQ_MS * BUB_IN[1] + 300,
       withRepeat(
         withSequence(
           withTiming(1, { duration: 900, easing: easing.loop }),
@@ -289,19 +410,17 @@ const CheerBubble: React.FC<{ reduced: boolean }> = ({ reduced }) => {
       ),
     );
     return () => cancelAnimation(wiggle);
-  }, [reduced, pop, wiggle]);
+  }, [reduced, wiggle]);
 
   const style = useAnimatedStyle(() => {
     // Identity transform, not omission — see the note on Sunburst's style.
     if (reduced) {
-      return { opacity: pop.value, transform: [{ scale: 1 }, { rotate: "0deg" }] };
+      return { opacity: 1, transform: [{ scale: 1 }, { rotate: "0deg" }] };
     }
+    const v = interpolate(seq.value, [BUB_IN[0], BUB_IN[1]], [0, 1], Extrapolation.CLAMP);
     return {
-      opacity: Math.min(1, pop.value * 1.4),
-      transform: [
-        { scale: 0.6 + pop.value * 0.4 },
-        { rotate: `${wiggle.value * 2.5}deg` },
-      ],
+      opacity: v,
+      transform: [{ scale: 0.6 + v * 0.4 }, { rotate: `${wiggle.value * 2.5}deg` }],
     };
   });
 
@@ -320,6 +439,21 @@ const OnboardingCelebration: React.FC = () => {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const gold = colors.action.primary;
+
+  /** The one clock. Starts after the hero has popped in, so the character is
+   *  present before it starts putting things on. */
+  const seq = useSharedValue(reduced ? 1 : 0);
+  useEffect(() => {
+    if (reduced) {
+      seq.value = 1;
+      return;
+    }
+    seq.value = withDelay(
+      600,
+      withTiming(1, { duration: SEQ_MS, easing: easing.linear }),
+    );
+    return () => cancelAnimation(seq);
+  }, [reduced, seq]);
 
   // Sparkles at fixed offsets from the stage centre (x≈150, y≈110).
   const sparkles = [
@@ -346,8 +480,9 @@ const OnboardingCelebration: React.FC = () => {
         <Sparkle key={i} index={i} reduced={reduced} {...s} />
       ))}
 
-      <CheerBubble reduced={reduced} />
-      <Hero reduced={reduced} />
+      <CheerBubble reduced={reduced} seq={seq} />
+      <Hero reduced={reduced} seq={seq} />
+      <Caption reduced={reduced} seq={seq} />
     </View>
   );
 };
@@ -361,6 +496,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space.groupGap,
     marginVertical: spacing.sm,
+  },
+  heroBox: {
+    width: HERO_SIZE,
+    height: HERO_SIZE,
+  },
+  heroLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  /** Fixed height so swapping lines never nudges the layout. Two lines' worth,
+   *  because the resting line is a full sentence. */
+  caps: {
+    height: 38,
+    alignSelf: "stretch",
+    justifyContent: "center",
+  },
+  cap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
   },
   sparkle: {
     position: "absolute",

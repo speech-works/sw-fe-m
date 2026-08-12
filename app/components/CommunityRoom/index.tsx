@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
-import { useIsFocused } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -71,14 +71,25 @@ const CROWD_OPACITY = 0.3;
 const SUBJECT_GAP = 16;
 
 /**
- * How long the screen waits before offering a hint.
+ * When the seat starts moving: as the arrival bloom finishes, not seconds later.
  *
- * Long enough to read the headline and look at the button — if you have acted by
- * now you never see it, which is the point. Short enough that someone genuinely
- * hesitating gets help while they are still deciding rather than after they have
- * given up and left.
+ * THIS REPLACED A 4-SECOND IDLE WAIT, for two reasons.
+ *
+ * Behaviour: the old wait did not reliably happen. Coming back to this screen,
+ * the hint often never played at all. It was armed inside a focus effect, and
+ * anything that cancelled it during those four seconds silently lost the whole
+ * sequence, so the one piece of motion meant to help a stuck person was the
+ * piece most likely to be missing.
+ *
+ * Design: a hint you have to earn by hesitating is only worth it if it is
+ * dependable. A short, bounded, immediate one is easier to trust, and it still
+ * cannot nag: the breath runs twice and the dots hop {@link DOT_RUNS} times,
+ * then the seat is still for the rest of the visit.
+ *
+ * Timed to the arrival rather than to zero, so the room paints, settles, and
+ * THEN the seat speaks. All at once reads as a page that cannot sit still.
  */
-const IDLE_MS = 4000;
+const INVITE_AT = duration.reveal + 520;
 
 /** Half a breath. Ambient, so exempt from the sub-300ms UI rule the way
  *  `duration.shimmer` is — a fast pulse reads as an alert, not an invitation. */
@@ -181,12 +192,10 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
    *
    * `arrive` — a one-shot bloom just after the room paints. Says "this is an
    *   object", not "this is a gap in the artwork".
-   * `invite` — two slow breaths, fired ONLY after {@link IDLE_MS} of no input.
-   *   This is the honest version of "animate it to invite taps": motion appears
-   *   exactly when somebody is stuck and never while they are already acting, so
-   *   by construction it can only run when nothing else has won their attention.
-   *   Capped at two, then silent for the rest of the visit.
-   * `bob` — the three dots hopping, on the SAME idle trigger as `invite` and
+   * `invite` — two slow breaths, starting as the arrival settles
+   *   ({@link INVITE_AT}). Capped at two, then silent for the rest of the
+   *   visit: it introduces the seat without competing for the whole session.
+   * `bob` — the three dots hopping, on the SAME trigger as `invite` and
    *   bounded the same way ({@link DOT_RUNS} hops, then still).
    *
    *   The dots are the one mark here whose meaning is carried by movement, so
@@ -194,8 +203,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
    *   loop this component has always refused. It does not need one: three dots
    *   in a row read as "pending" standing perfectly still (every chat app has
    *   taught that), and the hop is what upgrades "pending" to "someone is on
-   *   their way" at the moment somebody has stalled. Still by default, alive
-   *   when it can help.
+   *   their way". It says that once, on arrival, and then stops.
    * `press` — the wash under your thumb.
    *
    * The breath is SCALE-led, not opacity-led, on purpose. A soft shape fading in
@@ -208,58 +216,78 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
    * doesn't travel to get there.
    */
   const reduceMotion = useReducedMotion();
-  const isFocused = useIsFocused();
   const arrive = useSharedValue(reduceMotion ? 1 : 0);
   const invite = useSharedValue(0);
   const bob = useSharedValue(0);
   const press = useSharedValue(0);
 
-  useEffect(() => {
-    if (reduceMotion || !isFocused) {
-      cancelAnimation(invite);
-      cancelAnimation(bob);
+  /*
+   * ARMED FROM THE FOCUS EVENT, NOT FROM A `useIsFocused()` BOOLEAN.
+   *
+   * That boolean is render state, and this screen never re-rendered with it
+   * false, so the effect ran exactly once — at mount — and never again. The
+   * seat played its hint on the first visit of the session and was dead for
+   * every visit after, which is the bug this fixes.
+   *
+   * It was invisible for two reasons. `arrive` is armed in the same effect and
+   * is NOT cancelled on blur, so the seat still bloomed in and looked alive.
+   * And a one-shot that fails to start looks exactly like a one-shot that has
+   * already finished, so the screen never appeared broken.
+   *
+   * `useFocusEffect` fires off the navigator's own focus/blur events, so it
+   * does not depend on the screen choosing to re-render.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (reduceMotion) {
+        arrive.value = 1;
+        invite.value = 0;
+        // Rest is phase 0 — every dot down, evenly spaced. Reduced motion gets
+        // three still dots, which is the readable state, not a blank square.
+        bob.value = 0;
+        return;
+      }
+
+      // Explicit reset before arming. `withRepeat(..., n, false)` restarts from
+      // whatever the value IS, and a bounded run ends at 1 — so re-arming
+      // without this would animate 1 to 1 and show nothing at all.
       invite.value = 0;
-      // Rest is phase 0 — every dot down, evenly spaced. Reduced motion gets
-      // three still dots, which is the readable state, not a blank square.
       bob.value = 0;
-      if (reduceMotion) arrive.value = 1;
-      return;
-    }
 
-    // Re-armed on FOCUS, not on mount: this is a tab screen and stays mounted
-    // behind the others, so a mount-only sequence would burn itself off while
-    // the user was on Home and never play on the visit that needed it.
-    arrive.value = withDelay(
-      duration.reveal,
-      withTiming(1, { duration: 520, easing: easing.out }),
-    );
+      arrive.value = withDelay(
+        duration.reveal,
+        withTiming(1, { duration: 520, easing: easing.out }),
+      );
 
-    invite.value = withDelay(
-      IDLE_MS,
-      withSequence(
-        withTiming(1, { duration: BREATH, easing: easing.loop }),
-        withTiming(0, { duration: BREATH, easing: easing.loop }),
-        withTiming(1, { duration: BREATH, easing: easing.loop }),
-        withTiming(0, { duration: BREATH, easing: easing.loop }),
-      ),
-    );
+      invite.value = withDelay(
+        INVITE_AT,
+        withSequence(
+          withTiming(1, { duration: BREATH, easing: easing.loop }),
+          withTiming(0, { duration: BREATH, easing: easing.loop }),
+          withTiming(1, { duration: BREATH, easing: easing.loop }),
+          withTiming(0, { duration: BREATH, easing: easing.loop }),
+        ),
+      );
 
-    // A linear clock, because SeatDot shapes the hop itself — easing this would
-    // ease the whole three-dot sequence rather than each individual hop.
-    bob.value = withDelay(
-      IDLE_MS,
-      withRepeat(
-        withTiming(1, { duration: DOT_CYCLE, easing: easing.linear }),
-        DOT_RUNS,
-        false,
-      ),
-    );
+      // A linear clock, because SeatDot shapes the hop itself — easing this would
+      // ease the whole three-dot sequence rather than each individual hop.
+      bob.value = withDelay(
+        INVITE_AT,
+        withRepeat(
+          withTiming(1, { duration: DOT_CYCLE, easing: easing.linear }),
+          DOT_RUNS,
+          false,
+        ),
+      );
 
-    return () => {
-      cancelAnimation(invite);
-      cancelAnimation(bob);
-    };
-  }, [reduceMotion, isFocused, arrive, invite, bob]);
+      return () => {
+        cancelAnimation(invite);
+        cancelAnimation(bob);
+        invite.value = 0;
+        bob.value = 0;
+      };
+    }, [reduceMotion, arrive, invite, bob]),
+  );
 
   /** Stops the invitation for good once the seat has been touched — it has done
    *  its job, and a hint that keeps arriving after you've answered is nagging. */

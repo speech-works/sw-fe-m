@@ -6,6 +6,7 @@ import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
+import { useOpenStudioStore } from "../../stores/openStudio";
 import { getOffers, type OfferItem } from "../../api";
 import OnboardingCelebration, { CelebrationConfetti } from "./OnboardingCelebration";
 import {
@@ -80,6 +81,8 @@ const OnboardingDone: React.FC = () => {
     };
   }, []);
 
+  const markOpenStudio = useOpenStudioStore((state) => state.mark);
+
   const handleFinish = () => {
     // ONLY THE SERVER CAN SAY THIS IS DONE.
     //
@@ -133,6 +136,18 @@ const OnboardingDone: React.FC = () => {
     });
   };
 
+  /**
+   * Same exit as Continue, plus a request to open the wardrobe once the app is
+   * up. It cannot navigate there itself: `AvatarStudio` belongs to
+   * `AppNavigator`, which does not exist until `handleFinish` swaps the
+   * navigator out from under this screen. Marked BEFORE finishing so the swap
+   * can never outrun the intent.
+   */
+  const handleDressUp = () => {
+    markOpenStudio();
+    handleFinish();
+  };
+
   return (
     <ScreenView style={styles.screen}>
       <SchemeStatusBar />
@@ -172,13 +187,16 @@ const OnboardingDone: React.FC = () => {
           {serverConfirmedComplete ? "You're all set!" : "Saved so far"}
         </Text>
 
-        <Text variant="body" color="secondary">
-          {!serverConfirmedComplete
-            ? "A few answers didn't reach us. What you've told us is saved. Pick it up any time from home."
-            : topMatch
-              ? "Here's what we'd start with, based on what you told us."
-              : "Thanks. That helps us shape what we put in front of you."}
-        </Text>
+        {/* Only the FAILURE line survives here. The two success variants said
+            nothing the screen below does not already say better, and the
+            celebration now has its own line under the character. A partial save
+            still needs explaining, so that one stays. */}
+        {!serverConfirmedComplete ? (
+          <Text variant="body" color="secondary">
+            A few answers didn&apos;t reach us. What you&apos;ve told us is saved. Pick it
+            up any time from home.
+          </Text>
+        ) : null}
 
         {/* Confetti belongs to a finish line, not to a partial save. */}
         {serverConfirmedComplete ? <OnboardingCelebration /> : null}
@@ -243,6 +261,16 @@ const OnboardingDone: React.FC = () => {
           ]}
         >
           <Button label="Continue" onPress={handleFinish} />
+          {/* Offered only on a real completion: there is nothing to dress up
+              for if their answers did not land, and the screen is asking them
+              to come back and finish instead. */}
+          {serverConfirmedComplete ? (
+            <Button
+              label="Dress your character"
+              variant="ghost"
+              onPress={handleDressUp}
+            />
+          ) : null}
         </View>
       </View>
 

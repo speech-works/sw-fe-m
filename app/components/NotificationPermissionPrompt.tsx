@@ -1,7 +1,12 @@
 import { useEffect } from "react";
+import { useIsFocused } from "@react-navigation/native";
 
 import { useUserStore } from "../stores/user";
 import { useNotificationPermissionStore } from "../stores/notificationPermission";
+import {
+  useOnboardingNudgeStore,
+  completedOnboardingToday,
+} from "../stores/onboardingNudge";
 import { hasOpenModalExcept } from "../stores/nativeModal";
 import { useSystemDialogStore } from "../stores/systemDialog";
 import { requestNotificationPermissionQuietly } from "../util/functions/notifications";
@@ -45,6 +50,8 @@ export const NotificationPermissionPrompt: React.FC = () => {
   const refresh = useNotificationPermissionStore((s) => s.refresh);
 
   const hasCompletedOnboarding = user?.hasCompletedOnboarding === true;
+  const completedAt = useOnboardingNudgeStore((s) => s.completedAt);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     if (hasAsked) return;
@@ -52,11 +59,35 @@ export const NotificationPermissionPrompt: React.FC = () => {
     // the user object lands, and asking a half-known user is the old bug again.
     if (!hasCompletedOnboarding) return;
 
+    // NOT ON THE DAY THEY FINISHED ONBOARDING — the same rule the mood check
+    // follows, and for the same reason.
+    //
+    // That day already spends everything the person has to give: thirteen
+    // questions about what they avoid, then a celebration. The mood check was
+    // suppressed so Home would be quiet afterwards, but this was left firing,
+    // so a brand-new user still met a system permission dialog about a second
+    // after arriving. It was the only thing still interrupting them.
+    //
+    // A suppression, not a delay: the day is spent, and we ask tomorrow. The
+    // cost is real and accepted — no reminder can be scheduled that first
+    // evening, because there is no permission yet. Settings still offers the
+    // switch to anyone who goes looking.
+    if (completedOnboardingToday({ completedAt })) return;
+
     const timer = setTimeout(() => {
       void (async () => {
         // Stand down rather than queue — see MoodCheckPopup for the reasoning.
         // Nothing is marked, so the next quiet Home visit gets a clean try.
         if (hasOpenModalExcept(PROMPT_ID)) return;
+
+        // ALSO stand down if the user has left Home in the meantime.
+        //
+        // The check above only sees native modals. A pushed SCREEN is invisible
+        // to it, so an OS permission dialog would open on top of whatever they
+        // navigated to — which is exactly what "Dress your character" does at
+        // the end of onboarding: it lands on Home and immediately opens the
+        // Avatar Studio. One second later this fired over it.
+        if (!isFocused) return;
 
         // Marked BEFORE awaiting the dialog, not after: the OS prompt is modal
         // and slow, and a second mount (tab switch, remount) while it is open
@@ -83,7 +114,7 @@ export const NotificationPermissionPrompt: React.FC = () => {
     }, DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [hasAsked, hasCompletedOnboarding, markAsked, refresh]);
+  }, [hasAsked, hasCompletedOnboarding, completedAt, isFocused, markAsked, refresh]);
 
   return null;
 };

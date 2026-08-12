@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import PressableScale from "../../../../components/PressableScale";
+import { useOpenStudioStore } from "../../../../stores/openStudio";
 import { useAvatarSavedStore } from "../../../../stores/avatarSaved";
 import { useUserStore } from "../../../../stores/user";
 import {
@@ -152,6 +153,21 @@ export const IdentityBlock: React.FC = () => {
       const justSaved = takeAvatarSaved();
       if (justSaved && !reduced) setGreeting(true);
     }, [takeAvatarSaved, reduced]),
+  );
+
+  /**
+   * "Dress your character" from the end of onboarding lands here.
+   *
+   * That button could not navigate: the studio lives on `AppNavigator`, which
+   * did not exist yet when it was pressed. This is the first thing to focus
+   * inside the new navigator that both owns the avatar and can navigate, so it
+   * honours the request. TAKEN, not read, so a second focus cannot reopen it.
+   */
+  const takeOpenStudio = useOpenStudioStore((s) => s.take);
+  useFocusEffect(
+    useCallback(() => {
+      if (takeOpenStudio()) navigation.navigate("AvatarStudio");
+    }, [takeOpenStudio, navigation]),
   );
 
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
