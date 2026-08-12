@@ -57,9 +57,11 @@ module.exports = {
       policy: "appVersion",
     },
     orientation: "portrait",
-    // Canonical 1024px, opaque, full-bleed store icon generated from the
-    // cropped `app-logo.png`. The uncropped render is preserved beside it as
-    // `app-logo-original.png` by scripts/build-logo-assets.mjs.
+    // Canonical 1024px, opaque, full-bleed store icon, rendered from
+    // `svg logos/sw-icon.svg` by scripts/build-logo-assets.mjs. Square on
+    // purpose: iOS applies its own corner mask and App Store Connect rejects an
+    // icon that carries an alpha channel, so the tile is composited onto solid
+    // ink at render time. Regenerate with `npm run logos:build`, never by hand.
     icon: "./app/assets/icon.png",
     // "automatic" lets iOS/Android report the real device appearance so the
     // in-app Light/Dark/System preference can follow it (System mode reads
@@ -257,9 +259,10 @@ module.exports = {
       // no draw-over-other-apps overlay, so strip it from the release manifest
       // (avoids an unnecessary sensitive-permission flag on the stores).
       blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
-      // Adaptive icons override both expo.icon and android.icon. Keep the full
-      // canonical app-logo artwork here so Android and both stores share the
-      // same identity; launchers apply their own circle/squircle mask.
+      // Adaptive icons override both expo.icon and android.icon. The foreground
+      // is the same tile as the iOS icon, pre-shrunk into the 72/108 viewport a
+      // launcher actually reveals, so Android and both stores share one
+      // identity; launchers apply their own circle/squircle mask.
       // `backgroundColor` and `backgroundImage` stay underneath as fallbacks.
       // `monochromeImage` is the silhouette Android tints from the user's
       // wallpaper when "Themed icons" is on. It is not optional any more: from

@@ -83,6 +83,10 @@ const AvatarStudio = () => {
   const [pendingLeave, setPendingLeave] = useState<unknown>(null);
 
   const stage = stageIndexForLevel(user?.level ?? 1);
+  /** One number gates the whole wardrobe. The stage above is only used for the
+   *  header's copy — the picker itself works in levels, which is finer and
+   *  matches what the Achievements screen already tells people. */
+  const userLevel = user?.level ?? 1;
 
   useEffect(() => {
     loadFromUser(user?.avatarManifest);
@@ -208,9 +212,18 @@ const AvatarStudio = () => {
           {tab === "face" && (
             <PartGrid
               slot="face"
-              ids={["face.brand", "face.smile", "face.joy", "face.wink", "face.wow"]}
+              ids={[
+                "face.brand",
+                "face.smile",
+                "face.joy",
+                "face.wink",
+                "face.wow",
+                "face.proud",
+                "face.laugh",
+                "face.speaking",
+              ]}
               draft={draft}
-              stage={stage}
+              level={userLevel}
               onSelect={(id) => setPart("face", id)}
             />
           )}
@@ -231,9 +244,21 @@ const AvatarStudio = () => {
               </Text>
               <PartGrid
                 slot="hair"
-                ids={["hair.crop", "hair.swoop", "hair.curls", "hair.waves", "hair.long"]}
+                ids={[
+                  "hair.crop",
+                  "hair.swoop",
+                  "hair.curls",
+                  "hair.waves",
+                  "hair.long",
+                  "hair.afro",
+                  "hair.braids",
+                  "hair.ponytail",
+                  "hair.spacebuns",
+                  "hair.bob",
+                  "hair.pigtails",
+                ]}
                 draft={draft}
-                stage={stage}
+                level={userLevel}
                 onSelect={(id) => setPart("hair", id)}
                 allowNone
               />
@@ -253,7 +278,7 @@ const AvatarStudio = () => {
                 "beard.full",
               ]}
               draft={draft}
-              stage={stage}
+              level={userLevel}
               onSelect={(id) => setPart("beard", id)}
               allowNone
             />
@@ -278,9 +303,18 @@ const AvatarStudio = () => {
                 "headgear.hardhat",
                 "headgear.santa",
                 "headgear.bandana",
+                "headgear.beret",
+                "headgear.witch",
+                "headgear.sombrero",
+                "headgear.deerstalker",
+                "headgear.grad",
+                "headgear.chef",
+                "headgear.sailorcap",
+                "headgear.police",
+                "headgear.aviatorcap",
               ]}
               draft={draft}
-              stage={stage}
+              level={userLevel}
               onSelect={(id) => setPart("headgear", id)}
               allowNone
             />
@@ -303,9 +337,15 @@ const AvatarStudio = () => {
                 "eyewear.threed",
                 "eyewear.oversized",
                 "eyewear.goggles",
+                "eyewear.browline",
+                "eyewear.rimless",
+                "eyewear.hex",
+                "eyewear.pixel",
+                "eyewear.leopard",
+                "eyewear.monocle",
               ]}
               draft={draft}
-              stage={stage}
+              level={userLevel}
               onSelect={(id) => setPart("eyewear", id)}
               allowNone
             />
@@ -344,9 +384,15 @@ const AvatarStudio = () => {
                   "collar.eton",
                   "collar.horseshoe",
                   "collar.chelsea",
+                  "collar.polo",
+                  "collar.johnny",
+                  "collar.medici",
+                  "collar.puritan",
+                  "collar.buttondown",
+                  "collar.pin",
                 ]}
                 draft={draft}
-                stage={stage}
+                level={userLevel}
                 onSelect={(id) => setPart("collar", id)}
                 allowNone
               />
@@ -363,20 +409,62 @@ const AvatarStudio = () => {
                 "prop.compass",
                 "prop.lantern",
                 "prop.flag",
+                "prop.mug",
+                "prop.plant",
+                "prop.cat",
+                "prop.trophy",
+                "prop.plane",
+                "prop.balloon",
+                "prop.skateboard",
+                "prop.duck",
+                "prop.dog",
+                "prop.icecream",
+                "prop.controller",
+                "prop.sunflower",
               ]}
               draft={draft}
-              stage={stage}
+              level={userLevel}
               onSelect={(id) => setPart("prop", id)}
               allowNone
             />
           )}
 
           {tab === "backdrop" && (
-            <SwatchGrid
-              swatches={BG_COLORS}
-              selectedHex={draft.colors.bg}
-              onSelect={(hex) => setColor("bg", hex)}
-            />
+            <>
+              {/* Colour first: every pattern derives BOTH its tones from this
+                  swatch, so picking the colour changes the pattern too. */}
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Colour
+              </Text>
+              <SwatchGrid
+                swatches={BG_COLORS}
+                selectedHex={draft.colors.bg}
+                onSelect={(hex) => setColor("bg", hex)}
+              />
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Pattern
+              </Text>
+              <PartGrid
+                slot="bg"
+                ids={[
+                  "bg.hearts",
+                  "bg.eggs",
+                  "bg.cow",
+                  "bg.monstera",
+                  "bg.stars",
+                  "bg.bolts",
+                  "bg.dots",
+                  "bg.checks",
+                  "bg.swirl",
+                  "bg.blob",
+                  "bg.wavybands",
+                ]}
+                draft={draft}
+                level={userLevel}
+                onSelect={(id) => setPart("bg", id)}
+                allowNone
+              />
+            </>
           )}
         </View>
         </GestureDetector>

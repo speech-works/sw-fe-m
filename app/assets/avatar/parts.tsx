@@ -1,6 +1,6 @@
 import React from "react";
 import { G, Path, Circle, Ellipse, Rect, ClipPath } from "react-native-svg";
-import { HEAD, CX, GOLD, INK, shade, trimOf } from "./avatarKit";
+import { HEAD, CX, GOLD, INK, shade, trimOf, hue } from "./avatarKit";
 
 /**
  * The avatar part catalog, drawn in the construction language of the
@@ -1676,5 +1676,1231 @@ export const SkiGoggles: React.FC<PartProps> = () => (
     <Dome d="M7.4 18.4 Q24.675 15.8 41.95 18.4 Q43.35 24.6 39.35 26.8 Q24.675 28.6 9.95 26.8 Q5.95 24.6 7.4 18.4 Z" fill="#E2E6EA" />
     <Dome d="M9.6 20 Q24.675 17.8 39.75 20 Q40.75 24 37.75 25.4 Q24.675 26.8 11.6 25.4 Q8.6 24 9.6 20 Z" fill="#4A9BD1" />
     <Path d="M12.4 21 Q18.4 19.6 24.4 19.4" fill="none" stroke="#CFE9F7" strokeWidth={1.2} strokeLinecap="round" opacity={0.7} />
+  </>
+);
+
+// ── Backdrops ────────────────────────────────────────────────────────────────
+//
+// The `bg` slot has existed since D2 and never held anything — the tile was a
+// flat colour. These are patterns drawn OVER that colour, inside the tile mask.
+//
+// Two things decide whether a backdrop works here, and both were learned the
+// expensive way:
+//
+// SCALE. The head plate covers the middle, so the only surface a backdrop owns
+// is a lens above the head and a band down each side — roughly seven units
+// wide. Motifs are therefore ~4–6 units on a ~7-unit pitch, sized so a WHOLE
+// one fits in that band. Drawing them large on the theory that a cropped motif
+// still reads does not work: a sliver of a heart is a blob.
+//
+// COLOUR. Each pattern takes two tones a real hue apart (see `hue()`), not one
+// tone shaded up and down — one hue lightened and darkened reads as a flat
+// wash no matter what the motif is.
+
+/**
+ * Tiles a motif across the tile, skipping every position FULLY sealed behind
+ * the head plate (x 8.1–41.3, y 10.1–48.8, less a motif radius).
+ *
+ * The skip is a real saving rather than tidiness — a pattern is 40-odd motifs,
+ * and the Community wall renders dozens of avatars at once. Positions that
+ * merely STRADDLE the head's edge are kept: they are half-visible, the head
+ * clips them, and dropping those is what left the side bands bare.
+ */
+function field(
+  pitch: number,
+  motif: (x: number, y: number, r: number, c: number, key: string) => React.ReactNode,
+): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  const n = Math.ceil(62 / pitch);
+  for (let r = 0; r <= n; r++) {
+    for (let c = 0; c <= n; c++) {
+      const x = +(c * pitch + (r % 2 ? pitch / 2 : 0) - 6).toFixed(1);
+      const y = +(r * pitch - 6).toFixed(1);
+      // Sealed behind the head plate.
+      if (x > 11.4 && x < 38 && y > 13.4 && y < 46) continue;
+      // Outside the housing altogether. The radius covers the SQUARE tile as
+      // well as the circle — the square's rounded corner reaches ~29.4 units
+      // from centre, plus a motif radius — because the viewer's own avatar
+      // renders square in the Community room and in Discover. Culling to the
+      // circle alone would have eaten the corners there. Worth ~30% of the
+      // motifs, which matters most in the Studio, where a dozen previews each
+      // draw a full avatar and the grid does not virtualise.
+      if (Math.hypot(x - 24, y - 24) > 33) continue;
+      out.push(motif(x, y, r, c, `${r}-${c}`));
+    }
+  }
+  return out;
+}
+
+/** The flat colour every pattern sits on. Full-bleed; the tile mask trims it. */
+const Field: React.FC<{ fill: string }> = ({ fill }) => (
+  <Rect x={-8} y={-8} width={64} height={64} fill={fill} />
+);
+
+const HEART_D =
+  "M0 6 C-5 2.4 -6.4 -0.6 -6.4 -3 C-6.4 -5.6 -4 -6.6 -2 -4.6 C-1 -3.6 -0.4 -2.8 0 -2 C0.4 -2.8 1 -3.6 2 -4.6 C4 -6.6 6.4 -5.6 6.4 -3 C6.4 -0.6 5 2.4 0 6 Z";
+
+export const BgHearts: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const f = hue(b, 0, -0.04, 0.16);
+  return (
+    <>
+      <Field fill={hue(b, 0, 0.5, -0.44)} />
+      {field(7, (x, y, r, c, key) => (
+        <Path
+          key={key}
+          transform={`translate(${x} ${y}) rotate(${((r + c) % 3) * 12 - 12}) scale(0.42)`}
+          d={HEART_D}
+          fill={f}
+          stroke={INK}
+          strokeWidth={2.6}
+          strokeLinejoin="round"
+        />
+      ))}
+    </>
+  );
+};
+
+export const BgEggs: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const white = hue(b, 0, 0.56, -0.5);
+  const yolk = hue(b, 46, 0.12, 0.22);
+  return (
+    <>
+      <Field fill={hue(b, 0, -0.02, 0.18)} />
+      {field(7.4, (x, y, r, c, key) => (
+        <G key={key} transform={`translate(${x} ${y}) rotate(${((r * c) % 4) * 20}) scale(0.42)`}>
+          <Path
+            d="M0 -6 Q6 -6.6 6.4 -1.4 Q9 2 5.4 5 Q1.4 8.4 -3 5.6 Q-7.4 3.6 -6.4 -1 Q-6 -5.6 0 -6 Z"
+            fill={white}
+            stroke={INK}
+            strokeWidth={2.6}
+            strokeLinejoin="round"
+          />
+          <Circle cx={0} cy={-0.4} r={2.8} fill={yolk} />
+        </G>
+      ))}
+    </>
+  );
+};
+
+/** Cow spots are wide by nature — on a tight pitch they merge into one dark
+ *  mass, so this one is deliberately the sparsest field in the set. */
+const COW_BLOBS = [
+  "M0 -3 Q4 -4.4 4.6 -1 Q5.2 2.6 2 3.4 Q-1.6 4.2 -2.8 1.6 Q-3.8 -1.4 0 -3 Z",
+  "M0 -2.6 Q3.4 -4 4.4 -1.4 Q5.4 1.4 3 3.2 Q0 5.2 -2.4 3 Q-4.4 1 -3 -1.4 Q-2 -3 0 -2.6 Z",
+  "M-1 -3.2 Q2.6 -4.4 4.2 -1.8 Q5.6 0.6 3.4 2.8 Q1 5 -1.8 3.4 Q-4.2 2 -3.6 -0.6 Q-3.2 -2.6 -1 -3.2 Z",
+];
+
+export const BgCow: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const spot = hue(b, 0, -0.32, 0.08);
+  return (
+    <>
+      <Field fill={hue(b, 0, 0.54, -0.52)} />
+      {field(9.6, (x, y, r, c, key) => (
+        <Path
+          key={key}
+          transform={`translate(${x} ${y}) rotate(${(r * 3 + c * 5) % 360}) scale(0.72)`}
+          d={COW_BLOBS[(r + c + 9) % 3]}
+          fill={spot}
+        />
+      ))}
+    </>
+  );
+};
+
+export const BgMonstera: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const dark = hue(b, 0, -0.14, 0.08);
+  const light = hue(b, 26, 0.16, 0.12);
+  return (
+    <>
+      <Field fill={hue(b, 12, -0.22, 0.12)} />
+      {field(7.6, (x, y, r, c, key) => (
+        <G key={key} transform={`translate(${x} ${y}) rotate(${((r + c) % 4) * 35 - 45}) scale(0.34)`}>
+          <Path
+            d="M0 -9 Q8 -7 8.4 0 Q8.8 7 0 9.6 Q-8.8 7 -8.4 0 Q-8 -7 0 -9 Z"
+            fill={(r + c) % 2 ? dark : light}
+            stroke={INK}
+            strokeWidth={3}
+            strokeLinejoin="round"
+          />
+          <Path
+            d="M0 -8 V9 M0 -3.4 L5 -4.8 M0 0.6 L6 0 M0 4.6 L5 5"
+            fill="none"
+            stroke={INK}
+            strokeWidth={2.2}
+            strokeLinecap="round"
+          />
+        </G>
+      ))}
+    </>
+  );
+};
+
+export const BgStars: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const f = hue(b, 44, 0.14, 0.2);
+  return (
+    <>
+      <Field fill={hue(b, 0, -0.1, 0.08)} />
+      {field(6.8, (x, y, r, c, key) => (
+        <G key={key}>
+          <Star5 x={x} y={y} s={(r + c) % 2 ? 2.9 : 2.2} fill={f} />
+        </G>
+      ))}
+    </>
+  );
+};
+
+export const BgBolts: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const f = hue(b, 40, 0.12, 0.22);
+  return (
+    <>
+      <Field fill={hue(b, 0, -0.06, 0.06)} />
+      {field(6.8, (x, y, r, c, key) => (
+        <Path
+          key={key}
+          transform={`translate(${x} ${y}) rotate(${((r + c) % 3) * 14 - 14}) scale(0.62)`}
+          d="M1.6 -7 L-3.4 1.2 H-0.4 L-2 7 L3.6 -1.4 H0.4 Z"
+          fill={f}
+          stroke={INK}
+          strokeWidth={1.8}
+          strokeLinejoin="round"
+        />
+      ))}
+    </>
+  );
+};
+
+export const BgDots: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const a = hue(b, 34, 0.22, 0.1);
+  const c2 = hue(b, 0, 0.5, -0.4);
+  return (
+    <>
+      <Field fill={hue(b, 0, -0.04, 0.08)} />
+      {field(6.6, (x, y, r, c, key) => (
+        <Circle
+          key={key}
+          cx={x}
+          cy={y}
+          r={(r + c) % 2 ? 2.9 : 1.9}
+          fill={(r + c) % 2 ? a : c2}
+          stroke={INK}
+          strokeWidth={0.9}
+        />
+      ))}
+    </>
+  );
+};
+
+export const BgChecks: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const a = hue(b, 0, 0.02, 0.14);
+  const squares: React.ReactNode[] = [];
+  for (let r = -1; r < 12; r++) {
+    for (let c = -1; c < 12; c++) {
+      if ((r + c) % 2 !== 0) continue;
+      const x = c * 6 - 4;
+      const y = r * 6 - 4;
+      if (x > 11.4 && x < 36 && y > 13.4 && y < 42) continue;
+      squares.push(<Rect key={`${r}-${c}`} x={x} y={y} width={6} height={6} fill={a} />);
+    }
+  }
+  return (
+    <>
+      <Field fill={hue(b, 0, 0.5, -0.46)} />
+      {squares}
+    </>
+  );
+};
+
+/** Radial rather than tiled: the arms all converge behind the head, so what
+ *  reaches the visible band is a fan of stripes at every angle. */
+export const BgSwirl: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const a = hue(b, 0, 0.04, 0.14);
+  const arms: React.ReactNode[] = [];
+  for (let i = 0; i < 16; i++) {
+    const t = ((i * 22.5) * Math.PI) / 180;
+    const p = (rad: number, off: number) =>
+      `${(24 + Math.cos(t + off) * rad).toFixed(1)} ${(24 + Math.sin(t + off) * rad).toFixed(1)}`;
+    arms.push(
+      <Path
+        key={i}
+        d={`M24 24 Q${p(20, 0.2)} ${p(46, 0.56)} L${p(46, 0.76)} Q${p(20, 0.38)} 24 24 Z`}
+        fill={i % 2 ? a : INK}
+      />,
+    );
+  }
+  return (
+    <>
+      <Field fill={hue(b, 0, 0.5, -0.44)} />
+      {arms}
+    </>
+  );
+};
+
+/** Four organic colour fields rather than a repeat — the one pattern here that
+ *  is meant to be bigger than the visible band. */
+export const BgBlob: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  return (
+    <>
+      <Field fill={hue(b, 0, 0.46, -0.42)} />
+      <Path d="M-8 -8 Q14 -6 12 10 Q10 24 20 30 Q28 36 22 48 Q18 56 -8 56 Z" fill={hue(b, 0, 0.04, 0.12)} />
+      <Path d="M14 -8 Q34 -8 40 6 Q44 16 34 20 Q22 24 24 10 Q25 -2 14 -8 Z" fill={hue(b, 44, 0.12, 0.14)} />
+      <Path d="M56 8 Q44 14 46 26 Q48 38 56 40 Z" fill={hue(b, -46, 0.02, 0.16)} />
+      <Path d="M26 56 Q22 42 34 38 Q46 34 50 46 Q52 54 48 56 Z" fill={hue(b, 128, 0.02, 0.12)} />
+    </>
+  );
+};
+
+export const BgWavyBands: React.FC<PartProps> = ({ colors }) => {
+  const b = colors.bg;
+  const a = hue(b, 0, 0.02, 0.14);
+  const c2 = hue(b, 40, 0.16, 0.18);
+  const bands: React.ReactNode[] = [];
+  for (let i = 0; i < 7; i++) {
+    const y = -6 + i * 9.5;
+    bands.push(
+      <Path
+        key={i}
+        d={`M-8 ${y} Q6 ${y - 3.6} 20 ${y} Q34 ${y + 3.6} 56 ${y} L56 ${y + 7} Q34 ${y + 10.6} 20 ${y + 7} Q6 ${y + 3.4} -8 ${y + 7} Z`}
+        fill={i % 2 ? a : c2}
+        stroke={INK}
+        strokeWidth={0.9}
+        strokeLinejoin="round"
+      />,
+    );
+  }
+  return (
+    <>
+      <Field fill={hue(b, 0, 0.5, -0.44)} />
+      {bands}
+    </>
+  );
+};
+
+// ── Props, second wave ───────────────────────────────────────────────────────
+//
+// Props are the only slot that escapes the tile mask, so they get real room
+// beside the head — which is why they carry character better than anything
+// worn. Left-hand props sit around x 2–16, right-hand ones x 33–53.
+
+export const MugProp: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M36 38 H48 V45 Q48 49 44 49 H40 Q36 49 36 45 Z" fill="#E8E2D6" />
+    <Dome d="M48 39.6 Q52.4 39.6 52.4 42.4 Q52.4 45.2 48 45.2 Z" fill="#E8E2D6" />
+    <Path d="M37.4 39.4 H46.6 V41.4 Q42 42.6 37.4 41.4 Z" fill="#7A5236" />
+    <Path
+      d="M39 34.6 Q40.6 33 39.4 31.4 M43 34.6 Q44.6 33 43.4 31.4"
+      fill="none"
+      stroke="#D8D2C6"
+      strokeWidth={0.9}
+      strokeLinecap="round"
+      opacity={0.55}
+    />
+  </>
+);
+
+export const PlantProp: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M2.6 42 H14.6 L13.2 51 Q13 52.4 11.6 52.4 H5.6 Q4.2 52.4 4 51 Z" fill="#C4703F" />
+    <Path d="M2.2 40.6 H15 V43 H2.2 Z" fill="#A85C31" />
+    <Path d="M8.6 42 V30" fill="none" stroke="#3E7D4E" strokeWidth={1.2} strokeLinecap="round" />
+    <Dome d="M8.6 33 Q3 31.4 2.6 26.4 Q8 26.6 8.6 32 Z" fill="#3E7D4E" />
+    <Dome d="M8.6 36 Q14.6 34.6 15 29.6 Q9.4 29.8 8.6 35 Z" fill="#4E9660" />
+    <Dome d="M8.6 30.4 Q5.4 27 6.6 22.6 Q10.6 25 8.6 29.6 Z" fill="#57A86B" />
+  </>
+);
+
+export const CatProp: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M36.4 41 Q36.4 34.6 42.4 34.6 Q48.4 34.6 48.4 41 L48.4 50 Q48.4 52.4 46 52.4 H38.8 Q36.4 52.4 36.4 50 Z"
+      fill="#5A5560"
+    />
+    <Dome d="M36.8 36.6 L37.4 31.6 L41.4 34.8 Z" fill="#5A5560" />
+    <Dome d="M48 36.6 L47.4 31.6 L43.4 34.8 Z" fill="#5A5560" />
+    <Circle cx={39.6} cy={39.6} r={0.95} fill={INK} />
+    <Circle cx={45.2} cy={39.6} r={0.95} fill={INK} />
+    <Path
+      d="M42.4 41.6 Q41.4 43 40.2 42.4 M42.4 41.6 Q43.4 43 44.6 42.4"
+      fill="none"
+      stroke={INK}
+      strokeWidth={0.7}
+      strokeLinecap="round"
+    />
+    <Path d="M41.6 40.8 L43.2 40.8 L42.4 41.8 Z" fill="#E2707E" />
+    <Path
+      d="M48.4 48 Q53.6 47.4 52.2 42"
+      fill="none"
+      stroke="#5A5560"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+    />
+  </>
+);
+
+export const TrophyProp: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M37.4 32 H47.4 L46.6 40 Q46.2 43.4 42.4 43.4 Q38.6 43.4 38.2 40 Z" fill={GOLD} />
+    <Path
+      d="M37.4 33.4 Q34 33.6 34.2 36.4 Q34.4 38.8 37.8 39 M47.4 33.4 Q50.8 33.6 50.6 36.4 Q50.4 38.8 47 39"
+      fill="none"
+      stroke={GOLD}
+      strokeWidth={1.3}
+      strokeLinecap="round"
+    />
+    <Rect x={40.9} y={43.4} width={3} height={4} rx={0.4} fill="#D9A93F" />
+    <Dome d="M37.6 47.4 H47.2 V50.6 H37.6 Z" fill="#8E6B25" />
+    <Star5 x={42.4} y={36.6} s={2} fill="#FFF3C4" />
+  </>
+);
+
+export const PlaneProp: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M34 40 L52 31.4 L46.4 46.6 L42.6 41.6 Z" fill="#F2F0EB" />
+    <Path d="M42.6 41.6 L52 31.4 L44.4 42.8 Z" fill="#D6D2C8" />
+    <Path d="M42.6 41.6 L44.4 42.8 L43.4 46 Z" fill="#BDB8AD" />
+    <Path
+      d="M33.4 45.4 Q37.4 44 40.4 44.6 M31.4 49 Q36.4 47 40.6 47.4"
+      fill="none"
+      stroke="#F2F0EB"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      opacity={0.45}
+    />
+  </>
+);
+
+export const BalloonProp: React.FC<PartProps> = () => (
+  <>
+    <Path
+      d="M43.4 50 Q41 42 43.4 34.6"
+      fill="none"
+      stroke="#EDE6D8"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      opacity={0.9}
+    />
+    <Dome d="M43.4 34.8 L41.8 32 L45 32 Z" fill="#C0362F" />
+    <Ellipse cx={43.4} cy={24.6} rx={7} ry={8.4} fill="#C0362F" stroke={INK} strokeWidth={1.1} />
+    <Ellipse cx={40.6} cy={21} rx={1.9} ry={2.8} fill="#FFFFFF" opacity={0.4} transform="rotate(-20 40.6 21)" />
+  </>
+);
+
+export const SkateboardProp: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M1.6 41.4 Q1.6 38.4 5 38.4 L14.6 38.4 Q18 38.4 18 41.4 Q18 44.4 14.6 44.4 L5 44.4 Q1.6 44.4 1.6 41.4 Z"
+      fill="#B4443E"
+    />
+    <Path d="M4.4 41.4 H15.2" fill="none" stroke="#D9736C" strokeWidth={0.8} strokeLinecap="round" opacity={0.5} />
+    <Circle cx={5.4} cy={46.4} r={1.9} fill="#E8E2D6" stroke={INK} strokeWidth={0.6} />
+    <Circle cx={14.2} cy={46.4} r={1.9} fill="#E8E2D6" stroke={INK} strokeWidth={0.6} />
+    <Path d="M5.4 44.4 V45.4 M14.2 44.4 V45.4" fill="none" stroke="#6E6A64" strokeWidth={1} />
+  </>
+);
+
+export const DuckProp: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M36.4 44.4 Q36.4 38 42.4 38 Q48.4 38 48.4 44.4 Q48.4 50.4 42.4 50.4 Q36.4 50.4 36.4 44.4 Z" fill="#F2C230" />
+    <Dome d="M44.4 38.6 Q44.4 34 48.4 34 Q52.4 34 52.4 38 Q52.4 41.4 48.8 41.6 Z" fill="#F2C230" />
+    <Path d="M52 37 L55.4 38.2 L52 39.6 Z" fill="#E8843F" />
+    <Circle cx={49.6} cy={36.8} r={0.85} fill={INK} />
+    <Path d="M37.4 46.4 Q41.4 48.4 45.4 46.4" fill="none" stroke="#D9A21B" strokeWidth={0.9} strokeLinecap="round" opacity={0.8} />
+  </>
+);
+
+export const DogProp: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M36 42.4 Q36 35.4 42.4 35.4 Q48.8 35.4 48.8 42.4 L48.8 50.4 Q48.8 52.6 46.4 52.6 H38.4 Q36 52.6 36 50.4 Z"
+      fill="#C08A4E"
+    />
+    <Dome d="M35.4 36.4 Q32.4 38.4 33.4 43.4 Q36.4 43 36.8 39 Z" fill="#8E6335" />
+    <Dome d="M49.4 36.4 Q52.4 38.4 51.4 43.4 Q48.4 43 48 39 Z" fill="#8E6335" />
+    <Circle cx={39.8} cy={41.4} r={0.95} fill={INK} />
+    <Circle cx={45} cy={41.4} r={0.95} fill={INK} />
+    <Ellipse cx={42.4} cy={44.6} rx={1.6} ry={1.2} fill={INK} />
+    <Path
+      d="M42.4 45.8 V47.4 M42.4 47.4 Q40.6 48.6 39.4 47.4 M42.4 47.4 Q44.2 48.6 45.4 47.4"
+      fill="none"
+      stroke={INK}
+      strokeWidth={0.7}
+      strokeLinecap="round"
+    />
+  </>
+);
+
+export const IceCreamProp: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M37.4 40 L47.4 40 L43.6 51.4 Q42.4 53 41.2 51.4 Z" fill="#E8B87A" />
+    <Path d="M39 43 L45.4 43 M40 46 L44.6 46" fill="none" stroke="#C08A4E" strokeWidth={0.7} strokeLinecap="round" opacity={0.8} />
+    <Dome d="M37.4 40 Q37.4 35.4 41.4 35 Q41.4 31 45.4 32 Q49.4 33.4 47.8 37.4 Q49.4 39.4 47.4 40 Z" fill="#F2A0B4" />
+    <Circle cx={43.4} cy={32.6} r={1.4} fill="#C0362F" stroke={INK} strokeWidth={0.5} />
+  </>
+);
+
+export const ControllerProp: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M34.4 42 Q34.4 37.4 39.4 37.4 H47.4 Q52.4 37.4 52.4 42 Q52.4 47.4 48.4 47.4 Q45.4 47.4 44.4 45.4 H42.4 Q41.4 47.4 38.4 47.4 Q34.4 47.4 34.4 42 Z"
+      fill="#4E5D6C"
+    />
+    <Path d="M38 41 H41 M39.5 39.6 V42.4" fill="none" stroke="#E8E2D6" strokeWidth={1.2} strokeLinecap="round" />
+    <Circle cx={47.4} cy={40.4} r={1} fill="#C0362F" />
+    <Circle cx={49.6} cy={42.6} r={1} fill="#5BA88A" />
+    <Circle cx={45.4} cy={42.6} r={1} fill="#E8B93F" />
+  </>
+);
+
+export const SunflowerProp: React.FC<PartProps> = () => (
+  <>
+    <Path d="M43.4 52.4 Q42.4 46 43.4 41.4" fill="none" stroke="#3E7D4E" strokeWidth={1.8} strokeLinecap="round" />
+    <Dome d="M43.4 46.4 Q39.4 44.4 37.4 46.4 Q40.4 49 43.4 47.6 Z" fill="#4E9660" />
+    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+      <Ellipse
+        key={i}
+        cx={43.4 + Math.cos((i * Math.PI) / 4) * 4.4}
+        cy={37.4 + Math.sin((i * Math.PI) / 4) * 4.4}
+        rx={2.4}
+        ry={1.6}
+        fill="#F2C230"
+      />
+    ))}
+    <Circle cx={43.4} cy={37.4} r={3} fill="#8E5B2A" />
+    <Circle cx={43.4} cy={37.4} r={2.2} fill="#6B4420" />
+  </>
+);
+
+// ── Hair, second wave ────────────────────────────────────────────────────────
+//
+// The head plate covers x 8.1–41.3, so a "back" drape is only visible in the
+// two slivers either side — roughly x 0–8 and 41–48. Every style below puts its
+// volume in that band; a drape drawn any further in is simply invisible, which
+// is how the first attempts at these were lost.
+
+export const HairAfro: React.FC<PartProps> = ({ colors, layer }) => {
+  const h = colors.hair;
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          <Dome d="M8.4 14 Q0.4 15.4 0.6 24 Q0.8 32.4 8.4 33 Q6.4 24 8.4 14 Z" fill={h} />
+          <Dome d="M40.95 14 Q48.95 15.4 48.75 24 Q48.55 32.4 40.95 33 Q42.95 24 40.95 14 Z" fill={h} />
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M4.4 22 C2.4 11 9.4 2.6 24.675 2.6 C39.95 2.6 46.95 11 44.95 22 C44.4 25.6 41.4 26 40.6 22.6 C40 18.6 40.2 16.6 40.4 14.6 C34 11 28 13.6 24.675 13.6 C21.35 13.6 15.4 11 8.9 14.6 C9.1 16.6 9.3 18.6 8.7 22.6 C7.9 26 4.9 25.6 4.4 22 Z"
+            fill={h}
+          />
+          <Path
+            d="M9.4 8.4 Q17.4 4.6 25.4 5 M31.4 6 Q38.4 8.4 41.9 12.4"
+            fill="none"
+            stroke={shade(h, 0.34)}
+            strokeWidth={1.1}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+export const HairBraids: React.FC<PartProps> = ({ colors, layer }) => {
+  const h = colors.hair;
+  const braid = (x: number, key: string) => (
+    <G key={key}>
+      <Dome
+        d={`M${x - 2.6} 15 Q${x - 3.6} 30 ${x - 2.2} 43 Q${x} 45.4 ${x + 2.2} 43 Q${x + 3.6} 30 ${x + 2.6} 15 Z`}
+        fill={shade(h, -0.12)}
+      />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Path
+          key={i}
+          d={`M${x - 2.6} ${19 + i * 5.4} Q${x} ${21 + i * 5.4} ${x + 2.6} ${19 + i * 5.4}`}
+          fill="none"
+          stroke={shade(h, -0.42)}
+          strokeWidth={0.9}
+          strokeLinecap="round"
+          opacity={0.95}
+        />
+      ))}
+    </G>
+  );
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          {braid(4.6, "l")}
+          {braid(44.75, "r")}
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M5.4 21 C4.4 8 11.4 3.4 24.675 3.4 C37.95 3.4 44.95 8 43.95 21 Q40 14 24.675 14 Q9.4 14 5.4 21 Z"
+            fill={h}
+          />
+          <Path d="M24.675 4 V13.6" fill="none" stroke={shade(h, -0.4)} strokeWidth={1} opacity={0.85} />
+        </>
+      )}
+    </>
+  );
+};
+
+export const HairPonytail: React.FC<PartProps> = ({ colors, layer }) => {
+  const h = colors.hair;
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          <Dome
+            d="M41.35 15.4 Q47.75 17.4 47.35 26 Q46.95 35.4 43.35 43 Q41.35 46 39.35 43.6 Q43.35 34.4 43.75 26 Q43.95 20 39.75 17.4 Z"
+            fill={shade(h, -0.12)}
+          />
+          <Path
+            d="M43 21.4 Q45.6 26 45.2 32 Q44.8 38 42.6 42.4"
+            fill="none"
+            stroke={shade(h, 0.26)}
+            strokeWidth={1}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M5 21.4 C4 8.4 11.4 3.4 24.675 3.4 C39.95 3.4 45.95 9.4 44.35 20.4 Q40.4 13.4 24.675 13.4 Q9.4 13.4 5 21.4 Z"
+            fill={h}
+          />
+          <Path
+            d="M9.4 17.4 Q16.4 9.4 26.4 8.4 Q35.4 7.6 41.4 12.4"
+            fill="none"
+            stroke={shade(h, 0.3)}
+            strokeWidth={1.1}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+export const HairSpaceBuns: React.FC<PartProps> = ({ colors, layer }) => {
+  const h = colors.hair;
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          <Dome d="M6.6 15.4 Q1.4 15.4 1.4 21.4 Q1.4 27.4 6.6 27.4 Q11.4 27.4 11.4 21.4 Q11.4 15.4 6.6 15.4 Z" fill={shade(h, 0.04)} />
+          <Dome d="M42.75 15.4 Q47.95 15.4 47.95 21.4 Q47.95 27.4 42.75 27.4 Q37.95 27.4 37.95 21.4 Q37.95 15.4 42.75 15.4 Z" fill={shade(h, 0.04)} />
+          <Path
+            d="M3.6 19.4 Q6.6 17.4 9.6 19.4 M39.75 19.4 Q42.75 17.4 45.75 19.4"
+            fill="none"
+            stroke={shade(h, -0.36)}
+            strokeWidth={0.9}
+            strokeLinecap="round"
+            opacity={0.8}
+          />
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M5.4 20.4 C4.4 8 11.4 3.4 24.675 3.4 C37.95 3.4 44.95 8 43.95 20.4 Q40 13.4 24.675 13.4 Q9.4 13.4 5.4 20.4 Z"
+            fill={h}
+          />
+          <Path d="M24.675 4 V13" fill="none" stroke={shade(h, -0.36)} strokeWidth={1} opacity={0.7} />
+        </>
+      )}
+    </>
+  );
+};
+
+export const HairBob: React.FC<PartProps> = ({ colors, layer }) => {
+  const h = colors.hair;
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          <Dome d="M6.4 16 Q2.4 20 2.6 27 Q2.8 33 6.4 36 L13.4 34 Q10 27 10.6 16 Z" fill={shade(h, -0.12)} />
+          <Dome d="M42.95 16 Q46.95 20 46.75 27 Q46.55 33 42.95 36 L35.95 34 Q39.35 27 38.75 16 Z" fill={shade(h, -0.12)} />
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M5.4 22 C4.4 8.4 11.4 3.4 24.675 3.4 C37.95 3.4 44.95 8.4 43.95 22 Q42 15 33.4 13.6 Q29 12.9 24.675 12.9 Q20.35 12.9 16 13.6 Q7.4 15 5.4 22 Z"
+            fill={h}
+          />
+          <Path
+            d="M9.4 18.4 Q14.4 10.4 22.4 8.6"
+            fill="none"
+            stroke={shade(h, 0.3)}
+            strokeWidth={1.1}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+export const HairPigtails: React.FC<PartProps> = ({ colors, layer }) => {
+  const h = colors.hair;
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          <Dome
+            d="M7.4 17.4 Q1.4 21.4 1.6 30 Q1.8 37.4 5.4 41.4 Q8.4 43.4 10.4 40.4 Q7.4 34.4 8 28 Q8.4 22.4 11.4 19.4 Z"
+            fill={shade(h, -0.1)}
+          />
+          <Dome
+            d="M41.95 17.4 Q47.95 21.4 47.75 30 Q47.55 37.4 43.95 41.4 Q40.95 43.4 38.95 40.4 Q41.95 34.4 41.35 28 Q40.95 22.4 37.95 19.4 Z"
+            fill={shade(h, -0.1)}
+          />
+          <Path
+            d="M4.4 24.4 Q3 31.4 4.6 38 M44.95 24.4 Q46.35 31.4 44.75 38"
+            fill="none"
+            stroke={shade(h, 0.24)}
+            strokeWidth={0.9}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome
+            d="M5.4 20.4 C4.4 8 11.4 3.4 24.675 3.4 C37.95 3.4 44.95 8 43.95 20.4 Q40 13.4 24.675 13.4 Q9.4 13.4 5.4 20.4 Z"
+            fill={h}
+          />
+          <Path d="M24.675 4 V13" fill="none" stroke={shade(h, -0.36)} strokeWidth={1} opacity={0.75} />
+        </>
+      )}
+    </>
+  );
+};
+
+// ── Expressions, second wave ─────────────────────────────────────────────────
+
+/** Confident: rounder eyes, raised brows, a broad closed-lipped smile. */
+export const ProudFace: React.FC<PartProps> = () => (
+  <>
+    <Ellipse cx={16} cy={22.4} rx={3.1} ry={3.1} fill="#FFFFFF" />
+    <Ellipse cx={16} cy={22.4} rx={3.1} ry={3.1} fill="none" stroke={INK} strokeWidth={0.6} />
+    <Circle cx={16.4} cy={23} r={1.9} fill={IRIS} />
+    <Circle cx={16.4} cy={23} r={1.35} fill="#0B0A10" />
+    <Circle cx={15.8} cy={22.4} r={0.55} fill="#FFFFFF" />
+    <Ellipse cx={32} cy={22.4} rx={3.1} ry={3.1} fill="#FFFFFF" />
+    <Ellipse cx={32} cy={22.4} rx={3.1} ry={3.1} fill="none" stroke={INK} strokeWidth={0.6} />
+    <Circle cx={31.6} cy={23} r={1.9} fill={IRIS} />
+    <Circle cx={31.6} cy={23} r={1.35} fill="#0B0A10" />
+    <Circle cx={31} cy={22.4} r={0.55} fill="#FFFFFF" />
+    <Path
+      d="M12.4 17.6 Q16 16.2 19.6 17.4 M28.4 17.4 Q32 16.2 35.6 17.6"
+      fill="none"
+      stroke={INK}
+      strokeWidth={1.2}
+      strokeLinecap="round"
+    />
+    <Path d="M18.6 30 Q24.675 31.2 30.75 30 Q29.4 34.6 24.675 35 Q19.95 34.6 18.6 30 Z" fill={INK} />
+    <Path d="M19.4 30.4 Q24.675 31.4 29.95 30.4 Q29.6 32 24.675 32.3 Q19.75 32 19.4 30.4 Z" fill="#FFFFFF" />
+  </>
+);
+
+/** Laughing: eyes squeezed shut, mouth wide, tongue showing. */
+export const LaughFace: React.FC<PartProps> = () => (
+  <>
+    <Path
+      d="M12.9 23.4 Q16 19.4 19.1 23.4 M28.9 23.4 Q32 19.4 35.1 23.4"
+      fill="none"
+      stroke={INK}
+      strokeWidth={1.4}
+      strokeLinecap="round"
+    />
+    <Path d="M17.4 29.4 Q24.675 30.6 31.95 29.4 Q31.4 37.4 24.675 38 Q17.95 37.4 17.4 29.4 Z" fill={INK} />
+    <Path d="M18.4 29.8 Q24.675 31 30.95 29.8 Q30.7 32.2 24.675 32.6 Q18.65 32.2 18.4 29.8 Z" fill="#FFFFFF" />
+    <Ellipse cx={24.675} cy={36.4} rx={2.8} ry={1.8} fill="#E2707E" />
+  </>
+);
+
+/**
+ * Mid-speech: the one expression this product has a reason to own. An open
+ * round mouth mid-vowel, with two arcs beside it for the sound leaving.
+ */
+export const SpeakingFace: React.FC<PartProps> = () => (
+  <>
+    <AvatarEye cx={16} irisDx={0.55} />
+    <AvatarEye cx={32} irisDx={-0.55} />
+    <Ellipse cx={24.675} cy={32} rx={3.6} ry={4.4} fill={INK} />
+    <Ellipse cx={24.675} cy={34} rx={2.2} ry={2.2} fill="#E2707E" />
+    <Path
+      d="M36.4 26 Q39.4 27.4 39.4 30.4 M39.4 22.4 Q43.4 25.4 43.4 30.4"
+      fill="none"
+      stroke="#FFFFFF"
+      strokeWidth={1.1}
+      strokeLinecap="round"
+      opacity={0.5}
+    />
+  </>
+);
+
+// ── Phase 1: the rest of the tailoring set ───────────────────────────────────
+//
+// Six collars, nine hats and six pairs of glasses, drawn and reviewed alongside
+// the four collars that shipped first. Same two constraints as everything else
+// worn on the head: the tile crops anything above the crown, so hats are
+// deliberately low; and no hat edge may cross y≈18.8 at the eye columns.
+
+/** Polo — soft knit collar over a two-button placket. */
+export const PoloCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const btn = trimOf(c);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.26)} />}
+      {layer !== "back" && (
+        <>
+          <CollarBase c={c} />
+          <Dome d="M22.2 41.4 L27.15 41.4 L27.8 56 L21.55 56 Z" fill={shade(c, -0.06)} />
+          <Dome d="M6.4 35.2 Q14 39.6 23.6 41.6 L20.4 45.8 Q11.6 43.6 5.6 38.6 Z" fill={shade(c, 0.09)} />
+          <Dome d="M42.95 35.2 Q35.35 39.6 25.75 41.6 L28.95 45.8 Q37.75 43.6 43.75 38.6 Z" fill={shade(c, 0.09)} />
+          <Circle cx={CX} cy={45.6} r={0.85} fill={btn} stroke={INK} strokeWidth={0.3} />
+          <Circle cx={CX} cy={49.4} r={0.85} fill={btn} stroke={INK} strokeWidth={0.3} />
+          <Path
+            d="M8.4 37.6 Q15.4 41.4 22.4 43.2 M40.95 37.6 Q33.95 41.4 26.95 43.2"
+            fill="none"
+            stroke={shade(c, -0.16)}
+            strokeWidth={0.5}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Johnny — a narrow knit V with no buttons. */
+export const JohnnyCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.26)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={GARMENT} fill={c} />
+          <Dome
+            d="M6.6 33.4 Q14.4 39.4 24.675 44.6 Q34.95 39.4 42.75 33.4 L44.75 37.4 Q35.35 43.6 24.675 49.4 Q14 43.6 4.6 37.4 Z"
+            fill={shade(c, 0.1)}
+          />
+          <Path
+            d="M8.4 35.4 Q15.4 40.6 24.675 45.4 Q33.95 40.6 40.95 35.4"
+            fill="none"
+            stroke={shade(c, -0.24)}
+            strokeWidth={0.6}
+            strokeLinecap="round"
+            opacity={0.6}
+          />
+          <Dome
+            d="M-2 56 L-2 44.4 Q10 48.6 24.675 51 Q39.35 48.6 51.35 44.4 L51.35 56 Z"
+            fill={shade(c, -0.06)}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Medici — the tall fan standing behind the neck. The only collar whose
+ *  drama lives in the BACK layer, in the slivers beside the head. */
+export const MediciCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && (
+        <>
+          <Dome d={COLLAR_BACK} fill={shade(c, -0.3)} />
+          <Dome d="M-2 46 Q-4 17 8.6 10.2 Q13.4 20 14.6 34 Q6 38 0.4 46 Z" fill={shade(c, 0.06)} />
+          <Dome d="M51.35 46 Q53.35 17 40.75 10.2 Q35.95 20 34.75 34 Q43.35 38 48.95 46 Z" fill={shade(c, 0.06)} />
+        </>
+      )}
+      {layer !== "back" && (
+        <>
+          <Dome d={GARMENT} fill={c} />
+          <Dome
+            d="M7.4 33.4 Q15.4 39.4 24.675 45.6 Q33.95 39.4 41.95 33.4 L43.35 38 Q34.35 44.2 24.675 50.4 Q15 44.2 6 38 Z"
+            fill={shade(c, 0.12)}
+          />
+          <Path
+            d="M10.4 35.4 Q16.4 40.2 24.675 45.4 M38.95 35.4 Q32.95 40.2 24.675 45.4"
+            fill="none"
+            stroke={shade(c, -0.26)}
+            strokeWidth={0.55}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Puritan — one wide flat collar lying over the shoulders. */
+export const PuritanCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.24)} />}
+      {layer !== "back" && (
+        <>
+          <Dome d={GARMENT} fill={c} />
+          <Dome
+            d="M2.6 31.4 Q13.4 38.4 24.675 40.6 Q35.95 38.4 46.75 31.4 Q48.35 38.4 45.35 44.6 Q35.35 48.6 24.675 48.6 Q14 48.6 4 44.6 Q1 38.4 2.6 31.4 Z"
+            fill={shade(c, 0.12)}
+          />
+          <Path
+            d="M6.4 36.4 Q15.4 42.4 24.675 44.4 Q33.95 42.4 42.95 36.4"
+            fill="none"
+            stroke={shade(c, -0.2)}
+            strokeWidth={0.6}
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+          <Circle cx={CX} cy={45.6} r={0.9} fill={trimOf(c)} stroke={INK} strokeWidth={0.3} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Button-down — point collar with its tips buttoned to the shirt. */
+export const ButtonDownCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const leaf = shade(c, 0.08);
+  const btn = trimOf(c);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.28)} />}
+      {layer !== "back" && (
+        <>
+          <CollarBase c={c} />
+          <Dome d="M22.2 41.4 L27.15 41.4 L27.8 56 L21.55 56 Z" fill={shade(c, -0.05)} />
+          <Dome d="M5 34.4 Q13.4 39.4 24.675 41.4 L18.4 46.2 Q10.4 43.4 3.8 37.4 Z" fill={leaf} />
+          <Dome d="M44.35 34.4 Q35.95 39.4 24.675 41.4 L30.95 46.2 Q38.95 43.4 45.55 37.4 Z" fill={leaf} />
+          <FoldShade c={c} />
+          <Circle cx={18.4} cy={45.8} r={0.85} fill={btn} stroke={INK} strokeWidth={0.3} />
+          <Circle cx={30.95} cy={45.8} r={0.85} fill={btn} stroke={INK} strokeWidth={0.3} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Pin collar — rounded leaves held together by a bar across the throat. */
+export const PinCollar: React.FC<PartProps> = ({ colors, layer }) => {
+  const c = colors.collar;
+  const leaf = shade(c, 0.08);
+  return (
+    <>
+      {layer !== "front" && <Dome d={COLLAR_BACK} fill={shade(c, -0.28)} />}
+      {layer !== "back" && (
+        <>
+          <CollarBase c={c} />
+          <Dome d="M22.2 41.4 L27.15 41.4 L27.8 56 L21.55 56 Z" fill={shade(c, -0.05)} />
+          <Dome d="M5 34.4 Q13.4 39.4 23.4 41.4 Q22.6 46.4 15.6 47.2 Q7.6 45.4 3.8 37.4 Z" fill={leaf} />
+          <Dome d="M44.35 34.4 Q35.95 39.4 25.95 41.4 Q26.75 46.4 33.75 47.2 Q41.75 45.4 45.55 37.4 Z" fill={leaf} />
+          <FoldShade c={c} />
+          <Path d="M20.4 44 L28.95 44" fill="none" stroke={GOLD} strokeWidth={1.4} strokeLinecap="round" />
+          <Circle cx={20.4} cy={44} r={0.9} fill={GOLD} stroke={INK} strokeWidth={0.3} />
+          <Circle cx={28.95} cy={44} r={0.9} fill={GOLD} stroke={INK} strokeWidth={0.3} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** Beret — a soft disc slumped to one side, with its nub. */
+export const Beret: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M4.6 15.4 C4 7.4 9.6 2.6 24.675 2.6 C40.4 2.6 46.8 7 45.6 13 C44.8 17 38 15 24.675 15 C14 15 6 18.2 4.6 15.4 Z"
+      fill="#B4443E"
+    />
+    <Dome d="M5.6 14 Q24.675 11.4 44.2 12.8 L44 16 Q24.675 13.8 5.8 17.2 Z" fill="#8E332E" />
+    <Circle cx={31.6} cy={3.2} r={1.7} fill="#8E332E" stroke={INK} strokeWidth={0.7} />
+    <Path d="M9.4 7.4 Q16.4 4.4 25.6 4.6" fill="none" stroke="#D9736C" strokeWidth={0.9} strokeLinecap="round" opacity={0.5} />
+  </>
+);
+
+/** Witch hat — a wide-based cone, because a narrow one loses its point to the
+ *  tile crop entirely. Band and buckle sit where the brim meets the crown. */
+export const WitchHat: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M7 13.6 C9.6 6.6 16.4 1.4 25.4 0.6 C31.6 2.6 37.2 6.8 42 13.6 Z" fill="#5B3E86" />
+    <Dome d="M11.4 9.4 Q24.675 7 34.35 9.6 L35.35 12.8 Q24.675 10.2 12.4 12.6 Z" fill="#2E2140" />
+    <Rect x={22.6} y={9} width={4.2} height={3.2} rx={0.5} fill={GOLD} stroke={INK} strokeWidth={0.5} />
+    <Dome
+      d="M1.4 15 C0.6 11.4 4.4 10.6 9.4 11.8 C15.4 13.2 33.95 13.2 39.95 11.8 C44.95 10.6 48.75 11.4 47.95 15 C42.2 18.4 24.675 18.6 24.675 18.6 C7.15 18.4 1.4 15 1.4 15 Z"
+      fill="#5B3E86"
+    />
+    <Path d="M6 14.6 Q24.675 17 43.35 14.6" fill="none" stroke="#3D2A5C" strokeWidth={0.7} strokeLinecap="round" opacity={0.5} />
+  </>
+);
+
+/** Sombrero — the widest brim in the set; it runs past the tile on both sides. */
+export const Sombrero: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M8.4 13 C11.4 7.4 17.4 2.6 24.675 1.2 C31.95 2.6 37.95 7.4 40.95 13 Z" fill="#E3B457" />
+    <Dome d="M11.4 9 Q24.675 6.6 37.95 9 L38.75 12 Q24.675 9.6 10.6 12 Z" fill="#8E5B2A" />
+    <Dome
+      d="M-1 15.2 C-2 11.2 3 10.2 9 11.6 C15 13 34.35 13 40.35 11.6 C46.35 10.2 51.35 11.2 50.35 15.2 C44 18.2 24.675 18.4 24.675 18.4 C5.35 18.2 -1 15.2 -1 15.2 Z"
+      fill="#E3B457"
+    />
+    <Path d="M2.6 14.4 Q24.675 17.2 46.75 14.4" fill="none" stroke="#B8892F" strokeWidth={0.8} strokeLinecap="round" opacity={0.7} />
+    <Path
+      d="M4.6 16.2 L7.4 14.4 M11.4 17 L14.4 15 M21.4 17.6 L24.4 15.6 M31.4 17.4 L34.4 15.4 M39.4 16.4 L42.4 14.4"
+      fill="none"
+      stroke="#B8892F"
+      strokeWidth={0.7}
+      strokeLinecap="round"
+      opacity={0.55}
+    />
+  </>
+);
+
+/** Deerstalker — plaid crown, twin brims, and the ear flaps that make it one. */
+export const Deerstalker: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M5.6 15 C4.8 6.4 9 3 24.675 3 C40.35 3 44.55 6.4 43.75 15 C34 12.8 15 12.8 5.6 15 Z" fill="#8A7A5E" />
+    <Path
+      d="M13.4 3.4 L13.4 14 M24.675 2.8 L24.675 13.4 M35.95 3.4 L35.95 14"
+      fill="none"
+      stroke="#5E5240"
+      strokeWidth={0.6}
+      strokeLinecap="round"
+      opacity={0.6}
+    />
+    <Path
+      d="M8 6.6 Q24.675 4.4 41.35 6.6 M6.6 10.4 Q24.675 8 42.75 10.4"
+      fill="none"
+      stroke="#5E5240"
+      strokeWidth={0.6}
+      strokeLinecap="round"
+      opacity={0.6}
+    />
+    <Dome d="M4.4 14.2 C1.4 14 0.4 17.6 2 21.6 C3.2 24.4 7 24.4 8.2 21.6 C9.4 18.8 8.4 14.6 4.4 14.2 Z" fill="#7A6B52" />
+    <Dome d="M44.95 14.2 C47.95 14 48.95 17.6 47.35 21.6 C46.15 24.4 42.35 24.4 41.15 21.6 C39.95 18.8 40.95 14.6 44.95 14.2 Z" fill="#7A6B52" />
+    <Dome d="M6.4 14.6 Q24.675 12.2 43 14.6 Q41.2 17.8 24.675 17.2 Q8.2 17.8 6.4 14.6 Z" fill="#7A6B52" />
+  </>
+);
+
+/** Graduation cap — the mortarboard reads even cropped, because the board is
+ *  a diamond rather than a dome. */
+export const GraduationCap: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M10.4 11.6 C10.4 8 38.95 8 38.95 11.6 L38.95 16.4 C38.95 18.6 10.4 18.6 10.4 16.4 Z" fill="#2B2733" />
+    <Dome d="M2.6 11.2 L24.675 4.8 L46.75 11.2 L24.675 17.6 Z" fill="#332F3D" />
+    <Path d="M24.675 11.2 L41.35 12.6 L41.35 19.6" fill="none" stroke={GOLD} strokeWidth={1} strokeLinecap="round" />
+    <Circle cx={41.35} cy={20.6} r={1.5} fill={GOLD} stroke={INK} strokeWidth={0.4} />
+    <Circle cx={CX} cy={11.2} r={1.1} fill={GOLD} stroke={INK} strokeWidth={0.4} />
+  </>
+);
+
+/** Chef toque — the puff is capped at the tile's ceiling; a true tall toque
+ *  would simply be sliced off. */
+export const ChefToque: React.FC<PartProps> = () => (
+  <>
+    <Dome
+      d="M7.4 13.6 C2.6 8.4 6.4 1.4 13.4 3 C15 -1.6 22.4 -2.4 25.4 1 C29.4 -2 37.4 0.4 37 5 C43.4 5.4 45.4 11.6 42.4 14.4 C34 12.4 15 12.4 7.4 13.6 Z"
+      fill="#F4F1EA"
+    />
+    <Dome d="M5.8 13.2 Q24.675 10.6 43.55 13.2 L43.55 17.4 Q24.675 14.8 5.8 17.4 Z" fill="#E2DDD2" />
+    <Path
+      d="M11.4 8.4 Q13.4 4.4 18.4 3.4 M30.4 3 Q35.4 4 37.4 8"
+      fill="none"
+      stroke="#D2CCBF"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      opacity={0.8}
+    />
+  </>
+);
+
+/** Sailor cap — the upturned dixie, with its anchor tab. */
+export const SailorCap: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M8.4 12 C8.4 6.4 12.6 3.8 24.675 3.8 C36.75 3.8 40.95 6.4 40.95 12 C34 10.2 15 10.2 8.4 12 Z" fill="#F4F1EA" />
+    <Dome
+      d="M5.6 15.4 C5.6 10.4 10 9.2 24.675 9.2 C39.35 9.2 43.75 10.4 43.75 15.4 C43.75 17.8 34 18.4 24.675 18.4 C15.35 18.4 5.6 17.8 5.6 15.4 Z"
+      fill="#F4F1EA"
+    />
+    <Path d="M8.4 14 Q24.675 11.8 40.95 14" fill="none" stroke="#C9C3B6" strokeWidth={0.7} strokeLinecap="round" opacity={0.7} />
+    <Dome d="M23.2 12.6 L26.15 12.6 L26.15 15.6 Q24.675 17.2 23.2 15.6 Z" fill="#2E5C8A" />
+  </>
+);
+
+/** Police cap — peaked, with a gold shield. */
+export const PoliceCap: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M6.6 13.4 C6.6 6.2 11 3.2 24.675 3.2 C38.35 3.2 42.75 6.2 42.75 13.4 C34 11.4 15 11.4 6.6 13.4 Z" fill="#2E3A55" />
+    <Dome d="M6.4 12.8 Q24.675 10.6 42.95 12.8 L42.95 15.8 Q24.675 13.6 6.4 15.8 Z" fill="#1E2740" />
+    <Dome d="M4.4 15.8 Q24.675 13.2 44.95 15.8 Q43 18.6 24.675 18 Q6.35 18.6 4.4 15.8 Z" fill="#161C2E" />
+    <Dome d="M22.4 5.8 L26.95 5.8 L26.95 9 Q24.675 10.8 22.4 9 Z" fill={GOLD} />
+  </>
+);
+
+/** Aviator cap — leather, ear flaps, goggles pushed up onto the crown. */
+export const AviatorCap: React.FC<PartProps> = () => (
+  <>
+    <Dome d="M5.6 16.4 C4.8 6.8 9 3.2 24.675 3.2 C40.35 3.2 44.55 6.8 43.75 16.4 C34 14.2 15 14.2 5.6 16.4 Z" fill="#6B4A32" />
+    <Dome d="M4.2 15.6 C1.6 15.6 0.8 19 2.4 22.8 C3.6 25.4 7 25.4 8.2 22.8 C9.4 20 8.6 16 4.2 15.6 Z" fill="#5A3D28" />
+    <Dome d="M45.15 15.6 C47.75 15.6 48.55 19 46.95 22.8 C45.75 25.4 42.35 25.4 41.15 22.8 C39.95 20 40.75 16 45.15 15.6 Z" fill="#5A3D28" />
+    <Path d="M5.6 12.4 Q24.675 9.8 43.75 12.4" fill="none" stroke="#4A3221" strokeWidth={0.9} strokeLinecap="round" opacity={0.7} />
+    <Circle cx={16} cy={8.4} r={3.9} fill="#2A2530" />
+    <Circle cx={33.35} cy={8.4} r={3.9} fill="#2A2530" />
+    <Circle cx={16} cy={8.4} r={3.9} fill="none" stroke="#C9A05A" strokeWidth={1.1} />
+    <Circle cx={33.35} cy={8.4} r={3.9} fill="none" stroke="#C9A05A" strokeWidth={1.1} />
+    <Path d="M19.9 8.4 L29.45 8.4" fill="none" stroke="#C9A05A" strokeWidth={1.2} strokeLinecap="round" />
+    <Path
+      d="M14.4 6.8 Q16 6 17.6 6.4 M31.75 6.8 Q33.35 6 34.95 6.4"
+      fill="none"
+      stroke="#FFFFFF"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      opacity={0.45}
+    />
+  </>
+);
+
+/** Browline — the weight is all in the brow bar; the lower rim is a wire. */
+export const Browline: React.FC<PartProps> = () => (
+  <>
+    <Path
+      d="M9.8 18.6 Q16 16.6 22.2 18.6 M27.15 18.6 Q33.35 16.6 39.55 18.6"
+      fill="none"
+      stroke="#3A2E28"
+      strokeWidth={3.2}
+      strokeLinecap="round"
+    />
+    <Circle cx={16} cy={22.4} r={4.6} fill="#FFFFFF" opacity={0.1} />
+    <Circle cx={32} cy={22.4} r={4.6} fill="#FFFFFF" opacity={0.1} />
+    <Path d="M11.4 22.4 A4.6 4.6 0 0 0 20.6 22.4" fill="none" stroke="#B9A78F" strokeWidth={1} />
+    <Path d="M27.4 22.4 A4.6 4.6 0 0 0 36.6 22.4" fill="none" stroke="#B9A78F" strokeWidth={1} />
+    <Path d="M22.2 19 H27.15" fill="none" stroke="#3A2E28" strokeWidth={1.4} strokeLinecap="round" />
+    <Path d="M9.8 19.2 L6 18.2 M39.55 19.2 L43.35 18.2" fill="none" stroke="#3A2E28" strokeWidth={1.4} strokeLinecap="round" />
+    <Path d="M13 20.4 L15.4 19.8 M29 20.4 L31.4 19.8" fill="none" stroke="#FFFFFF" strokeWidth={0.8} strokeLinecap="round" opacity={0.5} />
+  </>
+);
+
+/** Rimless — wire and glass only; the lenses are a tint, not a frame. */
+export const Rimless: React.FC<PartProps> = () => (
+  <>
+    <Rect x={11.2} y={18.4} width={9.6} height={7.4} rx={1.6} fill="#CFE4F2" opacity={0.22} />
+    <Rect x={27.2} y={18.4} width={9.6} height={7.4} rx={1.6} fill="#CFE4F2" opacity={0.22} />
+    <Path d="M20.8 20.4 Q24.675 19 28.55 20.4" fill="none" stroke="#9AA6B4" strokeWidth={1} strokeLinecap="round" />
+    <Path d="M11.2 20 L6.6 18.8 M36.8 20 L41.4 18.8" fill="none" stroke="#9AA6B4" strokeWidth={1} strokeLinecap="round" />
+    <Path d="M11.6 25.6 L20.4 25.6 M28.6 25.6 L37.4 25.6" fill="none" stroke="#9AA6B4" strokeWidth={0.7} strokeLinecap="round" opacity={0.8} />
+    <Path d="M13.4 20 L16.4 19.4 M29.4 20 L32.4 19.4" fill="none" stroke="#FFFFFF" strokeWidth={0.8} strokeLinecap="round" opacity={0.6} />
+  </>
+);
+
+const hexLens = (cx: number) =>
+  `M${cx - 5.2} 22 L${cx - 2.6} 17.8 L${cx + 2.6} 17.8 L${cx + 5.2} 22 L${cx + 2.6} 26.2 L${cx - 2.6} 26.2 Z`;
+
+/** Hex frames — six-sided wire in a warm metal. */
+export const HexFrames: React.FC<PartProps> = () => (
+  <>
+    <Path d={hexLens(16)} fill="#FFD9A0" opacity={0.3} />
+    <Path d={hexLens(32)} fill="#FFD9A0" opacity={0.3} />
+    <Path d={hexLens(16)} fill="none" stroke="#8A6A3A" strokeWidth={1.4} strokeLinejoin="round" />
+    <Path d={hexLens(32)} fill="none" stroke="#8A6A3A" strokeWidth={1.4} strokeLinejoin="round" />
+    <Path d="M21.2 22 H26.8" fill="none" stroke="#8A6A3A" strokeWidth={1.4} strokeLinecap="round" />
+    <Path d="M10.8 21 L6.6 19.6 M37.2 21 L41.4 19.6" fill="none" stroke="#8A6A3A" strokeWidth={1.4} strokeLinecap="round" />
+    <Path d="M13 20 L15.4 18.6 M29 20 L31.4 18.6" fill="none" stroke="#FFFFFF" strokeWidth={0.8} strokeLinecap="round" opacity={0.5} />
+  </>
+);
+
+/** Pixel shades — an 8-bit bar. The one piece in the catalog drawn on a grid
+ *  rather than a curve, which is the whole joke. */
+export const PixelShades: React.FC<PartProps> = () => {
+  const CELL = 2.6;
+  const X0 = 8.4;
+  const Y0 = 17.6;
+  const GRID = [
+    [1, 1, 1, 1, 0, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ];
+  return (
+    <>
+      {GRID.flatMap((row, r) =>
+        row.map((v, c) =>
+          v ? (
+            <Rect
+              key={`${r}-${c}`}
+              x={+(X0 + c * CELL * 1.32).toFixed(2)}
+              y={+(Y0 + r * CELL).toFixed(2)}
+              width={CELL * 1.28}
+              height={CELL}
+              fill={r === 2 ? "#1A1720" : "#23202B"}
+            />
+          ) : null,
+        ),
+      )}
+    </>
+  );
+};
+
+const LEOPARD_L = "M10 23.4 Q9.6 18.8 15.4 18.4 Q21 18.1 22.4 20.4 Q23 21.6 20.4 22.6 Q14.4 24.4 10 23.4 Z";
+const LEOPARD_R = "M39.35 23.4 Q39.75 18.8 33.95 18.4 Q28.35 18.1 26.95 20.4 Q26.35 21.6 28.95 22.6 Q34.95 24.4 39.35 23.4 Z";
+
+/** Leopard cat-eye — spotted frame, dark lens. */
+export const LeopardCatEye: React.FC<PartProps> = () => (
+  <>
+    <Path d={LEOPARD_L} fill="#20222B" />
+    <Path d={LEOPARD_R} fill="#20222B" />
+    <Path d={LEOPARD_L} fill="none" stroke="#D9A93F" strokeWidth={2.2} strokeLinejoin="round" />
+    <Path d={LEOPARD_R} fill="none" stroke="#D9A93F" strokeWidth={2.2} strokeLinejoin="round" />
+    {[
+      [12.4, 21.4],
+      [16.4, 19.6],
+      [19.4, 21.2],
+      [14.4, 22.8],
+      [36.95, 21.4],
+      [32.95, 19.6],
+      [29.95, 21.2],
+      [34.95, 22.8],
+    ].map(([x, y]) => (
+      <Circle key={`${x}-${y}`} cx={x} cy={y} r={0.85} fill="#4A3520" />
+    ))}
+    <Path d="M22.4 20.6 Q24.675 19.4 26.95 20.6" fill="none" stroke="#D9A93F" strokeWidth={1.5} strokeLinecap="round" />
+    <Path d="M9.9 20.6 L6 19.4 M39.45 20.6 L43.35 19.4" fill="none" stroke="#D9A93F" strokeWidth={1.5} strokeLinecap="round" />
+  </>
+);
+
+/** Monocle — one lens and a chain. The only asymmetric eyewear in the set. */
+export const Monocle: React.FC<PartProps> = () => (
+  <>
+    <Circle cx={32} cy={22} r={5.6} fill="#CFE4F2" opacity={0.2} />
+    <Circle cx={32} cy={22} r={5.6} fill="none" stroke={GOLD} strokeWidth={1.5} />
+    <Circle cx={32} cy={22} r={4.6} fill="none" stroke={GOLD} strokeWidth={0.5} />
+    <Path d="M32 27.6 Q31.4 33 34.4 36.4" fill="none" stroke={GOLD} strokeWidth={0.9} strokeLinecap="round" opacity={0.9} />
+    <Path d="M29.4 19.4 Q31 18.2 33 18.6" fill="none" stroke="#FFFFFF" strokeWidth={0.9} strokeLinecap="round" opacity={0.6} />
   </>
 );

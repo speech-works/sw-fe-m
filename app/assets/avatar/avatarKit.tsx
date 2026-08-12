@@ -28,6 +28,49 @@ export function shade(hex: string, amt: number): string {
 }
 
 /**
+ * A partner colour a real HUE away from the base — not the same hue dimmed.
+ *
+ * Backdrop patterns need two colours that read as two colours. `shade()` can
+ * only travel along one hue, which is exactly why the first pass at patterned
+ * backdrops came out flat: a sunset drawn in one blue is a blue rectangle.
+ * `deg` rotates the hue, `dl` lifts or drops lightness, `ds` adjusts
+ * saturation — so one drawing works across the whole backdrop palette.
+ */
+export function hue(hex: string, deg: number, dl = 0, ds = 0): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  const l0 = (mx + mn) / 2;
+  let h0 = 0;
+  let s0 = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s0 = l0 > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h0 = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h0 /= 6;
+  }
+  const h = ((((h0 * 360 + deg) % 360) + 360) % 360) / 360;
+  const s = Math.max(0, Math.min(1, s0 + ds));
+  const l = Math.max(0.04, Math.min(0.96, l0 + dl));
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const ch = (t: number) => {
+    let x = t;
+    if (x < 0) x += 1;
+    if (x > 1) x -= 1;
+    if (x < 1 / 6) return p + (q - p) * 6 * x;
+    if (x < 1 / 2) return q;
+    if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6;
+    return p;
+  };
+  const out = (v: number) => Math.round((s === 0 ? l : v) * 255);
+  return `#${((1 << 24) + (out(ch(h + 1 / 3)) << 16) + (out(ch(h)) << 8) + out(ch(h - 1 / 3))).toString(16).slice(1)}`;
+}
+
+/**
  * A trim tone that always CONTRASTS the fabric it edges — dark piping on a
  * white collar, light piping on a navy one.
  *

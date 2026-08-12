@@ -27,11 +27,20 @@ const XP_RETRY_DELAY_MS = 1200;
 
 export interface CompletionCelebration {
   leveledUp: boolean;
+  /** The level they were on before this completion. Carried out so the reward
+   *  reveal can list every rung crossed — one practice can grant more than one
+   *  level, and only the snapshot knows where the jump started. */
+  fromLevel: number;
   newLevel: number;
   stageTitle: string | null;
 }
 
-const NONE: CompletionCelebration = { leveledUp: false, newLevel: 1, stageTitle: null };
+const NONE: CompletionCelebration = {
+  leveledUp: false,
+  fromLevel: 1,
+  newLevel: 1,
+  stageTitle: null,
+};
 
 export function useCompletionCelebration({
   enabled,
@@ -77,6 +86,7 @@ export function useCompletionCelebration({
       const newLevel = fresh.level ?? snap.level;
       setResult({
         leveledUp: newLevel > snap.level,
+        fromLevel: snap.level,
         newLevel,
         stageTitle: stage?.title ?? null,
       });

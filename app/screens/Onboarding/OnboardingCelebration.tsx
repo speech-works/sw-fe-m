@@ -12,8 +12,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Defs, Path, RadialGradient, Stop } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { UserAvatar } from "../../components/UserAvatar";
+import { CelebrationLight } from "../../components/CelebrationLight";
 import { DEFAULT_MANIFEST, type AvatarManifest } from "../../types/avatar";
 import {
   Text,
@@ -24,7 +25,6 @@ import {
   spacing,
   space,
   radius,
-  withAlpha,
 } from "../../design-system";
 
 /**
@@ -49,7 +49,6 @@ import {
 // for the summit flag to fly past the edge.
 const HERO_SIZE = 160;
 const STAGE = 232; // stage height that the light layers center within
-const BURST_PERIOD = 22000; // one slow god-ray revolution
 
 /**
  * The celebration hero is the app's OWN avatar — the circular tile + squircle
@@ -68,127 +67,9 @@ const HERO_MANIFEST: AvatarManifest = {
   },
 };
 
-// ── God-ray sunburst geometry (built once; Math is fine in app code) ────────
-const RAYS = 12;
-const RAY_PATH = (() => {
-  const cx = 100, cy = 100, rInner = 12, rOuter = 100;
-  const half = (Math.PI / RAYS) * 0.42;
-  let d = "";
-  for (let i = 0; i < RAYS; i++) {
-    const a = (i / RAYS) * Math.PI * 2;
-    const ax = cx + Math.cos(a) * rInner;
-    const ay = cy + Math.sin(a) * rInner;
-    const x1 = cx + Math.cos(a - half) * rOuter;
-    const y1 = cy + Math.sin(a - half) * rOuter;
-    const x2 = cx + Math.cos(a + half) * rOuter;
-    const y2 = cy + Math.sin(a + half) * rOuter;
-    d += `M${ax.toFixed(1)} ${ay.toFixed(1)} L${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} Z `;
-  }
-  return d.trim();
-})();
-
 /** A 4-point twinkle star. */
 const SPARK_PATH =
   "M12 0 C13.2 8 16 10.8 24 12 C16 13.2 13.2 16 12 24 C10.8 16 8 13.2 0 12 C8 10.8 10.8 8 12 0 Z";
-
-/** Rotating god-rays behind the cast. The single biggest source of impact. */
-const Sunburst: React.FC<{ reduced: boolean; color: string }> = ({
-  reduced,
-  color,
-}) => {
-  const rot = useSharedValue(0);
-  const pulse = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduced) return;
-    rot.value = withRepeat(
-      withTiming(1, { duration: BURST_PERIOD, easing: easing.linear }),
-      -1,
-      false,
-    );
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 2800, easing: easing.loop }),
-      -1,
-      true,
-    );
-    return () => {
-      cancelAnimation(rot);
-      cancelAnimation(pulse);
-    };
-  }, [reduced, rot, pulse]);
-
-  /*
-   * EVERY REDUCED-MOTION BRANCH IN THIS FILE RETURNS AN IDENTITY TRANSFORM
-   * RATHER THAN OMITTING THE KEY, and the four of them should stay that way.
-   *
-   * Reanimated snapshots the shape of the first style a worklet returns and
-   * merges later ones into it — `last[propName][prop] = obj[prop]` in
-   * useAnimatedStyle's frame callback. A branch returning `{ opacity }` alone
-   * leaves `last.transform` undefined, and a later pass animating a transform
-   * dies on "Cannot set property 'scale' of undefined" — the crash already
-   * commented in CustomScrollView.
-   *
-   * Nothing here can reach that today, and it takes TWO independent things
-   * going wrong: that frame callback only runs for styles returning an inline
-   * `withTiming`/`withSpring` (these return plain `interpolate` output, so
-   * `hasAnimations` stays false), and `useReducedMotion()` reads a module
-   * constant captured at app start, so only one branch ever runs per mount.
-   *
-   * Both are one ordinary edit away from being untrue — dropping a `withTiming`
-   * into one of these styles is a completely normal thing to do, and it would
-   * arm the bug silently for anyone with reduce-motion switched on. The
-   * identity values cost nothing and render identically, so keep the shapes
-   * matched rather than relying on either condition holding.
-   */
-  const style = useAnimatedStyle(() => {
-    if (reduced) {
-      return { opacity: 0.32, transform: [{ rotate: "0deg" }, { scale: 1 }] };
-    }
-    return {
-      opacity: interpolate(pulse.value, [0, 1], [0.34, 0.52]),
-      transform: [
-        { rotate: `${rot.value * 360}deg` },
-        { scale: interpolate(pulse.value, [0, 1], [0.96, 1.04]) },
-      ],
-    };
-  });
-
-  return (
-    <Animated.View style={[styles.burst, style]} pointerEvents="none">
-      <Svg width={300} height={300} viewBox="0 0 200 200">
-        <Defs>
-          <RadialGradient id="ray" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={color} stopOpacity="0.9" />
-            <Stop offset="0.55" stopColor={color} stopOpacity="0.5" />
-            <Stop offset="1" stopColor={color} stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-        <Path d={RAY_PATH} fill="url(#ray)" />
-      </Svg>
-    </Animated.View>
-  );
-};
-
-/** One-shot shockwave ring — expands and fades on mount. */
-const HaloRing: React.FC<{ color: string }> = ({ color }) => {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withDelay(
-      120,
-      withTiming(1, { duration: 720, easing: easing.out }),
-    );
-  }, [t]);
-  const style = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 0.1, 1], [0, 0.5, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [0.4, 1.5]) }],
-  }));
-  return (
-    <Animated.View
-      style={[styles.halo, { borderColor: color }, style]}
-      pointerEvents="none"
-    />
-  );
-};
 
 /** A twinkling sparkle at a fixed offset from the stage centre. */
 const Sparkle: React.FC<{
@@ -452,8 +333,15 @@ const OnboardingCelebration: React.FC = () => {
 
   return (
     <View style={styles.wrap}>
-      <Sunburst reduced={reduced} color={gold} />
-      {!reduced ? <HaloRing color={withAlpha(gold, 0.7)} /> : null}
+      {/* Rays 300, ring 150, both centred on the stage — the same numbers this
+          screen has always used, now shared with the level-up takeover. */}
+      <CelebrationLight
+        reduced={reduced}
+        color={gold}
+        burstSize={300}
+        haloSize={150}
+        gradientId="onboardingRay"
+      />
       {sparkles.map((s, i) => (
         <Sparkle key={i} index={i} reduced={reduced} {...s} />
       ))}
@@ -473,20 +361,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space.groupGap,
     marginVertical: spacing.sm,
-  },
-  burst: {
-    position: "absolute",
-    top: (STAGE - 300) / 2,
-    alignSelf: "center",
-  },
-  halo: {
-    position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: radius.full,
-    borderWidth: 3,
-    alignSelf: "center",
-    top: (STAGE - 150) / 2,
   },
   sparkle: {
     position: "absolute",

@@ -120,6 +120,10 @@ export const UserAvatar = React.memo<UserAvatarProps>(
           <AvatarDefs />
           <G mask={shape === "square" ? "url(#av-square)" : "url(#av-circ)"}>
             <Path d={shape === "square" ? TILE_SQUARE : TILE} fill={m.colors.bg} />
+            {/* The backdrop pattern, if any, sits ON the flat colour rather than
+                replacing it — every pattern derives its tones from that same
+                colour, so the two can never disagree. */}
+            {part("bg")}
             {collar("back")}
             {hair("back")}
             {part("head")}
