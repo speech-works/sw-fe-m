@@ -25,45 +25,73 @@ import {
  * decorative art captioned as live data is the thing to avoid, and it is the
  * only rule this file has to hold.
  *
+ * The wall is also the shop window for the wardrobe, which is why it wears the
+ * good gear rather than the plain gear. That reverses an earlier rule in this
+ * file, and the reasoning is worth keeping: the old version drew EVERYDAY parts
+ * only, on the grounds that a stranger in earned gear implies progression
+ * nobody made. Over-applied. These are illustrations, so dressing one in a
+ * crown makes no claim about any person, and what the wall is wearing was never
+ * the honesty question. The caption is.
+ *
  * Every face is drawn ONLY from the palettes and parts the avatar studio
  * itself offers, so the crowd looks like it belongs to this product rather
  * than to a stock illustration set.
  */
 
 /**
- * What the crowd may wear: the catalog's EVERYDAY tier, and nothing else.
+ * How much likelier a premium piece is than a plain one, in the slots where a
+ * silhouette is the whole point.
  *
- * This used to be four hand-written id lists, which drifted the moment anyone
- * added a part — the wall was still wearing five of twelve collars months after
- * the rest shipped. Deriving it means a new everyday part reaches the wall by
- * being everyday, and the two tiers that must never appear here are excluded by
- * what they ARE rather than by being remembered:
+ * Two, not ten. The wall is advertising, but a wall of nothing but crowns and
+ * witch hats reads as a costume box rather than as a room, which is the same
+ * failure the headgear frequency below was tuned to avoid. Doubling the odds
+ * puts the good gear on most of the heads that HAVE gear while leaving the
+ * plain pieces in the mix.
+ */
+const PREMIUM_WEIGHT = 2;
+
+/**
+ * What the crowd may wear: the whole catalog, leaning premium.
  *
- *   journey gear implies a level the stranger never reached;
- *   collection pieces imply ownership they were never granted.
+ * Derived rather than hand-listed. This used to be four hand-written id lists,
+ * which drifted the moment anyone added a part — the wall was still wearing
+ * five of twelve collars months after the rest shipped.
+ *
+ * Weighting is done by REPEATING ids in the pool rather than by branching in
+ * the picker, so `pick` stays a plain uniform draw over a list and the odds are
+ * something you can read off the data.
  *
  * Sorted so the wall is deterministic against registry REORDERING too, not just
  * across renders — `Object.keys` order is insertion order, and a tidy-up of the
  * registry would otherwise silently reshuffle every face on the screen.
  */
-function everyday(slot: AvatarSlot): string[] {
-  return Object.keys(PART_REGISTRY[slot])
-    .filter((id) => partTier(id) === "everyday" && !CROWD_EXCLUDE.has(id))
+function showcase(slot: AvatarSlot, weight = PREMIUM_WEIGHT): string[] {
+  const ids = Object.keys(PART_REGISTRY[slot])
+    .filter((id) => !CROWD_EXCLUDE.has(id))
     .sort();
+  return ids.flatMap((id) =>
+    partTier(id) === "everyday" ? [id] : (Array(weight).fill(id) as string[]),
+  );
 }
 
 /**
- * Everyday parts that are still wrong at CROWD size.
+ * Parts that are wrong at CROWD size.
  *
- * A separate judgment from the tier, and a much narrower one: these are fine on
- * your own avatar at 130pt and fail at 50pt, so the reason is always about the
- * drawing rather than about the garment.
+ * The only exclusion list left, and it is about the DRAWING rather than the
+ * garment: these are fine on your own avatar at 130pt and fail at 50pt, where
+ * the tiles are small and sit at low opacity so outline is all the eye gets.
+ * Anything added here needs a reason you could point at on screen.
  */
 const CROWD_EXCLUDE = new Set([
   // The brim reads as a visor at this size and skews the whole wall young.
   "headgear.cap",
   // The knot collapses into a smudge at the throat and reads as a stain.
   "collar.bowtie",
+  // Opaque across both eyes, so the tile reads as faceless. Fine on your own
+  // avatar at 130pt, where it is obviously a pair of goggles; on a wall whose
+  // entire job is to look like a room of PEOPLE, one blank face is the loudest
+  // thing on screen. The daisy glasses beside it keep their eyes and stay.
+  "eyewear.goggles",
 ]);
 
 /** Expressions. Not tiered — a face is not clothing. `wow` is left out: a room
@@ -79,35 +107,43 @@ const HAIR_STYLES = [
 ] as const;
 
 /**
- * A pool where `blanks` empty slots sit beside the styles.
+ * A pool where roughly `fill` of the draws land on a style and the rest on null.
  *
- * The RATIO is the design decision on this screen, so it is written as a number
- * you can read and change rather than as a column of repeated nulls whose count
- * you have to trust yourself to have got right.
+ * THE RATE IS THE DESIGN DECISION, so it is the argument. This used to take a
+ * blank COUNT, which encoded the same intent only while the style list stayed
+ * the same length — and opening the wall to the whole catalog tripled the
+ * headgear list, quietly taking bare heads from four in five to under a half.
+ * The frequency tests caught it, which is the only reason it is not on the
+ * screen right now.
  */
-function pool(blanks: number, styles: readonly string[]): readonly (string | null)[] {
+function pool(fill: number, styles: readonly string[]): readonly (string | null)[] {
+  const blanks = Math.max(0, Math.round((styles.length * (1 - fill)) / fill));
   return [...(Array(blanks).fill(null) as (string | null)[]), ...styles];
 }
 
-const COLLARS = everyday("collar");
+/** Collars are the one slot that is ALWAYS filled, so it carries most of the
+ *  wall's variety. Left unweighted: a premium lean here would show the same few
+ *  fancy collars over and over rather than a room of different necklines. */
+const COLLARS = showcase("collar", 1);
 
 /**
  * Mostly bare heads.
  *
  * The frequency matters as much as the list. At two-in-five, a fifteen-tile wall
  * came out with a hat on nearly every head and read as a costume box rather than
- * a room full of people. Roughly one in seven: enough to break up the
- * silhouettes, rare enough that hair does the varying.
+ * a room full of people. Roughly one in five: enough to break up the
+ * silhouettes, rare enough that hair does the varying. Unchanged by opening the
+ * catalog — the wall shows BETTER gear, not more of it.
  */
-const HEADGEAR = pool(22, everyday("headgear"));
+const HEADGEAR = pool(0.185, showcase("headgear"));
 
 /** Facial hair — the cheapest real variety on a wall of faces, because it
  *  changes the lower silhouette without adding a slot the eye has to read. */
-const BEARDS = pool(12, everyday("beard"));
+const BEARDS = pool(0.368, showcase("beard"));
 
 /** Glasses on roughly a quarter of the crowd — near enough to life to pass
  *  unnoticed, which is the goal. */
-const EYEWEAR = pool(18, everyday("eyewear"));
+const EYEWEAR = pool(0.357, showcase("eyewear"));
 
 /** FNV-1a. Small, dependency-free, and well spread for short ASCII keys —
  *  neighbouring uuids must not land on neighbouring looks. */

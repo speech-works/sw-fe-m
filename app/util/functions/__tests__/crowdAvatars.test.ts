@@ -16,8 +16,13 @@ import type { AvatarManifest, AvatarSlot } from "../../../types/avatar";
  *
  * What these tests hold: the crowd looks like it belongs to this product (only
  * colours and parts the studio itself offers), it is stable rather than
- * reshuffling on every render, and it never dresses anyone in gear that is
- * earned by levelling.
+ * reshuffling on every render, and it SHOWS OFF the wardrobe rather than
+ * hiding it.
+
+ * That last one reverses an earlier rule. The wall used to be everyday-only, so
+ * a stranger could not imply progression nobody made. Over-applied: these are
+ * illustrations, so a crown on one makes no claim about any person. The
+ * honesty question was always the caption beside the wall, never the clothes.
  */
 
 describe("crowdAvatar", () => {
@@ -64,34 +69,60 @@ describe("crowdAvatar", () => {
     }
   });
 
-  it("dresses strangers in EVERYDAY parts only", () => {
-    // The one rule the wall has to hold, and it is about ownership rather than
-    // taste: journey gear implies a level nobody reached, and a collection
-    // piece implies something nobody was granted. Everyday parts are the only
-    // ones every person in the picture plausibly owns.
-    for (let i = 0; i < 60; i++) {
-      const a = crowdAvatar(`t${i}`);
-      for (const [slot, id] of Object.entries(a.parts)) {
-        if (id === null || slot === "head" || slot === "face" || slot === "hair") continue;
-        expect(partTier(id)).toBe("everyday");
-      }
-    }
+  it("actually shows off the earned wardrobe", () => {
+    // The wall is the shop window. A silent revert to everyday-only would look
+    // completely fine on screen and quietly stop selling anything, which is
+    // exactly the kind of regression nobody files a bug for.
+    const wall = Array.from({ length: 60 }, (_, i) => crowdAvatar(`t${i}`));
+    const premium = new Set<string>();
+    wall.forEach((a) => {
+      [a.parts.headgear, a.parts.eyewear, a.parts.collar].forEach((id) => {
+        if (id && partTier(id) !== "everyday") premium.add(id);
+      });
+    });
+    expect(premium.size).toBeGreaterThanOrEqual(6);
   });
 
-  it("still names the specific pieces that must never appear", () => {
-    // The tier check above is the principle; this is the regression guard. If
-    // someone re-tags one of these as everyday, the wall should fail loudly
-    // rather than quietly put a crown on a stranger.
-    const banned = ["headgear.tourist", "headgear.explorer", "headgear.cowboy",
-      "headgear.crown", "headgear.party", "headgear.tophat", "headgear.pirate",
-      "headgear.santa", "headgear.viking", "eyewear.aviator"];
+  it("leans premium in the slots where a silhouette is the point", () => {
+    // Of the heads that DO wear something, most wear something worth wanting.
+    // Note this is mostly the CATALOG talking, not the weight: headgear is 18
+    // premium to 5 everyday, so even a flat draw lands near 78%. The weight is
+    // a nudge, and it earns its keep in eyewear, which is close to even.
+    const wall = Array.from({ length: 200 }, (_, i) => crowdAvatar(`w${i}`));
+    const share = (f: (a: AvatarManifest) => string | null) => {
+      const worn = wall.map(f).filter((g): g is string => g !== null);
+      return worn.filter((g) => partTier(g) !== "everyday").length / worn.length;
+    };
+    expect(share((a) => a.parts.headgear)).toBeGreaterThan(0.5);
+    expect(share((a) => a.parts.eyewear)).toBeGreaterThan(0.5);
+  });
+
+  it("is still a room, not a fancy-dress party", () => {
+    // The costume-box risk is about how OFTEN gear appears, which the bare-head
+    // test covers. What this holds is the other half: plain pieces have not been
+    // squeezed out, so the wall reads as a mix of people rather than a uniform.
+    const wall = Array.from({ length: 60 }, (_, i) => crowdAvatar(`m${i}`));
+    const plain = new Set<string>();
+    wall.forEach((a) => {
+      [a.parts.headgear, a.parts.eyewear, a.parts.collar].forEach((id) => {
+        if (id && partTier(id) === "everyday") plain.add(id);
+      });
+    });
+    expect(plain.size).toBeGreaterThanOrEqual(6);
+  });
+
+  it("keeps the pieces that are illegible at 50pt off the wall", () => {
+    // The only exclusion left, and it is about the drawing rather than the
+    // garment: these read as a smudge at crowd size.
     const worn = new Set(
       Array.from({ length: 60 }, (_, i) => {
         const p = crowdAvatar(`b${i}`).parts;
         return [p.headgear, p.eyewear, p.collar];
       }).flat(),
     );
-    banned.forEach((id) => expect(worn.has(id)).toBe(false));
+    ["headgear.cap", "collar.bowtie", "eyewear.goggles"].forEach((id) =>
+      expect(worn.has(id)).toBe(false),
+    );
   });
 
   it("leaves the large majority of heads bare", () => {
