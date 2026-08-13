@@ -2,6 +2,7 @@ import { Audio } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -145,7 +146,7 @@ const Metronome = ({
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View style={styles.heroHeaderText}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               TEMPO
             </Text>
             <Text variant="h3" color="primary">
@@ -165,7 +166,7 @@ const Metronome = ({
           >
             <Icon
               name={icons.duration}
-              size={12}
+              size={size.iconXs}
               color={
                 activeIsPlaying
                   ? colors.feedback.successText
@@ -203,7 +204,7 @@ const Metronome = ({
       >
         <View style={styles.sliderHeader}>
           <View>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               SPEED
             </Text>
             <Text variant="h3" color="primary">

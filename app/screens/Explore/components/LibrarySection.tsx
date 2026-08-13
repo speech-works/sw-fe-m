@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  size,
   useTheme,
   spacing,
   space,
@@ -78,7 +79,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
           <View style={styles.actions}>
             {/* Primary action = a solid dark island on the bright fill. */}
             <View style={[styles.cta, { backgroundColor: isDark ? colors.action.secondary : colors.surface.inverse }]}>
-              <Icon name={icons.play} size={14} color={isDark ? colors.action.onSecondary : colors.text.primary} />
+              <Icon name={icons.play} size={size.iconInline} color={isDark ? colors.action.onSecondary : colors.text.primary} />
               <Text variant="title" color={isDark ? colors.action.onSecondary : colors.text.primary}>
                 Recorded Lessons
               </Text>

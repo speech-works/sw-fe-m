@@ -5,6 +5,7 @@ import PressableScale from "../../../components/PressableScale";
 import { useAppearanceStore, AppearanceMode } from "../../../stores/appearance";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -70,7 +71,7 @@ const Appearance = () => {
                   { backgroundColor: colors.surface.control },
                 ]}
               >
-                <Icon name={option.icon} size={22} color={colors.text.primary} />
+                <Icon name={option.icon} size={size.icon} color={colors.text.primary} />
               </View>
               <View style={styles.optionDescContainer}>
                 <Text variant="title">{option.name}</Text>
@@ -79,7 +80,7 @@ const Appearance = () => {
                 </Text>
               </View>
               {selected ? (
-                <Icon name="check-circle" size={22} color={colors.text.accent} />
+                <Icon name="check-circle" size={size.icon} color={colors.text.accent} />
               ) : null}
             </PressableScale>
           );

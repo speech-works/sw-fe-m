@@ -324,7 +324,7 @@ const useStyles = makeStyles((c) => ({
   timelineDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     backgroundColor: c.accent.success,
     marginTop: spacing.sm,
   },

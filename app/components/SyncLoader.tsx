@@ -1,8 +1,7 @@
 import React from "react";
 import { Modal, View } from "react-native";
 import { useSessionStore } from "../stores/session";
-import LoadingScreen from "./Loading";
-import { makeStyles } from "../design-system";
+import { makeStyles, Spinner } from "../design-system";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 
 const SyncLoader: React.FC = () => {
@@ -19,7 +18,7 @@ const SyncLoader: React.FC = () => {
     >
       <View style={styles.overlay}>
         <View style={styles.content}>
-          <LoadingScreen message="Syncing practice sessions…" isNested />
+          <Spinner label="Syncing practice sessions…" />
         </View>
       </View>
     </Modal>

@@ -67,8 +67,8 @@ const LibrarySection = ({
       {/* --- Minimal Header --- */}
       <View style={styles.header}>
         {subtitle ? (
-          <Text variant="label" color="tertiary" style={styles.subtitle}>
-            {subtitle.toUpperCase()}
+          <Text variant="eyebrow" color="tertiary" style={styles.subtitle}>
+            {subtitle}
           </Text>
         ) : null}
 
@@ -137,8 +137,8 @@ const LibrarySection = ({
             {title}
           </Text>
           {subtitle ? (
-            <Text variant="label" color="tertiary" center style={styles.modalSubtitle}>
-              {subtitle.toUpperCase()}
+            <Text variant="eyebrow" color="tertiary" center style={styles.modalSubtitle}>
+              {subtitle}
             </Text>
           ) : null}
 

@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import {
+  fonts,
   Text,
   useTheme,
   useMotion,
@@ -79,7 +80,7 @@ const TopMatchBadge: React.FC = () => {
       style={[styles.badge, { backgroundColor: colors.accent.lime }]}
       pointerEvents="none"
     >
-      <Text variant="label" color={colors.accentOn.lime}>
+      <Text variant="eyebrow" color={colors.accentOn.lime}>
         TOP MATCH
       </Text>
     </View>
@@ -223,7 +224,7 @@ const StampArtwork: React.FC<StampArtworkProps> = ({
     </Svg>
 
     <View style={styles.ticketCopy}>
-      <Text variant="caption" color={ink} style={[styles.stampLine, styles.stampTop]}>
+      <Text variant="eyebrow" color={ink} style={[styles.stampLine, styles.stampTop]}>
         TOP
       </Text>
       <Text variant="title" color={ink} style={[styles.stampLine, styles.stampMatch]}>
@@ -437,16 +438,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stampLine: {
-    fontWeight: "800",
+    fontFamily: fonts.extrabold,
     textAlign: "center",
   },
   stampTop: {
-    fontWeight: "700",
-    letterSpacing: 4,
+    fontFamily: fonts.bold,
     paddingLeft: 4,
   },
   stampMatch: {
-    fontWeight: "800",
+    fontFamily: fonts.extrabold,
     fontSize: 20,
     lineHeight: 22,
     letterSpacing: 2,

@@ -19,6 +19,7 @@ import {
 } from "../../../../../assets/avatar/registry";
 import type { AvatarManifest } from "../../../../../types/avatar";
 import {
+  size,
   AnimatedModal,
   Button,
   Icon,
@@ -171,7 +172,7 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
         <Animated.View
           style={[styles.iconDisc, { backgroundColor: colors.action.primary }, discStyle]}
         >
-          <Icon name={icons.levelUp} size={30} color={colors.action.onPrimary} />
+          <Icon name={icons.levelUp} size={size.iconLg} color={colors.action.onPrimary} />
         </Animated.View>
 
         <Text variant="label" color="secondary" center>

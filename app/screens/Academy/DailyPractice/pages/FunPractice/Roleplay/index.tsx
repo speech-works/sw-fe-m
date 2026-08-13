@@ -1,13 +1,15 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
 import PressableScale from "../../../../../../components/PressableScale";
 import {
   RoleplayFDPStackNavigationProp,
   RoleplayFDPStackParamList,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 import {
+  size,
+  Icon, icons,
+  fonts,
   Page,
   Text,
   useTheme,
@@ -76,9 +78,9 @@ const Roleplay = () => {
             { backgroundColor: colors.accent.warning },
           ]}
         >
-          <FAIcon
-            name="theater-masks"
-            size={32}
+          <Icon
+            name={icons.roleplay}
+            size={size.iconXl}
             color={colors.accentOn.warning}
           />
         </View>
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
   heroIconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
   },
   watermarkText: {
     fontSize: 96,
-    fontWeight: "900",
+    fontFamily: fonts.extrabold,
     includeFontPadding: false,
     letterSpacing: -4,
   },

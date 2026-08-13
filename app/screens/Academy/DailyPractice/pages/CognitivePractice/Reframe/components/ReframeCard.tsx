@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import PressableScale from "../../../../../../../components/PressableScale";
 import {
+  size,
   Surface,
   Text,
   Icon,
@@ -70,7 +71,7 @@ const ReframeCard = ({
               <Text variant="bodySm" color={changeColor}>
                 Change
               </Text>
-              <Icon name="chevron-right" size={12} color={changeColor} />
+              <Icon name="chevron-right" size={size.iconXs} color={changeColor} />
             </View>
           </View>
         ) : null}

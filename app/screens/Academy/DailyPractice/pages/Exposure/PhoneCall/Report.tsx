@@ -9,6 +9,8 @@ import {
 } from "../../../../../../api/practiceActivities";
 import ErrorStateCard from "../../../../../../components/Dashboard/ErrorStateCard";
 import {
+  size,
+  fonts,
   useTheme,
   spacing,
   radius,
@@ -98,7 +100,7 @@ const SectionCard = ({
     <View style={[styles.card, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconCircle, { backgroundColor: tint }]}>
-          <Icon name={icon} size={14} color={accent} />
+          <Icon name={icon} size={size.iconInline} color={accent} />
         </View>
         <Text variant="h3" color="primary">
           {title}
@@ -208,10 +210,10 @@ const PhoneCallReport: React.FC<Props> = ({
         {/* Hero */}
         <View style={styles.hero}>
           <View style={[styles.heroBadge, { backgroundColor: colors.action.primary }]}>
-            <Icon name={icons.call} size={26} color={colors.action.onPrimary} />
+            <Icon name={icons.call} size={size.tabIcon} color={colors.action.onPrimary} />
           </View>
           <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
-            <Text variant="label" color="accent" style={styles.chipText}>
+            <Text variant="eyebrow" color="accent" style={styles.chipText}>
               PRACTICE REPORT
             </Text>
           </View>
@@ -241,7 +243,7 @@ const PhoneCallReport: React.FC<Props> = ({
           >
             {(["confidence", "clarity", "engagement"] as const).map((k) => (
               <View key={k} style={styles.rationaleRow}>
-                <Text variant="label" color="tertiary" style={styles.rationaleLabel}>
+                <Text variant="eyebrow" color="tertiary" style={styles.rationaleLabel}>
                   {k}
                 </Text>
                 <Text variant="body" color="secondary">
@@ -266,7 +268,7 @@ const PhoneCallReport: React.FC<Props> = ({
               <View key={i} style={styles.bulletRow}>
                 <Icon
                   name={icons.success}
-                  size={12}
+                  size={size.iconXs}
                   color={colors.feedback.successText}
                   style={styles.bulletIcon}
                 />
@@ -289,7 +291,7 @@ const PhoneCallReport: React.FC<Props> = ({
               <View key={i} style={styles.bulletRow}>
                 <Icon
                   name={icons.levelUp}
-                  size={12}
+                  size={size.iconXs}
                   color={colors.feedback.warningText}
                   style={styles.bulletIcon}
                 />
@@ -383,7 +385,7 @@ const PhoneCallReport: React.FC<Props> = ({
               </Text>
               <Icon
                 name={showTranscript ? icons.chevronUp : icons.chevronDown}
-                size={12}
+                size={size.iconXs}
                 color={colors.text.secondary}
               />
             </TouchableOpacity>
@@ -463,7 +465,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   chipText: {
-    letterSpacing: 1.4,
   },
   headline: {
     marginTop: spacing.md,
@@ -527,7 +528,6 @@ const styles = StyleSheet.create({
   // Rationale
   rationaleRow: { marginBottom: spacing.md },
   rationaleLabel: {
-    textTransform: "uppercase",
     marginBottom: spacing.xxs,
   },
   caveat: {
@@ -565,6 +565,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-12deg" }],
   },
   encourageText: {
+    fontFamily: fonts.semibold,
     fontWeight: "600",
   },
 
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
   transcriptLine: {
     marginBottom: spacing.sm,
   },
-  transcriptSpeaker: { fontWeight: "800" },
+  transcriptSpeaker: { fontFamily: fonts.extrabold },
 
   // CTA
   footerScrim: {

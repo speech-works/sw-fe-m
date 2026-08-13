@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import PressableScale from "../../../../components/PressableScale";
 import {
+  size,
   Text,
   Icon,
   icons,
@@ -161,8 +162,11 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
                   backgroundColor: done
                     ? colors.accentTint.success
                     : colors.surface.control,
+                  // The per-scheme cut, not the fill hue. `accent.success` is a
+                  // FILL — as a hairline on the paper card it measures 1.76:1,
+                  // so a closed loop and an open one become the same object.
                   borderColor: done
-                    ? colors.accent.success
+                    ? colors.accentText.success
                     : colors.border.hairline,
                 },
               ]}
@@ -170,8 +174,8 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
               {done ? (
                 <Icon
                   name={icons.success}
-                  size={14}
-                  color={colors.accent.success}
+                  size={size.iconInline}
+                  color={colors.accentText.success}
                 />
               ) : (
                 // The axis's own hue, so the strip and the growth card speak
@@ -188,7 +192,7 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
               <View>
                 <Text
                   variant="bodySm"
-                  color={done ? colors.accent.success : colors.text.primary}
+                  color={done ? colors.accentText.success : colors.text.primary}
                 >
                   {AXIS_LABEL[axis as GrowthAxis]}
                 </Text>
@@ -219,7 +223,7 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
           </Text>
           <Icon
             name={icons.chevronRight}
-            size={16}
+            size={size.iconSm}
             color={colors.text.tertiary}
           />
         </PressableScale>
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     borderTopWidth: borderWidth.hairline,
   },
-  dot: { width: 8, height: 8, borderRadius: 4 },
+  dot: { width: 8, height: 8, borderRadius: radius.full },
   rowTitle: { flex: 1 },
 });
 

@@ -17,6 +17,7 @@ import { ExploreStackParamList } from "../../../../../navigators/stacks/ExploreS
 import { useActivityStore } from "../../../../../stores/activity";
 import { useUserStore } from "../../../../../stores/user";
 import {
+  size,
   Page,
   Surface,
   Text,
@@ -366,7 +367,7 @@ const RealLifeChallenge = () => {
                 { backgroundColor: colors.action.primaryTint },
               ]}
             >
-              <Text variant="caption" color="link">
+              <Text variant="eyebrow" color="link">
                 STEP 1
               </Text>
             </View>
@@ -381,10 +382,10 @@ const RealLifeChallenge = () => {
             <View style={styles.cardLabelRow}>
               <Icon
                 name={icons.checklist}
-                size={14}
+                size={size.iconInline}
                 color={colors.text.accent}
               />
-              <Text variant="label" color="primary">
+              <Text variant="eyebrow" color="primary">
                 INSTRUCTIONS
               </Text>
             </View>
@@ -403,8 +404,8 @@ const RealLifeChallenge = () => {
             style={{ backgroundColor: colors.action.primaryTint }}
           >
             <View style={styles.cardLabelRow}>
-              <Icon name={icons.tip} size={14} color={colors.text.link} />
-              <Text variant="label" color="link">
+              <Icon name={icons.tip} size={size.iconInline} color={colors.text.link} />
+              <Text variant="eyebrow" color="link">
                 PRO TIP
               </Text>
             </View>
@@ -491,7 +492,7 @@ const RealLifeChallenge = () => {
               { backgroundColor: colors.action.primaryTint },
             ]}
           >
-            <Text variant="caption" color="link">
+            <Text variant="eyebrow" color="link">
               STEP 2
             </Text>
           </View>

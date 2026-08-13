@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+// The paper ramp for this light-locked screen. Every neutral in the app
+// carries the same warm hue; these were Tailwind/iOS cool greys.
+import { lightColors as paper } from "../../../../../../design-system/semantic/light";
+import { darkColors as c } from "../../../../../../design-system/semantic/dark";
+import { withAlpha, radius } from "../../../../../../design-system";
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 
@@ -43,7 +53,7 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
             value={effortScore}
             onValueChange={setEffortScore}
             minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#E5E5EA"
+            maximumTrackTintColor={paper.background.sunken}
           />
           <View style={styles.labels}>
             <Text style={styles.labelText}>Very Easy</Text>
@@ -61,7 +71,7 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
             value={autonomyScore}
             onValueChange={setAutonomyScore}
             minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#E5E5EA"
+            maximumTrackTintColor={paper.background.sunken}
           />
           <View style={styles.labels}>
             <Text style={styles.labelText}>None</Text>
@@ -79,7 +89,7 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
             value={accuracyRating}
             onValueChange={setAccuracyRating}
             minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#E5E5EA"
+            maximumTrackTintColor={paper.background.sunken}
           />
           <View style={styles.labels}>
             <Text style={styles.labelText}>Way Off</Text>
@@ -103,11 +113,11 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: withAlpha(c.shadow, 0.5),
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: c.text.primary,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -116,12 +126,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1C1C1E',
+    color: paper.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: '#8E8E93',
+    color: paper.text.tertiary,
     marginBottom: 32,
   },
   sliderSection: {
@@ -130,7 +140,7 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1C1C1E',
+    color: paper.text.primary,
     marginBottom: 16,
     lineHeight: 22,
   },
@@ -146,7 +156,7 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: paper.text.tertiary,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -156,11 +166,11 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 30,
+    borderRadius: radius.sheet,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: paper.background.canvas,
     marginRight: 12,
   },
   submitButton: {
@@ -172,7 +182,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   submitText: {
-    color: '#FFFFFF',
+    color: c.text.primary,
     fontSize: 17,
     fontWeight: '600',
   },

@@ -1,4 +1,11 @@
 import React, { useEffect, useRef, useMemo } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+import { darkColors as c } from "../../../../../../design-system/semantic/dark";
+import { spacing, withAlpha, radius } from "../../../../../../design-system";
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import Svg, { Ellipse, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
@@ -292,20 +299,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hintInner: {
-    borderRadius: 999,
+    borderRadius: radius.full,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
   },
   hintPill: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: Platform.OS === 'android' ? 'rgba(20,20,26,0.78)' : 'rgba(20,20,26,0.36)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: withAlpha(c.text.primary, 0.14),
   },
   hintPillOk: {
     borderColor: 'rgba(52, 211, 153, 0.45)',
@@ -320,7 +327,7 @@ const styles = StyleSheet.create({
     backgroundColor: Platform.OS === 'android' ? 'rgba(78, 11, 11, 0.62)' : 'rgba(78, 11, 11, 0.34)',
   },
   hintText: {
-    color: '#FFFFFF',
+    color: c.text.primary,
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.3,

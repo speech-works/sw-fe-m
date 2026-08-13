@@ -10,6 +10,7 @@ import { useOpenStudioStore } from "../../stores/openStudio";
 import { getOffers, type OfferItem } from "../../api";
 import OnboardingCelebration, { CelebrationConfetti } from "./OnboardingCelebration";
 import {
+  size,
   Button,
   Gradient,
   Icon,
@@ -212,12 +213,16 @@ const OnboardingDone: React.FC = () => {
             ]}
           >
             <View style={styles.matchHeader}>
+              {/* `text.accent`, not the `action.primary` fill: the brand orange
+                  is a CTA ground, and as an 18pt glyph or a 13pt label on the
+                  paper card it measures 2.22:1. The accent cut is per-scheme —
+                  bright on ink, AA amber on paper — so the reading survives. */}
               <Icon
                 name={icons.roadmap}
-                size={18}
-                color={colors.action.primary}
+                size={size.iconSm}
+                color={colors.text.accent}
               />
-              <Text variant="label" color={colors.action.primary}>
+              <Text variant="eyebrow" color={colors.text.accent}>
                 MATCHED TO YOU
               </Text>
             </View>

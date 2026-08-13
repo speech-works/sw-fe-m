@@ -1,4 +1,11 @@
 import React, { useEffect, useRef } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+import { darkColors as c } from "../../../../../../design-system/semantic/dark";
+import { withAlpha, radius } from "../../../../../../design-system";
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -84,7 +91,7 @@ export const CalibrationOverlay: React.FC<CalibrationOverlayProps> = ({
                 cx={RING_SIZE / 2}
                 cy={RING_SIZE / 2}
                 r={RADIUS}
-                stroke="rgba(255,255,255,0.10)"
+                stroke={withAlpha(c.text.primary, 0.10)}
                 strokeWidth={STROKE_WIDTH}
                 fill="none"
               />
@@ -138,16 +145,16 @@ export const CalibrationOverlay: React.FC<CalibrationOverlayProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     marginHorizontal: 16,
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: Platform.OS === 'android' ? 0 : 6,
   },
   blurCard: {
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
     backgroundColor: Platform.OS === 'android' ? 'rgba(12, 12, 18, 0.82)' : 'rgba(12, 12, 18, 0.38)',
   },
@@ -180,14 +187,14 @@ const styles = StyleSheet.create({
   countdownText: {
     fontSize: 38,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: c.text.primary,
     letterSpacing: -1.2,
     fontVariant: ['tabular-nums'],
   },
   countdownUnit: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.45)',
+    color: withAlpha(c.text.primary, 0.45),
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 2,
@@ -200,7 +207,7 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: c.text.primary,
     marginBottom: 10,
     letterSpacing: -0.4,
     textAlign: 'center',
@@ -208,7 +215,7 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 14,
     fontWeight: '400',
-    color: 'rgba(255,255,255,0.65)',
+    color: withAlpha(c.text.primary, 0.65),
     textAlign: 'center',
     lineHeight: 21,
     maxWidth: 280,

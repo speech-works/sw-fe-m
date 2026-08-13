@@ -24,6 +24,7 @@ import FocusLamp from "../../../components/FocusLamp";
 
 import { ToolType } from "../../../../../../api/tools/types";
 import {
+  radius,
   Page,
   Button,
   Text as DSText,
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

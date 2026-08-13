@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
+  size,
+  fonts,
   SchemeStatusBar,
   Sheet,
   Gradient,
@@ -56,7 +58,7 @@ const iconContainerStyle: ViewStyle = {
   justifyContent: "center",
   height: 48,
   width: 48,
-  borderRadius: 24,
+  borderRadius: radius.full,
 };
 
 /**
@@ -558,7 +560,6 @@ const FollowUp = () => {
                             <Text
                               variant="caption"
                               style={[
-                                styles.focusBadgeText,
                                 { color: colors.accentOn.warning },
                               ]}
                             >
@@ -599,7 +600,7 @@ const FollowUp = () => {
                             >
                               <Icon
                                 name={config.iconName as IconName}
-                                size={20}
+                                size={size.icon}
                                 color={config.ink}
                               />
                             </View>
@@ -668,7 +669,7 @@ const FollowUp = () => {
                         >
                           <Icon
                             name={icons.play}
-                            size={12}
+                            size={size.iconXs}
                             color={colors.action.onSecondary}
                           />
                           <Text
@@ -742,7 +743,7 @@ const FollowUp = () => {
             <Gradient token="brand" style={styles.sheetIconGradient}>
               <Icon
                 name={icons.warning}
-                size={24}
+                size={size.tabIcon}
                 color={colors.accentOn.warning}
               />
             </Gradient>
@@ -815,7 +816,7 @@ const FollowUp = () => {
             <Gradient token="sunrise" style={styles.sheetIconGradient}>
               <Icon
                 name={icons.danger}
-                size={28}
+                size={size.iconLg}
                 color={colors.accentOn.danger}
               />
             </Gradient>
@@ -890,7 +891,7 @@ const FollowUp = () => {
             <Gradient token="meadow" style={styles.sheetIconGradient}>
               <Icon
                 name={icons.success}
-                size={28}
+                size={size.iconLg}
                 color={colors.accentOn.success}
               />
             </Gradient>
@@ -982,10 +983,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     zIndex: 10,
   },
-  focusBadgeText: {
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
   header: {
     position: "absolute",
     top: 0,
@@ -1026,6 +1023,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   skipButtonText: {
+    fontFamily: fonts.semibold,
     fontWeight: "600",
   },
   sheetContainer: {
@@ -1036,7 +1034,7 @@ const styles = StyleSheet.create({
   sheetIconShell: {
     width: 92,
     height: 92,
-    borderRadius: 46,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
@@ -1044,14 +1042,11 @@ const styles = StyleSheet.create({
   sheetIconGradient: {
     width: 68,
     height: 68,
-    borderRadius: 34,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
   sheetEyebrow: {
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
     marginBottom: spacing.sm,
   },
   sheetTitle: {
@@ -1073,7 +1068,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sheetPrimaryButtonText: {
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   sheetSecondaryButton: {
     width: "100%",
@@ -1084,6 +1079,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sheetSecondaryButtonText: {
+    fontFamily: fonts.semibold,
     fontWeight: "600",
   },
   cardWrapper: {
@@ -1145,6 +1141,6 @@ const styles = StyleSheet.create({
     marginTop: "auto", // Push to bottom
   },
   playText: {
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 });

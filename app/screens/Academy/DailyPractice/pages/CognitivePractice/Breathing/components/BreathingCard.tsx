@@ -4,6 +4,7 @@ import { CognitivePractice } from "../../../../../../../api/dailyPractice/types"
 import PressableScale from "../../../../../../../components/PressableScale";
 import { patternLabel } from "../../../../../../../constants/breathing";
 import {
+  size,
   Surface,
   Chip,
   Text,
@@ -51,7 +52,7 @@ const BreathingCard = ({ onPress, technique }: BreathingCardProps) => {
 
           <View style={styles.cardFooter}>
             <View style={styles.timeBadge}>
-              <Icon name="clock" size={12} color={colors.text.tertiary} />
+              <Icon name="clock" size={size.iconXs} color={colors.text.tertiary} />
               <Text variant="bodySm" color="tertiary">
                 {technique?.guidedBreathingData?.durationMinutes} mins
               </Text>
@@ -66,7 +67,7 @@ const BreathingCard = ({ onPress, technique }: BreathingCardProps) => {
               <Text variant="bodySm" color="link">
                 Change
               </Text>
-              <Icon name="chevron-right" size={12} color={colors.text.link} />
+              <Icon name="chevron-right" size={size.iconXs} color={colors.text.link} />
             </View>
           </View>
         </View>

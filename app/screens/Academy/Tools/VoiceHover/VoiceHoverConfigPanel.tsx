@@ -2,6 +2,8 @@ import Slider from "@react-native-community/slider";
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
 import {
+  size,
+  fonts,
   borderWidth,
   Icon,
   icons,
@@ -48,7 +50,7 @@ export function VoiceHoverConfigPanel({
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View style={styles.heroHeaderText}>
-            <Text variant="label" style={styles.heroEyebrow}>
+            <Text variant="eyebrow" style={styles.heroEyebrow}>
               Guide
             </Text>
             <Text variant="h3" style={styles.heroTitle}>
@@ -68,7 +70,7 @@ export function VoiceHoverConfigPanel({
           >
             <Icon
               name={icons.volume}
-              size={12}
+              size={size.iconXs}
               color={
                 isSpeaking
                   ? colors.feedback.successText
@@ -106,7 +108,7 @@ export function VoiceHoverConfigPanel({
       <View style={styles.sliderCard}>
         <View style={styles.sliderHeader}>
           <View>
-            <Text variant="label" style={styles.sectionEyebrow}>
+            <Text variant="eyebrow" style={styles.sectionEyebrow}>
               Speech Rate
             </Text>
             <Text variant="title" style={styles.sectionTitle}>
@@ -149,7 +151,7 @@ export function VoiceHoverConfigPanel({
       <View style={styles.sliderCard}>
         <View style={styles.sliderHeader}>
           <View>
-            <Text variant="label" style={styles.sectionEyebrow}>
+            <Text variant="eyebrow" style={styles.sectionEyebrow}>
               Timing
             </Text>
             <Text variant="title" style={styles.sectionTitle}>
@@ -243,7 +245,7 @@ export function VoiceHoverConfigPanel({
           <View style={styles.buttonContent}>
             <Icon
               name={isSpeaking ? icons.stop : icons.play}
-              size={14}
+              size={size.iconInline}
               color={isSpeaking ? colors.action.onPrimary : onAccent}
             />
             <Text
@@ -283,8 +285,6 @@ const useStyles = makeStyles((colors) => ({
   },
   heroEyebrow: {
     color: colors.text.secondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   heroTitle: {
     color: colors.text.primary,
@@ -313,6 +313,7 @@ const useStyles = makeStyles((colors) => ({
     borderColor: colors.border.default,
   },
   statusBadgeText: {
+    fontFamily: fonts.semibold,
     fontWeight: "600",
   },
   statusBadgeTextReady: {
@@ -338,8 +339,6 @@ const useStyles = makeStyles((colors) => ({
   },
   sectionEyebrow: {
     color: colors.text.secondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   sectionTitle: {
     color: colors.text.primary,
@@ -354,7 +353,7 @@ const useStyles = makeStyles((colors) => ({
   },
   valueBadgeText: {
     color: colors.action.primary,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   controlGroup: {
     gap: spacing.lg,
@@ -378,7 +377,7 @@ const useStyles = makeStyles((colors) => ({
   },
   speedText: {
     color: colors.action.primary,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   sliderWrapper: {
     width: "100%",
@@ -414,6 +413,7 @@ const useStyles = makeStyles((colors) => ({
   },
   buttonText: {
     color: colors.action.onPrimary,
+    fontFamily: fonts.semibold,
     fontWeight: "600",
   },
 }));

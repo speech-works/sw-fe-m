@@ -101,6 +101,10 @@ export const palette = {
     gold: "#D4AF37",
     goldDeep: "#996515",
     goldTint: "rgba(212,175,55,0.15)",
+    // Ink for text/icons ON a gold fill. The slate is the tier's own dark, and
+    // it measures 8.49:1 on `gold` — white was 2.10:1, which is the same
+    // dark-on-bright rule the rest of the app already follows.
+    onGold: "#0F172A",
     goldBorder: "rgba(212,175,55,0.3)",
     cyan: "#22D3EE",
     purple: "#8B5CF6",

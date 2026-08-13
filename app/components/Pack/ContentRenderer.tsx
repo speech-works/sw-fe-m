@@ -1,4 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
+// The DARK elevation set, imported statically because these live in a static
+// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
+import { elevationDark } from "../../design-system/elevation";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import React, { useState } from "react";
@@ -19,6 +22,7 @@ import {
     VideoBlockContent,
 } from "../../api/packs/types";
 import {
+  size,
     Text,
     Icon,
     icons,
@@ -69,7 +73,7 @@ const CompletedCard: React.FC<{ title: string; children?: React.ReactNode }> = (
   return (
     <View style={styles.completedCard}>
       <View style={styles.completedChip}>
-        <Icon name={icons.success} size={14} color={colors.accentOn.success} />
+        <Icon name={icons.success} size={size.iconInline} color={colors.accentOn.success} />
         <Text variant="label" color={colors.accentOn.success}>
           Completed
         </Text>
@@ -287,7 +291,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                   <Spinner size="small" color={colors.action.onSecondary} />
                 ) : (
                   <>
-                    <Icon name={icons.play} size={16} color={colors.action.onSecondary} />
+                    <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
                     <Text variant="title" color={colors.action.onSecondary}>
                       Start Practice
                     </Text>
@@ -374,7 +378,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
               {/* Action = solid dark island (matches home hero CTAs). */}
               <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
-                <Icon name={icons.play} size={16} color={colors.action.onSecondary} />
+                <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
                 <Text variant="title" color={colors.action.onSecondary}>
                   Start Reflection
                 </Text>
@@ -410,11 +414,7 @@ const useStyles = makeStyles((c) => ({
   card: {
     marginBottom: spacing.xl,
     borderRadius: radius.card,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    ...elevationDark.e3,
   },
   cardFill: {
     borderRadius: radius.card,
@@ -428,7 +428,7 @@ const useStyles = makeStyles((c) => ({
     right: -40,
     width: 140,
     height: 140,
-    borderRadius: 70,
+    borderRadius: radius.full,
   },
   bubbleBottomLeft: {
     position: "absolute",
@@ -436,7 +436,7 @@ const useStyles = makeStyles((c) => ({
     left: -20,
     width: 90,
     height: 90,
-    borderRadius: 45,
+    borderRadius: radius.full,
   },
   cardContent: {
     zIndex: 1,

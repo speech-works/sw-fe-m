@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  size,
   AnimatedModal,
   Button,
   Gradient,
@@ -35,10 +36,10 @@ export const OutOfStaminaModal: React.FC<OutOfStaminaModalProps> = ({
     <AnimatedModal visible={visible} onClose={onClose} maxWidth={380} exclusive>
       <View style={styles.content}>
         <Gradient token="sunrise" style={styles.iconDisc}>
-          <Icon name={icons.energy} size={30} color="#FFFFFF" />
+          <Icon name={icons.energy} size={size.iconLg} color="#FFFFFF" />
         </Gradient>
 
-        <Text variant="label" color="accent" style={styles.eyebrow}>
+        <Text variant="eyebrow" color="accent" style={styles.eyebrow}>
           OUT OF ENERGY
         </Text>
         <Text variant="h2" color="primary" center>
@@ -71,7 +72,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   eyebrow: {
-    letterSpacing: 1.5,
   },
   message: {
     lineHeight: 22,

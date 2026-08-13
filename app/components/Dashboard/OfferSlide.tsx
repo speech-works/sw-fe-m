@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     right: -30,
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: radius.full,
   },
   // Oversized and deliberately misregistered past two edges, like a rubber
   // stamp pressed partly off the paper. It is still drawn before body/footer,

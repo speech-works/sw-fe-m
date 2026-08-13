@@ -10,6 +10,7 @@ import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 import { useUserStore } from "../../../stores/user";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -118,7 +119,7 @@ const PracticeGoal = () => {
                       { backgroundColor: colors.surface.control },
                     ]}
                   >
-                    <Icon name={goal.icon} size={22} color={colors.text.primary} />
+                    <Icon name={goal.icon} size={size.icon} color={colors.text.primary} />
                   </View>
                   <View style={styles.goalDescContainer}>
                     <Text variant="title">{goal.name}</Text>
@@ -127,7 +128,7 @@ const PracticeGoal = () => {
                     </Text>
                   </View>
                   {selected ? (
-                    <Icon name="check-circle" size={22} color={colors.text.accent} />
+                    <Icon name="check-circle" size={size.icon} color={colors.text.accent} />
                   ) : null}
                 </PressableScale>
               );

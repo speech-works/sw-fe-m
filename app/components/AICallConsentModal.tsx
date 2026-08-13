@@ -1,7 +1,8 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
+  size,
+  Icon, icons,
   Sheet,
   Text,
   Button,
@@ -47,9 +48,9 @@ export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
     <Sheet visible={visible} onClose={onDecline} onDismissed={onDismissed}>
       <View style={styles.container}>
         <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
-          <MaterialCommunityIcons
-            name="account-voice"
-            size={28}
+          <Icon
+            name={icons.ai}
+            size={size.iconLg}
             color={colors.text.accent}
           />
         </View>

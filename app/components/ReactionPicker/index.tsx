@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+// The DARK elevation set, imported statically because these live in a static
+// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
+import { elevationDark } from "../../design-system/elevation";
 import {
   Modal,
   StyleSheet,
@@ -160,10 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: space.inlineGap,
     paddingVertical: space.rowGap,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 15,
-    elevation: 10,
+    ...elevationDark.e3,
     alignItems: "center",
   },
   emojiContainer: {

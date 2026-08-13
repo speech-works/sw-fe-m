@@ -33,6 +33,7 @@ import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
 import ToolConsentModal from "../../../../../../components/ToolConsentModal";
 import ToolNudge from "../../../../../../components/ToolNudge";
 import {
+  radius,
   Page,
   Button,
   Text,
@@ -694,7 +695,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

@@ -15,6 +15,7 @@ import {
 import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../../../stores/user";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -181,7 +182,7 @@ const Exposure = () => {
                   >
                     <Icon
                       name={icons.play}
-                      size={12}
+                      size={size.iconXs}
                       color={colors.text.primary}
                     />
                     <Text variant="label" color="primary">
@@ -197,7 +198,7 @@ const Exposure = () => {
                   >
                     <Icon
                       name={icons.locked}
-                      size={12}
+                      size={size.iconXs}
                       color={colors.text.secondary}
                     />
                     <Text variant="label" color="secondary">

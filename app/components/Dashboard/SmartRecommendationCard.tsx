@@ -1,4 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
+// The DARK elevation set, imported statically because these live in a static
+// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
+import { elevationDark } from "../../design-system/elevation";
 import { StyleProp, View, ViewStyle } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getPackBrochure, getPackProgress, getRecommendedPack } from "../../api/packs";
@@ -9,6 +12,7 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PressableScale from "../PressableScale";
 import ErrorStateCard from "./ErrorStateCard";
 import {
+  size,
   Sheet,
   Text,
   Button,
@@ -373,7 +377,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
               {/* Efficacy Badges */}
               {(pack.targetHitRate !== undefined && pack.targetHitRate > 0) && (
                 <View style={{ flexDirection: 'row', marginTop: spacing.xs, alignItems: 'center', backgroundColor: withAlpha(colors.surface.default, 0.2), alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs, borderRadius: radius.pill }}>
-                  <Icon name={icons.star} size={14} color={ink} style={{ marginRight: 4 }} />
+                  <Icon name={icons.star} size={size.iconInline} color={ink} style={{ marginRight: 4 }} />
                   <Text variant="caption" color={ink} style={{ fontWeight: 'bold' }}>
                     {Math.round(pack.targetHitRate * 100)}% Goal Hit Rate
                   </Text>
@@ -519,10 +523,7 @@ export default React.memo(SmartRecommendationCard);
 const useStyles = makeStyles((c) => ({
   container: {
     borderRadius: radius.card,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    ...elevationDark.e3,
   },
   loadingContainer: {
     height: 96,

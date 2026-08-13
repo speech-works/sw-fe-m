@@ -1,4 +1,14 @@
 import React, { useState, useEffect } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+// The paper ramp for this light-locked screen. Every neutral in the app
+// carries the same warm hue; these were Tailwind/iOS cool greys.
+import { lightColors as paper } from "../../../../../design-system/semantic/light";
+import { darkColors as c } from "../../../../../design-system/semantic/dark";
+import { spacing, size, withAlpha, radius } from "../../../../../design-system";
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
@@ -221,7 +231,7 @@ export const SummaryScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <LinearGradient
-        colors={["#FFFCF9", "#FFF7ED", "#F5F7FA"]}
+        colors={["#FFFCF9", "#FFF7ED", paper.background.canvas]}
         style={StyleSheet.absoluteFillObject}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -238,10 +248,16 @@ export const SummaryScreen: React.FC = () => {
       </View>
 
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-          <Icon name="chevron-back" size={20} color="#374151" />
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
+          <Icon name="chevron-back" size={size.icon} color={paper.text.secondary} />
         </TouchableOpacity>
-        <Text variant="h3" color="#0F172A">Session Summary</Text>
+        <Text variant="h3" color={paper.text.primary}>Session Summary</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -259,14 +275,14 @@ export const SummaryScreen: React.FC = () => {
             style={styles.heroCard}
           >
             <View style={styles.heroLeft}>
-              <Text variant="label" color="#6B7280" style={styles.heroEyebrow}>
+              <Text variant="eyebrow" color={paper.text.secondary} style={styles.heroEyebrow}>
                 HOW IT FELT
               </Text>
-              <Text variant="h1" color="#1F2937" style={styles.heroTitle}>
+              <Text variant="h1" color={paper.text.primary} style={styles.heroTitle}>
                 {reflection ? reflection.moodLabel : 'Reflecting…'}
               </Text>
               {reflection ? (
-                <Text variant="body" color="#1F2937" style={styles.heroSubtitle}>
+                <Text variant="body" color={paper.text.primary} style={styles.heroSubtitle}>
                   {reflection.encouragement}
                 </Text>
               ) : null}
@@ -284,20 +300,20 @@ export const SummaryScreen: React.FC = () => {
         {/* Session line — a quiet, non-clinical anchor. Progress lives in the
             reflection below, where the engine owns the (reviewed) wording. */}
         <View style={styles.metaRow}>
-          <Icon name="time-outline" size={18} color={ORANGE_400} />
-          <Text variant="title" color="#0F172A">
+          <Icon name="time-outline" size={size.iconSm} color={ORANGE_400} />
+          <Text variant="title" color={paper.text.primary}>
             {formatDuration(sessionDurationSeconds || 0)}
           </Text>
-          <Text variant="bodySm" color="#6B7280">in the mirror</Text>
+          <Text variant="bodySm" color={paper.text.secondary}>in the mirror</Text>
         </View>
 
         {/* Reflection (insights) */}
         <View style={styles.card}>
-          <Text variant="h3" color="#0F172A">What we noticed</Text>
+          <Text variant="h3" color={paper.text.primary}>What we noticed</Text>
           {!reflection ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color={ORANGE_500} />
-              <Text variant="bodySm" color="#6B7280" style={styles.loadingText}>
+              <Text variant="bodySm" color={paper.text.secondary} style={styles.loadingText}>
                 Putting your reflection together…
               </Text>
             </View>
@@ -308,9 +324,9 @@ export const SummaryScreen: React.FC = () => {
                 return (
                   <View key={`${insight.kind}-${idx}`} style={styles.signalRow}>
                     <View style={[styles.signalIconWrap, { backgroundColor: v.bg }]}>
-                      <Icon name={v.icon} size={18} color={v.fg} />
+                      <Icon name={v.icon} size={size.iconSm} color={v.fg} />
                     </View>
-                    <Text variant="body" color="#1F2937" style={styles.signalLabel}>
+                    <Text variant="body" color={paper.text.primary} style={styles.signalLabel}>
                       {insight.text}
                     </Text>
                   </View>
@@ -321,7 +337,7 @@ export const SummaryScreen: React.FC = () => {
         </View>
 
         {/* Footnote (rotated caveat — always NSA-safe) */}
-        <Text variant="bodySm" color="#9CA3AF" style={styles.footnote}>
+        <Text variant="bodySm" color={paper.text.tertiary} style={styles.footnote}>
           {reflection
             ? reflection.caveat
             : NOT_A_DIAGNOSIS}
@@ -339,7 +355,7 @@ export const SummaryScreen: React.FC = () => {
             end={{ x: 1, y: 1 }}
             style={styles.primaryButtonGradient}
           >
-            <Text variant="h3" color="#FFFFFF">
+            <Text variant="h3" color={c.text.primary}>
               {isSubmitting ? 'Saving…' : 'Continue'}
             </Text>
           </Gradient>
@@ -361,13 +377,13 @@ export const SummaryScreen: React.FC = () => {
 // Legacy `theme.shadow.elevation1/2` resolved values, inlined verbatim so the
 // visuals stay identical while the app/Theme dependency dies.
 const legacyShadow1 = {
-  shadowColor: '#000',
+  shadowColor: c.shadow,
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.1,
   shadowRadius: 5,
 } as const;
 const legacyShadow2 = {
-  shadowColor: '#000',
+  shadowColor: c.shadow,
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.2,
   shadowRadius: 5,
@@ -376,7 +392,7 @@ const legacyShadow2 = {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: paper.background.raised,
   },
   watermarkContainer: {
     position: 'absolute',
@@ -389,19 +405,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 12,
     zIndex: 10,
   },
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: radius.md,
+    backgroundColor: withAlpha(c.text.primary, 0.7),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderColor: withAlpha(c.shadow, 0.05),
   },
   content: {
     paddingHorizontal: 20,
@@ -412,9 +428,9 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   heroCardShadow: {
-    borderRadius: 28,
+    borderRadius: radius.sheet,
     marginBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: c.text.primary,
     ...legacyShadow1,
     elevation: 2,
   },
@@ -422,15 +438,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 28,
+    borderRadius: radius.sheet,
     padding: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: withAlpha(c.text.primary, 0.5),
   },
   heroLeft: { flex: 1, paddingRight: 12 },
   heroEyebrow: {
-    letterSpacing: 1.4,
     marginBottom: 8,
   },
   heroTitle: {
@@ -444,11 +459,11 @@ const styles = StyleSheet.create({
   heroRingPlaceholder: {
     width: 84,
     height: 84,
-    borderRadius: 42,
+    borderRadius: radius.full,
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: withAlpha(c.text.primary, 0.6),
   },
 
   // ── Session line ──
@@ -456,25 +471,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: c.text.primary,
+    borderRadius: radius.chip,
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
+    borderColor: withAlpha(c.shadow, 0.02),
     ...legacyShadow1,
     elevation: 2,
   },
 
   // ── Cards ──
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    backgroundColor: c.text.primary,
+    borderRadius: radius.sheet,
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
+    borderColor: withAlpha(c.shadow, 0.02),
     ...legacyShadow1,
     elevation: 2,
   },
@@ -486,12 +501,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: withAlpha(c.shadow, 0.05),
   },
   signalIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     backgroundColor: ORANGE_100,
     alignItems: 'center',
     justifyContent: 'center',
@@ -515,13 +530,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 24,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
 
   primaryButtonShadow: {
     width: "100%",
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radius.chip,
+    backgroundColor: c.text.primary,
     ...legacyShadow2,
     elevation: 4,
   },
@@ -530,6 +545,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 18,
-    borderRadius: 20,
+    borderRadius: radius.chip,
   },
 });

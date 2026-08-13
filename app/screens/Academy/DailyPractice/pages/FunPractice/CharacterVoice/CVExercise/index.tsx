@@ -18,6 +18,7 @@ import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import {
+  radius,
   Page,
   Button,
   Text,
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
   playbackButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
     padding: 0, // Override default padding
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

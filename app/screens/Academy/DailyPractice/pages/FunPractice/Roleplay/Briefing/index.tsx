@@ -9,6 +9,7 @@ import {
   RoleplayFDPStackParamList,
 } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -146,8 +147,8 @@ const Briefing = () => {
         style={styles.scenarioCard}
       >
         <View style={styles.scenarioHeader}>
-          <Icon name="bookmark" size={14} color={colors.feedback.infoText} />
-          <Text variant="label" color="primary">
+          <Icon name="bookmark" size={size.iconInline} color={colors.feedback.infoText} />
+          <Text variant="eyebrow" color="primary">
             THE SCENARIO
           </Text>
         </View>
@@ -162,7 +163,7 @@ const Briefing = () => {
             { backgroundColor: colors.accentTint.info },
           ]}
         >
-          <Icon name={icons.duration} size={12} color={colors.feedback.infoText} />
+          <Icon name={icons.duration} size={size.iconXs} color={colors.feedback.infoText} />
           <Text variant="caption" color={colors.feedback.infoText}>
             {roleplay.scenario.duration} mins
           </Text>
@@ -240,7 +241,7 @@ const Briefing = () => {
                 </View>
                 <Icon
                   name={icons.chevronRight}
-                  size={14}
+                  size={size.iconInline}
                   color={colors.text.tertiary}
                 />
               </View>
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   roleIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

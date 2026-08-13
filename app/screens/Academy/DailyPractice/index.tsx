@@ -1,13 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
 import PressableScale from "../../../components/PressableScale";
 import {
   DPStackNavigationProp,
   DPStackParamList,
 } from "../../../navigators/stacks/ExploreStack/DailyPracticeStack/types";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -73,8 +73,8 @@ const DailyPractice = () => {
             // handling — so offline it opened a screen that could not load.
             onPress: () => void openOnboarding("daily_practice"),
             icon: (
-              <FAIcon
-                name="user-clock"
+              <Icon
+                name={icons.waiting}
                 size={52}
                 color={colors.accentOn.info}
               />
@@ -173,7 +173,7 @@ const DailyPractice = () => {
                 >
                   <Icon
                     name={icons.chevronRight}
-                    size={16}
+                    size={size.iconSm}
                     color={colors.text.primary}
                   />
                 </View>

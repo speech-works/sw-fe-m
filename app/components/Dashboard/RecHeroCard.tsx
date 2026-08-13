@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     right: -30,
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: radius.full,
   },
   blobB: {
     position: "absolute",
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     right: 40,
     width: 90,
     height: 90,
-    borderRadius: 45,
+    borderRadius: radius.full,
   },
   title: {
     marginTop: space.titleSub,

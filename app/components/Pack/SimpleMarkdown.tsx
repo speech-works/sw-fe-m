@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { makeStyles, useTheme } from "../../design-system";
+import { fonts, makeStyles, useTheme } from "../../design-system";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { toSafeExternalUrl } from "../../util/functions/url";
 
@@ -170,7 +170,7 @@ const parseLinksAndBold = (
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <Text key={i} style={[{ fontWeight: "700" }, textColor ? { color: textColor } : {}]}>
+        <Text key={i} style={[{ fontFamily: fonts.bold }, textColor ? { color: textColor } : {}]}>
           {part.slice(2, -2)}
         </Text>
       );

@@ -17,7 +17,7 @@ import { useInboxStore } from "../../stores/inbox";
 import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
+import { size, useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
 import SignalCard from "../SignalCard";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 import { blockUser, reportContent, type ReportReason } from "../../api/moderation";
@@ -278,7 +278,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       <View style={styles.emptyWrap}>
         <View style={styles.emptyHero}>
           <View style={[styles.emptyIconCircle, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.care} size={28} color={colors.text.accent} />
+            <Icon name={icons.care} size={size.iconLg} color={colors.text.accent} />
           </View>
           <Text variant="h3" style={styles.emptyTitle}>Your wins and moments live here</Text>
           <Text variant="bodySm" color="secondary" style={styles.muted}>
@@ -288,7 +288,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
           </Text>
           {onStartPractice ? (
             <TouchableOpacity onPress={onStartPractice} style={[styles.emptyCta, { backgroundColor: colors.action.primary }]} activeOpacity={0.85}>
-              <Icon name={icons.play} size={16} color={colors.action.onPrimary} />
+              <Icon name={icons.play} size={size.iconSm} color={colors.action.onPrimary} />
               <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Start a practice</Text>
             </TouchableOpacity>
           ) : null}
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   emptyIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.xs,

@@ -7,6 +7,7 @@ import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/t
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import {
+  size,
   Text,
   Icon,
   icons,
@@ -145,7 +146,7 @@ const ProgramsEntryCard = () => {
               { backgroundColor: colors.action.primaryTint },
             ]}
           >
-            <Icon name={icons.journey} size={22} color={colors.action.primary} />
+            <Icon name={icons.journey} size={size.icon} color={colors.text.accent} />
           </View>
           <View style={styles.textCol}>
             <Text variant="title" color="primary">
@@ -160,7 +161,7 @@ const ProgramsEntryCard = () => {
               with a `flex: 1` sibling gets compressed to nothing — the arrow
               silently vanished and the copy ran to the card's edge. */}
           <View style={styles.chevron}>
-            <Icon name="chevron-right" size={20} color={colors.text.tertiary} />
+            <Icon name="chevron-right" size={size.icon} color={colors.text.tertiary} />
           </View>
         </View>
       </View>

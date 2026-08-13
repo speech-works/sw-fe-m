@@ -103,7 +103,7 @@ export const NotificationPermissionRow: React.FC<{
             borderColor: colors.accent.danger,
           }}
         >
-          <Icon name={icons.reminder} size={22} color={colors.feedback.dangerText} />
+          <Icon name={icons.reminder} size={size.icon} color={colors.feedback.dangerText} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -117,7 +117,7 @@ export const NotificationPermissionRow: React.FC<{
           </Text>
         </View>
 
-        <Icon name="chevron-right" size={20} color={colors.text.tertiary} />
+        <Icon name="chevron-right" size={size.icon} color={colors.text.tertiary} />
       </PressableScale>
 
       {/* Aligned to the text column, and deliberately quiet: this is the lesser

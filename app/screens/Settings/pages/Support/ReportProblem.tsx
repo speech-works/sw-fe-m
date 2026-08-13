@@ -6,6 +6,8 @@ import UniversalImageUploader from "../../../../components/UniversalImageUploade
 import { useUserStore } from "../../../../stores/user";
 import { useNavigation } from "@react-navigation/native";
 import {
+  size,
+  radius,
   useTheme,
   spacing,
   space,
@@ -83,7 +85,7 @@ const ReportProblem = () => {
       >
           {/* Issue Type */}
           <View style={styles.section}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               WHAT'S THE ISSUE?
             </Text>
             <View style={styles.chipsContainer}>
@@ -101,7 +103,7 @@ const ReportProblem = () => {
 
           {/* Details */}
           <View style={styles.section}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               DETAILS
             </Text>
             <TextField
@@ -150,7 +152,7 @@ const ReportProblem = () => {
                   { backgroundColor: colors.accent.success },
                 ]}
               >
-                <Icon name="check" size={32} color={colors.accentOn.success} />
+                <Icon name="check" size={size.iconXl} color={colors.accentOn.success} />
               </View>
             </View>
             <Text variant="h2" center>
@@ -192,7 +194,7 @@ const styles = StyleSheet.create({
   successIconBox: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing["2xl"],
@@ -200,7 +202,7 @@ const styles = StyleSheet.create({
   innerCheckmarkCircle: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
   },

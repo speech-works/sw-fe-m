@@ -6,7 +6,7 @@ import {
     ViewStyle
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { elevation as elevationToken, Text, useTheme } from "../design-system";
+import { size, radius, elevation as elevationToken, Text, useTheme } from "../design-system";
 import { TactileTouchableOpacity } from "./TactileTouchableOpacity";
 
 /**
@@ -169,12 +169,12 @@ const Button: React.FC<ButtonProps> = ({
           opacity: loading ? 0 : 1,
         }}
       >
-        {leftIcon ? <Icon name={leftIcon} size={20} color={iconColor} /> : null}
+        {leftIcon ? <Icon name={leftIcon} size={size.icon} color={iconColor} /> : null}
 
         <Text variant="title" color={iconColor}>{text}</Text>
 
         {rightIcon ? (
-          <Icon name={rightIcon} size={20} color={iconColor} />
+          <Icon name={rightIcon} size={size.icon} color={iconColor} />
         ) : null}
       </View>
     </TactileTouchableOpacity>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12, // This property handles spacing between icon/text
-    borderRadius: 16,
+    borderRadius: radius.input,
     padding: 16,
     minHeight: 52, // Added to ensure consistent height
   },

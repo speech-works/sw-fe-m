@@ -83,14 +83,14 @@ const MoodSummary = ({
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.flex1}>
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+          <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
             MOOD SUMMARY
           </Text>
           <Text variant="bodySm" color="secondary">How you felt this week</Text>
         </View>
         <View style={styles.headerRight}>
           {hasError && (
-            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={size.iconInline} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           )}
           <Icon name={icons.mood} size={size.icon} color={colors.text.tertiary} />
         </View>
@@ -136,7 +136,7 @@ const MoodSummary = ({
       ) : (
         <View style={styles.emptyMood}>
           <View style={[styles.emptyMoodIcon, { backgroundColor: colors.surface.control }]}>
-            <Icon name={icons.stats} size={28} color={colors.text.tertiary} />
+            <Icon name={icons.stats} size={size.iconLg} color={colors.text.tertiary} />
           </View>
           <Text variant="h3" center>Track Your Flow</Text>
           <Text variant="bodySm" color="secondary" center>
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     gap: spacing["2xl"],
   },
   flex1: { flex: 1 },
-  eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
+  eyebrow: { marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",

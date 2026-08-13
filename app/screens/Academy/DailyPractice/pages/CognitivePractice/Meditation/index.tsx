@@ -12,6 +12,8 @@ import {
 import PressableScale from "../../../../../../components/PressableScale";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import {
+  size,
+  radius,
   Page,
   Surface,
   Button,
@@ -847,7 +849,7 @@ const Meditation = () => {
                       </Text>
                     </View>
                     {isSelected && (
-                      <Icon name={icons.success} size={20} color={accentFg} />
+                      <Icon name={icons.success} size={size.icon} color={accentFg} />
                     )}
                   </Surface>
                 </PressableScale>
@@ -984,7 +986,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

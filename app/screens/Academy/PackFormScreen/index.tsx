@@ -15,6 +15,7 @@ import {
   Page,
   Surface,
   Text,
+  borderWidth,
   fonts,
   radius,
   spacing,
@@ -79,6 +80,7 @@ const LikertField: React.FC<FieldProps & { count: number }> = ({
                 fieldStyles.likertTarget,
                 {
                   backgroundColor: isSelected ? accent : colors.surface.control,
+                  borderColor: isSelected ? "transparent" : colors.border.strong,
                 },
               ]}
               onPress={() => onChange(n)}
@@ -169,6 +171,7 @@ const BooleanToggleField: React.FC<FieldProps> = ({
               fieldStyles.toggleOption,
               {
                 backgroundColor: isSelected ? accent : colors.surface.control,
+                borderColor: isSelected ? "transparent" : colors.border.strong,
               },
             ]}
             onPress={() => onChange(val)}
@@ -459,6 +462,9 @@ const fieldStyles = StyleSheet.create({
     aspectRatio: 1,
     maxWidth: 52,
     borderRadius: radius.md,
+    // Present on BOTH states (transparent when selected) so picking an answer
+    // never shifts the row by a hairline.
+    borderWidth: borderWidth.hairline,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -481,6 +487,7 @@ const fieldStyles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
+    borderWidth: borderWidth.hairline,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -509,7 +516,7 @@ const fieldStyles = StyleSheet.create({
   mcRadio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.full,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
@@ -517,7 +524,7 @@ const fieldStyles = StyleSheet.create({
   mcRadioDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: radius.full,
   },
   mcOptionText: {
     flex: 1,

@@ -379,7 +379,7 @@ const Discover = () => {
           accessibilityLabel={`Report ${person.name.split(" ")[0]}`}
           style={styles.reportAction}
         >
-          <Icon name={icons.report} size={16} color={colors.text.tertiary} />
+          <Icon name={icons.report} size={size.iconSm} color={colors.text.tertiary} />
         </TouchableOpacity>
       </View>
 
@@ -462,7 +462,19 @@ const Discover = () => {
     <ScreenView>
       <SchemeStatusBar />
       <CustomScrollView onEndReached={loadMore}>
-        <View style={[styles.scrollBody, { paddingTop: insets.top + space.inlineGap }]}>
+        {/* No dock clearance here: this is a PUSHED screen, so `CustomTabBar` is
+            hidden (`getTabBarVisibility`) and the 120pt this used to reserve was
+            120pt of dead space. What the bottom actually needs is breathing room
+            plus the safe area. */}
+        <View
+          style={[
+            styles.scrollBody,
+            {
+              paddingTop: insets.top + space.inlineGap,
+              paddingBottom: space.sectionGap + insets.bottom,
+            },
+          ]}
+        >
           {/* The canonical back bar, matching PageHeader's geometry exactly
               (`size.backBtn` tall, DS `IconButton`) so this screen's header sits
               at the same height as every other screen's. */}
@@ -491,9 +503,9 @@ const Discover = () => {
               hierarchy, and the headline says what the page is. A label whose
               only job is to name where you came from is chrome. */}
           <View style={styles.titleBlock}>
-            <Text variant="h1" style={styles.headline}>
+            <Text variant="poster" style={styles.headline}>
               People with a space{" "}
-              <Text variant="h1" style={[styles.headline, { color: colors.text.accent }]}>
+              <Text variant="poster" style={[styles.headline, { color: colors.text.accent }]}>
                 next to them.
               </Text>
             </Text>
@@ -568,13 +580,13 @@ const styles = StyleSheet.create({
   // every other screen's.
   backBar: { minHeight: size.backBtn, flexDirection: "row", alignItems: "center" },
   titleBlock: { marginTop: space.titleGap },
-  // Same display cut as the room's stage — 28pt h1 is a section title, and this
-  // screen has to answer the room in its own voice.
-  headline: { fontSize: 30, lineHeight: 31, letterSpacing: -0.9, marginBottom: spacing.xxs },
+  // The cut itself now lives in `typography.poster`, shared with the room's
+  // stage — this screen has to answer the room in the same voice, and two
+  // hand-rolled copies of "the same voice" were 4px and 0.2 of tracking apart.
+  headline: { marginBottom: spacing.xxs },
 
   scrollBody: {
     paddingHorizontal: space.screenX,
-    paddingBottom: 120,
     gap: space.groupGap,
   },
   consent: { gap: spacing.md },

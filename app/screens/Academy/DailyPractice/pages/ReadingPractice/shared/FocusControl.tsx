@@ -3,6 +3,7 @@ import React, { useState } from "react";
 
 import PressableScale from "../../../../../../components/PressableScale";
 import {
+  size,
   Dialog,
   Icon,
   icons,
@@ -69,7 +70,7 @@ export function FocusControl({
           },
         ]}
       >
-        <Icon name={icons.focus} size={22} color={active ? onAccent : accent} />
+        <Icon name={icons.focus} size={size.icon} color={active ? onAccent : accent} />
       </PressableScale>
 
       <Dialog

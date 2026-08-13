@@ -18,6 +18,8 @@ import TextArea from "../../../../../../components/TextArea";
 import * as WebBrowser from "expo-web-browser";
 import { toSafeExternalUrl } from "../../../../../../util/functions/url";
 import {
+  size,
+  fonts,
   SchemeStatusBar,
   Button,
   Surface,
@@ -423,7 +425,7 @@ const Reframe = () => {
                       </Text>
                     </View>
                     {isSelected && (
-                      <Icon name={icons.success} size={20} color={accentColor} />
+                      <Icon name={icons.success} size={size.icon} color={accentColor} />
                     )}
                   </Surface>
                 </PressableScale>
@@ -493,15 +495,15 @@ const Reframe = () => {
 
         <View style={styles.body}>
           {/* Eyebrow — Reframe's blue identity. Shuffle lives in the floating FAB. */}
-          <Text variant="label" color={colors.feedback.infoText} style={styles.eyebrow}>
+          <Text variant="eyebrow" color={colors.feedback.infoText} style={styles.eyebrow}>
             REFRAME
           </Text>
 
           {/* Negative thought */}
           <View style={styles.negativeSection}>
             <View style={styles.negativeLabelRow}>
-              <Icon name="cloud-rain" size={14} color={colors.text.tertiary} />
-              <Text variant="label" color="tertiary">
+              <Icon name="cloud-rain" size={size.iconInline} color={colors.text.tertiary} />
+              <Text variant="eyebrow" color="tertiary">
                 NEGATIVE THOUGHT
               </Text>
             </View>
@@ -512,7 +514,7 @@ const Reframe = () => {
 
           {/* Choose a better perspective */}
           <View style={styles.positiveSection}>
-            <Text variant="label" color={colors.feedback.infoText} center style={styles.chooseLabel}>
+            <Text variant="eyebrow" color={colors.feedback.infoText} center style={styles.chooseLabel}>
               CHOOSE A BETTER PERSPECTIVE
             </Text>
 
@@ -565,8 +567,8 @@ const Reframe = () => {
                 ]}
               >
                 <View style={styles.evidenceLabelRow}>
-                  <Icon name="lightbulb" size={14} color={colors.feedback.infoText} />
-                  <Text variant="label" color={colors.feedback.infoText}>
+                  <Icon name="lightbulb" size={size.iconInline} color={colors.feedback.infoText} />
+                  <Text variant="eyebrow" color={colors.feedback.infoText}>
                     WHY THIS WORKS
                   </Text>
                 </View>
@@ -596,7 +598,7 @@ const Reframe = () => {
                     </Text>
                     <Icon
                       name="external-link"
-                      size={12}
+                      size={size.iconXs}
                       color={colors.feedback.infoText}
                     />
                   </PressableScale>
@@ -619,7 +621,7 @@ const Reframe = () => {
                     >
                       <Icon
                         name="graduation-cap"
-                        size={14}
+                        size={size.iconInline}
                         color={colors.text.secondary}
                       />
                       <Text
@@ -631,20 +633,20 @@ const Reframe = () => {
                       </Text>
                       <Icon
                         name={showContrast ? "chevron-up" : "chevron-down"}
-                        size={14}
+                        size={size.iconInline}
                         color={colors.text.tertiary}
                       />
                     </PressableScale>
                     {showContrast && (
                       <View style={styles.contrastBody}>
-                        <Text variant="label" color="tertiary">
-                          {evidence.contrast.viewA.label.toUpperCase()}
+                        <Text variant="eyebrow" color="tertiary">
+                          {evidence.contrast.viewA.label}
                         </Text>
                         <Text variant="bodySm" color="secondary" style={styles.contrastText}>
                           {evidence.contrast.viewA.text}
                         </Text>
-                        <Text variant="label" color="tertiary" style={styles.contrastSideGap}>
-                          {evidence.contrast.viewB.label.toUpperCase()}
+                        <Text variant="eyebrow" color="tertiary" style={styles.contrastSideGap}>
+                          {evidence.contrast.viewB.label}
                         </Text>
                         <Text variant="bodySm" color="secondary" style={styles.contrastText}>
                           {evidence.contrast.viewB.text}
@@ -668,7 +670,7 @@ const Reframe = () => {
                             </Text>
                             <Icon
                               name="external-link"
-                              size={12}
+                              size={size.iconXs}
                               color={colors.feedback.infoText}
                             />
                           </PressableScale>
@@ -807,7 +809,6 @@ const styles = StyleSheet.create({
 
   // Header eyebrow
   eyebrow: {
-    letterSpacing: 1.5,
   },
 
   // Negative thought
@@ -832,7 +833,6 @@ const styles = StyleSheet.create({
     gap: space.groupGap,
   },
   chooseLabel: {
-    letterSpacing: 1.5,
   },
   optionsList: {
     gap: space.groupGap,
@@ -862,6 +862,7 @@ const styles = StyleSheet.create({
     marginBottom: space.rowGap,
   },
   evidencePrinciple: {
+    fontFamily: fonts.semibold,
     fontWeight: "600",
     marginBottom: space.rowGap,
   },
@@ -903,6 +904,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: space.rowGap,
     marginBottom: space.rowGap,
+    fontFamily: fonts.medium,
     fontWeight: "500",
   },
   writeOwnContainer: {

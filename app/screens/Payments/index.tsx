@@ -28,6 +28,7 @@ import {
   showErrorBottomSheet,
 } from "../../util/functions/bottomSheet";
 import {
+  size,
   Text as DSText,
   Icon,
   type IconName,
@@ -363,7 +364,7 @@ const SubscribeScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Icon name={icons.close} size={20} color={colors.text.onInverse} />
+              <Icon name={icons.close} size={size.icon} color={colors.text.onInverse} />
             </TouchableOpacity>
           </View>
 
@@ -380,8 +381,8 @@ const SubscribeScreen = () => {
             <View style={styles.heroContainer}>
               <View style={styles.badgeGlass}>
                 <View style={styles.badgeInner}>
-                  <Icon name={icons.pro} size={12} color={colors.premium.gold} />
-                  <DSText variant="caption" style={styles.badgeText}>
+                  <Icon name={icons.pro} size={size.iconXs} color={colors.premium.gold} />
+                  <DSText variant="eyebrow" style={styles.badgeText}>
                     PREMIUM ACCESS
                   </DSText>
                 </View>
@@ -460,7 +461,7 @@ const SubscribeScreen = () => {
                       <View style={styles.iconCircle}>
                         <Icon
                           name={slide.icon as IconName}
-                          size={28}
+                          size={size.iconLg}
                           color={colors.premium.gold}
                         />
                       </View>
@@ -559,7 +560,7 @@ const SubscribeScreen = () => {
               </DSText>
               <View style={styles.noteSignature}>
                 <View style={styles.signatureLine} />
-                <DSText variant="caption" style={styles.signatureText}>
+                <DSText variant="eyebrow" style={styles.signatureText}>
                   The Speechworks Team
                 </DSText>
                 <View style={styles.signatureLine} />
@@ -792,7 +793,7 @@ const SubscribeScreen = () => {
                 <View style={styles.guaranteeRow}>
                   <Icon
                     name="shield"
-                    size={14}
+                    size={size.iconInline}
                     color={colors.text.tertiary}
                   />
                   {/* A subscription can be cancelled anytime via the store, so
@@ -887,7 +888,7 @@ const SubscribeScreen = () => {
       >
         <View style={styles.testModeModalContent}>
           <View style={styles.testModeIconWrap}>
-            <Icon name="alert-circle" size={28} color={colors.text.accent} />
+            <Icon name="alert-circle" size={size.iconLg} color={colors.text.accent} />
           </View>
           <DSText variant="h2" color="primary" center style={styles.testModeTitle}>
             You&apos;re in test mode
@@ -944,7 +945,7 @@ const useStyles = makeStyles((c) => ({
   },
   glowOrb: {
     position: "absolute",
-    borderRadius: 200,
+    borderRadius: radius.full,
     width: 300,
     height: 300,
   },
@@ -964,7 +965,7 @@ const useStyles = makeStyles((c) => ({
     top: 16,
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     backgroundColor: c.surface.inverse,
     alignItems: "center",
     justifyContent: "center",
@@ -980,7 +981,7 @@ const useStyles = makeStyles((c) => ({
   },
   badgeGlass: {
     backgroundColor: c.surface.control,
-    borderRadius: 100,
+    borderRadius: radius.full,
     padding: 1,
     marginBottom: spacing.xl,
   },
@@ -990,14 +991,13 @@ const useStyles = makeStyles((c) => ({
     backgroundColor: c.premium.goldTint,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: 100,
+    borderRadius: radius.full,
     gap: spacing.sm,
     borderWidth: 1,
     borderColor: c.premium.goldBorder,
   },
   badgeText: {
     color: c.premium.gold,
-    letterSpacing: 2,
   },
   heroTitle: {
     letterSpacing: -1,
@@ -1022,7 +1022,7 @@ const useStyles = makeStyles((c) => ({
   },
   slideInner: {
     padding: spacing["2xl"],
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     borderWidth: 1,
     borderColor: c.border.default,
     backgroundColor: c.surface.control,
@@ -1039,7 +1039,7 @@ const useStyles = makeStyles((c) => ({
   iconCircle: {
     width: 60,
     height: 60,
-    borderRadius: 20,
+    borderRadius: radius.chip,
     backgroundColor: c.premium.goldTint,
     alignItems: "center",
     justifyContent: "center",
@@ -1056,7 +1056,7 @@ const useStyles = makeStyles((c) => ({
   compareRow: {
     flexDirection: "row",
     backgroundColor: c.background.sunken,
-    borderRadius: 20,
+    borderRadius: radius.chip,
     padding: spacing.lg,
     alignItems: "center",
   },
@@ -1099,7 +1099,7 @@ const useStyles = makeStyles((c) => ({
     marginHorizontal: spacing["2xl"],
     backgroundColor: c.surface.default,
     padding: spacing["3xl"],
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     borderWidth: 1,
     borderColor: c.border.default,
     alignItems: "center",
@@ -1128,8 +1128,6 @@ const useStyles = makeStyles((c) => ({
   },
   signatureText: {
     color: c.premium.gold,
-    textTransform: "uppercase",
-    letterSpacing: 1,
   },
   // Pricing
   pricingSection: {
@@ -1166,7 +1164,7 @@ const useStyles = makeStyles((c) => ({
     right: 20,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: 100,
+    borderRadius: radius.full,
   },
   bestValueText: {
     color: c.text.onInverse,
@@ -1179,7 +1177,7 @@ const useStyles = makeStyles((c) => ({
   radio: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radius.full,
     borderWidth: 2,
     borderColor: c.border.strong,
     alignItems: "center",
@@ -1191,7 +1189,7 @@ const useStyles = makeStyles((c) => ({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: radius.full,
     backgroundColor: c.premium.gold,
   },
   planNameRow: {
@@ -1207,7 +1205,7 @@ const useStyles = makeStyles((c) => ({
     backgroundColor: c.premium.gold,
     paddingHorizontal: spacing.xs,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.xs,
   },
   savingsText: {
     color: c.text.onInverse,
@@ -1238,7 +1236,7 @@ const useStyles = makeStyles((c) => ({
     borderTopColor: c.border.strong,
   },
   upgradeBtnWrapper: {
-    borderRadius: 20,
+    borderRadius: radius.chip,
     overflow: "hidden",
     marginBottom: spacing.lg,
   },
@@ -1293,7 +1291,7 @@ const useStyles = makeStyles((c) => ({
   testModeIconWrap: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     backgroundColor: c.action.primaryTint,
     alignItems: "center",
     justifyContent: "center",
@@ -1308,7 +1306,7 @@ const useStyles = makeStyles((c) => ({
   testModeButtonWrap: {
     width: "100%",
     marginTop: spacing["2xl"],
-    borderRadius: 18,
+    borderRadius: radius.input,
     overflow: "hidden",
   },
   testModeButton: {

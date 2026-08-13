@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { getCrisisResource, CrisisResource } from "../../api/crisis";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -133,7 +134,7 @@ const Resources = () => {
       leftIcon={item.icon}
       label={item.label}
       sublabel={item.desc}
-      right={<Icon name="external-link" size={18} color={colors.text.tertiary} />}
+      right={<Icon name="external-link" size={size.iconSm} color={colors.text.tertiary} />}
       divider={index < arr.length - 1}
       onPress={() => open(item)}
     />

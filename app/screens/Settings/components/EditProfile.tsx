@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { updateUserById } from "../../../api";
 import { useUserStore } from "../../../stores/user";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -152,20 +153,20 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
           <SectionHeader icon="share-2" title="Social Links" />
           <View style={styles.inputGroup}>
             {socialRow(
-              <Icon name={icons.socialFacebook} size={16} color={colors.text.primary} />,
+              <Icon name={icons.socialFacebook} size={size.iconSm} color={colors.text.primary} />,
               socialLinks.facebook,
               "Facebook Profile URL",
               (t) => setSocialLinks((prev) => ({ ...prev, facebook: t })),
             )}
             {socialRow(
-              <Icon name={icons.socialInstagram} size={16} color={colors.text.primary} />,
+              <Icon name={icons.socialInstagram} size={size.iconSm} color={colors.text.primary} />,
               socialLinks.instagram,
               "Instagram Profile URL",
               (t) => setSocialLinks((prev) => ({ ...prev, instagram: t })),
             )}
             {socialRow(
               // brand-exception: WhatsApp has no DS/Lucide glyph
-              <Icon name={icons.socialWhatsapp} size={16} color={colors.text.primary} />,
+              <Icon name={icons.socialWhatsapp} size={size.iconSm} color={colors.text.primary} />,
               socialLinks.whatsapp,
               "WhatsApp Number / URL",
               (t) => setSocialLinks((prev) => ({ ...prev, whatsapp: t })),

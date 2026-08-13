@@ -6,7 +6,7 @@ import {
   View,
 } from "react-native";
 import PressableScale from "../PressableScale";
-import { useTheme, spacing, radius, borderWidth, fonts, Sheet, Text, Icon, icons, type IconName } from "../../design-system";
+import { size, useTheme, spacing, radius, borderWidth, fonts, Sheet, Text, Icon, icons, type IconName } from "../../design-system";
 import { Signal, SupportNoteId, sendSupport } from "../../api/threads";
 import { SUPPORT_NOTES } from "../../constants/supportNotes";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -28,7 +28,7 @@ const GuideLine = ({ icon, text }: { icon: IconName; text: string }) => {
   const { colors } = useTheme();
   return (
     <View style={styles.guideLine}>
-      <Icon name={icon} size={16} color={colors.text.accent} style={styles.guideLineIcon} />
+      <Icon name={icon} size={size.iconSm} color={colors.text.accent} style={styles.guideLineIcon} />
       <Text variant="bodySm" color="secondary" style={styles.flex1}>{text}</Text>
     </View>
   );
@@ -129,7 +129,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
         </Text>
 
         {/* Warm canned notes — each one pushes the struggling person */}
-        <Text variant="caption" color="tertiary" style={styles.groupLabel}>Let them know you're here</Text>
+        <Text variant="eyebrow" color="tertiary" style={styles.groupLabel}>Let them know you're here</Text>
         {SUPPORT_NOTES.map((n) => {
           const isSent = sentNotes.includes(n.id);
           const isSending = sendingNote === n.id;
@@ -150,16 +150,16 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
               {isSending ? (
                 <ActivityIndicator size="small" color={colors.action.primary} />
               ) : isSent ? (
-                <Icon name={icons.success} size={22} color={colors.accentText.success} />
+                <Icon name={icons.success} size={size.icon} color={colors.accentText.success} />
               ) : (
-                <Icon name={icons.send} size={18} color={colors.text.accent} />
+                <Icon name={icons.send} size={size.iconSm} color={colors.text.accent} />
               )}
             </PressableScale>
           );
         })}
 
         {/* Hand off the lifeline to them */}
-        <Text variant="caption" color="tertiary" style={[styles.groupLabel, styles.groupLabelSpaced]}>Bridge them to help</Text>
+        <Text variant="eyebrow" color="tertiary" style={[styles.groupLabel, styles.groupLabelSpaced]}>Bridge them to help</Text>
         <PressableScale
           style={[
             styles.lifelineBtn,
@@ -172,7 +172,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
         >
           <Icon
             name={lifelineSent ? icons.success : icons.support}
-            size={20}
+            size={size.icon}
             color={lifelineSent ? colors.accentText.success : colors.text.accent}
           />
           <Text variant="bodySm" color={lifelineSent ? colors.feedback.successText : "primary"} style={[styles.flex1, styles.bold]}>
@@ -186,11 +186,11 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
 
         {/* How to support a friend in crisis (collapsible) */}
         <PressableScale style={styles.guideHeader} haptic={false} scaleTo={0.99} onPress={toggleGuide}>
-          <Icon name={icons.care} size={16} color={colors.text.accent} />
+          <Icon name={icons.care} size={size.iconSm} color={colors.text.accent} />
           <Text variant="bodySm" color="accent" style={[styles.flex1, styles.bold]}>How to support a friend in crisis</Text>
           <Icon
             name={guideOpen ? icons.chevronUp : icons.chevronDown}
-            size={20}
+            size={size.icon}
             color={colors.text.tertiary}
           />
         </PressableScale>
@@ -201,7 +201,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
             <GuideLine icon={icons.professionalHelp} text="Gently encourage talking to a professional, together if it helps." />
             <GuideLine icon={icons.danger} text={`If ${name} may be in immediate danger, call your local emergency number.`} />
             <PressableScale style={[styles.selfHelpRow, { backgroundColor: colors.surface.control }]} haptic={false} scaleTo={0.98} onPress={self988}>
-              <Icon name={icons.call} size={15} color={colors.text.accent} />
+              <Icon name={icons.call} size={size.iconInline} color={colors.text.accent} />
               <Text variant="caption" color="accent" style={[styles.flex1, styles.bold]}>This is heavy for you too. 988 is there for you</Text>
             </PressableScale>
           </View>
@@ -209,7 +209,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
 
         {anySent ? (
           <View style={styles.sentBanner}>
-            <Icon name={icons.success} size={16} color={colors.accentText.success} />
+            <Icon name={icons.success} size={size.iconSm} color={colors.accentText.success} />
             <Text variant="bodySm" color="primary" style={styles.bold}>{name} will know you're here.</Text>
           </View>
         ) : null}
@@ -239,8 +239,6 @@ const styles = StyleSheet.create({
   },
 
   groupLabel: {
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
     marginBottom: spacing.sm,
   },
   groupLabelSpaced: { marginTop: spacing.xl },

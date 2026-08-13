@@ -9,6 +9,8 @@ import {
   InterviewEDPStackParamList,
 } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import {
+  size,
+  radius,
   Page,
   Button,
   Surface,
@@ -81,8 +83,8 @@ const Briefing = () => {
       {/* Scenario Details — a dark card on the canvas. */}
       <Surface level="default" rounded="card" padded={spacing["2xl"]}>
         <View style={styles.scenarioHeader}>
-          <Icon name={icons.challenge} size={16} color={accentFg} />
-          <Text variant="label" color="tertiary" style={styles.scenarioLabel}>
+          <Icon name={icons.challenge} size={size.iconSm} color={accentFg} />
+          <Text variant="eyebrow" color="tertiary" style={styles.scenarioLabel}>
             THE SCENARIO
           </Text>
         </View>
@@ -134,7 +136,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   scenarioLabel: {
-    letterSpacing: 1.5,
   },
   scenarioText: {
     lineHeight: 26,
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

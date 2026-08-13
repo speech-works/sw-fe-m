@@ -1,11 +1,43 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
+
+import { darkColors } from "../design-system/semantic/dark";
+import { lightColors } from "../design-system/semantic/light";
+import { typography } from "../design-system/primitives/typography";
+import { radius, spacing, space, borderWidth } from "../design-system/primitives/scale";
 
 /**
  * Minimal, dependency-free fallback rendered by the root Sentry.ErrorBoundary
  * when a render/JS error escapes the app tree. Intentionally avoids
  * navigation / store / provider dependencies so it still renders even when one
  * of those is the source of the crash (otherwise: white screen).
+ *
+ * ── WHY THIS ONE SCREEN IMPORTS SCHEMES INSTEAD OF CALLING `useTheme()` ──────
+ * The boundary is mounted OUTSIDE `ThemeProvider` (see App.tsx) precisely so a
+ * crash inside the provider still renders something. That rules out `useTheme`,
+ * the DS `Text`, and the DS `Button` — every one of them reads the context this
+ * screen may be standing in the ruins of.
+ *
+ * It does NOT rule out the tokens themselves: `darkColors` / `lightColors` /
+ * `typography` / `scale` are plain objects with no React in them, so importing
+ * them directly is provider-free and still leaves exactly one definition of the
+ * warm palette and the type scale. This screen previously hardcoded a pure-white
+ * canvas, cold Tailwind greys, and `#F28044` — a brand orange that is in no
+ * palette (the hero is `#FF9040`) — under white label text at 2.64:1, which
+ * fails AA. On a dark-mode device it flashed white at the worst possible moment.
+ *
+ * The scheme comes from the OS (`useColorScheme`) rather than the in-app
+ * Light/Dark preference, which lives in a store this screen must not depend on.
+ * Someone who forced Light against a dark OS gets a dark crash screen: the wrong
+ * one of two correct-looking screens, which is a far better failure than a
+ * provider-dependent fallback that renders nothing at all.
  */
 
 /**
@@ -43,6 +75,7 @@ export const ErrorFallback: React.FC<{
   componentStack?: string | null;
 }> = ({ resetError, error, componentStack }) => {
   const summary = error === undefined ? null : describe(error);
+  const c = useColorScheme() === "light" ? lightColors : darkColors;
 
   React.useEffect(() => {
     if (!__DEV__ || summary === null) return;
@@ -51,33 +84,50 @@ export const ErrorFallback: React.FC<{
   }, [summary, componentStack]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Something went wrong</Text>
-      <Text style={styles.body}>
+    <View style={[styles.container, { backgroundColor: c.background.canvas }]}>
+      <Text style={[styles.title, { color: c.text.primary }]}>
+        Something went wrong
+      </Text>
+      <Text style={[styles.body, { color: c.text.secondary }]}>
         Your progress is safe. Please try again.
       </Text>
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, { backgroundColor: c.action.primary }]}
         onPress={resetError}
         accessibilityRole="button"
         accessibilityLabel="Try again"
       >
-        <Text style={styles.buttonText}>Try again</Text>
+        {/* Dark ink on the orange fill — the app's AA pairing (7.71:1). White
+            on orange, which this used to be, is 2.64:1. */}
+        <Text style={[styles.buttonText, { color: c.action.onPrimary }]}>
+          Try again
+        </Text>
       </TouchableOpacity>
 
       {__DEV__ && summary !== null ? (
-        <ScrollView style={styles.debug} contentContainerStyle={styles.debugContent}>
-          <Text style={styles.debugLabel}>DEV ONLY — not shown in release</Text>
-          <Text selectable style={styles.debugText}>
+        <ScrollView
+          style={[
+            styles.debug,
+            {
+              backgroundColor: c.surface.default,
+              borderColor: c.feedback.dangerText,
+            },
+          ]}
+          contentContainerStyle={styles.debugContent}
+        >
+          <Text style={[styles.debugLabel, { color: c.feedback.dangerText }]}>
+            DEV ONLY — not shown in release
+          </Text>
+          <Text selectable style={[styles.debugText, { color: c.text.primary }]}>
             {summary}
           </Text>
           {error instanceof Error && error.stack ? (
-            <Text selectable style={styles.debugStack}>
+            <Text selectable style={[styles.debugStack, { color: c.text.secondary }]}>
               {error.stack.split("\n").slice(1, 9).join("\n")}
             </Text>
           ) : null}
           {componentStack ? (
-            <Text selectable style={styles.debugStack}>
+            <Text selectable style={[styles.debugStack, { color: c.text.secondary }]}>
               {componentStack.split("\n").slice(0, 9).join("\n")}
             </Text>
           ) : null}
@@ -94,48 +144,35 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: spacing["3xl"],
   },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 10,
+    ...typography.h2,
+    marginBottom: spacing.sm,
     textAlign: "center",
   },
   body: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#6B7280",
+    ...typography.body,
     textAlign: "center",
-    marginBottom: 28,
+    marginBottom: space.titleGap,
   },
   button: {
-    backgroundColor: "#F28044",
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 16,
+    paddingHorizontal: space.sectionGap,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
   },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  buttonText: typography.title,
   debug: {
     position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 24,
+    left: space.screenX,
+    right: space.screenX,
+    bottom: space.sectionGap,
     maxHeight: 260,
-    backgroundColor: "#FEF2F2",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#FCA5A5",
+    borderRadius: radius.input,
+    borderWidth: borderWidth.thin,
   },
-  debugContent: { padding: 12, gap: 6 },
-  debugLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    color: "#B91C1C",
-  },
-  debugText: { fontSize: 12, lineHeight: 17, color: "#7F1D1D" },
-  debugStack: { fontSize: 10, lineHeight: 14, color: "#9F1239" },
+  debugContent: { padding: spacing.md, gap: spacing.xs },
+  debugLabel: typography.eyebrow,
+  debugText: typography.bodySm,
+  debugStack: typography.caption,
 });

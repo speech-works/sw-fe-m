@@ -4,6 +4,7 @@ import { submitAppFeedback } from "../../../../api/settings/helpSupport";
 import { useUserStore } from "../../../../stores/user";
 import { useNavigation } from "@react-navigation/native";
 import {
+  size,
   useTheme,
   spacing,
   space,
@@ -83,7 +84,7 @@ const Feedback = () => {
       >
           {/* Feature Requests */}
           <View style={styles.section}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               WHAT DO YOU WANT TO SEE?
             </Text>
             <View style={styles.chipsContainer}>
@@ -101,7 +102,7 @@ const Feedback = () => {
 
           {/* Frustrations */}
           <View style={styles.section}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               WHAT COULD BE BETTER?
             </Text>
             <View style={styles.chipsContainer}>
@@ -119,7 +120,7 @@ const Feedback = () => {
 
           {/* Other Thoughts */}
           <View style={styles.section}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               ANY OTHER THOUGHTS?
             </Text>
             <TextField
@@ -144,7 +145,7 @@ const Feedback = () => {
             </View>
             {submitEmail ? (
               <View style={[styles.emailChip, { backgroundColor: colors.surface.control }]}>
-                <Icon name="mail" size={14} color={colors.text.secondary} />
+                <Icon name="mail" size={size.iconInline} color={colors.text.secondary} />
                 <Text variant="bodySm" color="secondary">
                   {user?.email}
                 </Text>
@@ -182,7 +183,7 @@ const Feedback = () => {
                   { backgroundColor: colors.accent.success },
                 ]}
               >
-                <Icon name="check" size={32} color={colors.accentOn.success} />
+                <Icon name="check" size={size.iconXl} color={colors.accentOn.success} />
               </View>
             </View>
             <Text variant="h2" center>
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   successIconBox: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing["2xl"],
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   innerCheckmarkCircle: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
   },

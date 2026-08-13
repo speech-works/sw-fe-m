@@ -4,6 +4,7 @@ import Animated from "react-native-reanimated";
 
 import PressableScale from "../PressableScale";
 import {
+  size,
   Text,
   Icon,
   icons,
@@ -99,7 +100,7 @@ const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
               tap target; the pill is the affordance, as on the sibling cards. */}
           <View style={styles.footer}>
             <View style={[styles.cta, { backgroundColor: islandBg }]}>
-              <Icon name={icons.refresh} size={14} color={islandInk} />
+              <Icon name={icons.refresh} size={size.iconInline} color={islandInk} />
               <Text variant="title" color={islandInk}>
                 Try again
               </Text>
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     right: -30,
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: radius.full,
   },
   blobB: {
     position: "absolute",
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
     right: 40,
     width: 90,
     height: 90,
-    borderRadius: 45,
+    borderRadius: radius.full,
   },
   title: {
     marginTop: space.titleSub,

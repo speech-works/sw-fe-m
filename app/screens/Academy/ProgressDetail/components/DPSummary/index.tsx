@@ -123,7 +123,7 @@ const DPSummary = ({
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+          <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
             PRACTICE DISTRIBUTION
           </Text>
           <Text variant="bodySm" color="secondary">
@@ -134,7 +134,7 @@ const DPSummary = ({
         </View>
         <View style={styles.headerRight}>
           {hasError ? (
-            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={size.iconInline} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           ) : null}
           <Icon name={icons.chartPie} size={size.icon} color={colors.text.tertiary} />
         </View>
@@ -163,7 +163,7 @@ const DPSummary = ({
               absolute
             />
             <View style={[styles.donutHole, { backgroundColor: colors.surface.elevated }]}>
-              <Text variant="caption" color="tertiary" style={styles.totalLabel}>
+              <Text variant="eyebrow" color="tertiary" style={styles.totalLabel}>
                 TOTAL
               </Text>
               <Text variant="h3">{formatTime(totalPracticeTime)}</Text>
@@ -213,8 +213,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    letterSpacing: 1,
-    textTransform: "uppercase",
     marginBottom: spacing.xxs,
   },
   headerRight: {
@@ -239,7 +237,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   totalLabel: {
-    letterSpacing: 1,
   },
   legend: {
     gap: spacing.md,

@@ -3,6 +3,8 @@ import { StyleSheet, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import PressableScale from "../../../../components/PressableScale";
 import {
+  size,
+  fonts,
   Text,
   Icon,
   icons,
@@ -163,7 +165,7 @@ const GrowthSummary: React.FC = () => {
           {/* AN EYEBROW AND A TITLE, not one flat label. A single grey line
               gives the eye nothing to land on first; the pair does, and it is
               what every card on this screen that already works is doing. */}
-          <Text variant="label" color={colors.text.onContrastMuted} style={styles.eyebrow}>
+          <Text variant="eyebrow" color={colors.text.onContrastMuted}>
             SO FAR
           </Text>
           <Text variant="h3" color={colors.text.onContrast}>
@@ -174,7 +176,7 @@ const GrowthSummary: React.FC = () => {
             this read as a settings row rather than a card — it is the same
             affordance a list item uses, at the same weight. */}
         <View style={[styles.action, { backgroundColor: colors.text.onContrast }]}>
-          <Icon name={icons.forward} size={18} color={colors.surface.contrast} />
+          <Icon name={icons.forward} size={size.iconSm} color={colors.surface.contrast} />
         </View>
       </View>
 
@@ -236,14 +238,13 @@ const styles = StyleSheet.create({
     padding: spacing["2xl"],
     gap: spacing.lg,
   },
-  bold: { fontWeight: "600" },
+  bold: { fontFamily: fonts.semibold, fontWeight: "600" },
   headerRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: spacing.md,
   },
-  eyebrow: { letterSpacing: 1, textTransform: "uppercase" },
   flex1: { flex: 1 },
   intro: { marginTop: -spacing.xxs },
   // WRAPS, AND NEVER STRETCHES. Each chip used to be `flex: 1`, so a person
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   action: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

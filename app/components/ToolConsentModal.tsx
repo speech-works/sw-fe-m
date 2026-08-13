@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { ToolType } from "../api/tools/types";
 import {
+  size,
   Sheet,
   useTheme,
   spacing,
@@ -70,7 +71,7 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
     <Sheet visible={visible} onClose={onAcknowledge}>
       <View style={styles.container}>
         <View style={[styles.iconDisc, { backgroundColor: withAlpha(iconAccent, 0.14) }]}>
-          <Icon name={copy.icon} size={28} color={iconAccent} />
+          <Icon name={copy.icon} size={size.iconLg} color={iconAccent} />
         </View>
 
         <Text variant="h2" center>

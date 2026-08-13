@@ -1,4 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+import { darkColors as c } from "../../../../../../design-system/semantic/dark";
+import { radius } from "../../../../../../design-system";
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { MirrorBehaviorSignal } from '../types';
 
@@ -278,9 +285,9 @@ const styles = StyleSheet.create({
   toast: {
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderRadius: 18,
+    borderRadius: radius.input,
     maxWidth: 380,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.28,
     shadowRadius: 14,
@@ -290,7 +297,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   line1: {
-    color: '#FFFFFF',
+    color: c.text.primary,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
@@ -298,7 +305,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   line2: {
-    color: '#D1D1D6',
+    color: c.text.secondary,
     fontSize: 13.5,
     fontWeight: '400',
     textAlign: 'center',

@@ -21,6 +21,7 @@ import {
   SchemeStatusBar,
   useTheme,
   spacing,
+  size,
   space,
   radius,
   Text,
@@ -333,7 +334,7 @@ const ProgressDetail = () => {
               styles.scrollView,
               // Clearance follows the in-page dock, which edge-to-edge moves up by the
               // nav bar. 0 on iOS.
-              { paddingTop: insets.top + space.inlineGap, paddingBottom: 140 + navBarInset },
+              { paddingTop: insets.top + space.inlineGap, paddingBottom: size.tabBarSafe + navBarInset },
             ]}
             showsVerticalScrollIndicator={false}
             refreshControl={refreshControl}
@@ -349,7 +350,7 @@ const ProgressDetail = () => {
               styles.scrollView,
               // Clearance follows the in-page dock, which edge-to-edge moves up by the
               // nav bar. 0 on iOS.
-              { paddingTop: insets.top + space.inlineGap, paddingBottom: 140 + navBarInset },
+              { paddingTop: insets.top + space.inlineGap, paddingBottom: size.tabBarSafe + navBarInset },
             ]}
             showsVerticalScrollIndicator={false}
             refreshControl={refreshControl}
@@ -395,7 +396,7 @@ const styles = StyleSheet.create({
   scrollView: {
     gap: spacing["2xl"],
     paddingHorizontal: space.screenX,
-    paddingBottom: 140,
+    paddingBottom: size.tabBarSafe,
   },
   skeletonStack: {
     gap: spacing["2xl"],

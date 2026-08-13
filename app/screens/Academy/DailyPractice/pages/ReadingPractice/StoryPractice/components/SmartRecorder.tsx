@@ -364,7 +364,7 @@ const useStyles = makeStyles((c, t) => ({
   stopButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -373,7 +373,7 @@ const useStyles = makeStyles((c, t) => ({
   stopButtonRecording: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -444,7 +444,7 @@ const useStyles = makeStyles((c, t) => ({
   recordingDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
     backgroundColor: c.feedback.danger,
     marginRight: 6,
   },
@@ -467,7 +467,7 @@ const useStyles = makeStyles((c, t) => ({
   mainMicButton: {
     width: 54,
     height: 54,
-    borderRadius: 27,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -485,14 +485,14 @@ const useStyles = makeStyles((c, t) => ({
   submitButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
   playButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",

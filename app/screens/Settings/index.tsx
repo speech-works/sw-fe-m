@@ -18,6 +18,7 @@ import { getLevelStage, LevelStage } from "../../api/users";
 import { purchasesAvailable } from "../../services/purchases";
 import { useRestorePurchases } from "../../hooks/useRestorePurchases";
 import {
+  size,
   useTheme,
   useMotion,
   easing,
@@ -232,7 +233,7 @@ const Settings = () => {
           <View style={styles.nameRow}>
             <Text variant="h2">{user?.name}</Text>
             <View style={[styles.proBadge, { backgroundColor: colors.action.primaryTint }]}>
-              <Text variant="label" color="accent">
+              <Text variant="eyebrow" color="accent">
                 FREE
               </Text>
             </View>
@@ -288,7 +289,7 @@ const Settings = () => {
             <Text variant="bodySm" color={colors.feedback.dangerText}>
               Log Out
             </Text>
-            <Icon name="log-out" size={14} color={colors.feedback.dangerText} />
+            <Icon name="log-out" size={size.iconInline} color={colors.feedback.dangerText} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.deleteAccountButton}

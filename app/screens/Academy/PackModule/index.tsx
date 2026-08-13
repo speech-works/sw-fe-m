@@ -24,6 +24,8 @@ import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
 import { useActivityStore } from "../../../stores/activity";
 import {
+  size,
+  radius,
   Button,
   Icon,
   IconName,
@@ -793,7 +795,7 @@ const PackModuleScreen = () => {
           >
             <Icon
               name={icons.warning}
-              size={28}
+              size={size.iconLg}
               color={colors.feedback.warningText}
             />
           </View>
@@ -897,7 +899,7 @@ const styles = StyleSheet.create({
   successIconContainer: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing["3xl"],
@@ -920,7 +922,7 @@ const styles = StyleSheet.create({
   skipModalIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing.lg,

@@ -64,10 +64,28 @@ export const size = {
   // visibility/impression maths needs. Kept adjacent so the two can't drift.
   dockOcclusion: 100,
   backBtn: 44,
-  tabIcon: 24,
+  /**
+   * Icon ramp. `iconInline` and `iconXs` were added after an audit found they
+   * were the app's TWO MOST-USED icon sizes (44 and 33 sites) with no token at
+   * all — so two thirds of icons were raw numbers and had drifted to 13, 15,
+   * 18, 22, 26 and 30. Each pairs with a type variant, which is how you pick:
+   *   iconXs 12     → sits with `caption` (12/16)
+   *   iconInline 14 → sits with `bodySm` (14/20) — the default inline glyph
+   *   iconSm 16     → sits with `label` / `body`
+   *   icon 20       → a row's leading icon
+   *   tabIcon 24    → the tab dock
+   *   iconLg 28     → a section or card header
+   *   iconXl 32     → a feature tile
+   * Anything larger is decorative (hero glyphs, watermarks) and stays a
+   * one-off — a 140pt illustration is art, not an icon.
+   */
+  iconXl: 32,
   iconLg: 28,
+  tabIcon: 24,
   icon: 20,
   iconSm: 16,
+  iconInline: 14,
+  iconXs: 12,
 } as const;
 
 export const hitTarget = { min: 44 } as const;

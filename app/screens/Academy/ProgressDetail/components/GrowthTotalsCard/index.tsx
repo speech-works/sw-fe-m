@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  fonts,
   Text,
   Icon,
   icons,
@@ -94,7 +95,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
               that is the name of the five-score clinical widget deleted in
               `baa856f7` for being unable to move, and reviving the words would
               promise the chart this card exists to not be. */}
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+          <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
             YOUR GROWTH
           </Text>
           {/* TWO LINES REMOVED HERE, NOT ONE.
@@ -116,7 +117,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
             insetSurface(colors, scheme),
           ]}
         >
-          <Icon name={icons.tip} size={16} color={colors.text.secondary} />
+          <Icon name={icons.tip} size={size.iconSm} color={colors.text.secondary} />
           <Text variant="bodySm" color="secondary" style={styles.flex1}>
             This fills in as you practice. Nothing to set up.
           </Text>
@@ -155,7 +156,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
               >
                 <Icon
                   name={AXIS_ICON[row.axis] ?? icons.growth}
-                  size={20}
+                  size={size.icon}
                   color={earned ? accent.on : accent.text}
                 />
               </View>
@@ -219,10 +220,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   flex1: { flex: 1 },
-  bold: { fontWeight: "600" },
+  bold: { fontFamily: fonts.semibold, fontWeight: "600" },
   eyebrow: {
-    letterSpacing: 1,
-    textTransform: "uppercase",
     marginBottom: spacing.xxs,
   },
   headerRow: {

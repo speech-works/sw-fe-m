@@ -2,6 +2,7 @@ import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import PressableScale from "../../../components/PressableScale";
 import {
+  size,
   Text,
   Icon,
   icons,
@@ -136,7 +137,7 @@ export const PromoCard: React.FC<PromoCardProps> = ({
 
           {/* Primary action = a solid dark island on the bright fill (or pure white in light mode). */}
           <View style={[styles.cta, { backgroundColor: isDark ? colors.action.secondary : colors.surface.inverse }]}>
-            <Icon name={icons.play} size={14} color={isDark ? colors.action.onSecondary : colors.text.primary} />
+            <Icon name={icons.play} size={size.iconInline} color={isDark ? colors.action.onSecondary : colors.text.primary} />
             <Text variant="title" color={isDark ? colors.action.onSecondary : colors.text.primary}>
               {v.cta}
             </Text>
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     right: -30,
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: radius.full,
   },
   blobB: {
     position: "absolute",
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     right: 40,
     width: 90,
     height: 90,
-    borderRadius: 45,
+    borderRadius: radius.full,
   },
   title: {
     marginBottom: space.titleSub,

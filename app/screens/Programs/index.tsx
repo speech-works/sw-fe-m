@@ -7,6 +7,7 @@ import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PriceTag from "../../components/PriceTag";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -280,8 +281,8 @@ const ProgramsScreen = () => {
               and finally gets a ground that suits it. */}
           <View style={styles.stubRow}>
             <View style={[styles.claimChip, { backgroundColor: ink }]}>
-              <Icon name={icons.star} size={13} color={colors.accent.lime} />
-              <Text variant="label" color={colors.accent.lime}>
+              <Icon name={icons.star} size={size.iconInline} color={colors.accent.lime} />
+              <Text variant="eyebrow" color={colors.accent.lime}>
                 TOP MATCH
               </Text>
             </View>
@@ -455,9 +456,9 @@ const ProgramsScreen = () => {
           <View
             style={[styles.tierChip, { backgroundColor: colors.accent.purple }]}
           >
-            <Icon name={icons.pro} size={13} color={colors.accentOn.purple} />
-            <Text variant="label" color={colors.accentOn.purple}>
-              {programShelfLabel(item).toUpperCase()}
+            <Icon name={icons.pro} size={size.iconInline} color={colors.accentOn.purple} />
+            <Text variant="eyebrow" color={colors.accentOn.purple}>
+              {programShelfLabel(item)}
             </Text>
           </View>
         ) : null}
@@ -474,7 +475,7 @@ const ProgramsScreen = () => {
             <View style={styles.ownedTag}>
               <Icon
                 name={icons.success}
-                size={16}
+                size={size.iconSm}
                 color={colors.feedback.successText}
               />
               <Text variant="title" color={colors.feedback.successText}>
@@ -517,7 +518,7 @@ const ProgramsScreen = () => {
               <View key={line} style={styles.inclLine}>
                 <Icon
                   name={icons.success}
-                  size={15}
+                  size={size.iconInline}
                   color={colors.accentText.success}
                 />
                 <Text variant="bodySm" color="secondary" style={styles.inclText}>

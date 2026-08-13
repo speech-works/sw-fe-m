@@ -9,6 +9,7 @@ import {
 import { UserAvatar } from "../../../components/UserAvatar";
 import PressableScale from "../../../components/PressableScale";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -129,7 +130,7 @@ export const PartGrid: React.FC<PartGridProps> = ({
         </View>
         {!earned && (
           <View style={[styles.lockBadge, { backgroundColor: colors.surface.control }]}>
-            <Icon name={icons.locked} size={12} color={colors.text.tertiary} />
+            <Icon name={icons.locked} size={size.iconXs} color={colors.text.tertiary} />
           </View>
         )}
         {/* Two lines, not one. A 96pt cell minus its padding leaves ~64pt for

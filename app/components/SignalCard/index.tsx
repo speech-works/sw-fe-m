@@ -1,4 +1,7 @@
 import React, { useRef, useState } from "react";
+// The DARK elevation set, imported statically because these live in a static
+// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
+import { elevationDark } from "../../design-system/elevation";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -15,7 +18,7 @@ import {
 import { getMoment } from "../../constants/momentMessages";
 import { getPostTemplate } from "../../constants/postTemplates";
 import { getReaction } from "../../constants/reactions";
-import { useTheme, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
+import { size, useTheme, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
 import { useUserStore } from "../../stores/user";
 import { UserAvatar } from "../UserAvatar";
 import { normalizeManifest } from "../../types/avatar";
@@ -203,7 +206,7 @@ const SignalCard = ({
       if (interactive) {
         dynamicContent = signal.iReachedOut ? (
           <View style={styles.seenRow}>
-            <Icon name={icons.success} size={14} color={tone.accent} />
+            <Icon name={icons.success} size={size.iconInline} color={tone.accent} />
             <Text variant="caption" color={tone.accent} style={styles.bold}>You reached out</Text>
           </View>
         ) : (
@@ -212,7 +215,7 @@ const SignalCard = ({
             activeOpacity={0.85}
             onPress={onReachOut}
           >
-            <Icon name={icons.care} size={16} color={tone.on} />
+            <Icon name={icons.care} size={size.iconSm} color={tone.on} />
             <Text variant="bodySm" color={tone.on} style={styles.bold}>Reach out to {authorName.split(" ")[0]}</Text>
           </TouchableOpacity>
         );
@@ -266,7 +269,7 @@ const SignalCard = ({
     } else if (!isPrompt && signal.seenByBuddy) {
       dynamicContent = (
         <View style={styles.seenRow}>
-          <Icon name={icons.seen} size={14} color={onTertiary} />
+          <Icon name={icons.seen} size={size.iconInline} color={onTertiary} />
           <Text variant="caption" color={onTertiary}>{buddyName ?? "Your buddy"} saw this</Text>
         </View>
       );
@@ -289,10 +292,10 @@ const SignalCard = ({
           {p.journeyTitle || jp ? (
             <View style={styles.journeyTopRow}>
               <View style={[styles.journeyIconDot, { backgroundColor: colors.action.primaryTint }]}>
-                <Icon name={icons.journey} size={14} color={colors.text.accent} />
+                <Icon name={icons.journey} size={size.iconInline} color={colors.text.accent} />
               </View>
               {p.journeyTitle ? (
-                <Text variant="caption" color={tone.vibrant ? colors.action.primary : "secondary"} style={[styles.flex1, styles.journeyEyebrow]}>
+                <Text variant="eyebrow" color={tone.vibrant ? colors.text.accent : "secondary"} style={styles.flex1}>
                   {p.journeyTitle}
                 </Text>
               ) : (
@@ -347,7 +350,7 @@ const SignalCard = ({
           {stats.map((s) => (
             <View key={s.label} style={[styles.statRowItem, { backgroundColor: insetBg, borderColor: colors.border.default }]}>
               <View style={styles.statIconBox}>
-                <Icon name={s.icon} size={14} color={insetText} />
+                <Icon name={s.icon} size={size.iconInline} color={insetText} />
               </View>
               <Text variant="caption" color={insetText} style={styles.bold}>{s.label}</Text>
             </View>
@@ -399,9 +402,11 @@ const SignalCard = ({
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={openPicker}
+          accessibilityRole="button"
+          accessibilityLabel="React to this"
           style={[styles.reactionCueFloating, { backgroundColor: colors.surface.control, borderColor: colors.border.default }]}
         >
-          <Icon name={icons.heart} size={13} color={colors.text.tertiary} />
+          <Icon name={icons.heart} size={size.iconInline} color={colors.text.tertiary} />
         </TouchableOpacity>
       );
     }
@@ -422,7 +427,7 @@ const SignalCard = ({
       <View style={styles.mainBody}>
         {/* Simple header row */}
         <View style={styles.headerRow}>
-          <Text variant="caption" color={onSecondary} style={[styles.statusLabel, styles.bold]} numberOfLines={1}>{statusText}</Text>
+          <Text variant="eyebrow" color={onSecondary} style={styles.bold} numberOfLines={1}>{statusText}</Text>
           <Text variant="caption" color={onTertiary} style={styles.bold}>{relativeTime}</Text>
           {/* Authored signals only — system beats and cards have no author to
               report and nothing of yours to delete.
@@ -449,7 +454,7 @@ const SignalCard = ({
             >
               <Icon
                 name={signal.authorIsMe ? icons.trash : icons.report}
-                size={16}
+                size={size.iconSm}
                 color={onTertiary}
               />
             </TouchableOpacity>
@@ -570,7 +575,7 @@ const styles = StyleSheet.create({
   timelineAvatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radius.full,
     borderWidth: borderWidth.thick,
   },
   timelineAvatarClip: {
@@ -581,7 +586,7 @@ const styles = StyleSheet.create({
   timelineAvatarFallback: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -603,10 +608,6 @@ const styles = StyleSheet.create({
   },
   headerAction: {
     marginLeft: spacing.sm,
-  },
-  statusLabel: {
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
   },
 
   // Main Card Body
@@ -650,10 +651,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: borderWidth.thin,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    ...elevationDark.e2,
     gap: 4,
   },
   reactionBadgeName: {
@@ -688,13 +686,9 @@ const styles = StyleSheet.create({
   journeyIconDot: {
     width: 22,
     height: 22,
-    borderRadius: 7,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
-  },
-  journeyEyebrow: {
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
   },
   journeyProgressBadge: {
     borderRadius: radius.full,

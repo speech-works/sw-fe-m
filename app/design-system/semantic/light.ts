@@ -133,10 +133,15 @@ export const lightColors: SemanticColors = {
   // (brand orange), not the blue it used to claim. Kept in sync across schemes.
   gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.orange[400], gold: p.warning.base },
   premium: {
+    // Scheme-INVARIANT on purpose: the premium tier is gold-on-slate in both
+    // schemes (same reason `UpsellModal` reaches for `elevationDark`).
+    slate: p.premium.slate,
+    slateMid: p.premium.slateMid,
     gold: p.premium.gold,
     goldDeep: p.premium.goldDeep,
     goldTint: p.premium.goldTint,
     goldBorder: p.premium.goldBorder,
+    onGold: p.premium.onGold,
     orbCyan: p.premium.cyan,
     orbPurple: p.premium.purple,
   },

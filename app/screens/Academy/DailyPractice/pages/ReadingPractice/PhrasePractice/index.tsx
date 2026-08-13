@@ -24,6 +24,8 @@ import FocusLamp from "../../../components/FocusLamp";
 
 import { ToolType } from "../../../../../../api/tools/types";
 import {
+  radius,
+  fonts,
   Page,
   Button,
   Text as DSText,
@@ -476,7 +478,7 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     fontSize: 28, // Balanced for phrases
     textAlign: "center",
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   // Sheet (renders on the shared DS Sheet's dark surface)
@@ -498,7 +500,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

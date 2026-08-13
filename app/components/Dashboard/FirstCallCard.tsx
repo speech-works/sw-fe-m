@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { FirstCallOffer, fetchFirstCallOffer } from "../../api/firstCall";
 import {
+  size,
   Icon,
   Text,
   easing,
@@ -452,7 +453,7 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
             </View>
 
             <View>
-              <Text variant="label" color="tertiary" style={styles.eyebrow}>
+              <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
                 STILL WAITING
               </Text>
               <Text variant="h2" color="primary" style={styles.title}>
@@ -477,7 +478,7 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
                 },
               ]}
             >
-              <Icon name={icons.phone} size={14} color={colors.text.primary} />
+              <Icon name={icons.phone} size={size.iconInline} color={colors.text.primary} />
               <Text variant="title" color="primary">
                 Take the call
               </Text>
@@ -519,7 +520,7 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
           />
 
           <View>
-            <Text variant="label" color={ink} style={styles.eyebrow}>
+            <Text variant="eyebrow" color={ink} style={styles.eyebrow}>
               SOMEONE WANTS TO TALK
             </Text>
             {/* The person, first. */}
@@ -546,7 +547,7 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
           >
             <Icon
               name={icons.phone}
-              size={14}
+              size={size.iconInline}
               color={isDark ? colors.action.onSecondary : colors.text.primary}
             />
             <Text
@@ -590,7 +591,7 @@ const styles = StyleSheet.create({
     right: -30,
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: radius.full,
   },
   blobB: {
     position: "absolute",
@@ -598,10 +599,9 @@ const styles = StyleSheet.create({
     right: 40,
     width: 90,
     height: 90,
-    borderRadius: 45,
+    borderRadius: radius.full,
   },
   eyebrow: {
-    letterSpacing: 1,
     marginBottom: space.inlineGap,
   },
   title: {

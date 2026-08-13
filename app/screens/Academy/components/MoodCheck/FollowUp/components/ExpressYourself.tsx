@@ -207,7 +207,7 @@ const ExpressYourself = ({
             </Text>
           </View>
           <View style={styles.iconContainer}>
-            <Icon name={config.icon} size={32} color={withAlpha(ink, 0.25)} />
+            <Icon name={config.icon} size={size.iconXl} color={withAlpha(ink, 0.25)} />
           </View>
         </View>
 

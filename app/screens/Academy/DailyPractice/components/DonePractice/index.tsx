@@ -14,6 +14,7 @@ import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 import ScreenView from "../../../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import {
+  size,
   useTheme,
   useSuccessPop,
   spacing,
@@ -401,7 +402,7 @@ const DonePractice = ({
               axis. */}
           {!isAborted && shownAxis ? (
             <Animated.View style={[styles.earnedChip, { backgroundColor: axisAccentFill }, chipStyle]}>
-              <Icon name={AXIS_ICON[shownAxis] ?? icons.growth} size={18} color={axisAccentOn} />
+              <Icon name={AXIS_ICON[shownAxis] ?? icons.growth} size={size.iconSm} color={axisAccentOn} />
               <Text variant="title" color={axisAccentOn}>
                 {AXIS_LABEL[shownAxis]}
               </Text>

@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -156,7 +157,7 @@ const UniversalImageUploader = ({
           onPressOut={handlePressOut}
         >
           <View style={[styles.iconCircle, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name="upload-cloud" size={24} color={colors.text.accent} />
+            <Icon name="upload-cloud" size={size.tabIcon} color={colors.text.accent} />
           </View>
           <Text variant="title" color="accent">
             Tap to upload photo
@@ -179,7 +180,7 @@ const UniversalImageUploader = ({
           onPress={() => handlePickImage(true)}
           activeOpacity={0.7}
         >
-          <Icon name="camera" size={16} color={colors.text.accent} />
+          <Icon name="camera" size={size.iconSm} color={colors.text.accent} />
           <Text variant="title" color="accent">
             Open camera
           </Text>
@@ -192,7 +193,7 @@ const UniversalImageUploader = ({
     <View style={[styles.card, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
       <View style={styles.cardContent}>
         <View style={styles.fileIconBox}>
-          <Icon name="image" size={32} color={colors.text.accent} />
+          <Icon name="image" size={size.iconXl} color={colors.text.accent} />
         </View>
         <Text variant="h3">{Math.round(uploadProgress)}%</Text>
         <View style={styles.progressContainer}>
@@ -223,7 +224,7 @@ const UniversalImageUploader = ({
     <View style={[styles.card, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
       <View style={styles.cardContent}>
         <View style={[styles.successCircle, { backgroundColor: colors.accent.success }]}>
-          <Icon name="check" size={20} color={colors.accentOn.success} />
+          <Icon name="check" size={size.icon} color={colors.accentOn.success} />
         </View>
         <Text variant="h3">Upload Complete</Text>
         <Text variant="caption" color="tertiary" numberOfLines={1}>
@@ -231,7 +232,7 @@ const UniversalImageUploader = ({
         </Text>
 
         <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
-          <Icon name="trash-2" size={14} color={colors.text.secondary} />
+          <Icon name="trash-2" size={size.iconInline} color={colors.text.secondary} />
           <Text variant="bodySm" color="secondary">
             Clear Upload
           </Text>
@@ -262,8 +263,14 @@ const UniversalImageUploader = ({
                   { backgroundColor: colors.accent.danger, borderColor: colors.background.canvas },
                 ]}
                 onPress={() => onChange(images.filter((_, i) => i !== idx))}
+                // The dot is 20pt by design — it sits ON the thumbnail corner and
+                // a 44pt disc would cover the photo. `hitSlop` buys the touch
+                // area without changing what is drawn.
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
               >
-                <Icon name="x" size={10} color={colors.accentOn.danger} />
+                <Icon name="x" size={size.iconXs} color={colors.accentOn.danger} />
               </TouchableOpacity>
             </View>
           ))}

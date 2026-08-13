@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
+import FAIcon from "react-native-vector-icons/FontAwesome5";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
   FunPractice,
@@ -13,6 +13,8 @@ import {
   CharacterVoiceFDPStackParamList,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import {
+  size,
+  Icon, icons,
   Page,
   Text,
   useTheme,
@@ -80,9 +82,9 @@ const CharacterVoice = () => {
             { backgroundColor: colors.accent.purple },
           ]}
         >
-          <FAIcon
-            name="microphone-alt"
-            size={32}
+          <Icon
+            name={icons.spokeUp}
+            size={size.iconXl}
             color={colors.accentOn.purple}
           />
         </View>
@@ -119,6 +121,9 @@ const CharacterVoice = () => {
               >
                 {/* Watermark Icon — huge & subtle in the background. */}
                 <View style={styles.watermarkIconContainer} pointerEvents="none">
+                  {/* SERVER-DRIVEN GLYPH — the documented exception. The value
+                      is a FontAwesome5 name emitted by the backend, so it stays
+                      on FA5 until the API emits registry keys. */}
                   <FAIcon
                     name={cv.characterVoiceData?.icon || "user"}
                     size={90}
@@ -160,7 +165,7 @@ const styles = StyleSheet.create({
   heroIconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",

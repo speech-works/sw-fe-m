@@ -274,7 +274,7 @@ export default function ConfigureReminder() {
 
         {/* Title */}
         <View style={styles.field}>
-          <Text variant="label" color="tertiary" style={styles.label}>
+          <Text variant="eyebrow" color="tertiary" style={styles.label}>
             TITLE
           </Text>
           <TextField
@@ -287,7 +287,7 @@ export default function ConfigureReminder() {
         {/* Date (one-time only) */}
         {reminderType === "ONE_TIME" ? (
           <View style={styles.field}>
-            <Text variant="label" color="tertiary" style={styles.label}>
+            <Text variant="eyebrow" color="tertiary" style={styles.label}>
               DATE
             </Text>
             <View style={[styles.pickerCard, { backgroundColor: colors.surface.default }]}>
@@ -326,7 +326,7 @@ export default function ConfigureReminder() {
 
         {/* Time */}
         <View style={styles.field}>
-          <Text variant="label" color="tertiary" style={styles.label}>
+          <Text variant="eyebrow" color="tertiary" style={styles.label}>
             TIME
           </Text>
           <View style={[styles.pickerCard, { backgroundColor: colors.surface.default }]}>
@@ -366,7 +366,7 @@ export default function ConfigureReminder() {
         {/* Repeat (routine only) */}
         {reminderType === "ROUTINE" ? (
           <View style={styles.field}>
-            <Text variant="label" color="tertiary" style={styles.label}>
+            <Text variant="eyebrow" color="tertiary" style={styles.label}>
               REPEAT ON
             </Text>
             <View style={styles.daysRow}>

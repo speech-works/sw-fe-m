@@ -18,7 +18,7 @@ import {
     View,
     ViewStyle,
 } from "react-native";
-import { ForceDark } from "../design-system";
+import { spacing, Skeleton, size, radius, Icon, icons, fonts, ForceDark } from "../design-system";
 
 if (
   Platform.OS === "android" &&
@@ -45,7 +45,6 @@ import Reanimated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import Video, { VideoRef } from "react-native-video";
 import {
   duration as motionDuration,
@@ -57,7 +56,6 @@ import {
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useScrubLock } from "../stores/scrubLock";
 import Button from "./Button";
-import SkeletonLoader from "./SkeletonLoader";
 
 const iconHitSlop = { top: 12, bottom: 12, left: 12, right: 12 };
 
@@ -582,12 +580,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // occupy, so the swap isn't a jolt.
   if (!aspectRatioReady) {
     return (
-      <SkeletonLoader
+      <Skeleton
         width="100%"
-        height="auto"
+        radius={radius.input}
         style={{
           ...videoBoxStyle,
-          borderRadius: 16,
           backgroundColor: colors.background.canvas,
         }}
       />
@@ -709,7 +706,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           reads as a state of the player rather than a broken screen. */}
       {playbackError && !isLocked && (
         <View style={styles.lockedOverlay}>
-          <Icon name="exclamation-triangle" size={36} color={ON_VIDEO} />
+          <Icon name={icons.danger} size={36} color={ON_VIDEO} />
           <Text style={styles.lockedText}>This video didn't load</Text>
           <Button
             text="Try again"
@@ -729,8 +726,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <View style={styles.skipOverlay}>
           <View style={styles.skipBubble}>
             <Icon
-              name={skipOverlay.dir === "left" ? "undo-alt" : "redo-alt"}
-              size={24}
+              name={skipOverlay.dir === "left" ? icons.skipBack : icons.skipForward}
+              size={size.tabIcon}
               color="white"
             />
             <Text style={styles.skipText}>{SKIP_SECONDS}s</Text>
@@ -741,7 +738,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Locked Premium State Overlay */}
       {isLocked && onPressGoPremium && (
         <View style={styles.lockedOverlay}>
-          <Icon name="lock" size={48} color={ON_VIDEO} />
+          <Icon name={icons.locked} size={48} color={ON_VIDEO} />
           <Text style={styles.lockedText}>Unlock this tutorial with Premium</Text>
           <Button
             text="Go Premium"
@@ -754,7 +751,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Centered Play Button (when paused and controls visible) */}
       {paused && isVideoLoaded && controlsVisible && !isLocked && (
         <View pointerEvents="none" style={styles.centerPlayButton}>
-          <Icon name="play-circle" size={64} color="rgba(255,255,255,0.9)" />
+          <Icon name={icons.play} size={64} color="rgba(255,255,255,0.9)" />
         </View>
       )}
 
@@ -855,8 +852,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   style={styles.volumeIconContainer}
                 >
                   <Icon
-                    name={muted || volume === 0 ? "volume-mute" : "volume-up"}
-                    size={12}
+                    name={muted || volume === 0 ? icons.mute : icons.volume}
+                    size={size.iconXs}
                     color="white"
                   />
                 </TouchableOpacity>
@@ -913,7 +910,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   accessibilityLabel="Skip backward 10 seconds"
                   accessibilityRole="button"
                 >
-                  <Icon name="backward" size={20} color="white" />
+                  <Icon name={icons.rewind} size={size.icon} color="white" />
                 </TouchableOpacity>
 
                 {/* Play/Pause */}
@@ -938,7 +935,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   accessibilityLabel="Skip forward 10 seconds"
                   accessibilityRole="button"
                 >
-                  <Icon name="forward" size={20} color="white" />
+                  <Icon name={icons.fastForward} size={size.icon} color="white" />
                 </TouchableOpacity>
               </View>
 
@@ -955,8 +952,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   accessibilityRole="button"
                 >
                   <Icon
-                    name={isFullScreen ? "compress" : "expand"}
-                    size={18}
+                    name={isFullScreen ? icons.collapse : icons.expand}
+                    size={size.iconSm}
                     color="white"
                   />
                 </TouchableOpacity>
@@ -1006,7 +1003,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "black",
-    borderRadius: 16,
+    borderRadius: radius.input,
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
@@ -1097,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   controlsContent: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: Platform.OS === "ios" ? 24 : 16,
   },
   progressContainer: {
@@ -1151,7 +1148,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
+    borderRadius: radius.full,
   },
   horizontalVolumeSlider: {
     flex: 1,
@@ -1160,7 +1157,7 @@ const styles = StyleSheet.create({
   rateButton: {
     paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
     backgroundColor: "rgba(255,255,255,0.1)",
     borderWidth: 1,
@@ -1171,7 +1168,7 @@ const styles = StyleSheet.create({
   rateText: {
     color: "white",
     fontSize: 11,
-    fontWeight: "800",
+    fontFamily: fonts.extrabold,
   },
   rightSideIcon: {
     width: 40,
@@ -1196,16 +1193,16 @@ const styles = StyleSheet.create({
   },
   skipBubble: {
     backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 20,
+    borderRadius: radius.chip,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
   skipText: {
     color: "white",
-    fontWeight: "bold",
+    fontFamily: fonts.bold,
   },
   centerPlayButton: {
     position: "absolute",

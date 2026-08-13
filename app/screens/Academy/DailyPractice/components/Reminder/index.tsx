@@ -10,6 +10,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PressableScale from "../../../../../components/PressableScale";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -427,7 +428,7 @@ const ReminderModal = ({
                   {cat.description}
                 </Text>
               </View>
-              <Icon name={icons.chevronRight} size={20} color={on} />
+              <Icon name={icons.chevronRight} size={size.icon} color={on} />
             </PressableScale>
           );
         })}
@@ -465,7 +466,7 @@ const ReminderModal = ({
         <View style={styles.pickerSection}>
           {reminderType === "ONE_TIME" && (
             <View style={{ width: "100%" }}>
-              <Text variant="label" color="tertiary" style={styles.inputLabel}>
+              <Text variant="eyebrow" color="tertiary" style={styles.inputLabel}>
                 DATE
               </Text>
               {isAndroid ? (
@@ -503,7 +504,7 @@ const ReminderModal = ({
           )}
 
           <View style={{ width: "100%", marginTop: spacing.lg }}>
-            <Text variant="label" color="tertiary" style={styles.inputLabel}>
+            <Text variant="eyebrow" color="tertiary" style={styles.inputLabel}>
               TIME
             </Text>
             {isAndroid ? (
@@ -542,7 +543,7 @@ const ReminderModal = ({
         {/* Weekday Selector (Routine only) */}
         {reminderType === "ROUTINE" && (
           <View style={styles.repeatContainer}>
-            <Text variant="label" color="tertiary" style={styles.inputLabel}>
+            <Text variant="eyebrow" color="tertiary" style={styles.inputLabel}>
               REPEAT ON
             </Text>
             <View style={styles.weekDaysRow}>
@@ -676,7 +677,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     marginBottom: spacing.sm,
-    textTransform: "uppercase",
   },
   datePicker: {
     width: "100%",

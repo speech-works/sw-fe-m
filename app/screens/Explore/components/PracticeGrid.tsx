@@ -138,7 +138,7 @@ const PracticeGrid = () => {
               <View style={[styles.cardFill, { backgroundColor: colors.accent[p.accent] }]}>
                 <View style={styles.cardHeader}>
                   <View style={styles.headerRow}>
-                    <Text variant="label" color={on} style={styles.subtitleCaps}>
+                    <Text variant="eyebrow" color={on}>
                       {p.subtitle}
                     </Text>
                     {/* Count chip — a small dark surface chip (the in-app card-chip pattern). */}
@@ -182,7 +182,7 @@ const PracticeGrid = () => {
 
               {p.badge ? (
                 <View style={[styles.cornerBadge, { backgroundColor: colors.accent.success }, elevation.e2]}>
-                  <Text variant="caption" color={colors.accentOn.success} style={styles.cornerBadgeText}>
+                  <Text variant="eyebrow" color={colors.accentOn.success}>
                     {p.badge}
                   </Text>
                 </View>
@@ -228,10 +228,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  subtitleCaps: {
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
   iconWrapper: {
     alignSelf: "flex-end",
     marginTop: "auto",
@@ -254,8 +250,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: radius.chip,
     zIndex: 10,
-  },
-  cornerBadgeText: {
-    textTransform: "uppercase",
   },
 });

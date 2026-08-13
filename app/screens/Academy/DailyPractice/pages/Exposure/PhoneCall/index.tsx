@@ -587,7 +587,7 @@ const PhoneCall = () => {
             <Animated.View style={chevronStyle}>
               <Icon
                 name={icons.chevronUp}
-                size={14}
+                size={controlSize.iconInline}
                 color={colors.text.tertiary}
               />
             </Animated.View>
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     width: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 22,
+    borderRadius: radius.full,
   },
   scenarioDescContainer: {
     gap: spacing.xs,

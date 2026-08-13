@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
+// The DARK elevation set, imported statically because these live in a static
+// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
+import { elevationDark } from "../design-system/elevation";
 import {
   AccessibilityInfo,
   Animated, // <-- IMPORTED
@@ -12,7 +15,6 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 // Import icons
-import Icon from "react-native-vector-icons/Feather"; // For UI Controls
 import FAIcon from "react-native-vector-icons/FontAwesome5"; // For Scenario Icon (compatibility)
 
 // These imports are correct for a React Native environment (Expo)
@@ -33,7 +35,7 @@ import * as Localization from "expo-localization";
 
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
-import { makeStyles, useTheme, withAlpha, radius, spacing } from "../design-system";
+import { size, typography, Icon, icons, fonts, makeStyles, useTheme, withAlpha, radius, spacing } from "../design-system";
 import { callerGlyph } from "../util/callerGlyph";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
@@ -2920,15 +2922,23 @@ const CallingWidget: React.FC<Props> = ({
       {/* Headphone Status Indicator (Top Center) */}
       {!isCalling && (
         <View style={styles.headphoneIndicator}>
-          <FAIcon
-            name="headphones-alt"
-            size={14}
-            color={headsetConnected ? colors.accent.success : colors.accent.danger}
+          <Icon
+            name={icons.headphones}
+            size={size.iconInline}
+            // The per-scheme cuts, not the fill hues. `accent.success` measures
+            // 1.67:1 on the light `surface.material` pill — and this icon is the
+            // only thing telling you whether a call can start.
+            color={
+              headsetConnected
+                ? colors.accentText.success
+                : colors.accentText.danger
+            }
           />
           <Text
             style={{
               color: colors.text.secondary,
               fontSize: 12,
+              fontFamily: fonts.medium,
               fontWeight: "500",
             }}
           >
@@ -2951,10 +2961,10 @@ const CallingWidget: React.FC<Props> = ({
           alignItems: 'center',
           gap: 6
         }}>
-          <FAIcon name="clock" size={12} color={Math.max(0, maxCallDurationMs / 1000 - callDuration) < 30 ? colors.text.inverse : colors.text.primary} />
+          <Icon name={icons.duration} size={size.iconXs} color={Math.max(0, maxCallDurationMs / 1000 - callDuration) < 30 ? colors.text.inverse : colors.text.primary} />
           <Text style={{
             color: Math.max(0, maxCallDurationMs / 1000 - callDuration) < 30 ? colors.text.inverse : colors.text.primary,
-            fontWeight: "bold",
+            fontFamily: fonts.bold,
             fontSize: 14
           }}>
             {Math.floor(Math.max(0, maxCallDurationMs / 1000 - callDuration) / 60).toString().padStart(2, '0')}:{Math.floor(Math.max(0, maxCallDurationMs / 1000 - callDuration) % 60).toString().padStart(2, '0')}
@@ -3092,12 +3102,10 @@ const CallingWidget: React.FC<Props> = ({
                   end={{ x: 0.8, y: 1 }}
                   style={styles.orbInnerGlow}
                 />
-                <Icon
-                  name="mic"
-                  size={50}
-                  color={colors.text.primary}
-                  style={styles.iconClean}
-                />
+                {/* The old FontAwesome glyph carried a `textShadow` glow. The
+                    DS Icon is an SVG, which cannot take one — the glow was a
+                    property of rendering an icon as TEXT, and it goes with it. */}
+                <Icon name={icons.spokeUp} size={50} color={colors.text.primary} />
               </LinearGradient>
             </View>
             <Text style={styles.orbCaption}>You</Text>
@@ -3136,8 +3144,8 @@ const CallingWidget: React.FC<Props> = ({
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
-            <FAIcon
-              name="headphones-alt"
+            <Icon
+              name={icons.headphones}
               size={40}
               color={colors.text.accent}
               style={{ marginBottom: 16 }}
@@ -3231,7 +3239,7 @@ const CallingWidget: React.FC<Props> = ({
           }}
           // disabled={!isCalling} <-- REMOVED
         >
-          <Icon name={isMuted ? "mic-off" : "mic"} size={22} color={colors.text.primary} />
+          <Icon name={isMuted ? "mic-off" : "mic"} size={size.icon} color={colors.text.primary} />
         </TouchableOpacity>
 
         {/* End / Start Call - Main Button */}
@@ -3255,7 +3263,7 @@ const CallingWidget: React.FC<Props> = ({
           >
             <Icon
               name={isCalling ? "phone-off" : "phone-call"}
-              size={32}
+              size={size.iconXl}
               color={isCalling ? colors.accentOn.danger : colors.accentOn.success}
             />
           </TouchableOpacity>
@@ -3290,9 +3298,9 @@ const CallingWidget: React.FC<Props> = ({
                   rest is unchanged, and an icon that moves is enough to earn
                   the one press that does the actual teaching. */}
               <Animated.View style={{ opacity: takeYourTimePulse }}>
-                <FAIcon
-                  name="hourglass-half"
-                  size={20}
+                <Icon
+                  name={icons.soon}
+                  size={size.icon}
                   color={
                     takeYourTime ? colors.text.primary : colors.text.secondary
                   }
@@ -3307,7 +3315,7 @@ const CallingWidget: React.FC<Props> = ({
               onPress={sendEndOfTurn}
               accessibilityLabel="I'm done. Hand the turn back"
             >
-              <Icon name="check" size={22} color={colors.text.primary} />
+              <Icon name={icons.success} size={size.icon} color={colors.text.primary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -3319,8 +3327,8 @@ const CallingWidget: React.FC<Props> = ({
               accessibilityLabel="Suggestions"
             >
               <Icon
-                name="message-circle"
-                size={22}
+                name={icons.chat}
+                size={size.icon}
                 color={showTips ? colors.text.primary : colors.text.secondary}
               />
             </TouchableOpacity>
@@ -3353,8 +3361,8 @@ const CallingWidget: React.FC<Props> = ({
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
-            <FAIcon
-              name="hourglass-half"
+            <Icon
+              name={icons.soon}
               size={36}
               color={colors.text.accent}
               style={{ marginBottom: 16 }}
@@ -3415,8 +3423,7 @@ const CallingWidget: React.FC<Props> = ({
               }
               size={36}
               color={colors.text.accent}
-              solid
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: spacing.lg }}
             />
             <Text style={styles.promptTitle}>
               {callEndReason === "limit_reached"
@@ -3487,12 +3494,11 @@ const CallingWidget: React.FC<Props> = ({
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
-            <FAIcon
-              name="hand-holding-heart"
+            <Icon
+              name={icons.care}
               size={36}
               color={colors.text.accent}
-              solid
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: spacing.lg }}
             />
             <Text style={styles.promptTitle}>
               {crisisResource?.helplineName || "Support is available"}
@@ -3582,7 +3588,7 @@ const useStyles = makeStyles((c) => ({
     position: "absolute",
     width: 140,
     height: 140,
-    borderRadius: 70, // CIRCULAR
+    borderRadius: radius.full, // CIRCULAR
     borderWidth: 1.5,
     borderColor: withAlpha(c.accent.purple, 0.8), // Violet tint
     backgroundColor: withAlpha(c.accent.purple, 0.05),
@@ -3622,16 +3628,11 @@ const useStyles = makeStyles((c) => ({
   orbWrapper: {
     width: 140,
     height: 140,
-    borderRadius: 70, // CIRCULAR
+    borderRadius: radius.full, // CIRCULAR
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
-      ios: {
-        shadowColor: c.shadow,
-        shadowOpacity: 0.6,
-        shadowRadius: 20,
-        shadowOffset: { width: 0, height: 10 },
-      },
+      ios: elevationDark.e3,
       android: { elevation: 15 },
       web: { boxShadow: `0 10px 30px ${withAlpha(c.shadow, 0.5)}` },
     }),
@@ -3641,7 +3642,7 @@ const useStyles = makeStyles((c) => ({
     top: -8,
     width: 156,
     height: 156,
-    borderRadius: 78,
+    borderRadius: radius.full,
     borderWidth: 2,
     borderColor: withAlpha(c.accent.info, 0.7),
     backgroundColor: c.accentTint.info,
@@ -3649,7 +3650,7 @@ const useStyles = makeStyles((c) => ({
   orbMask: {
     width: 140,
     height: 140,
-    borderRadius: 70, // CIRCULAR
+    borderRadius: radius.full, // CIRCULAR
     overflow: "hidden", // CLIP CONTENT
     borderWidth: 1,
     borderColor: withAlpha(c.accent.purple, 0.3), // Subtle stroke
@@ -3689,18 +3690,18 @@ const useStyles = makeStyles((c) => ({
     right: 0,
     bottom: 0,
   },
+  // Still used by the ONE remaining font glyph — the orb's server-driven FA5
+  // icon. A textShadow is a property of rendering an icon as text; every DS
+  // Icon on this screen is an SVG and cannot take one.
   iconClean: {
     textShadowColor: withAlpha(c.accent.purple, 0.4), // Subtle violet glow behind icon
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
   orbCaption: {
-    marginTop: 10,
+    ...typography.eyebrow,
+    marginTop: spacing.sm,
     color: c.text.secondary,
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
   },
   statusContainer: {
     marginTop: 18,
@@ -3709,16 +3710,14 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "center",
   },
   statusTextModern: {
+    ...typography.eyebrow,
     color: c.text.primary,
-    fontSize: 16,
-    fontWeight: "400", // Elegant, not too thin
-    letterSpacing: 3, // Premium wide tracking
-    textTransform: "uppercase",
     textAlign: "center",
   },
   retryHintText: {
     color: c.feedback.infoText,
     fontSize: 14,
+    fontFamily: fonts.medium,
     fontWeight: "500",
     letterSpacing: 0.2,
     textTransform: "none",
@@ -3726,6 +3725,7 @@ const useStyles = makeStyles((c) => ({
   toggleHintText: {
     color: c.text.secondary,
     fontSize: 14,
+    fontFamily: fonts.medium,
     fontWeight: "500",
     letterSpacing: 0.2,
     textTransform: "none",
@@ -3744,8 +3744,8 @@ const useStyles = makeStyles((c) => ({
     gap: 8,
     backgroundColor: c.surface.material,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 30, // Pill shape
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sheet, // Pill shape
     borderWidth: 1,
     borderColor: c.border.default,
   },
@@ -3760,21 +3760,16 @@ const useStyles = makeStyles((c) => ({
     right: "5%",
     maxHeight: "42%",
     backgroundColor: c.surface.material,
-    borderRadius: 24,
+    borderRadius: radius.card,
     padding: 20,
     borderWidth: 1,
     borderColor: c.border.default,
-    shadowColor: c.shadow,
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    ...elevationDark.e2,
   },
   tipsTitleModern: {
+    ...typography.eyebrow,
     color: c.text.tertiary,
-    fontSize: 11,
-    fontWeight: "700",
-    marginBottom: 12,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
+    marginBottom: spacing.md,
   },
   tipsButtonRow: {
     flexDirection: "row",
@@ -3785,13 +3780,14 @@ const useStyles = makeStyles((c) => ({
     backgroundColor: c.surface.control,
     paddingVertical: 10,
     paddingHorizontal: 18,
-    borderRadius: 20,
+    borderRadius: radius.chip,
     borderWidth: 1,
     borderColor: c.border.strong,
   },
   tipButtonTextModern: {
     color: c.text.primary,
     fontSize: 14,
+    fontFamily: fonts.medium,
     fontWeight: "500",
   },
 
@@ -3809,21 +3805,17 @@ const useStyles = makeStyles((c) => ({
     width: "75%", // Sleeker, tighter width
     maxWidth: 320,
     backgroundColor: c.surface.material,
-    borderRadius: 999, // Perfect pill shape
+    borderRadius: radius.full, // Perfect pill shape
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     borderWidth: 1,
     borderColor: c.accentTint.purple, // Very subtle violet border
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    ...elevationDark.e3,
   },
   glassControlBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent", // Clean minimalist look without background
@@ -3836,7 +3828,7 @@ const useStyles = makeStyles((c) => ({
   mainCallButtonModern: {
     width: 64, // Sleek, perfectly sized circle
     height: 64,
-    borderRadius: 32,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     // No negative margin - fits inside the pill gracefully or slightly overlapping
@@ -3875,7 +3867,7 @@ const useStyles = makeStyles((c) => ({
     right: -2,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: radius.full,
     backgroundColor: c.accent.danger,
     borderWidth: 2,
     borderColor: c.background.canvas, // Match bg
@@ -3890,7 +3882,7 @@ const useStyles = makeStyles((c) => ({
   notificationBadgeText: {
     color: c.accentOn.danger,
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: fonts.extrabold,
     lineHeight: 13,
   },
 
@@ -3911,20 +3903,16 @@ const useStyles = makeStyles((c) => ({
     width: "100%",
     maxWidth: 340,
     backgroundColor: c.surface.elevated,
-    borderRadius: 30,
+    borderRadius: radius.sheet,
     padding: 32,
     alignItems: "center",
     borderWidth: 1,
     borderColor: c.border.default,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.6,
-    shadowRadius: 50,
-    elevation: 20,
+    ...elevationDark.e3,
   },
   promptTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.text.primary,
     textAlign: "center",
     marginBottom: 12,
@@ -3948,7 +3936,7 @@ const useStyles = makeStyles((c) => ({
     backgroundColor: c.action.primary,
     paddingVertical: 16,
     paddingHorizontal: 40,
-    borderRadius: 20,
+    borderRadius: radius.chip,
     shadowColor: c.action.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -3965,12 +3953,14 @@ const useStyles = makeStyles((c) => ({
   promptButtonTextPri: {
     color: c.action.onPrimary,
     fontSize: 16,
+    fontFamily: fonts.semibold,
     fontWeight: "600",
     letterSpacing: 0.5,
   },
   promptButtonTextSec: {
     color: c.text.secondary,
     fontSize: 16,
+    fontFamily: fonts.semibold,
     fontWeight: "600",
   },
 }));

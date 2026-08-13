@@ -5,7 +5,7 @@ import {
   purchaseProductById,
   pollWalletUntil,
 } from "../services/purchases";
-import { Text, Button, Icon, Sheet, space, spacing, useTheme } from "../design-system";
+import { size, Text, Button, Icon, Sheet, space, spacing, useTheme } from "../design-system";
 import { useStorePrices } from "../hooks/useStorePrices";
 import { resolvePriceDisplay } from "../services/priceDisplay";
 
@@ -191,7 +191,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
           <View style={styles.errorRow}>
             <Icon
               name="alert-circle"
-              size={14}
+              size={size.iconInline}
               color={colors.feedback.dangerText}
             />
             <Text

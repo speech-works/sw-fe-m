@@ -3,6 +3,7 @@ import { StyleSheet, View, ViewStyle } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import PressableScale from "../../../../../components/PressableScale";
 import {
+  size,
   useTheme,
   radius,
   spacing,
@@ -64,7 +65,7 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
             {/* Target = focus; lights up with the accent when Focus Mode is on. */}
             <Icon
               name={icons.focus}
-              size={16}
+              size={size.iconSm}
               color={value ? accentColor : colors.text.tertiary}
             />
             <Text variant="title" color={value ? accentColor : colors.text.primary}>

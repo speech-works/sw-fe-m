@@ -14,6 +14,7 @@ import CustomScrollView, {
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
+  size,
   Button,
   Icon,
   IconButton,
@@ -360,7 +361,7 @@ const Chat = () => {
                       {character.map((c, i) => (
                         <View key={i} style={styles.traitRow}>
                           <Icon
-                            size={14}
+                            size={size.iconInline}
                             name="check"
                             color={colors.feedback.infoText}
                           />
@@ -495,7 +496,7 @@ const useStyles = makeStyles((c) => ({
   roleIconBadge: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     backgroundColor: c.surface.control,
     justifyContent: "center",
     alignItems: "center",

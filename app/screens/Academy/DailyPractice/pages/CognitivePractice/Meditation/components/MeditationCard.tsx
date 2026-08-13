@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { CognitivePractice } from "../../../../../../../api/dailyPractice/types";
 import PressableScale from "../../../../../../../components/PressableScale";
 import {
+  size,
   Surface,
   Chip,
   Text,
@@ -42,7 +43,7 @@ const MeditationCard = ({ onMedToggle, selectedMed }: MeditationCardProps) => {
 
           <View style={styles.cardFooter}>
             <View style={styles.timeBadge}>
-              <Icon name="clock" size={12} color={colors.text.tertiary} />
+              <Icon name="clock" size={size.iconXs} color={colors.text.tertiary} />
               <Text variant="bodySm" color="tertiary">
                 {selectedMed?.guidedMeditationData?.durationMinutes} mins
               </Text>
@@ -58,7 +59,7 @@ const MeditationCard = ({ onMedToggle, selectedMed }: MeditationCardProps) => {
               <Text variant="bodySm" color="link">
                 Change
               </Text>
-              <Icon name="chevron-right" size={12} color={colors.text.link} />
+              <Icon name="chevron-right" size={size.iconXs} color={colors.text.link} />
             </View>
           </View>
         </View>

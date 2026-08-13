@@ -68,7 +68,7 @@ const LifetimeJourneyCard = ({
       <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
         {value}
       </Text>
-      <Text variant="caption" color="secondary" style={styles.statLabel}>
+      <Text variant="eyebrow" color="secondary">
         {label}
       </Text>
     </View>
@@ -78,14 +78,14 @@ const LifetimeJourneyCard = ({
     <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
       <View style={styles.headerRow}>
         <View style={styles.flex1}>
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+          <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
             LIFETIME JOURNEY
           </Text>
           <Text variant="h3">{journey.stageTitle}</Text>
         </View>
         <View style={styles.headerRight}>
           {hasError ? (
-            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={size.iconInline} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           ) : null}
           <Icon name={icons.journeyRoute} size={size.icon} color={colors.text.tertiary} />
         </View>
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     gap: spacing["2xl"],
   },
   flex1: { flex: 1 },
-  eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
+  eyebrow: { marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -135,9 +135,5 @@ const styles = StyleSheet.create({
     minHeight: 92,
     justifyContent: "space-between",
     gap: spacing.sm,
-  },
-  statLabel: {
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
   },
 });

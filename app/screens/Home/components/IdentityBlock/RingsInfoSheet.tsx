@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  size,
   Sheet,
   Text,
   Icon,
@@ -142,7 +143,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
       done={closed.length}
       size={todayIsOuter ? DIAGRAM.outer.size : DIAGRAM.inner.size}
       strokeWidth={todayIsOuter ? DIAGRAM.outer.stroke : DIAGRAM.inner.stroke}
-      color={colors.accent.success}
+      color={colors.accentText.success}
       trackColor={colors.surface.track}
     />
   );
@@ -306,13 +307,13 @@ export const RingsInfoSheet: React.FC<Props> = ({
                     tick anybody with low vision can see. */}
                 {isDone ? (
                   <View style={[styles.mark, { backgroundColor: colors.accent.success }]}>
-                    <Icon name="check" size={15} color={colors.accentOn.success} />
+                    <Icon name="check" size={size.iconInline} color={colors.accentOn.success} />
                   </View>
                 ) : (
                   <View style={[styles.mark, styles.markOpen, { borderColor: colors.surface.track }]} />
                 )}
                 <View style={styles.rowText}>
-                  <Text variant="body" color={isDone ? colors.accent.success : "primary"}>
+                  <Text variant="body" color={isDone ? colors.accentText.success : "primary"}>
                     {AXIS_LABEL[axis]}
                   </Text>
                   <Text variant="caption" color="tertiary">
@@ -352,7 +353,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
             <Text variant="body" color="primary" style={styles.actionText}>
               Edit your avatar
             </Text>
-            <Icon name={icons.chevronRight} size={18} color={colors.text.tertiary} />
+            <Icon name={icons.chevronRight} size={size.iconSm} color={colors.text.tertiary} />
           </PressableScale>
 
           {onUpgrade ? (
@@ -365,7 +366,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
               <Text variant="body" style={[styles.actionText, { color: colors.text.link }]}>
                 More energy, more practice
               </Text>
-              <Icon name={icons.chevronRight} size={18} color={colors.text.link} />
+              <Icon name={icons.chevronRight} size={size.iconSm} color={colors.text.link} />
             </PressableScale>
           ) : null}
         </View>
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
   mark: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

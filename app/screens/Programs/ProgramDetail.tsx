@@ -7,6 +7,7 @@ import { selectOffer } from "../../util/packs/offers";
 import { PackBrochure } from "../../api/packs/types";
 import { purchaseCatalogItem, pollWalletUntil } from "../../services/purchases";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -210,7 +211,7 @@ const ProgramDetailScreen = () => {
           <View style={styles.metaRow}>
             {dayCount ? (
               <View style={styles.metaChip}>
-                <Icon name={icons.timeline} size={14} color={colors.text.secondary} />
+                <Icon name={icons.timeline} size={size.iconInline} color={colors.text.secondary} />
                 <Text variant="label" color="secondary">
                   {dayCount} days
                 </Text>
@@ -218,7 +219,7 @@ const ProgramDetailScreen = () => {
             ) : null}
             {moduleCount > 0 ? (
               <View style={styles.metaChip}>
-                <Icon name={icons.checklist} size={14} color={colors.text.secondary} />
+                <Icon name={icons.checklist} size={size.iconInline} color={colors.text.secondary} />
                 <Text variant="label" color="secondary">
                   {moduleCount} sessions
                 </Text>
@@ -254,7 +255,7 @@ const ProgramDetailScreen = () => {
         )}
 
         <View style={styles.ownedRow}>
-          <Icon name={icons.success} size={18} color={colors.feedback.successText} />
+          <Icon name={icons.success} size={size.iconSm} color={colors.feedback.successText} />
           <Text variant="title" color={colors.feedback.successText}>
             You own this. It&apos;s unlocked.
           </Text>

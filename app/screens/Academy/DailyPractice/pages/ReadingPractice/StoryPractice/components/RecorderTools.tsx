@@ -8,6 +8,7 @@ import {
 
 import { ToolType } from "../../../../../../../api/tools/types";
 import {
+  size,
   Icon,
   Text,
   icons,
@@ -74,7 +75,7 @@ const RecorderTools: React.FC<RecorderToolsProps> = ({
         }}
         activeOpacity={0.8}
       >
-        <Icon name="sliders" size={14} color={colors.text.secondary} />
+        <Icon name="sliders" size={size.iconInline} color={colors.text.secondary} />
         <Text variant="label" color="secondary">
           Tools
         </Text>
@@ -114,7 +115,7 @@ const RecorderTools: React.FC<RecorderToolsProps> = ({
                 three against each other. */}
             <Icon
               name={tool.icon}
-              size={24}
+              size={size.tabIcon}
               color={isActive ? onAccent : colors.text.secondary}
             />
             {isActive && (
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 30,
+    borderRadius: radius.sheet,
     flexDirection: "row",
     flex: 1,
   },

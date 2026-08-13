@@ -29,6 +29,7 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import SignalCard from "../../components/SignalCard";
 import PressableScale from "../../components/PressableScale";
 import {
+  size,
   Button,
   Icon,
   IconButton,
@@ -276,7 +277,7 @@ const PracticeComposer = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={[styles.headerIcon, { backgroundColor: accentWash, borderColor: accentBorder }]}>
-            <Icon name={icons.share} size={20} color={accentFg} />
+            <Icon name={icons.share} size={size.icon} color={accentFg} />
           </View>
           <Text variant="bodySm" color="secondary" center style={styles.headerSubtitle}>
             Choose what shows up in your practice update.
@@ -320,7 +321,7 @@ const PracticeComposer = () => {
                       },
                     ]}
                   >
-                    <Icon name={on ? icons.success : icons.add} size={16} color={on ? onAccentColor : subtleText} />
+                    <Icon name={on ? icons.success : icons.add} size={size.iconSm} color={on ? onAccentColor : subtleText} />
                     <Text variant="label" color={on ? onAccentColor : subtleText}>
                       {FIELD_LABELS[f]}
                     </Text>

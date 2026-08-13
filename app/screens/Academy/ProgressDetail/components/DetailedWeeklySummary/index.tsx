@@ -194,14 +194,14 @@ const DetailedWeeklySummary = ({
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.flex1}>
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>
+          <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
             {levelStage?.title || "WEEKLY SUMMARY"}
           </Text>
           <Text variant="h3">{getWeekRangeLabel()}</Text>
         </View>
         <View style={styles.headerRight}>
           {hasError && (
-            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={size.iconInline} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           )}
           <Icon name={icons.trend} size={size.icon} color={colors.text.tertiary} />
         </View>
@@ -251,7 +251,7 @@ const DetailedWeeklySummary = ({
                   <Text variant="caption" color="tertiary">Days active each week</Text>
                 </View>
                 <View style={styles.rhythmNow}>
-                  <Text variant="caption" color="tertiary" style={styles.eyebrow}>NOW</Text>
+                  <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>NOW</Text>
                   <Text variant="bodySm" style={styles.bold}>
                     {latestDays === 1 ? "1 active day" : `${latestDays} active days`}
                   </Text>
@@ -263,7 +263,7 @@ const DetailedWeeklySummary = ({
             </View>
           ) : (
             <View style={[styles.welcomeRow, insetSurface(colors, scheme)]}>
-              <Icon name={icons.celebrate} size={24} color={colors.text.primary} />
+              <Icon name={icons.celebrate} size={size.tabIcon} color={colors.text.primary} />
               <View style={styles.flex1}>
                 <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
                 <Text variant="caption" color="secondary">
@@ -304,7 +304,7 @@ const DetailedWeeklySummary = ({
             </>
           )}
           <View style={[styles.tipPill, insetSurface(colors, scheme)]}>
-            <Icon name={icons.tip} size={12} color={colors.feedback.warningText} />
+            <Icon name={icons.tip} size={size.iconXs} color={colors.feedback.warningText} />
             <Text variant="caption" color="secondary">Tip: Little and often beats all-at-once.</Text>
           </View>
         </View>
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   flex1: { flex: 1 },
   bold: { fontFamily: fonts.bold },
-  eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
+  eyebrow: { marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",

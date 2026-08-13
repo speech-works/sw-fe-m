@@ -16,8 +16,21 @@ import { purchasesAvailable } from "../services/purchases";
 // Deliberately the DARK elevation set: the premium card is gold-on-slate in both
 // schemes, so its inner shadows stay dark-tuned (see design-system/elevation.ts).
 import { elevationDark } from "../design-system/elevation";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+// Same reason as `elevationDark`: this card is a fixed SLATE surface in both
+// schemes, so its foreground must stay the dark scheme's light-on-dark ink. The
+// live `colors.text.primary` flips to near-black on paper and would vanish.
+import { darkColors } from "../design-system/semantic/dark";
+import {
+  size,
+  Gradient,
+  Icon,
+  icons,
+  radius,
+  spacing,
+  typography,
+  useTheme,
+  withAlpha,
+} from "../design-system";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -48,7 +61,7 @@ const ALL_BENEFITS = [
     label: "Daily practice",
     free: "About 5 a day",
     pro: "About 12 a day",
-    icon: "calendar-check",
+    icon: icons.energy, // the practice bar — this benefit is about it refilling faster
     desc: "Premium roughly doubles your daily practice and refills faster, so a good session doesn't stop because the bar ran out.",
   },
   {
@@ -60,7 +73,7 @@ const ALL_BENEFITS = [
     label: "Guided programs",
     free: "Preview",
     pro: "All of them",
-    icon: "folder-open",
+    icon: icons.journey, // the registry's word for a pack/program
     desc: "Every program in the library, start to finish. Structured arcs that build week to week, not loose exercises.",
   },
   {
@@ -68,7 +81,7 @@ const ALL_BENEFITS = [
     label: "Live AI calls",
     free: "Basic",
     pro: "4 a month",
-    icon: "robot",
+    icon: icons.ai,
     desc: "Practice the call you keep putting off, with someone who won't finish your sentences. Four a month, banking up to eight.",
   },
 ];
@@ -77,10 +90,9 @@ const styles = StyleSheet.create({
   // Upsell Full Page Styles (Matched with SubscribeScreen)
   portalContainer: {
     flex: 1,
-    backgroundColor: "#0F172A",
     marginTop: 64,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     overflow: "hidden",
   },
   portalScrollContent: {
@@ -88,7 +100,7 @@ const styles = StyleSheet.create({
   },
   glowOrb: {
     position: "absolute",
-    borderRadius: 200,
+    borderRadius: radius.full,
     width: 300,
     height: 300,
   },
@@ -108,12 +120,10 @@ const styles = StyleSheet.create({
     top: 16,
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
   },
   heroContainer: {
     alignItems: "center",
@@ -122,42 +132,31 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   badgeGlass: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 100,
+    borderRadius: radius.full,
     padding: 1,
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   badgeInner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 100,
-    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    gap: spacing.sm,
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
   },
-  badgeText: {
-    color: "#D4AF37",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
+  // `eyebrow` rather than a 10pt "900": a numeric weight >= 700 drops Inter for
+  // synthetic-bold Roboto on Android (see typography.ts).
+  badgeText: typography.eyebrow,
   heroTitle: {
-    color: "#FFFFFF",
-    fontSize: 38,
-    fontWeight: "900",
+    ...typography.screenTitle,
     textAlign: "center",
-    letterSpacing: -1,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   heroSubtitle: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 16,
+    ...typography.body,
     textAlign: "center",
-    lineHeight: 24,
-    paddingHorizontal: 10,
+    paddingHorizontal: spacing.sm,
   },
   carouselSection: {
     marginBottom: 40,
@@ -173,11 +172,9 @@ const styles = StyleSheet.create({
     marginRight: CARD_GAP,
   },
   slideInner: {
-    padding: 16,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    padding: spacing.lg,
+    borderRadius: radius.chip,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
     flexDirection: "row",
     alignItems: "center",
     height: 100,
@@ -185,26 +182,19 @@ const styles = StyleSheet.create({
   slideIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: radius.input,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   slideContent: {
     flex: 1,
   },
   slideTitle: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 2,
+    ...typography.title,
+    marginBottom: spacing.xxs,
   },
-  slideDesc: {
-    color: "rgba(255, 255, 255, 0.45)",
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  slideDesc: typography.caption,
   paginationDots: {
     flexDirection: "row",
     justifyContent: "center",
@@ -215,14 +205,8 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  activeDot: {
-    width: 20,
-    backgroundColor: "#D4AF37",
-  },
-  inactiveDot: {
-    width: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
+  activeDot: { width: 20 },
+  inactiveDot: { width: 6 },
   buyProFooterFixed: {
     position: "absolute",
     bottom: 0,
@@ -231,14 +215,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 24,
-    backgroundColor: "rgba(15, 23, 42, 0.95)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
     zIndex: 10,
   },
   buyProCtaButton: {
     width: "100%",
-    borderRadius: 20,
+    borderRadius: radius.chip,
     overflow: "hidden",
     marginBottom: 16,
   },
@@ -250,10 +232,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   buyProCtaText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+    ...typography.h3,
     zIndex: 1,
   },
   buyProBtnShine: {
@@ -269,11 +248,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  buyProTrustText: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 11,
-    fontWeight: "600",
-  },
+  buyProTrustText: typography.caption,
 });
 
 const UpsellModal = () => {
@@ -297,6 +272,10 @@ const UpsellModal = () => {
   // of the two consumes SHOW_STAMINA_UPSELL — change one and you must change
   // the other, or the event fires twice or not at all.
   const insets = useSafeAreaInsets();
+  // ABOVE the `purchasesAvailable()` early return, with the other hooks. Putting
+  // it below makes it a CONDITIONAL hook — the exact class of bug the note on
+  // that guard is about.
+  const { colors } = useTheme();
   const { events, clear } = useEventStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
@@ -421,19 +400,30 @@ const UpsellModal = () => {
    */
   if (!purchasesAvailable()) return null;
 
+  const gold = colors.premium;
+  const onSlate = darkColors.text.primary;
+
+  /**
+   * The premium tier's gold-on-slate identity is DELIBERATELY outside the orange
+   * system (`palette.ts` scopes it to this card) — but it has tokens, and this
+   * file used to retype them: 13 hex literals and 17 rgba() calls, one of which
+   * (`#B8860B`) was in no palette at all. The identity is scheme-invariant, so
+   * these resolve to the same values in both schemes; reading them means the
+   * tier can be restyled from one place.
+   */
   const renderPortalContent = () => (
-    <View style={styles.portalContainer}>
+    <View style={[styles.portalContainer, { backgroundColor: gold.slate }]}>
       <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#0F172A", "#1E293B", "#0F172A"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1 }}
-        />
+        <Gradient token="premiumSlate" style={{ flex: 1 }} />
         <View
           style={[
             styles.glowOrb,
-            { top: -50, right: -50, backgroundColor: "#22D3EE", opacity: 0.1 },
+            {
+              top: -50,
+              right: -50,
+              backgroundColor: colors.premium.orbCyan,
+              opacity: 0.1,
+            },
           ]}
         />
         <View
@@ -444,7 +434,7 @@ const UpsellModal = () => {
               left: -50,
               width: 250,
               height: 250,
-              backgroundColor: "#8B5CF6",
+              backgroundColor: colors.premium.orbPurple,
               opacity: 0.08,
             },
           ]}
@@ -454,9 +444,15 @@ const UpsellModal = () => {
       <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => setModalVisible(false)}
-          style={styles.backButton}
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: withAlpha(onSlate, 0.1),
+              borderColor: withAlpha(onSlate, 0.15),
+            },
+          ]}
         >
-          <Icon name="close" size={20} color="#FFFFFF" />
+          <Icon name={icons.close} size={size.icon} color={colors.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -468,14 +464,21 @@ const UpsellModal = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroContainer}>
-          <View style={styles.badgeGlass}>
-            <View style={styles.badgeInner}>
-              <Icon name="crown" size={12} color="#D4AF37" />
-              <Text style={styles.badgeText}>{modalTag}</Text>
+          <View style={[styles.badgeGlass, { backgroundColor: withAlpha(onSlate, 0.05) }]}>
+            <View
+              style={[
+                styles.badgeInner,
+                { backgroundColor: gold.goldTint, borderColor: gold.goldBorder },
+              ]}
+            >
+              <Icon name={icons.pro} size={size.iconXs} color={colors.premium.gold} />
+              <Text style={[styles.badgeText, { color: gold.gold }]}>{modalTag}</Text>
             </View>
           </View>
-          <Text style={styles.heroTitle}>{modalTitle}</Text>
-          <Text style={styles.heroSubtitle}>{modalMessage}</Text>
+          <Text style={[styles.heroTitle, { color: onSlate }]}>{modalTitle}</Text>
+          <Text style={[styles.heroSubtitle, { color: withAlpha(onSlate, 0.7) }]}>
+            {modalMessage}
+          </Text>
         </View>
 
         <View style={styles.carouselSection}>
@@ -497,13 +500,23 @@ const UpsellModal = () => {
           >
             {orderedBenefits.map((benefit) => (
               <View key={benefit.id} style={styles.carouselSlide}>
-                <View style={styles.slideInner}>
-                  <View style={styles.slideIconContainer}>
-                    <Icon name={benefit.icon} size={24} color="#D4AF37" />
+                <View
+                  style={[
+                    styles.slideInner,
+                    {
+                      backgroundColor: withAlpha(onSlate, 0.04),
+                      borderColor: withAlpha(onSlate, 0.08),
+                    },
+                  ]}
+                >
+                  <View style={[styles.slideIconContainer, { backgroundColor: withAlpha(onSlate, 0.06) }]}>
+                    <Icon name={benefit.icon} size={size.tabIcon} color={colors.premium.gold} />
                   </View>
                   <View style={styles.slideContent}>
-                    <Text style={styles.slideTitle}>{benefit.label}</Text>
-                    <Text style={styles.slideDesc}>{benefit.desc}</Text>
+                    <Text style={[styles.slideTitle, { color: onSlate }]}>{benefit.label}</Text>
+                    <Text style={[styles.slideDesc, { color: withAlpha(onSlate, 0.45) }]}>
+                      {benefit.desc}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -515,7 +528,9 @@ const UpsellModal = () => {
                 key={i}
                 style={[
                   styles.dot,
-                  carouselIndex === i ? styles.activeDot : styles.inactiveDot,
+                  carouselIndex === i
+                    ? [styles.activeDot, { backgroundColor: gold.gold }]
+                    : [styles.inactiveDot, { backgroundColor: withAlpha(onSlate, 0.2) }],
                 ]}
               />
             ))}
@@ -526,7 +541,11 @@ const UpsellModal = () => {
       <View
         style={[
           styles.buyProFooterFixed,
-          { paddingBottom: Math.max(insets.bottom, 4) },
+          {
+            paddingBottom: Math.max(insets.bottom, 4),
+            backgroundColor: withAlpha(gold.slate, 0.95),
+            borderTopColor: withAlpha(onSlate, 0.1),
+          },
         ]}
       >
         <TouchableOpacity
@@ -539,23 +558,29 @@ const UpsellModal = () => {
           }}
           style={[styles.buyProCtaButton, elevationDark.e2]}
         >
-          <LinearGradient
-            colors={["#D4AF37", "#B8860B", "#996515"]}
-            style={styles.buyProCtaGradient}
-          >
-            <Text style={styles.buyProCtaText}>{modalCta}</Text>
-            <LinearGradient
-              colors={["rgba(255,255,255,0.15)", "transparent"]}
+          <Gradient token="premiumGold" style={styles.buyProCtaGradient}>
+            {/* Dark slate ink on the gold fill (8.49:1). This label was white,
+                which is 2.10:1 on `premium.gold` — the same dark-on-bright rule
+                the rest of the app follows, on the one screen that sells. */}
+            <Text style={[styles.buyProCtaText, { color: colors.premium.onGold }]}>
+              {modalCta}
+            </Text>
+            <Gradient
+              colors={[withAlpha(colors.text.primary, 0.15), "transparent"]}
               style={StyleSheet.absoluteFill}
             />
-          </LinearGradient>
+          </Gradient>
         </TouchableOpacity>
         <View style={styles.buyProTrustRow}>
-          <Icon name="lock" size={12} color="rgba(255,255,255,0.4)" />
+          <Icon
+            name={icons.locked}
+            size={size.iconXs}
+            color={withAlpha(colors.text.primary, 0.4)}
+          />
           {/* Not Apple Pay / Google Pay — this is StoreKit and Play Billing.
               Naming a payment product we don't use is factually wrong on a
               purchase screen, and Apple rejects Apple Pay claims for IAP. */}
-          <Text style={styles.buyProTrustText}>
+          <Text style={[styles.buyProTrustText, { color: withAlpha(onSlate, 0.4) }]}>
             {Platform.OS === "ios"
               ? "Secure payment through the App Store"
               : "Secure payment through Google Play"}
@@ -569,7 +594,7 @@ const UpsellModal = () => {
     <Animated.View
       style={[
         StyleSheet.absoluteFill,
-        { zIndex: 1000, backgroundColor: "rgba(0,0,0,0.75)" },
+        { zIndex: 1000, backgroundColor: colors.overlay.scrim },
         animatedBackdropStyle,
       ]}
       pointerEvents={modalVisible ? "auto" : "none"}

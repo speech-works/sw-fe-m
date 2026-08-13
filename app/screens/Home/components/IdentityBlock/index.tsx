@@ -8,6 +8,7 @@ import { useOpenStudioStore } from "../../../../stores/openStudio";
 import { useAvatarSavedStore } from "../../../../stores/avatarSaved";
 import { useUserStore } from "../../../../stores/user";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -357,7 +358,7 @@ export const IdentityBlock: React.FC = () => {
                   {userLevel}
                 </Text>
               </ProgressRing>
-              <Text variant="label" color="accent" style={styles.anchorLabel}>
+              <Text variant="eyebrow" color="accent" style={styles.anchorLabel}>
                 LEVEL
               </Text>
             </View>
@@ -451,7 +452,9 @@ export const IdentityBlock: React.FC = () => {
                   strokeWidth={TODAY_RING.stroke}
                   // The same green a closed loop takes in `TodayStrip`, so a
                   // filled slot and a ticked chip mean one thing across the app.
-                  color={colors.accent.success}
+                  // The per-scheme cut, not the fill: as a stroke on the paper
+                  // card the raw hue is 1.76:1 and the arc disappears.
+                  color={colors.accentText.success}
                   trackColor={colors.surface.track}
                 >
                   <ProgressRing
@@ -487,7 +490,7 @@ export const IdentityBlock: React.FC = () => {
               {hasToday ? (
                 <Text
                   variant="label"
-                  color={colors.accent.success}
+                  color={colors.accentText.success}
                   // ONE LINE, NON-NEGOTIABLE. A 70pt ring plus the row gap leaves
                   // this about 45pt of the card's 127, and "TODAY" fills roughly
                   // 42 of it. At a larger accessibility text size it would wrap,
@@ -522,7 +525,7 @@ export const IdentityBlock: React.FC = () => {
             <View style={styles.heroRow}>
               <Text
                 variant="h2"
-                color={hasToday ? colors.accent.success : colors.text.primary}
+                color={hasToday ? colors.accentText.success : colors.text.primary}
                 numberOfLines={1}
                 style={[styles.heroName, styles.heroCount]}
               >
@@ -536,7 +539,7 @@ export const IdentityBlock: React.FC = () => {
                   where there is room to say what it actually buys instead of
                   making a percentage secretly clickable. */}
               <View style={styles.energyReadout}>
-                <Icon name={icons.energy} size={11} color={energyHue} />
+                <Icon name={icons.energy} size={size.iconXs} color={energyHue} />
                 <Text variant="caption" style={[styles.pct, { color: energyHue }]}>
                   {staminaPercentage}%
                 </Text>
@@ -571,7 +574,7 @@ export const IdentityBlock: React.FC = () => {
               accessibilityLabel="What these rings mean"
               style={[styles.infoBtn, { backgroundColor: colors.surface.control }]}
             >
-              <Icon name={icons.info} size={16} color={colors.text.secondary} />
+              <Icon name={icons.info} size={size.iconSm} color={colors.text.secondary} />
               {!growthIntroduced ? (
                 <View
                   style={[
@@ -734,7 +737,7 @@ const styles = StyleSheet.create({
     right: 0,
     width: 9,
     height: 9,
-    borderRadius: 4.5,
+    borderRadius: radius.full, // a 9pt dot
     borderWidth: 1.5,
   },
 });

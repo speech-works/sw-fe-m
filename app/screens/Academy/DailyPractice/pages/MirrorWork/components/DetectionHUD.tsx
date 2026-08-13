@@ -1,4 +1,5 @@
 import React from 'react';
+import { radius } from "../../../../../../design-system";
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import type { ChannelDebug } from '../util/mirrorBehaviorAnalyzerV2';
 
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     left: 8,
     width: 270,
     backgroundColor: 'rgba(0,0,0,0.74)',
-    borderRadius: 10,
+    borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 8,
     zIndex: 200,

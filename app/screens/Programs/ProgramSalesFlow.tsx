@@ -618,7 +618,7 @@ const HookPage: React.FC<HookPageProps> = ({
               },
             ]}
           >
-            <Icon name={icons.roadmap} size={16} color={colors.text.accent} />
+            <Icon name={icons.roadmap} size={size.iconSm} color={colors.text.accent} />
             <Text variant="bodySm" color="secondary" style={styles.flex1}>
               {matchReason}
             </Text>
@@ -648,7 +648,7 @@ const HookPage: React.FC<HookPageProps> = ({
               Swipe to see your plan
             </Text>
             <Animated.View style={nudgeStyle}>
-              <Icon name={icons.chevronRight} size={16} color={colors.text.tertiary} />
+              <Icon name={icons.chevronRight} size={size.iconSm} color={colors.text.tertiary} />
             </Animated.View>
           </View>
         ) : null}
@@ -693,7 +693,7 @@ const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }
   }));
   return (
     <View style={[styles.pagePadded, { paddingTop: topPad }]}>
-      <Text variant="label" color="tertiary">
+      <Text variant="eyebrow" color="tertiary">
         THE ARC
       </Text>
       <Text variant="h1" color="primary" style={styles.pageTitle}>
@@ -856,7 +856,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
           {/* Matched to you — real personalisation, as a slim line, not a box. */}
           {matchReason ? (
             <View style={styles.sheetMatched}>
-              <Icon name={icons.roadmap} size={16} color={colors.text.accent} />
+              <Icon name={icons.roadmap} size={size.iconSm} color={colors.text.accent} />
               <Text variant="bodySm" color="secondary" style={styles.flex1}>
                 {matchReason}
               </Text>
@@ -878,7 +878,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
           ]}
         >
           <View style={styles.offerTop}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               LIFETIME ACCESS
             </Text>
             {discounted && note ? (
@@ -960,7 +960,7 @@ const CheckRow: React.FC<CheckRowProps> = ({ label, gift }) => {
     <View style={styles.checkRow}>
       <Icon
         name={gift ? icons.gift : icons.success}
-        size={20}
+        size={size.icon}
         color={gift ? colors.text.accent : colors.feedback.successText}
       />
       <Text variant="body" color={gift ? "primary" : "secondary"} style={styles.flex1}>
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   },
   dot: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   buyBar: {
     position: "absolute",
@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
     right: -80,
     width: 260,
     height: 260,
-    borderRadius: 130,
+    borderRadius: radius.full,
   },
   hookGlyph: {
     position: "absolute",
@@ -1150,7 +1150,7 @@ const styles = StyleSheet.create({
   node: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -7,6 +7,7 @@ import {
   InterviewEDPStackParamList,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -101,7 +102,7 @@ const Interview = () => {
                     { backgroundColor: colors.surface.default },
                   ]}
                 >
-                  <Icon name={icons.play} size={12} color={colors.text.primary} />
+                  <Icon name={icons.play} size={size.iconXs} color={colors.text.primary} />
                   <Text variant="label" color="primary">
                     Start
                   </Text>

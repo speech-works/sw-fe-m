@@ -112,7 +112,7 @@ const TechniqueCard = ({
           <View style={styles.copy}>
             {hasFree && (
               <View style={[styles.freeBadge, { backgroundColor: colors.surface.default }]}>
-                <Text variant="label" color="primary" style={styles.freeText}>
+                <Text variant="eyebrow" color="primary" style={styles.freeText}>
                   FREE
                 </Text>
               </View>
@@ -137,14 +137,19 @@ const TechniqueCard = ({
               {level}
             </Text>
             {level === "Deep Practice" && (
-              <TouchableOpacity onPress={showSafetyInfo} hitSlop={8}>
-                <Icon name="info" size={12} color={on} style={styles.levelInfo} />
+              <TouchableOpacity
+                onPress={showSafetyInfo}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="About deep practice"
+              >
+                <Icon name="info" size={size.iconXs} color={on} style={styles.levelInfo} />
               </TouchableOpacity>
             )}
           </View>
 
           <View style={[styles.startChip, { backgroundColor: colors.surface.default }]}>
-            <Icon name={icons.play} size={12} color={colors.text.primary} />
+            <Icon name={icons.play} size={size.iconXs} color={colors.text.primary} />
             <Text variant="label" color="primary">
               Start
             </Text>

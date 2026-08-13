@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { PracticeCategorySummaryItem } from "../../../../api/practiceCategories/types";
 import {
+  fonts,
   Surface,
   Divider,
   Text,
@@ -116,7 +117,7 @@ const PracticeCategoryProgressCard = ({
       </View>
 
       <View style={styles.footerRow}>
-        <Text variant="caption" color="tertiary" style={styles.footerTitle}>
+        <Text variant="eyebrow" color="tertiary">
           Lifetime
         </Text>
         <Text variant="caption" color="secondary">
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   statusBadgeText: {
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   grid: {
     flexDirection: "row",
@@ -188,10 +189,5 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     gap: spacing.xs,
-  },
-  footerTitle: {
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    fontWeight: "700",
   },
 });

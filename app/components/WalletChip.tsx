@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getWallet } from "../api";
 import { PAYMENTS_ENABLED } from "../constants/features";
-import { Text, Icon, icons, useTheme, spacing, radius } from "../design-system";
+import { size, Text, Icon, icons, useTheme, spacing, radius } from "../design-system";
 
 interface WalletChipProps {
   /** Bump this (e.g. a counter) to force a re-fetch — same pattern as Home's `refreshKey`. */
@@ -46,7 +46,7 @@ const WalletChip: React.FC<WalletChipProps> = ({ refreshKey }) => {
         { backgroundColor: colors.surface.control, borderColor: colors.border.hairline },
       ]}
     >
-      <Icon name={icons.call} size={12} color={colors.text.secondary} />
+      <Icon name={icons.call} size={size.iconXs} color={colors.text.secondary} />
       <Text variant="caption" color="secondary">
         {balance}
       </Text>

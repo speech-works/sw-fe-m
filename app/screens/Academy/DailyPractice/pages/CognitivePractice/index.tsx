@@ -22,6 +22,7 @@ import {
 import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../../../stores/user";
 import {
+  size,
   Page,
   Text,
   Icon,
@@ -213,7 +214,7 @@ const CognitivePractice = () => {
                     { backgroundColor: colors.surface.default },
                   ]}
                 >
-                  <Icon name={icons.play} size={12} color={colors.text.primary} />
+                  <Icon name={icons.play} size={size.iconXs} color={colors.text.primary} />
                   <Text variant="label" color="primary">
                     Start
                   </Text>

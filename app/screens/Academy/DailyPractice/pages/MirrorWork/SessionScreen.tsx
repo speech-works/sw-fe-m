@@ -1,6 +1,13 @@
 // Scheme-locked dark — camera surface (wrapped in ForceDark at the navigator).
 // Hardcoded HUD/chrome colors here are intentional; do not theme-migrate them.
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+import { darkColors as c } from "../../../../../design-system/semantic/dark";
+import { spacing, size, withAlpha, radius } from "../../../../../design-system";
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   Platform, StatusBar,
@@ -288,7 +295,7 @@ export const SessionScreen: React.FC = () => {
           onPress={() => setShowHUD((v) => !v)}
           accessibilityLabel="Toggle detection HUD"
         >
-          <Icon name="bug" size={16} color={showHUD ? '#22D3EE' : 'rgba(255,255,255,0.6)'} />
+          <Icon name="bug" size={size.iconSm} color={showHUD ? '#22D3EE' : withAlpha(c.text.primary, 0.6)} />
         </TouchableOpacity>
       )}
       {__DEV__ && showHUD && !isCalibrating && (
@@ -322,7 +329,7 @@ export const SessionScreen: React.FC = () => {
 
                 <View style={styles.preCalibInner}>
                   <View style={styles.preCalibIconCircle}>
-                    <Icon name="sparkles-outline" size={26} color="#FFE9A0" />
+                    <Icon name="sparkles-outline" size={size.tabIcon} color="#FFE9A0" />
                   </View>
                   <Text style={styles.preCalibTitle}>Ready to begin?</Text>
                   <Text style={styles.preCalibBody}>
@@ -353,7 +360,7 @@ export const SessionScreen: React.FC = () => {
 
                 <View style={styles.recalibInner}>
                   <View style={styles.recalibIconCircle}>
-                    <Icon name="refresh-outline" size={26} color="#FCD34D" />
+                    <Icon name="refresh-outline" size={size.tabIcon} color="#FCD34D" />
                   </View>
                   <Text style={styles.recalibTitle}>Let's try that again</Text>
                   <Text style={styles.recalibBody}>
@@ -428,7 +435,7 @@ export const SessionScreen: React.FC = () => {
                   onPress={handleMuteToggle}
                   accessibilityLabel={isMuted ? 'Unmute microphone' : 'Mute microphone'}
                 >
-                  <Icon name={isMuted ? 'mic-off' : 'mic-outline'} size={22} color="#FFF" />
+                  <Icon name={isMuted ? 'mic-off' : 'mic-outline'} size={size.icon} color={c.text.primary} />
                   <Text style={styles.controlLabel}>{isMuted ? 'Muted' : 'Mic'}</Text>
                 </TouchableOpacity>
 
@@ -439,7 +446,7 @@ export const SessionScreen: React.FC = () => {
                   onPress={session.toggleNudgeMode}
                   accessibilityLabel={session.nudgeMode === 'ON' ? 'Turn off notes' : 'Turn on notes'}
                 >
-                  <Icon name={session.nudgeMode === 'ON' ? 'bulb-outline' : 'bulb'} size={22} color="#FFF" />
+                  <Icon name={session.nudgeMode === 'ON' ? 'bulb-outline' : 'bulb'} size={size.icon} color={c.text.primary} />
                   <Text style={styles.controlLabel}>
                     {session.nudgeMode === 'ON' ? 'Notes' : 'Quiet'}
                   </Text>
@@ -453,7 +460,7 @@ export const SessionScreen: React.FC = () => {
                   accessibilityLabel="End session"
                 >
                   <View style={styles.endButtonInner}>
-                    <Icon name="stop" size={18} color="#FFF" />
+                    <Icon name="stop" size={size.iconSm} color={c.text.primary} />
                   </View>
                   <Text style={styles.controlLabel}>End</Text>
                 </TouchableOpacity>
@@ -482,7 +489,7 @@ export const SessionScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: c.shadow,
   },
   safeArea: {
     flex: 1,
@@ -492,15 +499,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: c.shadow,
   },
   permissionText: {
-    color: '#FFF',
+    color: c.text.primary,
     fontSize: 16,
   },
   dimmingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: withAlpha(c.shadow, 0.4),
   },
   topGradient: {
     position: 'absolute',
@@ -508,7 +515,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 220,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: withAlpha(c.shadow, 0.18),
   },
   hudToggle: {
     position: 'absolute',
@@ -516,8 +523,8 @@ const styles = StyleSheet.create({
     right: 10,
     width: 34,
     height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(c.shadow, 0.55),
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 201,
@@ -533,7 +540,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 240,
-    backgroundColor: 'rgba(0,0,0,0.28)',
+    backgroundColor: withAlpha(c.shadow, 0.28),
   },
   topContainer: {
     alignItems: 'center',
@@ -550,10 +557,10 @@ const styles = StyleSheet.create({
 
   // ── Timer pill ──
   timerWrapper: {
-    borderRadius: 999,
+    borderRadius: radius.full,
     overflow: 'hidden',
     marginBottom: 14,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.14,
     shadowRadius: 8,
@@ -569,7 +576,7 @@ const styles = StyleSheet.create({
   timerDot: {
     width: 7,
     height: 7,
-    borderRadius: 4,
+    borderRadius: radius.xs,
     backgroundColor: '#34D399',
     marginRight: 8,
     shadowColor: '#34D399',
@@ -578,7 +585,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   timerText: {
-    color: 'rgba(255,255,255,0.92)',
+    color: withAlpha(c.text.primary, 0.92),
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.8,
@@ -587,9 +594,9 @@ const styles = StyleSheet.create({
 
   // ── Control bar (single frosted pill) ──
   controlBarWrapper: {
-    borderRadius: 36,
+    borderRadius: radius.pill,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
     shadowRadius: 10,
@@ -605,22 +612,22 @@ const styles = StyleSheet.create({
   controlButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 6,
-    borderRadius: 24,
+    borderRadius: radius.card,
     minWidth: 72,
   },
   controlButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: withAlpha(c.text.primary, 0.14),
   },
   controlDivider: {
     width: StyleSheet.hairlineWidth,
     height: 28,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: withAlpha(c.text.primary, 0.12),
     marginHorizontal: 2,
   },
   controlLabel: {
-    color: 'rgba(255,255,255,0.92)',
+    color: withAlpha(c.text.primary, 0.92),
     fontSize: 10.5,
     marginTop: 3,
     fontWeight: '600',
@@ -629,14 +636,14 @@ const styles = StyleSheet.create({
   endButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 6,
     minWidth: 72,
   },
   endButtonInner: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: radius.full,
     backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
@@ -649,18 +656,18 @@ const styles = StyleSheet.create({
   // ── Pre-calibration card ──
   preCalibWrapper: {
     marginHorizontal: 16,
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
     // Light shadow — large shadows on Android render as a dark halo around
     // the card that reads as a "thick border" against bright backgrounds.
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: Platform.OS === 'android' ? 0 : 6,
   },
   preCalibBlur: {
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
     backgroundColor: Platform.OS === 'android' ? 'rgba(12,12,18,0.78)' : 'rgba(12,12,18,0.36)',
   },
@@ -681,7 +688,7 @@ const styles = StyleSheet.create({
   preCalibIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     backgroundColor: 'rgba(255, 233, 160, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -690,7 +697,7 @@ const styles = StyleSheet.create({
   preCalibTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: c.text.primary,
     marginBottom: 10,
     letterSpacing: -0.4,
     textAlign: 'center',
@@ -698,7 +705,7 @@ const styles = StyleSheet.create({
   preCalibBody: {
     fontSize: 14.5,
     fontWeight: '400',
-    color: 'rgba(255,255,255,0.66)',
+    color: withAlpha(c.text.primary, 0.66),
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 290,
@@ -707,16 +714,16 @@ const styles = StyleSheet.create({
   // ── Recalibration card ──
   recalibWrapper: {
     marginHorizontal: 16,
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: Platform.OS === 'android' ? 0 : 6,
   },
   recalibBlur: {
-    borderRadius: 32,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
     backgroundColor: Platform.OS === 'android' ? 'rgba(12,12,18,0.82)' : 'rgba(12,12,18,0.38)',
   },
@@ -737,7 +744,7 @@ const styles = StyleSheet.create({
   recalibIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     backgroundColor: 'rgba(252, 211, 77, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -746,14 +753,14 @@ const styles = StyleSheet.create({
   recalibTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: c.text.primary,
     marginBottom: 10,
     letterSpacing: -0.4,
     textAlign: 'center',
   },
   recalibBody: {
     fontSize: 14.5,
-    color: 'rgba(255,255,255,0.66)',
+    color: withAlpha(c.text.primary, 0.66),
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 290,
@@ -762,7 +769,7 @@ const styles = StyleSheet.create({
   recalibButton: {
     paddingVertical: 13,
     paddingHorizontal: 36,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: '#FBBF24',
     shadowColor: '#FBBF24',
     shadowOffset: { width: 0, height: 6 },
@@ -786,7 +793,7 @@ const styles = StyleSheet.create({
   readyButton: {
     width: '100%',
     paddingVertical: 18,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: '#34D399',
     alignItems: 'center',
     justifyContent: 'center',
@@ -809,7 +816,7 @@ const styles = StyleSheet.create({
   },
   readySubtext: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.40)',
+    color: withAlpha(c.text.primary, 0.40),
     marginTop: 12,
     letterSpacing: 0.3,
     fontWeight: '500',

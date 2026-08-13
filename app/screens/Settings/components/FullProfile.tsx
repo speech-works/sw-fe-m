@@ -5,6 +5,7 @@ import { LevelStage } from "../../../api/users";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { toSafeExternalUrl } from "../../../util/functions/url";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -36,10 +37,10 @@ const FullProfile = ({ levelStage, onEditAvatar }: FullProfileProps) => {
   const field = (icon: IconName, label: string, value: string) => (
     <View style={styles.fieldRow}>
       <View style={styles.fieldIconWrapper}>
-        <Icon name={icon} size={16} color={colors.text.tertiary} />
+        <Icon name={icon} size={size.iconSm} color={colors.text.tertiary} />
       </View>
       <View style={styles.fieldContent}>
-        <Text variant="caption" color="tertiary" style={styles.fieldLabel}>
+        <Text variant="eyebrow" color="tertiary" style={styles.fieldLabel}>
           {label}
         </Text>
         <Text variant="body">{value}</Text>
@@ -107,19 +108,19 @@ const FullProfile = ({ levelStage, onEditAvatar }: FullProfileProps) => {
           <View style={styles.socialGrid}>
             <TouchableOpacity style={styles.socialItem} onPress={() => openSocial(user?.links?.social.facebook, "Facebook")}>
               <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-                <Icon name={icons.socialFacebook} size={20} color={colors.text.primary} />
+                <Icon name={icons.socialFacebook} size={size.icon} color={colors.text.primary} />
               </View>
               <Text variant="caption" color="secondary">Facebook</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialItem} onPress={() => openSocial(user?.links?.social.instagram, "Instagram")}>
               <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-                <Icon name={icons.socialInstagram} size={20} color={colors.text.primary} />
+                <Icon name={icons.socialInstagram} size={size.icon} color={colors.text.primary} />
               </View>
               <Text variant="caption" color="secondary">Instagram</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialItem} onPress={() => openSocial(user?.links?.social.whatsapp, "Whatsapp")}>
               <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-                <Icon name={icons.socialWhatsapp} size={20} color={colors.text.primary} />
+                <Icon name={icons.socialWhatsapp} size={size.icon} color={colors.text.primary} />
               </View>
               <Text variant="caption" color="secondary">Whatsapp</Text>
             </TouchableOpacity>
@@ -179,8 +180,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     marginBottom: spacing.xxs,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   separator: {
     height: borderWidth.hairline,

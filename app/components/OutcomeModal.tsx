@@ -5,6 +5,7 @@ import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import type { BottomSheetAction } from "../util/functions/bottomSheet";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -77,7 +78,7 @@ const OutcomeModal = () => {
     <Sheet visible={visible} onClose={() => setVisible(false)} exclusive>
       <View style={styles.body}>
         <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
-          <Icon name={success ? icons.success : icons.danger} size={28} color={accentOn} />
+          <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />
         </Animated.View>
         <Text variant="h2" center>{title}</Text>
         {tag ? (

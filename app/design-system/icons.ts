@@ -148,6 +148,23 @@ export const icons = {
   roadmap: "map", // roadmap / what's next
   checklist: "square-check",
 
+  // ── Media transport + editing (was FontAwesome5 / Ionicons in 25 files) ──
+  pause: "pause", // pause playback
+  rewind: "rewind", // skip backwards
+  skipBack: "rotate-ccw", // jump back N seconds (double-tap scrub)
+  skipForward: "rotate-cw", // jump forward N seconds
+  expand: "maximize", // enter full screen
+  collapse: "minimize", // leave full screen
+  fastForward: "fast-forward", // skip forwards
+  edit: "edit-3", // edit a saved answer/reflection
+  retry: "refresh-cw", // try that again
+  chevronLeft: "chevron-left", // back, in a horizontal pager
+  chat: "message-circle", // a conversation / prompt bubble
+  person: "user", // a person, generically
+  waiting: "hourglass", // someone is waiting on you
+  align: "crop", // align your face in the frame (MirrorWork calibration)
+  roleplay: "person-star", // a roleplay / playing a character
+
   // ── Global navigation (the floating tab dock) ──
   home: "home",
   explore: "layout-grid",

@@ -14,6 +14,7 @@ import {
   SchemeStatusBar,
   useTheme,
   spacing,
+  size,
   space,
   Text,
   Icon,
@@ -184,7 +185,7 @@ const ShareMomentScreen = () => {
         return (
           <Animated.View key="support" entering={FadeIn.duration(200)} style={styles.sheetBody}>
             {/* Content: bare lifeline glyph, care headline, the moment as a quiet quote. */}
-            <Icon name="life-buoy" size={32} color={onFill} />
+            <Icon name="life-buoy" size={size.iconXl} color={onFill} />
             <Text variant="h2" color={onFill} center>You don&apos;t have to carry this alone</Text>
             <Text variant="title" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
             <Text variant="bodySm" color={onFill} center>
@@ -209,7 +210,7 @@ const ShareMomentScreen = () => {
       // Step 2 — share, with the lifeline still one tap away.
       return (
         <Animated.View key="share" entering={FadeIn.duration(200)} style={styles.sheetBody}>
-          <Icon name={sheetMoment.icon} size={28} color={onFill} />
+          <Icon name={sheetMoment.icon} size={size.iconLg} color={onFill} />
           <Text variant="h2" color={onFill} center>Share this with {buddyFirstName}?</Text>
           <Text variant="title" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
           <Text variant="bodySm" color={onFill} center>
@@ -232,7 +233,7 @@ const ShareMomentScreen = () => {
     return (
       <View style={styles.sheetBody}>
         {/* Content: a bare valence glyph, a quiet eyebrow, the moment as the hero quote. */}
-        <Icon name={sheetMoment.icon} size={28} color={onFill} />
+        <Icon name={sheetMoment.icon} size={size.iconLg} color={onFill} />
         <Text variant="caption" color={onFill} center style={styles.eyebrow}>
           {isStruggle ? "HOW YOU'RE DOING" : "A WIN TO SHARE"}
         </Text>
@@ -282,14 +283,14 @@ const ShareMomentScreen = () => {
       >
         <ScrollView
           style={{ width: screenWidth }}
-          contentContainerStyle={[styles.pageContent, { paddingBottom: 130 + navBarInset }]}
+          contentContainerStyle={[styles.pageContent, { paddingBottom: size.tabBarSafe + navBarInset }]}
           showsVerticalScrollIndicator={false}
         >
           {renderGroup("win")}
         </ScrollView>
         <ScrollView
           style={{ width: screenWidth }}
-          contentContainerStyle={[styles.pageContent, { paddingBottom: 130 + navBarInset }]}
+          contentContainerStyle={[styles.pageContent, { paddingBottom: size.tabBarSafe + navBarInset }]}
           showsVerticalScrollIndicator={false}
         >
           {renderGroup("struggle")}
@@ -347,7 +348,9 @@ const styles = StyleSheet.create({
   pageContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: space.sectionGap,
-    paddingBottom: 130, // clears the floating dock
+    // The dock's own geometry, via the token — not a guess at it. Three other
+    // screens guessed, and no two landed on the same number.
+    paddingBottom: size.tabBarSafe,
   },
   actionList: {
     gap: spacing.lg,

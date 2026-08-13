@@ -20,6 +20,7 @@ import Metronome, { useMetronome } from "../components/Metronome";
 import SmartRecorder from "../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 import RecorderTools from "../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/RecorderTools";
 import {
+  size,
   Text,
   Icon,
   icons,
@@ -324,7 +325,7 @@ const PracticePage = ({
             >
               <Icon
                 name={icons.star}
-                size={22}
+                size={size.icon}
                 color={colors.text.accent}
               />
               <Text
@@ -374,7 +375,7 @@ const PracticePage = ({
             style={[styles.pagerBtn, selectedIndex <= 0 && styles.pagerOff]}
             accessibilityLabel="Previous item"
           >
-            <Icon name="chevron-up" size={20} color={colors.text.accent} />
+            <Icon name="chevron-up" size={size.icon} color={colors.text.accent} />
           </PressableScale>
           <Text variant="label" color="secondary" style={styles.pagerCount}>
             {selectedIndex + 1}/{exerciseItems.length || "?"}
@@ -384,7 +385,7 @@ const PracticePage = ({
             style={styles.pagerBtn}
             accessibilityLabel="Next item"
           >
-            <Icon name="chevron-down" size={20} color={colors.text.accent} />
+            <Icon name="chevron-down" size={size.icon} color={colors.text.accent} />
           </PressableScale>
         </View>
       ),
@@ -413,7 +414,7 @@ const PracticePage = ({
             isPassage(currentItem) && styles.stageStretch,
           ]}
         >
-          <Text variant="label" color={colors.accentText.info} style={styles.eyebrow}>
+          <Text variant="eyebrow" color={colors.accentText.info} style={styles.eyebrow}>
             {completedItems.length > 0
               ? `${itemLabel} · ${completedItems.length} DONE`
               : itemLabel}
@@ -557,7 +558,6 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   eyebrow: {
-    letterSpacing: 1.2,
   },
 
   wordWrapper: {

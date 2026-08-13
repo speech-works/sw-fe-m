@@ -12,6 +12,8 @@ import Animated, {
 import FA5Icon from "react-native-vector-icons/FontAwesome5";
 import { callerGlyph } from "../../util/callerGlyph";
 import {
+  size,
+  radius,
   Icon,
   Text,
   haptics,
@@ -116,7 +118,7 @@ const RingingScreen: React.FC<Props> = ({
   return (
     <View style={styles.root}>
       <View style={styles.identity}>
-        <Text variant="label" color="tertiary" style={styles.eyebrow}>
+        <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
           INCOMING CALL
         </Text>
 
@@ -159,7 +161,7 @@ const RingingScreen: React.FC<Props> = ({
           >
             <Icon
               name={icons.close}
-              size={26}
+              size={size.tabIcon}
               color={colors.text.secondary}
             />
           </Pressable>
@@ -184,7 +186,7 @@ const RingingScreen: React.FC<Props> = ({
           >
             <Icon
               name={icons.phone}
-              size={26}
+              size={size.tabIcon}
               color={colors.accentOn.success}
             />
           </Pressable>
@@ -220,7 +222,6 @@ const useStyles = makeStyles((c) => ({
     gap: spacing.sm,
   },
   eyebrow: {
-    letterSpacing: 1,
     marginBottom: spacing.xl,
   },
   avatarWrap: {
@@ -258,7 +259,7 @@ const useStyles = makeStyles((c) => ({
   callButton: {
     height: 68,
     width: 68,
-    borderRadius: 34,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -125,12 +125,12 @@ const Achievements = ({ stageData }: AchievementsProps) => {
       {/* Header + XP */}
       <View style={styles.headerSection}>
         <View style={styles.headerRow}>
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>ACHIEVEMENTS</Text>
+          <Text variant="eyebrow" color="tertiary">ACHIEVEMENTS</Text>
           <Icon name={icons.win} size={size.icon} color={colors.text.tertiary} />
         </View>
 
         <View style={[styles.xpBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
-          <Icon name={icons.proud} size={14} color={colors.feedback.warningText} />
+          <Icon name={icons.proud} size={size.iconInline} color={colors.feedback.warningText} />
           <Text variant="bodySm" style={styles.bold}>{isLoading ? "..." : activeTotalXp} XP</Text>
         </View>
 
@@ -220,7 +220,7 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                       </View>
                       {!isUnlocked ? (
                         <View style={[styles.lockBadge, { backgroundColor: colors.surface.control, borderColor: colors.border.default }]}>
-                          <Icon name={icons.locked} size={12} color={colors.text.tertiary} />
+                          <Icon name={icons.locked} size={size.iconXs} color={colors.text.tertiary} />
                         </View>
                       ) : null}
                     </View>
@@ -274,7 +274,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   bold: { fontFamily: fonts.bold },
-  eyebrow: { letterSpacing: 1, textTransform: "uppercase" },
   headerSection: {
     gap: spacing.md,
   },

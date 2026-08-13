@@ -15,6 +15,7 @@ import {
   InputAudioStream,
 } from "@dr.pogodin/react-native-audio";
 import {
+  size,
   useTheme,
   spacing,
   radius,
@@ -479,7 +480,7 @@ export function DAFTool({
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View style={styles.heroHeaderText}>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               DAF
             </Text>
             <Text variant="h3" color="primary">
@@ -499,7 +500,7 @@ export function DAFTool({
           >
             <Icon
               name={icons.headphones}
-              size={13}
+              size={size.iconInline}
               color={
                 activeHeadsetConnected
                   ? colors.feedback.successText
@@ -538,7 +539,7 @@ export function DAFTool({
       >
         <View style={styles.sliderHeader}>
           <View>
-            <Text variant="label" color="tertiary">
+            <Text variant="eyebrow" color="tertiary">
               DELAY
             </Text>
             <Text variant="h3" color="primary">
@@ -604,7 +605,7 @@ export function DAFTool({
         >
           <Icon
             name={isStatusError ? icons.warning : icons.tip}
-            size={14}
+            size={size.iconInline}
             color={
               isStatusError
                 ? colors.feedback.dangerText

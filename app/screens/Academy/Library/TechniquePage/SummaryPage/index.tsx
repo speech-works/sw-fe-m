@@ -15,6 +15,7 @@ import {
     LibStackParamList,
 } from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import {
+  size,
     AnimatedNumber,
     Button,
     Divider,
@@ -107,7 +108,7 @@ const QuestionCard = ({ item, index }: { item: AnswerItem; index: number }) => {
         <View style={[styles.answerRow, { backgroundColor: yourTint }]}>
           <Icon
             name={isCorrect ? icons.success : icons.close}
-            size={14}
+            size={size.iconInline}
             color={statusColor}
             style={styles.answerGlyph}
           />
@@ -125,7 +126,7 @@ const QuestionCard = ({ item, index }: { item: AnswerItem; index: number }) => {
           >
             <Icon
               name={icons.success}
-              size={14}
+              size={size.iconInline}
               color={colors.feedback.successText}
               style={styles.answerGlyph}
             />
@@ -146,7 +147,7 @@ const QuestionCard = ({ item, index }: { item: AnswerItem; index: number }) => {
             <Reanimated.View style={chevronStyle}>
               <Icon
                 name={icons.chevronDown}
-                size={14}
+                size={size.iconInline}
                 color={colors.text.secondary}
               />
             </Reanimated.View>
@@ -232,7 +233,7 @@ const SummaryPage = () => {
             segment per question (solid = correct, faint = missed) previewing the
             review list below in the same order, then the supportive line. */}
         <Gradient token={band.token} style={styles.heroCard}>
-          <Text variant="label" color={inkMuted} style={styles.heroEyebrow}>
+          <Text variant="eyebrow" color={inkMuted} style={styles.heroEyebrow}>
             QUIZ REPORT
           </Text>
           <View style={styles.fractionRow}>
@@ -295,7 +296,6 @@ const useStyles = makeStyles((c, t) => ({
     ...t.elevation.e2,
   },
   heroEyebrow: {
-    letterSpacing: 1.4,
   },
   fractionRow: {
     flexDirection: "row",

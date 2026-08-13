@@ -37,6 +37,8 @@ import {
 import DonePractice from "../../../components/DonePractice";
 import { useFirstCallStore } from "../../../../../../stores/firstCall";
 import {
+  size,
+  radius,
   Page,
   Button,
   IconButton,
@@ -671,7 +673,7 @@ const Breathing = () => {
             can't get quietly dropped — an honest limit is the point. */}
         {caution ? (
           <View style={styles.cautionRow}>
-            <Icon name={icons.info} size={16} color={colors.text.tertiary} />
+            <Icon name={icons.info} size={size.iconSm} color={colors.text.tertiary} />
             <Text variant="bodySm" color="tertiary" style={styles.cautionText}>
               {caution}
             </Text>
@@ -758,7 +760,7 @@ const Breathing = () => {
                     </Text>
                   </View>
                   {isSelected && (
-                    <Icon name={icons.success} size={20} color={colors.feedback.dangerText} />
+                    <Icon name={icons.success} size={size.icon} color={colors.feedback.dangerText} />
                   )}
                 </Surface>
               </PressableScale>
@@ -883,7 +885,7 @@ const styles = StyleSheet.create({
   tipDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     marginTop: 7,
   },
   tipLine: {

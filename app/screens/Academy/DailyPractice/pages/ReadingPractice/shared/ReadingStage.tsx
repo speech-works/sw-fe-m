@@ -186,7 +186,7 @@ export function ReadingStage({
               style={[styles.pagerBtn, first && styles.pagerOff]}
               accessibilityLabel="Previous page"
             >
-              <Icon name="chevron-up" size={20} color={accentFg} />
+              <Icon name="chevron-up" size={size.icon} color={accentFg} />
             </PressableScale>
             <Text variant="label" color="secondary" style={styles.pagerCount}>
               {pagination.page + 1}/{pagination.count}
@@ -196,7 +196,7 @@ export function ReadingStage({
               style={[styles.pagerBtn, last && styles.pagerOff]}
               accessibilityLabel="Next page"
             >
-              <Icon name="chevron-down" size={20} color={accentFg} />
+              <Icon name="chevron-down" size={size.icon} color={accentFg} />
             </PressableScale>
           </View>
         ),
@@ -255,7 +255,7 @@ export function ReadingStage({
           </Text>
         </View>
         <View style={[styles.stage, align === "center" && styles.stageCenter]}>
-          <Text variant="label" color={foregroundMuted} style={styles.eyebrow}>
+          <Text variant="eyebrow" color={foregroundMuted} style={styles.eyebrow}>
             {eyebrow}
           </Text>
           <View style={styles.content}>{children}</View>
@@ -348,7 +348,6 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "center",
   },
   eyebrow: {
-    letterSpacing: 1.2,
   },
   content: {
     width: "100%",

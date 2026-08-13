@@ -1,5 +1,9 @@
 // CustomScrollView.tsx
 import React, { forwardRef, useImperativeHandle } from "react";
+// The DARK elevation set, imported statically because these live in a static
+// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
+import { elevationDark } from "../design-system/elevation";
+import { radius } from "../design-system";
 import {
   StyleProp,
   StyleSheet,
@@ -17,8 +21,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { useTheme } from "../design-system";
+import { Icon, icons, useTheme } from "../design-system";
 
 export const SHADOW_BUFFER = 5;
 
@@ -198,10 +201,12 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             >
               <TouchableOpacity
                 onPress={handleScrollToTop}
+                accessibilityRole="button"
+                accessibilityLabel="Scroll to top"
                 style={[styles.touchableButton, { backgroundColor: colors.surface.control }]}
               >
                 <Icon
-                  name="chevron-up"
+                  name={icons.chevronUp}
                   style={[styles.baseIcon, { color: colors.text.accent }, buttonIconStyle]}
                 />
               </TouchableOpacity>
@@ -218,10 +223,12 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             >
               <TouchableOpacity
                 onPress={handleScrollToBottom}
+                accessibilityRole="button"
+                accessibilityLabel="Scroll to bottom"
                 style={[styles.touchableButton, { backgroundColor: colors.surface.control }]}
               >
                 <Icon
-                  name="chevron-down"
+                  name={icons.chevronDown}
                   style={[styles.baseIcon, { color: colors.text.accent }, buttonIconStyle]}
                 />
               </TouchableOpacity>
@@ -251,12 +258,8 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    borderRadius: radius.sheet,
+    ...elevationDark.e2,
   },
   baseIcon: {
     fontSize: 20,

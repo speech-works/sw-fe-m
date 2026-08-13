@@ -203,10 +203,16 @@ const WatermarkModal = ({
       <View style={wm.watermarkLayer} pointerEvents="none">
         <Icon name={watermarkIcon} size={220} color={watermarkColor} style={wm.watermarkIcon} />
       </View>
-      <TouchableOpacity onPress={onClose} style={wm.closeBtn} activeOpacity={0.7}>
-        <Icon name={icons.close} size={20} color={colors.text.tertiary} />
+      <TouchableOpacity
+        onPress={onClose}
+        style={wm.closeBtn}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+      >
+        <Icon name={icons.close} size={size.icon} color={colors.text.tertiary} />
       </TouchableOpacity>
-      <Text variant="caption" color={tagColor} style={wm.tag}>{tag}</Text>
+      <Text variant="eyebrow" color={tagColor} style={wm.tag}>{tag}</Text>
       <Text variant="h2" style={wm.title}>{title}</Text>
       <Text variant="bodySm" color="secondary" style={wm.message}>{message}</Text>
       <TouchableOpacity style={[wm.cta, { backgroundColor: ctaColor }]} activeOpacity={0.85} onPress={onClose}>
@@ -775,9 +781,9 @@ const Community = () => {
             fight for contrast: the dock below already says Community, in an
             orange pill, and you tapped that pill to get here. The label was
             never carrying anything the page didn't already say. */}
-        <Text variant="h1" style={[styles.headline, halo]}>
+        <Text variant="poster" style={halo}>
           There&apos;s a space{" "}
-          <Text variant="h1" style={[styles.headline, { color: colors.text.accent }]}>
+          <Text variant="poster" style={{ color: colors.text.accent }}>
             next to you.
           </Text>
         </Text>
@@ -788,7 +794,7 @@ const Community = () => {
 
         {isPending && (
           <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint, alignSelf: "flex-start" }]}>
-            <Icon name={icons.soon} size={14} color={colors.text.accent} />
+            <Icon name={icons.soon} size={size.iconInline} color={colors.text.accent} />
             <Text variant="caption" color="accent" style={styles.bold}>Waiting for them to join…</Text>
           </View>
         )}
@@ -960,7 +966,7 @@ const Community = () => {
             <Text variant="h2" color={colors.action.onPrimary}>You & {buddyFirstName}</Text>
             {since ? (
               <View style={styles.partnerMeta}>
-                <Icon name={icons.daysTogether} size={14} color={colors.action.onPrimary} />
+                <Icon name={icons.daysTogether} size={size.iconInline} color={colors.action.onPrimary} />
                 <Text variant="caption" color={colors.action.onPrimary}>Practice partners since {since}</Text>
               </View>
             ) : null}
@@ -1029,7 +1035,7 @@ const Community = () => {
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
                   <Icon
                     name={icons.energy}
-                    size={20}
+                    size={size.icon}
                     color={bestForeground(colors.surface.default, [
                       colors.accent.purple,
                       colors.accentOn.purple,
@@ -1037,13 +1043,13 @@ const Community = () => {
                   />
                 </View>
                 <AnimatedNumber value={team?.combinedXpThisWeek ?? 0} color={colors.accentOn.purple} />
-                <Text variant="caption" color={colors.accentOn.purple} style={[styles.statTileLabel]}>GROWTH THIS WEEK</Text>
+                <Text variant="eyebrow" color={colors.accentOn.purple} style={[styles.statTileLabel]}>GROWTH THIS WEEK</Text>
               </View>
               <View style={[styles.statTile, { backgroundColor: colors.accent.info }]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
                   <Icon
                     name={icons.daysTogether}
-                    size={20}
+                    size={size.icon}
                     color={bestForeground(colors.surface.default, [
                       colors.accent.info,
                       colors.accentOn.info,
@@ -1051,26 +1057,26 @@ const Community = () => {
                   />
                 </View>
                 <AnimatedNumber value={daysTogether} color={colors.accentOn.info} />
-                <Text variant="caption" color={colors.accentOn.info} style={[styles.statTileLabel]}>DAYS TOGETHER</Text>
+                <Text variant="eyebrow" color={colors.accentOn.info} style={[styles.statTileLabel]}>DAYS TOGETHER</Text>
               </View>
             </View>
 
             {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
             <View style={[styles.questCard, { backgroundColor: colors.accent.danger }]}>
               <View style={styles.goalHeader}>
-                <Text variant="caption" color={colors.accentOn.danger} style={[styles.goalCaption]}>THIS WEEK, TOGETHER</Text>
+                <Text variant="eyebrow" color={colors.accentOn.danger} style={[styles.goalCaption]}>THIS WEEK, TOGETHER</Text>
                 <Text variant="caption" color={colors.accentOn.danger} style={styles.bold}>
                   {team?.weeklyCombinedDays ?? 0}/{team?.weeklyQuestTarget ?? 4} days
                 </Text>
               </View>
               {team && team.weeklyCombinedDays >= team.weeklyQuestTarget ? (
                 <View style={[styles.liveRow, { borderTopColor: colors.accentOn.danger }]}>
-                  <Icon name={icons.celebrate} size={16} color={colors.accentOn.danger} />
+                  <Icon name={icons.celebrate} size={size.iconSm} color={colors.accentOn.danger} />
                   <Text variant="caption" color={colors.accentOn.danger} style={styles.liveText}>You hit this week's goal together!</Text>
                 </View>
               ) : team?.bothActiveThisWeek ? (
                 <View style={[styles.liveRow, { borderTopColor: colors.accentOn.danger }]}>
-                  <Icon name={icons.streak} size={16} color={colors.accentOn.danger} />
+                  <Icon name={icons.streak} size={size.iconSm} color={colors.accentOn.danger} />
                   <Text variant="caption" color={colors.accentOn.danger} style={styles.liveText}>You both showed up this week!</Text>
                 </View>
               ) : null}
@@ -1085,7 +1091,7 @@ const Community = () => {
             {/* Share Progress */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => handleConsent(!iShare)}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
-                <Icon name={icons.stats} size={24} color={colors.text.primary} />
+                <Icon name={icons.stats} size={size.tabIcon} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Share my progress</Text>
@@ -1099,13 +1105,13 @@ const Community = () => {
             {/* Help & Resources */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => navigation.navigate("Resources")}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
-                <Icon name={icons.support} size={24} color={colors.text.primary} />
+                <Icon name={icons.support} size={size.tabIcon} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Help & Resources</Text>
                 <Text variant="bodySm" color="secondary">Learn more about community.</Text>
               </View>
-              <Icon name={icons.chevronRight} size={24} color={colors.text.tertiary} />
+              <Icon name={icons.chevronRight} size={size.tabIcon} color={colors.text.tertiary} />
             </PressableScale>
 
             <View style={[styles.actionDivider, { backgroundColor: colors.border.default }]} />
@@ -1113,7 +1119,7 @@ const Community = () => {
             {/* Leave Buddy */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleLeave}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.accentTint.danger }]}>
-                <Icon name={icons.leave} size={24} color={colors.feedback.dangerText} />
+                <Icon name={icons.leave} size={size.tabIcon} color={colors.feedback.dangerText} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title" color={colors.feedback.dangerText}>Leave buddy</Text>
@@ -1128,7 +1134,7 @@ const Community = () => {
                 this one is an accusation. Two rows, not one — see handleBlock. */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleBlock}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.accentTint.danger }]}>
-                <Icon name={icons.report} size={24} color={colors.feedback.dangerText} />
+                <Icon name={icons.report} size={size.tabIcon} color={colors.feedback.dangerText} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title" color={colors.feedback.dangerText}>Block &amp; report {buddyFirstName}</Text>
@@ -1245,7 +1251,7 @@ const Community = () => {
               {/* Us page */}
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130 + navBarInset, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: size.tabBarSafe + navBarInset, flexGrow: 1 }]}
                   onScrollY={handleScrollY}
                   refreshControl={
                     <RefreshControl
@@ -1265,7 +1271,7 @@ const Community = () => {
               {/* Timeline page */}
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130 + navBarInset, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: size.tabBarSafe + navBarInset, flexGrow: 1 }]}
                   onScrollY={handleScrollY}
                   onEndReached={() => timelineRef.current?.loadMore()}
                   refreshControl={
@@ -1584,7 +1590,6 @@ const styles = StyleSheet.create({
   },
   statTileLabel: {
     marginTop: spacing.xs,
-    letterSpacing: 0.5,
   },
 
   // Weekly shared quest tile
@@ -1637,10 +1642,6 @@ const styles = StyleSheet.create({
   // a large text size grows upward into the art instead of clipping.
   stageSpacer: { flex: 1 },
   stage: { gap: spacing.sm },
-  // A display cut, not a heading: h1's 28/34 reads as a section title next to
-  // artwork this size. Tight tracking and a line height BELOW the font size is
-  // what makes three short lines read as one block.
-  headline: { fontSize: 34, lineHeight: 34, letterSpacing: -1.1 },
   stageSub: { marginTop: spacing.xxs, maxWidth: 280 },
   // The share line, at caption size. It serves the minority who already know
   // someone; ranking it as a button is what made earlier versions read as a menu.
@@ -1768,8 +1769,6 @@ const wm = StyleSheet.create({
     transform: [{ rotate: "-15deg" }],
   },
   tag: {
-    textTransform: "uppercase",
-    letterSpacing: 2,
     marginBottom: spacing.sm,
     zIndex: 1,
   },
@@ -1786,7 +1785,7 @@ const wm = StyleSheet.create({
   cta: {
     width: "100%",
     height: 54,
-    borderRadius: 18,
+    borderRadius: radius.input,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,

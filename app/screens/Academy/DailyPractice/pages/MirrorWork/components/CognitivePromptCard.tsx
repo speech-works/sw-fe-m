@@ -1,4 +1,11 @@
 import React, { useEffect, useRef } from 'react';
+// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
+// feed, which has no scheme), so the dark role set is the CORRECT static
+// source here — same precedent as UpsellModal's `elevationDark`. The state
+// hues below are still raw: their values are tied to the clinical weight
+// table and are not mine to reassign.
+import { darkColors as c } from "../../../../../../design-system/semantic/dark";
+import { withAlpha, radius } from "../../../../../../design-system";
 import { View, Text, StyleSheet, Animated, PanResponder, TouchableOpacity, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -136,16 +143,16 @@ export const CognitivePromptCard: React.FC<CognitivePromptCardProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     marginHorizontal: 16,
-    borderRadius: 28,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: Platform.OS === 'android' ? 0 : 6,
   },
   blurCard: {
-    borderRadius: 28,
+    borderRadius: radius.sheet,
     overflow: 'hidden',
     backgroundColor: Platform.OS === 'android' ? 'rgba(15, 15, 22, 0.78)' : 'rgba(15, 15, 22, 0.34)',
   },
@@ -176,23 +183,23 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: withAlpha(c.text.primary, 0.25),
   },
   dotActive: {
     width: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: c.text.primary,
   },
   categoryText: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.55)',
+    color: withAlpha(c.text.primary, 0.55),
     letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   promptText: {
     fontSize: 19,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: c.text.primary,
     lineHeight: 27,
     letterSpacing: -0.3,
   },
@@ -204,22 +211,22 @@ const styles = StyleSheet.create({
   },
   swipeHint: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.40)',
+    color: withAlpha(c.text.primary, 0.40),
     letterSpacing: 0.3,
     fontWeight: '500',
   },
   nextButton: {
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 24,
+    backgroundColor: withAlpha(c.text.primary, 0.16),
+    borderRadius: radius.card,
     paddingVertical: 9,
     paddingHorizontal: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: withAlpha(c.text.primary, 0.20),
   },
   nextButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: c.text.primary,
     letterSpacing: 0.3,
   },
 });

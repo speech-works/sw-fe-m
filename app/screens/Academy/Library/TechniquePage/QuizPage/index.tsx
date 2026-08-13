@@ -15,6 +15,7 @@ import {
   LibStackParamList,
 } from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import {
+  size,
   Text,
   Icon,
   icons,
@@ -163,7 +164,7 @@ const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: Qu
                   {selectedIndex + 1}
                 </Text>
               </View>
-              <Text variant="label" color="tertiary">
+              <Text variant="eyebrow" color="tertiary">
                 ASSESSMENT QUESTION
               </Text>
             </View>
@@ -211,7 +212,7 @@ const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: Qu
                       ]}
                     >
                       {isSelected && (
-                        <Icon name="check" size={12} color={colors.action.onPrimary} />
+                        <Icon name="check" size={size.iconXs} color={colors.action.onPrimary} />
                       )}
                     </View>
 
@@ -315,7 +316,7 @@ const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: Qu
           ]}
         >
           <Icon
-            size={18}
+            size={size.iconSm}
             name="info"
             color={colors.feedback.infoText}
           />

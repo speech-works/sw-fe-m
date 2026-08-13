@@ -156,7 +156,7 @@ const Reminders = () => {
         {reminders.length > 0 ? (
           <View>
             {reminders.length > 1 ? (
-              <Text variant="label" color="tertiary" style={styles.sectionLabel}>
+              <Text variant="eyebrow" color="tertiary" style={styles.sectionLabel}>
                 YOUR REMINDERS
               </Text>
             ) : null}

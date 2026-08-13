@@ -22,7 +22,7 @@ const ContactSupport = () => {
   return (
     <Page title="Contact Support" onBack={() => navigation.goBack()}>
       <View style={styles.section}>
-        <Text variant="label" color="tertiary">
+        <Text variant="eyebrow" color="tertiary">
           CHOOSE A CHANNEL
         </Text>
 
