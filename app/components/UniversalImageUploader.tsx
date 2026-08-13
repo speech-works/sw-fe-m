@@ -11,6 +11,7 @@ import {
 import {
   size,
   useTheme,
+  accentEdge,
   spacing,
   radius,
   borderWidth,
@@ -197,12 +198,15 @@ const UniversalImageUploader = ({
         </View>
         <Text variant="h3">{Math.round(uploadProgress)}%</Text>
         <View style={styles.progressContainer}>
-          <View style={[styles.progressBg, { backgroundColor: colors.surface.row }]}>
+          {/* `surface.track`, not `row`: the unfilled remainder of a bar is exactly
+              what that role is for, and `row` is #FFFEFB on a white card. */}
+          <View style={[styles.progressBg, { backgroundColor: colors.surface.track }]}>
             <Animated.View
               style={[
                 styles.progressFill,
                 {
-                  backgroundColor: colors.action.primary,
+                  // A meter fill is a thin graphic, not a card fill.
+                  backgroundColor: colors.text.accent,
                   width: progressAnim.interpolate({
                     inputRange: [0, 100],
                     outputRange: ["0%", "100%"],
@@ -223,7 +227,7 @@ const UniversalImageUploader = ({
   const renderCompleteState = () => (
     <View style={[styles.card, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
       <View style={styles.cardContent}>
-        <View style={[styles.successCircle, { backgroundColor: colors.accent.success }]}>
+        <View style={[styles.successCircle, { backgroundColor: colors.accent.success }, accentEdge(colors, "success")]}>
           <Icon name="check" size={size.icon} color={colors.accentOn.success} />
         </View>
         <Text variant="h3">Upload Complete</Text>

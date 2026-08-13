@@ -6,6 +6,7 @@ import { useNavigation } from "@react-navigation/native";
 import {
   size,
   useTheme,
+  accentEdge,
   spacing,
   space,
   radius,
@@ -181,6 +182,7 @@ const Feedback = () => {
                 style={[
                   styles.innerCheckmarkCircle,
                   { backgroundColor: colors.accent.success },
+                  accentEdge(colors, "success"),
                 ]}
               >
                 <Icon name="check" size={size.iconXl} color={colors.accentOn.success} />

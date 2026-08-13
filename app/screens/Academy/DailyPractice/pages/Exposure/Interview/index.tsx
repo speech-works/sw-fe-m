@@ -13,6 +13,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   spacing,
   radius,
 } from "../../../../../../design-system";
@@ -79,6 +80,7 @@ const Interview = () => {
                 style={[
                   styles.cardFill,
                   { backgroundColor: colors.accent[accent] },
+                  accentEdge(colors, accent),
                 ]}
               >
                 <View style={styles.copy}>

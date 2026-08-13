@@ -7,6 +7,7 @@ import { manifestWithStageKit } from "../../../../../assets/avatar/registry";
 import { normalizeManifest, StageIndex } from "../../../../../types/avatar";
 import {
   useTheme,
+  primaryEdge,
   spacing,
   radius,
   borderWidth,
@@ -208,7 +209,7 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                   ]}
                 >
                   {isCurrent ? (
-                    <View style={[styles.hereChip, { backgroundColor: colors.action.primary }]}>
+                    <View style={[styles.hereChip, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
                       <Text variant="caption" color={colors.action.onPrimary} style={styles.bold}>
                         You're here
                       </Text>

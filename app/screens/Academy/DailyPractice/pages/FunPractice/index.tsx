@@ -21,6 +21,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   spacing,
   radius,
 } from "../../../../../design-system";
@@ -103,6 +104,7 @@ const FunPractice = () => {
                 style={[
                   styles.cardFill,
                   { backgroundColor: colors.accent[item.accent] },
+                  accentEdge(colors, item.accent),
                 ]}
               >
                 <View style={styles.cardContent}>

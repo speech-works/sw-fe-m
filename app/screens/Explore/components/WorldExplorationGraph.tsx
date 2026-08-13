@@ -22,6 +22,7 @@ import { useUserStore } from "../../../stores/user";
 import PressableScale from "../../../components/PressableScale";
 import {
   useTheme,
+  primaryEdge,
   spacing,
   radius,
   fonts,
@@ -322,7 +323,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                   {/* Day label — today sits inside a small rounded accent chip. */}
                   <View style={styles.dayLabelRow}>
                     {d.isToday ? (
-                      <View style={[styles.todayChip, { backgroundColor: colors.action.primary }]}>
+                      <View style={[styles.todayChip, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
                         <Text variant="caption" color={colors.action.onPrimary} style={styles.todayLabel}>
                           {d.dayLabel}
                         </Text>
@@ -343,7 +344,9 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
           <AnimatedNumber value={daysActive} variant="h2" color="primary" />
           <View style={styles.statLabelRow}>
-            <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
+            {/* 6pt: there is no interior left to bound, so a legend dot takes the
+                on-surface cut rather than the fill hue (2.02:1 on paper). */}
+            <View style={[styles.statDot, { backgroundColor: colors.text.accent }]} />
             <Text variant="caption" color="secondary">
               {`active ${daysActive === 1 ? "day" : "days"}`}
             </Text>
@@ -352,7 +355,9 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
           <Text variant="h2" color="primary">{totalPracticeSummary}</Text>
           <View style={styles.statLabelRow}>
-            <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
+            {/* 6pt: there is no interior left to bound, so a legend dot takes the
+                on-surface cut rather than the fill hue (2.02:1 on paper). */}
+            <View style={[styles.statDot, { backgroundColor: colors.text.accent }]} />
             <Text variant="caption" color="secondary" numberOfLines={1} style={styles.statLabel}>
               this week
             </Text>

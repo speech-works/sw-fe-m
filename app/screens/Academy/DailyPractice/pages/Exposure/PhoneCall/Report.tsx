@@ -12,6 +12,7 @@ import {
   size,
   fonts,
   useTheme,
+  primaryEdge,
   spacing,
   radius,
   borderWidth,
@@ -209,7 +210,7 @@ const PhoneCallReport: React.FC<Props> = ({
       >
         {/* Hero */}
         <View style={styles.hero}>
-          <View style={[styles.heroBadge, { backgroundColor: colors.action.primary }]}>
+          <View style={[styles.heroBadge, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
             <Icon name={icons.call} size={size.tabIcon} color={colors.action.onPrimary} />
           </View>
           <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
@@ -360,7 +361,7 @@ const PhoneCallReport: React.FC<Props> = ({
         )}
 
         {/* Encouragement — the one bright orange identity surface (dark ink on the fill). */}
-        <View style={[styles.encourageCard, { backgroundColor: colors.action.primary }]}>
+        <View style={[styles.encourageCard, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
           <Icon
             name={icons.heart}
             size={104}

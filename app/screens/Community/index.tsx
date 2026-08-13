@@ -31,6 +31,8 @@ import {
   SchemeStatusBar,
   Dialog,
   useTheme,
+  accentEdge,
+  primaryEdge,
   spacing,
   space,
   radius,
@@ -850,7 +852,7 @@ const Community = () => {
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel="Join with this code"
-                  style={[styles.joinBtn, { backgroundColor: colors.action.primary }]}
+                  style={[styles.joinBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}
                 >
                   <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
                     Join
@@ -949,7 +951,7 @@ const Community = () => {
       <View style={styles.pairedWrapper}>
         {/* Partnership banner — overlapping avatars + stage pills */}
         <Animated.View entering={enter(0)} style={[styles.partnerCard, elevation.e2]}>
-          <View style={[styles.partnerInner, { backgroundColor: colors.action.primary }]}>
+          <View style={[styles.partnerInner, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
             <View style={styles.overlappingAvatars}>
               <View style={[styles.avatarWrapper, { zIndex: 2, borderColor: colors.action.primary }]}>
                 {renderAvatar(user?.avatarManifest, myInitials, "Your avatar")}
@@ -992,7 +994,7 @@ const Community = () => {
           <SectionHeading title="Together" />
           <View style={styles.bento}>
             {/* Bond Level — hero tile */}
-            <View style={[styles.bondCard, { backgroundColor: colors.accent.warning }]}>
+            <View style={[styles.bondCard, { backgroundColor: colors.accent.warning }, accentEdge(colors, "warning")]}>
               <View style={styles.tierRow}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default, marginBottom: 0 }]}>
                   {/* Server-driven MCI glyph — behavior-frozen passthrough (see import note). */}
@@ -1031,7 +1033,7 @@ const Community = () => {
 
             {/* Two stat tiles */}
             <View style={styles.statsRow}>
-              <View style={[styles.statTile, { backgroundColor: colors.accent.purple }]}>
+              <View style={[styles.statTile, { backgroundColor: colors.accent.purple }, accentEdge(colors, "purple")]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
                   <Icon
                     name={icons.energy}
@@ -1045,7 +1047,7 @@ const Community = () => {
                 <AnimatedNumber value={team?.combinedXpThisWeek ?? 0} color={colors.accentOn.purple} />
                 <Text variant="eyebrow" color={colors.accentOn.purple} style={[styles.statTileLabel]}>GROWTH THIS WEEK</Text>
               </View>
-              <View style={[styles.statTile, { backgroundColor: colors.accent.info }]}>
+              <View style={[styles.statTile, { backgroundColor: colors.accent.info }, accentEdge(colors, "info")]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
                   <Icon
                     name={icons.daysTogether}
@@ -1062,7 +1064,7 @@ const Community = () => {
             </View>
 
             {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
-            <View style={[styles.questCard, { backgroundColor: colors.accent.danger }]}>
+            <View style={[styles.questCard, { backgroundColor: colors.accent.danger }, accentEdge(colors, "danger")]}>
               <View style={styles.goalHeader}>
                 <Text variant="eyebrow" color={colors.accentOn.danger} style={[styles.goalCaption]}>THIS WEEK, TOGETHER</Text>
                 <Text variant="caption" color={colors.accentOn.danger} style={styles.bold}>
@@ -1229,7 +1231,7 @@ const Community = () => {
               style={{ marginBottom: spacing.md }}
             />
             <Text variant="body" color="secondary" style={{ marginBottom: spacing.xl }}>Couldn't load Community.</Text>
-            <PressableScale onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }]}>
+            <PressableScale onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
               <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
             </PressableScale>
           </View>

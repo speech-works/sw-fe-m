@@ -35,6 +35,8 @@ import {
   staggerEntering,
   Text,
   useTheme,
+  accentEdge,
+  primaryEdge,
   withAlpha,
 } from "../../design-system";
 import PriceTag from "../../components/PriceTag";
@@ -415,6 +417,7 @@ const BuyButton: React.FC<BuyButtonProps> = ({
       style={[
         styles.buyCta,
         { backgroundColor: colors.action.primary, shadowColor: colors.action.primary },
+        primaryEdge(colors),
       ]}
     >
       <View
@@ -720,7 +723,7 @@ const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }
                   style={[
                     styles.node,
                     first
-                      ? { backgroundColor: colors.action.primary }
+                      ? { backgroundColor: colors.action.primary, ...primaryEdge(colors) }
                       : {
                           backgroundColor: colors.surface.control,
                           borderWidth: 1,
@@ -882,7 +885,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
               LIFETIME ACCESS
             </Text>
             {discounted && note ? (
-              <View style={[styles.dealBadge, { backgroundColor: colors.accent.success }]}>
+              <View style={[styles.dealBadge, { backgroundColor: colors.accent.success }, accentEdge(colors, "success")]}>
                 <Text variant="caption" color={colors.accentOn.success}>
                   {note}
                 </Text>

@@ -32,6 +32,7 @@ import {
   radius,
   spacing,
   useTheme,
+  accentEdge,
   withAlpha,
 } from "../../../../design-system";
 import type { SemanticColors } from "../../../../design-system";
@@ -321,7 +322,8 @@ const MoodCheck = () => {
               style={[
                 styles.activeIndicator,
                 {
-                  backgroundColor: colors.accent[currentAccentKey],
+                  // A 4pt bar: a thin mark takes the on-surface cut, not the fill.
+                  backgroundColor: colors.accentText[currentAccentKey],
                 },
                 rIndicatorStyle,
               ]}
@@ -356,6 +358,7 @@ const MoodCheck = () => {
                   styles.moodPill,
                   index === currentIndex && {
                     backgroundColor: colors.accent[emo.accentKey],
+                    ...accentEdge(colors, emo.accentKey),
                   },
                 ]}
               >

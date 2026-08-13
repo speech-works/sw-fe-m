@@ -9,6 +9,7 @@ import {
   size,
   radius,
   useTheme,
+  accentEdge,
   spacing,
   space,
   Text,
@@ -150,6 +151,7 @@ const ReportProblem = () => {
                 style={[
                   styles.innerCheckmarkCircle,
                   { backgroundColor: colors.accent.success },
+                  accentEdge(colors, "success"),
                 ]}
               >
                 <Icon name="check" size={size.iconXl} color={colors.accentOn.success} />

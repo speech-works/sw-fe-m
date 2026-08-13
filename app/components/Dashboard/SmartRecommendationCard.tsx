@@ -21,6 +21,8 @@ import {
   Skeleton,
   Spinner,
   useTheme,
+  accentEdge,
+  primaryEdge,
   makeStyles,
   withAlpha,
   spacing,
@@ -241,6 +243,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
               styles.gradient,
               styles.gradientCentered,
               { backgroundColor: colors.accent.success },
+              accentEdge(colors, "success"),
             ]}
           >
             <View style={styles.watermarkMain} pointerEvents="none">
@@ -364,7 +367,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
         onPress={percentComplete >= 1 ? handleFindNext : handlePress}
         disabled={percentComplete >= 1 && isRefreshing}
       >
-        <View style={[styles.gradient, { backgroundColor: colors.action.primary }]}>
+        <View style={[styles.gradient, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
           <View>
             {/* 1. Header Section */}
             <View style={styles.headerText}>

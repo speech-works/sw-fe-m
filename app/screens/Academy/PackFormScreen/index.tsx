@@ -131,7 +131,7 @@ const SliderField: React.FC<FieldProps> = ({
         value={current}
         onValueChange={onChange}
         minimumTrackTintColor={accent}
-        maximumTrackTintColor={colors.surface.row}
+        maximumTrackTintColor={colors.surface.track}
         thumbTintColor={accent}
       />
       <View style={fieldStyles.likertLabels}>

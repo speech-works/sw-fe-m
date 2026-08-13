@@ -21,6 +21,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   spacing,
   radius,
   FlipDigit,
@@ -124,6 +125,7 @@ const Exposure = () => {
                 style={[
                   styles.cardFill,
                   { backgroundColor: colors.accent[item.accent] },
+                  accentEdge(colors, item.accent),
                 ]}
               >
                 <View style={styles.cardContent}>

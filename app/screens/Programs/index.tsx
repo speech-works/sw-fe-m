@@ -15,6 +15,8 @@ import {
   type IconName,
   icons,
   useTheme,
+  accentEdge,
+  primaryEdge,
   spacing,
   radius,
   space,
@@ -268,7 +270,7 @@ const ProgramsScreen = () => {
       >
         {/* FLAT, not a gradient. At this size a ramp just muddies the middle of
             the card; both references commit to one saturated colour. */}
-        <View style={[styles.hero, { backgroundColor: colors.action.primary }]}>
+        <View style={[styles.hero, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
           {/* ── 0. the stub ──────────────────────────────────────────────
               A DARK CHIP, NOT A LIME ONE — and that is the whole repair.
               Lime is a bright hue and this card is a bright ground, so a lime
@@ -454,7 +456,7 @@ const ProgramsScreen = () => {
             its header for why "Deep work" was retired. */}
         {isDeep ? (
           <View
-            style={[styles.tierChip, { backgroundColor: colors.accent.purple }]}
+            style={[styles.tierChip, { backgroundColor: colors.accent.purple }, accentEdge(colors, "purple")]}
           >
             <Icon name={icons.pro} size={size.iconInline} color={colors.accentOn.purple} />
             <Text variant="eyebrow" color={colors.accentOn.purple}>
