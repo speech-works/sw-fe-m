@@ -142,8 +142,19 @@ const DEVICE_MOTION_GATE = 40;            // deg/s
 // snaps get over-suppressed.
 const DEVICE_MOTION_SUBTRACT_GAIN = 1.0;
 
-// Tier labels — emergent from combined w_detection × w_clinical but surfaced for UI.
-// Tier A: combined weight ≥ 0.70; Tier B: 0.40–0.69; Tier C: head-pose derived.
+// Tier labels — surfaced for UI, and load-bearing: `tierABCount` below counts
+// only A and B, so tier decides whether a signal can contribute to a
+// FACIAL_TENSION_COMPOSITE ("multiple cues") moment.
+//
+// ⚠️ TWO RULES ARE IN PLAY HERE AND THEY DISAGREE ON EXACTLY ONE SIGNAL.
+// This comment used to state only the first, which made the table look wrong.
+//   • NUMERIC  — A ≥ 0.70, B 0.40–0.69 (combined w_detection × w_clinical).
+//   • ANATOMICAL — facial signals are A/B, head-pose signals are C.
+// Every signal satisfies both EXCEPT NOSTRIL_FLARE (0.33): below the numeric B
+// floor, but facial, so the anatomical rule puts it in B — which is what the
+// map below implements. Left as-is deliberately; see CLINICAL_REVIEW.md Q3.
+// Do not "correct" it to C without that answer — it changes which sessions
+// record a multiple-cues moment.
 const SIGNAL_TIER: Partial<Record<MirrorBehaviorSignal, 'A' | 'B' | 'C'>> = {
   [MirrorBehaviorSignal.OPEN_MOUTH_HOLD]:        'A',  // 0.95
   [MirrorBehaviorSignal.LIP_PURSING]:            'A',  // 0.85
