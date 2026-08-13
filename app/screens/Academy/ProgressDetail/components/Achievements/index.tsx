@@ -129,7 +129,10 @@ const Achievements = ({ stageData }: AchievementsProps) => {
           <Icon name={icons.win} size={size.icon} color={colors.text.tertiary} />
         </View>
 
-        <View style={[styles.xpBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+        {/* A panel inset into this card — `surface.inset`, the same role the four
+            report cards below use. On ink it is the value it always was; on paper
+            it stops being the card's own colour with a hairline drawn on it. */}
+        <View style={[styles.xpBadge, { backgroundColor: colors.surface.inset, borderColor: colors.border.hairline }]}>
           <Icon name={icons.proud} size={size.iconInline} color={colors.feedback.warningText} />
           <Text variant="bodySm" style={styles.bold}>{isLoading ? "..." : activeTotalXp} XP</Text>
         </View>
@@ -139,7 +142,11 @@ const Achievements = ({ stageData }: AchievementsProps) => {
         ) : activeTotalXp > 0 ? (
           <View style={styles.progress}>
             <View style={[styles.progressBg, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: colors.gamification.gold }]} />
+              {/* The fill of a meter is a thin graphic, not a card fill: the bright
+                  gold measured 1.28:1 against the taupe track on paper, so the
+                  one thing this bar says was the least visible part of it.
+                  `accentText.warning` is the per-scheme on-surface cut. */}
+              <View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: colors.accentText.warning }]} />
             </View>
             <Text variant="caption" color="secondary">
               {xpRemaining < 50 ? "Almost there! " : ""}

@@ -67,7 +67,7 @@ interface Props {
 }
 
 const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
-  const { colors, scheme } = useTheme();
+  const { colors } = useTheme();
   const rows = visibleTotals(totals);
 
   // Nothing loaded yet, or the call failed. Render nothing rather than an
@@ -114,7 +114,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
         <View
           style={[
             styles.invite,
-            insetSurface(colors, scheme),
+            insetSurface(colors),
           ]}
         >
           <Icon name={icons.tip} size={size.iconSm} color={colors.text.secondary} />
@@ -136,7 +136,7 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
                 // One shared rule for every inset on this screen — see
                 // `insetSurface`. Sunken read as a hole punched in the card;
                 // this is the softer panel the weekly card has always used.
-                insetSurface(colors, scheme),
+                insetSurface(colors),
               ]}
             >
               {/* SOLID DISC ONCE EARNED, TINTED WHILE IT IS STILL EMPTY.

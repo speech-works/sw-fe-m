@@ -62,7 +62,7 @@ const MoodSummary = ({
   loading = false,
   hasError = false,
 }: MoodSummaryProps) => {
-  const { colors, scheme } = useTheme();
+  const { colors } = useTheme();
 
   if (loading && !moodStats) {
     return <MoodSummarySkeleton />;
@@ -149,7 +149,7 @@ const MoodSummary = ({
       <View
         style={[
           styles.remark,
-          insetSurface(colors, scheme),
+          insetSurface(colors),
         ]}
       >
         <Text variant="bodySm" color="secondary">

@@ -43,6 +43,10 @@ export {
 } from "./utils/contrast";
 export { withAlpha, mix } from "./utils/color";
 
+// Paper boundaries — a filled object needs an edge on the light scheme, where
+// the hue reads but the shape does not. Every one of these is a no-op on ink.
+export { accentEdge, categoryEdge, primaryEdge, discEdge, computedFillEdge } from "./utils/edge";
+
 // Types + scheme metadata.
 export type { SemanticColors } from "./semantic/roles";
 export type { Scheme, StaticTokens } from "./theme";

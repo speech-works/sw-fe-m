@@ -303,7 +303,12 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                       styles.cell,
                       hasData
                         ? {
-                            backgroundColor: colors.gamification.streak,
+                            // The on-surface orange cut: these cells are drawn at
+                            // a fraction of full opacity, and the bright fill hue
+                            // faded to 40% over a paper card is indistinguishable
+                            // from a rest day. The heat ramp needs a hue with
+                            // somewhere to fade FROM.
+                            backgroundColor: colors.text.accent,
                             // Selecting brightens the day to full so its ring reads crisply.
                             opacity: isSelected ? 1 : intensity,
                           }

@@ -14,6 +14,7 @@ import { usePracticeCategorySummaryStore } from "../../../stores/practiceCategor
 import { useUserStore } from "../../../stores/user";
 import {
   useTheme,
+  accentEdge,
   spacing,
   space,
   radius,
@@ -135,7 +136,10 @@ const PracticeGrid = () => {
               style={styles.cardWrapper}
             >
               {/* Solid vivid accent fill + dark on-text — the Community card pattern. */}
-              <View style={[styles.cardFill, { backgroundColor: colors.accent[p.accent] }]}>
+              {/* The tile is a filled accent object on the neutral ground: no-op on ink,
+                  a boundary on paper, where `fun` sand is 1.42:1 and the tile's
+                  top edge dissolves into the canvas. */}
+              <View style={[styles.cardFill, { backgroundColor: colors.accent[p.accent] }, accentEdge(colors, p.accent)]}>
                 <View style={styles.cardHeader}>
                   <View style={styles.headerRow}>
                     <Text variant="eyebrow" color={on}>
@@ -181,7 +185,7 @@ const PracticeGrid = () => {
               </View>
 
               {p.badge ? (
-                <View style={[styles.cornerBadge, { backgroundColor: colors.accent.success }, elevation.e2]}>
+                <View style={[styles.cornerBadge, { backgroundColor: colors.accent.success }, accentEdge(colors, "success"), elevation.e2]}>
                   <Text variant="eyebrow" color={colors.accentOn.success}>
                     {p.badge}
                   </Text>

@@ -1,4 +1,5 @@
-import { ViewStyle } from "react-native";
+import { Platform, ViewStyle } from "react-native";
+import { palette as p } from "./primitives/palette";
 
 /**
  * Elevation = surface step (applied via surface.* role) + hairline border
@@ -31,9 +32,22 @@ export const elevationDark = {
   } as ViewStyle,
 } as const;
 
-// Light shadows are a warm brown (#2A2018), not cold #000 — a shadow must share
-// the warm paper's temperature, or cards read flat/cheap. Softer opacity than
-// dark so cards don't smudge on the bright canvas.
+/**
+ * Light shadows are a warm brown (`palette.shadowWarm`), not cold #000 — a shadow must share
+ * the warm paper's temperature, or cards read flat/cheap.
+ *
+ * TWO LAYERS, NOT ONE. A real object casts a tight CONTACT shadow ("this is
+ * touching the page") and a broad AMBIENT one ("this is above it"). A single
+ * mid-radius blur has neither shape and reads as a smudge — which mattered here
+ * because on paper the shadow is not a garnish: the fill step is ΔE 4.1 and the
+ * hairline ΔE 9.4, so the shadow is the third of three separators and the only
+ * one that says "above" rather than "next to".
+ *
+ * iOS takes the two layers via `boxShadow` (RN 0.76+, and this app is on the
+ * New Architecture). Android keeps `elevation` + `shadowColor`: it is a single
+ * layer and it is the platform's own shadow, which is the right trade against
+ * betting the whole scheme's depth on boxShadow parity across OEM ROMs.
+ */
 export const elevationLight = {
   e0: {} as ViewStyle,
   /**
@@ -49,27 +63,36 @@ export const elevationLight = {
    * "this floats above the page" — at e2's weight every list row on paper would
    * look like a dialog.
    */
-  e1: {
-    shadowColor: "#2A2018",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 1,
-  } as ViewStyle,
-  e2: {
-    shadowColor: "#2A2018",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  } as ViewStyle,
-  e3: {
-    shadowColor: "#2A2018",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    elevation: 12,
-  } as ViewStyle,
+  e1: Platform.select({
+    ios: { boxShadow: `0px 1px 2px ${p.inkA(0.06)}, 0px 4px 12px ${p.inkA(0.06)}` },
+    default: {
+      shadowColor: p.shadowWarm,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.07,
+      shadowRadius: 6,
+      elevation: 1,
+    },
+  }) as ViewStyle,
+  e2: Platform.select({
+    ios: { boxShadow: `0px 1px 2px ${p.inkA(0.07)}, 0px 8px 20px ${p.inkA(0.09)}` },
+    default: {
+      shadowColor: p.shadowWarm,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+  }) as ViewStyle,
+  e3: Platform.select({
+    ios: { boxShadow: `0px 2px 4px ${p.inkA(0.08)}, 0px 20px 40px ${p.inkA(0.15)}` },
+    default: {
+      shadowColor: p.shadowWarm,
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.16,
+      shadowRadius: 24,
+      elevation: 12,
+    },
+  }) as ViewStyle,
 } as const;
 
 /** @deprecated static alias of the dark set — consume `useTheme().elevation` instead. */

@@ -38,7 +38,11 @@ export const Skeleton: React.FC<SkeletonProps> = ({ width = "100%", height = 16,
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius: radius, backgroundColor: colors.surface.row }, style, pulse]}
+      // `surface.skeleton`, NOT `surface.row`. On ink the two are the same value
+      // and this changes nothing; on paper `row` was #FFFEFB on a #FFFDF8 card —
+      // ΔE 1.1 — so the loading state rendered and showed nothing, and every
+      // first paint in light mode looked like the app had hung.
+      style={[{ width, height, borderRadius: radius, backgroundColor: colors.surface.skeleton }, style, pulse]}
     />
   );
 };

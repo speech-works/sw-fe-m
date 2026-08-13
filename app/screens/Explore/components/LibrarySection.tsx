@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import {
   size,
   useTheme,
+  accentEdge,
   spacing,
   space,
   radius,
@@ -43,7 +44,8 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
           })
         }
       >
-        <View style={[styles.gradient, { backgroundColor: colors.accent.success }]}>
+        {/* No-op on ink; on paper the fill is 1.61:1 and the card has no edge. */}
+        <View style={[styles.gradient, { backgroundColor: colors.accent.success }, accentEdge(colors, "success")]}>
           {/* Decorative ink bubbles (dark-on-bright texture) */}
           <View
             style={[

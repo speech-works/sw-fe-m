@@ -9,6 +9,13 @@ import { SemanticColors } from "./roles";
  * and every "colored text on the ground" variant (feedback.*Text, text.link,
  * input.error → the darker textOnLight cuts; the textOnDark cuts all fail AA
  * on paper). All pairings are verified by utils/schemeAudit in __DEV__.
+ *
+ * THE THING THIS SCHEME KEEPS GETTING WRONG, stated once. Dark encodes hierarchy
+ * in LIGHTNESS, and there is no lightness left here: canvas → pure white is
+ * 1.16:1 in total. Porting the ink ladder one-for-one is what made this scheme
+ * read flat. Paper's three instruments are RECESS (`surface.inset`), EDGE
+ * (`border.*`, `accentEdge`, `action.primaryEdge`, `surface.discEdge`) and
+ * SHADOW (`elevationLight`, two-layer). Reach for those, not for a lighter fill.
  */
 export const lightColors: SemanticColors = {
   background: { canvas: p.paper.canvas, raised: p.paper.panel, sunken: p.paper.sunken },
@@ -17,19 +24,33 @@ export const lightColors: SemanticColors = {
     elevated: p.paper.row,
     row: p.paper.row,
     rowSelected: p.orange[400],
+    // `default` and `elevated` are both near-white here and that is fine —
+    // "raised above the canvas" is expressed by the two-layer shadow, not by a
+    // fill step there is no room for. `inset` is the one that HAD to move.
+    inset: p.paper.inset,
+    skeleton: p.paper.skeleton,
     control: p.paper.control,
     track: p.paper.track,
     inverse: p.white,
     // Dark card on paper — 14.19:1 against the canvas.
     contrast: p.ink.panel,
     material: p.paperA(0.85),
+    // A white disc on cream is 1.11:1. Same warm ink as `border.strong` so the
+    // disc's edge and the app's edges are one material.
+    discEdge: p.inkA(0.16),
   },
   border: {
     // Warm-ink alphas (not neutral black) so hairlines share the paper's
     // temperature; same luminance weight as blackA, so contrast is unchanged.
-    hairline: p.inkA(0.08),
-    default: p.inkA(0.12),
-    strong: p.inkA(0.2),
+    //
+    // DELIBERATELY HEAVIER THAN THE INK SCHEME'S, which is the opposite of the
+    // instinct that matched them. On ink a hairline is the SECOND separator,
+    // behind a ΔE 7.7 fill step. On paper the fill step is 4.1, so the hairline
+    // is most of what draws a card, and matching the two under-draws the one
+    // doing the work. These land at ΔE 9.4 / 12.0 / 18.0 on a card.
+    hairline: p.inkA(0.12),
+    default: p.inkA(0.16),
+    strong: p.inkA(0.26),
     // orange[400/500] miss the 3:1 non-text bar on paper; 600 clears it.
     selected: p.orange[600],
     focus: p.orange[600],
@@ -50,6 +71,7 @@ export const lightColors: SemanticColors = {
     primary: p.orange[400],
     primaryPressed: p.orange[500],
     primaryTint: p.orangeA(0.12),
+    primaryEdge: p.orange.edgeLight, // 3.13:1 on the canvas — the CTA gets a boundary
     onPrimary: p.orange.on,
     secondary: p.paper.control,
     onSecondary: p.paper.textPrimary,
@@ -72,13 +94,16 @@ export const lightColors: SemanticColors = {
     danger: p.danger.on,
     info: p.info.on,
   },
+  // Per-accent alphas, not the shared 12%: on paper a flat wash keeps a
+  // different amount of each hue, so one number splits the family into
+  // "visible" and "barely there". See `tintLight` in palette.ts.
   accentTint: {
-    lime: p.lime.tint,
-    purple: p.purple.tint,
-    success: p.success.tint,
-    warning: p.warning.tint,
-    danger: p.danger.tint,
-    info: p.info.tint,
+    lime: p.lime.tintLight,
+    purple: p.purple.tintLight,
+    success: p.success.tintLight,
+    warning: p.warning.tintLight,
+    danger: p.danger.tintLight,
+    info: p.info.tintLight,
   },
   accentText: {
     lime: p.lime.textOnLight,
@@ -87,6 +112,14 @@ export const lightColors: SemanticColors = {
     warning: p.warning.textOnLight,
     danger: p.danger.textOnLight,
     info: p.info.textOnLight,
+  },
+  accentEdge: {
+    lime: p.lime.edgeLight,
+    purple: p.purple.edgeLight,
+    success: p.success.edgeLight,
+    warning: p.warning.edgeLight,
+    danger: p.danger.edgeLight,
+    info: p.info.edgeLight,
   },
   feedback: {
     success: p.success.base,
@@ -98,7 +131,13 @@ export const lightColors: SemanticColors = {
     dangerText: p.danger.textOnLight,
     infoText: p.info.textOnLight,
   },
-  overlay: { scrim: p.inkA(0.45), pressed: p.orangeA(0.16) }, // warm scrim, not cold black
+  // Warm scrim, not cold black — and LIGHTER than the ink scheme's 0.62. On ink
+  // the scrim disappears into the ground and only the sheet reads; on paper a
+  // 45% warm-black over cream turned the whole page into a bruise, with an
+  // enormous jump to the near-white sheet on top of it. Dimming should read as
+  // the lights going down. `pressed` goes the other way for the same reason: a
+  // 16% orange wash is ΔE 12 on a dark card but only ΔE 8 on a white one.
+  overlay: { scrim: p.inkA(0.32), pressed: p.orangeA(0.2) },
   input: {
     bg: p.inputBgLight,
     border: p.inputBorderLight,
@@ -128,6 +167,14 @@ export const lightColors: SemanticColors = {
     exposure: p.category.exposure.on,
     fun: p.category.fun.on,
     realLife: p.category.realLife.on,
+  },
+  categoryEdge: {
+    reading: p.category.reading.edgeLight,
+    breathing: p.category.breathing.edgeLight,
+    mirror: p.category.mirror.edgeLight,
+    exposure: p.category.exposure.edgeLight,
+    fun: p.category.fun.edgeLight,
+    realLife: p.category.realLife.edgeLight,
   },
   // See the note in dark.ts — `stamina` tracks the hue Energy actually renders
   // (brand orange), not the blue it used to claim. Kept in sync across schemes.

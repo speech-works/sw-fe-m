@@ -19,9 +19,17 @@ export const Badge: React.FC<BadgeProps> = ({ count = 0, dot, tone = "danger" })
   // Dark-on-bright foreground (AA) — never white on these fills.
   const fg =
     tone === "primary" ? colors.action.onPrimary : tone === "success" ? colors.accentOn.success : colors.accentOn.danger;
+  const edge =
+    tone === "primary" ? colors.action.primaryEdge : tone === "success" ? colors.accentEdge.success : colors.accentEdge.danger;
 
   if (dot) {
-    return <View style={{ width: 9, height: 9, borderRadius: 9999, backgroundColor: bg }} />;
+    // A 9px dot is a THIN GRAPHIC, not a fill, so it takes the on-surface cut
+    // rather than the fill hue. An edge is meaningless at this size — there is
+    // no interior left to bound — and the bright fills are 1.6–2.7:1 on paper,
+    // which at 9px is not a dot, it is a smudge.
+    const dotColor =
+      tone === "primary" ? colors.text.accent : tone === "success" ? colors.accentText.success : colors.accentText.danger;
+    return <View style={{ width: 9, height: 9, borderRadius: 9999, backgroundColor: dotColor }} />;
   }
   const label = count > 99 ? "99+" : String(count);
   return (
@@ -32,6 +40,9 @@ export const Badge: React.FC<BadgeProps> = ({ count = 0, dot, tone = "danger" })
         paddingHorizontal: 5,
         borderRadius: 9999,
         backgroundColor: bg,
+        // The count pill keeps its bright fill (it carries dark ink and has to
+        // stay loud) and gets a boundary instead. "transparent" on ink.
+        ...(edge === "transparent" ? null : { borderWidth: 1, borderColor: edge }),
         alignItems: "center",
         justifyContent: "center",
       }}

@@ -14,8 +14,13 @@ export interface ProgressBarProps {
  * A track + fill meter. The track uses `surface.control` (a real tonal step in
  * both schemes) and carries a hairline border so the CONTROL is identifiable on
  * a light canvas — on paper an untinted white track over a white card vanishes
- * (WCAG 1.4.11). Bright pastel fills (XP lime, gold) then read as a distinct hue
- * region against the toned, outlined track.
+ * (WCAG 1.4.11).
+ *
+ * The default fill is `accentText.lime`, not `gamification.xp`. On ink the two
+ * are the same colour; on paper the bright lime measured 1.16:1 against the
+ * taupe track, so the one thing the meter exists to say — how much — was the
+ * least visible part of it. A meter fill is a thin graphic, not a card: it takes
+ * the on-surface cut.
  */
 export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 1, color, height = 10 }) => {
   const { colors } = useTheme();
@@ -36,7 +41,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 1, color,
           height: "100%",
           width: `${pct * 100}%`,
           borderRadius: 9999,
-          backgroundColor: color ?? colors.gamification.xp,
+          backgroundColor: color ?? colors.accentText.lime,
         }}
       />
     </View>

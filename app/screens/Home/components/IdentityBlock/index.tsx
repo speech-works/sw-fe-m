@@ -294,9 +294,13 @@ export const IdentityBlock: React.FC = () => {
 
   const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
   const isLow = staminaPercentage <= LOW_ENERGY;
-  // Named via the gamification token (not action.primary) so Energy's hue is
-  // semantically labelled — one edit moves it everywhere if it ever diverges.
-  const energyHue = isLow ? colors.accent.warning : colors.gamification.stamina;
+  // The per-scheme FOREGROUND cuts, not the fill hues. This value is a ring
+  // stroke AND the `%` label beside it, and both are thin marks on a surface:
+  // the raw `gamification.stamina` (orange #FF9040) measures 2.02:1 on paper, so
+  // the readout failed AA outright and the arc thinned to nothing. `text.accent`
+  // is also what the level ring immediately above already uses, so the two rings
+  // now agree instead of differing by a token nobody could see the reason for.
+  const energyHue = isLow ? colors.accentText.warning : colors.text.accent;
 
   const hasAvatar = !!user?.avatarManifest;
 

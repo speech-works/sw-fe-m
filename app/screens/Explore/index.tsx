@@ -140,7 +140,11 @@ const Explore = () => {
           {/* World Exploration Map */}
           <Animated.View entering={m.stagger(0)} style={[styles.section, styles.firstSection]}>
             {/* A short accent rule marks where the page header ends and content begins. */}
-            <View style={[styles.sectionRule, { backgroundColor: colors.action.primary }]} />
+            {/* A 3px rule is a thin graphic, so it takes the per-scheme orange
+                FOREGROUND cut, not the fill. `action.primary` is 8.24:1 on ink
+                and 2.02:1 on paper — at this width that is not a quiet rule,
+                it is a missing one. */}
+            <View style={[styles.sectionRule, { backgroundColor: colors.text.accent }]} />
             <WorldExplorationGraph deselectSignal={deselectSignal} />
           </Animated.View>
 

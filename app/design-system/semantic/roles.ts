@@ -10,6 +10,26 @@ export type SemanticColors = {
     elevated: string;
     row: string;
     rowSelected: string;
+    /**
+     * A panel nested INSIDE a card (a stat block, a ring well, a quoted remark).
+     *
+     * NOT `elevated`, which is a CARD on the canvas — the audit that produced
+     * this role found ~76 `surface.elevated` call sites and almost all of them
+     * are top-level cards, so repointing it would have been wrong for the
+     * majority. This is the other case, and it is the one that broke: `row`
+     * inside `card` measures 1.01:1 (ΔE 1.1) on paper, so every nested block
+     * merged into one white slab.
+     *
+     * The direction of the step differs by scheme and that is the point. Ink has
+     * headroom above the card, paper has none, so on paper the nested panel is
+     * RECESSED. Both land at 1.13:1 against the card they sit in.
+     */
+    inset: string;
+    /**
+     * Skeleton/shimmer bars. Deeper than `inset` because a loading bar has no
+     * border and no content — the fill is the only thing drawing it.
+     */
+    skeleton: string;
     control: string;
     /**
      * The unfilled remainder of a progress ring or bar.
@@ -38,6 +58,17 @@ export type SemanticColors = {
      */
     contrast: string;
     material: string; // translucent blur tint for floating chrome (toast/banner)
+    /**
+     * The boundary a BRIGHT DISC needs when it sits on the neutral ground — an
+     * icon housing, a glyph avatar, a switch thumb. `"transparent"` on ink.
+     *
+     * `surface.inverse` stays white in both schemes and that is correct where
+     * the disc sits on a COLOURED fill (a white pill on an orange card). On the
+     * paper ground the same white is 1.11:1 and the disc simply has no shape.
+     * An edge fixes the on-ground case without touching the ~23 on-fill call
+     * sites that are already right.
+     */
+    discEdge: string;
   };
   border: { hairline: string; default: string; strong: string; selected: string; focus: string };
   text: {
@@ -63,6 +94,17 @@ export type SemanticColors = {
     primaryPressed: string;
     /** Faint orange wash for soft chips/badges on a dark surface (not a fill). */
     primaryTint: string;
+    /**
+     * The 1px boundary a FILLED primary control needs on paper. `primary` is
+     * 2.02:1 against the light canvas, so the button's edge — the thing WCAG
+     * 1.4.11 asks 3:1 for — is not there. `"transparent"` on ink, where the
+     * fill already sits 8.24:1 above the ground.
+     *
+     * The scheme had already made this exact call once, for `border.selected`
+     * ("orange[400/500] miss the 3:1 non-text bar on paper; 600 clears it").
+     * This generalises it to fills.
+     */
+    primaryEdge: string;
     onPrimary: string;
     secondary: string;
     onSecondary: string;
@@ -81,6 +123,21 @@ export type SemanticColors = {
   // status tones). Use this for decorative accent text/lines/icons; NEVER the
   // bright `accent.*` base (that's a fill, and it collapses on the light canvas).
   accentText: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
+  /**
+   * The 1px boundary a FILLED accent object needs on paper — a hero card, an
+   * accent chip, a category tile. `"transparent"` on ink.
+   *
+   * The fill still reads on paper (a lime card is unmistakably lime, ΔE 77 from
+   * the canvas) — what disappears is the SHAPE, because luminance is what draws
+   * an edge and these hues are 1.1–3.0:1 against the page. Without it the object
+   * bleeds into the canvas and the composition loses its architecture.
+   *
+   * This is a boundary, NOT a second fill and NOT a text colour: it is a mix
+   * toward the accent's own `accentText` cut, so it reads as the same colour
+   * with an edge on it. For colored TEXT use `accentText`; for a thin LINE or
+   * dot use `accentText` as well (an edge role is meaningless at 2px).
+   */
+  accentEdge: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
   // feedback fills (= accent base) + text variants (lighter, for messages on dark)
   feedback: {
     success: string;
@@ -97,6 +154,8 @@ export type SemanticColors = {
   nav: { capsule: string; activePill: string; onActive: string; inactive: string; badge: string };
   category: { reading: string; breathing: string; mirror: string; exposure: string; fun: string; realLife: string };
   categoryOn: { reading: string; breathing: string; mirror: string; exposure: string; fun: string; realLife: string };
+  /** The paper boundary for a filled category tile — see `accentEdge`. */
+  categoryEdge: { reading: string; breathing: string; mirror: string; exposure: string; fun: string; realLife: string };
   gamification: { xp: string; streak: string; stamina: string; gold: string };
   // Premium tier (gold-on-slate) accents — scoped to the BuyPro upsell card.
   premium: {

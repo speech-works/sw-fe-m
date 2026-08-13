@@ -9,6 +9,7 @@ import {
   withAlpha,
   bestForeground,
   onColor,
+  accentEdge,
   spacing,
   space,
   radius,
@@ -101,7 +102,11 @@ const RecHeroCard: React.FC<RecHeroCardProps> = ({
 
   return (
     <PressableScale scaleTo={0.98} onPress={onPress} style={[styles.card, style]}>
-      <View style={[styles.fill, { backgroundColor: fill }]}>
+      {/* `accentEdge` is "transparent" on ink, where the fill already sits
+          5–15:1 above the canvas and draws its own shape. On paper the same
+          fill is 1.1–3.0:1: the HUE reads perfectly, but the card's edge does
+          not, so a full-bleed accent card bleeds into the page. */}
+      <View style={[styles.fill, { backgroundColor: fill }, accentEdge(colors, accentKey)]}>
         {/* Subtle ink-circle texture (the Explore/PromoCard pattern) — depth without art. */}
         <View
           style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}

@@ -24,6 +24,11 @@ const SURFACES = [
   ["canvas", (c: SemanticColors) => c.background.canvas],
   ["card", (c: SemanticColors) => c.surface.default],
   ["elevated", (c: SemanticColors) => c.surface.elevated],
+  // A nested panel is a surface text sits on like any other, and on paper it is
+  // the DARKEST of the four — so it, not the canvas, is the binding constraint
+  // for the text ramp. Registered the day it was added, rather than after the
+  // first "why is this caption grey on grey" bug.
+  ["inset", (c: SemanticColors) => c.surface.inset],
 ] as const;
 
 const TEXT_ROLES = [
@@ -99,6 +104,31 @@ const buildPairings = (): Pairing[] => {
   pairings.push({ label: "border.focus vs input.bg (UI 3:1)", fg: (c) => c.input.borderFocus, bg: (c) => c.input.bg, large: true });
   pairings.push({ label: "border.selected vs card (UI 3:1)", fg: (c) => c.border.selected, bg: (c) => c.surface.default, large: true });
 
+  // EDGES (UI 3:1). Every `*Edge` role is "transparent" on ink and is skipped
+  // there by the alpha/keyword guard in `auditSchemes`; on paper each one is the
+  // only thing giving a filled object a shape, so it is measured against the
+  // ground it has to be a boundary ON.
+  //
+  // The category edges are the interesting ones: `fun` sand lands at 2.84:1, a
+  // deliberate near-miss. Pushing it to 3.0 costs enough of the hue that the
+  // tile stops reading as sand, and a decorative tile is not a control — 1.4.11
+  // does not bind here. It is registered anyway so the number stays visible and
+  // nobody "fixes" it by accident.
+  pairings.push({
+    label: "action.primaryEdge vs canvas (UI 3:1)",
+    fg: (c) => c.action.primaryEdge,
+    bg: (c) => c.background.canvas,
+    large: true,
+  });
+  for (const a of ACCENTS) {
+    pairings.push({
+      label: `accentEdge.${a} vs canvas (UI 3:1)`,
+      fg: (c) => c.accentEdge[a],
+      bg: (c) => c.background.canvas,
+      large: true,
+    });
+  }
+
   // The unfilled remainder of a ring or bar, on every fill one is drawn on.
   //
   // REGISTERED BECAUSE THE ABSENCE OF IT COST US A DEFECT. `surface.control` was
@@ -142,7 +172,10 @@ export const auditSchemes = (): {
     for (const p of pairings) {
       const fg = p.fg(c);
       const bg = p.bg(c);
-      if (fg.includes("rgba") || bg.includes("rgba")) continue; // alpha → visual QA
+      // alpha → visual QA; "transparent" → the role is deliberately absent on
+      // this scheme (every `*Edge` role on ink), which is not a failure.
+      if (fg.includes("rgba") || bg.includes("rgba")) continue;
+      if (fg === "transparent" || bg === "transparent") continue;
       const need = p.large ? AA_LARGE : AA_NORMAL;
       const ratio = contrastRatio(fg, bg);
       if (ratio < need) {

@@ -72,17 +72,42 @@ module.exports = {
     scheme: "speechworks",
     deeplinks: ["auth/callback"],
     platforms: ["ios", "android", "web"],
-    // Splash = the flash the OS shows before any of our JS runs. The background
-    // is the app's own dark canvas (palette ink.canvas), NOT white: a white
-    // splash handing off to a dark first screen is a visible flash of the wrong
-    // app. The mark is white for the same reason the background is dark, while
-    // the negative space in the logo remains transparent.
+    // Splash = the flash the OS shows before any of our JS runs, so it cannot
+    // read the in-app appearance preference — the OS picks it from the DEVICE
+    // appearance. It therefore ships as a PAIR.
+    //
+    // The rule has always been "the splash must match the first screen, or the
+    // handoff is a visible flash of the wrong app". That was satisfied while
+    // dark was the only scheme. Once Appearance became a user preference, the
+    // single near-black splash started producing exactly the flash it exists to
+    // prevent, inverted: ink, then cream. The pair below is the same mark in
+    // each scheme's own ground — white on `ink.canvas`, ink on `paper.canvas`.
+    //
+    // Top level = the LIGHT default; `ios/android.splash.dark` overrides it on a
+    // dark device. The top-level key is kept in sync with both so no platform
+    // can silently fall back to a splash the other two do not use.
+    //
+    // Not covered, deliberately: a user whose in-app preference DISAGREES with
+    // their device (app set to Light on a dark phone). Fixing that means writing
+    // the preference into native prefs at boot and reading it before the JS
+    // bundle loads. It is a real follow-up, not something this pair can do.
     splash: {
-      image: "./app/assets/splash-icon.png",
+      image: "./app/assets/splash-icon-light.png",
       resizeMode: "contain",
-      backgroundColor: "#141311",
+      backgroundColor: "#F7F2EA",
     },
     ios: {
+      // See the top-level `splash` note: light default, dark override.
+      splash: {
+        image: "./app/assets/splash-icon-light.png",
+        resizeMode: "contain",
+        backgroundColor: "#F7F2EA",
+        dark: {
+          image: "./app/assets/splash-icon.png",
+          resizeMode: "contain",
+          backgroundColor: "#141311",
+        },
+      },
       bundleIdentifier: "com.speechworks.app",
       // Explicit even though the top-level icon already applies to iOS, so the
       // App Store source cannot silently diverge if another platform changes.
@@ -229,6 +254,17 @@ module.exports = {
       },
     },
     android: {
+      // See the top-level `splash` note: light default, dark override.
+      splash: {
+        image: "./app/assets/splash-icon-light.png",
+        resizeMode: "contain",
+        backgroundColor: "#F7F2EA",
+        dark: {
+          image: "./app/assets/splash-icon.png",
+          resizeMode: "contain",
+          backgroundColor: "#141311",
+        },
+      },
       // Android 16 IGNORES `windowOptOutEdgeToEdgeEnforcement` at target 36, so
       // bumping targetSdk would otherwise flip the app's entire layout model in
       // the same action. Enabling it here, deliberately, at target 35 decouples
