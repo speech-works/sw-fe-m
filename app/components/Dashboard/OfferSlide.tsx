@@ -17,7 +17,6 @@ import {
   borderWidth,
 } from "../../design-system";
 import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
-import { TopMatchStamp, STAMP_HEIGHT, STAMP_WIDTH } from "./TopMatchBadge";
 import { programEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
 import type { StorePrice } from "../../services/priceDisplay";
@@ -50,13 +49,11 @@ import type { StorePrice } from "../../services/priceDisplay";
  */
 
 /**
- * The visible card keeps Home's 260pt card rhythm. The slot buys a little room
- * below it for the stamp impression to continue past the paper edge instead of
- * being cropped by the carousel's vertical viewport.
+ * The visible card keeps Home's 260pt card rhythm. There is nothing to bleed
+ * past the paper edge any more, so the slide is exactly the card.
  */
 export const SLIDE_CARD_HEIGHT = 260;
-export const STAMP_BLEED_BOTTOM = spacing["2xl"];
-export const SLIDE_MIN_HEIGHT = SLIDE_CARD_HEIGHT + STAMP_BLEED_BOTTOM;
+export const SLIDE_MIN_HEIGHT = SLIDE_CARD_HEIGHT;
 
 /**
  * Distance from the card's top edge down to the BOTTOM of the CTA island — the
@@ -81,7 +78,6 @@ export interface OfferSlideProps {
   /** The vivid treatment, reserved for a top match that earned a reason. */
   highlight?: boolean;
   /** Revealed at the exact contact frame of the full-screen rubber die. */
-  stampRevealed?: boolean;
   onPress: (item: OfferItem) => void;
 }
 
@@ -89,7 +85,6 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
   item,
   store,
   highlight,
-  stampRevealed = true,
   onPress,
 }) => {
   const { colors, elevation } = useTheme();
@@ -140,14 +135,6 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
   // Reserved for the card's own ink, so nothing here can be mistaken for a
   // `text.*` role that would flip with the scheme — this fill is dark in both.
   const heroInk = "#FFFFFF";
-  // The stamp component applies its own watermark opacity, and picks it per
-  // scheme — see STAMP_OPACITY_PAPER. Contrast is asserted for functional copy
-  // only; decorative ink behind that copy is not content.
-  const stampInk = colors.accent.lime;
-  // The far end of the stroke, for the tail that overhangs onto the page —
-  // `accentText.lime` is the same lime on ink (so dark is unchanged) and a deep
-  // olive on paper, where plain lime measures 1.11:1 against the cream canvas.
-  const stampInkEnd = colors.accentText.lime;
   if (__DEV__ && highlight) {
     // Copy spans the whole card, so its worst ground is the lightest stop.
     assertContrast(heroInk, liftStop, "OfferSlide top-match ramp (light stop)");
@@ -290,11 +277,7 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
     // The badge is a SIBLING of the card, not a child: the card clips to its own
     // radius. It stays inside the Pressable so the corner is still part of the
     // tap target and it scales with the card on press — one object, one motion.
-    <PressableScale
-      scaleTo={0.98}
-      onPress={() => onPress(item)}
-      style={styles.wrap}
-    >
+    <PressableScale scaleTo={0.98} onPress={() => onPress(item)}>
       <View
         style={[
           styles.slide,
@@ -307,9 +290,6 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
           skin.elevate,
         ]}
       >
-        {/* Only the card artwork is clipped to the rounded paper. The stamp is
-            deliberately a sibling of this canvas so its impression can carry
-            through the lower-right edge. */}
         <View
           style={[styles.cardCanvas, { borderRadius: skin.radius }]}
           pointerEvents="none"
@@ -328,19 +308,6 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
           ) : null}
         </View>
 
-        {/* IN THE TEXTURE LAYER, not over the content. A long reason line can
-            reach into this corner, and when it does the words have to win —
-            drawn here, the copy always paints on top of the stamp, which is what
-            a mark on paper does anyway. */}
-        {highlight ? (
-          <View style={styles.stampSlot} pointerEvents="none">
-            <TopMatchStamp
-              ink={stampInk}
-              inkEnd={stampInkEnd}
-              revealed={stampRevealed}
-            />
-          </View>
-        ) : null}
 
         <View style={styles.body}>
           {/* ONE META ROW, TWO ENDS — what it is on the left, what it costs on
@@ -417,12 +384,6 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
 export default OfferSlide;
 
 const styles = StyleSheet.create({
-  // The ScrollView measures layout boxes, not transformed overflow. Reserving
-  // this narrow band keeps the off-card part of the stamp visible above the
-  // paging dots.
-  wrap: {
-    paddingBottom: STAMP_BLEED_BOTTOM,
-  },
   // `borderRadius` is set per tier from `skin`; the value here is the fallback.
   //
   // `paddingTop` is deliberately NOT per-tier. The top match briefly took 20 so
@@ -452,16 +413,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: radius.full,
-  },
-  // Oversized and deliberately misregistered past two edges, like a rubber
-  // stamp pressed partly off the paper. It is still drawn before body/footer,
-  // so the content remains completely dominant.
-  stampSlot: {
-    position: "absolute",
-    right: -spacing.md,
-    bottom: -spacing.sm,
-    width: STAMP_WIDTH,
-    height: STAMP_HEIGHT,
   },
   // 3 → 10. `space.titleSub` is the gap for a title and its own subtitle — two
   // parts of one thing. These are three separate things (what it is and costs,

@@ -26,8 +26,6 @@ import { join } from "path";
 /** Sites that are deliberately NOT edged. Every entry needs a reason. */
 const ALLOWED: Record<string, string> = {
   // On a coloured ground, where the fill already has a boundary.
-  "app/components/Dashboard/TopMatchBadge.tsx":
-    "the stamp sits on the blue card; the overhang onto the canvas already uses accentText.lime (see the file's own note)",
   "app/screens/Academy/DailyPractice/components/DonePractice/LevelUpTakeover.tsx":
     "full-screen celebration takeover paints its own dark ground under the disc",
   "app/components/stage/CallerStage.tsx": "call stage is dark by design (ForceDark)",
