@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Image, Text as RNText, TextStyle } from "react-native";
+import { View, Image, StyleSheet, Text as RNText, TextStyle } from "react-native";
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
 import { borderWidth } from "../primitives/scale";
@@ -64,6 +64,12 @@ export const Avatar: React.FC<AvatarProps> = ({
           height: size,
           borderRadius,
           backgroundColor: bg ?? colors.surface.inverse,
+          // Only the DEFAULT white disc needs the edge. A caller-supplied `bg` is
+          // usually an accent fill, where white-on-colour already has a boundary
+          // and an extra outline would be chrome. "transparent" on ink either way.
+          ...(bg || colors.surface.discEdge === "transparent"
+            ? null
+            : { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.surface.discEdge }),
           alignItems: "center",
           justifyContent: "center",
         }}

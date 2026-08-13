@@ -7,6 +7,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   spacing,
   radius,
   SegmentRing,
@@ -306,7 +307,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
                     would match the mockup and measures 1.79:1, which is not a
                     tick anybody with low vision can see. */}
                 {isDone ? (
-                  <View style={[styles.mark, { backgroundColor: colors.accent.success }]}>
+                  <View style={[styles.mark, { backgroundColor: colors.accent.success }, accentEdge(colors, "success")]}>
                     <Icon name="check" size={size.iconInline} color={colors.accentOn.success} />
                   </View>
                 ) : (

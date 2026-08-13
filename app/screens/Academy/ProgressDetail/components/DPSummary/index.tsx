@@ -4,6 +4,7 @@ import { PieChart } from "react-native-chart-kit";
 import { WeeklyDistribution } from "../../../../../api/progressReport/types";
 import {
   useTheme,
+  categoryEdge,
   spacing,
   radius,
   size,
@@ -102,6 +103,11 @@ const DPSummary = ({
           name: LABELS[contentType] || key,
           totalTime,
           color: catKey ? colors.category[catKey] : colors.text.tertiary,
+          // The legend swatch has to be the SAME hue as its slice, so it cannot
+          // be swapped for an on-surface cut the way a free-standing dot can.
+          // An edge is the only tool left, and it is needed: `fun` sand is
+          // 1.72:1 on paper, so the swatch was a hue with no shape.
+          edge: catKey ? categoryEdge(colors, catKey) : null,
         };
       });
 
@@ -176,7 +182,7 @@ const DPSummary = ({
               const pct = Math.round((item.totalTime / totalPracticeTime) * 100);
               return (
                 <View key={item.name} style={styles.legendRow}>
-                  <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                  <View style={[styles.legendDot, { backgroundColor: item.color }, item.edge]} />
                   <Text variant="body" style={styles.legendName}>{item.name}</Text>
                   <Text variant="bodySm" color="secondary">{formatTime(item.totalTime)}</Text>
                   <Text variant="body" style={styles.legendPct}>{pct}%</Text>

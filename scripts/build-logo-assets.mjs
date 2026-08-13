@@ -100,6 +100,13 @@ write("sw-icon-rounded-white.svg", tile(160, "#FFFFFF"));
 // Splash and the monochrome adaptive layer both sit on a colour the OS paints,
 // so the negative space inside the mark has to stay transparent.
 write("sw-splash.svg", svg(place(SPLASH_SCALE, "#FFFFFF")));
+// The paper mirror. The splash is the flash before any JS runs, so the OS picks
+// it from the DEVICE appearance — which means a light-mode user was getting the
+// near-black splash and then a cream first screen: exactly the flash of the
+// wrong app that the dark splash exists to prevent, inverted. Same mark, same
+// scale, ink instead of white, handed to `ios/android.splash.dark`'s light
+// counterpart in app.config.js.
+write("sw-splash-light.svg", svg(place(SPLASH_SCALE, INK)));
 write("sw-adaptive-foreground.svg", svg(place(ADAPTIVE_SCALE, "#FFFFFF")));
 // The colour adaptive foreground is full-bleed rather than inset: the ink runs
 // to the edge so a circular mask antialiases against the tile, not against
@@ -139,6 +146,7 @@ render("sw-icon.svg", join(assetRoot, "play-store-icon.png"), 512, INK);
 render("sw-adaptive-icon.svg", join(assetRoot, "adaptive-icon.png"), 1024);
 render("sw-adaptive-foreground.svg", join(assetRoot, "adaptive-icon-mono.png"), 1024);
 render("sw-splash.svg", join(assetRoot, "splash-icon.png"), 1024);
+render("sw-splash-light.svg", join(assetRoot, "splash-icon-light.png"), 1024);
 render("sw-icon-rounded.svg", join(assetRoot, "favicon.png"), 96);
 
 // --- retired with the previous mark ----------------------------------------

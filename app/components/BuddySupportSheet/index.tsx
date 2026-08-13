@@ -6,7 +6,7 @@ import {
   View,
 } from "react-native";
 import PressableScale from "../PressableScale";
-import { size, useTheme, spacing, radius, borderWidth, fonts, Sheet, Text, Icon, icons, type IconName } from "../../design-system";
+import { size, useTheme, primaryEdge, spacing, radius, borderWidth, fonts, Sheet, Text, Icon, icons, type IconName } from "../../design-system";
 import { Signal, SupportNoteId, sendSupport } from "../../api/threads";
 import { SUPPORT_NOTES } from "../../constants/supportNotes";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -218,7 +218,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
           <PressableScale haptic={false} scaleTo={0.98} onPress={openResources}>
             <Text variant="caption" color="tertiary" style={styles.bold}>More resources</Text>
           </PressableScale>
-          <PressableScale style={[styles.doneBtn, { backgroundColor: colors.action.primary }]} scaleTo={0.97} onPress={handleClose}>
+          <PressableScale style={[styles.doneBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]} scaleTo={0.97} onPress={handleClose}>
             <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>Done</Text>
           </PressableScale>
         </View>

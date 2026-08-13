@@ -32,10 +32,16 @@ export const Chip: React.FC<ChipProps> = ({ label, selected, onPress, category, 
     paddingHorizontal: 14,
     borderRadius: radius.chip,
     backgroundColor: bg,
-    // Unselected chip = a subtle control fill; give it a defined edge so it
-    // reads as a tappable pill on the light canvas. Selected = solid orange,
-    // needs no edge.
-    ...(selected ? null : { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.strong }),
+    // BOTH states carry an edge on paper, for the same reason and from opposite
+    // directions: the unselected control fill is ~1.27:1 against the canvas, and
+    // the selected orange fill is 2.02:1. Neither shape draws itself there. On
+    // ink `primaryEdge` is "transparent", so the selected chip stays a clean
+    // solid pill exactly as it is today.
+    ...(selected
+      ? colors.action.primaryEdge === "transparent"
+        ? null
+        : { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.action.primaryEdge }
+      : { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.strong }),
   };
 
   const content = (

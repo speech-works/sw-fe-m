@@ -9,6 +9,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   useMotion,
   withAlpha,
   spacing,
@@ -72,7 +73,8 @@ const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
         accessibilityLabel={`${title} ${message} Try again.`}
         style={styles.card}
       >
-        <View style={[styles.fill, { backgroundColor: fill }]}>
+        {/* No-op on ink; on paper the fill is 2.74:1 and the card has no edge. */}
+        <View style={[styles.fill, { backgroundColor: fill }, accentEdge(colors, "danger")]}>
           {/* Subtle ink-circle texture (the Explore/PromoCard pattern) — depth without art. */}
           <View
             style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}

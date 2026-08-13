@@ -13,6 +13,8 @@ import {
   spacing,
   Text,
   useTheme,
+  accentEdge,
+  primaryEdge,
   withAlpha,
 } from "../../../../design-system";
 
@@ -402,9 +404,11 @@ const useStyles = makeStyles((colors) => ({
   },
   buttonStart: {
     backgroundColor: colors.action.primary,
+    ...primaryEdge(colors),
   },
   buttonStop: {
     backgroundColor: colors.accent.danger,
+    ...accentEdge(colors, "danger"),
   },
   buttonContent: {
     flexDirection: "row",

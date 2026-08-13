@@ -132,7 +132,7 @@ const DetailedWeeklySummary = ({
   loading = false,
   hasError = false,
 }: DetailedWeeklySummaryProps) => {
-  const { colors, scheme } = useTheme();
+  const { colors } = useTheme();
   // Orange has no feedback tone; text.link is the per-scheme legible orange cut
   // for the on-surface stroke/dot/"Now" text (bright streak hue fails AA on light).
   const accent = colors.text.link; // brand orange = activity/streak
@@ -211,7 +211,7 @@ const DetailedWeeklySummary = ({
         <>
           {/* Stats */}
           <View style={styles.statsRow}>
-            <View style={[styles.statBadge, insetSurface(colors, scheme)]}>
+            <View style={[styles.statBadge, insetSurface(colors)]}>
               <Text variant="h1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                 {weeklyData.totalPracticeMinutes < 60
                   ? `${weeklyData.totalPracticeMinutes}m`
@@ -229,7 +229,7 @@ const DetailedWeeklySummary = ({
               ) : null}
             </View>
 
-            <View style={[styles.statBadge, insetSurface(colors, scheme)]}>
+            <View style={[styles.statBadge, insetSurface(colors)]}>
               <Text variant="h1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                 {weeklyData.totalDaysActive}
               </Text>
@@ -262,7 +262,7 @@ const DetailedWeeklySummary = ({
               <RhythmLine days={historicalActiveDays} accent={accent} />
             </View>
           ) : (
-            <View style={[styles.welcomeRow, insetSurface(colors, scheme)]}>
+            <View style={[styles.welcomeRow, insetSurface(colors)]}>
               <Icon name={icons.celebrate} size={size.tabIcon} color={colors.text.primary} />
               <View style={styles.flex1}>
                 <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
@@ -303,7 +303,7 @@ const DetailedWeeklySummary = ({
               </Text>
             </>
           )}
-          <View style={[styles.tipPill, insetSurface(colors, scheme)]}>
+          <View style={[styles.tipPill, insetSurface(colors)]}>
             <Icon name={icons.tip} size={size.iconXs} color={colors.feedback.warningText} />
             <Text variant="caption" color="secondary">Tip: Little and often beats all-at-once.</Text>
           </View>

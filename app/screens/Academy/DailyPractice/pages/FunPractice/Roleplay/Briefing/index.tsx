@@ -16,6 +16,7 @@ import {
   icons,
   Surface,
   useTheme,
+  accentEdge,
   spacing,
   radius,
 } from "../../../../../../../design-system";
@@ -182,6 +183,7 @@ const Briefing = () => {
                 style={[
                   styles.tipDot,
                   { backgroundColor: colors.accent.info },
+                  accentEdge(colors, "info"),
                 ]}
               />
               {index !== arr.length - 1 && (
@@ -228,7 +230,7 @@ const Briefing = () => {
                   <FAIcon
                     size={20}
                     name={role.fontAwesomeIcon}
-                    color={colors.accent.info}
+                    color={colors.accentText.info}
                   />
                 </View>
                 <View style={styles.roleInfo}>

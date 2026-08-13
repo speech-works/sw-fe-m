@@ -9,12 +9,17 @@ export const darkColors: SemanticColors = {
     elevated: p.ink.row,
     row: p.ink.row,
     rowSelected: p.orange[400],
+    inset: p.ink.inset,
+    skeleton: p.ink.skeleton,
     control: p.ink.control,
     track: p.ink.track,
     inverse: p.white,
     // Light card on ink — the same idea, flipped.
     contrast: p.paper.panel,
     material: "rgba(42,38,31,0.82)",
+    // The white disc is already 18.57:1 on the ink canvas; an edge would just be
+    // chrome. This role only earns its keep on paper.
+    discEdge: "transparent",
   },
   border: {
     hairline: p.whiteA(0.06),
@@ -39,6 +44,7 @@ export const darkColors: SemanticColors = {
     primary: p.orange[400],
     primaryPressed: p.orange[500],
     primaryTint: p.orangeA(0.12),
+    primaryEdge: "transparent", // the fill is 8.24:1 on the ink canvas already
     onPrimary: p.orange.on,
     secondary: p.ink.row,
     onSecondary: p.white,
@@ -76,6 +82,16 @@ export const darkColors: SemanticColors = {
     warning: p.warning.textOnDark,
     danger: p.danger.textOnDark,
     info: p.info.textOnDark,
+  },
+  // Bright fills separate from the ink canvas at 5–15:1; an outline would only
+  // add noise. The role exists for paper.
+  accentEdge: {
+    lime: "transparent",
+    purple: "transparent",
+    success: "transparent",
+    warning: "transparent",
+    danger: "transparent",
+    info: "transparent",
   },
   feedback: {
     success: p.success.base,
@@ -117,6 +133,14 @@ export const darkColors: SemanticColors = {
     exposure: p.category.exposure.on,
     fun: p.category.fun.on,
     realLife: p.category.realLife.on,
+  },
+  categoryEdge: {
+    reading: "transparent",
+    breathing: "transparent",
+    mirror: "transparent",
+    exposure: "transparent",
+    fun: "transparent",
+    realLife: "transparent",
   },
   // `streak` and `stamina` share the brand orange with `action.primary` on
   // purpose — distinct concepts, same hue today, free to diverge later. Keep

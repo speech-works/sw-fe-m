@@ -9,8 +9,8 @@ import type { SemanticColors } from "../../../design-system/semantic/roles";
  * rows — and each one had picked its own fill. They should be one thing, so
  * they are defined once here.
  *
- * WHY THE FILL DEPENDS ON THE SCHEME, when almost nothing else in this codebase
- * does. The two ramps do not behave alike, and the numbers are not close:
+ * WHAT USED TO LIVE HERE was a `scheme === "dark"` conditional, because the two
+ * ramps do not behave alike and no single token expressed both halves:
  *
  *                     inside surface.elevated
  *                     LIGHT     DARK
@@ -18,26 +18,20 @@ import type { SemanticColors } from "../../../design-system/semantic/roles";
  *   background.canvas 1.105     1.302
  *   background.sunken 1.207     1.362
  *
- * In DARK, `surface.default` is right: 1.126 is a soft, well-judged inset and
- * it is what the weekly card has always used. Anything deeper reads as a hole
- * punched in the card rather than a panel resting in it.
+ * That conditional was right about the problem and wrong about the scope: this
+ * is not a ProgressDetail concern, it is what "a panel inset into a card" MEANS
+ * on a scheme with no headroom, and the same collapse was happening on every
+ * other nested block in the app. It is now the `surface.inset` role — dark
+ * unchanged at 1.126, light deepened from 1.105 to 1.13:1 (ΔE 5.8) so it
+ * matches the dark scheme's own nested step rather than merely clearing it.
  *
- * In LIGHT, that same pair is 1.008 — the same colour twice, with an 8%-alpha
- * hairline as the only thing drawing the shape. `background.canvas` restores
- * the separation at 1.105 while staying softer than a true sunken well.
- *
- * So: the same intent — "a panel inset into this card" — needs a different
- * token per ramp. That is what a scheme conditional is FOR, and hiding it
- * behind a single token would just mean one of the two schemes is wrong.
+ * Kept as a helper because these four cards should stay one thing, and because
+ * the hairline travels with the fill.
  * ============================================================================
  */
-export function insetSurface(
-  colors: SemanticColors,
-  scheme: string,
-): { backgroundColor: string; borderColor: string } {
+export function insetSurface(colors: SemanticColors): { backgroundColor: string; borderColor: string } {
   return {
-    backgroundColor:
-      scheme === "dark" ? colors.surface.default : colors.background.canvas,
+    backgroundColor: colors.surface.inset,
     // Kept in both schemes. In dark it is a soft edge on a shape the fill has
     // already drawn; in light it is doing more of the work.
     borderColor: colors.border.hairline,

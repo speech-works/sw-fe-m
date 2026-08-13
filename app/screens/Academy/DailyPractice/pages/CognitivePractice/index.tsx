@@ -28,6 +28,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   useMotion,
   easing,
   spacing,
@@ -170,6 +171,7 @@ const CognitivePractice = () => {
                 style={[
                   styles.cardFill,
                   { backgroundColor: colors.accent[item.accent] },
+                  accentEdge(colors, item.accent),
                 ]}
               >
                 <View style={styles.cardContent}>

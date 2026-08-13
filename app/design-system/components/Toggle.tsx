@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import Animated, {
   interpolate,
   interpolateColor,
@@ -43,7 +43,23 @@ export const Toggle: React.FC<ToggleProps> = ({ value, onChange, disabled, activ
     <Animated.View
       style={[{ width: 50, height: 30, borderRadius: 15, justifyContent: "center", opacity: disabled ? opacity.disabled : 1 }, trackStyle]}
     >
-      <Animated.View style={[{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.surface.inverse }, thumbStyle]} />
+      <Animated.View
+        style={[
+          {
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: colors.surface.inverse,
+            // The thumb is a white disc, and on paper white has nothing to be
+            // white AGAINST: 1.46:1 on the off-track, 2.10:1 on the orange
+            // on-track. `discEdge` is "transparent" on ink, so the switch is
+            // unchanged there.
+            borderWidth: colors.surface.discEdge === "transparent" ? 0 : StyleSheet.hairlineWidth,
+            borderColor: colors.surface.discEdge,
+          },
+          thumbStyle,
+        ]}
+      />
     </Animated.View>
   );
 

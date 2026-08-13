@@ -7,6 +7,7 @@ import {
   Icon,
   icons,
   useTheme,
+  accentEdge,
   withAlpha,
   spacing,
   space,
@@ -91,7 +92,8 @@ export const PromoCard: React.FC<PromoCardProps> = ({
       onPress={onPress}
       style={[styles.shadow, style]}
     >
-      <View style={[styles.fill, { backgroundColor: fill }]}>
+      {/* No-op on ink; on paper the fill is 1.1–3.0:1 and the card has no edge. */}
+      <View style={[styles.fill, { backgroundColor: fill }, accentEdge(colors, v.accentKey)]}>
         {/* Subtle ink-circle texture (the Explore banner pattern) — depth without art. */}
         <View
           style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}

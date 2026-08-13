@@ -147,7 +147,7 @@ const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: Qu
               {Math.round(progress * 100)}%
             </Text>
           </View>
-          <ProgressBar value={progress} color={colors.action.primary} height={8} />
+          <ProgressBar value={progress} color={colors.text.accent} height={8} />
         </View>
 
         {/* Quiz Card */}

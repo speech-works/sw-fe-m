@@ -28,6 +28,8 @@ import {
     icons,
     Spinner,
     useTheme,
+  accentEdge,
+  primaryEdge,
     makeStyles,
     withAlpha,
     spacing,
@@ -265,7 +267,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           disabled={loading}
           activeOpacity={0.9}
         >
-          <View style={[styles.cardFill, { backgroundColor: colors.action.primary }]}>
+          <View style={[styles.cardFill, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
             {/* Decorative bubbles — subtle ink wash on the bright fill. */}
             <View
               style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
@@ -353,7 +355,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           onPress={handleStartForm}
           activeOpacity={0.9}
         >
-          <View style={[styles.cardFill, { backgroundColor: colors.accent.purple }]}>
+          <View style={[styles.cardFill, { backgroundColor: colors.accent.purple }, accentEdge(colors, "purple")]}>
             <View
               style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
               pointerEvents="none"

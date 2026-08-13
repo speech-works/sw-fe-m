@@ -60,7 +60,16 @@ export const Button: React.FC<ButtonProps> = ({
   let fg = onAccentColor ?? colors.action.onPrimary;
   let borderColor: string | undefined;
 
-  if (variant === "secondary") {
+  if (variant === "primary") {
+    // A filled button needs an identifiable boundary (WCAG 1.4.11, 3:1). The
+    // orange fill is 8.24:1 on the ink canvas and 2.02:1 on paper, so this
+    // resolves to "transparent" on dark and a real edge on light. Only the
+    // DEFAULT fill gets it — a threaded `accentColor` is an arbitrary hue with
+    // no matching edge cut, and guessing one is worse than leaving it alone.
+    if (!accentColor && colors.action.primaryEdge !== "transparent") {
+      borderColor = colors.action.primaryEdge;
+    }
+  } else if (variant === "secondary") {
     bg = colors.action.secondary;
     fg = colors.action.onSecondary;
   } else if (variant === "ghost") {

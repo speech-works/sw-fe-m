@@ -18,6 +18,7 @@ import {
   Page,
   Text,
   useTheme,
+  accentEdge,
   spacing,
   radius,
 } from "../../../../../../design-system";
@@ -80,6 +81,7 @@ const CharacterVoice = () => {
           style={[
             styles.heroIconContainer,
             { backgroundColor: colors.accent.purple },
+            accentEdge(colors, "purple"),
           ]}
         >
           <Icon
@@ -117,6 +119,7 @@ const CharacterVoice = () => {
                 style={[
                   styles.cvCardFill,
                   { backgroundColor: colors.accent[accent] },
+                  accentEdge(colors, accent),
                 ]}
               >
                 {/* Watermark Icon — huge & subtle in the background. */}

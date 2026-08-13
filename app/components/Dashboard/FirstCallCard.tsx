@@ -22,6 +22,7 @@ import {
   spacing,
   useMotion,
   useTheme,
+  accentEdge,
   withAlpha,
 } from "../../design-system";
 import { isFirstCallQuieted, useFirstCallStore } from "../../stores/firstCall";
@@ -509,7 +510,8 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
   return (
     <Animated.View entering={enter().delay(ENTER_DELAY)}>
       <PressableScale scaleTo={0.98} onPress={open} style={styles.shadow}>
-        <View style={[styles.fill, { backgroundColor: fill }]}>
+        {/* No-op on ink; on paper the fill is 1.1–3.0:1 and the card has no edge. */}
+        <View style={[styles.fill, { backgroundColor: fill }, accentEdge(colors, "warning")]}>
           <View
             style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}
             pointerEvents="none"

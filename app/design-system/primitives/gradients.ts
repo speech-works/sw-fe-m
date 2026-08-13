@@ -62,5 +62,21 @@ export const schemeGradients: Record<"dark" | "light", Partial<Record<GradientNa
     scrimDown: { colors: ["rgba(247,242,234,0)", "rgba(247,242,234,0.92)"], ...vertical },
     scrimUp: { colors: ["rgba(247,242,234,0.8)", "rgba(247,242,234,0)"], ...vertical },
     sheen: { colors: [p.whiteA(0.5), p.whiteA(0)], ...vertical },
+
+    // THE DECORATIVE RAMPS NEED THIS TOO, which the original split missed: only
+    // the canvas-relative tokens above were overridden, so brand/sunrise/aurora/
+    // meadow stayed at their ink values and went pale on paper — 1.1–3.0:1
+    // against the canvas, worst of all meadow, whose opening lime stop is
+    // 1.12:1. These are the app's celebration moments and they were landing with
+    // no impact in light mode.
+    //
+    // Each stop is the DEEPEST value that still keeps its own `accentOn` ink at
+    // AA (≥4.5:1), so the dark-on-bright invariant survives the deepening and
+    // nothing built on these gradients has to change.
+    brand: { colors: [p.gradientLight.orange, p.gradientLight.orangePressed], ...diagonal },
+    brandSoft: { colors: [p.orange[400], p.gradientLight.orange], ...diagonal },
+    sunrise: { colors: [p.gradientLight.orange, p.gradientLight.danger], ...diagonal },
+    aurora: { colors: [p.gradientLight.purple, p.gradientLight.info], ...diagonal },
+    meadow: { colors: [p.gradientLight.lime, p.gradientLight.success], ...diagonal },
   },
 };

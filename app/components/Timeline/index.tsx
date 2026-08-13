@@ -17,7 +17,7 @@ import { useInboxStore } from "../../stores/inbox";
 import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import { size, useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
+import { size, useTheme, primaryEdge, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering, Dialog } from "../../design-system";
 import SignalCard from "../SignalCard";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 import { blockUser, reportContent, type ReportReason } from "../../api/moderation";
@@ -265,7 +265,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       <View style={styles.center}>
         <Icon name={icons.warning} size={36} color={colors.text.tertiary} />
         <Text variant="bodySm" color="secondary" style={styles.muted}>Couldn't load the timeline.</Text>
-        <TouchableOpacity onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }]}>
+        <TouchableOpacity onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
           <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
         </TouchableOpacity>
       </View>

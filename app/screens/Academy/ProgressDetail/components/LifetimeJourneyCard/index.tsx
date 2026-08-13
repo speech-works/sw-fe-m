@@ -31,7 +31,7 @@ const LifetimeJourneyCard = ({
   loading = false,
   hasError = false,
 }: LifetimeJourneyCardProps) => {
-  const { colors, scheme } = useTheme();
+  const { colors } = useTheme();
 
   if ((loading && !journey) || !journey) {
     return null;
@@ -62,7 +62,7 @@ const LifetimeJourneyCard = ({
       style={[
         styles.statCard,
         // Same inset rule as every other card on this screen.
-        insetSurface(colors, scheme),
+        insetSurface(colors),
       ]}
     >
       <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>

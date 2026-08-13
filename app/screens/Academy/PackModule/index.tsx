@@ -758,7 +758,7 @@ const PackModuleScreen = () => {
       <ProgressBar
         value={currentBlockIndex + 1}
         max={totalBlocks}
-        color={colors.action.primary}
+        color={colors.text.accent}
       />
 
       {blocks.length === 0 ? (

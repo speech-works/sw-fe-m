@@ -291,7 +291,10 @@ const PracticeComposer = () => {
           <View
             style={[
               styles.previewLoading,
-              { backgroundColor: colors.surface.default, borderColor: colors.border.hairline },
+              // A well inset into the page, not another card — `surface.inset`
+              // gives it a real step on paper (it was the card colour on the
+              // card colour, drawn only by its hairline).
+              { backgroundColor: colors.surface.inset, borderColor: colors.border.hairline },
             ]}
           >
             <ActivityIndicator color={accentColor} />

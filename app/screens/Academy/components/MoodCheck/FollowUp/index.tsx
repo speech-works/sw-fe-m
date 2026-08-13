@@ -25,6 +25,7 @@ import {
   IconName,
   IconButton,
   useTheme,
+  accentEdge,
   icons,
   withAlpha,
   spacing,
@@ -555,6 +556,7 @@ const FollowUp = () => {
                             style={[
                               styles.focusBadge,
                               { backgroundColor: colors.accent.warning },
+                              accentEdge(colors, "warning"),
                             ]}
                           >
                             <Text

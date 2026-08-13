@@ -18,7 +18,7 @@ import {
 import { getMoment } from "../../constants/momentMessages";
 import { getPostTemplate } from "../../constants/postTemplates";
 import { getReaction } from "../../constants/reactions";
-import { size, useTheme, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
+import { size, useTheme, primaryEdge, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
 import { useUserStore } from "../../stores/user";
 import { UserAvatar } from "../UserAvatar";
 import { normalizeManifest } from "../../types/avatar";
@@ -257,6 +257,9 @@ const SignalCard = ({
                   styles.replyChip,
                   { backgroundColor: insetBg, borderColor: colors.border.default },
                   mine && { backgroundColor: colors.action.primary, borderColor: colors.action.primary },
+                  // The orange fill is 2.02:1 on paper, so a border in its own
+                  // colour draws nothing. `primaryEdge` is "transparent" on ink.
+                  mine && primaryEdge(colors),
                   replyPending && styles.replyChipDisabled,
                 ]}
               >
@@ -302,7 +305,7 @@ const SignalCard = ({
                 <View style={styles.flex1} />
               )}
               {jp ? (
-                <View style={[styles.journeyProgressBadge, { backgroundColor: colors.action.primary }]}>
+                <View style={[styles.journeyProgressBadge, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
                   <Text variant="caption" color={colors.action.onPrimary} style={styles.bold}>
                     {jp.moduleIndex} of {jp.moduleTotal}
                   </Text>

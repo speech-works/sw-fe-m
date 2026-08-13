@@ -13,6 +13,7 @@ import {
   Page,
   Text,
   useTheme,
+  accentEdge,
   spacing,
   radius,
 } from "../../../../../../design-system";
@@ -76,6 +77,7 @@ const Roleplay = () => {
           style={[
             styles.heroIconContainer,
             { backgroundColor: colors.accent.warning },
+            accentEdge(colors, "warning"),
           ]}
         >
           <Icon
@@ -114,6 +116,7 @@ const Roleplay = () => {
                 style={[
                   styles.rpCardFill,
                   { backgroundColor: colors.accent[accent] },
+                  accentEdge(colors, accent),
                 ]}
               >
                 {/* Trendy "Index" watermark — huge & subtle in the background. */}
