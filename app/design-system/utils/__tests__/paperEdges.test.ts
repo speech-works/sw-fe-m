@@ -40,8 +40,6 @@ const ALLOWED: Record<string, string> = {
     "confetti/celebration bubbles over a celebration ground, not objects on the page",
 
   // Already bounded by something else.
-  "app/screens/Home/components/IdentityBlock/index.tsx":
-    "the unread dot carries a surface.elevated ring, which is its boundary",
 };
 
 const SCAN_ROOTS = ["app/screens", "app/components"];

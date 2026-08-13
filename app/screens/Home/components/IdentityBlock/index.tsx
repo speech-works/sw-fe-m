@@ -572,19 +572,26 @@ export const IdentityBlock: React.FC = () => {
               haptic={false}
               onPress={openInfo}
               // The card underneath is itself pressable, so this needs a real
-              // target without a real footprint.
-              hitSlop={12}
+              // target without a real footprint. 16, not 12, because the box
+              // shrank from 28 to 20 when the disc came off: 20 + 32 keeps the
+              // 52pt target this always had, rather than landing on 44 exactly.
+              hitSlop={spacing.lg}
               accessibilityRole="button"
               accessibilityLabel="What these rings mean"
-              style={[styles.infoBtn, { backgroundColor: colors.surface.control }]}
+              style={styles.infoBtn}
             >
-              <Icon name={icons.info} size={size.iconSm} color={colors.text.secondary} />
+              <Icon name={icons.info} size={size.iconInline} color={colors.text.tertiary} />
               {!growthIntroduced ? (
                 <View
                   style={[
                     styles.unread,
                     {
-                      backgroundColor: colors.accent.success,
+                      // `accentText`, not `accent`. A 9pt dot has no interior to
+                      // bound, so it takes the on-surface cut like every other
+                      // thin mark: the fill hue measured 1.27:1 on the taupe
+                      // disc it used to sit on and 1.77:1 on the bare card,
+                      // which is not an unread indicator, it is a rumour.
+                      backgroundColor: colors.accentText.success,
                       borderColor: colors.surface.elevated,
                     },
                   ]}
@@ -723,13 +730,29 @@ const styles = StyleSheet.create({
   // Pinned to the card's top-right. `spacing.sm` from each edge rather than the
   // card's own `spacing.lg` padding, because chrome should sit nearer the corner
   // than content does — at 16 it read as a third column of content.
+  //
+  // NO FILL, AND THAT IS THE WHOLE CHANGE. This used to be a `surface.control`
+  // disc, which made it the heaviest single mark in a card whose job is the
+  // rings and the two numbers — on paper the taupe is ΔE 16 from the card fill.
+  // It was also the app's one bespoke control circle: `IconButton` draws those
+  // as a white disc with a `border.strong` hairline, so this matched neither
+  // the back button nor itself.
+  //
+  // A disc was the wrong instrument regardless, because tapping ANYWHERE on
+  // this card opens the same sheet (see the two-regions note above). The "i"
+  // never was the control. It is a signifier saying the card is explainable,
+  // and a filled disc is the visual language of a button.
+  //
+  // The box survives the fill at `size.icon`: it is what the unread dot hangs
+  // off, and at the glyph's own 14 the dot would cover the glyph instead of
+  // sitting on its corner. Losing 8pt of box is what moves the mark 4pt nearer
+  // the corner, which is the rest of the change.
   infoBtn: {
     position: "absolute",
     top: spacing.sm,
     right: spacing.sm,
-    width: 28,
-    height: 28,
-    borderRadius: radius.full,
+    width: size.icon,
+    height: size.icon,
     alignItems: "center",
     justifyContent: "center",
   },
