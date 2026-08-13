@@ -44,6 +44,13 @@ export function initAnalytics(): PostHog {
         disabled: __DEV__,
         flushAt: 20,
         flushInterval: 30000,
+        // PostHog derives an approximate location from the request IP by
+        // default and stamps $geoip_* properties onto every event. Under an
+        // identified user that is linked coarse location, which would have to
+        // be declared on the App Store nutrition label and the Play Data Safety
+        // form, for data we never actually look at. Turning it off removes a
+        // whole declarable category instead of disclosing it.
+        disableGeoip: true,
     });
 
     return client;

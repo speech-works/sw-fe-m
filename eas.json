@@ -53,6 +53,7 @@
   "submit": {
     "production": {
       "ios": {
+        "appleId": "mayank@speechworks.app",
         "appleTeamId": "VU29K7J26H",
         "ascAppId": "6797639049"
       }

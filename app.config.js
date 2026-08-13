@@ -4,8 +4,24 @@ const withAndroid16Compat = require("./plugins/withAndroid16Compat");
 const withAndroidLegacyIcon = require("./plugins/withAndroidLegacyIcon");
 
 const apiBaseUrl = process.env.API_BASE_URL || "";
+// A blanket ATS exception in a shipped binary invites an App Review
+// justification request (and is simply untrue for us: production is
+// https://api.speechworks.in). The exception exists ONLY so a dev build can
+// reach a local http:// API.
+//
+// Two guards, because either one alone has failed before:
+//   1. the URL must actually be insecure, and
+//   2. the build must not be the production profile.
+// Guard 2 is the one that matters. `.env` carries
+// API_BASE_URL=http://localhost:3000 for local work, and anything that lets
+// that value reach a release build — a missing profile env, a stale prebuilt
+// ios/ directory merged rather than regenerated — would otherwise silently
+// stamp NSAllowsArbitraryLoads into the archive, where nothing in typecheck,
+// lint or the test suite would catch it.
+const isProductionBuildProfile = process.env.EAS_BUILD_PROFILE === "production";
 const allowsInsecureNetworkTraffic =
-  /^http:\/\//i.test(apiBaseUrl) || /^ws:\/\//i.test(apiBaseUrl);
+  !isProductionBuildProfile &&
+  (/^http:\/\//i.test(apiBaseUrl) || /^ws:\/\//i.test(apiBaseUrl));
 
 const withCustomJvmArgs = (config) => {
   return withGradleProperties(config, (config) => {
@@ -168,6 +184,11 @@ module.exports = {
             NSPrivacyCollectedDataTypeTracking: false,
             NSPrivacyCollectedDataTypePurposes: [
               "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+              // The user id is the PostHog distinct id, so analytics events are
+              // attributed to an identified person, and it keys the personalised
+              // recommendations.
+              "NSPrivacyCollectedDataTypePurposeAnalytics",
+              "NSPrivacyCollectedDataTypePurposeProductPersonalization",
             ],
           },
           {
@@ -177,6 +198,11 @@ module.exports = {
             NSPrivacyCollectedDataTypeTracking: false,
             NSPrivacyCollectedDataTypePurposes: [
               "NSPrivacyCollectedDataTypePurposeAnalytics",
+              // Practice history drives what the app serves next (the For-you
+              // shelf and the pack recommender), and streaks and stamina are
+              // core function, not just measurement.
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+              "NSPrivacyCollectedDataTypePurposeProductPersonalization",
             ],
           },
           {
@@ -208,6 +234,10 @@ module.exports = {
             NSPrivacyCollectedDataTypeTracking: false,
             NSPrivacyCollectedDataTypePurposes: [
               "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+              // Onboarding answers shape which programs are surfaced, and mood
+              // and vitals props reach PostHog under an identified user.
+              "NSPrivacyCollectedDataTypePurposeProductPersonalization",
+              "NSPrivacyCollectedDataTypePurposeAnalytics",
             ],
           },
           // Other User Content. Free text that reaches another human: the
@@ -216,6 +246,58 @@ module.exports = {
           {
             NSPrivacyCollectedDataType:
               "NSPrivacyCollectedDataTypeOtherUserContent",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          // Other User Contact Info. The profile carries optional social and
+          // WhatsApp handles (users.links). Stored on our own profile, never
+          // exposed to another user by BuddyProfileDTO or MemberProfileDTO, but
+          // still collected, so still declarable.
+          {
+            NSPrivacyCollectedDataType:
+              "NSPrivacyCollectedDataTypeOtherUserContactInfo",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          // Customer Support. Free text the user submits to US rather than to
+          // another user: in-app feedback, reported issues, and the details
+          // field on a content report.
+          {
+            NSPrivacyCollectedDataType:
+              "NSPrivacyCollectedDataTypeCustomerSupport",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          // Device ID. The Expo push token (required to deliver reminders) and
+          // the PostHog $device_id that rides on every analytics event. Not an
+          // advertising identifier: there is no IDFA anywhere in this app, which
+          // is why NSPrivacyTracking stays false and no ATT prompt is needed.
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeDeviceID",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+              "NSPrivacyCollectedDataTypePurposeAnalytics",
+            ],
+          },
+          // Purchase History. Entitlements, the credit ledger and purchase
+          // intents, plus what RevenueCat returns. Payments are live on iOS at
+          // v1, so this is real, not dormant. Note this is purchase HISTORY
+          // only: no payment instrument ever touches the app, StoreKit handles
+          // that, so NSPrivacyCollectedDataTypePaymentInfo stays undeclared.
+          {
+            NSPrivacyCollectedDataType:
+              "NSPrivacyCollectedDataTypePurchaseHistory",
             NSPrivacyCollectedDataTypeLinked: true,
             NSPrivacyCollectedDataTypeTracking: false,
             NSPrivacyCollectedDataTypePurposes: [

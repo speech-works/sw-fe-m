@@ -46,6 +46,30 @@ const scoreFillColor = (v: number, colors: SemanticColors) =>
       ? colors.accent.warning
       : colors.action.primary;
 
+/**
+ * Display labels for the three AI-assessed call ratings.
+ *
+ * The API keys stay `confidence | clarity | engagement` because the backend
+ * owns that contract. Only the words the user reads change, and they changed
+ * for a reason: "Clarity 3/5" reads as a score of how clearly someone SPOKE,
+ * which is a fluency judgement this product does not make anywhere else. The
+ * same rule retired `growthDelta` and renamed the STEADIER axis.
+ *
+ * These three describe the CONVERSATION, not the speech that carried it: how
+ * you came across, whether your point landed, how much back and forth there
+ * was. That is also what the LLM rationale prose actually talks about.
+ *
+ * One map feeds both the meters and the rationale rows so the two can never
+ * disagree. The rows previously rendered the raw API key.
+ */
+const SCORE_KEYS = ["confidence", "clarity", "engagement"] as const;
+
+const SCORE_LABELS: Record<(typeof SCORE_KEYS)[number], string> = {
+  confidence: "Presence",
+  clarity: "Message",
+  engagement: "Connection",
+};
+
 const ScoreMeter = ({ label, value }: { label: string; value?: number }) => {
   const { colors } = useTheme();
   const v = typeof value === "number" ? value : 0;
@@ -229,23 +253,23 @@ const PhoneCallReport: React.FC<Props> = ({
         {/* Scores */}
         {report.scores && (
           <View style={styles.scoreRow}>
-            <ScoreMeter label="Confidence" value={report.scores.confidence} />
-            <ScoreMeter label="Clarity" value={report.scores.clarity} />
-            <ScoreMeter label="Engagement" value={report.scores.engagement} />
+            <ScoreMeter label={SCORE_LABELS.confidence} value={report.scores.confidence} />
+            <ScoreMeter label={SCORE_LABELS.clarity} value={report.scores.clarity} />
+            <ScoreMeter label={SCORE_LABELS.engagement} value={report.scores.engagement} />
           </View>
         )}
 
         {report.score_rationale && (
           <SectionCard
             icon={icons.tip}
-            title="Why these scores"
+            title="What these are based on"
             accent={colors.feedback.infoText}
             tint={colors.accentTint.info}
           >
-            {(["confidence", "clarity", "engagement"] as const).map((k) => (
+            {SCORE_KEYS.map((k) => (
               <View key={k} style={styles.rationaleRow}>
                 <Text variant="eyebrow" color="tertiary" style={styles.rationaleLabel}>
-                  {k}
+                  {SCORE_LABELS[k]}
                 </Text>
                 <Text variant="body" color="secondary">
                   {report.score_rationale?.[k]}
