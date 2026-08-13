@@ -219,14 +219,28 @@ export const SessionScreen: React.FC = () => {
     );
   }
 
-  // Detection unavailable = iOS build missing the native frame processor.
+  // Detection unavailable = build missing the native frame processor.
+  //
+  // This branch is NOT `__DEV__` gated, unlike every other debug affordance on
+  // this screen, because it is a real error state a shipped build can reach.
+  // That means whatever it says is user-facing copy, and it used to say
+  // "Run `expo run:ios` on a physical device to enable it." Showing a shell
+  // command to a customer is bad on its own, and App Review reads it as an
+  // unfinished build (Guideline 2.1). The developer detail belongs in the log,
+  // where it is still there when someone needs it.
   if (detectionState.detectionUnavailable) {
+    if (__DEV__) {
+      console.warn(
+        '[MirrorWork] Face detection unavailable: the native frame processor is ' +
+        'missing from this build. Rebuild with `expo run:ios` on a physical device.',
+      );
+    }
     return (
       <View style={styles.centerContainer}>
         <Icon name="alert-circle-outline" size={48} color="#F59E0B" />
         <Text style={[styles.permissionText, { marginTop: 16, textAlign: 'center', paddingHorizontal: 32 }]}>
-          Face detection is not available on this build.{'\n'}
-          Run `expo run:ios` on a physical device to enable it.
+          Mirror Work isn&apos;t available on this device right now.{'\n'}
+          Everything else in your practice still works.
         </Text>
         {exitSheet}
       </View>

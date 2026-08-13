@@ -291,6 +291,15 @@ const LoginScreen = () => {
           identityToken: credential.identityToken,
           nonce: rawNonce,
           fullName,
+          // Also one shot, and for the same structural reason as `fullName`:
+          // Apple hands this to the client and nowhere else. The server
+          // exchanges it for a refresh token, which is the ONLY thing that can
+          // later be revoked when the user deletes their account. Apple
+          // requires that revocation (Guideline 5.1.1(v)), and the identity
+          // token above cannot serve, since `signInWithIdToken` never performs
+          // a code exchange. Typed `string | null` by the module, so it is
+          // normalised to undefined rather than sent as null.
+          authorizationCode: credential.authorizationCode ?? undefined,
         }),
       );
     } catch (e: any) {

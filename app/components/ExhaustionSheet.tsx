@@ -8,6 +8,16 @@ import {
 import { size, Text, Button, Icon, Sheet, space, spacing, useTheme } from "../design-system";
 import { useStorePrices } from "../hooks/useStorePrices";
 import { resolvePriceDisplay } from "../services/priceDisplay";
+// This sheet sells `sw.membership.*`, an AUTO-RENEWING subscription, so it is a
+// purchase surface in Apple's sense and owes the same disclosures the main
+// paywall carries: the renewal terms, a Terms of Use link, a Privacy Policy
+// link, and Restore Purchases (Guideline 3.1.2). It had none of them. A
+// reviewer reaches this sheet just by running out of call credits.
+// Same hook and same constants as `screens/Payments`, deliberately, so there is
+// one restore path and one pair of URLs rather than a second copy to drift.
+import { useRestorePurchases } from "../hooks/useRestorePurchases";
+import { handleLinkPress } from "../util/functions/externalLinks";
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../screens/Auth/constants";
 
 interface ExhaustionSheetProps {
   visible: boolean;
@@ -36,6 +46,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   const [offers, setOffers] = useState<Offers | null>(null);
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [purchasing, setPurchasing] = useState<"credits" | "membership" | null>(null);
+  const { restoring, restore } = useRestorePurchases();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Local-currency prices for the two fixed SKUs. Empty ⇒ INR fallback.
   const { prices: storePrices } = useStorePrices([
@@ -187,6 +198,49 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
           ) : null}
         </View>
 
+        {/* Renewal terms, only when the auto-renewing product is on screen. The
+            credit top-up is a consumable and renews nothing, so saying so there
+            would be false. */}
+        {offers?.showMembershipOffer && offers.membership ? (
+          <Text variant="caption" color="tertiary" center style={styles.renewal}>
+            {membershipPrice} per month. Renews automatically unless cancelled 24
+            hours before the period ends.
+          </Text>
+        ) : null}
+
+        {/* Restore, Terms and Privacy stay on the sheet whichever offer shows.
+            Apple looks for Restore on the purchase surface itself, and a buyer
+            who already paid on another device needs it here, not three taps
+            away in Settings. */}
+        <View style={styles.legalRow}>
+          <Text
+            variant="caption"
+            color="tertiary"
+            style={styles.legalLink}
+            onPress={restoring || purchasing !== null ? undefined : restore}
+          >
+            {restoring ? "Restoring…" : "Restore Purchases"}
+          </Text>
+          <Text variant="caption" color="tertiary">·</Text>
+          <Text
+            variant="caption"
+            color="tertiary"
+            style={styles.legalLink}
+            onPress={() => handleLinkPress(TERMS_OF_USE_URL)}
+          >
+            Terms of Use
+          </Text>
+          <Text variant="caption" color="tertiary">·</Text>
+          <Text
+            variant="caption"
+            color="tertiary"
+            style={styles.legalLink}
+            onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+          >
+            Privacy Policy
+          </Text>
+        </View>
+
         {errorMessage ? (
           <View style={styles.errorRow}>
             <Icon
@@ -239,6 +293,21 @@ const styles = StyleSheet.create({
   // they do to the copy above.
   actions: {
     gap: spacing.sm,
+  },
+  // Sits directly under the buttons: the terms belong to the offer, not to the
+  // sheet, so the gap to the buttons is smaller than the gap to anything else.
+  renewal: {
+    marginTop: -spacing.xs,
+  },
+  legalRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  legalLink: {
+    textDecorationLine: "underline",
   },
   errorRow: {
     flexDirection: "row",

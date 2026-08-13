@@ -220,6 +220,19 @@ const SubscribeScreen = () => {
   // $34.99-vs-$59.88 is 42%, so computing this from the INR book (as it did)
   // under-claimed the saving to every dollar buyer.
   const annualSavingsPct = annual ? (savingPercentFor(annual) ?? 0) : 0;
+  // Is there a REAL price for the plan currently selected?
+  //
+  // Every label above falls back to an em-dash placeholder, and `GET
+  // /users/me/offers` failing is a perfectly ordinary event (reviewers sit
+  // behind datacenter networks). Without this guard the button is disabled but
+  // still READS "Get Premium · —/yr", directly above "— per year. Renews
+  // automatically unless cancelled...". That is an auto-renewing subscription
+  // offered with no price attached, which is exactly what Guideline 3.1.2
+  // forbids, and it looks like a bug to everyone else.
+  const priceKnown =
+    paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+      ? !!annual?.price
+      : !!monthly?.price;
   const selectedPlanSummary =
     paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
       ? `${monthlyLabel}/month`
@@ -779,9 +792,11 @@ const SubscribeScreen = () => {
                         variant="title"
                         style={styles.upgradeBtnText}
                       >
-                        {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                          ? `Get Premium · ${annualLabel}/yr`
-                          : `Get Premium · ${monthlyLabel}/mo`}
+                        {!priceKnown
+                          ? "Pricing unavailable"
+                          : paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                            ? `Get Premium · ${annualLabel}/yr`
+                            : `Get Premium · ${monthlyLabel}/mo`}
                       </DSText>
                     )}
                     <LinearGradient
@@ -817,16 +832,21 @@ const SubscribeScreen = () => {
                     plan cards above; the renewal mechanics were missing
                     entirely, and neither link existed anywhere but the
                     sign-in screen. */}
-                <DSText
-                  variant="caption"
-                  color="tertiary"
-                  center
-                  style={styles.renewalDisclosure}
-                >
-                  {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                    ? `${annualLabel} per year. Renews automatically unless cancelled 24 hours before the period ends.`
-                    : `${monthlyLabel} per month. Renews automatically unless cancelled 24 hours before the period ends.`}
-                </DSText>
+                {/* Only with a real price. The renewal terms and the amount are
+                    one disclosure, not two, so a placeholder here would be a
+                    subscription sold without its price. See `priceKnown`. */}
+                {priceKnown && (
+                  <DSText
+                    variant="caption"
+                    color="tertiary"
+                    center
+                    style={styles.renewalDisclosure}
+                  >
+                    {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                      ? `${annualLabel} per year. Renews automatically unless cancelled 24 hours before the period ends.`
+                      : `${monthlyLabel} per month. Renews automatically unless cancelled 24 hours before the period ends.`}
+                  </DSText>
+                )}
 
                 <View style={styles.legalRow}>
                   <TouchableOpacity

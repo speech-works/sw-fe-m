@@ -60,6 +60,20 @@ export interface AppleSignInPayload {
   nonce: string;
   /** Apple returns this ONLY on the first-ever authorization for this Apple ID. */
   fullName?: string;
+  /**
+   * Apple's one-time authorization code, forwarded so the backend can exchange
+   * it for a REFRESH token and store it against the user.
+   *
+   * This exists solely so account deletion can call Apple's revoke endpoint,
+   * which Guideline 5.1.1(v) requires of any app offering both Sign in with
+   * Apple and in-app account deletion. The identity token we sign in with is
+   * not revocable, and `signInWithIdToken` performs no code exchange, so
+   * without this the backend has nothing to revoke.
+   *
+   * Optional on purpose: sign-in must never fail because the code is absent or
+   * the exchange breaks.
+   */
+  authorizationCode?: string;
 }
 
 /**

@@ -27,6 +27,7 @@
     "build:ios:local": "watchman watch-del-all >/dev/null 2>&1 || true; rm -rf .expo node_modules/.cache \"${TMPDIR:-/tmp}\"metro-* \"${TMPDIR:-/tmp}\"haste-map-* >/dev/null 2>&1 || true; mkdir -p dist; LANG=en_US.UTF-8 eas build -p ios --local --profile production --output ./dist/Speechworks.ipa",
     "build:android:production": "eas build -p android --profile production",
     "build:ios:production": "eas build -p ios --profile production",
+    "submit:ios:local": "xcrun altool --upload-app -f ./dist/Speechworks.ipa -t ios -u mayank@speechworks.app -p \"${APPLE_APP_SPECIFIC_PASSWORD:?Set APPLE_APP_SPECIFIC_PASSWORD (appleid.apple.com > Sign-In and Security > App-Specific Passwords)}\"",
     "logs:android": "adb logcat '*:S' 'ReactNative:V' 'ReactNativeJS:V'",
     "postinstall": "patch-package",
     "lint": "eslint .",
