@@ -197,7 +197,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       if (reason !== CRISIS_REPORT_REASON) {
         showSuccessBottomSheet(
           "Report sent",
-          "Our team will review this within 24 hours. You can block and unpair from the Community tab.",
+          "Our team will review this within 24 hours. You can block and unpair from the Buddy tab.",
         );
       }
     } catch {

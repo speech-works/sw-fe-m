@@ -119,17 +119,6 @@ export interface LevelStage {
   }[];
 }
 
-// Get user by ID
-export async function getUserById(id: string): Promise<User> {
-  try {
-    const response = await axiosClient.get(`/users/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error getting user by ID:", error);
-    throw error;
-  }
-}
-
 // Update user by ID
 export async function updateUserById(
   id: string,
@@ -140,16 +129,6 @@ export async function updateUserById(
     return response.data;
   } catch (error) {
     console.error("Error updating user:", error);
-    throw error;
-  }
-}
-
-// Delete user by ID
-export async function deleteUserById(id: string): Promise<void> {
-  try {
-    await axiosClient.delete(`/users/${id}`);
-  } catch (error) {
-    console.error("Error deleting user:", error);
     throw error;
   }
 }

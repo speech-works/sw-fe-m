@@ -141,7 +141,7 @@ const Resources = () => {
   );
 
   return (
-    <Page title="Help & Resources" onBack={() => navigation.goBack()}>
+    <Page title="Stuttering support" onBack={() => navigation.goBack()}>
       <Text variant="body" color="secondary">
         You're not alone. These organizations are here for you. So is a person,
         any time you need one.

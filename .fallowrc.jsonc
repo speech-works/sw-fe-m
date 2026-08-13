@@ -1,5 +1,25 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+
+  // WITHOUT THIS, FALLOW REPORTS NOTHING ON THIS REPO. Its `expo` plugin sees an
+  // `app/` directory and assumes Expo Router, so it marks every file under it as
+  // a route entry point — 593 of them. Exports in entry files are assumed to be
+  // consumed externally, so nothing could ever be flagged and `fallow dead-code`
+  // returned a clean zero for a codebase that had 17 uncalled API functions and
+  // 28 orphaned files in it.
+  //
+  // This app uses `app/` as a plain source directory with React Navigation, not
+  // Expo Router. There is no config key to disable a single plugin (`plugins`
+  // parses but is not an allowlist), so instead we stop exempting entry files
+  // from the unused-export check, which is what the false entry points were
+  // buying them.
+  //
+  // Known limitation: `unused-files` still cannot fire, because a file that is
+  // its own entry point is reachable by definition. A dead FILE now shows up as
+  // every one of its exports being reported unused. To find whole dead files,
+  // build the import graph directly rather than trusting a zero here.
+  "includeEntryExports": true,
+
   // These packages ARE used, via config/native references that fallow's static
   // analysis cannot see. They are not dead — do NOT remove them, and do not let
   // `fallow fix` strip them.

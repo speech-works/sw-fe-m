@@ -51,7 +51,7 @@ const BottomTabNavigator = () => {
       <Tab.Screen
         name={ROUTE_NAMES.COMMUNITY}
         component={Community}
-        options={{ tabBarLabel: "Community" }}
+        options={{ tabBarLabel: "Buddy" }}
       />
       <Tab.Screen
         name={ROUTE_NAMES.SETTINGS}

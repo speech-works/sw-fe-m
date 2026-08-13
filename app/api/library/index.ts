@@ -1,7 +1,6 @@
 import axiosClient from "../axiosClient";
 import { parseTechniquesToLibrary } from "./helper";
 import {
-    ExerciseItem,
     Library,
     QuizQuestion,
     TECHNIQUES_ENUM,
@@ -117,24 +116,6 @@ export async function getQuizByTechnique(
   } catch (error) {
     console.error(
       "There was a problem with the getQuizByTechnique api call:",
-      error
-    );
-    throw error;
-  }
-}
-
-export async function getAllExerciseItems(): Promise<ExerciseItem[]> {
-  try {
-    const response = await axiosClient.get(`/exercise-items`, {
-      params: {
-        includeCategory: true,
-      },
-    });
-    const items = response.data;
-    return items;
-  } catch (error) {
-    console.error(
-      "There was a problem with the  getAllExerciseItems api call:",
       error
     );
     throw error;

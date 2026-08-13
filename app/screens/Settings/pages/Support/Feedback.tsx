@@ -78,7 +78,7 @@ const Feedback = () => {
   return (
     <>
       <Page
-        title="Feedback & Suggestions"
+        title="Feedback and suggestions"
         onBack={() => navigation.goBack()}
         keyboardAvoiding
         contentGap={space.sectionGap}

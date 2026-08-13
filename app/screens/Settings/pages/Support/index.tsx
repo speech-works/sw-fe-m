@@ -13,11 +13,11 @@ const Support = () => {
   const navigation = useNavigation<any>();
 
   return (
-    <Page title="Help & Support" onBack={() => navigation.goBack()}>
+    <Page title="Contact us" onBack={() => navigation.goBack()}>
       <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
         <ListItem
           leftIcon="alert-triangle"
-          label="Report A Problem"
+          label="Report a problem"
           sublabel="Let us know what needs fixing"
           showChevron
           divider
@@ -25,7 +25,7 @@ const Support = () => {
         />
         <ListItem
           leftIcon="headphones"
-          label="Contact Support"
+          label="Contact support"
           sublabel="Reach out to our support team"
           showChevron
           divider
@@ -33,7 +33,7 @@ const Support = () => {
         />
         <ListItem
           leftIcon="message-square"
-          label="Feedback & Suggestions"
+          label="Feedback and suggestions"
           sublabel="How can we improve?"
           showChevron
           onPress={() => navigation.navigate("Feedback" as any)}

@@ -5,6 +5,7 @@ export type SettingsStackParamList = {
   Settings: undefined;
   ProgressDetail: { scrollTo?: "achievements" } | undefined;
   Preferences: undefined;
+  Privacy: undefined;
   HelpSupport: undefined;
   PaymentStack: undefined;
   Reminders: undefined;
@@ -13,7 +14,6 @@ export type SettingsStackParamList = {
   ContactSupport: undefined;
   Feedback: undefined;
   FearedSounds: undefined;
-  PracticeGoal: undefined;
   ReadingVoice: undefined;
   Appearance: undefined;
   BlockedPeople: undefined;

@@ -64,7 +64,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
           setDockMode("nav");
         }}
         fitContent
-        accessibilityLabel="Community page tabs"
+        accessibilityLabel="Buddy page tabs"
       />
     );
   }

@@ -1,34 +1,5 @@
 import axiosClient from "../axiosClient";
 
-// register user
-interface RegisterProps {
-  name: string;
-  password: string;
-  email: string;
-}
-
-interface RegisterResponse {
-  id: string;
-}
-
-export async function registerUser({
-  name,
-  password,
-  email,
-}: RegisterProps): Promise<RegisterResponse> {
-  try {
-    const response = await axiosClient.post("/auth/register", {
-      name,
-      password,
-      email,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("There was a problem during user registration:", error);
-    throw error;
-  }
-}
-
 // login user
 interface LoginProps {
   provider: string;

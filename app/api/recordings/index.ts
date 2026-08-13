@@ -5,44 +5,7 @@ import { generateUploadUrl } from "../file-handling";
 import {
   CreateRecordingPayload,
   Recording,
-  RecordingQueryParams,
 } from "./types";
-
-/**
- * Fetch recordings by optional userId and/or activityId
- */
-export async function getRecordings(
-  params?: RecordingQueryParams,
-): Promise<Recording[]> {
-  try {
-    const response = await axiosClient.get<Recording[]>("/recordings", {
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    console.error(
-      "There was a problem with the getRecordings API call:",
-      error,
-    );
-    throw error;
-  }
-}
-
-/**
- * Fetch a single recording by its ID
- */
-export async function getRecordingById(id: string): Promise<Recording> {
-  try {
-    const response = await axiosClient.get<Recording>(`/recordings/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error(
-      `There was a problem with the getRecordingById API call (ID: ${id}):`,
-      error,
-    );
-    throw error;
-  }
-}
 
 import { uploadToS3 } from "../../util/functions/fileHandling";
 
@@ -139,19 +102,3 @@ export async function deleteRecording(id: string): Promise<void> {
   }
 }
 
-/**
- * Delete all recordings for a given user
- */
-export async function deleteRecordingsByUser(userId: string): Promise<void> {
-  try {
-    await axiosClient.delete("/recordings", {
-      params: { userId },
-    });
-  } catch (error) {
-    console.error(
-      `There was a problem with the deleteRecordingsByUser API call (userId: ${userId}):`,
-      error,
-    );
-    throw error;
-  }
-}

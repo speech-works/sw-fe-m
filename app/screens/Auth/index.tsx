@@ -385,7 +385,7 @@ const LoginScreen = () => {
         // generic "something went wrong" would throw all of that away.
         showErrorBottomSheet(
           "Couldn't pair you up",
-          `${apiErrorMessage(e, "That code didn't work.")}\n\nYou're all signed up. You can add a code from the Community tab.`,
+          `${apiErrorMessage(e, "That code didn't work.")}\n\nYou're all signed up. You can add a code from the Buddy tab.`,
         );
       }
     }

@@ -53,13 +53,6 @@ export enum TECHNIQUES_ENUM {
   FEARED_WORD_APPROACH = "FEARED_WORD_APPROACH",
 }
 
-export interface ExerciseItem {
-  id: string;
-  itemType: EXERCISE_ITEM_TYPE_ENUM;
-  itemText: string;
-  itemPhonetics?: string;
-  difficulty: DifficultyLevel;
-}
 
 export type PracticeMode = "READ_ALOUD" | "REFLECTION";
 

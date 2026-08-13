@@ -19,7 +19,3 @@ export interface CreateRecordingPayload {
   audioUrl: string; // appended to the request after genrating upload URL
   mimeType?: string;
 }
-export interface RecordingQueryParams {
-  userId?: string;
-  activityId?: string;
-}

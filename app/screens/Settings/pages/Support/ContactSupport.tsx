@@ -20,7 +20,7 @@ const ContactSupport = () => {
   const handleWhatsAppPress = () => Linking.openURL(SUPPORT_URL);
 
   return (
-    <Page title="Contact Support" onBack={() => navigation.goBack()}>
+    <Page title="Contact support" onBack={() => navigation.goBack()}>
       <View style={styles.section}>
         <Text variant="eyebrow" color="tertiary">
           CHOOSE A CHANNEL

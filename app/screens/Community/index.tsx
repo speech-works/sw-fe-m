@@ -632,7 +632,7 @@ const Community = () => {
       onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
     >
       <PageHeader
-        title="Community"
+        title="Buddy"
         description={
           isPaired
             ? `You & ${buddyFirstName}. Keep it up together.`
@@ -651,7 +651,7 @@ const Community = () => {
           <TabDock
             inline
             fitContent
-            accessibilityLabel="Community page tabs"
+            accessibilityLabel="Buddy page tabs"
             items={[
               { key: "us", label: "Us", icon: icons.community },
               { key: "timeline", label: "Timeline", icon: icons.timeline, badge: unreadCount },
@@ -780,7 +780,7 @@ const Community = () => {
         {/* NO KICKER. It said "COMMUNITY" in 12pt accent, and it sat at the top
             of the stage where the scrim is still thin — so it landed on a lit
             avatar and was the one illegible thing on the screen. Rather than
-            fight for contrast: the dock below already says Community, in an
+            fight for contrast: the dock below already says Buddy, in an
             orange pill, and you tapped that pill to get here. The label was
             never carrying anything the page didn't already say. */}
         <Text variant="poster" style={halo}>
@@ -1104,14 +1104,17 @@ const Community = () => {
 
             <View style={[styles.actionDivider, { backgroundColor: colors.border.default }]} />
 
-            {/* Help & Resources */}
+            {/* Stuttering support — the same screen Settings links to, so it
+                carries the same name and the same promise. The old sublabel
+                ("Learn more about community") described a screen that doesn't
+                exist: this one is organizations and crisis helplines. */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => navigation.navigate("Resources")}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
                 <Icon name={icons.support} size={size.tabIcon} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
-                <Text variant="title">Help & Resources</Text>
-                <Text variant="bodySm" color="secondary">Learn more about community.</Text>
+                <Text variant="title">Stuttering support</Text>
+                <Text variant="bodySm" color="secondary">Organizations and crisis helplines.</Text>
               </View>
               <Icon name={icons.chevronRight} size={size.tabIcon} color={colors.text.tertiary} />
             </PressableScale>
@@ -1230,7 +1233,7 @@ const Community = () => {
               color={colors.text.tertiary}
               style={{ marginBottom: spacing.md }}
             />
-            <Text variant="body" color="secondary" style={{ marginBottom: spacing.xl }}>Couldn't load Community.</Text>
+            <Text variant="body" color="secondary" style={{ marginBottom: spacing.xl }}>Couldn't load this page.</Text>
             <PressableScale onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
               <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
             </PressableScale>

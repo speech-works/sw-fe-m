@@ -8,55 +8,6 @@ import { EVENT_NAMES } from "../../stores/events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
 import { useCelebrationStore } from "../../stores/celebration";
 
-interface GetActivitiesBySessionIdReq {
-  sessionId: string;
-  includeContent?: boolean;
-}
-
-export async function getAllPracticeActivitiesBySessionId({
-  sessionId,
-  includeContent = false,
-}: GetActivitiesBySessionIdReq): Promise<PracticeActivity[]> {
-  try {
-    const response = await axiosClient.get(
-      `/practice-activities/session/${sessionId}`,
-      {
-        params: {
-          includeContent,
-        },
-      },
-    );
-    console.log("getAllPracticeActivitiesBySessionId", { response });
-    return response.data;
-  } catch (error) {
-    console.error("Error getting practice activities by session ID:", error);
-    throw error;
-  }
-}
-
-export async function getCurrentPracticeActivityForSession({
-  sessionId,
-  includeContent,
-}: GetActivitiesBySessionIdReq): Promise<PracticeActivity> {
-  try {
-    const response = await axiosClient.get(
-      `/practice-activities/session/${sessionId}/current`,
-      {
-        params: {
-          includeContent,
-        },
-      },
-    );
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Error getting current practice activity for session:",
-      error,
-    );
-    throw error;
-  }
-}
-
 interface CreateActivitySessionReq {
   sessionId?: string; // Optional: backend handles auto-session creation
   contentType: PracticeActivityContentType;
@@ -351,17 +302,6 @@ export async function abortPracticeActivity({
     console.error("Error aborting practice activity:", error);
     throw error;
   }
-}
-
-// Fetch a specific practice activity by ID
-export async function getPracticeActivity(
-  id: string,
-): Promise<PracticeActivity> {
-  console.log("Fetching practice activity:", id);
-  const response = await axiosClient.get(
-    `/practice-activities/${id}?includeContent=true`,
-  );
-  return response.data;
 }
 
 // Shape of the AI-generated post-call feedback report (mirrors the backend).

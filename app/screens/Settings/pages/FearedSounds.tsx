@@ -137,7 +137,7 @@ const FearedSounds = () => {
 
   return (
     <Page
-      title="Difficult Sounds"
+      title="Difficult sounds"
       description="Select the phonetic sounds you find challenging. We'll prioritize these in your practice sessions."
       onBack={() => navigation.goBack()}
       footer={

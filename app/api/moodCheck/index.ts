@@ -16,18 +16,3 @@ export async function logMood(moodLog: MoodCheck) {
     throw error;
   }
 }
-
-export async function updateMoodByMoodId(
-  moodId: string,
-  moodData: Partial<Omit<MoodCheck, "userId">>
-) {
-  try {
-    const response = await axiosClient.put(`/mood-check/${moodId}`, {
-      ...moodData,
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error updating mood log by id: ${moodId}`, error);
-    throw error;
-  }
-}

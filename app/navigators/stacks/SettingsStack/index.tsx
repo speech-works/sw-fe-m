@@ -3,6 +3,7 @@ import React from "react";
 import ProgressDetail from "../../../screens/Academy/ProgressDetail";
 import Settings from "../../../screens/Settings";
 import Preferences from "../../../screens/Settings/pages/Preferences";
+import Privacy from "../../../screens/Settings/pages/Privacy";
 import Reminders from "../../../screens/Settings/pages/Reminders";
 import ConfigureReminder from "../../../screens/Settings/pages/ConfigureReminder";
 import Support from "../../../screens/Settings/pages/Support";
@@ -10,7 +11,6 @@ import ReportProblem from "../../../screens/Settings/pages/Support/ReportProblem
 import ContactSupport from "../../../screens/Settings/pages/Support/ContactSupport";
 import Feedback from "../../../screens/Settings/pages/Support/Feedback";
 import FearedSounds from "../../../screens/Settings/pages/FearedSounds";
-import PracticeGoal from "../../../screens/Settings/pages/PracticeGoal";
 import ReadingVoice from "../../../screens/Settings/pages/ReadingVoice";
 import Appearance from "../../../screens/Settings/pages/Appearance";
 import BlockedPeople from "../../../screens/Settings/pages/BlockedPeople";
@@ -21,12 +21,12 @@ import { SettingsStackParamList } from "./types";
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
 export default function SettingsStackNavigator() {
-  console.log("in SettingsStackNavigator");
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Settings" component={Settings} />
       <Stack.Screen name="ProgressDetail" component={ProgressDetail} />
       <Stack.Screen name="Preferences" component={Preferences} />
+      <Stack.Screen name="Privacy" component={Privacy} />
       <Stack.Screen name="HelpSupport" component={Support} />
       <Stack.Screen name="PaymentStack" component={PaymentStackNavigator} />
       <Stack.Screen name="Reminders" component={Reminders} />
@@ -35,7 +35,6 @@ export default function SettingsStackNavigator() {
       <Stack.Screen name="ContactSupport" component={ContactSupport} />
       <Stack.Screen name="Feedback" component={Feedback} />
       <Stack.Screen name="FearedSounds" component={FearedSounds} />
-      <Stack.Screen name="PracticeGoal" component={PracticeGoal} />
       <Stack.Screen name="ReadingVoice" component={ReadingVoice} />
       <Stack.Screen name="Appearance" component={Appearance} />
       <Stack.Screen name="BlockedPeople" component={BlockedPeople} />

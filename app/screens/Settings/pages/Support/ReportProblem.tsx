@@ -79,7 +79,7 @@ const ReportProblem = () => {
   return (
     <>
       <Page
-        title="Report A Problem"
+        title="Report a problem"
         onBack={() => navigation.goBack()}
         keyboardAvoiding
         contentGap={space.sectionGap}

@@ -1,7 +1,7 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Application from "expo-application";
 import * as SecureStore from "expo-secure-store";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Reanimated, {
   cancelAnimation,
@@ -10,7 +10,7 @@ import Reanimated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { getAllSessionsOfUser, logoutUser } from "../../api";
+import { getAllSessionsOfUser, getWallet, logoutUser } from "../../api";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
@@ -58,6 +58,10 @@ const Settings = () => {
 
   const [, setSessionCount] = useState<number>(0);
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
+  // The badge under the name used to be the literal string "FREE" for everyone,
+  // so a member who had just paid was told otherwise on their own profile.
+  // Null until the wallet is known: no badge beats a wrong badge.
+  const [isMember, setIsMember] = useState<boolean | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [profileMode, setProfileMode] = useState<"view" | "edit">("view");
@@ -93,15 +97,25 @@ const Settings = () => {
     transform: [{ translateY: floatY.value }],
   }));
 
+  // Revoking the refresh token server-side is best effort; clearing the local
+  // session is not. This used to call logout() ONLY inside the `if`, with no
+  // catch — so a missing/expired token, or simply being offline, left the
+  // button inert and the user trapped in an account they had asked to leave.
+  // Sign-out has to succeed locally no matter what the server says.
   const handleLogout = async () => {
-    const accessToken = await SecureStore.getItemAsync(
-      SECURE_KEYS_NAME.SW_APP_JWT_KEY,
-    );
-    const refreshToken = await SecureStore.getItemAsync(
-      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
-    );
-    if (refreshToken && accessToken) {
-      await logoutUser({ refreshToken, appJwt: accessToken });
+    try {
+      const accessToken = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
+      );
+      const refreshToken = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
+      );
+      if (refreshToken && accessToken) {
+        await logoutUser({ refreshToken, appJwt: accessToken });
+      }
+    } catch (error) {
+      console.error("[settings] server logout failed, signing out anyway:", error);
+    } finally {
       logout();
     }
   };
@@ -109,6 +123,24 @@ const Settings = () => {
   // Shared with the paywall, which also has to offer Restore (Guideline
   // 3.1.1 wants it on the purchase surface, not only here).
   const { restoring, restore: handleRestorePurchases } = useRestorePurchases();
+
+  // On focus, not on mount: Settings is a tab root that stays mounted, so a
+  // membership bought on the paywall would otherwise still read FREE here.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      getWallet()
+        .then((wallet) => {
+          if (!cancelled) setIsMember(wallet.entitlements.includes("membership"));
+        })
+        .catch((error) =>
+          console.error("[settings] Failed to fetch wallet:", error),
+        );
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const onViewProfile = () => {
     setIsVisible(true);
@@ -119,67 +151,81 @@ const Settings = () => {
     setProfileMode("view");
   };
 
-  const menuItems: { icon: IconName; text: string; desc: string; onClick: () => void }[] = [
-    {
-      icon: "sliders",
-      text: "Preferences",
-      desc: "Manage goals and difficult sounds",
-      onClick: () => navigation.navigate("Preferences"),
-    },
-    {
-      icon: "bar-chart-2",
-      text: "Progress Report",
-      desc: "Check your speaking progress and trends",
-      onClick: () => navigation.navigate("ProgressDetail"),
-    },
-    {
-      icon: "help-circle",
-      text: "Help & Support",
-      desc: "Get assistance and app guidance",
-      onClick: () => navigation.navigate("HelpSupport"),
-    },
-    {
-      icon: "bell",
-      text: "Reminders",
-      desc: "Manage your practice notifications",
-      onClick: () => navigation.navigate("Reminders"),
-    },
-    {
-      icon: "life-buoy",
-      text: "Help & Resources",
-      desc: "Stuttering organizations & crisis support",
-      onClick: () => navigation.navigate("Resources"),
-    },
-    // Never conditionally hidden when the list is empty: this is the undo for
-    // an irreversible-looking action, and it has to be findable before you have
-    // blocked anyone — including by an App Review tester (Guideline 1.2).
-    {
-      icon: "search",
-      text: "Being findable",
-      desc: "Whether others can find you as a buddy",
-      onClick: () => navigation.navigate("Discoverability"),
-    },
-    {
-      icon: "users",
-      text: "Blocked people",
-      desc: "Manage who you've blocked",
-      onClick: () => navigation.navigate("BlockedPeople"),
-    },
+  type MenuItem = {
+    icon: IconName;
+    text: string;
+    desc: string;
+    onClick: () => void;
+  };
+
+  // Grouped, not one flat list of eight. The old order interleaved the two help
+  // rows with Reminders and left privacy controls sitting between blocking and
+  // billing, so nothing about the list told you what kind of thing a row was.
+  const menuGroups: MenuItem[][] = [
+    [
+      {
+        icon: "sliders",
+        text: "Preferences",
+        desc: "Sounds, voice and appearance",
+        onClick: () => navigation.navigate("Preferences"),
+      },
+      {
+        icon: "lock",
+        text: "Privacy",
+        desc: "Who can find you, and what you share",
+        onClick: () => navigation.navigate("Privacy"),
+      },
+      {
+        icon: "bell",
+        text: "Reminders",
+        desc: "Manage your practice notifications",
+        onClick: () => navigation.navigate("Reminders"),
+      },
+      {
+        icon: "bar-chart-2",
+        text: "Progress report",
+        desc: "Check your speaking progress and trends",
+        onClick: () => navigation.navigate("ProgressDetail"),
+      },
+    ],
+    // Both of these used to start with "Help", one row apart, and neither name
+    // said which one you wanted. They are now named for what they actually do:
+    // one reaches us, the other reaches the stuttering community.
+    [
+      {
+        icon: "help-circle",
+        text: "Contact us",
+        desc: "Report a problem or send feedback",
+        onClick: () => navigation.navigate("HelpSupport"),
+      },
+      {
+        icon: "life-buoy",
+        text: "Stuttering support",
+        desc: "Organizations and crisis helplines",
+        onClick: () => navigation.navigate("Resources"),
+      },
+    ],
     // purchasesAvailable(), not the raw flag: restorePurchasesAndReconcile()
     // returns null immediately without a RevenueCat key for this platform, so
     // on a keyless build this row is a button that cannot do anything.
     ...(purchasesAvailable()
       ? [
-          {
-            icon: "refresh-cw" as IconName,
-            // The in-flight label is the only feedback this row has. Restore
-            // can take a few seconds against the store, and a row that looks
-            // inert while it works reads as a dead button — which is exactly
-            // how a reviewer would report it.
-            text: restoring ? "Restoring…" : "Restore Purchases",
-            desc: "Already paid? Get it back",
-            onClick: handleRestorePurchases,
-          },
+          [
+            {
+              icon: "refresh-cw" as IconName,
+              // The in-flight label is the only feedback this row has. Restore
+              // can take a few seconds against the store, and a row that looks
+              // inert while it works reads as a dead button — which is exactly
+              // how a reviewer would report it.
+              //
+              // Title case is deliberate here and nowhere else on this screen:
+              // "Restore Purchases" is the exact string App Review looks for
+              // under Guideline 3.1.1.
+              text: restoring ? "Restoring…" : "Restore Purchases",
+              desc: "Already paid? Get it back",
+              onClick: handleRestorePurchases,
+            },
+          ],
         ]
       : []),
   ];
@@ -232,11 +278,13 @@ const Settings = () => {
 
           <View style={styles.nameRow}>
             <Text variant="h2">{user?.name}</Text>
-            <View style={[styles.proBadge, { backgroundColor: colors.action.primaryTint }]}>
-              <Text variant="eyebrow" color="accent">
-                FREE
-              </Text>
-            </View>
+            {isMember === null ? null : (
+              <View style={[styles.proBadge, { backgroundColor: colors.action.primaryTint }]}>
+                <Text variant="eyebrow" color="accent">
+                  {isMember ? "MEMBER" : "FREE"}
+                </Text>
+              </View>
+            )}
           </View>
           <Text variant="bodySm" color="secondary">
             Member since{" "}
@@ -255,36 +303,45 @@ const Settings = () => {
         </Reanimated.View>
 
         {/* Menu */}
-        <Reanimated.View
-          entering={m.stagger(1)}
-          style={[styles.group, { backgroundColor: colors.surface.default }]}
-        >
-          {/* Sits above Preferences, and only exists while the OS has
-              notifications switched off. `granted === null` means we haven't
-              read the permission yet — show nothing rather than accuse the
-              device of something we don't know. */}
-          {showNotificationRow ? (
-            <NotificationPermissionRow
-              urgent={notificationsNeedAttention}
-              divider
-            />
-          ) : null}
+        {menuGroups.map((group, groupIndex) => (
+          <Reanimated.View
+            // Index, not the first row's label: the restore row retitles itself
+            // to "Restoring…" mid-flight, and a changing key would remount the
+            // whole group and replay its entrance under the user's thumb.
+            key={groupIndex}
+            entering={m.stagger(1 + groupIndex)}
+            style={[styles.group, { backgroundColor: colors.surface.default }]}
+          >
+            {/* Sits above Preferences, and only exists while the OS has
+                notifications switched off. `granted === null` means we haven't
+                read the permission yet — show nothing rather than accuse the
+                device of something we don't know. */}
+            {groupIndex === 0 && showNotificationRow ? (
+              <NotificationPermissionRow
+                urgent={notificationsNeedAttention}
+                divider
+              />
+            ) : null}
 
-          {menuItems.map((item, index) => (
-            <ListItem
-              key={item.text}
-              leftIcon={item.icon}
-              label={item.text}
-              sublabel={item.desc}
-              showChevron
-              divider={index < menuItems.length - 1}
-              onPress={item.onClick}
-            />
-          ))}
-        </Reanimated.View>
+            {group.map((item, index) => (
+              <ListItem
+                key={item.text}
+                leftIcon={item.icon}
+                label={item.text}
+                sublabel={item.desc}
+                showChevron
+                divider={index < group.length - 1}
+                onPress={item.onClick}
+              />
+            ))}
+          </Reanimated.View>
+        ))}
 
         {/* Footer */}
-        <Reanimated.View entering={m.stagger(2)} style={styles.footer}>
+        <Reanimated.View
+          entering={m.stagger(1 + menuGroups.length)}
+          style={styles.footer}
+        >
           <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
             <Text variant="bodySm" color={colors.feedback.dangerText}>
               Log Out
