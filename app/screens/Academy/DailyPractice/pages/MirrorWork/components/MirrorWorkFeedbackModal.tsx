@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
-// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
-// feed, which has no scheme), so the dark role set is the CORRECT static
-// source here — same precedent as UpsellModal's `elevationDark`. The state
-// hues below are still raw: their values are tied to the clinical weight
-// table and are not mine to reassign.
-// The paper ramp for this light-locked screen. Every neutral in the app
-// carries the same warm hue; these were Tailwind/iOS cool greys.
-import { lightColors as paper } from "../../../../../../design-system/semantic/light";
-import { darkColors as c } from "../../../../../../design-system/semantic/dark";
-import { withAlpha, radius } from "../../../../../../design-system";
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import { makeStyles, useTheme, radius } from "../../../../../../design-system";
+import { View, Text, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 
 interface FeedbackData {
@@ -24,6 +15,8 @@ interface MirrorWorkFeedbackModalProps {
 }
 
 export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = ({ onSubmit, onClose }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   // We use 1-5 scales for the UI, then convert to 20-100 before submit
   const [effortScore, setEffortScore] = useState(3);
   const [autonomyScore, setAutonomyScore] = useState(3);
@@ -52,8 +45,8 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
             step={1}
             value={effortScore}
             onValueChange={setEffortScore}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor={paper.background.sunken}
+            minimumTrackTintColor={colors.action.primary}
+            maximumTrackTintColor={colors.border.hairline}
           />
           <View style={styles.labels}>
             <Text style={styles.labelText}>Very Easy</Text>
@@ -70,8 +63,8 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
             step={1}
             value={autonomyScore}
             onValueChange={setAutonomyScore}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor={paper.background.sunken}
+            minimumTrackTintColor={colors.action.primary}
+            maximumTrackTintColor={colors.border.hairline}
           />
           <View style={styles.labels}>
             <Text style={styles.labelText}>None</Text>
@@ -88,8 +81,8 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
             step={1}
             value={accuracyRating}
             onValueChange={setAccuracyRating}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor={paper.background.sunken}
+            minimumTrackTintColor={colors.action.primary}
+            maximumTrackTintColor={colors.border.hairline}
           />
           <View style={styles.labels}>
             <Text style={styles.labelText}>Way Off</Text>
@@ -110,14 +103,14 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   modalOverlay: {
     flex: 1,
-    backgroundColor: withAlpha(c.shadow, 0.5),
+    backgroundColor: c.overlay.scrim,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -126,12 +119,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: paper.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: paper.text.tertiary,
+    color: c.text.tertiary,
     marginBottom: 32,
   },
   sliderSection: {
@@ -140,7 +133,7 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 16,
     fontWeight: '500',
-    color: paper.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
     lineHeight: 22,
   },
@@ -156,7 +149,7 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontSize: 13,
-    color: paper.text.tertiary,
+    color: c.text.tertiary,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -170,14 +163,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: paper.background.canvas,
+    backgroundColor: c.background.canvas,
     marginRight: 12,
   },
   submitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: c.action.primary,
   },
   cancelText: {
-    color: '#007AFF',
+    color: c.text.accent,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -186,4 +179,4 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
-});
+}));

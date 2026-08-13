@@ -12,24 +12,20 @@ import { SummaryScreen as MirrorWorkSummary } from "../../../../../screens/Acade
 import { ForceDark } from "../../../../../design-system";
 import { CDPStackParamList } from "./types";
 
-// Scheme-locked dark — camera surfaces. The MirrorWork session flow is dark BY
-// DESIGN (dark chrome around a live viewfinder, like Apple Camera/Instagram),
-// so it ignores the Light/System appearance preference. Module-scope wrappers
-// keep component identity stable across renders. Prep is a normal DS screen
-// and themes normally.
+// ONLY THE VIEWFINDER IS SCHEME-LOCKED.
+//
+// The session is dark BY DESIGN — dark chrome around a live camera feed, like
+// Apple Camera or Instagram — so it ignores the Light/System preference. A
+// module-scope wrapper keeps component identity stable across renders.
+//
+// Reflection and Summary used to be locked too, and painted themselves light
+// inside that lock. They are ordinary screens: you have put the phone down and
+// are reading. They now follow the appearance preference like everything else,
+// so a dark-mode user is not flashed with a bright screen at the end of a
+// session. Prep always themed normally.
 const DarkMirrorWorkSession: React.FC<React.ComponentProps<typeof MirrorWorkSession>> = (props) => (
   <ForceDark>
     <MirrorWorkSession {...props} />
-  </ForceDark>
-);
-const DarkMirrorWorkReflection: React.FC<React.ComponentProps<typeof MirrorWorkReflection>> = (props) => (
-  <ForceDark>
-    <MirrorWorkReflection {...props} />
-  </ForceDark>
-);
-const DarkMirrorWorkSummary: React.FC<React.ComponentProps<typeof MirrorWorkSummary>> = (props) => (
-  <ForceDark>
-    <MirrorWorkSummary {...props} />
   </ForceDark>
 );
 
@@ -62,12 +58,12 @@ export default function CDPStackNavigator() {
       />
       <Stack.Screen
         name="MirrorWorkReflection"
-        component={DarkMirrorWorkReflection}
+        component={MirrorWorkReflection}
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen
         name="MirrorWorkSummary"
-        component={DarkMirrorWorkSummary}
+        component={MirrorWorkSummary}
         options={{ gestureEnabled: false }}
       />
     </Stack.Navigator>

@@ -1,16 +1,7 @@
 // Scheme-locked dark — camera surface (wrapped in ForceDark at the navigator).
 // Hardcoded HUD/chrome colors here are intentional; do not theme-migrate them.
 import React, { useState } from 'react';
-// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
-// feed, which has no scheme), so the dark role set is the CORRECT static
-// source here — same precedent as UpsellModal's `elevationDark`. The state
-// hues below are still raw: their values are tied to the clinical weight
-// table and are not mine to reassign.
-// The paper ramp for this light-locked screen. Every neutral in the app
-// carries the same warm hue; these were Tailwind/iOS cool greys.
-import { lightColors as paper } from "../../../../../design-system/semantic/light";
-import { darkColors as c } from "../../../../../design-system/semantic/dark";
-import { spacing, size, radius } from "../../../../../design-system";
+import { makeStyles, useTheme, spacing, size, radius } from "../../../../../design-system";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView,
@@ -22,6 +13,8 @@ import { useConfirmOnExit } from '../../../../../hooks/useConfirmOnExit';
 import { wasMirrorWorkCompleted } from './util/mirrorCompletionGuard';
 
 export const ReflectionScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
@@ -73,7 +66,7 @@ export const ReflectionScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Icon name="close" size={size.icon} color={paper.text.secondary} />
+            <Icon name="close" size={size.icon} color={colors.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -84,7 +77,7 @@ export const ReflectionScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.iconCircle}>
-            <Icon name="pencil-outline" size={size.iconLg} color="#F97316" />
+            <Icon name="pencil-outline" size={size.iconLg} color={colors.text.accent} />
           </View>
 
           <Text style={styles.title}>What did you notice?</Text>
@@ -96,7 +89,7 @@ export const ReflectionScreen: React.FC = () => {
             style={styles.textInput}
             multiline
             placeholder="I didn't realize my jaw was doing that…"
-            placeholderTextColor={paper.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             value={reflectionText}
             onChangeText={setReflectionText}
             autoFocus
@@ -116,7 +109,7 @@ export const ReflectionScreen: React.FC = () => {
             <Text style={styles.primaryButtonText}>
               {reflectionText.trim() ? 'Continue' : 'Skip'}
             </Text>
-            <Icon name="arrow-forward" size={size.iconSm} color={c.text.primary} style={styles.buttonIcon} />
+            <Icon name="arrow-forward" size={size.iconSm} color={colors.text.primary} style={styles.buttonIcon} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -126,10 +119,10 @@ export const ReflectionScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: paper.background.raised,
+    backgroundColor: c.background.canvas,
   },
   flex: { flex: 1 },
   header: {
@@ -142,11 +135,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.full,
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: paper.background.sunken,
+    borderColor: c.border.hairline,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -161,7 +154,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: radius.full,
-    backgroundColor: '#FEEDD3',
+    backgroundColor: c.action.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 22,
@@ -169,27 +162,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: '700',
-    color: paper.text.primary,
+    color: c.text.primary,
     letterSpacing: -0.7,
     lineHeight: 38,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: paper.text.secondary,
+    color: c.text.secondary,
     lineHeight: 24,
     marginBottom: 28,
   },
   textInput: {
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     borderRadius: radius.chip,
     padding: 20,
     fontSize: 17,
     lineHeight: 24,
-    color: paper.text.primary,
+    color: c.text.primary,
     minHeight: 180,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: paper.background.sunken,
+    borderColor: c.border.hairline,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -198,7 +191,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 13,
-    color: paper.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'center',
     marginTop: 16,
     fontStyle: 'italic',
@@ -207,24 +200,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: paper.background.sunken,
-    backgroundColor: c.text.primary,
+    borderTopColor: c.border.hairline,
+    backgroundColor: c.surface.default,
   },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F97316',
+    backgroundColor: c.action.primary,
     paddingVertical: 16,
     borderRadius: radius.full,
-    shadowColor: '#F97316',
+    shadowColor: c.action.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
   },
   primaryButtonMuted: {
-    backgroundColor: paper.text.tertiary,
+    backgroundColor: c.text.tertiary,
     shadowOpacity: 0.15,
   },
   primaryButtonText: {
@@ -236,4 +229,4 @@ const styles = StyleSheet.create({
   buttonIcon: {
     marginLeft: 8,
   },
-});
+}));

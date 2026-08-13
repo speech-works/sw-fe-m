@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-// MirrorWork's overlays are ForceDark-locked (they sit over a live camera
-// feed, which has no scheme), so the dark role set is the CORRECT static
-// source here — same precedent as UpsellModal's `elevationDark`. The state
-// hues below are still raw: their values are tied to the clinical weight
-// table and are not mine to reassign.
-// The paper ramp for this light-locked screen. Every neutral in the app
-// carries the same warm hue; these were Tailwind/iOS cool greys.
-import { lightColors as paper } from "../../../../../design-system/semantic/light";
-import { darkColors as c } from "../../../../../design-system/semantic/dark";
-import { spacing, size, withAlpha, radius } from "../../../../../design-system";
+import {
+  spacing, size, withAlpha, radius, makeStyles, useTheme, mix,
+  type SemanticColors,
+} from "../../../../../design-system";
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
@@ -36,17 +30,34 @@ import { showErrorBottomSheet } from '../../../../../util/functions/bottomSheet'
 // Scheme-locked dark camera flow — this summary keeps its intentional
 // light-pastel HUD/reflection palette (raw hexes stay; see MirrorWork siblings).
 // Brand orange values match the DS palette (orange 100/200/400/500).
-const ORANGE_100 = '#FFF0E5';
-const ORANGE_200 = '#FFDABF';
-const ORANGE_400 = '#FF9040';
-const ORANGE_500 = '#FF6B00';
-
-// ── Hero tint per overall tone (no alarming red — deepest is a warm amber) ──
-const TONE_STYLE: Record<ReflectionTone, { tint: string; gradient: readonly [string, string] }> = {
-  calm: { tint: '#10B981', gradient: ['#D1FAE5', '#A7F3D0'] },
-  some: { tint: '#F59E0B', gradient: ['#FEF3C7', '#FDE68A'] },
-  more: { tint: '#D97706', gradient: ['#FED7AA', '#FDBA74'] },
-};
+/**
+ * ── Hero tint per overall tone ──────────────────────────────────────────────
+ *
+ * NO ALARMING RED, AND THAT SURVIVES THEMING. The heaviest tone is a DEEPER
+ * AMBER, never `danger` — a red "you were very tense" verdict on someone's own
+ * face reads as the app grading them, which is the one thing this feature must
+ * not do. `more` therefore reuses the warning hue at a heavier mix rather than
+ * changing hue, so the three steps stay legible as a ramp.
+ *
+ * Mixed against the live card instead of hardcoded, so the same expression
+ * produces the authored pastels on paper and a deep tinted card on ink.
+ */
+const toneStyle = (
+  c: SemanticColors,
+): Record<ReflectionTone, { tint: string; gradient: readonly [string, string] }> => ({
+  calm: {
+    tint: c.accentText.success,
+    gradient: [mix(c.surface.default, c.accent.success, 0.14), mix(c.surface.default, c.accent.success, 0.26)],
+  },
+  some: {
+    tint: c.accentText.warning,
+    gradient: [mix(c.surface.default, c.accent.warning, 0.14), mix(c.surface.default, c.accent.warning, 0.26)],
+  },
+  more: {
+    tint: c.accentText.warning,
+    gradient: [mix(c.surface.default, c.accent.warning, 0.30), mix(c.surface.default, c.accent.warning, 0.46)],
+  },
+});
 
 // ── Hero face per tone — a gentle gradient that attunes to the session without
 // judging. Deliberately stops at a calm/neutral face for the heaviest tone; a
@@ -57,12 +68,17 @@ const TONE_FACE: Record<ReflectionTone, string> = {
   more: 'emoticon-neutral-outline',  // calm + present, acknowledging the tension
 };
 
-// ── Confidence-tier tints for region observations (light theme) ──
-const TIER_TINT: Record<Tier, { bg: string; fg: string }> = {
-  A: { bg: '#FFEDD5', fg: '#EA580C' }, // firm / high confidence
-  B: { bg: '#FEF9C3', fg: '#CA8A04' }, // softer / lower confidence
-  C: { bg: '#EDE9FE', fg: '#7C3AED' }, // informational (head/gaze)
-};
+/**
+ * ── Confidence-tier tints for region observations ───────────────────────────
+ * WHICH tier a signal lands in is still pending the clinical weight table —
+ * this only changes how a tier is PAINTED, never which one a signal gets.
+ * `accentTint`/`accentText` are per-scheme, so both cuts come out AA.
+ */
+const tierTint = (c: SemanticColors): Record<Tier, { bg: string; fg: string }> => ({
+  A: { bg: c.action.primaryTint, fg: c.text.accent },      // firm / high confidence
+  B: { bg: c.accentTint.warning, fg: c.accentText.warning }, // softer / lower confidence
+  C: { bg: c.accentTint.purple, fg: c.accentText.purple },   // informational (head/gaze)
+});
 
 const REGION_ICON: Record<FaceRegion, string> = {
   [FaceRegion.MOUTH]: 'happy-outline',
@@ -73,31 +89,40 @@ const REGION_ICON: Record<FaceRegion, string> = {
   [FaceRegion.HEAD]: 'sync-outline',
 };
 
-const EMERALD = { bg: '#D1FAE5', fg: '#059669' };
+const emerald = (c: SemanticColors) => ({
+  bg: c.accentTint.success,
+  fg: c.accentText.success,
+});
 
 /** Icon + tint for an insight row. Region rows use the confidence tier; the
  *  narrative rows use a warm/positive accent. */
-function insightVisual(insight: RenderedInsight): { icon: string; bg: string; fg: string } {
+function insightVisual(
+  insight: RenderedInsight,
+  c: SemanticColors,
+): { icon: string; bg: string; fg: string } {
+  const warm = { bg: c.action.primaryTint, fg: c.text.accent };
   switch (insight.kind) {
     case 'regionObservation': {
-      const tint = TIER_TINT[insight.tier];
+      const tint = tierTint(c)[insight.tier];
       return { icon: insight.region ? REGION_ICON[insight.region] : 'ellipse-outline', ...tint };
     }
     case 'milestone':
-      return { icon: 'trophy-outline', ...EMERALD };
+      return { icon: 'trophy-outline', ...emerald(c) };
     case 'progress':
-      return { icon: 'trending-up-outline', ...EMERALD };
+      return { icon: 'trending-up-outline', ...emerald(c) };
     case 'arc':
-      return { icon: 'pulse-outline', bg: ORANGE_100, fg: ORANGE_500 };
+      return { icon: 'pulse-outline', ...warm };
     case 'calm':
-      return { icon: 'leaf-outline', ...EMERALD };
+      return { icon: 'leaf-outline', ...emerald(c) };
     case 'opening':
     default:
-      return { icon: 'sparkles-outline', bg: ORANGE_100, fg: ORANGE_500 };
+      return { icon: 'sparkles-outline', ...warm };
   }
 }
 
 export const SummaryScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
@@ -226,12 +251,13 @@ export const SummaryScreen: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const tone = reflection ? TONE_STYLE[reflection.tone] : TONE_STYLE.calm;
+  const tones = toneStyle(colors);
+  const tone = reflection ? tones[reflection.tone] : tones.calm;
 
   return (
     <View style={styles.screen}>
       <LinearGradient
-        colors={["#FFFCF9", "#FFF7ED", paper.background.canvas]}
+        colors={[colors.surface.default, mix(colors.surface.default, colors.action.primary, 0.06), colors.background.canvas]}
         style={StyleSheet.absoluteFillObject}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -242,7 +268,7 @@ export const SummaryScreen: React.FC = () => {
         <Icon
           name="sparkles-outline"
           size={320}
-          color={ORANGE_200}
+          color={withAlpha(colors.action.primary, 0.35)}
           style={{ opacity: 0.15, transform: [{ rotate: "-15deg" }] }}
         />
       </View>
@@ -255,9 +281,9 @@ export const SummaryScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Close"
         >
-          <Icon name="chevron-back" size={size.icon} color={paper.text.secondary} />
+          <Icon name="chevron-back" size={size.icon} color={colors.text.secondary} />
         </TouchableOpacity>
-        <Text variant="h3" color={paper.text.primary}>Session Summary</Text>
+        <Text variant="h3" color={colors.text.primary}>Session Summary</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -275,14 +301,14 @@ export const SummaryScreen: React.FC = () => {
             style={styles.heroCard}
           >
             <View style={styles.heroLeft}>
-              <Text variant="eyebrow" color={paper.text.secondary} style={styles.heroEyebrow}>
+              <Text variant="eyebrow" color={colors.text.secondary} style={styles.heroEyebrow}>
                 HOW IT FELT
               </Text>
-              <Text variant="h1" color={paper.text.primary} style={styles.heroTitle}>
+              <Text variant="h1" color={colors.text.primary} style={styles.heroTitle}>
                 {reflection ? reflection.moodLabel : 'Reflecting…'}
               </Text>
               {reflection ? (
-                <Text variant="body" color={paper.text.primary} style={styles.heroSubtitle}>
+                <Text variant="body" color={colors.text.primary} style={styles.heroSubtitle}>
                   {reflection.encouragement}
                 </Text>
               ) : null}
@@ -300,33 +326,33 @@ export const SummaryScreen: React.FC = () => {
         {/* Session line — a quiet, non-clinical anchor. Progress lives in the
             reflection below, where the engine owns the (reviewed) wording. */}
         <View style={styles.metaRow}>
-          <Icon name="time-outline" size={size.iconSm} color={ORANGE_400} />
-          <Text variant="title" color={paper.text.primary}>
+          <Icon name="time-outline" size={size.iconSm} color={colors.text.accent} />
+          <Text variant="title" color={colors.text.primary}>
             {formatDuration(sessionDurationSeconds || 0)}
           </Text>
-          <Text variant="bodySm" color={paper.text.secondary}>in the mirror</Text>
+          <Text variant="bodySm" color={colors.text.secondary}>in the mirror</Text>
         </View>
 
         {/* Reflection (insights) */}
         <View style={styles.card}>
-          <Text variant="h3" color={paper.text.primary}>What we noticed</Text>
+          <Text variant="h3" color={colors.text.primary}>What we noticed</Text>
           {!reflection ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator color={ORANGE_500} />
-              <Text variant="bodySm" color={paper.text.secondary} style={styles.loadingText}>
+              <ActivityIndicator color={colors.action.primary} />
+              <Text variant="bodySm" color={colors.text.secondary} style={styles.loadingText}>
                 Putting your reflection together…
               </Text>
             </View>
           ) : (
             <View style={styles.signalList}>
               {reflection.insights.map((insight, idx) => {
-                const v = insightVisual(insight);
+                const v = insightVisual(insight, colors);
                 return (
                   <View key={`${insight.kind}-${idx}`} style={styles.signalRow}>
                     <View style={[styles.signalIconWrap, { backgroundColor: v.bg }]}>
                       <Icon name={v.icon} size={size.iconSm} color={v.fg} />
                     </View>
-                    <Text variant="body" color={paper.text.primary} style={styles.signalLabel}>
+                    <Text variant="body" color={colors.text.primary} style={styles.signalLabel}>
                       {insight.text}
                     </Text>
                   </View>
@@ -337,7 +363,7 @@ export const SummaryScreen: React.FC = () => {
         </View>
 
         {/* Footnote (rotated caveat — always NSA-safe) */}
-        <Text variant="bodySm" color={paper.text.tertiary} style={styles.footnote}>
+        <Text variant="bodySm" color={colors.text.tertiary} style={styles.footnote}>
           {reflection
             ? reflection.caveat
             : NOT_A_DIAGNOSIS}
@@ -355,7 +381,9 @@ export const SummaryScreen: React.FC = () => {
             end={{ x: 1, y: 1 }}
             style={styles.primaryButtonGradient}
           >
-            <Text variant="h3" color={c.text.primary}>
+            {/* Dark ink on the orange fill (7.71:1). White here is 2.2:1 — the
+                same dark-on-bright rule the rest of the app follows. */}
+            <Text variant="h3" color={colors.action.onPrimary}>
               {isSubmitting ? 'Saving…' : 'Continue'}
             </Text>
           </Gradient>
@@ -376,23 +404,26 @@ export const SummaryScreen: React.FC = () => {
 
 // Legacy `theme.shadow.elevation1/2` resolved values, inlined verbatim so the
 // visuals stay identical while the app/Theme dependency dies.
-const legacyShadow1 = {
-  shadowColor: c.shadow,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 5,
-} as const;
-const legacyShadow2 = {
-  shadowColor: c.shadow,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 5,
-} as const;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => {
+  // Same geometry as before; the colour now follows the scheme instead of
+  // being pinned to the dark set.
+  const legacyShadow1 = {
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  } as const;
+  const legacyShadow2 = {
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  } as const;
+  return {
   screen: {
     flex: 1,
-    backgroundColor: paper.background.raised,
+    backgroundColor: c.background.canvas,
   },
   watermarkContainer: {
     position: 'absolute',
@@ -413,11 +444,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.md,
-    backgroundColor: withAlpha(c.text.primary, 0.7),
+    backgroundColor: c.surface.control,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: withAlpha(c.shadow, 0.05),
+    borderColor: c.border.hairline,
   },
   content: {
     paddingHorizontal: 20,
@@ -430,7 +461,7 @@ const styles = StyleSheet.create({
   heroCardShadow: {
     borderRadius: radius.sheet,
     marginBottom: 20,
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     ...legacyShadow1,
     elevation: 2,
   },
@@ -442,7 +473,7 @@ const styles = StyleSheet.create({
     padding: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: withAlpha(c.text.primary, 0.5),
+    borderColor: c.border.hairline,
   },
   heroLeft: { flex: 1, paddingRight: 12 },
   heroEyebrow: {
@@ -463,7 +494,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: withAlpha(c.text.primary, 0.6),
+    backgroundColor: c.surface.control,
   },
 
   // ── Session line ──
@@ -471,25 +502,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     borderRadius: radius.chip,
     paddingVertical: 14,
     paddingHorizontal: spacing.lg,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: withAlpha(c.shadow, 0.02),
+    borderColor: c.border.hairline,
     ...legacyShadow1,
     elevation: 2,
   },
 
   // ── Cards ──
   card: {
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     borderRadius: radius.sheet,
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: withAlpha(c.shadow, 0.02),
+    borderColor: c.border.hairline,
     ...legacyShadow1,
     elevation: 2,
   },
@@ -501,13 +532,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: withAlpha(c.shadow, 0.05),
+    borderBottomColor: c.border.hairline,
   },
   signalIconWrap: {
     width: 36,
     height: 36,
     borderRadius: radius.full,
-    backgroundColor: ORANGE_100,
+    backgroundColor: c.action.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -536,7 +567,7 @@ const styles = StyleSheet.create({
   primaryButtonShadow: {
     width: "100%",
     borderRadius: radius.chip,
-    backgroundColor: c.text.primary,
+    backgroundColor: c.surface.default,
     ...legacyShadow2,
     elevation: 4,
   },
@@ -547,4 +578,5 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: radius.chip,
   },
+  };
 });
