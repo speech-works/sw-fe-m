@@ -51,7 +51,6 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { useOnboardingNudgeStore },
       { useFirstCallStore },
       { useCallHintsStore },
-      { useTopMatchStampStore },
       { useDiscoveryPromptStore },
     ] = await Promise.all([
       import("../../stores/user"),
@@ -70,7 +69,6 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/onboardingNudge"),
       import("../../stores/firstCall"),
       import("../../stores/callHints"),
-      import("../../stores/topMatchStamp"),
       import("../../stores/discoveryPrompt"),
     ]);
     resets.push(
@@ -118,10 +116,6 @@ export async function clearAllPersistedUserState(): Promise<void> {
         "discoveryPrompt",
         () => useDiscoveryPromptStore.setState({ offeredAt: null }),
       ],
-      // The next person on this phone has never been shown a top match, and
-      // their first one should arrive the way anybody's does. A previous
-      // account's spent budget must not silence it.
-      ["topMatchStamp", () => useTopMatchStampStore.getState().reset()],
     );
   } catch (e) {
     console.warn("[clearUserState] loading stores for reset failed:", e);

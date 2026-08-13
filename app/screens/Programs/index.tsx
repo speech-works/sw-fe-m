@@ -269,8 +269,11 @@ const ProgramsScreen = () => {
         style={[styles.heroWrap, elevation.e2]}
       >
         {/* FLAT, not a gradient. At this size a ramp just muddies the middle of
-            the card; both references commit to one saturated colour. */}
-        <View style={[styles.hero, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
+            the card; both references commit to one saturated colour.
+
+            NO `primaryEdge` HERE — see `styles.heroOutline`. A border on this
+            view is a border on a RECTANGLE, and this card is not one. */}
+        <View style={[styles.hero, { backgroundColor: colors.action.primary }]}>
           {/* ── 0. the stub ──────────────────────────────────────────────
               A DARK CHIP, NOT A LIME ONE — and that is the whole repair.
               Lime is a bright hue and this card is a bright ground, so a lime
@@ -313,32 +316,6 @@ const ProgramsScreen = () => {
               />
             </Svg>
           </View>
-
-          {/* THE PUNCHES, AND WHY THEY ARE PAINT RATHER THAN A HOLE.
-              A notch is really a bite taken out of the card, which in RN means
-              an SVG-clipped container. These are two discs of the PAGE colour
-              laid over the edges instead: centred exactly on the border so the
-              card's own `overflow: "hidden"` crops each one to its inner half,
-              which is the same silhouette for a fraction of the cost. It works
-              only because this card sits on a flat canvas — move it onto a
-              gradient or an image and the discs stop matching. Drawn after the
-              tear line so they cover its ends. */}
-          <View
-            style={[
-              styles.notch,
-              styles.notchLeft,
-              { backgroundColor: colors.background.canvas },
-            ]}
-            pointerEvents="none"
-          />
-          <View
-            style={[
-              styles.notch,
-              styles.notchRight,
-              { backgroundColor: colors.background.canvas },
-            ]}
-            pointerEvents="none"
-          />
 
           <Text variant="h1" color={ink} style={styles.heroTitle}>
             {item.title}
@@ -394,6 +371,52 @@ const ProgramsScreen = () => {
               {item.owned ? "Open your program" : "See inside"}
             </Text>
           </View>
+
+          {/* ── the silhouette, drawn last so it sits over everything ──────
+              THE EDGE AND THE PUNCHES ARE ONE OBJECT, and they have to be, or
+              the ticket stops being a ticket.
+
+              The punches are paint, not a hole: two discs of the PAGE colour
+              centred on the card's edge, cropped to their inner half by the
+              card's own `overflow: "hidden"`. Same silhouette as an SVG clip
+              for a fraction of the cost. It works only because this card sits
+              on a flat canvas — move it onto a gradient or an image and the
+              discs stop matching.
+
+              What that trick cannot survive is a border on the card itself.
+              `primaryEdge` used to live on `styles.hero`, and a border there
+              traces the RECTANGLE: on iOS a `CALayer` border paints above every
+              subview, so a hairline ran straight across both punches; on
+              Android it paints below, so the outline just stopped dead at each
+              one. Two platforms, two bugs, one cause — the edge described a
+              shape the fill did not have.
+
+              So the outline moved to a sibling overlay UNDER the discs, and the
+              discs carry the same edge as a ring. The stroke now runs down the
+              side, turns into the bite, and comes back out: a punched ticket,
+              and identical on both platforms. On the ink scheme every `*Edge`
+              role is transparent, so all three of these draw nothing.
+
+              Drawn after the tear line so the discs still cover its ends. */}
+          <View style={[styles.heroOutline, primaryEdge(colors)]} pointerEvents="none" />
+          <View
+            style={[
+              styles.notch,
+              styles.notchLeft,
+              { backgroundColor: colors.background.canvas },
+              primaryEdge(colors),
+            ]}
+            pointerEvents="none"
+          />
+          <View
+            style={[
+              styles.notch,
+              styles.notchRight,
+              { backgroundColor: colors.background.canvas },
+              primaryEdge(colors),
+            ]}
+            pointerEvents="none"
+          />
         </View>
 
       </PressableScale>
@@ -739,7 +762,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
-  heroWrap: {},
+  // Carries `elevation.e2`, so it needs the card's radius: a shadow is cast by
+  // the view's own outline, and an unrounded wrapper cast a SQUARE one — four
+  // wedges of shade poking out past a 24-radius card. A third silhouette in a
+  // stack that is supposed to agree on one.
+  heroWrap: {
+    borderRadius: radius.card,
+  },
   hero: {
     borderRadius: radius.card,
     overflow: "hidden",
@@ -778,6 +807,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     height: 2,
   },
+  // The paper edge, as an overlay rather than a border on the card. Same box,
+  // same radius, so it lands exactly where `styles.hero` ends — the difference
+  // is only that the punches are free to paint over it.
+  heroOutline: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: radius.card,
+  },
   notch: {
     position: "absolute",
     top: NOTCH_Y - NOTCH_R,
@@ -785,8 +821,11 @@ const styles = StyleSheet.create({
     height: NOTCH_R * 2,
     borderRadius: NOTCH_R,
   },
-  // Centred ON the border, so half of each disc is clipped away and the visible
-  // half reads as a punch.
+  // Centred ON the card's edge, so half of each disc is clipped away and the
+  // visible half reads as a punch. Exactly half now that the card carries no
+  // border of its own: absolute children lay out against the PADDING box, so a
+  // 1px border used to push both discs a pixel inboard on paper and nowhere on
+  // ink — the one geometry in here that differed between the two schemes.
   notchLeft: { left: -NOTCH_R },
   notchRight: { right: -NOTCH_R },
   heroTitle: {},

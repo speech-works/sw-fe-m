@@ -11,8 +11,15 @@ import { useSystemDialogStore } from "../stores/systemDialog";
  *
  * FOR ONE-SHOT MOMENTS THAT CANNOT BE REPLAYED. An animation that fires behind
  * a bottom sheet is not merely unseen; if the thing that fired it is a
- * once-ever budget (see `topMatchStamp`), it is spent. Every condition here
- * exists because it has a way of quietly eating one of those:
+ * once-ever budget, it is spent. Every condition here exists because it has a
+ * way of quietly eating one of those.
+ *
+ * CURRENTLY UNUSED. Its only caller was the top-match stamp, which was deleted
+ * along with the badge it announced. Kept because the conditions below were
+ * each learned from a real way of losing a one-shot moment, and the app has
+ * other one-shots (the level-up takeover, the first call) that would otherwise
+ * have to rediscover them. If nothing adopts it, delete it — do not let it rot
+ * into a hook nobody dares remove.
  *
  *   focused      — a sheet can send someone off Home without ever dismissing:
  *                  report a mood and you land in the Academy, and the route
