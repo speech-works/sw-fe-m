@@ -177,7 +177,7 @@ const Settings = () => {
             // inert while it works reads as a dead button — which is exactly
             // how a reviewer would report it.
             text: restoring ? "Restoring…" : "Restore Purchases",
-            desc: "Recover past purchases on this account",
+            desc: "Already paid? Get it back",
             onClick: handleRestorePurchases,
           },
         ]

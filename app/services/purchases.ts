@@ -236,20 +236,42 @@ export async function getStorePrices(
   return out;
 }
 
+export interface RestoreResult {
+  /** True only when the store actually had something for this store account. */
+  foundInStore: boolean;
+  /** Our own wallet AFTER reconciliation. Null when there was nothing to reconcile. */
+  wallet: Wallet | null;
+}
+
 /**
  * Restore previous purchases (Settings → Restore Purchases) and force our
  * backend to reconcile immediately, rather than waiting for the next lazy
  * reconcile window on GET /users/me/wallet.
+ *
+ * `foundInStore` exists because a restore that finds NOTHING does not fail. On
+ * iOS, dismissing the App Store sign-in sheet resolves `restorePurchases()`
+ * with the cached (empty) CustomerInfo instead of throwing, and this function
+ * used to return `getWallet()` unconditionally. A Wallet object is always
+ * returned for a signed-in user, so the caller's "nothing restored" branch was
+ * unreachable and cancelling produced a "Purchases restored" celebration.
+ * CustomerInfo is the only thing here that knows whether the store gave us
+ * anything, so the answer has to be read from it, not from our own wallet.
  */
-export async function restorePurchasesAndReconcile(): Promise<Wallet | null> {
+export async function restorePurchasesAndReconcile(): Promise<RestoreResult | null> {
   if (!purchasesAvailable()) return null;
   configurePurchases();
 
-  await Purchases.restorePurchases();
+  const customerInfo = await Purchases.restorePurchases();
+  const foundInStore =
+    Object.keys(customerInfo.entitlements.active).length > 0 ||
+    customerInfo.allPurchasedProductIdentifiers.length > 0;
+
+  if (!foundInStore) return { foundInStore: false, wallet: null };
+
   // getWallet() itself triggers RevenueCatReconciliationService.maybeReconcile
   // server-side, which is what actually turns the restored RC state into our
   // own entitlements/credits.
-  return getWallet();
+  return { foundInStore: true, wallet: await getWallet() };
 }
 
 /**

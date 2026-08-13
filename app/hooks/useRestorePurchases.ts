@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Wallet } from "../api";
 import { restorePurchasesAndReconcile } from "../services/purchases";
 import { useUserStore } from "../stores/user";
 import {
@@ -23,6 +24,35 @@ import {
  *    `console.error`, so a reviewer tapping Restore on a bad network saw
  *    nothing happen at all — which reads as a broken button.
  */
+
+/**
+ * What the user actually got back, in their words. Never says "0 call credits":
+ * announcing an empty balance under a green tick is how the old copy managed to
+ * celebrate nothing. When the store had something but our side has no visible
+ * grant yet, stay vague rather than claim a specific amount.
+ */
+const summarizeRestore = (wallet: Wallet | null): string => {
+  if (!wallet) return "Your purchases are back.";
+
+  const parts: string[] = [];
+  if (wallet.entitlements.includes("membership")) {
+    parts.push("Your membership is active.");
+  }
+  const packs = wallet.entitlements.filter((key) =>
+    key.startsWith("pack:"),
+  ).length;
+  if (packs > 0) {
+    parts.push(`${packs} pack${packs === 1 ? "" : "s"} unlocked.`);
+  }
+  if (wallet.balance > 0) {
+    parts.push(
+      `You have ${wallet.balance} call credit${wallet.balance === 1 ? "" : "s"}.`,
+    );
+  }
+
+  return parts.length > 0 ? parts.join(" ") : "Your purchases are back.";
+};
+
 export function useRestorePurchases() {
   const [restoring, setRestoring] = useState(false);
 
@@ -30,24 +60,24 @@ export function useRestorePurchases() {
     if (restoring) return;
     setRestoring(true);
     try {
-      const wallet = await restorePurchasesAndReconcile();
+      const result = await restorePurchasesAndReconcile();
       await useUserStore.getState().fetchUser();
 
-      if (!wallet) {
-        // purchasesAvailable() was false, or the store had nothing for this
-        // account. Either way there is nothing to celebrate and nothing broke.
+      if (!result?.foundInStore) {
+        // purchasesAvailable() was false, the sign-in sheet was dismissed, or
+        // the store simply had nothing for this account. Nothing to celebrate
+        // and nothing broke. Name the store account, because signing in with a
+        // different one is the usual reason a real purchase "vanished".
         showSuccessBottomSheet(
           "Nothing to restore",
-          "No previous purchases on this account.",
+          "We found no purchases on your store account. If you paid with a different one, sign in to it and try again.",
         );
         return;
       }
 
       showSuccessBottomSheet(
         "Purchases restored",
-        `You have ${wallet.balance} call credit${
-          wallet.balance === 1 ? "" : "s"
-        }.`,
+        summarizeRestore(result.wallet),
       );
     } catch (error) {
       console.error("Error restoring purchases:", error);
