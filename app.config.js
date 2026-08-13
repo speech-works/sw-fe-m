@@ -313,12 +313,12 @@ module.exports = {
         // correct whichever source lands last. "This app needs camera access to
         // record videos" was never true — we never record video.
         NSPhotoLibraryUsageDescription:
-          "Speechworks uses your photo library so you can choose a profile photo.",
+          "Speechworks uses your photo library so you can attach a screenshot to a support request.",
         ITSAppUsesNonExemptEncryption: false,
         NSMicrophoneUsageDescription:
           "Speechworks uses your microphone for recording practice and live calls.",
         NSCameraUsageDescription:
-          "Speechworks uses your camera for on-device awareness exercises, and to take a profile photo. No video is recorded or sent.",
+          "Speechworks uses your camera for on-device awareness exercises, and to attach a photo to a support request. No video is recorded or sent.",
         NSMotionUsageDescription:
           "This app uses motion data to tell your head movements apart from phone movement during awareness exercises.",
         CFBundleURLTypes: [
@@ -435,12 +435,21 @@ module.exports = {
         // exercise. Apple rejects usage strings that don't describe the actual
         // use (5.1.1), so all three now carry the SAME truthful sentence
         // covering both uses. If you change one, change all three.
+        //
+        // Corrected again 2026-08-13: both strings used to promise a PROFILE
+        // PHOTO, which the app does not have. `UniversalImageUploader` is
+        // mounted in exactly one place, the bug-report screen
+        // (`Settings/pages/Support/ReportProblem.tsx`), so the picker and the
+        // camera exist to attach an image to a support request and nothing
+        // else. A profile picture comes from the OAuth provider; it is never
+        // chosen in-app. Describing a feature that does not exist is the same
+        // 5.1.1 failure as describing the wrong one.
         "expo-image-picker",
         {
           photosPermission:
-            "Speechworks uses your photo library so you can choose a profile photo.",
+            "Speechworks uses your photo library so you can attach a screenshot to a support request.",
           cameraPermission:
-            "Speechworks uses your camera for on-device awareness exercises, and to take a profile photo. No video is recorded or sent.",
+            "Speechworks uses your camera for on-device awareness exercises, and to attach a photo to a support request. No video is recorded or sent.",
         },
       ],
       // Declared explicitly rather than left to Expo's default so
@@ -486,7 +495,7 @@ module.exports = {
           // Same sentence as expo-image-picker's cameraPermission — see the
           // note there. Three writers, one string.
           cameraPermissionText:
-            "Speechworks uses your camera for on-device awareness exercises, and to take a profile photo. No video is recorded or sent.",
+            "Speechworks uses your camera for on-device awareness exercises, and to attach a photo to a support request. No video is recorded or sent.",
           enableCodeScanner: false,
         },
       ],
@@ -512,6 +521,30 @@ module.exports = {
           },
           ios: {
             deploymentTarget: "16.4",
+            // OFF because it CORRUPTS the privacy manifest. Verified by
+            // controlled comparison on 2026-08-13:
+            //   prebuild --no-install  ->  PrivacyInfo.xcprivacy is a correct
+            //     XML plist dict, with NSPrivacyTracking,
+            //     NSPrivacyAccessedAPITypes and all our collected data types.
+            //   prebuild (with pod install)  ->  the same file comes back as a
+            //     bare JSON ARRAY of data types. Root is no longer a dict, and
+            //     NSPrivacyTracking and NSPrivacyAccessedAPITypes are GONE.
+            // React Native's `privacy_file_aggregation` (Podfile, via
+            // scripts/cocoapods/privacy_manifest_utils.rb) rewrites the app
+            // target's manifest during `pod install` and flattens it.
+            //
+            // An invalid manifest is worse than a thin one: Apple cannot read
+            // it, so every data type declared above silently stops counting,
+            // and required-reason API declarations go missing.
+            //
+            // Losing aggregation is cheap. Expo's own plugin already writes
+            // NSPrivacyAccessedAPITypes for the app target, and since 2024
+            // every third-party SDK must ship its own .xcprivacy inside its
+            // pod, which Apple reads separately. Aggregation was a convenience.
+            //
+            // Re-test this on any Expo or React Native upgrade: if the upstream
+            // bug is fixed, this line can go.
+            privacyManifestAggregationEnabled: false,
           },
         },
       ],
