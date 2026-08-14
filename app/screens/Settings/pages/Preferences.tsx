@@ -3,6 +3,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useVoicePreferenceStore } from "../../../stores/voicePreference";
 import { useAppearanceStore } from "../../../stores/appearance";
+import { useHapticsStore } from "../../../stores/haptics";
 import { ACCENT_META_BY_LOCALE } from "../../../util/voice";
 import { useUserStore } from "../../../stores/user";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
@@ -12,6 +13,7 @@ import {
   icons,
   ListItem,
   Page,
+  Toggle,
 } from "../../../design-system";
 
 /**
@@ -31,6 +33,9 @@ const Preferences = () => {
   const appearanceMode = useAppearanceStore((s) => s.mode);
   const appearanceDesc =
     appearanceMode === "system" ? "System" : appearanceMode === "dark" ? "Dark" : "Light";
+
+  const hapticsOn = useHapticsStore((s) => s.enabled);
+  const setHaptics = useHapticsStore((s) => s.setEnabled);
 
   return (
     <Page title="Preferences" onBack={() => navigation.goBack()}>
@@ -56,7 +61,14 @@ const Preferences = () => {
           label="Appearance"
           sublabel={appearanceDesc}
           showChevron
+          divider
           onPress={() => navigation.navigate("Appearance")}
+        />
+        <ListItem
+          leftIcon="smartphone"
+          label="Vibration"
+          sublabel="A short buzz on recording and on errors"
+          right={<Toggle value={hapticsOn} onChange={setHaptics} />}
         />
       </View>
     </Page>

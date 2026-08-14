@@ -41,6 +41,29 @@ export const Slider: React.FC<SliderProps> = ({
 }) => {
   const { colors } = useTheme();
   const activeColor = accentColor ?? colors.action.primary;
+
+  /**
+   * One tick per STEP CROSSED, not one per event.
+   *
+   * `onValueChange` fires continuously while a finger moves, so ticking on
+   * every call turned a single drag into a rattle. A continuous slider (step 0)
+   * has no natural notch, so it gets twenty over its range: enough to feel like
+   * travel, few enough to stay a series of taps.
+   */
+  const span = maximumValue - minimumValue;
+  const tickSize = step > 0 ? step : span > 0 ? span / 20 : 0;
+  const lastTick = React.useRef<number | null>(null);
+
+  const handleChange = (v: number) => {
+    if (haptic && tickSize > 0) {
+      const notch = Math.round(v / tickSize);
+      if (lastTick.current !== notch) {
+        lastTick.current = notch;
+        haptics.selection();
+      }
+    }
+    onValueChange(v);
+  };
   return (
     <View style={{ gap: 6 }}>
       {label || showValue ? (
@@ -61,10 +84,7 @@ export const Slider: React.FC<SliderProps> = ({
       ) : null}
       <RNSlider
         value={value}
-        onValueChange={(v) => {
-          if (haptic) haptics.selection();
-          onValueChange(v);
-        }}
+        onValueChange={handleChange}
         onSlidingComplete={onSlidingComplete}
         minimumValue={minimumValue}
         maximumValue={maximumValue}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { submitAppFeedback } from "../../../../api/settings/helpSupport";
 import { useUserStore } from "../../../../stores/user";
+import { withWrapPoints } from "../../../../util/functions/strings";
 import { useNavigation } from "@react-navigation/native";
 import {
   size,
@@ -147,8 +148,11 @@ const Feedback = () => {
             {submitEmail ? (
               <View style={[styles.emailChip, { backgroundColor: colors.surface.control }]}>
                 <Icon name="mail" size={size.iconInline} color={colors.text.secondary} />
-                <Text variant="bodySm" color="secondary">
-                  {user?.email}
+                {/* Same shape of bug as the profile row: a content-sized chip
+                    holding one unbreakable token grows past the card. Shrink
+                    the text and let it wrap at the seams instead. */}
+                <Text variant="bodySm" color="secondary" style={styles.emailChipText}>
+                  {withWrapPoints(user?.email ?? "")}
                 </Text>
               </View>
             ) : null}
@@ -236,6 +240,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     alignSelf: "flex-start",
+    // `flex-start` sizes the chip to its content, and content sized to an
+    // unbreakable token has nothing stopping it at the card edge.
+    maxWidth: "100%",
+  },
+  emailChipText: {
+    flexShrink: 1,
   },
   successContainer: {
     flex: 1,

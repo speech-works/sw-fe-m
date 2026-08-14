@@ -256,6 +256,10 @@ const SmartRecorder: React.FC<Props> = ({
         <View style={styles.rightSection}>
           {isRecording ? (
             <PressableScale
+              // One of the few taps that keeps its tick: recording starts and
+              // stops are worth confirming by feel, because people are looking
+              // at the words or at their own face, not at this button.
+              haptic
               style={[styles.stopButtonRecording, scheme !== "dark" && elevation.e2]}
               onPress={handleStopRecording}
             >
@@ -274,6 +278,9 @@ const SmartRecorder: React.FC<Props> = ({
             </PressableScale>
           ) : hasRecording ? (
             <PressableScale
+              // Submitting the take is a commit, and the screen changes under
+              // the finger. The tick marks the moment it went.
+              haptic
               style={[styles.submitButton, { backgroundColor: accent }, scheme !== "dark" && elevation.e2]}
               onPress={handleSubmitPress}
             >
@@ -282,6 +289,7 @@ const SmartRecorder: React.FC<Props> = ({
           ) : (
             // Idle Right: Mic Button
             <PressableScale
+              haptic
               style={[
                 styles.mainMicButton,
                 { backgroundColor: accent },

@@ -27,22 +27,27 @@ import OfferSlide, {
   SLIDE_CARD_HEIGHT,
   CTA_BOTTOM_FROM_CARD_TOP,
 } from "./OfferSlide";
+import MoreProgramsTile from "./MoreProgramsTile";
+import PressableScale from "../PressableScale";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import RecHeroCard from "./RecHeroCard";
 import {
   Carousel,
+  Icon,
+  icons,
   Skeleton,
   Text,
-  TextLink,
   duration,
   easing,
   radius,
+  size,
   space,
   spacing,
   typography,
   useInView,
   useMotion,
   usePageScroll,
+  useTheme,
   type InViewRect,
 } from "../../design-system";
 
@@ -105,29 +110,57 @@ const SHELF_GEOMETRY: ShelfGeometry = {
 /** Paging dots: `Carousel`'s own `marginTop: spacing.lg` plus their 8pt height. */
 const DOTS_BLOCK = spacing.lg + 8;
 
-/** The "Show more" line: its `marginTop` plus TextLink's 8pt padding either side. */
-const MORE_BLOCK = space.rowGap + space.inlineGap * 2 + typography.bodySm.lineHeight;
-
 /**
- * The height the settled carousel actually occupies — heading, card, dots and
- * link, not just the card.
+ * The height the settled carousel actually occupies — heading, card and dots,
+ * not just the card.
  *
- * THE SKELETON USED TO RESERVE ONLY THE CARD (260). The section settles at 368,
- * so every first open shoved everything below it down by 108pt a second or two
- * after the person started reading — and it made "was this visible" unanswerable,
- * because the answer changed after the measurement.
+ * THE SKELETON USED TO RESERVE ONLY THE CARD (260). The section settles at 320,
+ * so every first open shoved everything below it down a second or two after the
+ * person started reading — and it made "was this visible" unanswerable, because
+ * the answer changed after the measurement.
+ *
+ * It used to carry a fourth term, `MORE_BLOCK`, for the "Show more programs"
+ * link that sat under the dots. That link is now the heading's right-hand action
+ * and the last slide of the carousel, so the 48pt it reserved goes back to the
+ * fold. The heading row is unchanged in height: its action is sized to sit
+ * inside `h3.lineHeight` precisely so this stays a two-term sum.
  */
 const SECTION_HEIGHT =
-  typography.h3.lineHeight +
-  space.rowGap +
-  SLIDE_MIN_HEIGHT +
-  DOTS_BLOCK +
-  MORE_BLOCK;
+  typography.h3.lineHeight + space.rowGap + SLIDE_MIN_HEIGHT + DOTS_BLOCK;
 
-type ProgramsSource = "home_for_you_more" | "home_browse_fallback";
+/**
+ * Which door into the shop somebody used.
+ *
+ * `source` is not decoration: the shelf now has two ways through to the same
+ * screen, and one shared value would make them indistinguishable — the exact
+ * problem the old code called out when the link and the browse-fallback CTA
+ * shared an untracked function.
+ *
+ * `home_for_you_more` (the link under the dots) RETIRED on this change. A
+ * dashboard whose series stops there should read `home_for_you_header` plus
+ * `home_for_you_end_tile` from that date on.
+ */
+type ProgramsSource =
+  | "home_for_you_header"
+  | "home_for_you_end_tile"
+  | "home_browse_fallback";
+
+/**
+ * What the carousel renders. The offers are the shelf; the tile is the way out.
+ *
+ * Kept as a tagged union rather than by padding `selection.items`, and that is
+ * load-bearing for measurement: the slide impression tracker reads
+ * `selection.items[index]`, so an extra entry there would file the shop door as
+ * a program that somebody looked at. `forYou.ts` also forbids padding a ranked
+ * list to reach N, for the same family of reasons.
+ */
+type Slide =
+  | { kind: "offer"; item: OfferItem }
+  | { kind: "more" };
 
 const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   const navigation = useNavigation<any>();
+  const { colors } = useTheme();
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
   const lastFetchRef = useRef<number>(0);
@@ -352,9 +385,6 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     });
   };
 
-  // `source` is not decoration: the link under the dots and the browse-fallback
-  // CTA shared one untracked function, so the shop had two front doors and no
-  // way to tell which one anybody came through.
   const goToPrograms = (source: ProgramsSource) => {
     track(ANALYTICS_EVENTS.PROGRAMS_LIST_OPENED, { source });
     navigation.navigate("ExploreStack", { screen: "Programs" });
@@ -396,39 +426,82 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
       />
     );
   } else {
+    // The tile only exists when there is genuinely something else to see. With
+    // nothing left over it would be a door onto a room the person has already
+    // been shown, and the heading action goes with it for the same reason.
+    const hasMore = selection.remaining > 0;
+    // NOT `slides` — that name is taken by the impression tracker a few lines
+    // up, and the two must never be confused for one another.
+    const carouselSlides: Slide[] = hasMore
+      ? [
+          ...selection.items.map((item) => ({ kind: "offer" as const, item })),
+          { kind: "more" as const },
+        ]
+      : selection.items.map((item) => ({ kind: "offer" as const, item }));
+
     inner = (
       <>
-        <Text variant="h3" color="primary" style={styles.heading}>
-          For you
-        </Text>
+        <View style={styles.headingRow}>
+          <Text variant="h3" color="primary">
+            For you
+          </Text>
+
+          {/* NOT `TextLink`, and not for looks. TextLink pads 8pt above and
+              below, which would push this row past `h3.lineHeight` and quietly
+              invalidate `SHELF_GEOMETRY.cardTopInSection` — the constant that
+              tells the impression code where the card starts. `hitSlop` buys the
+              tap target back without touching layout.
+
+              No underline either. TextLink's rule is that the underline goes
+              only where POSITION already makes the action unmistakable, and a
+              right-aligned accent label with a chevron on a section heading is
+              the one arrangement nobody reads as body copy. */}
+          {hasMore ? (
+            <PressableScale
+              scaleTo={0.97}
+              onPress={() => goToPrograms("home_for_you_header")}
+              accessibilityRole="link"
+              accessibilityLabel="See more programs"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={styles.headingAction}
+            >
+              {/* `bodySm`, the variant every other link in the app uses, rather
+                  than the smaller `label`. This is the first section header in
+                  the app to carry an action, so it sets the pattern: quiet
+                  enough that the heading still leads, familiar enough to read
+                  as the same kind of thing as every other link. */}
+              <Text variant="bodySm" color="link">
+                See more
+              </Text>
+              <Icon
+                name={icons.chevronRight}
+                size={size.iconInline}
+                color={colors.text.link}
+              />
+            </PressableScale>
+          ) : null}
+        </View>
 
         <Carousel
-          data={selection.items}
-          keyExtractor={(i) => i.key}
+          data={carouselSlides}
+          keyExtractor={(s, i) => (s.kind === "offer" ? s.item.key : `more-${i}`)}
           onIndexChange={onIndexChange}
           bleedRight={space.screenX}
-          renderItem={({ item, index }) => (
-            <OfferSlide
-              item={item}
-              store={storePrices[item.tierProductId]}
-              highlight={index === 0 && selection.highlightFirst}
-              onPress={openDetail}
-            />
-          )}
+          renderItem={({ item: slide, index }) =>
+            slide.kind === "offer" ? (
+              <OfferSlide
+                item={slide.item}
+                store={storePrices[slide.item.tierProductId]}
+                highlight={index === 0 && selection.highlightFirst}
+                onPress={openDetail}
+              />
+            ) : (
+              <MoreProgramsTile
+                onPress={() => goToPrograms("home_for_you_end_tile")}
+              />
+            )
+          }
         />
-
-        {selection.remaining > 0 ? (
-          <View style={styles.more}>
-            {/* No underline: it is the lone centred line directly under the paging
-                dots, which already reads as "there's more this way" — nothing here
-                could be mistaken for body copy. */}
-            <TextLink
-              label="Show more programs"
-              onPress={() => goToPrograms("home_for_you_more")}
-              underline={false}
-            />
-          </View>
-        ) : null}
       </>
     );
   }
@@ -455,11 +528,21 @@ const styles = StyleSheet.create({
   shelf: {
     position: "relative",
   },
-  heading: {
+  // Fixed to the heading's own line height, not left to grow with its contents:
+  // `SHELF_GEOMETRY.cardTopInSection` is this height plus the gap, and the
+  // impression maths is only true while that stays so.
+  headingRow: {
+    height: typography.h3.lineHeight,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.inlineGap,
     marginBottom: space.rowGap,
   },
-  more: {
-    marginTop: space.rowGap,
+  headingAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   skeletonCard: {
     marginTop: space.rowGap,

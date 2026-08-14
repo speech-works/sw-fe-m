@@ -1,12 +1,18 @@
-import { Platform, Vibration } from "react-native";
+import { haptics } from "../../design-system/haptics";
+
+/** Gap between the two beats, so the pair reads as one heartbeat. */
+const BEAT_GAP_MS = 160;
 
 /**
- * Triggers a "heartbeat" double-pulse vibration.
- * Used as the immediate tactile signal when stamina drops below 10%.
- * Uses the built-in Vibration API (expo-haptics not installed).
+ * The stamina alert: two beats close together, like a heartbeat.
+ *
+ * Routed through the design system's haptics rather than `Vibration` for two
+ * reasons. It obeys the person's Vibration setting, which a raw call would walk
+ * straight past. And `Vibration.vibrate([0, 80, 60, 80])` never produced that
+ * pattern on iOS anyway: iOS ignores the timings and plays the full system
+ * alert buzz for each entry.
  */
 export const triggerHeartbeatHaptic = () => {
-  if (Platform.OS === "web") return;
-  // Two quick pulses: [delay, on, off, on]
-  Vibration.vibrate([0, 80, 60, 80]);
+  haptics.heavy();
+  setTimeout(() => haptics.heavy(), BEAT_GAP_MS);
 };

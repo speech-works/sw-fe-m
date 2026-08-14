@@ -46,8 +46,20 @@ import { useOnboardingNudgeStore } from "../../stores/onboardingNudge";
  * "you're all set" reads as a bait-and-switch. The same matched program is
  * waiting on Home and in the shop the moment they continue.
  */
-/** Button height + its padding + fade headroom, so content clears the dock. */
-const DOCK_CLEARANCE = 56 + spacing["2xl"] + spacing["3xl"];
+/**
+ * Fallback clearance for the single frame before the dock has measured itself:
+ * fade headroom + two lg buttons + the dock's own bottom padding. Only ever
+ * used pre-layout. The real number comes from `onLayout` below.
+ *
+ * It is a fallback and NOT a constant for a reason. This used to be a hardcoded
+ * `56 + spacing["2xl"] + spacing["3xl"]`, one button's worth, while the dock
+ * actually carries two whenever the server confirms completion. The dock then
+ * covered ~45pt more than the ScrollView reserved, so the last line of the
+ * match card sat underneath it AND could not be scrolled out: the reserve is
+ * what makes the content taller than the viewport in the first place, so
+ * under-reserving means there is no scroll range to recover it with.
+ */
+const DOCK_FALLBACK = spacing["3xl"] + 56 * 2 + spacing["4xl"];
 
 const OnboardingDone: React.FC = () => {
   const { colors } = useTheme();
@@ -59,6 +71,9 @@ const OnboardingDone: React.FC = () => {
   );
   const markCompleted = useOnboardingNudgeStore((s) => s.markCompleted);
   const [topMatch, setTopMatch] = useState<OfferItem | null>(null);
+  // Measured, never assumed: the dock is one button tall or two depending on
+  // `serverConfirmedComplete`, and it owns its own safe-area padding.
+  const [dockH, setDockH] = useState(0);
 
   // The clinical baseline is seeded in the same request that completes
   // onboarding, so by the time this screen mounts the backend can already
@@ -173,10 +188,13 @@ const OnboardingDone: React.FC = () => {
           styles.container,
           {
             paddingTop: insets.top + spacing.xl,
-            // Reserve the dock's height (+ its fade) so the last line of the
-            // match card can always be scrolled clear of the floating button
-            // instead of resting permanently underneath it.
-            paddingBottom: insets.bottom + DOCK_CLEARANCE,
+            // Reserve the dock's MEASURED height (fade headroom, both buttons
+            // and its safe-area padding are all inside it) so the last line of
+            // the match card can always be scrolled clear of the floating
+            // button instead of resting permanently underneath it. No
+            // `insets.bottom` here: the dock already carries it, and adding it
+            // again would double-count.
+            paddingBottom: (dockH || DOCK_FALLBACK) + spacing.md,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -246,7 +264,14 @@ const OnboardingDone: React.FC = () => {
           The gradient dissolves scrolling content into the background before it
           reaches the button, so nothing ever ghosts through it or collides with
           it. Same recipe as the buy dock in ProgramSalesFlow. */}
-      <View style={styles.dock} pointerEvents="box-none">
+      <View
+        style={styles.dock}
+        pointerEvents="box-none"
+        onLayout={(e) => {
+          const h = Math.round(e.nativeEvent.layout.height);
+          if (h !== dockH) setDockH(h);
+        }}
+      >
         <Gradient
           colors={[
             withAlpha(colors.background.canvas, 0),

@@ -276,10 +276,23 @@ const Settings = () => {
             />
           </Reanimated.View>
 
+          {/* The name is the ONLY thing here allowed to shrink. A long one used
+              to widen this row past the card on both sides: the name bleeding
+              off the left edge and the plan badge clipped off the right. The
+              badge keeps its intrinsic width (it is state, not decoration, and
+              it is short by construction); the name truncates, and the full one
+              is a tap away on View Profile. */}
           <View style={styles.nameRow}>
-            <Text variant="h2">{user?.name}</Text>
+            <Text variant="h2" numberOfLines={1} style={styles.name}>
+              {user?.name}
+            </Text>
             {isMember === null ? null : (
-              <View style={[styles.proBadge, { backgroundColor: colors.action.primaryTint }]}>
+              <View
+                style={[
+                  styles.proBadge,
+                  { backgroundColor: colors.action.primaryTint },
+                ]}
+              >
                 <Text variant="eyebrow" color="accent">
                   {isMember ? "MEMBER" : "FREE"}
                 </Text>
@@ -453,12 +466,21 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
+    // Stretch + centre, rather than letting the row size to its content: the
+    // card centres its children, so a content-sized row simply grew past both
+    // card edges instead of constraining the name inside them.
+    alignSelf: "stretch",
+    justifyContent: "center",
     gap: spacing.sm,
+  },
+  name: {
+    flexShrink: 1,
   },
   proBadge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
+    flexShrink: 0,
   },
   viewProfileButton: {
     width: "100%",

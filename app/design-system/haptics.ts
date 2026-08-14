@@ -7,11 +7,29 @@ import * as Haptics from "expo-haptics";
  * Each call is fire-and-forget and swallows the rare native rejection so it can
  * never crash a handler. No-ops gracefully where haptics aren't available.
  */
+/**
+ * ONE SWITCH FOR EVERY BUZZ IN THE APP.
+ *
+ * Kept as a plain module flag rather than a hook so that non-React callers
+ * (timers, event handlers, imperative helpers) obey it too, and so the design
+ * system keeps no dependency on the app's stores. `stores/haptics` owns the
+ * saved value and pushes it in here, both on rehydrate and on change.
+ */
+let enabled = true;
+
+/** Set by `stores/haptics`. Nothing else should call this. */
+export const setHapticsEnabled = (next: boolean) => {
+  enabled = next;
+};
+
+export const hapticsEnabled = () => enabled;
+
 const safe = (fn: () => Promise<unknown>) => {
+  if (!enabled) return;
   try {
     fn().catch(() => {});
   } catch {
-    // platform without haptics — ignore
+    // platform without haptics, ignore
   }
 };
 

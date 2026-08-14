@@ -47,6 +47,8 @@ import {
   trackScreen,
 } from "./app/util/analytics/postHog";
 import { useAnalyticsConsentStore } from "./app/stores/analyticsConsent";
+import { useHapticsStore } from "./app/stores/haptics";
+import { setHapticsEnabled } from "./app/design-system/haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
@@ -157,6 +159,17 @@ if (useAnalyticsConsentStore.persist.hasHydrated()) {
   applyAnalyticsConsentFromStore();
 }
 useAnalyticsConsentStore.persist.onFinishHydration(applyAnalyticsConsentFromStore);
+
+// Same shape for the vibration preference: the saved value has to reach the
+// design system before the first tap, and the store would otherwise not load
+// until somebody opened Settings. Until it lands the flag stays ON, which is
+// the safe way round for a setting that is on by default.
+const applyHapticsFromStore = () =>
+  setHapticsEnabled(useHapticsStore.getState().enabled);
+if (useHapticsStore.persist.hasHydrated()) {
+  applyHapticsFromStore();
+}
+useHapticsStore.persist.onFinishHydration(applyHapticsFromStore);
 
 // Bug Fix #3: Debounce guard for AppState-triggered fetchUser() calls.
 // Android foregrounds apps more aggressively than iOS (screen-on events,

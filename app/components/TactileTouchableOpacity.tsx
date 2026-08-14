@@ -1,11 +1,6 @@
 import React, { useCallback, useState } from "react";
-import {
-  Platform,
-  TouchableOpacity,
-  TouchableOpacityProps,
-  Vibration,
-} from "react-native";
-// import * as Haptics from 'expo-haptics'; // Not installed, using Vibration fallback
+import { TouchableOpacity, TouchableOpacityProps } from "react-native";
+import { haptics } from "../design-system/haptics";
 
 interface TactileTouchableOpacityProps extends TouchableOpacityProps {
   /**
@@ -14,15 +9,17 @@ interface TactileTouchableOpacityProps extends TouchableOpacityProps {
    */
   debounceTime?: number;
   /**
-   * Whether to trigger haptic feedback on press.
-   * @default true
+   * Light tick on press. Off by default, same reasoning as `PressableScale`:
+   * a shared wrapper that buzzes unless told otherwise ends up buzzing
+   * everywhere.
+   * @default false
    */
   hapticFeedback?: boolean;
 }
 
 /**
  * A wrapper around TouchableOpacity that provides:
- * 1. Haptic feedback on press (using Vibration as fallback).
+ * 1. Optional haptic feedback on press.
  * 2. Debouncing to prevent accidental double-clicks.
  */
 export const TactileTouchableOpacity: React.FC<
@@ -30,7 +27,7 @@ export const TactileTouchableOpacity: React.FC<
 > = ({
   onPress,
   debounceTime = 1000,
-  hapticFeedback = true,
+  hapticFeedback = false,
   disabled,
   children,
   ...props
@@ -41,16 +38,10 @@ export const TactileTouchableOpacity: React.FC<
     (event: any) => {
       if (isDebounced) return;
 
-      // Trigger Haptics
-      if (hapticFeedback) {
-        // Simple fallback vibration
-        // In a real app with expo-haptics: Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        if (Platform.OS === "web") {
-          // no-op
-        } else {
-          Vibration.vibrate(10); // Short vibration
-        }
-      }
+      // A real light impact, not the alert buzz. `Vibration.vibrate(10)` used
+      // to sit here: iOS ignores that number and plays the full system alert
+      // vibration, the same one an incoming message makes.
+      if (hapticFeedback) haptics.light();
 
       // Debounce
       setIsDebounced(true);
