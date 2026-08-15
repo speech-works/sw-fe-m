@@ -119,11 +119,15 @@ export const useReadingPracticeBase = ({
     const fetchItems = async () => {
       try {
         setIsLoading(true);
-        const fetched = await getReadingPracticeByType(type, hardMode);
+        const recommendedId = (route.params as any)?.id;
+        const fetched = await getReadingPracticeByType(
+          type,
+          hardMode,
+          hardMode ? undefined : recommendedId,
+        );
         setItems(fetched);
 
         // If an ID is passed from recommendations, select it
-        const recommendedId = (route.params as any)?.id;
         if (recommendedId && !hardMode) {
           const index = fetched.findIndex((item) => item.id === recommendedId);
           if (index !== -1) {

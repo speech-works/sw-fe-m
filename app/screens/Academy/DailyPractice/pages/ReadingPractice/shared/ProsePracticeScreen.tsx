@@ -1,9 +1,5 @@
-import {
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-} from "@react-navigation/native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Dimensions,
   StyleSheet,
@@ -12,21 +8,19 @@ import {
 } from "react-native";
 
 import DonePractice from "../../../components/DonePractice";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 
 
 // Tools
 import Metronome, {
   useMetronome,
-} from "../../../../Library/TechniquePage/components/Metronome";
-import { DAFTool, useDAF } from "../../../../Tools/DAF";
-import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
-import ToolConsentModal from "../../../../../../components/ToolConsentModal";
-import ToolNudge from "../../../../../../components/ToolNudge";
+} from "../../../../Library/TechniquePage/components/Metronome"; // Updated import
+import { DAFTool, useDAF } from "../../../../Tools/DAF"; // Updated import
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
-import SmartRecorder from "../StoryPractice/components/SmartRecorder"; // Reuse SmartRecorder
+import SmartRecorder from "../StoryPractice/components/SmartRecorder";
 import RecorderTools from "../StoryPractice/components/RecorderTools";
-import { ReadingStage } from "../shared/ReadingStage";
+import { ReadingStage } from "./ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
 import FocusLamp from "../../../components/FocusLamp";
 
@@ -42,93 +36,112 @@ import {
   spacing,
   withAlpha,
 } from "../../../../../../design-system";
-import { readingPracticeAccents, readingTips } from "../data";
 
-// API & Stores
-import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
-import {
-  ReadingPractice,
-  ReadingPracticeType,
-} from "../../../../../../api/dailyPractice/types";
-import {
-  completePracticeActivity,
-} from "../../../../../../api/practiceActivities";
-import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import { RecordingSourceType } from "../../../../../../api/recordings/types";
-import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
+import { useReadingPracticeBase } from "./useReadingPracticeBase";
+import { ReadingPracticeType } from "../../../../../../api/dailyPractice/types";
+import type { ReadingAccent } from "../data";
+import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
+import ToolConsentModal from "../../../../../../components/ToolConsentModal";
+import ToolNudge from "../../../../../../components/ToolNudge";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
-import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
-import { useActivityStore } from "../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../stores/session";
-import { useUIStore } from "../../../../../../stores/ui";
-import { useUserStore } from "../../../../../../stores/user";
-import { toPascalCase } from "../../../../../../util/functions/strings";
-import { track } from "../../../../../../util/analytics/postHog";
-import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 
 import {
   RDPStackNavigationProp,
   RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
 
-const PoemPractice = () => {
-  const navigation = useNavigation<RDPStackNavigationProp<"PoemPractice">>();
+/**
+ * The long-form reading screen, shared by STORY and SPEECH.
+ *
+ * Both read a multi-paragraph passage one page at a time with the same tools,
+ * recorder, guardrails and exit flow; the only things that differ are the
+ * content type they fetch and the words on the chrome. Rather than copy 650
+ * lines to add the speech shelf, the screen takes those differences as config.
+ */
+export interface ProsePracticeConfig {
+  /** Which library shelf this screen reads from. */
+  type: ReadingPracticeType;
+  /** This screen's route name, for typed navigation and route params. */
+  screen: "StoryPractice" | "SpeechPractice";
+  accent: ReadingAccent;
+  /** Screen chrome. */
+  title: string;
+  description: string;
+  /** The eyebrow above the passage, e.g. "STORY". */
+  category: string;
+  /** Reads as "...finished your <practiceName>". */
+  practiceName: string;
+  tips: readonly string[];
+  /**
+   * Closing marker under the passage. A story ends with "THE END"; a speech
+   * excerpt does not end, so it says where it came from instead.
+   */
+  endMark: string;
+  logTag: string;
+}
+
+const ProsePracticeScreen = ({ config }: { config: ProsePracticeConfig }) => {
+  const { state: baseState, actions } = useReadingPracticeBase({
+    type: config.type,
+    logTag: config.logTag,
+    withPagination: true,
+    preferGoBackOnDone: true,
+  });
+  const state = { ...baseState, currentStory: baseState.currentItem };
+  /**
+   * The shelf loaded, and there is nothing on it.
+   *
+   * Distinct from `isLoading`, which only covers the fetch being in flight.
+   * Guarding on `isLoading` alone re-enables "Start Practice" the moment an
+   * EMPTY response arrives, and starting with no item calls through with an
+   * undefined contentId — which fails inside useMarkActivityStart with a
+   * console error and no visible feedback at all. STORY never hit this because
+   * that shelf is never empty; SPEECH can be, on a database seeded before the
+   * type existed.
+   */
+  const isEmpty = !baseState.isLoading && baseState.items.length === 0;
   const { colors } = useTheme();
-  const accent = readingPracticeAccents.poem;
+  const accent = config.accent;
   const accentColor = colors.accent[accent];
   const onAccentColor = colors.accentOn[accent];
   const highlightColor = withAlpha(onAccentColor, 0.14);
-  const { setTabBarVisible } = useUIStore();
-  const { updateActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession } = useSessionStore();
-  const { user } = useUserStore();
-  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
-    useRecordedVoice(user?.id);
+  /* State Destructuring */
+  const {
+    practiceComplete,
+    currentStory,
+    pages,
+    currentPage,
+    highlightRange,
+    currentActivityId,
+    isStarting,
+    selectedPracticeTool,
+    activeToolSheet,
+    voiceRecordingUri,
+    hasHydrated,
+    isLoading,
+    hardMode,
+    canUseHardMode,
+  } = state;
 
-  // --- State ---
-  const [practiceComplete, setPracticeComplete] = useState(false);
-  const [allPoems, setAllPoems] = useState<ReadingPractice[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [pages, setPages] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hardMode, setHardMode] = useState(false);
-  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
-  const route = useRoute<RDPStackRouteProp<"PoemPractice">>();
-  const packContext = route.params?.packContext;
-  const from = route.params?.from;
+  const route = useRoute<RDPStackRouteProp<typeof config.screen>>();
+  const { packContext, from } = route.params || {};
+  const navigation = useNavigation<RDPStackNavigationProp<typeof config.screen>>();
 
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [isStarting, setIsStarting] = useState(false);
-
-  // Highlight Range
-  const [highlightRange, setHighlightRange] = useState<[number, number]>([
-    -1, 0,
-  ]);
-
-  // Tool State
-  const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
-  const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
-
-  // VoiceHover Config State
+  // --- VoiceHover Config State ---
   const [vhRate, setVhRate] = useState(1.0);
   const [vhPrePause, setVhPrePause] = useState(200);
   const [vhGap, setVhGap] = useState(100);
   const [vhIsPlaying, setVhIsPlaying] = useState(false);
 
-  // Persistent Tool Hooks
-  // Mute logic if tool is NOT selected
+  // --- Persistent Tool State (Hooks) ---
+  // Mute logic if tool is NOT selected. If selected, logic runs regardless of sheet visibility.
   const metronomeState = useMetronome(
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
   // Over-reliance guardrails: consent gate, usage tracking, activity-start nudge.
-  // `consumeToolsUsed` feeds the completion payload.
   const {
-    consumeToolsUsed,
     consentTool,
     requireConsent,
     acknowledgeConsent,
@@ -145,199 +158,18 @@ const PoemPractice = () => {
     [ToolType.CHORUS]: vhIsPlaying,
   });
 
-  // --- Effects ---
-  // Hide Tab Bar
-  useFocusEffect(
-    useCallback(() => {
-      setTabBarVisible(false);
-      return () => {
-        setTabBarVisible(true);
-      };
-    }, [setTabBarVisible]),
-  );
-
-  // --- Data Fetching ---
-  useEffect(() => {
-    const fetchAllPoems = async () => {
-      try {
-        setIsLoading(true);
-        const recommendedId = (route.params as any)?.id;
-        const p = await getReadingPracticeByType(
-          ReadingPracticeType.POEM,
-          hardMode,
-          hardMode ? undefined : recommendedId,
-        );
-        setAllPoems(p);
-
-        // If an ID is passed from recommendations, select it
-        if (recommendedId && !hardMode) {
-          const index = p.findIndex((poem) => poem.id === recommendedId);
-          if (index !== -1) {
-            setSelectedIndex(index);
-          } else {
-            console.warn(`[PoemPractice] Recommended ID ${recommendedId} not found in library. Defaulting to first item.`);
-            setSelectedIndex(0);
-          }
-        } else {
-          setSelectedIndex(0);
-        }
-      } catch (error: any) {
-        console.error("❌ Error fetching poems:", error);
-        if (error?.response?.status === 400) {
-          setHardMode(false);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAllPoems();
-  }, [hardMode]);
-
-  useEffect(() => {
-    const currentText = allPoems[selectedIndex]?.textContent || "";
-    // Simple pagination split
-    const paginated = currentText
-      .split(/\n\s*\n/)
-      .map((section) => section.trim())
-      .filter((section) => section.length > 0);
-    setPages(paginated);
-    setCurrentPage(0);
-  }, [selectedIndex, allPoems]);
-
-
-
-  // --- Actions ---
-
-  const onBackPress = () =>
-    from === "MOOD_CHECK"
-      ? navigation.navigate("Root" as any, { screen: "HOME" })
-      : navigation.goBack();
-
-  const toggleIndex = () => {
-    if (allPoems && allPoems.length > 0) {
-      setSelectedIndex((prevIndex) => (prevIndex + 1) % allPoems.length);
-    }
-  };
-
-  const markActivityStart = useMarkActivityStart({
-    contentType: PracticeActivityContentType.READING_PRACTICE,
-    contentId: allPoems[selectedIndex]?.id,
-    contentTitle: allPoems[selectedIndex]?.title,
-    initialActivity: (route.params as any)?.practiceActivity,
-    packContext,
-    currentActivityId,
-    setActivityId: setCurrentActivityId,
-    onEarlyExit: () => setIsStarting(false),
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
     navigation,
-    logTag: "PoemPractice",
+    activityId: currentActivityId,
+    isCompleted: practiceComplete,
+    onSave: actions.onDonePress,
+    family: "Reading",
+    from,
+    packContext,
+    accentColor,
+    onAccentColor,
   });
-
-  const markActivityComplete = async (activityId: string) => {
-    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
-      return;
-
-    const userId = user?.id; // Always use real ID if available
-    if (!userId) {
-      console.warn(">> PoemPractice: Missing userId, cannot complete activity");
-      return;
-    }
-
-    const completedActivity = await completePracticeActivity({
-      id: activityId,
-      userId,
-      packId: packContext?.packId,
-      moduleId: packContext?.moduleId,
-      toolsUsed: consumeToolsUsed(),
-    });
-
-    // Track activity completion
-    track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
-      activityId,
-      contentType: PracticeActivityContentType.READING_PRACTICE,
-      title: allPoems[selectedIndex]?.title,
-      isPackContext: !!packContext?.packId
-    });
-
-    updateActivity(activityId, { ...completedActivity });
-    useUserStore.getState().fetchUser();
-  };
-
-  const onDonePress = async () => {
-    if (!currentActivityId) return;
-    await markActivityComplete(currentActivityId);
-    await submitVoiceRecording({
-      recordingSource: RecordingSourceType.ACTIVITY,
-      activityId: currentActivityId,
-    });
-    setPracticeComplete(true);
-
-    if (packContext && navigation.canGoBack()) {
-      navigation.goBack();
-    } else if (packContext) {
-      navigation.navigate("PackModule", {
-        packId: packContext.packId,
-        moduleId: packContext.moduleId,
-        initialBlockIndex: packContext.blockIndex,
-      });
-    }
-  };
-
-  const isToolActive = (toolName: string) =>
-    (toolName === ToolType.DAF &&
-      selectedPracticeTool === toolName &&
-      dafState.isDAFActive) ||
-    (toolName === ToolType.CHORUS &&
-      selectedPracticeTool === toolName &&
-      vhIsPlaying) ||
-    (toolName === ToolType.METRONOME &&
-      selectedPracticeTool === toolName &&
-      metronomeState.isPlaying);
-
-  const stopTool = (toolName: string) => {
-    if (toolName === ToolType.DAF && dafState.isDAFActive) {
-      dafState.stopDAF();
-    } else if (toolName === ToolType.METRONOME && metronomeState.isPlaying) {
-      metronomeState.setIsPlaying(false);
-    } else if (toolName === ToolType.CHORUS && vhIsPlaying) {
-      setVhIsPlaying(false);
-    }
-
-    if (selectedPracticeTool === toolName) {
-      setSelectedPracticeTool("");
-    }
-    setActiveToolSheet(null);
-  };
-
-  const proceedToolSelect = (toolName: string) => {
-    if (selectedPracticeTool && selectedPracticeTool !== toolName) {
-      stopTool(selectedPracticeTool);
-    }
-
-    setSelectedPracticeTool(toolName);
-    setActiveToolSheet(toolName);
-  };
-
-  const handleToolSelect = (toolName: string) => {
-    if (isToolActive(toolName)) {
-      stopTool(toolName);
-      return;
-    }
-
-    if (!requireConsent(toolName)) return;
-
-    proceedToolSelect(toolName);
-  };
-
-  const runStart = async () => {
-    setIsStarting(true);
-    try {
-      await markActivityStart();
-    } catch (error) {
-      console.error("❌ Error starting activity:", error);
-    } finally {
-      setIsStarting(false);
-    }
-  };
 
   // --- Scroll-driven page tracking (replaces the pager buttons) ---
   // All pages render in one continuous scroll; the "active" page is whichever has
@@ -366,11 +198,11 @@ const PoemPractice = () => {
             .forEach((idx) => {
               if (tops[idx] <= line) active = idx;
             });
-          setCurrentPage(active);
+          actions.setCurrentPage(active);
         }
       });
     });
-  }, [setCurrentPage]);
+  }, [actions]);
 
   const handleScrollY = useCallback(
     (y: number) => {
@@ -382,7 +214,7 @@ const PoemPractice = () => {
     [trackActivePage],
   );
 
-  // --- Render Helpers ---
+  // --- Rendering Helpers ---
 
   const renderHighlightedText = () => {
     const practiceText = pages[currentPage] || "";
@@ -414,6 +246,32 @@ const PoemPractice = () => {
     );
   };
 
+  const isToolActive = (toolName: string) =>
+    (toolName === ToolType.DAF &&
+      selectedPracticeTool === toolName &&
+      dafState.isDAFActive) ||
+    (toolName === ToolType.CHORUS &&
+      selectedPracticeTool === toolName &&
+      vhIsPlaying) ||
+    (toolName === ToolType.METRONOME &&
+      selectedPracticeTool === toolName &&
+      metronomeState.isPlaying);
+
+  const stopTool = (toolName: string) => {
+    if (toolName === ToolType.DAF && dafState.isDAFActive) {
+      dafState.stopDAF();
+    } else if (toolName === ToolType.METRONOME && metronomeState.isPlaying) {
+      metronomeState.setIsPlaying(false);
+    } else if (toolName === ToolType.CHORUS && vhIsPlaying) {
+      setVhIsPlaying(false);
+    }
+
+    if (selectedPracticeTool === toolName) {
+      actions.setSelectedPracticeTool("");
+    }
+    actions.setActiveToolSheet(null);
+  };
+
   const renderToolSheetContent = () => {
     switch (activeToolSheet) {
       case ToolType.DAF:
@@ -429,8 +287,8 @@ const PoemPractice = () => {
 
                 const started = await dafState.startDAF();
                 if (started) {
-                  setSelectedPracticeTool(ToolType.DAF);
-                  setActiveToolSheet(null);
+                  actions.setSelectedPracticeTool(ToolType.DAF);
+                  actions.setActiveToolSheet(null);
                 }
               })();
             }}
@@ -455,8 +313,8 @@ const PoemPractice = () => {
             onTogglePlay={(val) => {
               metronomeState.setIsPlaying(val);
               if (val) {
-                setSelectedPracticeTool(ToolType.METRONOME);
-                setActiveToolSheet(null);
+                actions.setSelectedPracticeTool(ToolType.METRONOME);
+                actions.setActiveToolSheet(null);
               }
             }}
             speed={metronomeState.speed}
@@ -481,8 +339,8 @@ const PoemPractice = () => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
               if (nextIsPlaying) {
-                setSelectedPracticeTool(ToolType.CHORUS);
-                setActiveToolSheet(null);
+                actions.setSelectedPracticeTool(ToolType.CHORUS);
+                actions.setActiveToolSheet(null);
               }
             }}
           />
@@ -491,38 +349,62 @@ const PoemPractice = () => {
         return null;
     }
   };
- // Ultra-compact clearance, allows slight overlap with dock for tight feel
 
-  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
-  const { exitSheet } = useConfirmOnExit({
-    navigation,
-    activityId: currentActivityId,
-    isCompleted: practiceComplete,
-    onSave: onDonePress,
-    family: "Reading",
-    from,
-    packContext,
-    accentColor,
-    onAccentColor,
-  });
+  const proceedToolSelect = (toolName: string) => {
+    if (selectedPracticeTool && selectedPracticeTool !== toolName) {
+      stopTool(selectedPracticeTool);
+    }
 
-  // --- View: Done Practice ---
+    actions.setSelectedPracticeTool(toolName);
+    actions.setActiveToolSheet(toolName);
+  };
+
+  const handleToolSelect = (toolName: string) => {
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
+    }
+
+    // First-time educational consent gate for monitored fluency aids.
+    if (!requireConsent(toolName)) return;
+
+    proceedToolSelect(toolName);
+  };
+
+  const runStart = async () => {
+    actions.setIsStarting(true);
+    try {
+      await actions.markActivityStart();
+    } catch (error) {
+      console.error(`[${config.logTag}] ❌ Error in markActivityStart:`, error);
+    } finally {
+      actions.setIsStarting(false);
+    }
+  };
+
+  // --- Main Render ---
+
   if (practiceComplete) {
     return (
       <DonePractice
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.READING_PRACTICE}
-        practiceName="poem practice"
+        practiceName={config.practiceName}
         accentColor={accentColor}
         onAccentColor={onAccentColor}
         onDone={
           packContext
-            ? () =>
-              navigation.navigate("PackModule", {
-                packId: packContext.packId,
-                moduleId: packContext.moduleId,
-                initialBlockIndex: packContext.blockIndex,
-              })
+            ? () => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("PackModule", {
+                    packId: packContext.packId,
+                    moduleId: packContext.moduleId,
+                    initialBlockIndex: packContext.blockIndex,
+                  });
+                }
+              }
             : undefined
         }
         from={from}
@@ -530,21 +412,29 @@ const PoemPractice = () => {
     );
   }
 
-  // --- View: Pre-Practice (Tips) ---
+  // Pre-Practice (Tips) View
   if (!currentActivityId) {
     return (
       <Page
-        title="Poem Practice"
-        description="Find your rhythm and express emotion through the art of poetry."
-        onBack={onBackPress}
+        title={config.title}
+        description={config.description}
         background={<FocusLamp focus={hardMode} />}
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : actions.onBackPress()
+        }
         footer={
           <Button
-            label="Start Practice"
+            label={isEmpty ? "Nothing to read yet" : "Start Practice"}
             onPress={() => runStart()}
-            loading={isStarting || isLoading}
-            disabled={isStarting || isLoading}
-            style={isStarting || isLoading ? undefined : { backgroundColor: accentColor }}
+            loading={isStarting || isLoading || !hasHydrated}
+            disabled={isStarting || !hasHydrated || isLoading || isEmpty}
+            style={
+              isStarting || !hasHydrated || isLoading || isEmpty
+                ? undefined
+                : { backgroundColor: accentColor }
+            }
           />
         }
       >
@@ -556,9 +446,19 @@ const PoemPractice = () => {
           />
         )}
 
+        {isEmpty && (
+          <View style={styles.emptyNote}>
+            <DSText variant="body" color="secondary">
+              {hardMode
+                ? "No passages here match your feared sounds yet. Turn off Focus to see the rest."
+                : "This shelf has no passages yet. Please check back after the next update."}
+            </DSText>
+          </View>
+        )}
+
         <HardModeToggle
           value={hardMode}
-          onValueChange={setHardMode}
+          onValueChange={actions.setHardMode}
           canUseHardMode={canUseHardMode}
           accent={accent}
         />
@@ -566,7 +466,7 @@ const PoemPractice = () => {
         {/* Tips — a dot timeline on the dark canvas. */}
         <View>
           <DSText variant="h3" color="primary" style={styles.tipsHeading}>Tips</DSText>
-          {readingTips.poem.map((tip, index, arr) => (
+          {config.tips.map((tip, index, arr) => (
             <View key={index} style={styles.tipRow}>
               <View style={styles.tipTrack}>
                 <View style={[styles.tipDot, { backgroundColor: accentColor }]} />
@@ -584,37 +484,51 @@ const PoemPractice = () => {
     );
   }
 
-  // --- View: Active Practice — the shared "Clean Focus" reading stage (logic intact). ---
+  // Calculate dynamic bottom padding based on recorder state
+  // Idle: ~60px dock + spacing -> 120px safe
+  // Expanded: ~80px wave + 100px controls + spacing -> 300px safe
+  // We can't easily access internal VoiceRecorder mode, but we know if we have a URI it shows "Finish".
+  // Actually, VoiceRecorder expands when we interact.
+  // The safest bet is: Always ample padding, OR if we want to be fancy, just use a large padding (350) which is safe for max expansion.
+  // Given the "Immersive" goal, having extra scroll space at bottom is fine. // Ultra-compact clearance, allows slight overlap with dock for tight feel
+
+  // Active Practice View — the shared "Clean Focus" reading stage (logic intact).
   return (
     <>
       <ReadingStage
-        title="Poem Practice"
-        onBack={onBackPress}
-        category="POEM"
+        title={config.title}
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : actions.onBackPress()
+        }
+        category={config.category}
         align="top"
         accent={accentColor}
         onAccent={onAccentColor}
-        onNext={toggleIndex}
+        onNext={actions.toggleIndex}
         onScrollY={handleScrollY}
         focus={{
           active: hardMode,
           canUse: canUseHardMode,
-          onToggle: setHardMode,
+          onToggle: actions.setHardMode,
         }}
         dock={
           <SmartRecorder
-            onRecorded={setVoiceRecordingUri}
-            onToggle={toggleIndex}
+            onRecorded={actions.setVoiceRecordingUri}
+            onToggle={actions.toggleIndex}
             prevRecordingUri={voiceRecordingUri || undefined}
             onSubmit={async () => {
-              setIsLoading(true);
+              actions.setIsLoading(true);
               try {
-                await onDonePress();
+                await actions.onDonePress();
               } finally {
-                setIsLoading(false);
+                actions.setIsLoading(false);
               }
             }}
-            onDiscard={() => setVoiceRecordingUri(null)}
+            onDiscard={() => {
+              actions.setVoiceRecordingUri(null);
+            }}
             accentColor={accentColor}
             onAccentColor={onAccentColor}
             renderTools={() => (
@@ -637,11 +551,10 @@ const PoemPractice = () => {
         <View style={styles.readingBlock}>
           <View style={styles.metaHead}>
             <DSText variant="h2" color={onAccentColor} center>
-              {allPoems[selectedIndex]?.title}
+              {currentStory?.title}
             </DSText>
             <DSText variant="bodySm" color={withAlpha(onAccentColor, 0.68)} center>
-              — {allPoems[selectedIndex]?.author} · Level{" "}
-              {toPascalCase(allPoems[selectedIndex]?.difficulty)}
+              — {currentStory?.author}
             </DSText>
           </View>
 
@@ -650,7 +563,7 @@ const PoemPractice = () => {
             <View style={{ height: 0, overflow: "hidden" }}>
               <VoiceHover
                 text={pages[currentPage] || ""}
-                onHighlightChange={(s, l) => setHighlightRange([s, l])}
+                onHighlightChange={(s, l) => actions.setHighlightRange([s, l])}
                 rate={vhRate}
                 prePause={vhPrePause}
                 gap={vhGap}
@@ -695,7 +608,7 @@ const PoemPractice = () => {
                   color={withAlpha(onAccentColor, 0.55)}
                   style={styles.endText}
                 >
-                  THE END
+                  {config.endMark}
                 </DSText>
                 <View
                   style={[styles.endRule, { backgroundColor: withAlpha(onAccentColor, 0.28) }]}
@@ -707,7 +620,7 @@ const PoemPractice = () => {
       </ReadingStage>
 
       {/* Detail Sheet for Tools */}
-      <Sheet visible={!!activeToolSheet} onClose={() => setActiveToolSheet(null)}>
+      <Sheet visible={!!activeToolSheet} onClose={() => actions.setActiveToolSheet(null)}>
         <DSText variant="h2" center style={styles.sheetTitle}>
           {activeToolSheet === ToolType.CHORUS
             ? "Guide Settings"
@@ -729,7 +642,7 @@ const PoemPractice = () => {
   );
 };
 
-export default PoemPractice;
+export default ProsePracticeScreen;
 
 const styles = StyleSheet.create({
   readingBlock: {
@@ -768,6 +681,9 @@ const styles = StyleSheet.create({
   // Action Dock
   // Sheet (renders on the shared DS Sheet's dark surface)
   sheetTitle: {
+    marginBottom: spacing.xl,
+  },
+  emptyNote: {
     marginBottom: spacing.xl,
   },
   // Pre-practice tips (dark)

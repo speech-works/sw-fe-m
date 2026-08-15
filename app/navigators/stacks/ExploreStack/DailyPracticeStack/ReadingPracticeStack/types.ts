@@ -31,6 +31,13 @@ export type RDPStackParamList = {
     from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   }
   | undefined;
+  SpeechPractice:
+  | {
+    packContext?: PackContext;
+    practiceActivity?: any;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+  }
+  | undefined;
   PhrasePractice:
   | {
     packContext?: PackContext;

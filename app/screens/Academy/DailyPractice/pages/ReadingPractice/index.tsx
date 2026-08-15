@@ -88,6 +88,13 @@ const ReadingPractice = () => {
       iconName: "reading-stories",
       accent: readingPracticeAccents.story,
     },
+    {
+      title: "Speeches",
+      subtitle: "Oratory worth saying out loud",
+      onPress: () => navigation.navigate("SpeechPractice"),
+      iconName: "reading-speeches",
+      accent: readingPracticeAccents.speech,
+    },
   ];
 
   const summary = categories.find(
