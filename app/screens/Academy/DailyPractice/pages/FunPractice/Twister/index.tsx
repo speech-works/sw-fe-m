@@ -57,6 +57,7 @@ import {
   TwisterFDPStackNavigationProp,
   TwisterFDPStackRouteProp,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
+import { usePracticeToolShutdown } from "../../../../../../hooks/usePracticeToolShutdown";
 
 const Twister = () => {
   const navigation =
@@ -232,6 +233,17 @@ const Twister = () => {
   const [vhPrePause, setVhPrePause] = useState(200);
   const [vhGap, setVhGap] = useState(100);
   const [vhIsPlaying, setVhIsPlaying] = useState(false);
+
+  // Stop every tool the moment practising stops — on submit, on blur, on
+  // background. The screen stays mounted behind the Done screen, so nothing
+  // else turns the metronome or DAF off. See the hook for the full reasoning.
+  usePracticeToolShutdown({
+    practiceComplete,
+    metronome: metronomeState,
+    daf: dafState,
+    guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
+  });
+
   const [highlightRange, setHighlightRange] = useState<[number, number]>([
     -1, 0,
   ]);

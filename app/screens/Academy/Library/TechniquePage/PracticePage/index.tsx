@@ -36,6 +36,7 @@ import {
   FLOATING_CONTROL_SIZE,
   useNavBarInset,
 } from "../../../../../design-system";
+import { usePracticeToolShutdown } from "../../../../../hooks/usePracticeToolShutdown";
 
 interface PracticePageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -124,6 +125,15 @@ const PracticePage = ({
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  // No completion state here — this drill advances through items and is left by
+  // navigating back, which unmounts. The focus and background guards still
+  // matter: neither unmounts the screen, so the tools would keep running.
+  usePracticeToolShutdown({
+    metronome: metronomeState,
+    daf: dafState,
+    guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
+  });
 
   useEffect(() => {
     let cancelled = false;

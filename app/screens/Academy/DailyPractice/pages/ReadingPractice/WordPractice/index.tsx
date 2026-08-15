@@ -48,6 +48,7 @@ import {
   RDPStackNavigationProp,
   RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
+import { usePracticeToolShutdown } from "../../../../../../hooks/usePracticeToolShutdown";
 
 const WordPractice = () => {
   const { state, actions } = useWordPractice();
@@ -88,6 +89,16 @@ const WordPractice = () => {
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  // Stop every tool the moment practising stops — on submit, on blur, on
+  // background. The screen stays mounted behind the Done screen, so nothing
+  // else turns the metronome or DAF off. See the hook for the full reasoning.
+  usePracticeToolShutdown({
+    practiceComplete,
+    metronome: metronomeState,
+    daf: dafState,
+    guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
+  });
 
   // --- Over-reliance guardrails (consent gate, usage tracking, nudge) ---
   const {
