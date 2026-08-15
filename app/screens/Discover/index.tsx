@@ -289,13 +289,46 @@ const Discover = () => {
               <Text variant="title" numberOfLines={1}>
                 {user?.name?.split(" ")[0] || "You"}
               </Text>
-              <Text variant="caption" color="tertiary">What they&apos;d see</Text>
+              {/* The tags are the whole point of the preview, and the screen has
+                  already loaded them. Without them the card shows a name and an
+                  avatar and reads as broken — the person cannot tell whether the
+                  preview is unfinished or their card really is that bare. */}
+              {profile?.tags?.length ? (
+                <View style={styles.previewTags}>
+                  {profile.tags.slice(0, 3).map((t) => (
+                    <Chip key={t} label={t} />
+                  ))}
+                </View>
+              ) : (
+                <Text variant="caption" color="tertiary">
+                  No tags yet — just your name and avatar
+                </Text>
+              )}
             </View>
           </View>
 
-          <Text variant="bodySm" color="secondary">
-            Plus anything you choose to add. Turn it off whenever you like.
-          </Text>
+          {profile?.tags?.length ? (
+            <Text variant="bodySm" color="secondary">
+              Turn it off whenever you like.
+            </Text>
+          ) : (
+            // Tags are chosen in Settings, so a preview that shows none is a dead
+            // end without a way to get there.
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("Root" as never, {
+                  screen: "SETTINGS",
+                  params: { screen: "Discoverability" },
+                } as never)
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Add tags to your card in Settings"
+            >
+              <Text variant="bodySm" color={colors.text.link}>
+                Add a couple of tags →
+              </Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.consentActions}>
             <Button
               label={listing ? "Saving…" : "Yes, list me"}
@@ -601,6 +634,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
   },
   previewAvatar: { borderRadius: radius.sm, overflow: "hidden" },
+  previewTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 2,
+  },
   previewText: { flex: 1, gap: 2 },
   consentActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   quietRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
