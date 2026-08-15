@@ -104,13 +104,22 @@ export async function getExposurePracticeById(
   }
 }
 
+/**
+ * A page of the reading library for `type`.
+ *
+ * The endpoint returns a window, not the whole shelf — the full poem list is
+ * ~800 KB. `includeId` pins a specific item to the front of that window, which
+ * is how a recommendation deep-link survives: without it the caller searches
+ * the returned array for an id the window may simply not contain.
+ */
 export async function getReadingPracticeByType(
   type: ReadingPracticeType,
   hardMode?: boolean,
+  includeId?: string,
 ): Promise<ReadingPractice[]> {
   try {
     const response = await axiosClient.get("/reading-practice", {
-      params: { type, hardMode },
+      params: { type, hardMode, includeId },
     });
     return response.data;
   } catch (error) {

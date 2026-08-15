@@ -7,6 +7,7 @@ import QuotePractice from "../../../../../screens/Academy/DailyPractice/pages/Re
 import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 import WordPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/WordPractice";
 import PhrasePractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/PhrasePractice";
+import SpeechPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/SpeechPractice";
 import { RDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RDPStackParamList>();
@@ -33,6 +34,11 @@ export default function RDPStackNavigator() {
       <Stack.Screen
         name="WordPractice"
         component={WordPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="SpeechPractice"
+        component={SpeechPractice}
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen

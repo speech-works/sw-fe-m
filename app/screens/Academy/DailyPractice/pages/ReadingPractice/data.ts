@@ -8,9 +8,18 @@ export const readingPracticeAccents = {
   quote: "warning",
   poem: "purple",
   story: "danger",
+  // `lime` is the one accent role the reading cards had not claimed, so the
+  // speech card gets its own hue rather than doubling up with another.
+  speech: "lime",
 } as const satisfies Record<string, ReadingAccent>;
 
 export const readingTips = {
+  speech: [
+    "Speak to the back of the room. Projection steadies the breath and slows you down.",
+    "Mark your pauses first. Oratory is written around them, so read to the cadence rather than only to the punctuation.",
+    "Land the stressed word in each phrase. Letting it carry the line takes pressure off the first sound.",
+    "Stand if you can. Posture opens the airway and changes how the passage feels to say.",
+  ],
   story: [
     "Visualize the story. This makes your reading more natural and expressive.",
     "Don’t rush. Focus on reading in short, meaningful phrases rather than one word at a time.",

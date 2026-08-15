@@ -4,7 +4,7 @@ import { useTheme } from "../../design-system";
 import { PRACTICE_ICON_XML } from "./registry";
 
 /** The accent roles practice cards are filled with. */
-type CardAccent = "info" | "warning" | "danger" | "purple" | "success";
+type CardAccent = "info" | "warning" | "danger" | "purple" | "success" | "lime";
 
 /**
  * The halo accent that CONTRASTS a card's own accent. The icon's circular
@@ -25,6 +25,7 @@ const HALO_ACCENT: Record<CardAccent, CardAccent> = {
   danger: "warning", // red card     → amber halo   (1.93)
   purple: "warning", // purple card  → amber halo   (2.15)
   success: "purple", // green card   → purple halo  (1.90)
+  lime: "purple", // lime card    → purple halo
 };
 
 export const haloAccentFor = (cardAccent: string): CardAccent =>

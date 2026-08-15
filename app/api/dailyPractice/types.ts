@@ -297,6 +297,7 @@ export enum ReadingPracticeType {
   POEM = "POEM",
   STORY = "STORY",
   QUOTE = "QUOTE",
+  SPEECH = "SPEECH",
 }
 
 export interface ReadingPractice {

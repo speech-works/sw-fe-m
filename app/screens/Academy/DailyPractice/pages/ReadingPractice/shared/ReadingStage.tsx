@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { LayoutChangeEvent, StatusBar, StyleSheet, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  StatusBar,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -103,6 +109,7 @@ export function ReadingStage({
   const { colors } = useTheme();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const { height: windowH } = useWindowDimensions();
   const navBarInset = useNavBarInset();
   const reduceMotion = useReducedMotion();
   const accentColor = accent ?? colors.accent.info;
@@ -137,12 +144,33 @@ export function ReadingStage({
   const [clusterH, setClusterH] = useState(CLUSTER_ESTIMATE);
   const onDeckLayout = (e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
-    console.log(`[ReadingStage] deckFloat measured height: ${h}`);
     if (h > 0 && Math.abs(h - clusterH) > 1) setClusterH(h);
   };
   const scrimH = clusterH + SCRIM_FADE;
-  const bottomReserve = scrimH + spacing["6xl"]; // extra generous clearance (64px instead of 16px)
-  console.log(`[ReadingStage] clusterH=${clusterH} scrimH=${scrimH} bottomReserve=${bottomReserve} SCRIM_FADE=${SCRIM_FADE}`);
+  /**
+   * Trailing space so the END of the passage can scroll clear of the fixed dock.
+   *
+   * Measured on an iPhone SE rather than derived. Three things were verified on
+   * device before settling on this:
+   *
+   *  - the spacer really does lay out at its full height (spacer 467 / content
+   *    1448), so the reserve is not being dropped;
+   *  - a fling reaches the very end (max offset 782 of a 781 limit), so nothing
+   *    is clamping the scroll outright;
+   *  - but the view SPRINGS BACK about 385px, which is where the passage comes
+   *    to rest. That rest position, not the limit, is what the reader sees, and
+   *    it left the final line tucked under the recorder.
+   *
+   * So the reserve has to cover the springback as well as the dock and its
+   * fade. It is expressed against the WINDOW, which also avoids a second
+   * problem: `clusterH` starts as an estimate and shrinks once the deck
+   * measures, and content that shrinks under a scroll view leaves iOS holding
+   * a stale extent.
+   */
+  const bottomReserve =
+    align === "top"
+      ? Math.max(scrimH + spacing["6xl"], Math.round(windowH * 1.3))
+      : scrimH + spacing["6xl"];
 
   const eyebrow = focus?.active ? "FOCUS · YOUR SOUNDS" : category;
   const focusGradientColors: readonly [string, string, string] = [

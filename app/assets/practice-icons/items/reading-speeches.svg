@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Speeches</title>
+  <desc id="desc">A blue lectern with a gooseneck microphone under a spotlight, facing a row of listeners.</desc>
+  <defs>
+    <clipPath id="reading-speeches-clip"><circle cx="24" cy="24" r="24"/></clipPath>
+    <radialGradient id="reading-speeches-glow" cx="35%" cy="26%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="reading-speeches-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#171420" stop-opacity="0"/>
+      <stop offset="1" stop-color="#171420" stop-opacity="0.16"/>
+    </linearGradient>
+    <!-- The spotlight is white, not yellow. The housing behind it is painted
+         with the runtime `currentColor`, so a hardcoded beam would only look
+         right on the one halo colour it happened to be drawn against. -->
+    <linearGradient id="reading-speeches-beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.13"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#reading-speeches-clip)">
+    <circle cx="24" cy="24" r="24" fill="currentColor"/>
+    <!-- Spotlight: narrow at the top, opening onto the lectern. -->
+    <path d="M17.9 0h12.7l12.5 48H5z" fill="url(#reading-speeches-beam)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#reading-speeches-glow)"/>
+    <circle cx="24" cy="24" r="24" fill="url(#reading-speeches-shade)"/>
+    <circle cx="24" cy="24" r="22.9" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.1"/>
+
+    <!-- Lit reading surface. Drawn first, so the microphone stem crosses it.
+         With the stem underneath, the pale plate washed it out to grey. -->
+    <path d="M12.7 23h22l-1.9-4.2H14.6z" fill="#FFFFFF" fill-opacity="0.5"/>
+
+    <!-- Gooseneck microphone. Above the plate, below the rail, so the stem
+         disappears into the lectern instead of floating on top of it. -->
+    <path d="M17.6 23.4c-.7-6.2 1.6-10 6.9-11.4" fill="none" stroke="#1E2E5C"
+          stroke-width="1.8" stroke-linecap="round"/>
+    <ellipse cx="27.2" cy="12.3" rx="3.6" ry="2.6" transform="rotate(-27 27.2 12.3)" fill="#1E2E5C"/>
+    <ellipse cx="26.2" cy="11.2" rx="1.7" ry="1" transform="rotate(-27 26.2 11.2)" fill="#38508A"/>
+
+    <!-- Lectern body. Runs to the bottom edge rather than stopping where the
+         listeners begin, so no gap opens in the notches between their heads. -->
+    <path d="M15.6 28h16.8l-1.4 20H17z" fill="#2C86D8"/>
+    <path d="M15.6 28h5L19.3 48H17z" fill="#3D9BE8"/>
+
+    <!-- Top rail: pill, lit cap, shaded underside. -->
+    <rect x="9.8" y="22.8" width="28.4" height="5.9" rx="2.95" fill="#2F93E6"/>
+    <path d="M9.8 26.4a2.95 2.95 0 0 0 2.95 2h22.5a2.95 2.95 0 0 0 2.95-2v-.65a2.95 2.95 0 0 1-2.95 2.95h-22.5A2.95 2.95 0 0 1 9.8 25.75z" fill="#1E6FC0"/>
+    <rect x="9.8" y="22.8" width="28.4" height="2.3" rx="1.15" fill="#57ACF0"/>
+
+    <!-- Listeners: three at the back, two lighter ones in front. Sized off the
+         reference against the CIRCLE, not the image — measuring against the
+         image width made every head a third too small and turned the row into
+         narrow pillars instead of heads. -->
+    <g fill="#6642DC">
+      <path d="M6.5 48v-7.5a4.9 4.9 0 0 1 9.8 0V48z"/>
+      <path d="M32.8 48v-7.2a4.9 4.9 0 0 1 9.8 0V48z"/>
+      <path d="M19.2 48v-8a5 5 0 0 1 10 0v8z"/>
+    </g>
+    <g fill="#7C5CF2">
+      <path d="M13.4 48v-2.1a4.8 4.8 0 0 1 9.6 0V48z"/>
+      <path d="M26.6 48v-2.4a4.8 4.8 0 0 1 9.6 0V48z"/>
+    </g>
+
+    <!-- Sparkles, as in the reference: one large upper right, one small left. -->
+    <g fill="#FFFFFF">
+      <path d="M39.3 10.5c.29 2.6.9 3.21 3.5 3.5-2.6.29-3.21.9-3.5 3.5-.29-2.6-.9-3.21-3.5-3.5 2.6-.29 3.21-.9 3.5-3.5z"/>
+      <path d="M6.2 27.5c.25 2.05.7 2.5 2.75 2.75-2.05.25-2.5.7-2.75 2.75-.25-2.05-.7-2.5-2.75-2.75 2.05-.25 2.5-.7 2.75-2.75z"/>
+    </g>
+  </g>
+</svg>
