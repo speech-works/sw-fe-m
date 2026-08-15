@@ -30,7 +30,7 @@ import { ANALYTICS_EVENTS } from "../analytics/analyticsEvents";
  * what it needs.
  */
 export async function openOnboarding(
-  source: "home_card" | "programs" | "daily_practice",
+  source: "home_card" | "programs" | "daily_practice" | "discoverability",
 ): Promise<void> {
   try {
     const flow = await getActiveOnboardingFlow();

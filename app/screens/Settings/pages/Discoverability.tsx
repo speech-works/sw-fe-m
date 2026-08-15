@@ -24,6 +24,7 @@ import {
 } from "../../../api/buddies";
 import { apiErrorMessage } from "../../../util/functions/apiError";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
+import { openOnboarding } from "../../../util/functions/openOnboarding";
 import { TAG_LABELS, MAX_DISCOVERY_TAGS } from "../../../constants/discoveryTags";
 
 /**
@@ -127,12 +128,25 @@ const Discoverability = () => {
       }
     >
       {profile?.blockedReason ? (
-        <Banner
-          tone="warning"
-          icon="alert-triangle"
-          title="You can't be listed yet"
-          message={profile.blockedReason}
-        />
+        <View style={styles.blocked}>
+          <Banner
+            tone="warning"
+            icon="alert-triangle"
+            title="You can't be listed yet"
+            message={profile.blockedReason}
+          />
+          {/* Telling someone what is missing without a way to fix it just moves
+              the dead end. Onboarding is not a route — it swaps the whole
+              navigator — so this goes through the one helper that knows how to
+              do that properly. */}
+          {profile.blockedReason.toLowerCase().includes("finish setting up") ? (
+            <Button
+              variant="secondary"
+              label="Finish setting up"
+              onPress={() => void openOnboarding("discoverability")}
+            />
+          ) : null}
+        </View>
       ) : null}
 
       <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
@@ -146,6 +160,7 @@ const Discoverability = () => {
           </View>
           <Toggle
             value={discoverable}
+            disabled={!!profile?.blockedReason}
             onChange={() => setDiscoverable((v) => !v)}
           />
         </View>
@@ -182,6 +197,9 @@ const Discoverability = () => {
 export default Discoverability;
 
 const styles = StyleSheet.create({
+  blocked: {
+    gap: spacing.md,
+  },
   group: { borderRadius: radius.card, overflow: "hidden" },
   row: {
     flexDirection: "row",
