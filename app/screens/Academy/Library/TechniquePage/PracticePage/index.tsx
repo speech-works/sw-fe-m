@@ -36,6 +36,7 @@ import {
   FLOATING_CONTROL_SIZE,
   useNavBarInset,
 } from "../../../../../design-system";
+import { useAppBackgrounded } from "../../../../../hooks/useAppBackgrounded";
 import { usePracticeToolShutdown } from "../../../../../hooks/usePracticeToolShutdown";
 
 interface PracticePageProps {
@@ -121,15 +122,15 @@ const PracticePage = ({
   const [vhIsPlaying, setVhIsPlaying] = useState(false);
 
   // Tool Hooks (for internal state management)
+  const backgrounded = useAppBackgrounded();
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME,
+    selectedPracticeTool !== ToolType.METRONOME || backgrounded,
   );
-  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || backgrounded);
 
-  // No completion state here — this drill advances through items and is left by
-  // navigating back, which unmounts. The focus and background guards still
-  // matter: neither unmounts the screen, so the tools would keep running.
+  // No submit step on this drill page; only the background pause applies.
   usePracticeToolShutdown({
+    backgrounded,
     metronome: metronomeState,
     daf: dafState,
     guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },

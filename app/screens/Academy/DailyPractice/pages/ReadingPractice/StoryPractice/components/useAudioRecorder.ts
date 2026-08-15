@@ -14,6 +14,18 @@ interface UseAudioRecorderReturn {
   startPlayback: (uri: string) => Promise<void>;
   stopPlayback: () => Promise<void>;
   state: RecorderState;
+  /**
+   * A take was paused because the app was interrupted, and is waiting for the
+   * user to say whether to carry on. `state` stays "recording" throughout: the
+   * Recording object is alive and holds the audio, it is simply not capturing.
+   */
+  interrupted: boolean;
+  /** Pause a running take. No-op unless something is actually recording. */
+  pauseForInterruption: () => Promise<void>;
+  /** Carry on from where the take was paused. */
+  resumeInterruption: () => Promise<void>;
+  /** Throw the paused take away and return to a clean recorder. */
+  discardInterruption: () => Promise<void>;
   metering: number; // 0 to 1 normalized
   waveform: number[]; // Array of normalized levels (0-1) for entire session
   playbackPosition: number; // ms
@@ -26,6 +38,7 @@ const SAMPLE_INTERVAL_MS = 50; // 20fps updates
 
 export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const [state, setState] = useState<RecorderState>("idle");
+  const [interrupted, setInterrupted] = useState(false);
   const [metering, setMetering] = useState(0);
   const [waveform, setWaveform] = useState<number[]>([]);
   const [playbackPosition, setPlaybackPosition] = useState(0);
@@ -119,6 +132,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       samplesRef.current = [];
       setMetering(0);
       setRecordingDuration(0);
+      setInterrupted(false);
       console.log("[useAudioRecorder] Starting recording sequence...");
 
       // 1.5 Stop any TTS
@@ -183,6 +197,71 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       setState("idle");
       return false;
     }
+  };
+
+  /**
+   * Interruption handling.
+   *
+   * The take is paused rather than stopped, so the audio already captured stays
+   * in the same file and recording continues into it when the user comes back.
+   * `state` deliberately stays "recording": the Recording object is alive, and
+   * anything that inspects `state` (the waveform, the dock layout) should keep
+   * treating this as a take in progress.
+   *
+   * Metering is stopped while paused. It polls `getStatusAsync` twenty times a
+   * second, and there is nothing to read from a paused recorder.
+   *
+   * `pauseAsync` rejects on Android below API 24. minSdkVersion is 26, so that
+   * cannot happen here — but if the pause fails for any other reason the take is
+   * left running rather than half-broken, and the user is none the wiser.
+   */
+  const pauseForInterruption = async (): Promise<void> => {
+    if (!recordingRef.current || state !== "recording" || interrupted) return;
+    try {
+      await recordingRef.current.pauseAsync();
+      stopMeteringLogic();
+      setInterrupted(true);
+    } catch (e) {
+      console.warn("[useAudioRecorder] Could not pause the take", e);
+    }
+  };
+
+  const resumeInterruption = async (): Promise<void> => {
+    if (!recordingRef.current || !interrupted) return;
+    try {
+      // The audio session was handed back to the OS while we were away; claim it
+      // again before asking the recorder to continue, or startAsync can fail.
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+      await recordingRef.current.startAsync();
+      setInterrupted(false);
+      startMeteringLogic();
+    } catch (e) {
+      // Cannot carry on — do not strand the user in a paused state they cannot
+      // leave. Drop the take and hand back a clean recorder.
+      console.warn("[useAudioRecorder] Could not resume the take, discarding", e);
+      await discardInterruption();
+    }
+  };
+
+  const discardInterruption = async (): Promise<void> => {
+    stopMeteringLogic();
+    if (recordingRef.current) {
+      await recordingRef.current.stopAndUnloadAsync().catch(() => {});
+      recordingRef.current = null;
+    }
+    samplesRef.current = [];
+    setWaveform([]);
+    setMetering(0);
+    setRecordingDuration(0);
+    setInterrupted(false);
+    setState("idle");
   };
 
   const stopRecording = async (): Promise<string | null> => {
@@ -283,6 +362,10 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   return {
     startRecording,
     stopRecording,
+    interrupted,
+    pauseForInterruption,
+    resumeInterruption,
+    discardInterruption,
     startPlayback,
     stopPlayback,
     state,

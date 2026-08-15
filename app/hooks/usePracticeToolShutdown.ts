@@ -1,32 +1,30 @@
 import { useCallback, useEffect, useRef } from "react";
-import { AppState } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
 
 /**
- * Silences the three practice tools (metronome, DAF, reading guide) whenever
- * the user is no longer actually practising.
+ * Switches the practice tools (metronome, DAF, reading guide) off once the
+ * activity has been submitted.
  *
- * WHY THIS EXISTS: every practice screen finishes with an early return —
+ * WHY THIS EXISTS: every practice screen ends with an early return —
  * `if (practiceComplete) return <DonePractice />` — which swaps the UI but
  * leaves the screen component MOUNTED. The tool hooks live on the screen, not
  * inside the tool components, so `useMetronome`'s interval kept firing and
- * `useDAF` kept processing mic audio underneath the Done screen. The tick only
- * stopped when the user navigated away and the screen finally unmounted.
+ * `useDAF` kept processing microphone audio underneath the Done screen. The
+ * tick only stopped once the user navigated away and the screen unmounted.
  *
- * Blur is the same class of bug and is easy to miss: pushing another screen, or
- * switching tabs, does NOT unmount a stack screen. The reading guide is the
- * clearest case — it stops itself on completion, because the component sits in
- * the tree that the early return replaces, but on blur it stays mounted and
- * keeps speaking over whatever the user opened next.
+ * SUBMIT IS THE ONLY TRIGGER, deliberately. An earlier version also stopped the
+ * tools when the screen lost focus and when the app reported itself
+ * backgrounded. That broke the feature: the metronome died the moment the user
+ * pressed record, which is exactly when it is needed, because reading aloud to
+ * a beat while recording is the point of the tool.
  *
- * These tools are turned OFF rather than muted. Muting would leave `isPlaying`
- * true, so the sound would restart by itself when the user came back — startling
- * on the metronome, and worse on DAF, which would resume capturing microphone
- * audio without anyone asking for it. One tap re-enables either.
+ * The lesson worth keeping: tools are switched OFF here, not paused, so a false
+ * trigger is not a brief gap in sound, it kills the tool until the user taps it
+ * again. That makes every additional trigger expensive. Do not add one without
+ * testing it on a real device against a real recording.
  *
- * Unmount is deliberately NOT handled here. `useMetronome` and `useDAF` already
- * clean up their own interval, sound handle and audio session on unmount, and
- * setting state during teardown would only produce a no-op.
+ * Leaving the screen is already covered elsewhere: `useMetronome` and `useDAF`
+ * release their interval, sound handle and audio session on unmount, and the
+ * reading guide stops speaking when its component unmounts.
  */
 type ToggleableTool = {
   isPlaying: boolean;
@@ -36,11 +34,18 @@ type ToggleableTool = {
 type PracticeToolShutdownArgs = {
   /**
    * True once the activity has been submitted and the Done screen is showing.
-   * Omit on screens that have no completion state of their own — the Library
-   * drill page, for instance, advances through items and is left by navigating
-   * back, so only the focus and background guards apply to it.
+   * Optional, for screens with no completion state of their own — the Library
+   * drill page advances through items and is left by navigating back, so
+   * unmount already covers it and this hook has nothing to do there.
    */
   practiceComplete?: boolean;
+  /**
+   * From `useAppBackgrounded`. Only the reading guide is handled here: the
+   * metronome and DAF PAUSE on background through their own `muteLogic` flag
+   * and resume by themselves, but speech cannot resume mid-word, so the guide
+   * is stopped and the user restarts it with one tap.
+   */
+  backgrounded?: boolean;
   metronome: ToggleableTool;
   daf: { isDAFActive: boolean; stopDAF: () => void };
   guide: ToggleableTool;
@@ -48,51 +53,52 @@ type PracticeToolShutdownArgs = {
 
 export function usePracticeToolShutdown({
   practiceComplete,
+  backgrounded,
   metronome,
   daf,
   guide,
 }: PracticeToolShutdownArgs) {
-  const isFocused = useIsFocused();
-
-  // Read the tools through a ref so `silence` stays referentially stable. If it
-  // changed on every render the AppState listener would be town down and re-added
-  // constantly, and the focus/completion effects would re-run for no reason.
+  // Read the tools through a ref so the effect depends only on
+  // `practiceComplete` and cannot re-run on an unrelated render.
   const latest = useRef({ metronome, daf, guide });
   latest.current = { metronome, daf, guide };
 
   const silence = useCallback(() => {
     const tools = latest.current;
-    // Each guard matters: calling a setter unconditionally on every focus change
-    // would queue a state update on a screen that is already idle.
     if (tools.metronome.isPlaying) tools.metronome.setIsPlaying(false);
     if (tools.daf.isDAFActive) tools.daf.stopDAF();
     if (tools.guide.isPlaying) tools.guide.setIsPlaying(false);
   }, []);
 
-  // 1. The activity was submitted. The Done screen must be silent.
   useEffect(() => {
     if (practiceComplete) silence();
   }, [practiceComplete, silence]);
 
-  // 2. The screen lost focus but is still mounted — a pushed screen or a tab switch.
-  useEffect(() => {
-    if (!isFocused) silence();
-  }, [isFocused, silence]);
-
-  // 3. The app went to the background. A metronome ticking from a pocket, or a
-  //    live microphone, is not something to leave running.
+  // Background behaviour differs by tool, on purpose.
   //
-  //    ONLY "background", never "inactive". On iOS `inactive` is a transient
-  //    state the app enters while it is still on screen: pulling down Control
-  //    Centre, an incoming-call banner, the app switcher — and, critically, any
-  //    system permission dialog. Treating `inactive` as "stop" would tear DAF
-  //    down at the exact moment the user granted it the microphone, because
-  //    that prompt puts the app inactive. The user has not left in any of those
-  //    cases, so neither should the tools.
+  // The metronome and the guide only make sound, so they pause and come back on
+  // their own. The metronome does it through its own `muteLogic` flag. The guide
+  // has no such flag — its only control is `isPlaying` — so remember that it was
+  // speaking, switch it off, and switch it back on when the app returns.
+  // VoiceHover keeps its place and carries on from the sentence it was on
+  // instead of restarting the passage.
+  //
+  // DAF is deliberately NOT resumed. It listens through the microphone, and a
+  // microphone that switches itself back on without the user doing anything is
+  // not acceptable, whatever the screen happens to show. `stopDAF` clears its
+  // on/off state, so returning to the screen leaves it off until tapped.
+  const guideWasPlaying = useRef(false);
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "background") silence();
-    });
-    return () => subscription.remove();
-  }, [silence]);
+    const { guide: g, daf: d } = latest.current;
+    if (backgrounded) {
+      guideWasPlaying.current = g.isPlaying;
+      if (g.isPlaying) g.setIsPlaying(false);
+      if (d.isDAFActive) d.stopDAF();
+      return;
+    }
+    if (guideWasPlaying.current) {
+      guideWasPlaying.current = false;
+      g.setIsPlaying(true);
+    }
+  }, [backgrounded]);
 }

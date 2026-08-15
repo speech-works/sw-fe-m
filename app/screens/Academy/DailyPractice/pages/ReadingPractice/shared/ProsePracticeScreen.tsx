@@ -49,6 +49,7 @@ import {
   RDPStackNavigationProp,
   RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
+import { useAppBackgrounded } from "../../../../../../hooks/useAppBackgrounded";
 import { usePracticeToolShutdown } from "../../../../../../hooks/usePracticeToolShutdown";
 
 /**
@@ -136,16 +137,21 @@ const ProsePracticeScreen = ({ config }: { config: ProsePracticeConfig }) => {
 
   // --- Persistent Tool State (Hooks) ---
   // Mute logic if tool is NOT selected. If selected, logic runs regardless of sheet visibility.
+  // Pause the tools while the app is in the background. iOS silences app
+  // audio on its own because UIBackgroundModes is not declared; Android does
+  // not, so without this the metronome ticks on in a pocket there.
+  const backgrounded = useAppBackgrounded();
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME,
+    selectedPracticeTool !== ToolType.METRONOME || backgrounded,
   );
-  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || backgrounded);
 
   // Stop every tool the moment practising stops — on submit, on blur, on
   // background. The screen stays mounted behind the Done screen, so nothing
   // else turns the metronome or DAF off. See the hook for the full reasoning.
   usePracticeToolShutdown({
     practiceComplete,
+    backgrounded,
     metronome: metronomeState,
     daf: dafState,
     guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },

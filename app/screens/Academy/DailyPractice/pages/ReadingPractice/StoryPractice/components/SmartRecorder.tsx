@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import PressableScale from "../../../../../../../components/PressableScale";
 import {
+  Button,
   Dialog,
   Icon,
   Text,
@@ -13,6 +14,7 @@ import {
   darkenForContrast,
   AA_LARGE,
 } from "../../../../../../../design-system";
+import { useAppBackgrounded } from "../../../../../../../hooks/useAppBackgrounded";
 import ModernWaveform from "../../../../../Library/TechniquePage/components/ModernWaveform";
 import { useAudioRecorder } from "./useAudioRecorder";
 
@@ -77,7 +79,22 @@ const SmartRecorder: React.FC<Props> = ({
     recordingDuration,
     deleteRecording,
     duration,
+    interrupted,
+    pauseForInterruption,
+    resumeInterruption,
+    discardInterruption,
   } = useAudioRecorder();
+
+  // Pause a take the moment the app is sent to the background, and hold it until
+  // the user says whether to carry on. Every recording screen renders this dock,
+  // so handling it here covers reading, fun, exposure and the technique drills in
+  // one place, with nothing to wire up per screen.
+  const backgrounded = useAppBackgrounded();
+  useEffect(() => {
+    if (backgrounded) void pauseForInterruption();
+    // Intentionally NOT resuming on return: the user answers that question.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backgrounded]);
 
   const isRecording = state === "recording";
   // Playback state is only valid if we actually have a recording to play
@@ -160,6 +177,45 @@ const SmartRecorder: React.FC<Props> = ({
     // Then notify parent to clear the URI
     onDiscard?.();
   };
+
+  // A take was paused by an interruption. Replace the dock with the question,
+  // rather than floating a modal over it: two of the screens that render this
+  // dock already sit inside a native Modal, and a second live Modal freezes all
+  // touch input on iOS.
+  if (interrupted) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.interruptCard}>
+          <View style={styles.interruptText}>
+            <Text variant="bodySm" color="primary">
+              You were interrupted
+            </Text>
+            <Text variant="caption" color="tertiary">
+              {formatTime(recordingDuration)} recorded · carry on from there?
+            </Text>
+          </View>
+          <View style={styles.interruptActions}>
+            <Button
+              variant="secondary"
+              label="Start over"
+              onPress={() => void discardInterruption()}
+              accentColor={accent}
+              onAccentColor={onAccent}
+              style={styles.interruptButton}
+            />
+            <Button
+              variant="primary"
+              label="Continue"
+              onPress={() => void resumeInterruption()}
+              accentColor={accent}
+              onAccentColor={onAccent}
+              style={styles.interruptButton}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -348,6 +404,24 @@ const useStyles = makeStyles((c, t) => ({
     // ExpressYourself), which already pads its own bottom. Adding it here too
     // would double-pad that one.
     marginBottom: 34,
+  },
+  interruptCard: {
+    backgroundColor: c.surface.elevated,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: c.border.default,
+    padding: space.cardPad,
+    gap: space.rowGap,
+  },
+  interruptText: {
+    gap: space.titleSub,
+  },
+  interruptActions: {
+    flexDirection: "row",
+    gap: space.inlineGap,
+  },
+  interruptButton: {
+    flex: 1,
   },
   dock: {
     flexDirection: "row",

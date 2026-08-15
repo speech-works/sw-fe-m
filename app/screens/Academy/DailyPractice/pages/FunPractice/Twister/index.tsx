@@ -57,6 +57,7 @@ import {
   TwisterFDPStackNavigationProp,
   TwisterFDPStackRouteProp,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
+import { useAppBackgrounded } from "../../../../../../hooks/useAppBackgrounded";
 import { usePracticeToolShutdown } from "../../../../../../hooks/usePracticeToolShutdown";
 
 const Twister = () => {
@@ -87,10 +88,14 @@ const Twister = () => {
   const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
 
   // --- Tools Hooks ---
+  // Pause the tools while the app is in the background. iOS silences app
+  // audio on its own because UIBackgroundModes is not declared; Android does
+  // not, so without this the metronome ticks on in a pocket there.
+  const backgrounded = useAppBackgrounded();
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME,
+    selectedPracticeTool !== ToolType.METRONOME || backgrounded,
   );
-  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || backgrounded);
 
   const isToolActive = (toolName: string) =>
     (toolName === ToolType.DAF &&
@@ -239,6 +244,7 @@ const Twister = () => {
   // else turns the metronome or DAF off. See the hook for the full reasoning.
   usePracticeToolShutdown({
     practiceComplete,
+    backgrounded,
     metronome: metronomeState,
     daf: dafState,
     guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
