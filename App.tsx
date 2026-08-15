@@ -7,6 +7,9 @@ import { PostHogProvider } from "posthog-react-native";
 import UpsellModal from "./app/components/UpsellModal";
 import OutcomeModal from "./app/components/OutcomeModal";
 import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
+// Safe-area probe for the Android bottom-inset question. Renders NOTHING
+// unless its own ENABLED flag is flipped on — see the file for how to read it.
+import { InsetProbe } from "./app/util/diagnostics/InsetProbe";
 import GlobalStaminaController from "./app/components/GlobalStaminaController";
 import OutOfStaminaController from "./app/components/OutOfStaminaController";
 import ErrorFallback from "./app/components/ErrorFallback";
@@ -381,6 +384,7 @@ const App: React.FC = () => {
                       <StaminaVignetteOverlay />
                       <GlobalStaminaController />
                       <OutOfStaminaController />
+                      <InsetProbe />
                     </ThemedNavRoot>
                   </DeadTapDetector>
                 </FontLoader>
