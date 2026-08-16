@@ -242,6 +242,23 @@ export const Sheet: React.FC<SheetProps> = ({
         <ScrollView
           bounces={false}
           showsVerticalScrollIndicator={false}
+          /**
+           * WITHOUT THIS, EVERY CONTROL IN A SHEET IS DEAD WHILE THE KEYBOARD
+           * IS UP.
+           *
+           * The default is `"never"`: the scroll view swallows the first tap to
+           * dismiss the keyboard, and the child under the finger never sees it.
+           * So a sheet with a text input has a submit button that does nothing
+           * on the first press, and looks broken rather than busy. `"handled"`
+           * delivers the tap to the child and only dismisses the keyboard if
+           * nothing handled it.
+           *
+           * It is set HERE rather than at a call site because it is true of
+           * every sheet that will ever hold an input, and because the bug is
+           * invisible on a simulator with a hardware keyboard attached, which
+           * is exactly where it will be tested.
+           */
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             paddingBottom: footer
               ? spacing.md

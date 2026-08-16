@@ -36,6 +36,7 @@ import {
   Button,
   Dialog,
   EmptyState,
+  Sheet,
   Snackbar,
   useTheme,
   accentEdge,
@@ -50,6 +51,7 @@ import {
   TabDock,
   PageHeader,
   Icon,
+  IconButton,
   IconName,
   icons,
   AnimatedNumber,
@@ -268,8 +270,25 @@ const Community = () => {
   const codeInputRef = useRef<TextInput>(null);
   const [submittingCode, setSubmittingCode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  /**
+   * A rejected code, said INSIDE the sheet you typed it in.
+   *
+   * It used to be a full-screen `WatermarkModal`: you mistyped one character,
+   * got a takeover, dismissed it, and were returned to a screen where you had
+   * to find the code entry again and retype the whole thing. A wrong code is
+   * not an event, it is a correction, and a correction belongs next to the
+   * field with the value still in it.
+   */
+  const [codeError, setCodeError] = useState<string | null>(null);
+  /**
+   * Deferred until the code sheet has actually gone.
+   *
+   * Two live native modals at once freezes touch app-wide on iOS, and this file
+   * already carries scars from it. Success opens either the welcome takeover or
+   * a bottom sheet, so neither may fire while the sheet that triggered it is
+   * still on screen.
+   */
+  const afterCodeSheet = useRef<(() => void) | null>(null);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
@@ -447,8 +466,21 @@ const Community = () => {
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   /** Someone who asked and is about to be blocked, pending confirmation. */
   const [blockRequester, setBlockRequester] = useState<BuddyRequest | null>(null);
-  /** The invite-code field, collapsed behind "Use a code" on the stage. */
-  const [codeOpen, setCodeOpen] = useState(false);
+  /**
+   * The invite-code field, in a sheet rather than on the stage.
+   *
+   * It used to expand in place, and the stage is bottom-anchored (`stageSpacer`
+   * is `flex: 1`), so opening it added 70pt to a column that can only grow
+   * upward: the poster headline walked up into the crowd art and landed on your
+   * own avatar. That is not a spacing value to tune, it is what a bottom-pinned
+   * column does when you put a disclosure in it.
+   *
+   * A sheet removes the expanding element entirely, so the page has nothing
+   * left to get wrong, and it is what every other input in this app already
+   * does. It also gets keyboard handling for free, which an input pinned above
+   * a floating dock never had.
+   */
+  const [codeSheet, setCodeSheet] = useState(false);
   /** The person whose detail sheet is open, or null. */
   const [openRequest, setOpenRequest] = useState<BuddyRequest | null>(null);
   const [holdOpen, setHoldOpen] = useState(false);
@@ -550,9 +582,8 @@ const Community = () => {
     setSubmittingCode(true);
     try {
       const result = await attachInviteCode(buddyCode.trim().toUpperCase());
-      // Clearing the field is the only reset now that there is no open/closed
-      // state to fall back to; the field itself never goes away.
       setBuddyCode("");
+      setCodeError(null);
       codeInputRef.current?.blur();
       track(ANALYTICS_EVENTS.BUDDY_CODE_ENTERED, { outcome: result.status });
       await load();
@@ -560,22 +591,26 @@ const Community = () => {
       // plainly sent to is paired on the spot; everyone else has ASKED, and
       // the owner still has to say yes. Claiming a pairing here for the second
       // case would be a straight lie the next screen immediately contradicts.
-      if (result.status === "paired") {
-        setShowWelcome(true);
-      } else {
-        showSuccessBottomSheet(
-          "Request sent",
-          "They'll get a notification. You'll be paired as soon as they say yes.",
-        );
-      }
+      //
+      // QUEUED, not called: both of these are modals, and the sheet is still up.
+      afterCodeSheet.current = () => {
+        if (result.status === "paired") {
+          setShowWelcome(true);
+        } else {
+          showSuccessBottomSheet(
+            "Request sent",
+            "They'll get a notification. You'll be paired as soon as they say yes.",
+          );
+        }
+      };
+      setCodeSheet(false);
     } catch (e: any) {
       // `data.message` was always undefined — the API serialises as
       // `{ error }` — so this silently showed the generic fallback every time
       // and never the specific reason.
-      setErrorMessage(
-        apiErrorMessage(e, "Please check the code and try again."),
-      );
-      setShowError(true);
+      //
+      // The sheet STAYS OPEN and keeps what you typed. See `codeError`.
+      setCodeError(apiErrorMessage(e, "Please check the code and try again."));
     } finally {
       setSubmittingCode(false);
     }
@@ -1361,73 +1396,26 @@ const Community = () => {
           style={styles.stageCta}
         />
 
-        {/* ONE quiet route. "Find someone" used to sit here beside it and is
-            gone: it pointed at what is now the same page the button above
-            opens, which is the duplicate click this pass set out to remove. */}
+        {/* ONE quiet route, and it names the destination rather than the
+            widget. It used to flip to "Hide code box" once open, which is a
+            control describing its own mechanism: nothing else in this app talks
+            about boxes, and "Hide" tells you what the button does to itself
+            rather than what it does for you. There is nothing to hide now. */}
         <View style={styles.linkRow}>
           <PressableScale
-            onPress={() => setCodeOpen((v) => !v)}
+            onPress={() => {
+              setCodeError(null);
+              setCodeSheet(true);
+            }}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="Enter an invite code"
+            accessibilityLabel="Join with an invite code"
           >
             <Text variant="caption" color="accent" style={styles.bold}>
-              {codeOpen ? "Hide code box" : "Use a code"}
+              Have a code?
             </Text>
           </PressableScale>
         </View>
-
-        {/* THE CODE FIELD, behind a link again.
-            It was made permanently visible on the argument that "with the
-            button gone the field is the only control in this block, so there is
-            nothing for it to compete with". The button is back, so that
-            argument inverts exactly: an always-open input under a filled CTA is
-            two controls competing, and it hands the largest, most solid shape
-            on the screen to the rarest path. Everything inside is unchanged —
-            same field, same Join-on-the-fourth-character, same submit. */}
-        {codeOpen ? (
-          <View style={styles.primarySlot}>
-            <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
-              <TextInput
-                ref={codeInputRef}
-                style={[styles.codeInput, { color: colors.text.primary }]}
-                placeholder="Their code"
-                placeholderTextColor={colors.input.placeholder}
-                value={buddyCode}
-                onChangeText={setBuddyCode}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={10}
-                onSubmitEditing={handleSubmitCode}
-                returnKeyType="go"
-                editable={!submittingCode}
-                autoFocus
-                accessibilityLabel="Their invite code"
-              />
-              {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
-                  the fourth character stole width from the TextInput and shoved
-                  the text and caret left mid-keystroke — a jolt at the exact
-                  moment you are watching what you type. */}
-              <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
-                {submittingCode ? (
-                  <ActivityIndicator color={colors.action.primary} size="small" style={styles.codeSpinner} />
-                ) : (
-                  <PressableScale
-                    onPress={handleSubmitCode}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Join with this code"
-                    style={[styles.joinBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}
-                  >
-                    <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
-                      Join
-                    </Text>
-                  </PressableScale>
-                )}
-              </Animated.View>
-            </View>
-          </View>
-        ) : null}
 
         {/* The share line. Share, not copy: the OS share sheet offers copy as
             one of its options, so a separate copy affordance was a second
@@ -1450,6 +1438,96 @@ const Community = () => {
       </View>
     );
   };
+
+  /**
+   * Joining with somebody's code. One field, one job, its own surface.
+   *
+   * `exclusive`, because success opens a takeover or a bottom sheet and iOS
+   * freezes touch app-wide when two native modals are live at once. The outcome
+   * is queued on `afterCodeSheet` and fired from `onDismissed`, so there is
+   * never a moment where both exist.
+   */
+  const renderCodeSheet = () => (
+    <Sheet
+      visible={codeSheet}
+      onClose={() => setCodeSheet(false)}
+      onDismissed={() => {
+        const run = afterCodeSheet.current;
+        afterCodeSheet.current = null;
+        run?.();
+      }}
+      exclusive
+      title="Join with a code"
+      right={
+        <IconButton
+          name={icons.close}
+          onPress={() => setCodeSheet(false)}
+          accessibilityLabel="Close"
+        />
+      }
+    >
+      <View style={styles.codeSheetBody}>
+        <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: codeError ? colors.feedback.danger : colors.input.border }]}>
+          <TextInput
+            ref={codeInputRef}
+            style={[styles.codeInput, { color: colors.text.primary }]}
+            placeholder="Their code"
+            placeholderTextColor={colors.input.placeholder}
+            value={buddyCode}
+            // Typing is the correction, so the rejection goes the moment you
+            // start making it rather than sitting there contradicted.
+            onChangeText={(t) => {
+              setBuddyCode(t);
+              if (codeError) setCodeError(null);
+            }}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={10}
+            onSubmitEditing={handleSubmitCode}
+            returnKeyType="go"
+            editable={!submittingCode}
+            autoFocus
+            accessibilityLabel="Their invite code"
+          />
+          {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
+              the fourth character stole width from the TextInput and shoved
+              the text and caret left mid-keystroke — a jolt at the exact
+              moment you are watching what you type. */}
+          <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
+            {submittingCode ? (
+              <ActivityIndicator color={colors.action.primary} size="small" style={styles.codeSpinner} />
+            ) : (
+              <PressableScale
+                onPress={handleSubmitCode}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Join with this code"
+                style={[styles.joinBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}
+              >
+                <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
+                  Join
+                </Text>
+              </PressableScale>
+            )}
+          </Animated.View>
+        </View>
+
+        {/* The reason, or the instruction. Never both, and never nothing: this
+            slot always says the most useful thing it can. */}
+        {/* `feedback.dangerText`, not the token name: `Text`'s `color` takes a
+            key of `colors.text` OR a literal colour, and "dangerText" is
+            neither. It is a key of `feedback`, so it passed through as a
+            meaningless string and the rejection rendered in the default ink. */}
+        <Text
+          variant="bodySm"
+          color={codeError ? colors.feedback.dangerText : "tertiary"}
+          style={styles.codeHint}
+        >
+          {codeError ?? "Ask them to share theirs from their Buddy page."}
+        </Text>
+      </View>
+    </Sheet>
+  );
 
   const renderPaired = () => {
     const buddy = link?.buddy;
@@ -1780,6 +1858,8 @@ const Community = () => {
             {renderStage()}
           </View>
         </ScreenView>
+
+        {renderCodeSheet()}
         {/* ── Buddy Welcome Modal ── */}
         <WatermarkModal
           visible={showWelcome}
@@ -1795,20 +1875,6 @@ const Community = () => {
           ctaTextColor={colors.action.onPrimary}
         />
 
-        {/* ── Invalid Code Error Modal ── */}
-        <WatermarkModal
-          visible={showError}
-          onClose={() => setShowError(false)}
-          watermarkIcon={icons.warning}
-          watermarkColor={colors.feedback.danger}
-          tag="INVALID CODE"
-          tagColor={colors.feedback.dangerText}
-          title="Couldn't Connect"
-          message={errorMessage}
-          ctaLabel="Try Again"
-          ctaColor={colors.feedback.danger}
-          ctaTextColor={colors.accentOn.danger}
-        />
       </>
     );
   }
@@ -1943,20 +2009,6 @@ const Community = () => {
         ctaTextColor={colors.action.onPrimary}
       />
 
-      {/* ── Invalid Code Error Modal ── */}
-      <WatermarkModal
-        visible={showError}
-        onClose={() => setShowError(false)}
-        watermarkIcon={icons.warning}
-        watermarkColor={colors.feedback.danger}
-        tag="INVALID CODE"
-        tagColor={colors.feedback.dangerText}
-        title="Couldn't Connect"
-        message={errorMessage}
-        ctaLabel="Try Again"
-        ctaColor={colors.feedback.danger}
-        ctaTextColor={colors.accentOn.danger}
-      />
 
       <BuddySupportSheet
         visible={!!supportSignal}
@@ -2260,7 +2312,9 @@ const styles = StyleSheet.create({
   codeSpinner: { marginRight: spacing.md },
   // The field's row. Fixed at 54 so a long headline growing upward is the only
   // thing that ever moves in this block.
-  primarySlot: { height: 54, marginTop: spacing.sm, alignSelf: "stretch" },
+  // The sheet's body: one field and one line under it.
+  codeSheetBody: { gap: space.rowGap },
+  codeHint: { textAlign: "center" },
   // Sits INSIDE the field's right edge, so the row height never changes as it
   // appears and the layout doesn't jump on the fourth character.
   // Out of flow, pinned to the field's right edge.
