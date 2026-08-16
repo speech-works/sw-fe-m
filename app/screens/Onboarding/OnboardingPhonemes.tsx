@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Audio } from "expo-av";
 import { ensurePlaybackSession } from "../../util/audio/playbackSession";
 import { getPhonemes } from "../../api/phonemes";
+import { playableAudioUrl } from "../../api/phonemes/freshness";
 import { Phoneme } from "../../api/phonemes/types";
 import { getMyUser, updateMyUser } from "../../api/users";
 import { useUserStore } from "../../stores/user";
@@ -49,6 +50,9 @@ const OnboardingPhonemes = () => {
   // from FearedSounds so audio lifecycle is identical in both screens.)
   const soundRef = useRef<Audio.Sound | null>(null);
   const unmountedRef = useRef(false);
+  // When the presigned audio URLs were fetched; `playableAudioUrl` refetches
+  // them near their one-hour expiry so a long-open screen keeps playing.
+  const phonemesFetchedAtRef = useRef(0);
 
   useEffect(
     () => () => {
@@ -75,6 +79,7 @@ const OnboardingPhonemes = () => {
           return 0;
         });
         setPhonemes(sortedPhonemes);
+        phonemesFetchedAtRef.current = Date.now();
         setSelectedSounds(initialSelected);
       } catch (error) {
         // Silent before: the list simply stayed empty with nothing to explain
@@ -98,14 +103,21 @@ const OnboardingPhonemes = () => {
     );
 
     if (audioUrl) {
+      let uri = audioUrl;
       try {
+        uri = await playableAudioUrl(
+          code,
+          audioUrl,
+          phonemesFetchedAtRef,
+          setPhonemes,
+        );
         await soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;
         // Before loading, not after: the session decides whether this is
         // audible at all, and whether it can start.
         await ensurePlaybackSession();
         const { sound } = await Audio.Sound.createAsync(
-          { uri: audioUrl },
+          { uri },
           { shouldPlay: true },
         );
         if (unmountedRef.current) {
@@ -115,13 +127,22 @@ const OnboardingPhonemes = () => {
         soundRef.current = sound;
         sound.setOnPlaybackStatusUpdate((status) => {
           const done = status.isLoaded ? status.didJustFinish : !!status.error;
+          if (!status.isLoaded && status.error) {
+            // createAsync can resolve and THEN fail here. Without this line
+            // that failure is invisible: no toast, nothing in the log, the
+            // tap just makes no sound.
+            console.error(`Playback failed for ${code} (${uri}):`, status.error);
+          }
           if (done) {
             sound.unloadAsync();
             if (soundRef.current === sound) soundRef.current = null;
           }
         });
       } catch (error) {
-        console.error("Error playing sound:", error);
+        // The URI separates the -11800 causes: checksum-mode parameter means
+        // the backend presigner, expired X-Amz-Date means a stale presign that
+        // slipped past the refetch, a clean URL means the audio session.
+        console.error(`Error playing sound ${code} (${uri}):`, error);
       }
     }
   };

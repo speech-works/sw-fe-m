@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { getPhonemes } from "../../../api/phonemes";
+import { playableAudioUrl } from "../../../api/phonemes/freshness";
 import { Phoneme } from "../../../api/phonemes/types";
 import { Audio } from "expo-av";
 import { ensurePlaybackSession } from "../../../util/audio/playbackSession";
@@ -30,6 +31,9 @@ const FearedSounds = () => {
   // one so it can be unloaded on replacement and on unmount.
   const soundRef = useRef<Audio.Sound | null>(null);
   const unmountedRef = useRef(false);
+  // When the presigned audio URLs were fetched; `playableAudioUrl` refetches
+  // them near their one-hour expiry so a long-open screen keeps playing.
+  const phonemesFetchedAtRef = useRef(0);
 
   useEffect(
     () => () => {
@@ -56,6 +60,7 @@ const FearedSounds = () => {
           return 0;
         });
         setPhonemes(sortedPhonemes);
+        phonemesFetchedAtRef.current = Date.now();
         setSelectedSounds(initialSelected);
       } catch (error) {
         console.error("Error fetching phonemes or user data:", error);
@@ -73,14 +78,21 @@ const FearedSounds = () => {
     );
 
     if (audioUrl) {
+      let uri = audioUrl;
       try {
+        uri = await playableAudioUrl(
+          code,
+          audioUrl,
+          phonemesFetchedAtRef,
+          setPhonemes,
+        );
         await soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;
         // Before loading, not after: the session decides whether this is
         // audible at all, and whether it can start.
         await ensurePlaybackSession();
         const { sound } = await Audio.Sound.createAsync(
-          { uri: audioUrl },
+          { uri },
           { shouldPlay: true }
         );
         if (unmountedRef.current) {
@@ -92,6 +104,12 @@ const FearedSounds = () => {
           // Release on finish AND on load/playback error — an errored player
           // never reaches didJustFinish.
           const done = status.isLoaded ? status.didJustFinish : !!status.error;
+          if (!status.isLoaded && status.error) {
+            // createAsync can resolve and THEN fail here. Without this line
+            // that failure is invisible: no toast, nothing in the log, the
+            // tap just makes no sound.
+            console.error(`Playback failed for ${code} (${uri}):`, status.error);
+          }
           if (done) {
             sound.unloadAsync();
             if (soundRef.current === sound) soundRef.current = null;
@@ -101,9 +119,9 @@ const FearedSounds = () => {
         // Log the URI, not just the error. Every failure here surfaces as the
         // same opaque AVPlayer -11800, and the URI is what separates the causes:
         // an `x-amz-checksum-mode=ENABLED` parameter is the backend presigner,
-        // an expired `X-Amz-Date` is this screen holding a one-hour URL too
-        // long, and a clean URL means the audio session, not the audio.
-        console.error(`Error playing sound ${code} (${audioUrl}):`, error);
+        // an expired `X-Amz-Date` is a stale presign that slipped past the
+        // refetch, and a clean URL means the audio session, not the audio.
+        console.error(`Error playing sound ${code} (${uri}):`, error);
       }
     }
   };
