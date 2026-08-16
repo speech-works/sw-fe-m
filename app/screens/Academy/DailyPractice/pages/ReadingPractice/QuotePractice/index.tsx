@@ -1,4 +1,8 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import React, { useState } from "react";
 import {
   StyleSheet,
@@ -86,10 +90,16 @@ const QuotePractice = () => {
   // audio on its own because UIBackgroundModes is not declared; Android does
   // not, so without this the metronome ticks on in a pocket there.
   const backgrounded = useAppBackgrounded();
+  // Leaving the screen counts too. Backing out normally POPS this screen, and
+  // the tool hooks release everything on unmount, but the mood-check entry point
+  // routes to Home instead of popping, and the tab it lands on leaves this
+  // screen mounted. Without this the tools played on over the Home screen.
+  const isFocused = useIsFocused();
+  const toolsIdle = backgrounded || !isFocused;
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME || backgrounded,
+    selectedPracticeTool !== ToolType.METRONOME || toolsIdle,
   );
-  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || backgrounded);
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || toolsIdle);
 
   // Stop every tool the moment practising stops — on submit, on blur, on
   // background. The screen stays mounted behind the Done screen, so nothing
@@ -97,6 +107,7 @@ const QuotePractice = () => {
   usePracticeToolShutdown({
     practiceComplete,
     backgrounded,
+    inactive: !isFocused,
     metronome: metronomeState,
     daf: dafState,
     guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
@@ -413,6 +424,7 @@ const QuotePractice = () => {
         }}
         dock={
           <SmartRecorder
+            suspended={!isFocused}
             onRecorded={actions.setVoiceRecordingUri}
             onToggle={actions.toggleIndex} // Next button logic
             prevRecordingUri={voiceRecordingUri || undefined}

@@ -1,4 +1,8 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   LayoutAnimation,
@@ -92,10 +96,16 @@ const Twister = () => {
   // audio on its own because UIBackgroundModes is not declared; Android does
   // not, so without this the metronome ticks on in a pocket there.
   const backgrounded = useAppBackgrounded();
+  // Leaving the screen counts too. Backing out normally POPS this screen, and
+  // the tool hooks release everything on unmount, but the mood-check entry point
+  // routes to Home instead of popping, and the tab it lands on leaves this
+  // screen mounted. Without this the tools played on over the Home screen.
+  const isFocused = useIsFocused();
+  const toolsIdle = backgrounded || !isFocused;
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME || backgrounded,
+    selectedPracticeTool !== ToolType.METRONOME || toolsIdle,
   );
-  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || backgrounded);
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || toolsIdle);
 
   const isToolActive = (toolName: string) =>
     (toolName === ToolType.DAF &&
@@ -245,6 +255,7 @@ const Twister = () => {
   usePracticeToolShutdown({
     practiceComplete,
     backgrounded,
+    inactive: !isFocused,
     metronome: metronomeState,
     daf: dafState,
     guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
@@ -605,6 +616,7 @@ const Twister = () => {
         }}
         dock={
           <SmartRecorder
+            suspended={!isFocused}
             onRecorded={setVoiceRecordingUri}
             onToggle={toggleIndex}
             prevRecordingUri={voiceRecordingUri || undefined}

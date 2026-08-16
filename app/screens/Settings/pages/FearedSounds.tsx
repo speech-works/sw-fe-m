@@ -98,7 +98,12 @@ const FearedSounds = () => {
           }
         });
       } catch (error) {
-        console.error("Error playing sound:", error);
+        // Log the URI, not just the error. Every failure here surfaces as the
+        // same opaque AVPlayer -11800, and the URI is what separates the causes:
+        // an `x-amz-checksum-mode=ENABLED` parameter is the backend presigner,
+        // an expired `X-Amz-Date` is this screen holding a one-hour URL too
+        // long, and a clean URL means the audio session, not the audio.
+        console.error(`Error playing sound ${code} (${audioUrl}):`, error);
       }
     }
   };

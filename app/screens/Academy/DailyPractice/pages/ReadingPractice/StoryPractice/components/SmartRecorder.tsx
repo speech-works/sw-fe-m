@@ -34,6 +34,16 @@ interface Props {
   onDiscard?: () => void;
   /** Disable starting a recording (idle mic button off + dimmed). Default false. */
   disabled?: boolean;
+  /**
+   * The surface holding this dock is still mounted but no longer on screen.
+   * The Library technique pager keeps the practice stage alive behind the lesson
+   * and the quiz, and a practice screen entered from a mood check is navigated
+   * away from rather than popped, so neither unmount nor blur reaches the
+   * recorder on its own. Pass this and a running take is paused (the same
+   * interruption question the user gets when the app is backgrounded), while
+   * clip playback is stopped outright.
+   */
+  suspended?: boolean;
   /** Hide the idle tools↔mic divider (for docks with no left-side tools). Default false. */
   hideSeparator?: boolean;
   /**
@@ -55,6 +65,7 @@ const SmartRecorder: React.FC<Props> = ({
   onSubmit,
   onDiscard,
   disabled = false,
+  suspended = false,
   hideSeparator = false,
   confirmShortAudio = true,
   accentColor,
@@ -95,6 +106,21 @@ const SmartRecorder: React.FC<Props> = ({
     // Intentionally NOT resuming on return: the user answers that question.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backgrounded]);
+
+  // Same for a dock whose surface is swapped out without unmounting. A take is
+  // paused, not thrown away, so the interruption card is waiting when the user
+  // comes back. Playback is stopped outright instead: a clip carrying on over
+  // a different page has nothing to ask the user about.
+  //
+  // `state` is read at the moment of the switch on purpose, and must stay out of
+  // the deps: `stopPlayback` sets the state to idle, and running it against a
+  // paused take would clear the recording state the interruption card needs.
+  useEffect(() => {
+    if (!suspended) return;
+    if (state === "playback") void stopPlayback();
+    else void pauseForInterruption();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suspended]);
 
   const isRecording = state === "recording";
   // Playback state is only valid if we actually have a recording to play

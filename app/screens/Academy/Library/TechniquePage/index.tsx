@@ -1,4 +1,9 @@
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import {
+  RouteProp,
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, View, ScrollView, Dimensions, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -56,6 +61,13 @@ const TechniquePage = () => {
   const [contentHeight, setContentHeight] = useState(Dimensions.get("window").height);
   const [headerHeight, setHeaderHeight] = useState(200);
   const isScrubbing = useIsScrubbing();
+
+  // A stage is only "on screen" if this screen is, too. Leaving the technique is
+  // not always a pop: the mood-check entry point and the tab bar both navigate
+  // AWAY while leaving this screen mounted, so a metronome or a lesson video
+  // started here carried on playing over Home. Navigation focus is safe to lean
+  // on where AppState is not: a system microphone prompt never blurs a screen.
+  const isFocused = useIsFocused();
 
   const scrollY_0 = useSharedValue(0);
   const scrollY_1 = useSharedValue(0);
@@ -280,7 +292,7 @@ const TechniquePage = () => {
                 techniqueId={techniqueId}
                 header={headerPlaceholder}
                 outerScrollY={scrollY_0}
-                isActive={activeStageIndex === 0}
+                isActive={isFocused && activeStageIndex === 0}
               />
             </View>
             {isContentAccessible && (
@@ -291,6 +303,7 @@ const TechniquePage = () => {
                     techniqueId={techniqueId}
                     header={headerPlaceholder}
                     outerScrollY={scrollY_1}
+                    isActive={isFocused && activeStageIndex === 1}
                   />
                 </View>
                 <View style={[styles.page, { width: contentWidth, height: contentHeight }]}>

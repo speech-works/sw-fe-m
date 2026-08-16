@@ -44,6 +44,8 @@ interface PracticePageProps {
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
   header?: React.ReactNode;
   outerScrollY?: Animated.SharedValue<number>;
+  /** False while another stage is on screen. The pager keeps this page mounted. */
+  isActive?: boolean;
 }
 
 /** First-paint estimate of the fixed cluster (control stack + dock); replaced by the
@@ -73,6 +75,7 @@ const PracticePage = ({
   techniqueId,
   header,
   outerScrollY,
+  isActive = true,
 }: PracticePageProps) => {
   const { colors } = useTheme();
   const navBarInset = useNavBarInset();
@@ -123,18 +126,34 @@ const PracticePage = ({
 
   // Tool Hooks (for internal state management)
   const backgrounded = useAppBackgrounded();
+  // Muted while the stage is off screen too, so the tick interval and the DAF
+  // audio graph are released rather than left idling behind the other stages.
+  const toolsIdle = backgrounded || !isActive;
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME || backgrounded,
+    selectedPracticeTool !== ToolType.METRONOME || toolsIdle,
   );
-  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || backgrounded);
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF || toolsIdle);
 
-  // No submit step on this drill page; only the background pause applies.
+  // No submit step on this drill page. Backgrounding pauses; moving to another
+  // stage of the technique switches everything off, because the pager keeps this
+  // page mounted and nothing else would ever stop it.
   usePracticeToolShutdown({
     backgrounded,
+    inactive: !isActive,
     metronome: metronomeState,
     daf: dafState,
     guide: { isPlaying: vhIsPlaying, setIsPlaying: setVhIsPlaying },
   });
+
+  // The dock's selection follows the tools. Leaving one selected after it has
+  // been switched off keeps its hook armed (the metronome would reload its
+  // sound the moment the stage comes back), and shows a tool the user has to
+  // tap twice to restart.
+  useEffect(() => {
+    if (isActive) return;
+    setSelectedPracticeTool("");
+    setActiveToolSheet(null);
+  }, [isActive]);
 
   useEffect(() => {
     let cancelled = false;
@@ -485,6 +504,7 @@ const PracticePage = ({
       >
         <FloatingControls inline items={controls} style={styles.deckStack} />
         <SmartRecorder
+          suspended={!isActive}
           onRecorded={setVoiceRecordingUri}
           prevRecordingUri={voiceRecordingUri || undefined}
           onSubmit={handleNext}

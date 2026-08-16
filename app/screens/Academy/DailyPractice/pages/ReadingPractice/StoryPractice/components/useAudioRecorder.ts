@@ -4,6 +4,8 @@ import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ensurePlaybackSession } from "../../../../../../../util/audio/playbackSession";
+
 type RecorderState = "idle" | "recording" | "playback";
 
 interface UseAudioRecorderReturn {
@@ -64,6 +66,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       stopMeteringLogic();
       if (recordingRef.current) {
         recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        void ensurePlaybackSession();
       }
       if (soundRef.current) {
         soundRef.current.unloadAsync().catch(() => {});
@@ -194,6 +197,9 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       return true;
     } catch (e) {
       console.error("[useAudioRecorder] Failed to start recording", e);
+      // The record-mode session was claimed a few lines up. Hand it back, or a
+      // take that never started leaves the whole app in PlayAndRecord.
+      await ensurePlaybackSession();
       setState("idle");
       return false;
     }
@@ -255,6 +261,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
     if (recordingRef.current) {
       await recordingRef.current.stopAndUnloadAsync().catch(() => {});
       recordingRef.current = null;
+      await ensurePlaybackSession();
     }
     samplesRef.current = [];
     setWaveform([]);
@@ -272,6 +279,13 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       await recordingRef.current.stopAndUnloadAsync();
       const uri = recordingRef.current.getURI();
       recordingRef.current = null;
+      // Give the session back. `startRecording` puts iOS into PlayAndRecord and
+      // that setting is GLOBAL and sticky, so without this every later sound in
+      // the app opens an input route it does not need. DAF has always reset its
+      // own mode on stop; this is the recorder doing the same. On the Simulator,
+      // where there is no working microphone route, the leak is fatal rather
+      // than untidy: unrelated playback fails with AVPlayer -11800.
+      await ensurePlaybackSession();
       setState("idle");
       setMetering(0);
       setDuration(recordingDuration);

@@ -11,20 +11,30 @@ import { useCallback, useEffect, useRef } from "react";
  * `useDAF` kept processing microphone audio underneath the Done screen. The
  * tick only stopped once the user navigated away and the screen unmounted.
  *
- * SUBMIT IS THE ONLY TRIGGER, deliberately. An earlier version also stopped the
- * tools when the screen lost focus and when the app reported itself
- * backgrounded. That broke the feature: the metronome died the moment the user
- * pressed record, which is exactly when it is needed, because reading aloud to
- * a beat while recording is the point of the tool.
+ * TRIGGERS ARE DELIBERATELY NARROW. An earlier version also stopped the tools
+ * when the screen lost FOCUS and when the app reported itself backgrounded.
+ * That broke the feature: the metronome died the moment the user pressed
+ * record, which is exactly when it is needed, because reading aloud to a beat
+ * while recording is the point of the tool.
  *
  * The lesson worth keeping: tools are switched OFF here, not paused, so a false
  * trigger is not a brief gap in sound, it kills the tool until the user taps it
  * again. That makes every additional trigger expensive. Do not add one without
  * testing it on a real device against a real recording.
  *
- * Leaving the screen is already covered elsewhere: `useMetronome` and `useDAF`
- * release their interval, sound handle and audio session on unmount, and the
- * reading guide stops speaking when its component unmounts.
+ * `inactive` clears that bar, and the regression above is not an argument
+ * against it. What killed the metronome then was AppState reporting `inactive`,
+ * which iOS raises for the system microphone prompt while the screen is still
+ * right there, and `useAppBackgrounded` now ignores it for exactly that reason.
+ * Navigation focus is a different signal: no permission dialog, sheet or
+ * recording moves it.
+ *
+ * Unmounting is covered elsewhere: `useMetronome` and `useDAF` release their
+ * interval, sound handle and audio session on unmount, and the reading guide
+ * stops speaking when its component unmounts. That covers popping a pushed
+ * screen, and nothing else. A screen that is navigated AWAY from rather than
+ * back out of stays mounted with every tool still running, which is what
+ * `inactive` is for.
  */
 type ToggleableTool = {
   isPlaying: boolean;
@@ -40,6 +50,19 @@ type PracticeToolShutdownArgs = {
    */
   practiceComplete?: boolean;
   /**
+   * True when the page is still mounted but is no longer what the user is
+   * looking at. Two ways that happens on the Library technique page, and it
+   * leaked audio both ways:
+   *
+   *  - its stages (Learn / Practice / Test) sit side by side in a horizontal
+   *    pager, so moving off Practice unmounts nothing, and the metronome kept
+   *    ticking under the lesson video and the quiz;
+   *  - the screen itself is navigated away from rather than popped (the tab bar,
+   *    and the mood-check entry point's route home), so it stays mounted and the
+   *    tools followed the user onto the Home screen.
+   */
+  inactive?: boolean;
+  /**
    * From `useAppBackgrounded`. Only the reading guide is handled here: the
    * metronome and DAF PAUSE on background through their own `muteLogic` flag
    * and resume by themselves, but speech cannot resume mid-word, so the guide
@@ -53,6 +76,7 @@ type PracticeToolShutdownArgs = {
 
 export function usePracticeToolShutdown({
   practiceComplete,
+  inactive,
   backgrounded,
   metronome,
   daf,
@@ -73,6 +97,14 @@ export function usePracticeToolShutdown({
   useEffect(() => {
     if (practiceComplete) silence();
   }, [practiceComplete, silence]);
+
+  // Leaving the page switches the tools OFF rather than pausing them: coming
+  // back to a stage minutes later and having a metronome start ticking on its
+  // own is worse than tapping it again, and the same argument that keeps DAF
+  // from resuming after a background applies to the microphone here.
+  useEffect(() => {
+    if (inactive) silence();
+  }, [inactive, silence]);
 
   // Background behaviour differs by tool, on purpose.
   //
