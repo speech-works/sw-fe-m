@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { useFocusEffect } from "@react-navigation/native";
@@ -21,12 +21,10 @@ import {
   Gradient,
   Icon,
   icons,
-  spacing,
   Text,
   withAlpha,
   mix,
 } from "../../design-system";
-import PressableScale from "../PressableScale";
 import { UserAvatar } from "../UserAvatar";
 import { illustrativeCrowd } from "../../util/functions/crowdAvatars";
 import { buildRoom, GAP, type Band } from "./geometry";
@@ -144,8 +142,8 @@ const LEAN = 5;
  *
  * Design: a hint you have to earn by hesitating is only worth it if it is
  * dependable. A short, bounded, immediate one is easier to trust, and it still
- * cannot nag: the breath runs twice and the dots hop {@link DOT_RUNS} times,
- * then the seat is still for the rest of the visit.
+ * cannot nag: the breath runs twice, then the seat is still for the rest of
+ * the visit.
  *
  * Timed to the arrival rather than to zero, so the room paints, settles, and
  * THEN the seat speaks. All at once reads as a page that cannot sit still.
@@ -156,56 +154,9 @@ const INVITE_AT = duration.reveal + 520;
  *  `duration.shimmer` is — a fast pulse reads as an alert, not an invitation. */
 const BREATH = 900;
 
-/** The seat label's box. Wider than the seat on purpose so the line never wraps
- *  — a two-line hint under a square reads as a caption on artwork rather than as
- *  a label on a control. Clamped to the viewport by the caller. */
-const HINT_WIDTH = 200;
-
-/**
- * The seat's wrapper: a real button when there is a handler, a picture when
- * there is not.
- *
- * Declared at module scope rather than inside the render, so the seat is not
- * remounted (and its ambient animation restarted) on every parent update.
- *
- * The picture branch is `accessible={false}`, not a labelled image. Everything
- * the seat says is already said in text directly beneath it, so a screen reader
- * hearing it again would hear the same fact three times: the seat, the
- * headline, and the count line.
- */
-const SeatFrame: React.FC<{
-  pressable: boolean;
-  onPress?: () => void;
-  onPressIn: () => void;
-  onPressOut: () => void;
-  label: string;
-  style: ViewStyle;
-  children: React.ReactNode;
-}> = ({ pressable, onPress, onPressIn, onPressOut, label, style, children }) =>
-  pressable ? (
-    <PressableScale
-      onPress={onPress}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint="Opens buddy search"
-      style={style}
-    >
-      {children}
-    </PressableScale>
-  ) : (
-    <View style={style} pointerEvents="none" accessible={false}>
-      {children}
-    </View>
-  );
-
 export interface CommunityRoomProps {
   /** The viewer's own avatar. Undefined renders the default — never an empty tile. */
   manifest?: AvatarManifest | null;
-  /** Pressing the empty seat. Same destination as the primary action; people
-   *  reach for the thing the screen is about. */
-  onSeatPress?: () => void;
   /**
    * How many people are waiting on an answer, drawn on the seat itself.
    *
@@ -215,21 +166,11 @@ export interface CommunityRoomProps {
    * emptiness.
    */
   seatCount?: number;
-  /**
-   * Draw the seat's "Tap to find someone" line.
-   *
-   * Off when the stage below carries a primary button that goes to the same
-   * place. Two labels for one destination is the redundancy this hint was
-   * introduced to fix, in the version of the screen that had no button.
-   */
-  showHint?: boolean;
 }
 
 export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   manifest,
-  onSeatPress,
   seatCount = 0,
-  showHint = true,
 }) => {
   const { colors, scheme, elevation } = useTheme();
   const { width, height } = useWindowDimensions();
@@ -282,8 +223,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
    * `invite` — two slow breaths, starting as the arrival settles
    *   ({@link INVITE_AT}). Capped at two, then silent for the rest of the
    *   visit: it introduces the seat without competing for the whole session.
-   * `press` — the wash under your thumb.
-   *
+     *
    * The breath is SCALE-led, not opacity-led, on purpose. A soft shape fading in
    * and out is what every skeleton loader in this app looks like
    * (`duration.shimmer`), and a pulsing empty square that reads as "loading" is
@@ -296,7 +236,6 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   const reduceMotion = useReducedMotion();
   const arrive = useSharedValue(reduceMotion ? 1 : 0);
   const invite = useSharedValue(0);
-  const press = useSharedValue(0);
 
   /*
    * ARMED FROM THE FOCUS EVENT, NOT FROM A `useIsFocused()` BOOLEAN.
@@ -349,13 +288,6 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
     }, [reduceMotion, arrive, invite]),
   );
 
-  /** Stops the invitation for good once the seat has been touched — it has done
-   *  its job, and a hint that keeps arriving after you've answered is nagging. */
-  const answerInvite = () => {
-    cancelAnimation(invite);
-    invite.value = withTiming(0, { duration: duration.base, easing: easing.out });
-  };
-
   const glowStyle = useAnimatedStyle(() => ({
     // Rest sits BELOW full so the breath has somewhere to go without the glow
     // ever exceeding the intensity the composition was tuned at.
@@ -363,12 +295,10 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
     transform: [
       {
         scale:
-          0.86 + 0.14 * arrive.value + 0.1 * invite.value + 0.06 * press.value,
+          0.86 + 0.14 * arrive.value + 0.1 * invite.value,
       },
     ],
   }));
-
-  const pressStyle = useAnimatedStyle(() => ({ opacity: press.value }));
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -426,7 +356,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
           Over the crowd, UNDER the scrim and under the subject. Order matters:
           a blur blurs what is behind it, so anything that must stay sharp — the
           lit pair, the seat, every word of the copy — has to be drawn after it.
-          `pointerEvents` none so the seat underneath is still pressable. */}
+          `pointerEvents` none, like everything else in the picture. */}
       {CROWD_BLUR > 0 ? (
         <BlurView
           intensity={CROWD_BLUR}
@@ -557,36 +487,25 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
             The fill is an OPAQUE mix, not a translucent accent wash. A wash let
             the crowd show through, so the empty seat had two faces sitting in
             it — the one thing it must never contain. */}
-        {/**
-         * A BUTTON ONLY IF SOMEBODY GAVE IT SOMETHING TO DO.
-         *
-         * `onSeatPress` was removed from the one screen that mounts this, on
-         * the correct argument that the seat is the picture and the CTA below
-         * is the control. The `PressableScale` around it was not removed with
-         * it, so the seat kept every signal of a button and had none of the
-         * behaviour: it sprang under your finger, flashed a press wash, and
-         * announced itself to screen readers as "button, opens buddy search".
-         *
-         * It was worse than a dead tap. `onPressIn` called `answerInvite`,
-         * which permanently cancels the ambient invitation animation, so
-         * touching the picture silently killed the one thing drawing your eye
-         * to it and gave you nothing back.
-         */}
-        <SeatFrame
-          pressable={!!onSeatPress}
-          onPress={onSeatPress}
-          onPressIn={() => {
-            answerInvite();
-            press.value = withTiming(1, { duration: duration.fast, easing: easing.out });
-          }}
-          onPressOut={() => {
-            press.value = withTiming(0, { duration: duration.base, easing: easing.out });
-          }}
-          label={
-            seatCount > 0
-              ? `${seatCount} people are waiting on an answer`
-              : "Find someone to pair with"
-          }
+        {/* NOT A CONTROL, AND NO LONGER ABLE TO BECOME ONE.
+            This was wrapped in a `PressableScale` with no handler behind it:
+            it sprang under your finger, flashed a press wash and told screen
+            readers it was a button that "opens buddy search", while doing
+            nothing. Worse, its `onPressIn` permanently cancelled the ambient
+            invitation, so touching the picture killed the one thing drawing
+            your eye to it.
+
+            The wrapper kept a `pressable` branch for a caller that might want
+            it back. No caller ever did, so the branch was unreachable code
+            carrying a press animation, a press wash and an `onSeatPress` prop
+            with it. The seat is the picture; the button below it is the
+            control. That is the whole design, and now it is the whole code.
+
+            `accessible={false}`, because every fact this shape carries is said
+            in text directly beneath it. */}
+        <View
+          pointerEvents="none"
+          accessible={false}
           // The gap is measured between the DRAWN tiles, so the avatar's
           // transparent 12.5% ring is subtracted back out of it.
           style={{
@@ -700,59 +619,11 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
                 color={withAlpha(colors.text.primary, 0.1)}
               />
 
-              {/* PRESS FEEDBACK THE SHAPE CAN ACTUALLY SHOW. Only ever visible
-                  when a caller supplied a handler; see `SeatFrame`. */}
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  StyleSheet.absoluteFill,
-                  pressStyle,
-                  { backgroundColor: withAlpha(accent, 0.16) },
-                ]}
-              />
             </View>
           </View>
-        </SeatFrame>
+        </View>
       </View>
 
-      {/* THE SEAT'S LABEL.
-          A separate absolutely-positioned line rather than a child of the
-          subject row, because the row is sized to the two tiles and anything
-          hung below it would be clipped on Android.
-
-          The halo is the CANVAS colour rather than a literal black, which makes
-          it invert for free: on dark it deepens, on the cream light canvas it
-          lightens. A fixed black glow behind dark ink on cream reads as a
-          smudge, which is the bug the stage copy's halo already had to solve. */}
-      {showHint ? (
-      <View
-        pointerEvents="none"
-        style={[
-          styles.seatHint,
-          {
-            top: room.subjectTop + room.subjectSize + spacing.sm,
-            left: Math.max(
-              0,
-              Math.min(
-                width - HINT_WIDTH,
-                (width - pairWidth) / 2 + seatCenterX - HINT_WIDTH / 2,
-              ),
-            ),
-          },
-        ]}
-      >
-        <Text
-          variant="caption"
-          color="accent"
-          style={[
-            styles.seatHintText,
-            { textShadowColor: withAlpha(canvas, 0.9) },
-          ]}
-        >
-          Tap to find someone
-        </Text>
-      </View>
-      ) : null}
     </View>
   );
 };
@@ -766,7 +637,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", marginLeft: -GAP * 2 },
   subject: { position: "absolute", flexDirection: "row", alignItems: "center" },
   glow: { position: "absolute" },
-  seatHint: { position: "absolute", width: HINT_WIDTH, alignItems: "center" },
   // Overhangs the seat's top-right corner. The ring is canvas-coloured rather
   // than transparent so the badge reads as a separate object sitting in front
   // of the seat, not as a notch cut out of its rim.
@@ -784,9 +654,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   seatBadgeText: { fontFamily: fonts.bold },
-  seatHintText: {
-    fontFamily: fonts.bold,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
 });

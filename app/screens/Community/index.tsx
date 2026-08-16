@@ -289,6 +289,24 @@ const Community = () => {
    * still on screen.
    */
   const afterCodeSheet = useRef<(() => void) | null>(null);
+  /**
+   * Is the code sheet still ON SCREEN? Not the same question as `codeSheet`.
+   *
+   * `codeSheet` is the request to be open; this is true from the moment it
+   * opens until `onDismissed` fires, which includes the whole exit animation.
+   *
+   * IT EXISTS BECAUSE THE QUEUE COULD BE DROPPED. Queueing the outcome and
+   * then calling `setCodeSheet(false)` only works if the sheet is still there
+   * to close. Close it yourself while the request is in flight and the order
+   * inverts: `onDismissed` runs first and finds an empty queue, then the reply
+   * arrives, fills the queue, and closes a sheet that is already closed. React
+   * bails out on the unchanged state, no second dismissal happens, and the
+   * queued outcome never runs. You get paired and the app says nothing.
+   *
+   * A ref rather than state, because the async continuation captured its
+   * render's `codeSheet` and would still read `true`.
+   */
+  const codeSheetLive = useRef(false);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
@@ -592,8 +610,7 @@ const Community = () => {
       // the owner still has to say yes. Claiming a pairing here for the second
       // case would be a straight lie the next screen immediately contradicts.
       //
-      // QUEUED, not called: both of these are modals, and the sheet is still up.
-      afterCodeSheet.current = () => {
+      const announce = () => {
         if (result.status === "paired") {
           setShowWelcome(true);
         } else {
@@ -603,7 +620,19 @@ const Community = () => {
           );
         }
       };
-      setCodeSheet(false);
+
+      if (codeSheetLive.current) {
+        // The sheet is still on screen, so this must wait for it to go. That
+        // covers the mid-animation case too: `onDismissed` has not fired yet,
+        // and when it does it will find this.
+        afterCodeSheet.current = announce;
+        setCodeSheet(false);
+      } else {
+        // The user already closed it and the dismissal is complete. There is
+        // nothing left to stack against, and nothing left to wait for either:
+        // queueing here would wait for a dismissal that will never come again.
+        announce();
+      }
     } catch (e: any) {
       // `data.message` was always undefined — the API serialises as
       // `{ error }` — so this silently showed the generic fallback every time
@@ -1405,6 +1434,7 @@ const Community = () => {
           <PressableScale
             onPress={() => {
               setCodeError(null);
+              codeSheetLive.current = true;
               setCodeSheet(true);
             }}
             hitSlop={12}
@@ -1452,6 +1482,9 @@ const Community = () => {
       visible={codeSheet}
       onClose={() => setCodeSheet(false)}
       onDismissed={() => {
+        // The sheet is now GONE, not merely closing. Everything after this
+        // point is free to open a modal of its own.
+        codeSheetLive.current = false;
         const run = afterCodeSheet.current;
         afterCodeSheet.current = null;
         run?.();
@@ -1832,9 +1865,6 @@ const Community = () => {
             // The number goes on the seat, because the seat is the thing this
             // many people have asked for.
             seatCount={waitingCount}
-            // The stage below carries a button to the same destination, so the
-            // seat's own label would be the second of two.
-            showHint={false}
           />
           <View
             style={[
