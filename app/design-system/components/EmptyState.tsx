@@ -6,7 +6,10 @@ import { Text } from "./Text";
 import { Button } from "./Button";
 
 export interface EmptyStateProps {
-  icon?: IconName;
+  /** `null` drops the medallion entirely — for empty states where no glyph is
+   *  honest. A check reads "done", an inbox reads "mail": both are a claim, and
+   *  an empty list that nobody caused is better off saying nothing. */
+  icon?: IconName | null;
   title: string;
   message?: string;
   actionLabel?: string;
@@ -18,21 +21,23 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon = "inbox", title, m
   const { colors } = useTheme();
   return (
     <View style={{ alignItems: "center", paddingVertical: 28, paddingHorizontal: 24 }}>
-      <View
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: colors.surface.control,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.border.default,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 16,
-        }}
-      >
-        <Icon name={icon} size={26} color={colors.text.secondary} />
-      </View>
+      {icon ? (
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: colors.surface.control,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.border.default,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 16,
+          }}
+        >
+          <Icon name={icon} size={26} color={colors.text.secondary} />
+        </View>
+      ) : null}
       <View style={{ alignItems: "center", gap: 4 }}>
         <Text variant="h3" center>
           {title}

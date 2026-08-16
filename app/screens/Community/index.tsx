@@ -1133,9 +1133,14 @@ const Community = () => {
                   top — and paid for it with a screen of empty canvas under
                   every short list. Nothing has to leave the screen now. */}
               {peopleHeaderPlaceholder}
+              {/* NO MEDALLION on the empty state below. It carried a check,
+                  which says "done" — and nothing was done here. Nobody has
+                  asked yet, so the tick was congratulating the user on an empty
+                  list. There is no glyph that means "this is fine and also
+                  nothing has happened", so it says it in words instead. */}
               {incomingRequests.length === 0 ? (
                 <EmptyState
-                  icon={icons.success}
+                  icon={null}
                   title="Nobody waiting"
                   message="When someone asks to practise with you, they'll be here."
                 />

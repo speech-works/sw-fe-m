@@ -11,7 +11,6 @@ import {
   size,
   Text,
   Dialog,
-  EmptyState,
   ErrorState,
   Spinner,
   Icon,
@@ -36,7 +35,6 @@ import TagPickerSheet from "../../components/TagPickerSheet";
 import CandidateSheet from "./CandidateSheet";
 import {
   discoverBuddies,
-  getMyBuddy,
   sendBuddyRequest,
   cancelBuddyRequest,
   getDiscoveryProfile,
@@ -51,7 +49,6 @@ import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
-import { shareBuddyInvite } from "../../util/functions/share";
 import { openOnboarding } from "../../util/functions/openOnboarding";
 import { listingFix, listingFixLabel } from "../../util/functions/listingBlock";
 import { TAG_LABELS, proposedTags } from "../../constants/discoveryTags";
@@ -235,22 +232,6 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
       setLoadingMore(false);
     }
   }, [nextCursor, loadingMore]);
-
-  /**
-   * Share the invite code from the empty state.
-   *
-   * Fetched on tap rather than with the page: the code is needed by exactly one
-   * branch of one state, and paying a request on every visit to Discover for
-   * something most people never see is the wrong trade.
-   */
-  const shareMyCode = async () => {
-    try {
-      const summary = await getMyBuddy();
-      await shareBuddyInvite(summary.referralCode);
-    } catch (e) {
-      showErrorBottomSheet("Couldn't share", apiErrorMessage(e, "Please try again."));
-    }
-  };
 
   /**
    * Change one person in the list, leaving the rest and their order alone.
@@ -664,28 +645,30 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
       /**
        * A common answer, not a failure, and the copy has to say so honestly.
        *
-       * This used to read "Not many people are open to new buddies right now",
-       * which is a claim about other people's WILLINGNESS that we cannot make
-       * and do not know. The list is short because being findable is opt-in and
-       * new; nobody has turned this user down. In an app about a stutter, "not
-       * many people want a buddy" is one short step from "not many people want
-       * you", and that is not a sentence to put in front of someone who just
-       * asked to meet somebody.
+       * ONE LINE, NO EMPTY STATE. This was a full medallion + headline +
+       * paragraph + "Share your code" button, which is a lot of furniture for
+       * a state that means "check back later" — and it landed directly under
+       * the user's own row, so the screen's loudest thing was a picture of
+       * what is missing. This only has to say that being early is fine.
        *
-       * So it leads with the action instead of the absence. The code is the
-       * path that actually works today, and it is now a button rather than the
-       * tail of a sentence you could not act on without backing out of the
-       * screen. The icon changed too: two people was a picture of exactly the
-       * thing that is missing.
+       * IT READS THE LISTING FLAG, because the first version said "You're on
+       * the list" flat and kept saying it after the user unlisted themselves,
+       * contradicting the row directly above it. An unknown profile (still
+       * loading, or the fetch failed) takes the unlisted line: it claims
+       * nothing, so it cannot be wrong.
+       *
+       * The copy still refuses the two claims the old version was careful
+       * about: nothing about other people's WILLINGNESS (nobody turned anyone
+       * down) and nothing about how fast the list grows (we do not know). The
+       * invite share is not lost — it lives on Community, which is the screen
+       * that owns the code.
        */
       return (
-        <EmptyState
-          icon={icons.addPerson}
-          title="Bring someone you know"
-          message="Being findable is new here, and it's opt-in, so this list is still small. Your invite code works right now."
-          actionLabel="Share your code"
-          onAction={shareMyCode}
-        />
+        <Text variant="body" color="secondary" center style={styles.emptyLine}>
+          {profile?.discoverable
+            ? "You're on the list. Others will show up here as they join."
+            : "Nobody here yet. Others will show up as they join."}
+        </Text>
       );
     }
     /**
@@ -944,6 +927,9 @@ const styles = StyleSheet.create({
   // and read as a bullet point rather than a status light.
   youDot: { width: 7, height: 7, borderRadius: 4 },
   list: { gap: spacing.sm },
+  // The whole empty state is this one line, so it needs its own breathing room
+  // where the medallion's 28pt of padding used to be.
+  emptyLine: { paddingVertical: spacing.xl, paddingHorizontal: space.screenX },
 
   // ── The spotlight ────────────────────────────────────────────────────────
   // A hairline in the accent, not a fill. The card is already a step above the
