@@ -100,6 +100,7 @@ import { blockUser, type ReportReason } from "../../api/moderation";
 import ReportSheet from "../../components/ReportSheet";
 import CommunityRoom from "../../components/CommunityRoom";
 import { apiErrorMessage, isNotFound } from "../../util/functions/apiError";
+import { declineBarMessage, undoableDeclines } from "../../util/functions/declineBatch";
 import { resetBuddyLocalState } from "../../util/functions/buddyReset";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
@@ -461,16 +462,26 @@ const Community = () => {
    * held here for {@link UNDO_GRACE_MS}; only when that expires does the POST
    * happen. Undo is therefore free and instant, because nothing has been sent.
    *
-   * It is deliberately ONE at a time. The design system's Snackbar has no queue
-   * manager yet, and two undo bars stacked would be a worse problem than the
-   * one this replaces — so starting a second decline commits the first.
+   * A BATCH, NOT ONE AT A TIME. It used to hold a single request, and starting
+   * a second decline committed the first on the spot. That is defensible as
+   * bookkeeping and indefensible as a promise: clearing a queue means declining
+   * several people a second or two apart, so in the one workflow where a
+   * mis-tap is most likely, every decline but the last had its grace window cut
+   * short without saying so. Undo existed and never applied.
+   *
+   * One bar, one timer, a list behind it. The timer restarts on each new
+   * decline, so the five seconds is always five seconds from the last thing you
+   * did, and Undo puts all of them back.
+   *
+   * Still ONE bar, which is what the Snackbar can do without a queue manager.
+   * The count is what replaces stacking.
    */
-  const [undoDecline, setUndoDecline] = useState<BuddyRequest | null>(null);
+  const [pendingDeclines, setPendingDeclines] = useState<BuddyRequest[]>([]);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Mirrors `undoDecline` for the unmount handler, which would otherwise close
-   *  over the value as it was on the render that registered it. */
-  const undoDeclineRef = useRef<BuddyRequest | null>(null);
-  undoDeclineRef.current = undoDecline;
+  /** Mirrors `pendingDeclines` for the unmount handler, which would otherwise
+   *  close over the value as it was on the render that registered it. */
+  const pendingDeclinesRef = useRef<BuddyRequest[]>([]);
+  pendingDeclinesRef.current = pendingDeclines;
   /** Requests already sent to the server, so neither the timer nor the unmount
    *  handler can decline the same one twice. */
   const committed = useRef<Set<string>>(new Set());
@@ -700,18 +711,16 @@ const Community = () => {
    */
   const commitDecline = useCallback(async (req: BuddyRequest) => {
     // EXACTLY ONCE. Two things can reach here for the same request — the timer
-    // and the unmount handler — and on unmount the `setUndoDecline` below is a
+    // and the unmount handler — and on unmount the state update below is a
     // no-op, so state cannot be the guard. Without this the second caller
     // POSTs a decline for a request the first one already declined, and the
     // server rightly answers 404.
     if (committed.current.has(req.id)) return;
     committed.current.add(req.id);
 
-    if (undoTimer.current) {
-      clearTimeout(undoTimer.current);
-      undoTimer.current = null;
-    }
-    setUndoDecline((cur) => (cur?.id === req.id ? null : cur));
+    // Drop just this one from the batch. Not the whole batch and not the timer:
+    // a sibling may still be mid-flight, and the caller owns both.
+    setPendingDeclines((prev) => prev.filter((r) => r.id !== req.id));
     try {
       await declineBuddyRequest(req.id);
       track(ANALYTICS_EVENTS.BUDDY_REQUEST_DECLINED);
@@ -722,9 +731,15 @@ const Community = () => {
       // failure to report. Anything else genuinely failed.
       if (!isNotFound(e)) {
         // Still live, so the row was telling a lie. Put it back and say so
-        // rather than leaving them believing they answered somebody.
+        // rather than leaving them believing they answered somebody. Reported
+        // per request rather than per batch: if three go and one fails, the
+        // person needs to know WHICH one is back on their list.
         committed.current.delete(req.id);
-        showErrorBottomSheet("Couldn't decline", apiErrorMessage(e, "Please try again."));
+        const who = req.profile.name?.split(" ")[0] ?? "That request";
+        showErrorBottomSheet(
+          `Couldn't decline ${who}`,
+          apiErrorMessage(e, "Please try again."),
+        );
         setHiddenIds((prev) => prev.filter((id) => id !== req.id));
         return;
       }
@@ -738,30 +753,52 @@ const Community = () => {
     setHiddenIds((prev) => prev.filter((id) => id !== req.id));
   }, []);
 
+  /** Send the whole held batch. The timer and the unmount handler both end here. */
+  const commitBatch = useCallback(
+    (batch: BuddyRequest[]) => {
+      if (undoTimer.current) {
+        clearTimeout(undoTimer.current);
+        undoTimer.current = null;
+      }
+      batch.forEach((r) => void commitDecline(r));
+    },
+    [commitDecline],
+  );
+
   /**
    * Decline, on screen, immediately — and give them a few seconds to take it
    * back before anything is sent.
+   *
+   * The second decline no longer flushes the first. It joins it, and the clock
+   * starts again from this tap.
    */
   const declineWithUndo = (req: BuddyRequest) => {
-    // One bar at a time: whatever was already waiting goes now.
-    if (undoDecline && undoDecline.id !== req.id) void commitDecline(undoDecline);
-
     setHiddenIds((prev) => (prev.includes(req.id) ? prev : [...prev, req.id]));
-    setUndoDecline(req);
+    setPendingDeclines((prev) =>
+      prev.some((r) => r.id === req.id) ? prev : [...prev, req],
+    );
 
+    // Restart, do not extend: five seconds from the LAST thing you did is what
+    // the bar appears to promise, and it is the only reading that stays true
+    // however many you decline.
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => void commitDecline(req), UNDO_GRACE_MS);
+    undoTimer.current = setTimeout(
+      () => commitBatch(pendingDeclinesRef.current),
+      UNDO_GRACE_MS,
+    );
   };
 
-  const undoLastDecline = () => {
-    const req = undoDecline;
-    if (!req) return;
+  /** Put the whole batch back. Nothing was sent, so there is nothing to reverse. */
+  const undoDeclines = () => {
+    const batch = undoableDeclines(pendingDeclinesRef.current, committed.current);
+    if (!batch.length) return;
     if (undoTimer.current) {
       clearTimeout(undoTimer.current);
       undoTimer.current = null;
     }
-    setUndoDecline(null);
-    setHiddenIds((prev) => prev.filter((id) => id !== req.id));
+    const ids = new Set(batch.map((r) => r.id));
+    setPendingDeclines([]);
+    setHiddenIds((prev) => prev.filter((id) => !ids.has(id)));
   };
 
   /**
@@ -773,13 +810,11 @@ const Community = () => {
    */
   useEffect(
     () => () => {
-      if (undoTimer.current) {
-        clearTimeout(undoTimer.current);
-        undoTimer.current = null;
-      }
-      if (undoDeclineRef.current) void commitDecline(undoDeclineRef.current);
+      // The whole batch, not just the last one. Walking away mid-queue is still
+      // an answer to every person you answered.
+      commitBatch(pendingDeclinesRef.current);
     },
-    [commitDecline],
+    [commitBatch],
   );
 
   const blockFromRequest = async (req: BuddyRequest) => {
@@ -1209,8 +1244,8 @@ const Community = () => {
   );
 
   const renderUndoBar = () => {
-    if (!undoDecline) return null;
-    const who = undoDecline.profile.name?.split(" ")[0] ?? "Request";
+    const who = declineBarMessage(pendingDeclines);
+    if (!who) return null;
     return (
       <Animated.View
         pointerEvents="box-none"
@@ -1221,7 +1256,7 @@ const Community = () => {
           { bottom: size.tabBarSafe + navBarInset + space.rowGap },
         ]}
       >
-        <Snackbar message={`${who} declined`} actionLabel="Undo" onAction={undoLastDecline} />
+        <Snackbar message={who} actionLabel="Undo" onAction={undoDeclines} />
       </Animated.View>
     );
   };
