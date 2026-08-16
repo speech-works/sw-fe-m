@@ -8,8 +8,8 @@ import {
   Sheet,
   Text,
   Toggle,
+  borderWidth,
   icons,
-  radius,
   space,
   spacing,
   useTheme,
@@ -181,7 +181,7 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
             screen it mirrors — one mental model for the same control in two
             places. Disabled while the server would refuse the write anyway,
             with the reason underneath, so it is never a silent no-op. */}
-        <View style={[styles.listing, { backgroundColor: colors.background.sunken }]}>
+        <View style={[styles.listing, { borderBottomColor: colors.border.default }]}>
           <View style={styles.listingText}>
             <Text variant="title">Let others find you</Text>
             <Text variant="bodySm" color="secondary">
@@ -218,12 +218,21 @@ const styles = StyleSheet.create({
     paddingBottom: space.sectionGap,
     gap: space.sectionGap,
   },
+  // NO PLATE. It was a sunken card with 16pt of its own padding, which stacked
+  // on the sheet's 16pt gutter and started the label 31pt in while every heading
+  // below it started at 16 — two left edges in one sheet, measured.
+  //
+  // A filled plate could have been bled to the sheet edges to fix that, but on
+  // paper it barely separated from the surface anyway (#F0E9DE on #FFFFFF), so
+  // it was carrying almost nothing in one of the two schemes. Removing it aligns
+  // the row by construction: with no padding to cancel, the label simply sits on
+  // the gutter. A hairline closes the row off from the questions underneath.
   listing: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.iconText,
-    padding: space.cardPad,
-    borderRadius: radius.card,
+    paddingBottom: space.rowGap,
+    borderBottomWidth: borderWidth.hairline,
   },
   listingText: { flex: 1, minWidth: 0, gap: space.titleSub },
   q: { gap: spacing.xxs },
