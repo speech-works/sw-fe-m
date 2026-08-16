@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Audio } from "expo-av";
+import { ensurePlaybackSession } from "../../util/audio/playbackSession";
 import { getPhonemes } from "../../api/phonemes";
 import { Phoneme } from "../../api/phonemes/types";
 import { getMyUser, updateMyUser } from "../../api/users";
@@ -100,6 +101,9 @@ const OnboardingPhonemes = () => {
       try {
         await soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;
+        // Before loading, not after: the session decides whether this is
+        // audible at all, and whether it can start.
+        await ensurePlaybackSession();
         const { sound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
           { shouldPlay: true },

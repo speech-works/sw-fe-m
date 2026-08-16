@@ -5,6 +5,7 @@ import { StyleSheet, View } from "react-native";
 import { getPhonemes } from "../../../api/phonemes";
 import { Phoneme } from "../../../api/phonemes/types";
 import { Audio } from "expo-av";
+import { ensurePlaybackSession } from "../../../util/audio/playbackSession";
 import { getMyUser, updateMyUser } from "../../../api/users";
 import { useUserStore } from "../../../stores/user";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
@@ -75,6 +76,9 @@ const FearedSounds = () => {
       try {
         await soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;
+        // Before loading, not after: the session decides whether this is
+        // audible at all, and whether it can start.
+        await ensurePlaybackSession();
         const { sound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
           { shouldPlay: true }

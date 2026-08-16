@@ -22,6 +22,8 @@ import {
   Spinner,
 } from "../../../../design-system";
 
+import { ensurePlaybackSession } from "../../../../util/audio/playbackSession";
+
 const PREVIEW_LINE = "This is how your reading guide will sound.";
 
 export function AccentPicker() {
@@ -32,10 +34,17 @@ export function AccentPicker() {
   const navigation = useNavigation();
 
   const selectAndPreview = useCallback(
-    (group: AccentGroup) => {
+    async (group: AccentGroup) => {
       selectAccent(group.locale);
       if (group.bestVoice) {
         stopSpeaking();
+        // expo-speech drives AVSpeechSynthesizer, which speaks into the app's
+        // shared audio session — the same one expo-av uses. So the preview is
+        // muted by the ringer switch, and fails outright if a recording screen
+        // left the session in PlayAndRecord, exactly like a clip would be.
+        // Awaited rather than fired off, or the speech can start before the
+        // session it depends on has changed.
+        await ensurePlaybackSession();
         speakWithProfile(PREVIEW_LINE, {
           voice: group.bestVoice,
           language: group.locale,

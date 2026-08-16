@@ -1,5 +1,6 @@
 // hooks/useBackgroundAudio.ts
 import { Audio } from "expo-av";
+import { ensurePlaybackSession } from "../util/audio/playbackSession";
 import { useCallback, useEffect, useRef } from "react";
 
 type BackgroundAudioHook = {
@@ -23,6 +24,11 @@ export function useBackgroundAudio(
   // Load the background track (looping)
   const loadBackground = useCallback(async () => {
     // Use the provided URI or fall back to default
+    // NOT a new product decision. Meditation already plays in silent mode,
+    // because its VoieHoverPlayer sets that on the shared session before this
+    // bed starts. This only makes it explicit, and gives Breathing the same
+    // behaviour instead of leaving it to whichever screen ran first.
+    await ensurePlaybackSession();
     const { sound } = await Audio.Sound.createAsync(
       { uri: soundUri },
       { isLooping: true, volume: volume }

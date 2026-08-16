@@ -1,4 +1,5 @@
 import { Audio } from "expo-av";
+import { ensurePlaybackSession } from "../util/audio/playbackSession";
 import { useCallback, useEffect, useRef } from "react";
 
 type BreathAudioHook = {
@@ -18,7 +19,11 @@ export function useBreathAudio(): BreathAudioHook {
 
   const loadBreathSounds = useCallback(async () => {
     try {
+      await ensurePlaybackSession();
       const [inhaleObj, exhaleObj] = await Promise.all([
+        // The cues ARE the exercise: muted by the ringer switch, there is
+        // nothing to breathe along to. Safe to force plain playback here
+        // because the Breathing screen never records.
         Audio.Sound.createAsync(require("../assets/inhale.mp3")),
         Audio.Sound.createAsync(require("../assets/exhale.mp3")),
       ]);
