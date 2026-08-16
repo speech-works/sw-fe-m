@@ -79,12 +79,36 @@ export const bestForeground = (bg: string, candidates: readonly string[]): strin
   return best;
 };
 
-/** Pick the legible ink (light vs dark) for any fill, from the theme's ink pair.
- *  Pass `useTheme().colors`. */
+/**
+ * Pick the legible ink (light vs dark) for any fill. Pass `useTheme().colors`.
+ *
+ * THREE candidates, not two, and the third is what makes this work on paper.
+ * `text.primary` flips per scheme, but `text.onInverse` is near-black in BOTH
+ * (it names the ink on the white avatar disc, which is white in both schemes).
+ * So on the light scheme the old pair was near-black AND near-black: there was
+ * no light ink to choose, and every dark background got dark text on it. The
+ * one visible casualty was the dark CTA island on a vivid card, which rendered
+ * its label in near-black on near-black.
+ *
+ * `text.onContrast` is the missing polarity. It names body text on the dark
+ * `surface.contrast` panel, so it flips the opposite way to `primary`: white on
+ * the light scheme, near-black on the dark one. With it in the set, both
+ * schemes always offer a genuinely light and a genuinely dark option.
+ *
+ * It cannot disturb what already worked: on a bright fill the near-black
+ * `onInverse` (#141311) still out-contrasts both the paper ink (#26221C) and
+ * white, so every bright-accent caller resolves exactly as before. The result
+ * only changes where the old set had nothing legible to offer, on dark ones.
+ */
 export const onColor = (
   bg: string,
-  colors: { text: { primary: string; onInverse: string } },
-): string => bestForeground(bg, [colors.text.primary, colors.text.onInverse]);
+  colors: { text: { primary: string; onInverse: string; onContrast: string } },
+): string =>
+  bestForeground(bg, [
+    colors.text.primary,
+    colors.text.onInverse,
+    colors.text.onContrast,
+  ]);
 
 /**
  * Darken an arbitrary hue until it is legible AS foreground on `bg`.
