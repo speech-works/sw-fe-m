@@ -232,39 +232,41 @@ const SummaryPage = () => {
         {/* Hero — the result map. Fraction + verdict on the band gradient, one
             segment per question (solid = correct, faint = missed) previewing the
             review list below in the same order, then the supportive line. */}
-        <Gradient token={band.token} style={styles.heroCard}>
-          <Text variant="eyebrow" color={inkMuted} style={styles.heroEyebrow}>
-            QUIZ REPORT
-          </Text>
-          <View style={styles.fractionRow}>
-            <AnimatedNumber value={correctCount} variant="display" color={band.ink} />
-            <Text variant="h2" color={inkMuted} style={styles.fractionTotal}>
-              /{totalCount}
+        <View style={styles.heroShadow}>
+          <Gradient token={band.token} style={styles.heroCard}>
+            <Text variant="eyebrow" color={inkMuted} style={styles.heroEyebrow}>
+              QUIZ REPORT
             </Text>
-            <Text variant="h3" color={band.ink} style={styles.verdict}>
-              {verdict}
+            <View style={styles.fractionRow}>
+              <AnimatedNumber value={correctCount} variant="display" color={band.ink} />
+              <Text variant="h2" color={inkMuted} style={styles.fractionTotal}>
+                /{totalCount}
+              </Text>
+              <Text variant="h3" color={band.ink} style={styles.verdict}>
+                {verdict}
+              </Text>
+            </View>
+            <View style={styles.segRow}>
+              {finalAnswers.map((item, i) => (
+                <Reanimated.View
+                  key={item.question.id}
+                  entering={fadeStaggerEntering(i, m.reduced)}
+                  style={[
+                    styles.seg,
+                    {
+                      backgroundColor: item.yourAnswer.isCorrect
+                        ? band.ink
+                        : withAlpha(band.ink, 0.28),
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+            <Text variant="bodySm" color={inkMuted} style={styles.heroMessage}>
+              {encouragement}
             </Text>
-          </View>
-          <View style={styles.segRow}>
-            {finalAnswers.map((item, i) => (
-              <Reanimated.View
-                key={item.question.id}
-                entering={fadeStaggerEntering(i, m.reduced)}
-                style={[
-                  styles.seg,
-                  {
-                    backgroundColor: item.yourAnswer.isCorrect
-                      ? band.ink
-                      : withAlpha(band.ink, 0.28),
-                  },
-                ]}
-              />
-            ))}
-          </View>
-          <Text variant="bodySm" color={inkMuted} style={styles.heroMessage}>
-            {encouragement}
-          </Text>
-        </Gradient>
+          </Gradient>
+        </View>
 
         {/* Review — the question cards. */}
         <View style={styles.reviewSection}>
@@ -288,12 +290,29 @@ const useStyles = makeStyles((c, t) => ({
   root: { flex: 1 },
 
   // Hero
+  /**
+   * THE SHADOW AND THE CLIP CANNOT SHARE A VIEW.
+   *
+   * All three of `borderRadius`, `overflow: "hidden"` and a shadow used to sit
+   * on the gradient itself, and the card rendered with square corners. On iOS
+   * the paper scheme's `elevation` resolves to RN's `boxShadow`, and a view
+   * carrying that plus `overflow: "hidden"` stops clipping its own background,
+   * so the gradient painted straight through the rounded corners. It is only
+   * visible on the light scheme, because the ink scheme's elevation still uses
+   * the legacy `shadow*` props.
+   *
+   * Every other `Gradient` in the app that rounds its corners does so without a
+   * shadow, which is why this was the only one showing it.
+   */
+  heroShadow: {
+    borderRadius: radius.card,
+    ...t.elevation.e2,
+  },
   heroCard: {
     borderRadius: radius.card,
     overflow: "hidden",
     padding: spacing["2xl"],
     gap: spacing.md,
-    ...t.elevation.e2,
   },
   heroEyebrow: {
   },
