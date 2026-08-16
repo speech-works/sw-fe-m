@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 
 import {
   useTheme,
@@ -17,19 +18,22 @@ import {
   EmptyState,
   ErrorState,
   Spinner,
-  Toggle,
   Icon,
   IconButton,
   SchemeStatusBar,
   icons,
   borderWidth,
+  duration,
+  fonts,
   withAlpha,
 } from "../../design-system";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
+import PressableScale from "../../components/PressableScale";
 import { UserAvatar } from "../../components/UserAvatar";
 import { useUserStore } from "../../stores/user";
 import ReportSheet from "../../components/ReportSheet";
+import TagPickerSheet from "../../components/TagPickerSheet";
 import {
   discoverBuddies,
   getMyBuddy,
@@ -39,10 +43,7 @@ import {
   type DiscoveryCandidate,
   type DiscoveryProfile,
 } from "../../api/buddies";
-import {
-  useDiscoveryPromptStore,
-  shouldOfferDiscovery,
-} from "../../stores/discoveryPrompt";
+import { useDiscoveryPromptStore } from "../../stores/discoveryPrompt";
 import { blockUser, reportContent, type ReportReason } from "../../api/moderation";
 import { apiErrorMessage } from "../../util/functions/apiError";
 import {
@@ -50,6 +51,11 @@ import {
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
 import { shareBuddyInvite } from "../../util/functions/share";
+import {
+  MAX_DISCOVERY_TAGS,
+  TAG_LABELS,
+  proposedTags,
+} from "../../constants/discoveryTags";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
@@ -68,6 +74,7 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 const Discover = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
   const user = useUserStore((s) => s.user);
   const insets = useSafeAreaInsets();
 
@@ -77,11 +84,20 @@ const Discover = () => {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
-  const offeredAt = useDiscoveryPromptStore((s) => s.offeredAt);
   const markOffered = useDiscoveryPromptStore((s) => s.markOffered);
   const [asking, setAsking] = useState<string | null>(null);
   const [pendingBlock, setPendingBlock] = useState<DiscoveryCandidate | null>(null);
   const [reporting, setReporting] = useState<DiscoveryCandidate | null>(null);
+  const [pickingTags, setPickingTags] = useState(false);
+  /**
+   * What the card says right now, published or not.
+   *
+   * Two states share this one variable on purpose. Once you are listed it
+   * mirrors the server. Before that it is a PROPOSAL: their own answers,
+   * rendered as the card, sent only when they press the button. Nothing derived
+   * from onboarding is ever written until it has been on screen and agreed to.
+   */
+  const [draftTags, setDraftTags] = useState<string[]>([]);
   const afterSheetDismissed = useRef<(() => void) | null>(null);
   const inFlight = useRef(false);
 
@@ -114,9 +130,45 @@ const Discover = () => {
     if (listing) return;
     setListing(true);
     try {
-      setProfile(await setDiscoveryProfile(next, profile?.tags ?? []));
+      // `draftTags`, not `profile.tags`: this is the moment the proposal on
+      // screen becomes the published card, and it must be exactly what they
+      // just looked at.
+      setProfile(await setDiscoveryProfile(next, draftTags));
       markOffered();
     } catch (e) {
+      showErrorBottomSheet("Couldn't save", apiErrorMessage(e, "Please try again."));
+    } finally {
+      setListing(false);
+    }
+  };
+
+  /**
+   * Save the card's tags without touching whether you are listed.
+   *
+   * `profile.discoverable` rides along unchanged, and that is the whole point:
+   * this can be used from the ask, BEFORE anyone has said yes. A picker that
+   * assumed `true` would list someone as a side effect of describing
+   * themselves, which is the one thing this screen is careful never to do.
+   */
+  const saveTags = async (tags: string[]) => {
+    if (listing) return;
+    setDraftTags(tags);
+    setPickingTags(false);
+
+    // NOT YET LISTED: keep it local. There is nothing published to update, and
+    // writing here would persist a card the person has not agreed to show.
+    // "Yes, list me" is the write.
+    if (!profile?.discoverable) return;
+
+    // ALREADY LISTED: this IS the publish, so it goes now. `discoverable` rides
+    // along unchanged; a picker must never be able to list somebody.
+    setListing(true);
+    try {
+      setProfile(await setDiscoveryProfile(true, tags));
+    } catch (e) {
+      // Put the card back to what the server still has, rather than leaving the
+      // screen claiming a change that did not land.
+      setDraftTags(profile.tags);
       showErrorBottomSheet("Couldn't save", apiErrorMessage(e, "Please try again."));
     } finally {
       setListing(false);
@@ -126,6 +178,16 @@ const Discover = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Their card if they have one, otherwise the one we would propose. Empty
+  // suggestions give an empty draft, which is the honest answer rather than a
+  // guess — those people get the picker instead.
+  useEffect(() => {
+    if (!profile) return;
+    setDraftTags(
+      profile.tags.length ? profile.tags : proposedTags(profile.suggestions),
+    );
+  }, [profile]);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMore) return;
@@ -236,11 +298,85 @@ const Discover = () => {
    * really are separable — sending a request already reveals you to that one
    * person whatever this flag says.
    */
-  const renderConsent = () => {
-    if (!profile || profile.discoverable) return null;
+  /**
+   * Your own card, in both states, drawn once.
+   *
+   * The sunken plate is identical whether you are listed or not, because it is
+   * the same object: what a stranger sees. Only the frame around it changes —
+   * the heading above and whether there is a button below. Two renderers for
+   * this drifted within a day: a "Change" text link beside the name in one and
+   * a dashed "Add tags" chip in the tags row of the other, which is one job
+   * wearing two costumes in two places.
+   */
+  const renderMyCard = () => (
+    <View style={[styles.preview, { backgroundColor: colors.background.sunken }]}>
+      {/* TWO ROWS, NOT A COLUMN BESIDE THE AVATAR.
+          Tags used to live in the narrow strip to the right of the face, with
+          about 250pt to wrap in: two of them stacked, the preview grew to three
+          lines, and a 36pt chip sat almost as tall as the 44pt avatar beside
+          it. A full-width row of their own is also what a stranger sees on the
+          cards below, where tags run under the header rather than next to it. */}
+      <View style={styles.previewHead}>
+        <View style={styles.previewAvatar}>
+          <UserAvatar manifest={user?.avatarManifest} size={44} shape="square" />
+        </View>
+        <Text variant="title" numberOfLines={1} style={styles.previewName}>
+          {user?.name?.split(" ")[0] || "You"}
+        </Text>
+        {/* ONE CONTROL, ONE PLACE, ONE STYLE.
+            Text, not a chip. This was a dashed chip down in the tags row when
+            you had none and a text link up here when you did — one job in two
+            costumes, in two places, swapping as you used it. It is the text
+            link in both states now, pinned to the top right of the card where
+            it does not move, does not reflow with the tags, and does not
+            compete with the filled button below.
 
-    // Nothing to offer while the account cannot be listed at all (today: no
-    // display name of their own). Say why, and point at the fix.
+            Only the word changes, because adding your first tag and changing
+            three of them really are different acts. */}
+        <PressableScale
+          onPress={() => setPickingTags(true)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={
+            draftTags.length ? "Change what your card says" : "Add tags to your card"
+          }
+        >
+          <Text variant="bodySm" color="accent" style={styles.editTagsLabel}>
+            {draftTags.length ? "Change" : "Add tags"}
+          </Text>
+        </PressableScale>
+      </View>
+
+      {/* The tags, or what the card says while it has none. Not an empty view:
+          a plate holding a name and nothing else reads as unfinished, and the
+          person cannot tell whether it is the preview that is bare or their
+          card. */}
+      {draftTags.length ? (
+        <View style={styles.previewTags}>
+          {draftTags.slice(0, MAX_DISCOVERY_TAGS).map((t) => (
+            <Chip key={t} label={TAG_LABELS[t] ?? t} />
+          ))}
+        </View>
+      ) : (
+        <Text variant="caption" color="tertiary">
+          Just your name and your avatar
+        </Text>
+      )}
+    </View>
+  );
+
+  const renderConsent = () => {
+    if (!profile) return null;
+
+    /**
+     * BLOCKED, and checked before everything else.
+     *
+     * `discoverable` and `blockedReason` can both be set at once — the flag
+     * survives on the row while something else disqualifies the account, such
+     * as onboarding completion being reset by a new flow version. Saying
+     * "you're listed" in that state is the exact failure the server's own
+     * comment warns about: the toggle looks right, and nobody can see you.
+     */
     if (profile.blockedReason) {
       return (
         <Surface level="default" padded bordered rounded="card" style={styles.consent}>
@@ -250,120 +386,84 @@ const Discover = () => {
       );
     }
 
-    if (shouldOfferDiscovery(profile.discoverable, offeredAt)) {
+    /**
+     * LISTED. The same card, minus the question.
+     *
+     * It used to disappear the moment you had any tags, on the theory that
+     * there was nothing left to say. There is: this is the only place you can
+     * see what strangers see, and the only route to changing it. A card you can
+     * never look at again is not much of a card.
+     */
+    if (profile.discoverable) {
       return (
-        /**
-         * SHOW, DON'T RECITE.
-         *
-         * This was five lines of grey prose in a heavy tinted box — the first
-         * thing on the screen, and a wall you had to read past to get to the
-         * people you came for. Every fact in it survives, but the central one
-         * ("they'd see your first name and your avatar") is now the user's OWN
-         * card rendered exactly as a stranger would see it. A preview answers
-         * the question the prose was trying to answer, and answers it faster.
-         *
-         * The heavy accent fill is gone with it: a hairline rim carries "this
-         * is an offer" without the card shouting over the list.
-         */
-        <Surface
-          level="elevated"
-          padded
-          rounded="card"
-          style={[
-            styles.consent,
-            { borderColor: withAlpha(colors.action.primary, 0.3), borderWidth: borderWidth.hairline },
-          ]}
-        >
-          <View style={styles.consentHead}>
-            <Text variant="title">Let others find you</Text>
+        // A fade, because this replaces the card that stood here a moment ago
+        // and a straight swap reads as a glitch rather than as an answer. Enter
+        // only: the one it replaces is already gone.
+        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}>
+          <Surface level="default" padded bordered rounded="card" style={styles.consent}>
+            <Text variant="title">You&apos;re listed</Text>
+            {renderMyCard()}
             <Text variant="bodySm" color="secondary">
-              Right now you can see them. They can&apos;t see you.
+              This is exactly what someone browsing sees.
             </Text>
-          </View>
-
-          <View style={[styles.preview, { backgroundColor: colors.background.sunken }]}>
-            <View style={styles.previewAvatar}>
-              <UserAvatar manifest={user?.avatarManifest} size={44} shape="square" />
-            </View>
-            <View style={styles.previewText}>
-              <Text variant="title" numberOfLines={1}>
-                {user?.name?.split(" ")[0] || "You"}
-              </Text>
-              {/* The tags are the whole point of the preview, and the screen has
-                  already loaded them. Without them the card shows a name and an
-                  avatar and reads as broken — the person cannot tell whether the
-                  preview is unfinished or their card really is that bare. */}
-              {profile?.tags?.length ? (
-                <View style={styles.previewTags}>
-                  {profile.tags.slice(0, 3).map((t) => (
-                    <Chip key={t} label={t} />
-                  ))}
-                </View>
-              ) : (
-                <Text variant="caption" color="tertiary">
-                  No tags yet — just your name and avatar
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {profile?.tags?.length ? (
-            <Text variant="bodySm" color="secondary">
-              Turn it off whenever you like.
-            </Text>
-          ) : (
-            // Tags are chosen in Settings, so a preview that shows none is a dead
-            // end without a way to get there.
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("Root" as never, {
-                  screen: "SETTINGS",
-                  params: { screen: "Discoverability" },
-                } as never)
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Add tags to your card in Settings"
-            >
-              <Text variant="bodySm" color={colors.text.link}>
-                Add a couple of tags →
-              </Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.consentActions}>
-            <Button
-              label={listing ? "Saving…" : "Yes, list me"}
-              size="sm"
-              fullWidth={false}
-              disabled={listing}
-              onPress={() => setListed(true)}
-            />
-            {/* A DECLINE IS NOT A PEER OF AN ACCEPT. As a ghost `Button` this
-                rendered in accent at the same size as "Yes, list me", so the
-                two choices carried equal weight and the accent — the page's one
-                emphasis colour — was spent on the option we are not asking for.
-                A muted touchable keeps it entirely available and stops it
-                competing. Records only that we asked; browsing is untouched and
-                the quiet row below keeps the door open without a second ask. */}
-            <TouchableOpacity
-              onPress={markOffered}
-              disabled={listing}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-            >
-              <Text variant="bodySm" color="tertiary">Not now</Text>
-            </TouchableOpacity>
-          </View>
-        </Surface>
+          </Surface>
+        </Animated.View>
       );
     }
 
+    /**
+     * NOT LISTED: the card, every time.
+     *
+     * This used to collapse after the first visit into a one-line row with a
+     * toggle, on the theory that a big card asking the same question forever is
+     * a nag. It is not a question any more. It is your card, showing what it
+     * would say, with the one control that edits it — and the collapsed row it
+     * replaced had a toggle that published you on the spot, so the only route
+     * anyone had past their first visit was the one that never showed the card.
+     *
+     * "Not now" went with the collapse: it existed to dismiss this, and there
+     * is nothing to dismiss. Leaving it alone is not now. `offeredAt` survives
+     * as the record of having asked and no longer decides what renders.
+     *
+     * SHOW, DON'T RECITE. The five lines of grey prose this began as are all
+     * still here, answered by the card instead of described by it.
+     */
     return (
-      <Surface level="default" padded bordered rounded="card" style={styles.quietRow}>
-        <View style={styles.quietText}>
-          <Text variant="bodySm">You&apos;re not listed</Text>
-          <Text variant="bodySm" color="secondary">Others can&apos;t find you here.</Text>
+      <Surface
+        level="elevated"
+        padded
+        rounded="card"
+        style={[
+          styles.consent,
+          { borderColor: withAlpha(colors.action.primary, 0.3), borderWidth: borderWidth.hairline },
+        ]}
+      >
+        <View style={styles.consentHead}>
+          <Text variant="title">Let others find you</Text>
+          <Text variant="bodySm" color="secondary">
+            Right now you can see them. They can&apos;t see you.
+          </Text>
         </View>
-        <Toggle value={false} onChange={() => setListed(true)} />
+
+        {renderMyCard()}
+
+        {/* A PROPOSED card has to say it is proposed. Showing someone their own
+            onboarding answers without a word about where they came from is the
+            difference between a helpful default and a surprise. */}
+        <Text variant="bodySm" color="secondary">
+          {draftTags.length && !profile.tags.length
+            ? "Taken from your answers. Nothing is shared until you press the button."
+            : "Turn it off whenever you like."}
+        </Text>
+
+        <Button
+          label={listing ? "Saving…" : "Yes, list me"}
+          size="sm"
+          fullWidth={false}
+          disabled={listing}
+          onPress={() => setListed(true)}
+          style={styles.listMe}
+        />
       </Surface>
     );
   };
@@ -569,6 +669,17 @@ const Discover = () => {
         }}
       />
 
+      {/* The same picker Settings uses, opened from wherever the gap is
+          visible. Never at the same time as another sheet: both entry points
+          are plain rows, not sheet actions. */}
+      <TagPickerSheet
+        visible={pickingTags}
+        value={draftTags}
+        saving={listing}
+        onClose={() => setPickingTags(false)}
+        onSave={saveTags}
+      />
+
       <ReportSheet
         visible={reporting !== null}
         onClose={() => setReporting(null)}
@@ -626,24 +737,26 @@ const styles = StyleSheet.create({
   consentHead: { gap: spacing.xxs },
   // An inset well, not another card: this is a sample of something, and a
   // sunken surface is how the app already says "contained sample".
+  // A column of two rows now. `spacing.sm` of padding was tuned when this held
+  // one line of caption text; with 36pt chips inside it, the plate was gripping
+  // its contents. `cardPad` is what every other container in the app uses when
+  // it holds real controls.
   preview: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.iconText,
-    padding: spacing.sm,
+    padding: space.cardPad,
     borderRadius: radius.card,
+    gap: space.rowGap,
   },
+  previewHead: { flexDirection: "row", alignItems: "center", gap: space.iconText },
   previewAvatar: { borderRadius: radius.sm, overflow: "hidden" },
-  previewTags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 2,
-  },
-  previewText: { flex: 1, gap: 2 },
-  consentActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  quietRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  quietText: { flex: 1, gap: 2 },
+  // `flex: 1` so a long first name truncates instead of pushing the row wide.
+  previewName: { flex: 1, minWidth: 0 },
+  // `spacing.sm`, matching the picker's own chip grid: the same objects, laid
+  // out the same way, in both places you meet them.
+  previewTags: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  editTagsLabel: { fontFamily: fonts.bold },
+  // One button, left-aligned with everything else in the card. `alignSelf`
+  // rather than a row wrapper, now that it has nothing to sit beside.
+  listMe: { alignSelf: "flex-start" },
   list: { gap: space.groupGap },
   card: { gap: spacing.md },
   // `flex-start`, not `center`: the report glyph belongs at the top of the card,

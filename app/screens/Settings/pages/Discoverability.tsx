@@ -25,7 +25,12 @@ import {
 import { apiErrorMessage } from "../../../util/functions/apiError";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { openOnboarding } from "../../../util/functions/openOnboarding";
-import { TAG_LABELS, MAX_DISCOVERY_TAGS } from "../../../constants/discoveryTags";
+import {
+  TAG_LABELS,
+  MAX_DISCOVERY_TAGS,
+  SITUATION_TAGS,
+  GOAL_TAGS,
+} from "../../../constants/discoveryTags";
 
 /**
  * Being findable — off unless you say otherwise.
@@ -112,7 +117,31 @@ const Discoverability = () => {
     );
   }
 
-  const suggestions = profile?.suggestions ?? [];
+  /**
+   * The same two questions the Discover sheet asks, over the same groups.
+   *
+   * This screen used to show `profile.suggestions` alone, in one flat grid.
+   * Two things were wrong with that. Anyone the server had nothing to suggest
+   * for got an empty picker and no way to describe themselves, even though the
+   * server would have accepted any tag in the vocabulary. And a single grid of
+   * thirteen mixes situations you practise with outcomes you want, which are
+   * not the same kind of answer and should not look like one.
+   */
+  const question = (title: string, hint: string, ids: readonly string[]) => (
+    <View style={styles.tagSection}>
+      <Text variant="title">{title}</Text>
+      <Text variant="bodySm" color="secondary">
+        {hint}
+      </Text>
+      <View style={styles.chipWrap}>
+        {ids.map((tag) => (
+          <PressableScale key={tag} onPress={() => toggleTag(tag)}>
+            <Chip label={TAG_LABELS[tag] ?? tag} selected={tags.includes(tag)} />
+          </PressableScale>
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <Page
@@ -167,28 +196,18 @@ const Discoverability = () => {
       </View>
 
       {discoverable ? (
-        <View style={styles.tagSection}>
-          <Text variant="title">What should your card say?</Text>
-          <Text variant="bodySm" color="secondary">
+        <>
+          <Text variant="bodySm" color="secondary" style={styles.tagIntro}>
             Pick up to {MAX_DISCOVERY_TAGS}. Nothing here is shared until you
             choose it, and you can change it any time.
           </Text>
-
-          {suggestions.length === 0 ? (
-            <Text variant="bodySm" color="secondary">
-              Finish onboarding and we&apos;ll suggest a few things you could
-              show here.
-            </Text>
-          ) : (
-            <View style={styles.chipWrap}>
-              {suggestions.map((tag) => (
-                <PressableScale key={tag} onPress={() => toggleTag(tag)}>
-                  <Chip label={TAG_LABELS[tag] ?? tag} selected={tags.includes(tag)} />
-                </PressableScale>
-              ))}
-            </View>
+          {question(
+            "What are you practising?",
+            "The ones you actually work on.",
+            SITUATION_TAGS,
           )}
-        </View>
+          {question("What are you hoping for?", "One is plenty.", GOAL_TAGS)}
+        </>
       ) : null}
     </Page>
   );
@@ -208,6 +227,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   rowText: { flex: 1, gap: 4 },
-  tagSection: { gap: spacing.md },
+  tagSection: { gap: spacing.sm },
+  tagIntro: { marginBottom: spacing.xs },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 });

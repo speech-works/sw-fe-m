@@ -177,6 +177,37 @@ export interface BuddyRequest {
   direction: "incoming" | "outgoing";
   profile: BuddyProfile;
   createdAt: string;
+  /**
+   * What the sender chose to publish about themselves, copied from their
+   * discovery card — the same strings, server-phrased, nothing added.
+   *
+   * WHY THIS IS NOT A PRIVACY WIDENING. A `BuddyProfile` is deliberately thin
+   * ("a pending request must never expose more about a person than being their
+   * buddy does"). These fields sit alongside it rather than inside it because
+   * they are a different kind of thing: not facts the app knows about someone,
+   * but a card they wrote and asked to have shown. The server sends them only
+   * while the sender is still discoverable, so withdrawing the card withdraws
+   * this too.
+   *
+   * OPTIONAL, and every consumer must degrade rather than fill the gap. An
+   * older server sends none of it, and a person with nothing published sends an
+   * empty list. In both cases the honest UI is a shorter card, never a vaguer
+   * one — the same rule `matchReason` already carries.
+   */
+  tags?: string[];
+  /** Why they were surfaced to each other, or null when there is nothing
+   *  honest to say. Render nothing at all when null. */
+  matchReason?: string | null;
+  /** Coarse "on Speechworks since" date. Month precision, never a last-seen. */
+  memberSince?: string | null;
+  /**
+   * OUTGOING ONLY: they have paired with somebody else since you asked.
+   *
+   * The request is still pending and still yours to cancel; it simply cannot be
+   * answered right now. Without this the sender waits on a screen that will
+   * never change, which is the one thing a hold must not do to them.
+   */
+  recipientPaired?: boolean;
 }
 
 /** Everything unanswered, both directions. */

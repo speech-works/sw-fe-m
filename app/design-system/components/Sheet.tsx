@@ -22,6 +22,7 @@ import {
   useNativeModalStore,
 } from "../../stores/nativeModal";
 import { relativeLuminance } from "../utils/contrast";
+import { withAlpha } from "../utils/color";
 import { Text } from "./Text";
 import { Gradient } from "./Gradient";
 
@@ -37,6 +38,18 @@ export interface SheetProps {
   title?: string;
   /** Optional header actions (right) — typically one or two <IconButton>s. */
   right?: React.ReactNode;
+  /**
+   * A control pinned below the scroll area, always in reach.
+   *
+   * Same name and same job as `Page`'s footer, for the same reason: a commit
+   * button placed at the END of long content is only found by people who
+   * scroll to the bottom, and a picker whose list is taller than the sheet
+   * hides its own "Done". Anything here stays put while the content moves.
+   *
+   * For ONE primary action. A footer that grows into a toolbar is a sign the
+   * sheet wants to be a screen.
+   */
+  footer?: React.ReactNode;
   /** Override the sheet surface color (e.g. an accent for a themed guide). */
   color?: string;
   /** Fill the sheet surface with a gradient instead of a solid color (e.g. to match
@@ -66,6 +79,7 @@ export const Sheet: React.FC<SheetProps> = ({
   color,
   gradientColors,
   onDismissed,
+  footer,
   contentStyle,
   exclusive = false,
 }) => {
@@ -86,6 +100,9 @@ export const Sheet: React.FC<SheetProps> = ({
     relativeLuminance(surface) > 0.18 ? colors.text.onInverse : colors.border.strong;
 
   const [mounted, setMounted] = useState(visible && !exclusive);
+  // Measured, so the scroll body reserves the footer's REAL height and the last
+  // row can always be scrolled clear of it. Same approach as `Page`.
+  const [footerH, setFooterH] = useState(0);
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   // Reduced motion: keep the backdrop opacity fade, drop the slide (the sheet appears
@@ -183,6 +200,13 @@ export const Sheet: React.FC<SheetProps> = ({
 
   if (!mounted) return null;
 
+  // What the fade must end on: the bottom of a gradient sheet, or its solid
+  // surface. Getting this wrong shows up as exactly the band the fade exists to
+  // avoid.
+  const footerBase = gradientColors
+    ? gradientColors[gradientColors.length - 1]
+    : color ?? colors.surface.elevated;
+
   const contentPad = {
     paddingHorizontal: space.screenX,
     paddingTop: hasHeader ? space.screenX : spacing.md,
@@ -205,11 +229,49 @@ export const Sheet: React.FC<SheetProps> = ({
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
+          // Room for the footer floating over this, plus air, so the last row
+          // can be scrolled clear of it rather than parked behind it.
+          paddingBottom: footer
+            ? footerH + spacing.lg
+            : Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
         }}
       >
         {children}
       </ScrollView>
+      {footer ? (
+        <View
+          pointerEvents="box-none"
+          onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}
+          style={[
+            styles.footer,
+            // The safe area belongs to whatever is actually last on screen.
+            { paddingBottom: Math.max(insets.bottom, spacing.lg) },
+          ]}
+        >
+          {/* NEVER AN OPAQUE BAND. A solid bar with a rule across the top cuts
+              the list in half and leaves what is under it looking chopped
+              rather than continued. The app's answer everywhere else — `Page`'s
+              footer, the recorder dock — is a fade: content dissolves into the
+              surface before it reaches the control, so the list plainly carries
+              on behind it.
+
+              Built from THIS sheet's colour rather than the `scrimDown` token,
+              which is canvas-relative and would lay a near-black smudge over an
+              elevated surface. `start`/`end` are explicit because `Gradient`
+              otherwise falls back to the brand token's DIAGONAL direction, and
+              a one-off vertical fade would silently run corner to corner. */}
+          <View pointerEvents="none" style={styles.footerFade}>
+            <Gradient
+              colors={[withAlpha(footerBase, 0), withAlpha(footerBase, 0.92), footerBase]}
+              locations={[0, 0.45, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+          {footer}
+        </View>
+      ) : null}
     </>
   );
 
@@ -308,5 +370,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space.inlineGap,
+  },
+  // Floats OVER the scroll area rather than sitting under it, so the list runs
+  // behind the fade. Negative sides reach past the card's own gutter so the
+  // fade spans the full width; the padding puts the control back on the gutter.
+  footer: {
+    position: "absolute",
+    left: -space.screenX,
+    right: -space.screenX,
+    bottom: 0,
+    paddingHorizontal: space.screenX,
+    paddingTop: space.sectionGap,
+  },
+  footerFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Begins above the footer box, so the dissolve starts before the control.
+    top: -space.sectionGap,
   },
 });

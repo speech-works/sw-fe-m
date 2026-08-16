@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  FadeIn,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -55,9 +56,7 @@ import {
   bestForeground,
   zIndex,
   Sheet,
-  SectionHeader,
   ListItem,
-  Button,
   useNavBarInset,
   size,
   duration,
@@ -85,6 +84,9 @@ import { normalizeManifest, type AvatarManifest } from "../../types/avatar";
 import { useInboxStore } from "../../stores/inbox";
 import { useCommunityDock } from "../../stores/communityDock";
 import { shareBuddyInvite } from "../../util/functions/share";
+import { monthYear, relativeAgo } from "../../util/functions/time";
+import BuddyRequestList from "../../components/BuddyRequests";
+import RequestSheet from "../../components/BuddyRequests/RequestSheet";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
@@ -104,23 +106,6 @@ interface BuddyReport {
   totalXp?: number;
   lastPracticeAt?: string | Date | null;
 }
-
-const monthYear = (d?: string | Date | null) =>
-  d ? new Date(d).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : null;
-
-const relativeAgo = (d?: string | Date | null): string | null => {
-  if (!d) return null;
-  const t = new Date(d).getTime();
-  if (Number.isNaN(t)) return null;
-  const mins = Math.floor((Date.now() - t) / 60000);
-  if (mins < 60) return "just now";
-  const h = Math.floor(mins / 60);
-  if (h < 24) return `${h}h ago`;
-  const days = Math.floor(h / 24);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days}d ago`;
-  return new Date(d).toLocaleDateString();
-};
 
 /** Map a level number to its stage title using the (global) stage ladder from my own LevelStage. */
 const stageTitleForLevel = (stage: LevelStage | null, level?: number): string => {
@@ -254,6 +239,10 @@ const Community = () => {
   const setDockEnabled = useCommunityDock((s) => s.setEnabled);
   const enterDock = useCommunityDock((s) => s.enter);
   const leaveDock = useCommunityDock((s) => s.leave);
+  // The requests list is a mode of THIS screen; the dock is what opens and
+  // closes it (see CustomTabBar), and this screen just renders what it says.
+  const requestsOpen = useCommunityDock((s) => s.requestsOpen);
+  const closeRequests = useCommunityDock((s) => s.closeRequests);
   const scrollViewRef = useRef<ScrollView>(null);
   const timelineRef = useRef<TimelineHandle>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
@@ -291,9 +280,23 @@ const Community = () => {
       setSummary(data);
       if (data.link?.status === "active") {
         useInboxStore.getState().setHasBuddy(true);
-        // Paired: any leftover request is moot, and the badge must not linger.
-        setRequests([]);
+        // ── PAIRED: the requests are HELD, not discarded. ──
+        //
+        // They used to be thrown away here, which was tidy and wrong in two
+        // ways. The server never declined them, so "gone from the screen" and
+        // "gone" were different facts; and if this pairing ends next week the
+        // queue is the first thing that matters, so destroying the client's
+        // copy of it destroys the only thing that would have helped.
+        //
+        // The BADGE still goes to zero, and that half was always right: a count
+        // you are not allowed to act on is nagging, not information. So the
+        // list survives (see the On hold section) and the dock goes quiet.
         useInboxStore.getState().setPendingRequestCount(0);
+        try {
+          setRequests(await getBuddyRequests());
+        } catch {
+          setRequests([]);
+        }
         try {
           const t = await getThread();
           setThread(t);
@@ -326,8 +329,8 @@ const Community = () => {
         // it — they left, or they blocked us. Same cleanup as our own actions,
         // including the unread badge, which used to survive.
         resetBuddyLocalState();
-        // Only meaningful while unpaired — you cannot accept a request you have
-        // no free slot for, and the server refuses it anyway.
+        // Unpaired, so the count is live again — including any request that was
+        // on hold through a pairing that has since ended.
         try {
           const reqs = await getBuddyRequests();
           setRequests(reqs);
@@ -401,6 +404,40 @@ const Community = () => {
   const [requests, setRequests] = useState<BuddyRequest[]>([]);
   const [requestBusyId, setRequestBusyId] = useState<string | null>(null);
   const [pendingDecline, setPendingDecline] = useState<BuddyRequest | null>(null);
+  /** The person whose detail sheet is open, or null. */
+  const [openRequest, setOpenRequest] = useState<BuddyRequest | null>(null);
+  const [holdOpen, setHoldOpen] = useState(false);
+  /**
+   * Work parked until the detail sheet has FULLY unmounted.
+   *
+   * The sheet is a native Modal, and so are the pairing modal and the decline
+   * sheet it can lead to. Two live native Modals freeze touch across the whole
+   * app on iOS, so nothing may open until this one is gone — see `onDismissed`.
+   */
+  const afterSheetDismissed = useRef<(() => void) | null>(null);
+  /** How many others were still waiting at the moment a pairing was formed —
+   *  captured before the reload, which is what empties the incoming list. */
+  const [heldAtPairing, setHeldAtPairing] = useState(0);
+  const incomingRequests = requests.filter((r) => r.direction === "incoming");
+
+  /**
+   * What the pairing modal says, and what it deliberately does not ask.
+   *
+   * An earlier draft offered a choice here: "let the others know I'm taken" or
+   * "keep them waiting". Both were dropped once the sender's own screen started
+   * telling them the truth by itself (`recipientPaired`). A notification would
+   * have been a second copy of a fact they can already see, sent to up to
+   * twenty people at once, on a tap taken in the middle of a celebration.
+   *
+   * So this states what happened and stops. Managing the queue is available
+   * afterwards, one person at a time, on the screen where they are listed.
+   */
+  const pairedMessage =
+    heldAtPairing > 0
+      ? `Share your journey, support each other, and grow together. ${
+          heldAtPairing === 1 ? "One other person is" : `${heldAtPairing} other people are`
+        } still waiting; they can see you're paired, and they'll expire on their own.`
+      : "Share your journey, support each other, and grow together.";
   const [blockConfirmVisible, setBlockConfirmVisible] = useState(false);
   const [blockReasonVisible, setBlockReasonVisible] = useState(false);
   const isPaired = link?.status === "active";
@@ -490,10 +527,16 @@ const Community = () => {
   const acceptRequest = async (requestId: string) => {
     if (requestBusyId) return;
     setRequestBusyId(requestId);
+    // Counted BEFORE the reload: `load()` is what turns the rest into held
+    // requests, and the welcome modal needs to say how many there were.
+    setHeldAtPairing(Math.max(0, incomingRequests.length - 1));
     try {
       await acceptBuddyRequest(requestId);
       track(ANALYTICS_EVENTS.BUDDY_REQUEST_ACCEPTED);
       await load();
+      // The list is behind us now; leaving requests mode open would leave the
+      // dock pointing back at a screen the pairing has replaced.
+      closeRequests();
       setShowWelcome(true);
     } catch (e) {
       showErrorBottomSheet(
@@ -669,58 +712,182 @@ const Community = () => {
   const headerPlaceholder = <View style={{ height: headerHeight }} />;
 
   /**
-   * Incoming requests, above everything else.
+   * The requests list, as a MODE OF THIS SCREEN rather than a pushed route.
    *
-   * A person waiting on an answer outranks the evergreen "how it works"
-   * explainer. Rendered only when there is something to answer, so the screen
-   * is byte-identical to before for everyone else.
+   * It has to live inside the Community tab, because the dock is what opens it
+   * and a pushed screen hides the dock (`getTabBarVisibility`). That is not a
+   * workaround: the dock morphing into [back][Requests] IS the navigation here,
+   * so the list has to be somewhere the dock still exists.
+   *
+   * There is deliberately no inline copy of this list on the room screen any
+   * more. The room is a picture you are standing in, and the old section put an
+   * opaque plate over the top third of it; the dock pill now reads "Waiting · 3"
+   * in the accent colour at the bottom of the same screen, which is both more
+   * visible and free of composition cost.
    */
-  const renderRequests = () => {
-    const incoming = requests.filter((r) => r.direction === "incoming");
-    if (incoming.length === 0) return null;
-    return (
-      <View style={styles.requestsSection}>
-        <SectionHeader icon={icons.addPerson} title="Requests" />
-        <View style={[styles.requestGroup, { backgroundColor: colors.surface.default }]}>
-          {incoming.map((req, i, arr) => (
-            <View
-              key={req.id}
-              style={[
-                styles.requestRow,
-                i < arr.length - 1 && {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.border.default,
-                },
-              ]}
-            >
-              <View style={[styles.requestAvatar, { borderColor: colors.border.default }]}>
-                <UserAvatar manifest={req.profile.avatarManifest} size={40} />
-              </View>
-              <View style={styles.requestTextWrap}>
-                <Text variant="title" numberOfLines={1}>
-                  {req.profile.name?.split(" ")[0] || "Someone"}
-                </Text>
-                <Text variant="bodySm" color="secondary">wants to practice together</Text>
-              </View>
-              <View style={styles.requestActions}>
-                <Button
-                  label="Accept"
-                  size="sm"
-                  fullWidth={false}
-                  disabled={requestBusyId === req.id}
-                  onPress={() => acceptRequest(req.id)}
-                />
-                <PressableScale
-                  onPress={() => setPendingDecline(req)}
-                  disabled={requestBusyId === req.id}
-                  hitSlop={8}
-                >
-                  <Text variant="bodySm" color="secondary">Decline</Text>
-                </PressableScale>
-              </View>
-            </View>
-          ))}
+  const renderRequestsView = () => (
+    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
+      <SchemeStatusBar />
+      <CustomScrollView>
+        <View
+          style={[
+            styles.requestsBody,
+            {
+              paddingTop: insets.top + space.inlineGap,
+              // Clears the floating dock, which is still on screen here.
+              paddingBottom: size.tabBarSafe + navBarInset,
+            },
+          ]}
+        >
+          <View style={styles.requestsTitle}>
+            <Text variant="h1">Requests</Text>
+            <Text variant="bodySm" color="secondary">
+              {incomingRequests.length === 1
+                ? "One person is waiting on you."
+                : `${incomingRequests.length} people are waiting on you.`}
+            </Text>
+          </View>
+
+          <BuddyRequestList
+            requests={incomingRequests}
+            busyId={requestBusyId}
+            onHold={isPaired}
+            onOpen={setOpenRequest}
+            onAccept={(req) => acceptRequest(req.id)}
+            onDecline={(req) => setPendingDecline(req)}
+          />
         </View>
+      </CustomScrollView>
+    </ScreenView>
+  );
+
+  /**
+   * A Sheet, not a Dialog: there are THREE outcomes here (decline, decline and
+   * block, change my mind) and a Dialog gives two buttons plus a backdrop tap,
+   * which would have made "dismiss" ambiguous with an actual choice. Declining
+   * offers blocking in the same breath because "no" and "don't contact me
+   * again" are often one intent, and a request from a stranger is exactly where
+   * that matters.
+   *
+   * Extracted so both the requests view and the main screen can mount it. They
+   * are separate returns, and a sheet that exists in only one of them
+   * disappears the moment the screen behind it changes.
+   */
+  const renderDeclineSheet = () => (
+    <Sheet
+      // `exclusive`: this can be opened FROM the detail sheet, and two live
+      // native Modals freeze touch across the app on iOS. The flag makes it
+      // wait for the registry to clear rather than racing it.
+      exclusive
+      visible={pendingDecline !== null}
+      onClose={() => setPendingDecline(null)}
+      title={`Decline ${pendingDecline?.profile.name?.split(" ")[0] ?? "this request"}?`}
+    >
+      <View style={styles.declineSheetBody}>
+        <Text variant="bodySm" color="secondary" style={styles.declineIntro}>
+          They won't be told either way, and they won't be able to ask again.
+        </Text>
+        <View style={[styles.requestGroup, { backgroundColor: colors.surface.default }]}>
+          <ListItem label="Decline" divider onPress={() => confirmDecline(false)} />
+          <ListItem
+            label="Decline and block"
+            sublabel="They also won't be able to pair with you later"
+            onPress={() => confirmDecline(true)}
+          />
+        </View>
+      </View>
+    </Sheet>
+  );
+
+  /**
+   * The person behind a request.
+   *
+   * Every action closes the sheet first and runs from `onDismissed`, because
+   * each one leads to another native Modal (the pairing modal, the decline
+   * sheet, the report sheet) and stacking two of those is the app-wide touch
+   * freeze this codebase has already been bitten by once.
+   */
+  const renderRequestSheet = () => (
+    <RequestSheet
+      request={openRequest}
+      busy={requestBusyId !== null}
+      onClose={() => setOpenRequest(null)}
+      onAccept={(req) => {
+        setOpenRequest(null);
+        afterSheetDismissed.current = () => void acceptRequest(req.id);
+      }}
+      onDecline={(req) => {
+        setOpenRequest(null);
+        afterSheetDismissed.current = () => setPendingDecline(req);
+      }}
+      onReport={(req) => {
+        // Reporting from here reuses the decline sheet's "decline and block"
+        // path rather than introducing a second moderation surface: from a
+        // pending request, blocking and refusing are the same act.
+        setOpenRequest(null);
+        afterSheetDismissed.current = () => setPendingDecline(req);
+      }}
+      onDismissed={() => {
+        const run = afterSheetDismissed.current;
+        afterSheetDismissed.current = null;
+        run?.();
+      }}
+    />
+  );
+
+  /**
+   * The people still waiting while you are paired.
+   *
+   * Collapsed, and below everything about the pairing itself: they are findable
+   * rather than shouted about. Open it and every row is still there with a
+   * working Decline, because holding someone is not the same as deciding for
+   * you — it just cannot be an Accept while the one slot is taken.
+   */
+  const renderOnHold = () => {
+    if (incomingRequests.length === 0) return null;
+    return (
+      <View style={styles.holdSection}>
+        <PressableScale
+          scaleTo={0.99}
+          onPress={() => setHoldOpen((v) => !v)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: holdOpen }}
+          accessibilityLabel={`On hold, ${incomingRequests.length} requests`}
+          style={[
+            styles.holdHead,
+            { backgroundColor: colors.surface.default, borderColor: colors.border.default },
+          ]}
+        >
+          <Icon name={icons.soon} size={size.iconInline} color={colors.text.tertiary} />
+          <Text variant="title" style={styles.holdTitle}>
+            On hold
+          </Text>
+          <Text variant="bodySm" color="tertiary">
+            {incomingRequests.length}
+          </Text>
+          <Icon
+            name={holdOpen ? icons.chevronUp : icons.chevronDown}
+            size={size.iconSm}
+            color={colors.text.tertiary}
+          />
+        </PressableScale>
+
+        {holdOpen ? (
+          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}>
+            <BuddyRequestList
+              requests={incomingRequests}
+              busyId={requestBusyId}
+              onHold
+              onOpen={setOpenRequest}
+              onAccept={(req) => acceptRequest(req.id)}
+              onDecline={(req) => setPendingDecline(req)}
+            />
+            <Text variant="caption" color="tertiary" style={styles.holdNote}>
+              You can have one buddy at a time, so these are waiting. They can
+              see you are paired, and they expire on their own.
+            </Text>
+          </Animated.View>
+        ) : null}
       </View>
     );
   };
@@ -1147,10 +1314,33 @@ const Community = () => {
               </View>
             </PressableScale>
           </View>
+
+          {/* Below the pairing and below its controls, because these people are
+              not part of it. Present, findable, and silent. */}
+          {renderOnHold()}
         </Animated.View>
       </View>
     );
   };
+
+  /**
+   * REQUESTS MODE COMES FIRST, before the paired/unpaired split.
+   *
+   * It is the same list either way — held rows when paired, answerable rows
+   * when not — and putting it above the split is what stops a pairing that
+   * lands while the list is open from swapping the screen out from under the
+   * dock. `loading` and `error` still win, since a list is nothing without its
+   * contents.
+   */
+  if (requestsOpen && !loading && !error) {
+    return (
+      <>
+        {renderRequestsView()}
+        {renderRequestSheet()}
+        {renderDeclineSheet()}
+      </>
+    );
+  }
 
   if (!isPaired && !loading && !error) {
     return (
@@ -1178,7 +1368,12 @@ const Community = () => {
             ]}
             pointerEvents="box-none"
           >
-            {renderRequests()}
+            {/* No requests section here any more. It used to sit at the top of
+                this stage as an opaque card over the crowd, which is the one
+                thing this screen cannot afford — the room runs edge to edge and
+                a plate in the top third punches a hole in it. The dock below
+                carries the count instead ("Waiting · 3", in the accent), and
+                tapping it opens the list. Same information, no hole. */}
             <View style={styles.stageSpacer} pointerEvents="none" />
             {renderStage()}
           </View>
@@ -1192,7 +1387,7 @@ const Community = () => {
           tag="BUDDY CONNECTED"
           tagColor={colors.action.primary}
           title="You're now paired!"
-          message="Share your journey, support each other, and grow together."
+          message={pairedMessage}
           ctaLabel="Let's Go!"
           ctaColor={colors.action.primary}
           ctaTextColor={colors.action.onPrimary}
@@ -1340,7 +1535,7 @@ const Community = () => {
         tag="BUDDY CONNECTED"
         tagColor={colors.action.primary}
         title="You're now paired!"
-        message="Share your journey, support each other, and grow together."
+        message={pairedMessage}
         ctaLabel="Let's Go!"
         ctaColor={colors.action.primary}
         ctaTextColor={colors.action.onPrimary}
@@ -1379,31 +1574,8 @@ const Community = () => {
         onConfirm={confirmLeave}
       />
 
-      {/* A Sheet, not a Dialog: there are THREE outcomes here (decline, decline
-          and block, change my mind) and a Dialog gives two buttons plus a
-          backdrop tap — which would have made "dismiss" ambiguous with an
-          actual choice. Declining offers blocking in the same breath because
-          "no" and "don't contact me again" are often one intent, and a request
-          from a stranger is exactly where that matters. */}
-      <Sheet
-        visible={pendingDecline !== null}
-        onClose={() => setPendingDecline(null)}
-        title={`Decline ${pendingDecline?.profile.name?.split(" ")[0] ?? "this request"}?`}
-      >
-        <View style={styles.declineSheetBody}>
-          <Text variant="bodySm" color="secondary" style={styles.declineIntro}>
-            They won't be told either way, and they won't be able to ask again.
-          </Text>
-          <View style={[styles.requestGroup, { backgroundColor: colors.surface.default }]}>
-            <ListItem label="Decline" divider onPress={() => confirmDecline(false)} />
-            <ListItem
-              label="Decline and block"
-              sublabel="They also won't be able to pair with you later"
-              onPress={() => confirmDecline(true)}
-            />
-          </View>
-        </View>
-      </Sheet>
+      {renderDeclineSheet()}
+      {renderRequestSheet()}
 
       <Dialog
         visible={blockConfirmVisible}
@@ -1671,25 +1843,23 @@ const styles = StyleSheet.create({
   },
 
   // Incoming buddy requests, above everything else.
-  requestsSection: { gap: spacing.md },
   requestGroup: { borderRadius: radius.card, overflow: "hidden" },
-  requestRow: {
+  // ── The requests view ─────────────────────────────────────────────────────
+  requestsBody: { paddingHorizontal: space.screenX, gap: space.sectionGap },
+  requestsTitle: { marginTop: space.titleGap, gap: space.titleSub },
+  // ── On hold, on the paired screen ─────────────────────────────────────────
+  holdSection: { marginTop: space.sectionGap, gap: space.rowGap },
+  holdHead: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.iconText,
-    padding: space.cardPad,
-  },
-  requestAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
+    paddingHorizontal: space.cardPad,
+    paddingVertical: space.rowGap,
+    borderRadius: radius.card,
     borderWidth: borderWidth.hairline,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
   },
-  requestTextWrap: { flex: 1, gap: 2 },
-  requestActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  holdTitle: { flex: 1 },
+  holdNote: { marginTop: space.rowGap },
   declineSheetBody: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
   declineIntro: { marginBottom: spacing.md },
 

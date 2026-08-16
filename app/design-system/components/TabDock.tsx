@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   FadeIn,
+  FadeOut,
   LinearTransition,
   interpolate,
   interpolateColor,
@@ -12,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
 import { useNavBarInset } from "../useNavBarInset";
+import { withAlpha } from "../utils/color";
 import { fonts } from "../primitives/fonts";
 import { size } from "../primitives/scale";
 import { spring, duration } from "../motion";
@@ -39,6 +41,21 @@ export interface TabDockItem {
    * already says more than a dot can.
    */
   badgeDot?: boolean;
+  /**
+   * A count carried INSIDE the expanded pill, beside the label, rather than as
+   * a corner badge on the icon.
+   *
+   * For the one case where the count is not a notification about the tab but
+   * the SUBJECT of it: the Buddy pill reading "Waiting · 3". The corner badge
+   * says "there is something over here"; this says "here is what it is", which
+   * is what earns the re-tap that opens the list.
+   *
+   * Only renders while the tab is focused, because it lives in the part of the
+   * pill that only exists when expanded. An unfocused tab still needs its
+   * corner marker, so callers set BOTH and `DockItem` suppresses whichever
+   * would be the second copy — see `showCorner` below.
+   */
+  pillCount?: number;
 }
 
 export interface TabDockProps {
@@ -134,6 +151,7 @@ export const TabDock: React.FC<TabDockProps> = ({
           iconName={item.icon}
           badge={item.badge ?? 0}
           badgeDot={item.badgeDot ?? false}
+          pillCount={item.pillCount ?? 0}
           fitContent={fitContent}
           reduceMotion={reduceMotion}
           onPress={() => onSelect(item.key)}
@@ -189,6 +207,7 @@ interface DockItemProps {
   iconName: IconName;
   badge: number;
   badgeDot: boolean;
+  pillCount: number;
   fitContent: boolean;
   reduceMotion: boolean;
   onPress: () => void;
@@ -203,6 +222,7 @@ const DockItem: React.FC<DockItemProps> = ({
   iconName,
   badge,
   badgeDot,
+  pillCount,
   fitContent,
   reduceMotion,
   onPress,
@@ -214,6 +234,17 @@ const DockItem: React.FC<DockItemProps> = ({
   const activeContentColor = colors.nav.onActive;
   const inactiveColor = colors.nav.inactive;
   const capsuleColor = colors.surface.elevated;
+
+  // The in-pill chip and the corner badge are the SAME fact. Printing both puts
+  // "3" twice on one pill, which reads as two different numbers for the half
+  // second it takes to check. The chip wins while the pill is open (it sits
+  // beside the word it qualifies); the corner takes over the moment the pill
+  // closes, because the chip's half of the pill no longer exists.
+  const chipText = pillCount > 9 ? "9+" : String(pillCount);
+  const chipShowing = isFocused && pillCount > 0;
+  const showCorner = !chipShowing;
+  // 2 glyphs at most, so an estimate is exact enough and costs no measuring pass.
+  const chipWidth = chipText.length * 9 + 16;
 
   const [labelWidth, setLabelWidth] = useState(0);
   // Estimate until the real width is measured, so the active label never pops in at 0.
@@ -245,6 +276,13 @@ const DockItem: React.FC<DockItemProps> = ({
   const textStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(v.value, [0, 1], [0.85, 1]) }],
   }));
+  // Rides the same `v` as the label, so the count arrives WITH the word it
+  // belongs to instead of chasing it.
+  const chipStyle = useAnimatedStyle(() => ({
+    width: Math.max(0, interpolate(v.value, [0, 1], [0, chipWidth])),
+    marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 8])),
+    opacity: Math.max(0, Math.min(1, v.value)),
+  }));
   const inactiveIconStyle = useAnimatedStyle(() => ({ position: "absolute", opacity: 1 - v.value }));
   const activeIconStyle = useAnimatedStyle(() => ({ opacity: v.value, position: "absolute" }));
   const badgeBorderStyle = useAnimatedStyle(() => ({
@@ -255,6 +293,12 @@ const DockItem: React.FC<DockItemProps> = ({
     <Animated.View
       style={[styles.itemContainer, containerStyle]}
       entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}
+      // Leaving is what makes a mode change read as a MORPH rather than a swap.
+      // Without it a removed tab is simply gone on the next frame while the
+      // capsule's `LinearTransition` slides the survivors into the hole it left,
+      // which looks like the dock was rebuilt. Faster than the entrance for the
+      // usual reason: you already know where it went.
+      exiting={reduceMotion ? undefined : FadeOut.duration(duration.fast)}
       onLayout={onItemLayout ? (e) => onItemLayout(e.nativeEvent.layout.x, e.nativeEvent.layout.width) : undefined}
     >
       <TouchableOpacity
@@ -272,11 +316,13 @@ const DockItem: React.FC<DockItemProps> = ({
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
         accessibilityLabel={
-          badge > 0
-            ? `${label}, ${badge} unread`
-            : badgeDot
-              ? `${label}, needs attention`
-              : label
+          pillCount > 0
+            ? `${label}, ${pillCount} waiting`
+            : badge > 0
+              ? `${label}, ${badge} unread`
+              : badgeDot
+                ? `${label}, needs attention`
+                : label
         }
       >
         <Animated.View style={[styles.pill, pillStyle]}>
@@ -287,13 +333,13 @@ const DockItem: React.FC<DockItemProps> = ({
             <Animated.View style={activeIconStyle}>
               <Icon name={iconName} size={size.tabIcon} color={activeContentColor} />
             </Animated.View>
-            {badge > 0 ? (
+            {showCorner && badge > 0 ? (
               <Animated.View style={[styles.badge, { backgroundColor: colors.nav.badge }, badgeBorderStyle]}>
                 <Text variant="caption" color={colors.accentOn.danger} style={styles.badgeText} numberOfLines={1}>
                   {badge > 9 ? "9+" : badge}
                 </Text>
               </Animated.View>
-            ) : badgeDot ? (
+            ) : showCorner && badgeDot ? (
               // Same fill and the same animated border as the count badge, so the
               // two read as one family — this is a countless version of it, not a
               // second idea. Deliberately NOT animated on entry: the dock is on
@@ -312,6 +358,29 @@ const DockItem: React.FC<DockItemProps> = ({
               </Text>
             </Animated.View>
           </Animated.View>
+
+          {/* THE COUNT, INSIDE THE PILL.
+              Placed after the label rather than on the icon because it
+              qualifies the WORD ("Waiting", 3) rather than marking the tab.
+              `onActive` on a tinted plate: the pill is already the accent fill,
+              so a second saturated colour here would fight it, and the danger
+              red the corner badge uses would call a person waiting to meet you
+              an error. */}
+          {pillCount > 0 ? (
+            <Animated.View style={[styles.chipWrapper, chipStyle]}>
+              <View style={[styles.chip, { backgroundColor: withAlpha(activeContentColor, 0.16) }]}>
+                <Text
+                  variant="caption"
+                  color={activeContentColor}
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
+                  style={styles.chipText}
+                >
+                  {chipText}
+                </Text>
+              </View>
+            </Animated.View>
+          ) : null}
 
           {/* Invisible measurer — gives the wrapper its expand target. It's given a
               generous fixed width so numberOfLines can never truncate it (the narrow
@@ -457,6 +526,25 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontFamily: fonts.extrabold,
+  },
+  // Same shape as `textWrapper`: a clipping box the animation opens, so the
+  // chip is revealed by the pill rather than sliding in over it.
+  chipWrapper: {
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chip: {
+    borderRadius: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipText: {
+    fontFamily: fonts.extrabold,
+    fontVariant: ["tabular-nums"],
   },
   // Overrides the count badge's box: no text, so it collapses to a true circle.
   //
