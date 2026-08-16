@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import {
   useTheme,
@@ -9,9 +9,7 @@ import {
   space,
   radius,
   size,
-  Surface,
   Text,
-  Chip,
   Button,
   Dialog,
   EmptyState,
@@ -24,20 +22,26 @@ import {
   borderWidth,
   fonts,
   withAlpha,
-  Gradient,
-  zIndex,
 } from "../../design-system";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
+
+/** A `ScreenView`-shaped box with none of its screen behaviour, for the
+ *  embedded case where the host is already the screen. */
+const PlainFrame: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <View style={{ flex: 1 }}>{children}</View>
+);
 import PressableScale from "../../components/PressableScale";
 import { UserAvatar } from "../../components/UserAvatar";
 import { useUserStore } from "../../stores/user";
 import ReportSheet from "../../components/ReportSheet";
 import TagPickerSheet from "../../components/TagPickerSheet";
+import CandidateSheet from "./CandidateSheet";
 import {
   discoverBuddies,
   getMyBuddy,
   sendBuddyRequest,
+  cancelBuddyRequest,
   getDiscoveryProfile,
   setDiscoveryProfile,
   type DiscoveryCandidate,
@@ -69,7 +73,30 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
  * Report and block are available BEFORE pairing, deliberately: this is the one
  * surface where you can be contacted by someone you have no relationship with.
  */
-const Discover = () => {
+/**
+ * Props exist only for the EMBEDDED case.
+ *
+ * This was a pushed route. It is now the Discover half of the People page,
+ * rendered by Community — because a dock can only morph on a screen that has
+ * one, and `getTabBarVisibility` hides the dock on every pushed screen. The
+ * host supplies the chrome (one back bar, one title, the Waiting/Discover
+ * switcher) and receives the scroll offset so it can hand that switcher to the
+ * dock at the right moment.
+ */
+export interface DiscoverProps {
+  /** Rendered inside the People page rather than as its own screen. */
+  embedded?: boolean;
+  /** A spacer the height of the host's fixed header, drawn at the top of THIS
+   *  scroll view so the first row starts below it. The header itself is the
+   *  host's, and sits above the pager so a swipe does not move it. */
+  header?: React.ReactNode;
+  /** Scroll offset, for the host's dock cue. */
+  onScrollY?: (y: number) => void;
+}
+
+const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY }) => {
+  // `ScreenView` standalone, a plain flex box when the host already provides one.
+  const Frame = embedded ? PlainFrame : ScreenView;
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
   const user = useUserStore((s) => s.user);
@@ -85,10 +112,11 @@ const Discover = () => {
   const [asking, setAsking] = useState<string | null>(null);
   const [pendingBlock, setPendingBlock] = useState<DiscoveryCandidate | null>(null);
   const [reporting, setReporting] = useState<DiscoveryCandidate | null>(null);
+  /** The person whose sheet is open. The row's only job is to set this. */
+  const [openCandidate, setOpenCandidate] = useState<DiscoveryCandidate | null>(null);
   const [pickingTags, setPickingTags] = useState(false);
   // Measured, so the scroll body reserves the bar's REAL height and the last
   // card can be scrolled clear of it. Same approach as `Page`'s footer.
-  const [barH, setBarH] = useState(0);
   /**
    * What the card says right now, published or not.
    *
@@ -227,22 +255,63 @@ const Discover = () => {
     }
   };
 
+  /**
+   * Change one person in the list, leaving the rest and their order alone.
+   *
+   * Asking and withdrawing both do this rather than refetching. The server
+   * sorts asked people to the bottom, and having the card you just pressed
+   * jump down the screen under your thumb is worse than a list that is briefly
+   * out of the server's preferred order. It sorts itself on the next load.
+   */
+  const patch = (userId: string, change: Partial<DiscoveryCandidate>) =>
+    setCandidates((prev) =>
+      (prev ?? []).map((c) => (c.userId === userId ? { ...c, ...change } : c)),
+    );
+
   const ask = async (person: DiscoveryCandidate) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setAsking(person.userId);
     try {
-      await sendBuddyRequest(person.userId);
+      const req = await sendBuddyRequest(person.userId);
       track(ANALYTICS_EVENTS.BUDDY_REQUEST_SENT, { source: "discover" });
-      // Drop them from the list: the server won't show them again while a
-      // request is live, so leaving the card invites a second futile tap.
-      setCandidates((prev) => (prev ?? []).filter((c) => c.userId !== person.userId));
-      showSuccessBottomSheet(
-        "Request sent",
-        `We've let ${person.name.split(" ")[0]} know. You'll hear back if they say yes.`,
-      );
+      /**
+       * They STAY, holding the request.
+       *
+       * This used to drop them from the list, reasoning that the server would
+       * not return them again so a second tap would be futile. The second tap
+       * was never the problem: deleting the card meant asking somebody made
+       * them disappear, the list silently shortened, and a toast was the only
+       * evidence it had happened. Nothing was left to wait on or to change your
+       * mind about. The server keeps sending them now, and the id it hands back
+       * is what turns the card into its asked state without a refetch.
+       */
+      patch(person.userId, { requestId: req.id, requestedAt: req.createdAt });
     } catch (e) {
       showErrorBottomSheet("Couldn't send", apiErrorMessage(e, "Please try again."));
+    } finally {
+      inFlight.current = false;
+      setAsking(null);
+    }
+  };
+
+  /**
+   * Take back a request you sent.
+   *
+   * Deleted rather than declined, server-side: you changed your mind, which
+   * should not bar you from ever asking again. So the card goes straight back
+   * to offering the button.
+   */
+  const withdraw = async (person: DiscoveryCandidate) => {
+    const id = person.requestId;
+    if (!id || inFlight.current) return;
+    inFlight.current = true;
+    setAsking(person.userId);
+    try {
+      await cancelBuddyRequest(id);
+      patch(person.userId, { requestId: undefined, requestedAt: undefined });
+    } catch (e) {
+      showErrorBottomSheet("Couldn't cancel", apiErrorMessage(e, "Please try again."));
     } finally {
       inFlight.current = false;
       setAsking(null);
@@ -413,25 +482,30 @@ const Discover = () => {
       else void setListed(true);
     };
 
+    /**
+     * A ROW IN THE HEADER, not a pinned bar.
+     *
+     * It used to float above the dock, which cost it twice: it permanently
+     * covered about two rows of the list, and the dock then covered part of
+     * IT, so the button was half buried. Neither was a spacing value that
+     * could be tuned — a floating element over a scrolling list will always
+     * hide whatever is under it.
+     *
+     * In the flow it hides nothing, and it scrolls away with the rest of the
+     * header, so it is there when you arrive and gone once you are reading.
+     * It also lands where it belongs: this is the one thing on the page about
+     * YOU, and it now sits with the title rather than inside a list of other
+     * people. The fade went with the pinning — there is nothing to dissolve
+     * into when nothing is floating.
+     */
     return (
-      <View
-        style={[styles.barWrap, { paddingBottom: Math.max(insets.bottom, space.rowGap) }]}
-        pointerEvents="box-none"
-      >
-        {/* The list dissolves into the canvas rather than being cut by an
-            opaque band, same as `Page`'s footer and the recorder dock.
-            Canvas-relative, so the `scrimDown` token is the right one here. */}
-        <View pointerEvents="none" style={styles.barFade}>
-          <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
-        </View>
-
+      <View style={styles.barWrap}>
         <PressableScale
           scaleTo={0.995}
           // Nothing to open while blocked: the card does not exist yet, so the
           // only thing to do is the button's job.
           onPress={blocked ? runAction : () => setPickingTags(true)}
           disabled={!!blocked && !fix}
-          onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
           accessibilityRole="button"
           accessibilityLabel={
             blocked
@@ -480,70 +554,70 @@ const Discover = () => {
     );
   };
 
+  const firstName = (person: DiscoveryCandidate) => person.name.split(" ")[0];
+
   /**
-   * One person.
+   * One person, at the same weight the requests list gives one.
    *
-   * THE FACE IS THE CONTENT, so it is 64pt and SQUARE — the same tile the
-   * Community room is built from. That shape is the whole visual bond between
-   * the two screens: over there the room is dimmed illustration with one lit
-   * tile (you), and here every tile is lit, because here they are real.
+   * IT USED TO CARRY FOUR TEXT ELEMENTS AND THREE CONTROLS: a reason line, two
+   * labelled tag lines, an Ask button and an overflow. The requests list next
+   * door said a name, one summary line and a chevron, and opened a sheet for
+   * everything else — so two lists of the same kind of object were two
+   * different designs, and the busier one was the one you scroll.
    *
-   * REPORT IS NOT A PEER OF "ASK TO PAIR". It used to be a ghost Button beside
-   * it, the same size and the same row, which made every stranger look like a
-   * suspect and put a moderation action one mis-tap from the primary one. It is
-   * now the app's existing card-header affordance — a plain touchable with a
-   * 16pt glyph and hitSlop out to 44 (see SignalCard, which does exactly this
-   * and explains why an IconButton is too heavy for a card header).
+   * The detail was never wrong, it was in the wrong place. A list is for
+   * deciding what to open; `CandidateSheet` is what you opened. That move also
+   * dissolved the asked/cancel problem rather than restyling it: there is no
+   * trailing control left to get wrong.
    */
-  const renderCard = (person: DiscoveryCandidate) => (
-    <Surface
-      key={person.userId}
-      level="elevated"
-      padded
-      rounded="card"
-      style={styles.card}
-    >
-      <View style={styles.cardTop}>
-        <View style={styles.avatar}>
-          <UserAvatar manifest={person.avatarManifest} size={64} shape="square" />
-        </View>
-        <View style={styles.cardText}>
-          <Text variant="h3" numberOfLines={1}>
-            {person.name.split(" ")[0]}
+  const renderRow = (person: DiscoveryCandidate) => {
+    const asked = !!person.requestId;
+    // Same rule and same shape as the requests row: two labels and a count,
+    // over at most two lines, so nothing can ellipsise.
+    const summary = person.tags.length
+      ? person.tags
+        .slice(0, 2)
+        .map((t) => t.label)
+        .join(", ") + (person.tags.length > 2 ? ` +${person.tags.length - 2}` : "")
+      : null;
+
+    return (
+      <PressableScale
+        key={person.userId}
+        scaleTo={0.99}
+        onPress={() => setOpenCandidate(person)}
+        accessibilityRole="button"
+        accessibilityLabel={`${firstName(person)}, open to answer`}
+        style={[styles.row, { borderBottomColor: colors.border.hairline }]}
+      >
+        <UserAvatar manifest={person.avatarManifest} size={40} shape="square" />
+        <View style={styles.rowText}>
+          <Text variant="title" numberOfLines={1}>
+            {firstName(person)}
           </Text>
-          {/* Null means we have nothing honest to say — show nothing at all
-              rather than a softer line. */}
-          {person.matchReason ? (
-            <Text variant="bodySm" color="secondary">{person.matchReason}</Text>
+          {summary ? (
+            <Text variant="bodySm" color="tertiary" numberOfLines={2}>
+              {summary}
+            </Text>
           ) : null}
         </View>
-        <TouchableOpacity
-          onPress={() => setReporting(person)}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          accessibilityRole="button"
-          accessibilityLabel={`Report ${person.name.split(" ")[0]}`}
-          style={styles.reportAction}
-        >
-          <Icon name={icons.report} size={size.iconSm} color={colors.text.tertiary} />
-        </TouchableOpacity>
-      </View>
-
-      {person.tags.length > 0 ? (
-        <View style={styles.tagRow}>
-          {person.tags.slice(0, 2).map((t) => (
-            <Chip key={t} label={t} />
-          ))}
-        </View>
-      ) : null}
-
-      {/* Full width, and the only filled thing on the card. One card, one verb. */}
-      <Button
-        label={asking === person.userId ? "Sending…" : "Ask to pair"}
-        disabled={asking !== null}
-        onPress={() => ask(person)}
-      />
-    </Surface>
-  );
+        {/* One word, no control. Seeing at a glance who you have already asked
+            is worth a line of text; it is not worth a button, which is what the
+            old row spent on it. */}
+        {asked ? (
+          <Text variant="caption" color="tertiary" style={styles.rowAsked}>
+            Asked
+          </Text>
+        ) : null}
+        <Icon
+          name={icons.chevronRight}
+          size={size.iconSm}
+          color={colors.text.tertiary}
+          style={styles.chevron}
+        />
+      </PressableScale>
+    );
+  };
 
   const body = () => {
     if (candidates === null && !error) return <Spinner label="Looking…" />;
@@ -584,9 +658,19 @@ const Discover = () => {
         />
       );
     }
+    /**
+     * ONE LIST. No featured card.
+     *
+     * There was a spotlight on the closest match and it was the only loud thing
+     * on the screen, which was the argument for it. It goes because the page it
+     * now lives on has a louder job: the other half is people waiting on an
+     * answer, and featuring somebody you could ask above people you owe a reply
+     * to inverts the urgency. The ranking survives — it is the order of the
+     * list, which is where it started.
+     */
     return (
       <View style={styles.list}>
-        {candidates.map(renderCard)}
+        <View style={styles.roster}>{candidates.map(renderRow)}</View>
         {loadingMore ? <Spinner /> : null}
       </View>
     );
@@ -604,9 +688,12 @@ const Discover = () => {
      * So the scaffold is hand-rolled — canvas, status bar, status cap and the
      * top inset are four lines — and EVERYTHING lives in one scroller.
      */
-    <ScreenView>
-      <SchemeStatusBar />
-      <CustomScrollView onEndReached={loadMore}>
+    // Embedded, the host owns the canvas, the status bar and the pager page
+    // this sits in — a second `ScreenView` inside a paging ScrollView would try
+    // to be its own screen and collapse to nothing.
+    <Frame>
+      {embedded ? null : <SchemeStatusBar />}
+      <CustomScrollView onEndReached={loadMore} onScrollY={onScrollY}>
         {/* No dock clearance here: this is a PUSHED screen, so `CustomTabBar` is
             hidden (`getTabBarVisibility`) and the 120pt this used to reserve was
             120pt of dead space. What the bottom actually needs is breathing room
@@ -615,20 +702,34 @@ const Discover = () => {
           style={[
             styles.scrollBody,
             {
-              paddingTop: insets.top + space.inlineGap,
+              // Zero when embedded: the host's header is a fixed overlay that
+              // owns the status-bar inset, and `header` here is the placeholder
+              // reserving its height. Adding the inset again would push this
+              // half down by the notch a second time.
+              paddingTop: embedded ? 0 : insets.top + space.inlineGap,
               // Clears the pinned status bar. Without the reserve the last card
               // sits under it and the "Share your code" button is unreachable,
               // which is the bug that started this.
-              paddingBottom: space.sectionGap + insets.bottom + barH,
+              // Only the dock to clear now. The listing bar moved into the
+              // header, so there is no longer a floating thing above the dock
+              // for the last row to hide behind.
+              paddingBottom:
+                space.sectionGap + (embedded ? size.tabBarSafe : insets.bottom),
             },
           ]}
         >
-          {/* The canonical back bar, matching PageHeader's geometry exactly
-              (`size.backBtn` tall, DS `IconButton`) so this screen's header sits
-              at the same height as every other screen's. */}
-          <View style={styles.backBar}>
-            <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
-          </View>
+          {/* Embedded this is a spacer, not a header: the host draws one fixed
+              header above the pager for both halves. Standalone, the canonical
+              back bar, matching PageHeader's geometry exactly (`size.backBtn`
+              tall, DS `IconButton`) so this screen's header sits at the same
+              height as every other screen's. */}
+          {embedded ? (
+            header
+          ) : (
+            <View style={styles.backBar}>
+              <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
+            </View>
+          )}
 
           {/**
            * A poster header, not a page title — this screen is the second half
@@ -650,17 +751,28 @@ const Discover = () => {
               someone" from Community, the back arrow already establishes the
               hierarchy, and the headline says what the page is. A label whose
               only job is to name where you came from is chrome. */}
-          <View style={styles.titleBlock}>
-            <Text variant="poster" style={styles.headline}>
-              People with a space{" "}
-              <Text variant="poster" style={[styles.headline, { color: colors.text.accent }]}>
-                next to them.
+          {/* The poster title belongs to the whole page, so embedded it comes
+              from the host and this half draws none. Standalone (which nothing
+              is any more, but the route still compiles) it keeps its own. */}
+          {embedded ? null : (
+            <View style={styles.titleBlock}>
+              <Text variant="poster" style={styles.headline}>
+                People with a space{" "}
+                <Text variant="poster" style={[styles.headline, { color: colors.text.accent }]}>
+                  next to them.
+                </Text>
               </Text>
-            </Text>
-            <Text variant="bodySm" color="secondary">
-              Everyone here chose to be findable.
-            </Text>
-          </View>
+              <Text variant="bodySm" color="secondary">
+                Everyone here chose to be findable.
+              </Text>
+            </View>
+          )}
+
+          {/* Your own card, in the header rather than pinned over the list.
+              Above `body()` so it still shows when the list is empty or failed
+              — "nobody to show" is exactly when being findable yourself
+              matters most. */}
+          {renderStatusBar()}
 
           {/* Above the list, and outside `body()`, so it still shows when the
               list is empty or failed — "nobody to show" is exactly when being
@@ -670,18 +782,22 @@ const Discover = () => {
       </CustomScrollView>
 
       {/* Opaque cap so scrolled content passes BEHIND the system clock rather
-          than through it — the one thing `Page` was still providing. */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: insets.top,
-          backgroundColor: colors.background.canvas,
-        }}
-      />
+          than through it — the one thing `Page` was still providing. Embedded,
+          the host's fixed header is already an opaque band across the top of
+          the screen and does this job. */}
+      {embedded ? null : (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: colors.background.canvas,
+          }}
+        />
+      )}
 
       {/* The same picker Settings uses, opened from wherever the gap is
           visible. Never at the same time as another sheet: both entry points
@@ -696,7 +812,32 @@ const Discover = () => {
         onSave={saveCard}
       />
 
-      {renderStatusBar()}
+
+      {/* Everything the row used to say, in the place you opened. Same sheet
+          shape as a buddy request, because it is the same kind of object. */}
+      <CandidateSheet
+        person={openCandidate}
+        busy={asking !== null}
+        onClose={() => setOpenCandidate(null)}
+        onAsk={(p) => {
+          setOpenCandidate(null);
+          void ask(p);
+        }}
+        onWithdraw={(p) => {
+          setOpenCandidate(null);
+          void withdraw(p);
+        }}
+        // Report opens another native Modal, so it waits for this one to go.
+        onReport={(p) => {
+          setOpenCandidate(null);
+          afterSheetDismissed.current = () => setReporting(p);
+        }}
+        onDismissed={() => {
+          const run = afterSheetDismissed.current;
+          afterSheetDismissed.current = null;
+          run?.();
+        }}
+      />
 
       <ReportSheet
         visible={reporting !== null}
@@ -730,7 +871,7 @@ const Discover = () => {
         destructive
         onConfirm={confirmBlock}
       />
-    </ScreenView>
+    </Frame>
   );
 };
 
@@ -753,14 +894,8 @@ const styles = StyleSheet.create({
   },
   consent: { gap: spacing.md },
   // ── The pinned status bar ────────────────────────────────────────────────
-  barWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: space.screenX,
-    zIndex: zIndex.sticky,
-  },
+  // In the flow, directly under the switcher and above the list.
+  barWrap: { marginBottom: space.rowGap },
   bar: {
     flexDirection: "row",
     alignItems: "center",
@@ -771,24 +906,55 @@ const styles = StyleSheet.create({
   },
   barText: { flex: 1, minWidth: 0, gap: space.titleSub },
   barTitle: { fontFamily: fonts.bold },
-  barFade: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    // Starts well above the bar so the list dissolves rather than being cut.
-    top: -space.sectionGap * 2,
-  },
-  list: { gap: space.groupGap },
-  card: { gap: spacing.md },
-  // `flex-start`, not `center`: the report glyph belongs at the top of the card,
-  // and centring the row would float it against the middle of a 64pt tile.
-  cardTop: { flexDirection: "row", alignItems: "flex-start", gap: space.iconText },
-  // No ring and no circle. The square tile IS the bond with the Community room;
-  // a circular avatar in a hairline ring is the generic list-row idiom this
-  // screen was trying to stop looking like.
-  avatar: { borderRadius: radius.card, overflow: "hidden" },
+  list: { gap: spacing.sm },
+
+  // ── The spotlight ────────────────────────────────────────────────────────
+  // A hairline in the accent, not a fill. The card is already a step above the
+  // canvas; tinting the whole surface as well would make the ONE solid button
+  // on the screen compete with the thing it sits on.
+  spotlight: { gap: spacing.md, borderWidth: borderWidth.hairline },
+  // `flex-start`, not `center`: the overflow glyph belongs at the top of the
+  // card, and centring the row would float it against the middle of a 64pt tile.
+  spotTop: { flexDirection: "row", alignItems: "flex-start", gap: space.iconText },
   cardText: { flex: 1, gap: 2, paddingTop: spacing.xs },
-  reportAction: { paddingTop: spacing.xxs },
-  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+
+  // ── The roster ───────────────────────────────────────────────────────────
+  divider: { flexDirection: "row", alignItems: "center", gap: space.iconText, marginTop: spacing.md },
+  dividerLine: { flex: 1, height: borderWidth.hairline },
+  roster: { marginTop: spacing.xs },
+  // The hairline is the only thing separating neighbours, so it goes on every
+  // row including the last: the list continues below the fold, and a missing
+  // rule on the final visible row reads as the end of it.
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.iconText,
+    paddingVertical: space.rowGap,
+    borderBottomWidth: borderWidth.hairline,
+  },
+  rowText: { flex: 1, minWidth: 0, gap: 2 },
+  rowAsked: { flex: 0 },
+  // Optically on the name rather than the middle of a block that runs one line
+  // or two, so it holds still as you read down the list.
+  chevron: { marginTop: 3 },
+  // Right-aligned and top-anchored, so the button lines up with the name
+  // rather than drifting down beside a three-line tag block.
+  rowActions: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+
+  moreAction: { paddingTop: spacing.xxs },
+
+  // ── Already asked ────────────────────────────────────────────────────────
+  // Same height and radius as `Button` size sm, so the trailing column is one
+  // shape at one height whether or not you have asked. Transparent with a
+  // hairline rather than a fill: it is a state, and a filled pill would read as
+  // something to press.
+  settled: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    height: 40,
+    paddingHorizontal: space.rowGap,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.hairline,
+  },
 });

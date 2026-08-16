@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import Animated, {
   FadeIn,
+  FadeOut,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -24,13 +25,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import CustomScrollView from "../../components/CustomScrollView";
+import Discover from "../Discover";
+import PeopleHeader from "./PeopleHeader";
 import ScreenView from "../../components/ScreenView";
 import Timeline, { TimelineHandle } from "../../components/Timeline";
 import BuddySupportSheet from "../../components/BuddySupportSheet";
 import PressableScale from "../../components/PressableScale";
 import {
   SchemeStatusBar,
+  Button,
   Dialog,
+  EmptyState,
+  Snackbar,
   useTheme,
   accentEdge,
   primaryEdge,
@@ -55,8 +61,6 @@ import {
   staggerEntering,
   bestForeground,
   zIndex,
-  Sheet,
-  ListItem,
   useNavBarInset,
   size,
   duration,
@@ -93,11 +97,23 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { blockUser, type ReportReason } from "../../api/moderation";
 import ReportSheet from "../../components/ReportSheet";
 import CommunityRoom from "../../components/CommunityRoom";
-import { apiErrorMessage } from "../../util/functions/apiError";
+import { apiErrorMessage, isNotFound } from "../../util/functions/apiError";
 import { resetBuddyLocalState } from "../../util/functions/buddyReset";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
 const screenWidth = Dimensions.get("window").width;
+
+/**
+ * How long a decline waits before it is sent.
+ *
+ * This is the confirm step, expressed as time rather than as a second dialog.
+ * Long enough to catch the wrong-row tap you notice the instant the row leaves
+ * the screen; short enough that nobody sits waiting on the bar. Material puts
+ * a snackbar's own life at 4-10s and this sits at the short end of that,
+ * because the bar disappearing IS the commit and a longer wait would leave the
+ * list disagreeing with the server for no benefit.
+ */
+const UNDO_GRACE_MS = 5000;
 
 /** Buddy's shared progress (from GET /buddies/report; null when they don't share). */
 interface BuddyReport {
@@ -237,12 +253,14 @@ const Community = () => {
   const setView = useCommunityDock((s) => s.setView);
   const setDockMode = useCommunityDock((s) => s.setMode);
   const setDockEnabled = useCommunityDock((s) => s.setEnabled);
+  const openPeople = useCommunityDock((s) => s.openPeople);
+  const setPeople = useCommunityDock((s) => s.setPeople);
   const enterDock = useCommunityDock((s) => s.enter);
   const leaveDock = useCommunityDock((s) => s.leave);
   // The requests list is a mode of THIS screen; the dock is what opens and
   // closes it (see CustomTabBar), and this screen just renders what it says.
-  const requestsOpen = useCommunityDock((s) => s.requestsOpen);
-  const closeRequests = useCommunityDock((s) => s.closeRequests);
+  const people = useCommunityDock((s) => s.people);
+  const closePeople = useCommunityDock((s) => s.closePeople);
   const scrollViewRef = useRef<ScrollView>(null);
   const timelineRef = useRef<TimelineHandle>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
@@ -291,7 +309,6 @@ const Community = () => {
         // The BADGE still goes to zero, and that half was always right: a count
         // you are not allowed to act on is nagging, not information. So the
         // list survives (see the On hold section) and the dock goes quiet.
-        useInboxStore.getState().setPendingRequestCount(0);
         try {
           setRequests(await getBuddyRequests());
         } catch {
@@ -332,13 +349,7 @@ const Community = () => {
         // Unpaired, so the count is live again — including any request that was
         // on hold through a pairing that has since ended.
         try {
-          const reqs = await getBuddyRequests();
-          setRequests(reqs);
-          useInboxStore
-            .getState()
-            .setPendingRequestCount(
-              reqs.filter((r) => r.direction === "incoming").length,
-            );
+          setRequests(await getBuddyRequests());
         } catch {
           setRequests([]);
         }
@@ -403,7 +414,41 @@ const Community = () => {
   const link = summary?.link ?? null;
   const [requests, setRequests] = useState<BuddyRequest[]>([]);
   const [requestBusyId, setRequestBusyId] = useState<string | null>(null);
-  const [pendingDecline, setPendingDecline] = useState<BuddyRequest | null>(null);
+  /**
+   * A decline that has happened on screen but not yet on the server.
+   *
+   * THE GRACE WINDOW IS THE CONFIRM. Declining used to open a second sheet
+   * asking "are you sure", which is a modal over a modal (the iOS touch-freeze
+   * trap this file already carries scars from) and a question most people
+   * answer without reading. Instead the row goes immediately and the request is
+   * held here for {@link UNDO_GRACE_MS}; only when that expires does the POST
+   * happen. Undo is therefore free and instant, because nothing has been sent.
+   *
+   * It is deliberately ONE at a time. The design system's Snackbar has no queue
+   * manager yet, and two undo bars stacked would be a worse problem than the
+   * one this replaces — so starting a second decline commits the first.
+   */
+  const [undoDecline, setUndoDecline] = useState<BuddyRequest | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Mirrors `undoDecline` for the unmount handler, which would otherwise close
+   *  over the value as it was on the render that registered it. */
+  const undoDeclineRef = useRef<BuddyRequest | null>(null);
+  undoDeclineRef.current = undoDecline;
+  /** Requests already sent to the server, so neither the timer nor the unmount
+   *  handler can decline the same one twice. */
+  const committed = useRef<Set<string>>(new Set());
+  /**
+   * Ids hidden from the list while their decline is in its grace window.
+   *
+   * Needed because `load()` runs on focus and would happily put a declined row
+   * straight back on screen — the server still has it as pending, and correctly
+   * so, since we have not told it anything yet.
+   */
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  /** Someone who asked and is about to be blocked, pending confirmation. */
+  const [blockRequester, setBlockRequester] = useState<BuddyRequest | null>(null);
+  /** The invite-code field, collapsed behind "Use a code" on the stage. */
+  const [codeOpen, setCodeOpen] = useState(false);
   /** The person whose detail sheet is open, or null. */
   const [openRequest, setOpenRequest] = useState<BuddyRequest | null>(null);
   const [holdOpen, setHoldOpen] = useState(false);
@@ -418,7 +463,9 @@ const Community = () => {
   /** How many others were still waiting at the moment a pairing was formed —
    *  captured before the reload, which is what empties the incoming list. */
   const [heldAtPairing, setHeldAtPairing] = useState(0);
-  const incomingRequests = requests.filter((r) => r.direction === "incoming");
+  const incomingRequests = requests.filter(
+    (r) => r.direction === "incoming" && !hiddenIds.includes(r.id),
+  );
 
   /**
    * What the pairing modal says, and what it deliberately does not ask.
@@ -441,6 +488,35 @@ const Community = () => {
   const [blockConfirmVisible, setBlockConfirmVisible] = useState(false);
   const [blockReasonVisible, setBlockReasonVisible] = useState(false);
   const isPaired = link?.status === "active";
+  /**
+   * How many people are waiting, as the STAGE understands it.
+   *
+   * Zero while paired, for the same reason the dock badge is: those requests
+   * are held and cannot be accepted, so a count would advertise something you
+   * are not allowed to act on. Same source as the badge, so the seat, the
+   * sentence and the dock can never disagree.
+   */
+  const waitingCount = isPaired ? 0 : incomingRequests.length;
+
+  /**
+   * The dock badge, DERIVED — never hand-adjusted.
+   *
+   * It used to be written from five places: two in `load()`, and one each in
+   * decline, undo and the decline-failed path. Every one of those was correct
+   * on its own and the set of them drifted the moment any single caller ran
+   * without the others, which is exactly what happened here — the badge said
+   * two while the list showed three, because a decline decremented it and no
+   * reload came along to put it right.
+   *
+   * Now there is one writer and it reads the list, so the badge cannot say
+   * anything the screen does not. Zero while paired, because a count you are
+   * not allowed to act on is nagging rather than information.
+   */
+  useEffect(() => {
+    useInboxStore
+      .getState()
+      .setPendingRequestCount(isPaired ? 0 : incomingRequests.length);
+  }, [isPaired, incomingRequests.length]);
   const isPending = link?.status === "pending";
 
   // The morph is only available once paired (the invite screen has no Us/Timeline).
@@ -534,9 +610,9 @@ const Community = () => {
       await acceptBuddyRequest(requestId);
       track(ANALYTICS_EVENTS.BUDDY_REQUEST_ACCEPTED);
       await load();
-      // The list is behind us now; leaving requests mode open would leave the
-      // dock pointing back at a screen the pairing has replaced.
-      closeRequests();
+      // The page is behind us now; leaving it open would leave the dock
+      // showing tabs for a view the pairing has replaced.
+      closePeople();
       setShowWelcome(true);
     } catch (e) {
       showErrorBottomSheet(
@@ -551,21 +627,105 @@ const Community = () => {
     }
   };
 
-  const confirmDecline = async (alsoBlock: boolean) => {
-    const req = pendingDecline;
-    setPendingDecline(null);
-    if (!req || requestBusyId) return;
+  /**
+   * Send a held decline for real. Safe to call twice; the second is a no-op.
+   *
+   * Deliberately quiet on success — the row left the screen the moment they
+   * pressed Decline, and telling them again now that a timer has elapsed would
+   * be reporting on our own bookkeeping rather than on anything they did.
+   */
+  const commitDecline = useCallback(async (req: BuddyRequest) => {
+    // EXACTLY ONCE. Two things can reach here for the same request — the timer
+    // and the unmount handler — and on unmount the `setUndoDecline` below is a
+    // no-op, so state cannot be the guard. Without this the second caller
+    // POSTs a decline for a request the first one already declined, and the
+    // server rightly answers 404.
+    if (committed.current.has(req.id)) return;
+    committed.current.add(req.id);
+
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current);
+      undoTimer.current = null;
+    }
+    setUndoDecline((cur) => (cur?.id === req.id ? null : cur));
+    try {
+      await declineBuddyRequest(req.id);
+      track(ANALYTICS_EVENTS.BUDDY_REQUEST_DECLINED);
+    } catch (e) {
+      // A 404 means the request is already gone — declined on another device,
+      // expired past its TTL, or withdrawn by the sender. The person wanted it
+      // gone and it is gone, so this is the outcome they asked for, not a
+      // failure to report. Anything else genuinely failed.
+      if (!isNotFound(e)) {
+        // Still live, so the row was telling a lie. Put it back and say so
+        // rather than leaving them believing they answered somebody.
+        committed.current.delete(req.id);
+        showErrorBottomSheet("Couldn't decline", apiErrorMessage(e, "Please try again."));
+        setHiddenIds((prev) => prev.filter((id) => id !== req.id));
+        return;
+      }
+    }
+    // Committed. DROP IT FROM THE LIST, not just from `hiddenIds` — clearing
+    // the hide while the request was still sitting in `requests` put the row
+    // straight back on screen the moment the grace window closed, and it stayed
+    // there until the next `load()`. Removing both is what makes the decline
+    // final on screen as well as on the server.
+    setRequests((prev) => prev.filter((r) => r.id !== req.id));
+    setHiddenIds((prev) => prev.filter((id) => id !== req.id));
+  }, []);
+
+  /**
+   * Decline, on screen, immediately — and give them a few seconds to take it
+   * back before anything is sent.
+   */
+  const declineWithUndo = (req: BuddyRequest) => {
+    // One bar at a time: whatever was already waiting goes now.
+    if (undoDecline && undoDecline.id !== req.id) void commitDecline(undoDecline);
+
+    setHiddenIds((prev) => (prev.includes(req.id) ? prev : [...prev, req.id]));
+    setUndoDecline(req);
+
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => void commitDecline(req), UNDO_GRACE_MS);
+  };
+
+  const undoLastDecline = () => {
+    const req = undoDecline;
+    if (!req) return;
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current);
+      undoTimer.current = null;
+    }
+    setUndoDecline(null);
+    setHiddenIds((prev) => prev.filter((id) => id !== req.id));
+  };
+
+  /**
+   * Leaving the screen commits, it does not cancel.
+   *
+   * Pressing Decline and walking away is still declining. Dropping it on
+   * unmount would silently undo a decision they made, and they would come back
+   * to somebody they thought they had answered.
+   */
+  useEffect(
+    () => () => {
+      if (undoTimer.current) {
+        clearTimeout(undoTimer.current);
+        undoTimer.current = null;
+      }
+      if (undoDeclineRef.current) void commitDecline(undoDeclineRef.current);
+    },
+    [commitDecline],
+  );
+
+  const blockFromRequest = async (req: BuddyRequest) => {
+    if (requestBusyId) return;
     setRequestBusyId(req.id);
     try {
-      if (alsoBlock) {
-        // Block first: it cancels the pending row on the server as part of the
-        // block, so declining afterwards would 404 on a request that is gone.
-        await blockUser(req.profile.id);
-        track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { source: "request" });
-      } else {
-        await declineBuddyRequest(req.id);
-        track(ANALYTICS_EVENTS.BUDDY_REQUEST_DECLINED);
-      }
+      // Block first: it cancels the pending row on the server as part of the
+      // block, so declining afterwards would 404 on a request that is gone.
+      await blockUser(req.profile.id);
+      track(ANALYTICS_EVENTS.BUDDY_BLOCKED, { source: "request" });
       await load();
     } catch (e) {
       showErrorBottomSheet("Couldn't do that", apiErrorMessage(e, "Please try again."));
@@ -725,79 +885,206 @@ const Community = () => {
    * in the accent colour at the bottom of the same screen, which is both more
    * visible and free of composition cost.
    */
-  const renderRequestsView = () => (
+  /**
+   * The scroll cue for the PEOPLE page.
+   *
+   * A second anchor, not a second mechanism: same edge-triggered crossing, same
+   * 48pt of hysteresis, same screen-reader opt-out as the Us/Timeline cue above.
+   * They can never both be live, because this view replaces the paired one —
+   * exactly one anchor is mounted at a time.
+   */
+  const [peopleCue, setPeopleCue] = useState(0);
+  /** Measured once, and reserved at the top of BOTH halves — see below. */
+  const [peopleHeaderHeight, setPeopleHeaderHeight] = useState(0);
+  const lastPeopleY = useRef(0);
+  const handlePeopleScroll = useCallback(
+    (y: number) => {
+      const prev = lastPeopleY.current;
+      lastPeopleY.current = y;
+      if (!peopleCue || screenReaderRef.current) return;
+      const mode = useCommunityDock.getState().mode;
+      if (mode === "nav" && prev <= peopleCue && y > peopleCue) setDockMode("tabs");
+      else if (mode === "tabs" && prev >= peopleCue - 48 && y < peopleCue - 48) {
+        setDockMode("nav");
+      }
+    },
+    [peopleCue, setDockMode],
+  );
+
+  const peoplePagerRef = useRef<ScrollView>(null);
+  // The dock and the in-page switcher both write `people`; the pager has to
+  // follow, or tapping a segment would leave the page it is showing behind.
+  useEffect(() => {
+    if (people === null) return;
+    peoplePagerRef.current?.scrollTo({
+      x: people === "discover" ? screenWidth : 0,
+      animated: true,
+    });
+  }, [people]);
+
+  /**
+   * ONE HEADER, FIXED ABOVE THE PAGER — the same arrangement as
+   * `renderFixedHeader` on the paired screen, down to the placeholder.
+   *
+   * Each half used to draw its own copy inside its own scroll view, so a swipe
+   * carried the back arrow, the title and the switcher across with the list.
+   * The chrome that says which page you are on is not part of what the page is
+   * showing, and it should not move when the content does.
+   *
+   * It owns the status-bar inset now, because it is the thing at the top of the
+   * screen; the halves reserve its measured height and start at zero.
+   */
+  const renderPeopleFixedHeader = () => (
+    <View
+      style={[
+        styles.fixedHeader,
+        {
+          backgroundColor: colors.background.canvas,
+          paddingTop: insets.top + space.inlineGap,
+          paddingHorizontal: space.screenX,
+        },
+      ]}
+      onLayout={(e) => setPeopleHeaderHeight(e.nativeEvent.layout.height)}
+    >
+      <PeopleHeader
+        tab={people ?? "waiting"}
+        waitingCount={incomingRequests.length}
+        onTab={setPeople}
+        onBack={closePeople}
+        onCueLayout={setPeopleCue}
+      />
+    </View>
+  );
+
+  const peopleHeaderPlaceholder = <View style={{ height: peopleHeaderHeight }} />;
+
+  /**
+   * ONE PAGE, TWO HALVES.
+   *
+   * Requests and discovery were two screens with two entry points, and they are
+   * the same list of the same kind of person — the rows are literally identical
+   * and both open the same sheet. So they are two segments of one page, and the
+   * dock switches between them once the in-page control scrolls away.
+   *
+   * Each half owns its own scroll view rather than sharing one: switching
+   * segments starts at the top instead of inheriting the other list's offset,
+   * and the two lists have nothing to do with each other's length.
+   */
+  const renderPeopleView = () => (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       <SchemeStatusBar />
-      <CustomScrollView>
-        <View
-          style={[
-            styles.requestsBody,
-            {
-              paddingTop: insets.top + space.inlineGap,
-              // Clears the floating dock, which is still on screen here.
-              paddingBottom: size.tabBarSafe + navBarInset,
-            },
-          ]}
-        >
-          <View style={styles.requestsTitle}>
-            <Text variant="h1">Requests</Text>
-            <Text variant="bodySm" color="secondary">
-              {incomingRequests.length === 1
-                ? "One person is waiting on you."
-                : `${incomingRequests.length} people are waiting on you.`}
-            </Text>
-          </View>
+      {/**
+       * A HORIZONTAL PAGER OF TWO INDEPENDENT VERTICAL SCROLLS, which is the
+       * same construction the paired Us/Timeline pages use. Swiping is how
+       * people expect two adjacent lists to relate, and without it the dock and
+       * the header switcher were the only way across.
+       *
+       * THE PAGER CARRIES THE LISTS AND NOTHING ELSE. The header sits above it
+       * as a fixed overlay, so a swipe moves the people and leaves the page
+       * where it is; each half opens with a placeholder of the header's
+       * measured height and its content passes behind it.
+       */}
+      <ScrollView
+        ref={peoplePagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        style={{ flex: 1 }}
+        onMomentumScrollEnd={(e) => {
+          const i = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+          setPeople(i === 0 ? "waiting" : "discover");
+        }}
+      >
+        <View style={{ width: screenWidth }}>
+          <CustomScrollView onScrollY={handlePeopleScroll}>
+            <View
+              style={[
+                styles.requestsBody,
+                { paddingBottom: size.tabBarSafe + navBarInset },
+              ]}
+            >
+              {/* The header's reserved height. It replaced a `minHeight` of a
+                  whole screen plus the cue anchor, which existed only to make a
+                  five-row list scroll far enough to push the header off the
+                  top — and paid for it with a screen of empty canvas under
+                  every short list. Nothing has to leave the screen now. */}
+              {peopleHeaderPlaceholder}
+              {incomingRequests.length === 0 ? (
+                <EmptyState
+                  icon={icons.success}
+                  title="Nobody waiting"
+                  message="When someone asks to practise with you, they'll be here."
+                />
+              ) : (
+                <BuddyRequestList requests={incomingRequests} onOpen={setOpenRequest} />
+              )}
+            </View>
+          </CustomScrollView>
+        </View>
 
-          <BuddyRequestList
-            requests={incomingRequests}
-            busyId={requestBusyId}
-            onHold={isPaired}
-            onOpen={setOpenRequest}
-            onAccept={(req) => acceptRequest(req.id)}
-            onDecline={(req) => setPendingDecline(req)}
+        <View style={{ width: screenWidth }}>
+          <Discover
+            embedded
+            header={peopleHeaderPlaceholder}
+            onScrollY={handlePeopleScroll}
           />
         </View>
-      </CustomScrollView>
+      </ScrollView>
+
+      {renderPeopleFixedHeader()}
     </ScreenView>
   );
 
   /**
-   * A Sheet, not a Dialog: there are THREE outcomes here (decline, decline and
-   * block, change my mind) and a Dialog gives two buttons plus a backdrop tap,
-   * which would have made "dismiss" ambiguous with an actual choice. Declining
-   * offers blocking in the same breath because "no" and "don't contact me
-   * again" are often one intent, and a request from a stranger is exactly where
-   * that matters.
+   * Blocking somebody who ASKED. Separate from the buddy block: different
+   * person, different consequence, and no pairing to undo. Confirmed rather
+   * than undoable — a block is not something to leave on a five-second timer.
    *
-   * Extracted so both the requests view and the main screen can mount it. They
-   * are separate returns, and a sheet that exists in only one of them
-   * disappears the moment the screen behind it changes.
+   * A FUNCTION CALLED FROM BOTH RETURNS. This screen returns early when the
+   * requests view is open, and the first version of this dialog lived only in
+   * the main return — so the overflow closed the sheet and then nothing
+   * happened, because the thing it opens was not mounted on that path.
    */
-  const renderDeclineSheet = () => (
-    <Sheet
-      // `exclusive`: this can be opened FROM the detail sheet, and two live
-      // native Modals freeze touch across the app on iOS. The flag makes it
-      // wait for the registry to clear rather than racing it.
+  const renderBlockRequesterDialog = () => (
+    <Dialog
+      // `exclusive`: this opens FROM the detail sheet, and two live native
+      // Modals freeze touch across the app on iOS. Without it the sheet closed
+      // and this simply never appeared — the overflow looked like a button that
+      // did nothing. The old decline sheet carried the same flag for the same
+      // reason; moving the action did not move the constraint.
       exclusive
-      visible={pendingDecline !== null}
-      onClose={() => setPendingDecline(null)}
-      title={`Decline ${pendingDecline?.profile.name?.split(" ")[0] ?? "this request"}?`}
-    >
-      <View style={styles.declineSheetBody}>
-        <Text variant="bodySm" color="secondary" style={styles.declineIntro}>
-          They won't be told either way, and they won't be able to ask again.
-        </Text>
-        <View style={[styles.requestGroup, { backgroundColor: colors.surface.default }]}>
-          <ListItem label="Decline" divider onPress={() => confirmDecline(false)} />
-          <ListItem
-            label="Decline and block"
-            sublabel="They also won't be able to pair with you later"
-            onPress={() => confirmDecline(true)}
-          />
-        </View>
-      </View>
-    </Sheet>
+      visible={blockRequester !== null}
+      onClose={() => setBlockRequester(null)}
+      title={`Block ${blockRequester?.profile.name?.split(" ")[0] ?? "them"}?`}
+      message="They won't be able to ask again, or be paired with you later. Their request goes away."
+      cancelLabel="Cancel"
+      confirmLabel="Block"
+      destructive
+      onConfirm={() => {
+        const req = blockRequester;
+        setBlockRequester(null);
+        if (req) void blockFromRequest(req);
+      }}
+    />
   );
+
+  const renderUndoBar = () => {
+    if (!undoDecline) return null;
+    const who = undoDecline.profile.name?.split(" ")[0] ?? "Request";
+    return (
+      <Animated.View
+        pointerEvents="box-none"
+        entering={reduceMotion ? undefined : FadeIn.duration(duration.fast)}
+        exiting={reduceMotion ? undefined : FadeOut.duration(duration.fast)}
+        style={[
+          styles.undoBar,
+          { bottom: size.tabBarSafe + navBarInset + space.rowGap },
+        ]}
+      >
+        <Snackbar message={`${who} declined`} actionLabel="Undo" onAction={undoLastDecline} />
+      </Animated.View>
+    );
+  };
 
   /**
    * The person behind a request.
@@ -811,21 +1098,27 @@ const Community = () => {
     <RequestSheet
       request={openRequest}
       busy={requestBusyId !== null}
+      // Accept is impossible while you are paired, and the sheet is now the
+      // only thing that can say so.
+      onHold={isPaired}
       onClose={() => setOpenRequest(null)}
       onAccept={(req) => {
         setOpenRequest(null);
         afterSheetDismissed.current = () => void acceptRequest(req.id);
       }}
+      // Straight through: there is no confirm sheet any more, so nothing has
+      // to wait for this one to unmount. The row goes, the bar appears, and
+      // the POST is held for UNDO_GRACE_MS.
       onDecline={(req) => {
         setOpenRequest(null);
-        afterSheetDismissed.current = () => setPendingDecline(req);
+        declineWithUndo(req);
       }}
+      // From a pending request, blocking and refusing are the same act, so
+      // this is a block rather than a second moderation surface. It waits for
+      // the sheet to unmount because a Dialog is a native Modal too.
       onReport={(req) => {
-        // Reporting from here reuses the decline sheet's "decline and block"
-        // path rather than introducing a second moderation surface: from a
-        // pending request, blocking and refusing are the same act.
         setOpenRequest(null);
-        afterSheetDismissed.current = () => setPendingDecline(req);
+        afterSheetDismissed.current = () => setBlockRequester(req);
       }}
       onDismissed={() => {
         const run = afterSheetDismissed.current;
@@ -874,14 +1167,7 @@ const Community = () => {
 
         {holdOpen ? (
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}>
-            <BuddyRequestList
-              requests={incomingRequests}
-              busyId={requestBusyId}
-              onHold
-              onOpen={setOpenRequest}
-              onAccept={(req) => acceptRequest(req.id)}
-              onDecline={(req) => setPendingDecline(req)}
-            />
+            <BuddyRequestList requests={incomingRequests} onOpen={setOpenRequest} />
             <Text variant="caption" color="tertiary" style={styles.holdNote}>
               You can have one buddy at a time, so these are waiting. They can
               see you are paired, and they expire on their own.
@@ -950,95 +1236,131 @@ const Community = () => {
             fight for contrast: the dock below already says Buddy, in an
             orange pill, and you tapped that pill to get here. The label was
             never carrying anything the page didn't already say. */}
-        <Text variant="poster" style={halo}>
+        {/* THE HEADLINE, centred with the picture above it.
+            Centred because it is now a caption to the pair rather than a title
+            competing with them: the eye lands on the two tiles, then falls
+            straight down the same axis. Left-aligned copy under a centred
+            picture was the mixed axis that made the old stage feel unarranged.
+            The halo stays — it is what keeps the type legible where the scrim
+            is still thin. */}
+        <Text variant="poster" style={[styles.stageTitle, halo]}>
           There&apos;s a space{" "}
           <Text variant="poster" style={{ color: colors.text.accent }}>
             next to you.
           </Text>
         </Text>
 
+        {/* ONE LINE, and it changes with the situation. When people are
+            waiting, saying so is more useful than a general truth about
+            practice — and it is the sentence that explains the number on the
+            seat above. */}
         <Text variant="bodySm" color="secondary" style={[styles.stageSub, halo]}>
-          Practice sticks when someone&apos;s in it with you.
+          {waitingCount > 0
+            ? waitingCount === 1
+              ? "One person has asked."
+              : `${waitingCount} people have asked.`
+            : "Practice sticks when someone's in it with you."}
         </Text>
 
         {isPending && (
-          <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint, alignSelf: "flex-start" }]}>
+          <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint }]}>
             <Icon name={icons.soon} size={size.iconInline} color={colors.text.accent} />
-            <Text variant="caption" color="accent" style={styles.bold}>Waiting for them to join…</Text>
+            <Text variant="caption" color="accent" style={styles.bold}>
+              Waiting for them to join…
+            </Text>
           </View>
         )}
 
-        {/* THE CODE FIELD, always here.
-            It used to hide behind a "Got a code? Enter it" link because a
-            permanently-open input made the screen look like a form waiting to
-            be filled. That reasoning belonged to a screen whose primary action
-            was a filled button sitting directly above it — two filled orange
-            controls sixty points apart, only one of them ever relevant. With
-            the button gone the field is the only control in this block, so
-            there is nothing for it to compete with and no reason to make
-            someone open it first. The open/close state, its crossfade and the
-            Cancel affordance that existed only to undo it all go with it.
+        {/* THE ONE FILLED CONTROL ON THE SCREEN, and what it does depends on
+            whether anybody is waiting. Answering people who already asked
+            outranks going to look for more of them, and when nobody has asked
+            the same button is simply the way in to discovery.
 
-            It stays LABELLED as a code field rather than becoming a general
-            search box. There is no name search to back that promise — the
-            discover endpoint takes a cursor, not a query — and a field that
-            invites you to type a name and then cannot find one is worse than no
-            field at all. Discovery is the seat's job, and the seat now says so.
+            This is also what let the seat's own label go: two labels for one
+            destination was a redundancy the seat only carried because there
+            was no button here. */}
+        {/* ONE LABEL, because there is now one destination. It used to read
+            "See who's waiting" or "Find someone" depending on state — two names
+            for what is now two halves of the same page. The button opens the
+            half that matters: the queue when somebody is waiting, discovery
+            when nobody is. */}
+        <Button
+          label="See people"
+          onPress={() => openPeople(waitingCount > 0 ? "waiting" : "discover")}
+          style={styles.stageCta}
+        />
 
-            Join still appears on the fourth character rather than sitting there
-            disabled: a control that cannot do anything yet is noise, and its
-            arrival is the confirmation that what you typed is long enough. */}
-        <View style={styles.primarySlot}>
-          <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
-            <TextInput
-              ref={codeInputRef}
-              style={[styles.codeInput, { color: colors.text.primary }]}
-              placeholder="Their code"
-              placeholderTextColor={colors.input.placeholder}
-              value={buddyCode}
-              onChangeText={setBuddyCode}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={10}
-              onSubmitEditing={handleSubmitCode}
-              returnKeyType="go"
-              editable={!submittingCode}
-              accessibilityLabel="Their invite code"
-            />
-            {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
-                the fourth character stole width from the TextInput and shoved
-                the text and caret left mid-keystroke — a jolt at the exact
-                moment you are watching what you type. Out of flow, it changes
-                nothing; `codeInput` reserves the space with paddingRight. */}
-            <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
-              {submittingCode ? (
-                <ActivityIndicator color={colors.action.primary} size="small" style={styles.codeSpinner} />
-              ) : (
-                <PressableScale
-                  onPress={handleSubmitCode}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Join with this code"
-                  style={[styles.joinBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}
-                >
-                  <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
-                    Join
-                  </Text>
-                </PressableScale>
-              )}
-            </Animated.View>
-          </View>
+        {/* ONE quiet route. "Find someone" used to sit here beside it and is
+            gone: it pointed at what is now the same page the button above
+            opens, which is the duplicate click this pass set out to remove. */}
+        <View style={styles.linkRow}>
+          <PressableScale
+            onPress={() => setCodeOpen((v) => !v)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Enter an invite code"
+          >
+            <Text variant="caption" color="accent" style={styles.bold}>
+              {codeOpen ? "Hide code box" : "Use a code"}
+            </Text>
+          </PressableScale>
         </View>
 
-        {/* The one line left under the field.
-            Share, not copy: the OS share sheet offers copy as one of its
-            options, so a separate copy affordance was a second control for a
-            subset of one action.
+        {/* THE CODE FIELD, behind a link again.
+            It was made permanently visible on the argument that "with the
+            button gone the field is the only control in this block, so there is
+            nothing for it to compete with". The button is back, so that
+            argument inverts exactly: an always-open input under a filled CTA is
+            two controls competing, and it hands the largest, most solid shape
+            on the screen to the rarest path. Everything inside is unchanged —
+            same field, same Join-on-the-fourth-character, same submit. */}
+        {codeOpen ? (
+          <View style={styles.primarySlot}>
+            <View style={[styles.inputBox, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
+              <TextInput
+                ref={codeInputRef}
+                style={[styles.codeInput, { color: colors.text.primary }]}
+                placeholder="Their code"
+                placeholderTextColor={colors.input.placeholder}
+                value={buddyCode}
+                onChangeText={setBuddyCode}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={10}
+                onSubmitEditing={handleSubmitCode}
+                returnKeyType="go"
+                editable={!submittingCode}
+                autoFocus
+                accessibilityLabel="Their invite code"
+              />
+              {/* ABSOLUTE, not in the row. As a flex sibling, Join appearing on
+                  the fourth character stole width from the TextInput and shoved
+                  the text and caret left mid-keystroke — a jolt at the exact
+                  moment you are watching what you type. */}
+              <Animated.View style={[styles.joinWrap, joinStyle]} pointerEvents={canJoin ? "auto" : "none"}>
+                {submittingCode ? (
+                  <ActivityIndicator color={colors.action.primary} size="small" style={styles.codeSpinner} />
+                ) : (
+                  <PressableScale
+                    onPress={handleSubmitCode}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Join with this code"
+                    style={[styles.joinBtn, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}
+                  >
+                    <Text variant="bodySm" color={colors.action.onPrimary} style={styles.bold}>
+                      Join
+                    </Text>
+                  </PressableScale>
+                )}
+              </Animated.View>
+            </View>
+          </View>
+        ) : null}
 
-            "Got a code? Enter it" used to sit beside it and is gone — the field
-            directly above IS that path now, so the link pointed at something
-            already on screen. With one occupant instead of two, this no longer
-            needs a fixed-height slot to hold the layout still. */}
+        {/* The share line. Share, not copy: the OS share sheet offers copy as
+            one of its options, so a separate copy affordance was a second
+            control for a subset of one action. */}
         <View style={styles.underRow}>
           <PressableScale
             onPress={handleShare}
@@ -1332,12 +1654,13 @@ const Community = () => {
    * dock. `loading` and `error` still win, since a list is nothing without its
    * contents.
    */
-  if (requestsOpen && !loading && !error) {
+  if (people !== null && !loading && !error) {
     return (
       <>
-        {renderRequestsView()}
+        {renderPeopleView()}
         {renderRequestSheet()}
-        {renderDeclineSheet()}
+        {renderBlockRequesterDialog()}
+        {renderUndoBar()}
       </>
     );
   }
@@ -1354,7 +1677,15 @@ const Community = () => {
           <SchemeStatusBar />
           <CommunityRoom
             manifest={user?.avatarManifest}
-            onSeatPress={() => navigation.navigate("Discover")}
+            // NO PRESS. The seat and the button below opened the same place,
+            // which is the duplicate click. The button is the control; the seat
+            // is the picture, and it now says so by not responding.
+            // The number goes on the seat, because the seat is the thing this
+            // many people have asked for.
+            seatCount={waitingCount}
+            // The stage below carries a button to the same destination, so the
+            // seat's own label would be the second of two.
+            showHint={false}
           />
           <View
             style={[
@@ -1574,8 +1905,9 @@ const Community = () => {
         onConfirm={confirmLeave}
       />
 
-      {renderDeclineSheet()}
+      {renderUndoBar()}
       {renderRequestSheet()}
+      {renderBlockRequesterDialog()}
 
       <Dialog
         visible={blockConfirmVisible}
@@ -1606,6 +1938,10 @@ const Community = () => {
 export default Community;
 
 const styles = StyleSheet.create({
+  // Sits ABOVE the dock, never over it: the bar's whole job is to offer the
+  // way back, and putting it behind navigation would hide the one control that
+  // matters. Absolute so it floats over the list rather than displacing it.
+  undoBar: { position: "absolute", left: space.screenX, right: space.screenX },
   screenView: {
     flex: 1,
     paddingHorizontal: 0,
@@ -1818,17 +2154,42 @@ const styles = StyleSheet.create({
   // Pushes the copy to the bottom without a fixed height, so a long headline or
   // a large text size grows upward into the art instead of clipping.
   stageSpacer: { flex: 1 },
-  stage: { gap: spacing.sm },
-  stageSub: { marginTop: spacing.xxs, maxWidth: 280 },
+  // CENTRED, and the whole column with it. The picture above is centred, so
+  // anything left-aligned under it reads as a second, unrelated block.
+  stage: { alignItems: "center", gap: spacing.sm },
+  stageTitle: { textAlign: "center" },
+  // `maxWidth` keeps the line near the 35-60 character band a centred line
+  // needs to stay scannable; centred text wider than that is hard to track back.
+  stageSub: { marginTop: spacing.xxs, maxWidth: 280, textAlign: "center" },
+  // A section's worth of air above the one filled control, so it reads as the
+  // answer to the sentence rather than as part of it.
+  stageCta: { marginTop: space.rowGap, alignSelf: "stretch" },
+  // GAP, not `space-between`. Two links flung to opposite edges of a centred
+  // column look like two unrelated controls; at 8pt with a dot between them
+  // they read as one pair. (The mock had exactly this bug: the two labels
+  // collided into "Find someoneUse a code".)
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  linkDot: { width: 3, height: 3, borderRadius: 999, backgroundColor: "#5C574F" },
   // The share line, at caption size. It serves the minority who already know
   // someone; ranking it as a button is what made earlier versions read as a menu.
-  underRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  underRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.xs,
+  },
   underItem: { flexDirection: "row", alignItems: "center" },
   codeInline: { letterSpacing: 1, fontFamily: fonts.semibold },
   codeSpinner: { marginRight: spacing.md },
   // The field's row. Fixed at 54 so a long headline growing upward is the only
   // thing that ever moves in this block.
-  primarySlot: { height: 54, marginTop: spacing.sm },
+  primarySlot: { height: 54, marginTop: spacing.sm, alignSelf: "stretch" },
   // Sits INSIDE the field's right edge, so the row height never changes as it
   // appears and the layout doesn't jump on the fourth character.
   // Out of flow, pinned to the field's right edge.

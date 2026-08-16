@@ -100,9 +100,6 @@ export const Sheet: React.FC<SheetProps> = ({
     relativeLuminance(surface) > 0.18 ? colors.text.onInverse : colors.border.strong;
 
   const [mounted, setMounted] = useState(visible && !exclusive);
-  // Measured, so the scroll body reserves the footer's REAL height and the last
-  // row can always be scrolled clear of it. Same approach as `Page`.
-  const [footerH, setFooterH] = useState(0);
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   // Reduced motion: keep the backdrop opacity fade, drop the slide (the sheet appears
@@ -225,41 +222,46 @@ export const Sheet: React.FC<SheetProps> = ({
           }}
         />
       ) : null}
-      <ScrollView
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          // Room for the footer floating over this, plus air, so the last row
-          // can be scrolled clear of it rather than parked behind it.
-          paddingBottom: footer
-            ? footerH + spacing.lg
-            : Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
-        }}
-      >
-        {children}
-      </ScrollView>
-      {footer ? (
-        <View
-          pointerEvents="box-none"
-          onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}
-          style={[
-            styles.footer,
-            // The safe area belongs to whatever is actually last on screen.
-            { paddingBottom: Math.max(insets.bottom, spacing.lg) },
-          ]}
-        >
-          {/* NEVER AN OPAQUE BAND. A solid bar with a rule across the top cuts
-              the list in half and leaves what is under it looking chopped
-              rather than continued. The app's answer everywhere else — `Page`'s
-              footer, the recorder dock — is a fade: content dissolves into the
-              surface before it reaches the control, so the list plainly carries
-              on behind it.
+      {/*
+        THE FOOTER IS IN FLOW, NOT FLOATING OVER THIS.
 
-              Built from THIS sheet's colour rather than the `scrimDown` token,
-              which is canvas-relative and would lay a near-black smudge over an
-              elevated surface. `start`/`end` are explicit because `Gradient`
-              otherwise falls back to the brand token's DIAGONAL direction, and
-              a one-off vertical fade would silently run corner to corner. */}
+        It used to be absolutely positioned, with the scroll area padded by the
+        footer's measured height so content could pass behind it. That reserve
+        is correct while the content scrolls and is pure dead space when it does
+        not: a two-line sheet came out tall and empty with its buttons stranded
+        at the bottom of a void, because the gap was never a chosen space — it
+        was whatever was left after the reserve.
+
+        In flow, the card is content + footer and nothing else, so a short sheet
+        is short. A tall one is capped by the card's own maxHeight, this wrapper
+        shrinks, and the footer stays put because it is the sibling below it.
+        The fade survives (see below), so content still dissolves rather than
+        being cut by a band.
+      */}
+      <View style={styles.scrollWrap}>
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: footer
+              ? spacing.md
+              : Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
+          }}
+        >
+          {children}
+        </ScrollView>
+        {/* NEVER AN OPAQUE BAND. A solid bar with a rule across the top cuts the
+            list in half and leaves what is under it looking chopped rather than
+            continued. The app's answer everywhere else — `Page`'s footer, the
+            recorder dock — is a fade, so content dissolves into the surface
+            before it reaches the control.
+
+            `footerBase`, not `scrimDown`, which is canvas-relative and would lay
+            a near-black smudge over an elevated surface. `start`/`end` are
+            explicit because `Gradient` otherwise falls back to the brand token's
+            DIAGONAL direction, and a one-off vertical fade would silently run
+            corner to corner. */}
+        {footer ? (
           <View pointerEvents="none" style={styles.footerFade}>
             <Gradient
               colors={[withAlpha(footerBase, 0), withAlpha(footerBase, 0.92), footerBase]}
@@ -269,6 +271,16 @@ export const Sheet: React.FC<SheetProps> = ({
               style={StyleSheet.absoluteFill}
             />
           </View>
+        ) : null}
+      </View>
+      {footer ? (
+        <View
+          style={[
+            styles.footerRow,
+            // The safe area belongs to whatever is actually last on screen.
+            { paddingBottom: Math.max(insets.bottom, spacing.lg) },
+          ]}
+        >
           {footer}
         </View>
       ) : null}
@@ -371,23 +383,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: space.inlineGap,
   },
-  // Floats OVER the scroll area rather than sitting under it, so the list runs
-  // behind the fade. Negative sides reach past the card's own gutter so the
-  // fade spans the full width; the padding puts the control back on the gutter.
-  footer: {
-    position: "absolute",
-    left: -space.screenX,
-    right: -space.screenX,
-    bottom: 0,
-    paddingHorizontal: space.screenX,
-    paddingTop: space.sectionGap,
-  },
+  // Shrinks so the footer below it always fits; grows only as far as its own
+  // content needs. This is what lets a short sheet be short.
+  scrollWrap: { flexShrink: 1 },
+  // In flow under the scroll area, on the same gutter as the content, so no
+  // negative-margin arithmetic decides where the controls sit.
+  footerRow: { paddingTop: space.rowGap },
+  // Pinned to the BOTTOM OF THE SCROLL AREA now rather than to the sheet, so it
+  // fades the last of the content into the surface just above the controls.
   footerFade: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    // Begins above the footer box, so the dissolve starts before the control.
-    top: -space.sectionGap,
+    height: space.sectionGap,
   },
 });

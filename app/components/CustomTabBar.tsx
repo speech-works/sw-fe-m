@@ -26,9 +26,8 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
   const dockView = useCommunityDock((s) => s.view);
   const setDockMode = useCommunityDock((s) => s.setMode);
   const setDockView = useCommunityDock((s) => s.setView);
-  const requestsOpen = useCommunityDock((s) => s.requestsOpen);
-  const openRequests = useCommunityDock((s) => s.openRequests);
-  const closeRequests = useCommunityDock((s) => s.closeRequests);
+  const people = useCommunityDock((s) => s.people);
+  const setPeople = useCommunityDock((s) => s.setPeople);
 
   const focusedRoute = state.routes[state.index];
   const focusedOptions = descriptors[focusedRoute.key].options;
@@ -41,46 +40,52 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
   const onCommunity = focusedRoute.name === ROUTE_NAMES.COMMUNITY;
   // Only morph when Community is focused AND paired (the invite screen has no tabs).
   const communityOwnsDock = dockActive && dockEnabled && onCommunity;
-  // The requests morph is NOT gated on pairing — it exists mostly for people who
-  // have no buddy yet.
-  const onRequests = dockActive && onCommunity && requestsOpen;
+  // The People morph is NOT gated on pairing — that page exists mostly for
+  // people who have no buddy yet, which is exactly when `dockEnabled` is false.
+  const onPeople = dockActive && onCommunity && people !== null;
 
-  // ── REQUESTS mode: the same capsule, holding the list you are looking at. ──
+  // ── PEOPLE mode: the same capsule, now the Waiting/Discover switcher. ──
   //
-  // The other three tabs are simply absent from the array, so `TabDock`'s
-  // LinearTransition resizes the capsule around what is left while the removed
-  // items fade out. `fitContent` is deliberately NOT set: keeping the bar at
-  // full width means the capsule itself never changes size, and the whole
-  // transition is its CONTENTS rearranging. A dock that also shrinks reads as a
-  // different object arriving.
+  // Structurally identical to the Us/Timeline dock below it, because it is the
+  // same idea applied to a different pair: a hamburger back to the global nav,
+  // then the two halves of the page you are on. It is checked FIRST because
+  // that dock is gated on `dockEnabled` (paired) and this page is mostly for
+  // people who are not.
   //
-  // The left slot is a plain chevron, not a hamburger labelled "Menu". It sits
-  // where the three tabs were, so the way back is the space they left behind.
-  if (onRequests) {
-    const requestItems: TabDockItem[] = [
-      { key: "back", label: "Back", icon: icons.back },
+  // Reached by scrolling the in-page switcher off the top, the same cue that
+  // hands over Us/Timeline — see `handleScrollY` in Community.
+  if (onPeople && dockMode === "tabs") {
+    const peopleItems: TabDockItem[] = [
+      { key: "menu", label: "Menu", icon: icons.menu },
       {
-        key: "requests",
-        label: "Requests",
+        key: "waiting",
+        label: "Waiting",
         icon: icons.addPerson,
         pillCount: pendingRequestCount,
       },
+      { key: "discover", label: "Discover", icon: icons.find },
     ];
     return (
       <TabDock
-        items={requestItems}
-        activeKey="requests"
+        items={peopleItems}
+        activeKey={people ?? "waiting"}
         onSelect={(key) => {
           haptics.selection();
-          if (key === "back") closeRequests();
+          // The hamburger returns the DOCK to nav; it does not leave the page.
+          // Leaving is the back arrow at the top and the system gesture, both
+          // of which already work because `leave()` clears the axis on blur.
+          if (key === "menu") {
+            setDockMode("nav");
+            return;
+          }
+          setPeople(key as "waiting" | "discover");
         }}
-        // Long-press anywhere on the dock also gets you out, matching the
-        // Us/Timeline dock's escape hatch.
         onLongPress={() => {
           haptics.selection();
-          closeRequests();
+          setDockMode("nav");
         }}
-        accessibilityLabel="Buddy requests"
+        fitContent
+        accessibilityLabel="People page tabs"
       />
     );
   }
@@ -129,17 +134,22 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
 
     const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
 
-    // WHY THE LABEL CHANGES.
+    // THE PILL NO LONGER CHANGES ITS NAME.
     //
-    // Re-tapping the active Community pill already meant something (morph to
-    // Us/Timeline); now it can also mean "open the requests". A pill that does
-    // two different things has to say which one it is about to do, and the
-    // label is the only part of it with room to. "Waiting · 3" is the promise;
-    // "Buddy" is the ordinary pill with the ordinary re-tap behind it.
+    // It used to read "Waiting · 3" and a second tap opened the queue. Three
+    // problems with that, and they compounded: nothing announced the re-tap, so
+    // the only route to a time-sensitive obligation was a gesture with no
+    // affordance; the label change took the destination's name away, so muscle
+    // memory broke; and it only existed on Community, so anyone living on Home
+    // never learned it was there. Underneath all three, navigation chrome was
+    // being asked to carry content.
     //
-    // Only while unpaired-and-asked. Once you have a buddy the requests are on
-    // hold and cannot be accepted, so advertising them would be a nag about
-    // something you are not allowed to do.
+    // The Buddy screen now says it in the content — a count on the empty seat
+    // and a button that reads "See who's waiting" — so this is free to go back
+    // to being a nav item that means one thing.
+    //
+    // THE DOT STAYS. It is the only part that worked: it marks the tab from
+    // every other screen, which is exactly the reach the pill never had.
     const waiting =
       routeName === ROUTE_NAMES.COMMUNITY && hasBuddy !== true
         ? pendingRequestCount
@@ -147,10 +157,9 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
 
     return {
       key: route.key,
-      label: waiting > 0 ? "Waiting" : (options.tabBarLabel as string) || route.name,
+      label: (options.tabBarLabel as string) || route.name,
       icon,
       badge,
-      pillCount: waiting,
       // Notifications are off at the OS level and the user hasn't waved it away:
       // mark Settings, because that is where the fix lives. Only on the global
       // nav dock — the Community tabs dock is a different context.
@@ -176,23 +185,12 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
 
     // ── Re-tapping the active Community pill ──
     //
-    // Two meanings, resolved by priority rather than by a submenu: a person
-    // waiting on an answer outranks a view switcher. The pill has already said
-    // which one it will do (it reads "Waiting" rather than "Buddy"), and the
-    // ambiguity is temporary by construction — answer them and the ordinary
-    // behaviour comes straight back.
-    //
-    // Not gated on `communityOwnsDock`, unlike the morph below it: that flag
-    // includes `dockEnabled`, which means paired, and requests are mostly an
-    // unpaired concern.
+    // ONE meaning again: morph to Us/Timeline. It briefly had a second (open
+    // the requests, by priority) and that is gone — the Buddy screen carries a
+    // button for it now, which is a thing you can see rather than a gesture you
+    // have to be told about.
     const reTappedCommunity =
       dockActive && route.key === focusedRoute.key && route.name === ROUTE_NAMES.COMMUNITY;
-
-    if (reTappedCommunity && hasBuddy !== true && pendingRequestCount > 0) {
-      haptics.selection();
-      openRequests();
-      return;
-    }
 
     if (communityOwnsDock && reTappedCommunity) {
       haptics.selection();

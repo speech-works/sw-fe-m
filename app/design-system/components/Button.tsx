@@ -31,6 +31,15 @@ export interface ButtonProps {
   accentColor?: string;
   /** AA-correct foreground for `accentColor`. */
   onAccentColor?: string;
+  /**
+   * What a screen reader announces instead of the label.
+   *
+   * For the case where a SHORT label is only unambiguous because of what sits
+   * next to it on screen — a row of people each with an "Ask" button, where
+   * the name is the neighbouring text and a screen reader gets a list of
+   * identical buttons. Leave it unset whenever the label already says enough.
+   */
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -51,6 +60,7 @@ export const Button: React.FC<ButtonProps> = ({
   onColor,
   accentColor,
   onAccentColor,
+  accessibilityLabel,
   style,
 }) => {
   const { colors } = useTheme();
@@ -110,6 +120,7 @@ export const Button: React.FC<ButtonProps> = ({
     <PressableScale
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
+      accessibilityLabel={accessibilityLabel}
       style={[containerStyle, style]}
     >
       {loading ? (

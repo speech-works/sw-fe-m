@@ -193,8 +193,10 @@ export interface BuddyRequest {
    * older server sends none of it, and a person with nothing published sends an
    * empty list. In both cases the honest UI is a shorter card, never a vaguer
    * one — the same rule `matchReason` already carries.
+   *
+   * Same shape Discover uses, so one person reads identically in both places.
    */
-  tags?: string[];
+  tags?: DiscoveryTag[];
   /** Why they were surfaced to each other, or null when there is nothing
    *  honest to say. Render nothing at all when null. */
   matchReason?: string | null;
@@ -263,17 +265,49 @@ export interface DiscoveryProfile {
   pausedReason?: string | null;
 }
 
+/**
+ * One thing a person chose to say about themselves.
+ *
+ * Mirrors `DiscoveryTagDTO` in sw-be-2. The group and the shared flag come
+ * from the server rather than being worked out here: the two questions
+ * ("what are you practising?" and "what are you hoping for?") are the server's
+ * vocabulary, and it already derives the shared set for `matchReason`. A second
+ * copy of either rule on this side would drift.
+ */
+export interface DiscoveryTag {
+  /** The `SpeechSituation` / `SpeechGoal` value. The stable contract. */
+  id: string;
+  /** What it reads as, in the same words its owner picked it under. */
+  label: string;
+  /** Which question this answers. Never render a value without it. */
+  group: "practising" | "hoping";
+  /** True when you have said this about yourself too. */
+  shared: boolean;
+}
+
 export interface DiscoveryCandidate {
   userId: string;
   name: string;
   avatarManifest?: AvatarManifest | null;
-  /** Already phrased for display by the server. */
-  tags: string[];
+  /** Grouped by the question each one answers, and marked where they match you. */
+  tags: DiscoveryTag[];
   /**
    * Why they were surfaced, or NULL when there's nothing honest to say. Render
    * nothing at all when null — never substitute a vaguer line.
    */
   matchReason: string | null;
+  /**
+   * A request you have ALREADY SENT this person, if there is one.
+   *
+   * Present means the card shows "asked, waiting to hear back" with a way to
+   * withdraw, instead of a button. Pass `requestId` to `cancelBuddyRequest`.
+   *
+   * These people used to be dropped from the response, so asking somebody
+   * deleted their card and left only a toast. Absence here means "not asked",
+   * never "no longer relevant".
+   */
+  requestId?: string;
+  requestedAt?: string;
 }
 
 export interface DiscoveryPage {

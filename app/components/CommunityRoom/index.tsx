@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import { BlurView } from "expo-blur";
 import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   cancelAnimation,
@@ -62,9 +63,34 @@ import type { AvatarManifest } from "../../types/avatar";
  * of the picture that means something goes grey with the set dressing.
  */
 
-/** The crowd is set dressing. Low enough to be atmosphere, high enough that the
- *  faces still resolve — below ~0.22 it reads as noise rather than people. */
-const CROWD_OPACITY = 0.3;
+/**
+ * The crowd is set dressing.
+ *
+ * IT USED TO BE 0.30, with a note that below ~0.22 the faces stop resolving as
+ * people. That was the right floor for the intent at the time, which was a room
+ * full of readable strangers. The intent changed: with a headline and a control
+ * stack sitting over it, a wall of legible faces is not atmosphere, it is a
+ * second thing to read — and the type was landing on it. So this is now tuned
+ * for a backdrop rather than for a crowd. If you ever want the faces back as
+ * subject matter, raise this AND take the copy off them; the two go together.
+ */
+const CROWD_OPACITY = 0.18;
+
+/**
+ * A real lens blur over the crowd, on top of the opacity drop.
+ *
+ * THE ONE THING TO KNOW BEFORE TOUCHING THIS. This file's own header says depth
+ * here is haze rather than blur because "RN cannot cheaply blur an SVG", and
+ * that is still true: the crowd is ~30 live SVG tiles at the back band and the
+ * geometry file calls tile count "the whole performance story on this screen".
+ * `expo-blur` puts one native layer over all of them. On iOS that is a
+ * UIVisualEffectView and costs little; on Android it is a shim and is the
+ * platform to measure on before trusting this.
+ *
+ * Kept as a single constant so it is one edit to turn off, and so the reason
+ * lives next to the switch rather than in a commit message.
+ */
+const CROWD_BLUR = 14;
 
 /** Air between the two subject tiles. Wider than the crowd's `GAP` so the pair
  *  reads as two objects with a space between them, which is the entire point. */
@@ -151,13 +177,32 @@ export interface CommunityRoomProps {
   /** Pressing the empty seat. Same destination as the primary action; people
    *  reach for the thing the screen is about. */
   onSeatPress?: () => void;
+  /**
+   * How many people are waiting on an answer, drawn on the seat itself.
+   *
+   * On the seat rather than anywhere else because the seat IS the subject of
+   * the sentence: this many people have asked for that space. Zero renders
+   * nothing at all — a badge showing "0" is a control reporting its own
+   * emptiness.
+   */
+  seatCount?: number;
+  /**
+   * Draw the seat's "Tap to find someone" line.
+   *
+   * Off when the stage below carries a primary button that goes to the same
+   * place. Two labels for one destination is the redundancy this hint was
+   * introduced to fix, in the version of the screen that had no button.
+   */
+  showHint?: boolean;
 }
 
 export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   manifest,
   onSeatPress,
+  seatCount = 0,
+  showHint = true,
 }) => {
-  const { colors } = useThemeContext();
+  const { colors, scheme } = useThemeContext();
   const { width, height } = useWindowDimensions();
 
   const room = useMemo(() => buildRoom(width, height), [width, height]);
@@ -366,6 +411,20 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
         <Rect x={0} y={0} width={width} height={height} fill="url(#cr-vignette)" />
       </Svg>
 
+      {/* ── The lens ──────────────────────────────────────────────────────────
+          Over the crowd, UNDER the scrim and under the subject. Order matters:
+          a blur blurs what is behind it, so anything that must stay sharp — the
+          lit pair, the seat, every word of the copy — has to be drawn after it.
+          `pointerEvents` none so the seat underneath is still pressable. */}
+      {CROWD_BLUR > 0 ? (
+        <BlurView
+          intensity={CROWD_BLUR}
+          tint={scheme === "dark" ? "dark" : "light"}
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+
       {/* ── The scrim ─────────────────────────────────────────────────────────
           Long, vertical, and resolving to the EXACT canvas colour well before
           the bottom edge so there is no line anywhere for the eye to catch.
@@ -467,10 +526,31 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
             press.value = withTiming(0, { duration: duration.base, easing: easing.out });
           }}
           accessibilityRole="button"
-          accessibilityLabel="Find someone to pair with"
+          accessibilityLabel={
+            seatCount > 0
+              ? `${seatCount} people are waiting on an answer`
+              : "Find someone to pair with"
+          }
           accessibilityHint="Opens buddy search"
           style={{ marginLeft: SUBJECT_GAP }}
         >
+          {/* HOW MANY PEOPLE WANT THIS SEAT.
+              Overhanging the corner rather than sitting inside it: the seat's
+              interior is the one place on this screen that must stay empty, and
+              a number in the middle of it would fill the absence the whole
+              picture is about. */}
+          {seatCount > 0 ? (
+            <View
+              style={[
+                styles.seatBadge,
+                { backgroundColor: accent, borderColor: colors.background.canvas },
+              ]}
+            >
+              <Text variant="caption" color={colors.action.onPrimary} style={styles.seatBadgeText}>
+                {seatCount > 9 ? "9+" : seatCount}
+              </Text>
+            </View>
+          ) : null}
           <View
             style={{
               width: room.subjectSize,
@@ -563,6 +643,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
           it invert for free: on dark it deepens, on the cream light canvas it
           lightens. A fixed black glow behind dark ink on cream reads as a
           smudge, which is the bug the stage copy's halo already had to solve. */}
+      {showHint ? (
       <View
         pointerEvents="none"
         style={[
@@ -594,6 +675,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
           Tap to find someone
         </Text>
       </View>
+      ) : null}
     </View>
   );
 };
@@ -608,6 +690,23 @@ const styles = StyleSheet.create({
   subject: { position: "absolute", flexDirection: "row" },
   glow: { position: "absolute" },
   seatHint: { position: "absolute", width: HINT_WIDTH, alignItems: "center" },
+  // Overhangs the seat's top-right corner. The ring is canvas-coloured rather
+  // than transparent so the badge reads as a separate object sitting in front
+  // of the seat, not as a notch cut out of its rim.
+  seatBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    zIndex: 1,
+    minWidth: 24,
+    height: 24,
+    paddingHorizontal: 6,
+    borderRadius: 999,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  seatBadgeText: { fontFamily: fonts.bold },
   seatHintText: {
     fontFamily: fonts.bold,
     textShadowOffset: { width: 0, height: 0 },

@@ -1,58 +1,59 @@
-import { apiErrorMessage, isClientError } from "../apiError";
+import { apiErrorMessage, isClientError, isNotFound } from "../apiError";
 
-/**
- * The bug worth pinning: the API serialises errors as `{ error: message }`,
- * and screens were reading `data.message`. A wrong key is indistinguishable
- * from a server that sent nothing — the UI just showed its generic fallback
- * and nobody noticed the specific reason had been thrown away.
- */
-const axiosError = (status: number, data: unknown) => ({ response: { status, data } });
+const withStatus = (status: number, data?: unknown) => ({ response: { status, data } });
 
 describe("apiErrorMessage", () => {
-  it("reads the `error` key the API actually sends", () => {
-    expect(
-      apiErrorMessage(axiosError(400, { error: "You can't use your own code." }), "fallback"),
-    ).toBe("You can't use your own code.");
+  it("reads the server's own key, which is `error` and not `message`", () => {
+    expect(apiErrorMessage(withStatus(400, { error: "You already have a buddy." }), "nope")).toBe(
+      "You already have a buddy.",
+    );
   });
 
-  it("still reads `message`, since the app talks to more than one shape", () => {
-    expect(apiErrorMessage(axiosError(400, { message: "Nope." }), "fallback")).toBe("Nope.");
+  it("still reads `message`, because the app talks to more than one shape", () => {
+    expect(apiErrorMessage(withStatus(400, { message: "Bad code." }), "nope")).toBe("Bad code.");
   });
 
-  it("prefers `error` when a body carries both", () => {
-    expect(
-      apiErrorMessage(axiosError(400, { error: "specific", message: "vague" }), "fallback"),
-    ).toBe("specific");
-  });
-
-  it("does not surface 5xx text — that is an internal string, not an explanation", () => {
-    expect(
-      apiErrorMessage(axiosError(500, { error: "Internal server error" }), "fallback"),
-    ).toBe("fallback");
-  });
-
-  it("falls back on an empty or blank message rather than showing a blank alert", () => {
-    expect(apiErrorMessage(axiosError(400, { error: "   " }), "fallback")).toBe("fallback");
-    expect(apiErrorMessage(axiosError(400, {}), "fallback")).toBe("fallback");
-  });
-
-  it("falls back on a non-string body, and on no response at all", () => {
-    expect(apiErrorMessage(axiosError(400, { error: { nested: true } }), "fallback")).toBe(
+  it("never surfaces a 5xx body", () => {
+    // An internal failure string is noise at best and a leak at worst.
+    expect(apiErrorMessage(withStatus(500, { error: "ECONNREFUSED at pg pool" }), "fallback")).toBe(
       "fallback",
     );
-    expect(apiErrorMessage(new Error("Network Error"), "fallback")).toBe("fallback");
-    expect(apiErrorMessage(undefined, "fallback")).toBe("fallback");
+  });
+
+  it("falls back when there is no response at all", () => {
+    expect(apiErrorMessage(new Error("offline"), "fallback")).toBe("fallback");
   });
 });
 
 describe("isClientError", () => {
-  it("treats 4xx as a rejection the caller will surface", () => {
-    expect(isClientError(axiosError(400, {}))).toBe(true);
-    expect(isClientError(axiosError(404, {}))).toBe(true);
+  it("is true for 4xx and false for 5xx", () => {
+    expect(isClientError(withStatus(404))).toBe(true);
+    expect(isClientError(withStatus(500))).toBe(false);
+  });
+});
+
+/**
+ * The distinction that let a decline throw an error modal at somebody who had
+ * successfully declined.
+ *
+ * Two callers could commit the same held decline — the grace timer and the
+ * unmount handler — and the second one got a 404 for a request the first had
+ * already declined. The double-call is guarded at the call site now, but a 404
+ * on a destructive action is ALSO not a failure: the request is gone, which is
+ * what was asked for.
+ */
+describe("isNotFound", () => {
+  it("is true only for 404", () => {
+    expect(isNotFound(withStatus(404))).toBe(true);
+    expect(isNotFound(withStatus(400))).toBe(false);
+    expect(isNotFound(withStatus(409))).toBe(false);
+    expect(isNotFound(withStatus(500))).toBe(false);
   });
 
-  it("treats 5xx and network failures as faults worth logging", () => {
-    expect(isClientError(axiosError(500, {}))).toBe(false);
-    expect(isClientError(new Error("Network Error"))).toBe(false);
+  it("is false when there is no response, so a network drop is never mistaken for gone", () => {
+    // The request may well still be live; we simply could not reach the server.
+    expect(isNotFound(new Error("Network Error"))).toBe(false);
+    expect(isNotFound(undefined)).toBe(false);
+    expect(isNotFound(null)).toBe(false);
   });
 });

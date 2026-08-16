@@ -52,6 +52,15 @@ export const icons = {
   trash: "trash-2", // delete something of your own
   seen: "eye", // seen / viewed
   info: "info", // contextual explanation / learn more
+  /**
+   * The rest of the actions, behind one control.
+   *
+   * Added because `report` was being rendered directly on every discovery
+   * card, and an alert glyph sitting at the top right of a PERSON reads as
+   * "this one is flagged" — in the exact slot the eye scans for status. Report
+   * is a rare, heavy action; it belongs behind this, not beside someone's name.
+   */
+  more: "more-horizontal", // overflow: the actions that don't earn a place on the surface
 
   // ── Community · buddy · support ──
   share: "share-2",

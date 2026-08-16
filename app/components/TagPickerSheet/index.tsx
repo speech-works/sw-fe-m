@@ -213,8 +213,11 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
 export default TagPickerSheet;
 
 const styles = StyleSheet.create({
+  // NO horizontal padding. `Sheet` already puts `space.screenX` on its content,
+  // and adding another gutter here put the body at 32 while the pinned footer
+  // sat on the sheet's real gutter of 16 — so Done was visibly out of line with
+  // every chip above it.
   body: {
-    paddingHorizontal: space.screenX,
     paddingBottom: space.sectionGap,
     gap: space.sectionGap,
   },

@@ -59,7 +59,7 @@ export type { SearchFieldProps } from "./SearchField";
 export { Toggle } from "./Toggle";
 export type { ToggleProps } from "./Toggle";
 export { Segmented } from "./Segmented";
-export type { SegmentedProps } from "./Segmented";
+export type { SegmentedProps, SegmentedOption } from "./Segmented";
 export { Slider } from "./Slider";
 export type { SliderProps } from "./Slider";
 export { Checkbox } from "./Checkbox";

@@ -45,3 +45,20 @@ export function isClientError(error: unknown): boolean {
   const status = (error as any)?.response?.status;
   return typeof status === "number" && status >= 400 && status < 500;
 }
+
+/**
+ * Is this "the thing you were acting on is already gone"?
+ *
+ * For a DESTRUCTIVE action, a 404 is usually the outcome the person wanted
+ * rather than a failure to report. Declining a buddy request that the sender
+ * has since withdrawn, or that expired, or that another device already
+ * declined, all answer 404 — and in every one of those the request is gone,
+ * which is exactly what was asked for. Showing "Couldn't decline" there tells
+ * someone their action failed when it did not.
+ *
+ * Only use it where "already gone" and "succeeded" are genuinely the same
+ * outcome. For a READ, a 404 is real and must not be swallowed.
+ */
+export function isNotFound(error: unknown): boolean {
+  return (error as any)?.response?.status === 404;
+}
