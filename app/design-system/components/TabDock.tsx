@@ -414,10 +414,19 @@ const DockItem: React.FC<DockItemProps> = ({
               // same object wearing a different colour. It used to be a plate
               // beside the label, which put a 36pt price on one digit.
               <Animated.View style={[styles.badge, countPlateStyle, badgeBorderStyle]}>
+                {/* `activeColor`, NOT `text.accent`. The badge inverts the
+                    pill's own fill/on-fill pair — orange plate with dark digits
+                    while resting, dark plate with orange digits once the fill
+                    is under it — and that pair is guaranteed legible in both
+                    directions by the design system, in both schemes.
+                    `text.accent` only looked right on ink: it is a BRIGHT
+                    orange there and a DARK amber on paper, so on the dark plate
+                    it measured 10.08:1 on ink and 2.93:1 on paper, where the
+                    digit simply disappeared. This is 7.71:1 in both. */}
                 <Animated.View style={countActiveStyle}>
                   <Text
                     variant="caption"
-                    color={colors.text.accent}
+                    color={activeColor}
                     numberOfLines={1}
                     style={styles.badgeText}
                   >
