@@ -25,6 +25,7 @@ import {
 import { apiErrorMessage } from "../../../util/functions/apiError";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { openOnboarding } from "../../../util/functions/openOnboarding";
+import { listingFix, listingFixLabel } from "../../../util/functions/listingBlock";
 import {
   TAG_LABELS,
   MAX_DISCOVERY_TAGS,
@@ -167,11 +168,19 @@ const Discoverability = () => {
           {/* Telling someone what is missing without a way to fix it just moves
               the dead end. Onboarding is not a route — it swaps the whole
               navigator — so this goes through the one helper that knows how to
-              do that properly. */}
-          {profile.blockedReason.toLowerCase().includes("finish setting up") ? (
+              do that properly.
+
+              The reason-to-fix test used to be an inline `includes(...)` here,
+              known only to this file. Discover needed the same card and the
+              same button, so it moved into `listingFix` where a reworded server
+              message breaks one function instead of quietly dropping the button
+              from whichever screen nobody re-checked. The name case has no
+              button HERE on purpose: you are already in Settings, where the
+              profile editor lives. */}
+          {listingFix(profile.blockedReason) === "onboarding" ? (
             <Button
               variant="secondary"
-              label="Finish setting up"
+              label={listingFixLabel("onboarding") ?? "Finish setting up"}
               onPress={() => void openOnboarding("discoverability")}
             />
           ) : null}

@@ -51,6 +51,8 @@ import {
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
 import { shareBuddyInvite } from "../../util/functions/share";
+import { openOnboarding } from "../../util/functions/openOnboarding";
+import { listingFix, listingFixLabel } from "../../util/functions/listingBlock";
 import { TAG_LABELS, proposedTags } from "../../constants/discoveryTags";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
@@ -324,27 +326,34 @@ const Discover = () => {
    * deliberate — a bigger target for the same intent.
    */
   const renderStatusBar = () => {
-    // No bar for a hard blocker: there is no status to pin when the answer is
-    // "not yet", and the reason needs a sentence the card above gives it.
-    // A PAUSE still gets a bar, because the switch is real and turning it off
-    // is still something you may want to do.
-    if (!profile || profile.blockedReason) return null;
+    if (!profile) return null;
 
+    /**
+     * ONE BAR, EVERY STATE.
+     *
+     * Blocked used to render as a card at the top of the scroll while every
+     * other listing state rendered as this bar. Same subject, same single
+     * action, two different objects in two different places — and the card ate
+     * the top of a list the whole screen exists to show.
+     *
+     * The reason it was a card was that a blocked message is a sentence and the
+     * bar's subtitle was written to fit one short line. That is a two-line
+     * allowance, not a second component.
+     */
+    const blocked = profile.blockedReason;
+    const fix = listingFix(blocked);
     const listed = profile.discoverable;
 
     /**
      * WRITTEN TO FIT, NOT TRUNCATED TO FIT.
      *
      * After the avatar, the title and the button there are roughly 24
-     * characters left on this line. "Just your name and your avatar" became
-     * "Just your name and your av…", which is thirty characters spent saying
-     * nothing — an ellipsis is the layout admitting it had no room for the
-     * sentence, and the reader gets the admission rather than the fact.
+     * characters per line. "Just your name and your avatar" became "Just your
+     * name and your av…", which is thirty characters spent saying nothing.
      *
-     * So the line is built short instead. One tag and a count always fits, at
-     * every tag count, in every state. The full list is one tap away in the
-     * picker, and it is read out in full to a screen reader below, where there
-     * is no width to run out of.
+     * So the normal states are built short. One tag and a count always fits, at
+     * every tag count. The blocked reason is the server's own sentence and gets
+     * the second line to say it in.
      */
     const first = draftTags.length ? TAG_LABELS[draftTags[0]] ?? draftTags[0] : null;
     const says = first
@@ -355,6 +364,54 @@ const Discover = () => {
     const saysFull = draftTags.length
       ? draftTags.map((t) => TAG_LABELS[t] ?? t).join(", ")
       : "just your name and your avatar";
+
+    // Every title fits beside the widest button on the narrowest phone. The
+    // longest here is 18 characters; "You can't be listed yet" was 23 and came
+    // back as "You can't be...".
+    const title = blocked
+      ? "Not listed yet"
+      : !listed
+        ? "You're not listed"
+        : profile.pausedReason
+          ? "Listed, but hidden"
+          : "You're listed";
+
+    // A pause is the server's sentence too, and it is the only thing on the bar
+    // explaining why "listed" is not the whole truth.
+    const sub = blocked ?? profile.pausedReason ?? says;
+
+    // Blocked and paused both carry a warning tone. The difference between them
+    // is the button, not the colour: one is fixable from here, the other is a
+    // state you undo where you set it.
+    const warn = !!(blocked || profile.pausedReason);
+
+    const action = blocked
+      ? fix
+        ? listingFixLabel(fix)
+        : null
+      : listing
+        ? "Saving…"
+        : !listed
+          ? "List me"
+          : draftTags.length
+            ? "Change"
+            : "Add tags";
+
+    const runAction = () => {
+      if (blocked) {
+        if (fix === "onboarding") {
+          // Onboarding is not a route: it swaps the whole navigator.
+          void openOnboarding("discover");
+          return;
+        }
+        // The name lives in the profile editor on the Settings root, which
+        // opens from local state there. This puts them one tap away.
+        navigation.navigate("Root" as never, { screen: "SETTINGS" } as never);
+        return;
+      }
+      if (listed) setPickingTags(true);
+      else void setListed(true);
+    };
 
     return (
       <View
@@ -370,105 +427,56 @@ const Discover = () => {
 
         <PressableScale
           scaleTo={0.995}
-          onPress={() => setPickingTags(true)}
+          // Nothing to open while blocked: the card does not exist yet, so the
+          // only thing to do is the button's job.
+          onPress={blocked ? runAction : () => setPickingTags(true)}
+          disabled={!!blocked && !fix}
           onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
           accessibilityRole="button"
           accessibilityLabel={
-            listed
-              ? `Your card says ${saysFull}. Change it.`
-              : `You are not listed. Your card would say ${saysFull}.`
+            blocked
+              ? `${title}. ${blocked}`
+              : listed
+                ? `Your card says ${saysFull}. Change it.`
+                : `You are not listed. Your card would say ${saysFull}.`
           }
           style={[
             styles.bar,
             {
               backgroundColor: colors.surface.elevated,
-              borderColor: withAlpha(colors.action.primary, 0.3),
+              borderColor: warn
+                ? withAlpha(colors.feedback.warning, 0.4)
+                : withAlpha(colors.action.primary, 0.3),
             },
           ]}
         >
+          {/* The avatar stays in every state. It is the same object reporting
+              on the same thing, and swapping it for a warning glyph when
+              something is wrong would make it a different bar. The tone lives
+              in the rim and in the words. */}
           <UserAvatar manifest={user?.avatarManifest} size={34} shape="square" />
           <View style={styles.barText}>
-            {/* Never "You're listed" while something is hiding them. The card
-                above carries the reason; this just stops asserting the
-                opposite of it. */}
             <Text variant="bodySm" numberOfLines={1} style={styles.barTitle}>
-              {!listed
-                ? "You're not listed"
-                : profile.pausedReason
-                  ? "Listed, but hidden"
-                  : "You're listed"}
+              {title}
             </Text>
-            {/* What a stranger reads, or what they would. The bar is a preview,
-                not a status light, so it carries the words rather than a
-                summary of them. */}
-            <Text variant="caption" color="tertiary" numberOfLines={1}>
-              {says}
+            {/* Two lines. The short states never reach the second one; the
+                server's sentences need it. */}
+            <Text variant="caption" color="tertiary" numberOfLines={2}>
+              {sub}
             </Text>
           </View>
-          {/* THE VERB FOLLOWS THE STATE. "Change" was hard-coded for both
-              listed cases, so a card with nothing on it offered to change
-              nothing. Adding your first tag and editing three are different
-              acts and get different words.
-
-              Listing publishes exactly the card shown one line to the left, so
-              nothing is ever published unseen — the rule the full card existed
-              to hold, kept in a third of the space. */}
-          <Button
-            label={
-              listing
-                ? "Saving…"
-                : !listed
-                  ? "List me"
-                  : draftTags.length
-                    ? "Change"
-                    : "Add tags"
-            }
-            variant={listed ? "secondary" : "primary"}
-            size="sm"
-            fullWidth={false}
-            disabled={listing}
-            onPress={() => (listed ? setPickingTags(true) : setListed(true))}
-          />
+          {action ? (
+            <Button
+              label={action}
+              variant={blocked || listed ? "secondary" : "primary"}
+              size="sm"
+              fullWidth={false}
+              disabled={listing}
+              onPress={runAction}
+            />
+          ) : null}
         </PressableScale>
       </View>
-    );
-  };
-
-  /**
-   * The one thing that still belongs INSIDE the scroll: an account that cannot
-   * be listed at all. It needs a sentence of explanation, which is more than a
-   * bar can hold, and there is no status to pin when the answer is "not yet".
-   */
-  const renderBlocked = () => {
-    if (!profile) return null;
-
-    /**
-     * TWO KINDS OF "YOU ARE NOT APPEARING", ONE CARD.
-     *
-     * `blockedReason` is hard: the server refuses the write, so there is no
-     * switch to offer and nothing to pin at the bottom. `pausedReason` is soft:
-     * the switch is on, the preference is real, and something else is hiding
-     * you — holiday mode, or already having a buddy. Both used to be silent in
-     * the second case, so the app said "You're listed" while the query dropped
-     * the person.
-     *
-     * Same card either way, because the reader's question is the same one.
-     * Only the title differs, and only because "can't be listed yet" would be
-     * wrong for someone who is listed and merely paused.
-     */
-    const reason = profile.blockedReason ?? profile.pausedReason;
-    if (!reason) return null;
-
-    return (
-      <Surface level="default" padded bordered rounded="card" style={styles.blockedCard}>
-        <View style={styles.blockedHead}>
-          <Icon name={icons.warning} size={size.iconInline} color={colors.feedback.warningText} />
-          <Text variant="title">
-            {profile.blockedReason ? "You can't be listed yet" : "You're not showing up"}
-          </Text>
-        </View>
-        <Text variant="bodySm" color="secondary">{reason}</Text>
-      </Surface>
     );
   };
 
@@ -657,7 +665,6 @@ const Discover = () => {
           {/* Above the list, and outside `body()`, so it still shows when the
               list is empty or failed — "nobody to show" is exactly when being
               findable yourself matters most. */}
-          {renderBlocked()}
           {body()}
         </View>
       </CustomScrollView>
@@ -745,10 +752,6 @@ const styles = StyleSheet.create({
     gap: space.groupGap,
   },
   consent: { gap: spacing.md },
-  // A warning stripe rather than the accent rim: this card is not an offer and
-  // must not read like one.
-  blockedCard: { gap: space.rowGap },
-  blockedHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   // ── The pinned status bar ────────────────────────────────────────────────
   barWrap: {
     position: "absolute",
