@@ -94,7 +94,7 @@ export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
           labelAll
           accessibilityLabel="People page tabs"
           items={[
-            { key: "waiting", label: "Waiting", icon: icons.addPerson, pillCount: waitingCount },
+            { key: "waiting", label: "Waiting", icon: icons.addPerson, count: waitingCount },
             { key: "discover", label: "Discover", icon: icons.find },
           ]}
           activeKey={tab}

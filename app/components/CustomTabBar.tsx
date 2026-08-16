@@ -61,7 +61,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
         key: "waiting",
         label: "Waiting",
         icon: icons.addPerson,
-        pillCount: pendingRequestCount,
+        count: pendingRequestCount,
       },
       { key: "discover", label: "Discover", icon: icons.find },
     ];
@@ -164,15 +164,11 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
       // mark Settings, because that is where the fix lives. Only on the global
       // nav dock — the Community tabs dock is a different context.
       //
-      // Community also dots for an unanswered buddy request. A dot, not a
-      // count, because "needs attention" is what a request is — and TabDock
-      // suppresses the dot whenever `badge > 0`, which is exactly right here:
-      // an unpaired user has no thread and so no unread count to compete with.
-      //
-      // The dot and `pillCount` are set TOGETHER on purpose and never both
-      // show: the chip lives inside the expanded pill, so it exists only while
-      // Community is the focused tab, and the dot covers every other screen.
-      // TabDock drops whichever would be the second copy.
+      // Community also marks an unanswered buddy request. A DOT, not the number,
+      // even though the number is now free to draw: this is the global nav, four
+      // destinations wide, and its job is to say which tab wants you rather than
+      // how much. The count belongs on the People page, where you have arrived
+      // to act on it. `count` is deliberately not set here.
       badgeDot:
         (routeName === ROUTE_NAMES.SETTINGS && notificationsNeedAttention) ||
         (routeName === ROUTE_NAMES.COMMUNITY && waiting > 0),
