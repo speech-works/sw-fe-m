@@ -521,7 +521,9 @@ const Breathing = () => {
         </View>
 
         {/* Bottom Controls — mute mirrors Meditation's toggle; it silences the
-            breath cues and the background bed together. */}
+            breath cues and the background bed together. Stacked, not side by
+            side: the mute sits on the screen's centre line above the action,
+            so both Cognitive Practice players read as the same screen. */}
         <View style={styles.immersiveControls}>
           <IconButton
             name={mute ? icons.mute : icons.volume}
@@ -535,6 +537,8 @@ const Breathing = () => {
             variant="secondary"
             onPress={handleCompletePress}
             disabled={isLoading}
+            fullWidth={false}
+            style={styles.endButton}
           />
         </View>
 
@@ -787,11 +791,13 @@ const Breathing = () => {
 export default Breathing;
 
 const styles = StyleSheet.create({
-  // Immersive
+  // Immersive — geometry deliberately identical to Meditation's player, so the
+  // two Cognitive Practice sessions land on the same anchors.
   immersiveContainer: {
     flex: 1,
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: spacing["6xl"],
   },
   immersiveContent: {
     flex: 1,
@@ -801,10 +807,13 @@ const styles = StyleSheet.create({
   },
   immersiveControls: {
     paddingBottom: spacing["5xl"],
-    flexDirection: "row",
+    width: "100%",
     alignItems: "center",
-    justifyContent: "center",
     gap: space.groupGap,
+  },
+  endButton: {
+    minWidth: 200,
+    alignSelf: "center",
   },
   // Intro: the honest limit, sitting under the technique card.
   cautionRow: {
@@ -845,8 +854,9 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontVariant: ["tabular-nums"],
-    marginTop: spacing["6xl"],
-    marginBottom: spacing["5xl"],
+    // The 64 that used to live here is now the container's paddingTop (as in
+    // Meditation), so the timer→orb gap is the only thing this margin sets.
+    marginBottom: spacing["6xl"],
   },
   // Early-exit sheet
   skipModal: {
