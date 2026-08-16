@@ -9,19 +9,18 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withDelay,
-  withRepeat,
   withSequence,
   withTiming,
-  type SharedValue,
 } from "react-native-reanimated";
 
 import {
-  useThemeContext,
-  borderWidth,
+  useTheme,
   duration,
   easing,
   fonts,
   Gradient,
+  Icon,
+  icons,
   spacing,
   Text,
   withAlpha,
@@ -92,9 +91,45 @@ const CROWD_OPACITY = 0.18;
  */
 const CROWD_BLUR = 14;
 
-/** Air between the two subject tiles. Wider than the crowd's `GAP` so the pair
- *  reads as two objects with a space between them, which is the entire point. */
-const SUBJECT_GAP = 16;
+/**
+ * Air between the two subject tiles.
+ *
+ * Tightened from 16 when the tiles started leaning. Two upright squares need a
+ * clear gap or they read as one wide block; two tilted ones already separate
+ * themselves at the corners, and the extra air just pushed them apart.
+ */
+const SUBJECT_GAP = 14;
+
+/**
+ * WHAT `size` ACTUALLY DRAWS.
+ *
+ * `UserAvatar` renders `viewBox="-8 -8 64 64"` and its tile path occupies units
+ * 0 to 48, so the squircle you SEE is 75&#37; of the size you asked for, sitting
+ * 12.5&#37; in from every edge. The remaining ring is transparent padding that
+ * hair and collars overflow into.
+ *
+ * This matters twice here. A background or shadow on a full-size wrapper draws
+ * a plate 33&#37; larger than the avatar and frames it. And the seat, which was
+ * built at the full size, has always been a third bigger than the face beside
+ * it — which is part of why the two never read as a matched pair.
+ */
+const TILE_SCALE = 0.75;
+const TILE_INSET = 0.125;
+/** The tile's own corner radius: 11 units of the same 64-unit viewBox. */
+const TILE_RADIUS = 11 / 64;
+
+/**
+ * How far each tile leans, in degrees, and which way.
+ *
+ * FIVE DEGREES IS THE WHOLE ARGUMENT. Controls are axis-aligned; objects in a
+ * photograph are not. A rectangle rotated even slightly stops offering itself
+ * as a button, which is the cheapest possible answer to "why does that look
+ * tappable" and costs one transform.
+ *
+ * Opposite directions, so they lean toward each other. Same direction reads as
+ * a skewed layout; mirrored reads as two things placed side by side by hand.
+ */
+const LEAN = 5;
 
 /**
  * When the seat starts moving: as the arrival bloom finishes, not seconds later.
@@ -120,51 +155,6 @@ const INVITE_AT = duration.reveal + 520;
 /** Half a breath. Ambient, so exempt from the sub-300ms UI rule the way
  *  `duration.shimmer` is — a fast pulse reads as an alert, not an invitation. */
 const BREATH = 900;
-
-/** One dot's hop, and the beat between neighbours as a fraction of it. Tuned to
- *  a chat typing indicator, which is where the shape's meaning comes from. */
-const DOT_CYCLE = 1400;
-const DOT_STAGGER = 0.16;
-/** How many hops the dots take before settling. Bounded for the same reason
- *  `invite` is: see the motion note below. */
-const DOT_RUNS = 4;
-
-/**
- * One of the seat's three dots.
- *
- * A child component rather than three animated styles in the parent because
- * `useAnimatedStyle` is a hook and cannot be called in a loop. All three read
- * ONE clock a beat apart — three dots rising together is a pulse; the stagger
- * is what makes it "somebody is on their way".
- */
-const SeatDot: React.FC<{
-  index: number;
-  clock: SharedValue<number>;
-  size: number;
-  color: string;
-}> = ({ index, clock, size, color }) => {
-  const style = useAnimatedStyle(() => {
-    const phase = (clock.value + 1 - index * DOT_STAGGER) % 1;
-    // The hop occupies the first 45% of the cycle; the rest is rest, which is
-    // what keeps it a typing indicator rather than a wave.
-    const hop = phase < 0.45 ? Math.sin((phase / 0.45) * Math.PI) : 0;
-    // Movement only — no opacity in the hop. The dots are STILL almost all the
-    // time, so the resting state is the one that has to carry contrast, and the
-    // plus this replaced was a full-strength mark. Fading the resting dots to
-    // make the hop pop would trade the legibility of the default state for a
-    // flourish on the rare one, and it is the light scheme (accent on a pale
-    // tint, ~2.2:1) that would pay for it.
-    return { transform: [{ translateY: -hop * size * 0.5 }] };
-  });
-  return (
-    <Animated.View
-      style={[
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: color },
-        style,
-      ]}
-    />
-  );
-};
 
 /** The seat label's box. Wider than the seat on purpose so the line never wraps
  *  — a two-line hint under a square reads as a caption on artwork rather than as
@@ -241,7 +231,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   seatCount = 0,
   showHint = true,
 }) => {
-  const { colors, scheme } = useThemeContext();
+  const { colors, scheme, elevation } = useTheme();
   const { width, height } = useWindowDimensions();
 
   const room = useMemo(() => buildRoom(width, height), [width, height]);
@@ -263,7 +253,20 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
     return out;
   }, [room.bands, faces]);
 
-  const pairWidth = room.subjectSize * 2 + SUBJECT_GAP;
+  /**
+   * The pair's real width, and where the seat's centre lands in it.
+   *
+   * Derived rather than assumed: the avatar occupies a full `subjectSize` box
+   * of which only the middle 75% is drawn, and the seat is now that drawn size.
+   * The old `subjectSize * 2 + gap` described a layout where both tiles filled
+   * their boxes, which was never true of the avatar.
+   */
+  const subjectTile = room.subjectSize * TILE_SCALE;
+  const seatOffset = SUBJECT_GAP - room.subjectSize * TILE_INSET;
+  const pairWidth = room.subjectSize + seatOffset + subjectTile;
+  const seatCenterX = room.subjectSize + seatOffset + subjectTile / 2;
+  const seatTile = subjectTile;
+  const seatRadius = room.subjectSize * TILE_RADIUS;
   const glowSize = room.subjectSize * 2.6;
 
   /**
@@ -279,15 +282,6 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
    * `invite` — two slow breaths, starting as the arrival settles
    *   ({@link INVITE_AT}). Capped at two, then silent for the rest of the
    *   visit: it introduces the seat without competing for the whole session.
-   * `bob` — the three dots hopping, on the SAME trigger as `invite` and
-   *   bounded the same way ({@link DOT_RUNS} hops, then still).
-   *
-   *   The dots are the one mark here whose meaning is carried by movement, so
-   *   the obvious build is an endless typing indicator — and that is exactly the
-   *   loop this component has always refused. It does not need one: three dots
-   *   in a row read as "pending" standing perfectly still (every chat app has
-   *   taught that), and the hop is what upgrades "pending" to "someone is on
-   *   their way". It says that once, on arrival, and then stops.
    * `press` — the wash under your thumb.
    *
    * The breath is SCALE-led, not opacity-led, on purpose. A soft shape fading in
@@ -302,7 +296,6 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
   const reduceMotion = useReducedMotion();
   const arrive = useSharedValue(reduceMotion ? 1 : 0);
   const invite = useSharedValue(0);
-  const bob = useSharedValue(0);
   const press = useSharedValue(0);
 
   /*
@@ -326,9 +319,6 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
       if (reduceMotion) {
         arrive.value = 1;
         invite.value = 0;
-        // Rest is phase 0 — every dot down, evenly spaced. Reduced motion gets
-        // three still dots, which is the readable state, not a blank square.
-        bob.value = 0;
         return;
       }
 
@@ -336,7 +326,6 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
       // whatever the value IS, and a bounded run ends at 1 — so re-arming
       // without this would animate 1 to 1 and show nothing at all.
       invite.value = 0;
-      bob.value = 0;
 
       arrive.value = withDelay(
         duration.reveal,
@@ -353,35 +342,18 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
         ),
       );
 
-      // A linear clock, because SeatDot shapes the hop itself — easing this would
-      // ease the whole three-dot sequence rather than each individual hop.
-      bob.value = withDelay(
-        INVITE_AT,
-        withRepeat(
-          withTiming(1, { duration: DOT_CYCLE, easing: easing.linear }),
-          DOT_RUNS,
-          false,
-        ),
-      );
-
       return () => {
         cancelAnimation(invite);
-        cancelAnimation(bob);
         invite.value = 0;
-        bob.value = 0;
       };
-    }, [reduceMotion, arrive, invite, bob]),
+    }, [reduceMotion, arrive, invite]),
   );
 
   /** Stops the invitation for good once the seat has been touched — it has done
    *  its job, and a hint that keeps arriving after you've answered is nagging. */
   const answerInvite = () => {
     cancelAnimation(invite);
-    cancelAnimation(bob);
     invite.value = withTiming(0, { duration: duration.base, easing: easing.out });
-    // Straight to rest rather than eased: mid-hop, an eased return reads as a
-    // fourth dot movement instead of as the animation stopping.
-    bob.value = 0;
   };
 
   const glowStyle = useAnimatedStyle(() => ({
@@ -513,7 +485,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
             {
               width: glowSize,
               height: glowSize,
-              left: pairWidth - room.subjectSize / 2 - glowSize / 2,
+              left: seatCenterX - glowSize / 2,
               top: (room.subjectSize - glowSize) / 2,
             },
           ]}
@@ -535,7 +507,37 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
         </Svg>
         </Animated.View>
 
-        <UserAvatar manifest={manifest} size={room.subjectSize} animate={false} shape="square" />
+        {/* YOU, LEANING. The wrapper carries the tilt; the avatar itself is
+            untouched, so nothing in the faces kit has to know about any of this.
+
+            The shadow goes on a PLATE inset to the drawn tile rather than on
+            this box. On the box it would trace the transparent padding and
+            frame the avatar in a larger square. The plate is also opaque
+            (canvas) because Android renders no `elevation` behind a transparent
+            view, and the avatar covers it exactly, so it is never seen. */}
+        <View
+          style={{
+            width: room.subjectSize,
+            height: room.subjectSize,
+            transform: [{ rotate: `-${LEAN}deg` }],
+          }}
+        >
+          <View
+            style={[
+              {
+                position: "absolute",
+                left: room.subjectSize * TILE_INSET,
+                top: room.subjectSize * TILE_INSET,
+                width: room.subjectSize * TILE_SCALE,
+                height: room.subjectSize * TILE_SCALE,
+                borderRadius: room.subjectSize * TILE_RADIUS,
+                backgroundColor: colors.background.canvas,
+              },
+              elevation.e3,
+            ]}
+          />
+          <UserAvatar manifest={manifest} size={room.subjectSize} animate={false} shape="square" />
+        </View>
 
         {/* THE SEAT.
             A hole in the wall, not a button and not a placeholder — but no
@@ -585,18 +587,32 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
               ? `${seatCount} people are waiting on an answer`
               : "Find someone to pair with"
           }
-          style={{ marginLeft: SUBJECT_GAP }}
+          // The gap is measured between the DRAWN tiles, so the avatar's
+          // transparent 12.5% ring is subtracted back out of it.
+          style={{
+            marginLeft: SUBJECT_GAP - room.subjectSize * TILE_INSET,
+            transform: [{ rotate: `${LEAN}deg` }],
+          }}
         >
           {/* HOW MANY PEOPLE WANT THIS SEAT.
               Overhanging the corner rather than sitting inside it: the seat's
               interior is the one place on this screen that must stay empty, and
               a number in the middle of it would fill the absence the whole
-              picture is about. */}
+              picture is about.
+
+              COUNTER-ROTATED. The tile leans; the number does not. A tilted
+              digit reads as a mistake rather than as a design, and this badge is
+              the one piece of UI attached to the picture, so it should sit level
+              like a label pinned on rather than lean like part of the object. */}
           {seatCount > 0 ? (
             <View
               style={[
                 styles.seatBadge,
-                { backgroundColor: accent, borderColor: colors.background.canvas },
+                {
+                  backgroundColor: accent,
+                  borderColor: colors.background.canvas,
+                  transform: [{ rotate: `-${LEAN}deg` }],
+                },
               ]}
             >
               <Text variant="caption" color={colors.action.onPrimary} style={styles.seatBadgeText}>
@@ -604,85 +620,97 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
               </Text>
             </View>
           ) : null}
+          {/* THE SEAT, AS AN OBJECT RATHER THAN A FRAME.
+              No rim and no inset ring. Both were UI conventions for
+              "interactive", and both were doing badly what light does well: a
+              highlight along the top and a shadow underneath separate this from
+              the crowd far more convincingly than a 1px accent line, and they
+              say "solid thing" instead of "control".
+
+              THREE VIEWS, NOT ONE, AND THE MIDDLE ONE IS WHY THE CORNERS ARE
+              ROUND. `Gradient` passes `style` straight through to
+              `LinearGradient`, whose own painted background does not reliably
+              clip to a `borderRadius` set on itself — so the radius was correct
+              (11/64 of the size, the avatar's exact ratio) and the tile still
+              came out nearly square. A plain `View` always clips. So: the outer
+              view owns the shadow, the middle owns the shape and the clip, and
+              the gradient just fills.
+
+              Shadow and clip are also kept on SEPARATE views on purpose. On iOS
+              `overflow: "hidden"` and a shadow on one view fight each other, and
+              the shadow is the half that loses. */}
           <View
-            style={{
-              width: room.subjectSize,
-              height: room.subjectSize,
-              borderRadius: room.subjectSize * 0.23,
-              backgroundColor: mix(colors.background.canvas, accent, 0.08),
-              borderWidth: borderWidth.thin,
-              borderColor: withAlpha(accent, 0.5),
-              padding: room.subjectSize * 0.11,
-            }}
+            style={[
+              {
+                width: seatTile,
+                height: seatTile,
+                borderRadius: seatRadius,
+              },
+              elevation.e3,
+            ]}
           >
             <View
               style={{
                 flex: 1,
-                borderRadius: room.subjectSize * 0.14,
-                borderWidth: borderWidth.hairline,
-                borderColor: withAlpha(accent, 0.2),
+                borderRadius: seatRadius,
+                overflow: "hidden",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              {/* THE ONE MARK THE SHAPE NEEDED.
-                  The seat is the screen's only route into discovery — the
-                  filled button that used to carry it is gone — so it cannot
-                  afford to be a shape you have to guess at.
+              {/* Lit from the top left in both schemes, but "deeper" means
+                  something different in each. On ink the seat falls to near
+                  black; on paper the same mix is a grey card, which is the one
+                  thing the paper scheme cannot afford (its whole ramp lives
+                  inside about 1.16:1, so a cold grey reads as dirt). Paper
+                  falls to a warm tan instead. */}
+              <Gradient
+                colors={
+                  scheme === "dark"
+                    ? [
+                        mix(colors.background.canvas, "#FFFFFF", 0.07),
+                        mix(colors.background.canvas, accent, 0.08),
+                        mix(colors.background.canvas, "#000000", 0.4),
+                      ]
+                    : [
+                        mix(colors.background.canvas, "#FFFFFF", 0.7),
+                        mix(colors.background.canvas, accent, 0.06),
+                        mix(colors.background.canvas, accent, 0.22),
+                      ]
+                }
+                locations={[0, 0.38, 1]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
 
-                  It was a plus, which was legible and wrong: a plus is the verb
-                  ADD, and it turned a person-shaped absence into an operation on
-                  a list. Three dots are borrowed from the one place everybody
-                  has already learned them — a chat typing indicator — where they
-                  mean a PERSON is about to appear. That is the sentence this
-                  screen is trying to say, and the dots say it without a label.
+              {/* THE MARK, AT THE SIZE A MARK SHOULD BE.
+                  It was three dots borrowed from a chat typing indicator. In a
+                  square tile beside a real avatar the nearer reading was a
+                  spinner, or an image that had not finished loading. One person
+                  glyph at 58% of the tile cannot be read as either.
 
-                  Still by default; they hop only when someone stalls (see the
-                  motion note above). Sizing follows the plus it replaces: the
-                  row spans the same optical width the 0.26 glyph did.
+                  Very low contrast on purpose: this is somebody who is NOT here.
+                  A confident mark would be a person; a faint one is the shape of
+                  where a person goes. */}
+              <Icon
+                name={icons.person}
+                size={Math.round(seatTile * 0.58)}
+                color={withAlpha(colors.text.primary, 0.1)}
+              />
 
-                  `text.accent`, NOT the bright `action.primary` the rim uses.
-                  This mark carries meaning rather than decorating, and at this
-                  size it is under the threshold where a hero glyph gets to stay
-                  a fill — the brand orange sits at roughly 2.2:1 on the seat's
-                  pale light-scheme tint, which is exactly the dark→light
-                  collapse the per-scheme foreground cut exists to prevent. */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: Math.round(room.subjectSize * 0.068),
-                }}
-              >
-                {[0, 1, 2].map((i) => (
-                  <SeatDot
-                    key={i}
-                    index={i}
-                    clock={bob}
-                    size={Math.round(room.subjectSize * 0.075)}
-                    color={colors.text.accent}
-                  />
-                ))}
-              </View>
+              {/* PRESS FEEDBACK THE SHAPE CAN ACTUALLY SHOW. Only ever visible
+                  when a caller supplied a handler; see `SeatFrame`. */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFill,
+                  pressStyle,
+                  { backgroundColor: withAlpha(accent, 0.16) },
+                ]}
+              />
             </View>
-            {/* PRESS FEEDBACK THE SHAPE CAN ACTUALLY SHOW.
-                `PressableScale` already springs to 0.97, but a 3% scale needs
-                internal detail to read against and this square is deliberately
-                empty — the tap worked and did not FEEL like it worked. A wash
-                across the whole face is the one thing an empty shape can do.
-                Slow out (200ms) against a fast in (120ms): the system responds
-                instantly and releases gently. */}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                pressStyle,
-                {
-                  borderRadius: room.subjectSize * 0.23,
-                  backgroundColor: withAlpha(accent, 0.16),
-                },
-              ]}
-            />
           </View>
         </SeatFrame>
       </View>
@@ -707,11 +735,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
               0,
               Math.min(
                 width - HINT_WIDTH,
-                (width - pairWidth) / 2 +
-                  room.subjectSize +
-                  SUBJECT_GAP +
-                  room.subjectSize / 2 -
-                  HINT_WIDTH / 2,
+                (width - pairWidth) / 2 + seatCenterX - HINT_WIDTH / 2,
               ),
             ),
           },
@@ -740,7 +764,7 @@ const styles = StyleSheet.create({
   // Negative left margin so the extra tile hangs off screen and the row shows
   // no start or end — a crowd with visible ends is a row of icons.
   row: { flexDirection: "row", marginLeft: -GAP * 2 },
-  subject: { position: "absolute", flexDirection: "row" },
+  subject: { position: "absolute", flexDirection: "row", alignItems: "center" },
   glow: { position: "absolute" },
   seatHint: { position: "absolute", width: HINT_WIDTH, alignItems: "center" },
   // Overhangs the seat's top-right corner. The ring is canvas-coloured rather
