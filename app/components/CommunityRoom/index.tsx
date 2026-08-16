@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { useFocusEffect } from "@react-navigation/native";
@@ -170,6 +170,45 @@ const SeatDot: React.FC<{
  *  — a two-line hint under a square reads as a caption on artwork rather than as
  *  a label on a control. Clamped to the viewport by the caller. */
 const HINT_WIDTH = 200;
+
+/**
+ * The seat's wrapper: a real button when there is a handler, a picture when
+ * there is not.
+ *
+ * Declared at module scope rather than inside the render, so the seat is not
+ * remounted (and its ambient animation restarted) on every parent update.
+ *
+ * The picture branch is `accessible={false}`, not a labelled image. Everything
+ * the seat says is already said in text directly beneath it, so a screen reader
+ * hearing it again would hear the same fact three times: the seat, the
+ * headline, and the count line.
+ */
+const SeatFrame: React.FC<{
+  pressable: boolean;
+  onPress?: () => void;
+  onPressIn: () => void;
+  onPressOut: () => void;
+  label: string;
+  style: ViewStyle;
+  children: React.ReactNode;
+}> = ({ pressable, onPress, onPressIn, onPressOut, label, style, children }) =>
+  pressable ? (
+    <PressableScale
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Opens buddy search"
+      style={style}
+    >
+      {children}
+    </PressableScale>
+  ) : (
+    <View style={style} pointerEvents="none" accessible={false}>
+      {children}
+    </View>
+  );
 
 export interface CommunityRoomProps {
   /** The viewer's own avatar. Undefined renders the default — never an empty tile. */
@@ -516,7 +555,23 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
             The fill is an OPAQUE mix, not a translucent accent wash. A wash let
             the crowd show through, so the empty seat had two faces sitting in
             it — the one thing it must never contain. */}
-        <PressableScale
+        {/**
+         * A BUTTON ONLY IF SOMEBODY GAVE IT SOMETHING TO DO.
+         *
+         * `onSeatPress` was removed from the one screen that mounts this, on
+         * the correct argument that the seat is the picture and the CTA below
+         * is the control. The `PressableScale` around it was not removed with
+         * it, so the seat kept every signal of a button and had none of the
+         * behaviour: it sprang under your finger, flashed a press wash, and
+         * announced itself to screen readers as "button, opens buddy search".
+         *
+         * It was worse than a dead tap. `onPressIn` called `answerInvite`,
+         * which permanently cancels the ambient invitation animation, so
+         * touching the picture silently killed the one thing drawing your eye
+         * to it and gave you nothing back.
+         */}
+        <SeatFrame
+          pressable={!!onSeatPress}
           onPress={onSeatPress}
           onPressIn={() => {
             answerInvite();
@@ -525,13 +580,11 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
           onPressOut={() => {
             press.value = withTiming(0, { duration: duration.base, easing: easing.out });
           }}
-          accessibilityRole="button"
-          accessibilityLabel={
+          label={
             seatCount > 0
               ? `${seatCount} people are waiting on an answer`
               : "Find someone to pair with"
           }
-          accessibilityHint="Opens buddy search"
           style={{ marginLeft: SUBJECT_GAP }}
         >
           {/* HOW MANY PEOPLE WANT THIS SEAT.
@@ -631,7 +684,7 @@ export const CommunityRoom: React.FC<CommunityRoomProps> = ({
               ]}
             />
           </View>
-        </PressableScale>
+        </SeatFrame>
       </View>
 
       {/* THE SEAT'S LABEL.
