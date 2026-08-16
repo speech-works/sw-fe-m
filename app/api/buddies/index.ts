@@ -249,8 +249,18 @@ export interface DiscoveryProfile {
   tags: string[];
   /** Tags you could pick, drawn from your own onboarding answers. */
   suggestions: string[];
-  /** Why you can't be listed yet, or null. */
+  /** Why you can't be listed AT ALL, or null. Hard: the server refuses the
+   *  write too, so the switch must be disabled while this is set. */
   blockedReason: string | null;
+  /**
+   * Why you are not appearing right now despite the switch being on, or null.
+   *
+   * Soft. Holiday mode and already having a buddy both drop you from the
+   * candidate query, and neither used to be told to anyone — the switch said
+   * "on" while the server said no. Informational only: the preference is still
+   * yours to change while paused.
+   */
+  pausedReason?: string | null;
 }
 
 export interface DiscoveryCandidate {

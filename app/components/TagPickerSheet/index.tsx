@@ -7,9 +7,12 @@ import {
   IconButton,
   Sheet,
   Text,
+  Toggle,
   icons,
+  radius,
   space,
   spacing,
+  useTheme,
 } from "../../design-system";
 import PressableScale from "../PressableScale";
 import {
@@ -23,9 +26,16 @@ export interface TagPickerSheetProps {
   visible: boolean;
   /** Tag ids currently on the card (published, or proposed and not yet sent). */
   value: string[];
+  /** Whether the person is currently listed. The switch below is the ONLY way
+   *  to turn that off from this screen. */
+  listed: boolean;
+  /** Set when the server would refuse a listing entirely (onboarding, no name).
+   *  Disables the switch, exactly as the Settings screen does. */
+  blockedReason?: string | null;
   saving?: boolean;
   onClose: () => void;
-  onSave: (tags: string[]) => void;
+  /** Commits both halves at once: `setDiscoveryProfile(listed, tags)`. */
+  onSave: (listed: boolean, tags: string[]) => void;
 }
 
 /**
@@ -51,17 +61,24 @@ export interface TagPickerSheetProps {
 export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
   visible,
   value,
+  listed,
+  blockedReason,
   saving = false,
   onClose,
   onSave,
 }) => {
+  const { colors } = useTheme();
   const [picked, setPicked] = useState<string[]>(value);
+  const [on, setOn] = useState(listed);
 
   // Re-seed on each opening. Closing without saving must discard, and the
   // component stays mounted between openings.
   useEffect(() => {
-    if (visible) setPicked(value);
-  }, [visible, value]);
+    if (visible) {
+      setPicked(value);
+      setOn(listed);
+    }
+  }, [visible, value, listed]);
 
   /**
    * The cap is a TOTAL, not a quota per question.
@@ -149,12 +166,39 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
           <Button
             label={saving ? "Saving…" : "Done"}
             disabled={saving}
-            onPress={() => onSave(picked)}
+            onPress={() => onSave(on, picked)}
           />
         </View>
       }
     >
       <View style={styles.body}>
+        {/* THE ONLY WAY TO STOP BEING FINDABLE, from this screen.
+            There was none: the bar offered Change and List me, and unlisting
+            lived in Settings under a name nobody would think to look for. A
+            switch you can turn on and not off is not a switch.
+
+            It commits with Done rather than on flip, matching the Settings
+            screen it mirrors — one mental model for the same control in two
+            places. Disabled while the server would refuse the write anyway,
+            with the reason underneath, so it is never a silent no-op. */}
+        <View style={[styles.listing, { backgroundColor: colors.background.sunken }]}>
+          <View style={styles.listingText}>
+            <Text variant="title">Let others find you</Text>
+            <Text variant="bodySm" color="secondary">
+              {blockedReason
+                ? blockedReason
+                : on
+                  ? "You're in the list right now."
+                  : "Nobody can find you here."}
+            </Text>
+          </View>
+          <Toggle
+            value={on}
+            disabled={saving || !!blockedReason}
+            onChange={() => setOn((v) => !v)}
+          />
+        </View>
+
         {question(
           "What are you practising?",
           "The ones you actually work on.",
@@ -174,6 +218,14 @@ const styles = StyleSheet.create({
     paddingBottom: space.sectionGap,
     gap: space.sectionGap,
   },
+  listing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.iconText,
+    padding: space.cardPad,
+    borderRadius: radius.card,
+  },
+  listingText: { flex: 1, minWidth: 0, gap: space.titleSub },
   q: { gap: spacing.xxs },
   qHint: { marginBottom: space.inlineGap },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
