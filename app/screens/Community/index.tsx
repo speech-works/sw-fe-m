@@ -854,6 +854,9 @@ const Community = () => {
           <TabDock
             inline
             fitContent
+            // Named for the same reason as the People switcher one screen away,
+            // and so the two look like one control rather than two.
+            labelAll
             accessibilityLabel="Buddy page tabs"
             items={[
               { key: "us", label: "Us", icon: icons.community },

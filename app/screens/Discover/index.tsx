@@ -10,7 +10,6 @@ import {
   radius,
   size,
   Text,
-  Button,
   Dialog,
   EmptyState,
   ErrorState,
@@ -20,8 +19,6 @@ import {
   SchemeStatusBar,
   icons,
   borderWidth,
-  fonts,
-  withAlpha,
 } from "../../design-system";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
@@ -99,8 +96,8 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
   const Frame = embedded ? PlainFrame : ScreenView;
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
-  const user = useUserStore((s) => s.user);
   const insets = useSafeAreaInsets();
+  const user = useUserStore((s) => s.user);
 
   const [candidates, setCandidates] = useState<DiscoveryCandidate[] | null>(null);
   const [profile, setProfile] = useState<DiscoveryProfile | null>(null);
@@ -434,26 +431,46 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
       ? draftTags.map((t) => TAG_LABELS[t] ?? t).join(", ")
       : "just your name and your avatar";
 
-    // Every title fits beside the widest button on the narrowest phone. The
-    // longest here is 18 characters; "You can't be listed yet" was 23 and came
-    // back as "You can't be...".
-    const title = blocked
+    /**
+     * ONE SUMMARY LINE, THE SAME SHAPE THE ROWS BELOW USE.
+     *
+     * Every person on this page is a name over one line of what they are
+     * about. You are a person on this page, so you get a name over one line of
+     * what you are about. The state leads, because that is the fact you came
+     * for; what follows qualifies it, which is your tags normally and the
+     * server's own sentence when something is wrong.
+     */
+    const state = blocked
       ? "Not listed yet"
       : !listed
-        ? "You're not listed"
+        ? "Not listed"
         : profile.pausedReason
-          ? "Listed, but hidden"
-          : "You're listed";
+          ? "Hidden"
+          : "Listed";
 
-    // A pause is the server's sentence too, and it is the only thing on the bar
-    // explaining why "listed" is not the whole truth.
-    const sub = blocked ?? profile.pausedReason ?? says;
+    const detail =
+      blocked ??
+      profile.pausedReason ??
+      (draftTags.length ? says : listed ? "No tags yet" : "Nobody can find you");
+
+    // Two lines allowed, and the short states never reach the second. Blocked
+    // and paused reasons are the server's sentences, which is what the second
+    // line is for.
+    const sub = `${state}  ·  ${detail}`;
 
     // Blocked and paused both carry a warning tone. The difference between them
-    // is the button, not the colour: one is fixable from here, the other is a
-    // state you undo where you set it.
+    // is what happens on tap, not the colour: one is fixable from here, the
+    // other is a state you undo where you set it.
     const warn = !!(blocked || profile.pausedReason);
 
+    /**
+     * A WORD ONLY WHEN IT IS ASKING FOR SOMETHING.
+     *
+     * The chevron already says "there is more here", so on the settled state
+     * the old "Change" was the chevron said twice. What is left is the cases
+     * where there is something to gain by tapping: get listed, finish your
+     * card, clear a block. Those are worth a word.
+     */
     const action = blocked
       ? fix
         ? listingFixLabel(fix)
@@ -463,7 +480,7 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
         : !listed
           ? "List me"
           : draftTags.length
-            ? "Change"
+            ? null
             : "Add tags";
 
     const runAction = () => {
@@ -483,74 +500,87 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
     };
 
     /**
-     * A ROW IN THE HEADER, not a pinned bar.
+     * YOU, AS THE FIRST ROW OF THE LIST.
      *
-     * It used to float above the dock, which cost it twice: it permanently
-     * covered about two rows of the list, and the dock then covered part of
-     * IT, so the button was half buried. Neither was a spacing value that
-     * could be tuned — a floating element over a scrolling list will always
-     * hide whatever is under it.
+     * It was a rounded card floating above a list of edge-to-edge rows, which
+     * is what made it look imported from another screen: the one boxed object
+     * on a page that has no other boxes. Before that it was pinned over the
+     * dock, where it permanently covered about two rows.
      *
-     * In the flow it hides nothing, and it scrolls away with the rest of the
-     * header, so it is there when you arrive and gone once you are reading.
-     * It also lands where it belongs: this is the one thing on the page about
-     * YOU, and it now sits with the title rather than inside a list of other
-     * people. The fade went with the pinning — there is nothing to dissolve
-     * into when nothing is floating.
+     * So it is a row now, built from the SAME `styles.row` the people below
+     * use. That is not a resemblance, it is the same style object, so the two
+     * cannot drift apart. And it says the true thing: this page is people who
+     * can be found, and you are one of them. Tapping you opens your card
+     * exactly as tapping Sofia opens Sofia's.
+     *
+     * What separates you from them is deliberately small: a ring on your
+     * avatar, your name in the accent, and a state dot. Anything louder and
+     * you stop being a row.
      */
+    // Live, or a reason it is not. Never the ONLY carrier of that difference:
+    // the line says "Listed" or "Not listed" in words, so the dot is
+    // reinforcement rather than information somebody could miss.
+    const dotColor = blocked || !listed
+      ? colors.text.disabled
+      : warn
+        ? colors.feedback.warning
+        : colors.feedback.success;
+
     return (
-      <View style={styles.barWrap}>
-        <PressableScale
-          scaleTo={0.995}
-          // Nothing to open while blocked: the card does not exist yet, so the
-          // only thing to do is the button's job.
-          onPress={blocked ? runAction : () => setPickingTags(true)}
-          disabled={!!blocked && !fix}
-          accessibilityRole="button"
-          accessibilityLabel={
-            blocked
-              ? `${title}. ${blocked}`
-              : listed
-                ? `Your card says ${saysFull}. Change it.`
-                : `You are not listed. Your card would say ${saysFull}.`
-          }
-          style={[
-            styles.bar,
-            {
-              backgroundColor: colors.surface.elevated,
-              borderColor: warn
-                ? withAlpha(colors.feedback.warning, 0.4)
-                : withAlpha(colors.action.primary, 0.3),
-            },
-          ]}
-        >
-          {/* The avatar stays in every state. It is the same object reporting
-              on the same thing, and swapping it for a warning glyph when
-              something is wrong would make it a different bar. The tone lives
-              in the rim and in the words. */}
-          <UserAvatar manifest={user?.avatarManifest} size={34} shape="square" />
-          <View style={styles.barText}>
-            <Text variant="bodySm" numberOfLines={1} style={styles.barTitle}>
-              {title}
+      <PressableScale
+        scaleTo={0.99}
+        // Nothing to open while blocked: the card does not exist yet, so the
+        // only thing to do is whatever the block's fix is.
+        onPress={blocked ? runAction : () => setPickingTags(true)}
+        disabled={(!!blocked && !fix) || listing}
+        accessibilityRole="button"
+        accessibilityLabel={
+          blocked
+            ? `You. ${state}. ${blocked}`
+            : listed
+              ? `You. Your card says ${saysFull}. Change it.`
+              : `You. Not listed. Your card would say ${saysFull}.`
+        }
+        style={[styles.row, { borderBottomColor: colors.border.hairline }]}
+      >
+        {/* The ring is the whole of "this one is you". It holds the row's 40pt
+            footprint rather than growing past it, so your text column starts
+            on the same x as everybody else's: a 32pt avatar with the ring and
+            its inset making up the difference. */}
+        <View style={[styles.youRing, { borderColor: colors.action.primary }]}>
+          <UserAvatar manifest={user?.avatarManifest} size={32} shape="square" />
+        </View>
+
+        <View style={styles.rowText}>
+          <View style={styles.youNameRow}>
+            {/* `title`, the same variant a person's name uses. The accent is
+                the only difference, and it is doing the job the word "You"
+                cannot do on its own at a glance. */}
+            <Text variant="title" color="accent" numberOfLines={1}>
+              You
             </Text>
-            {/* Two lines. The short states never reach the second one; the
-                server's sentences need it. */}
-            <Text variant="caption" color="tertiary" numberOfLines={2}>
-              {sub}
-            </Text>
+            <View style={[styles.youDot, { backgroundColor: dotColor }]} />
           </View>
-          {action ? (
-            <Button
-              label={action}
-              variant={blocked || listed ? "secondary" : "primary"}
-              size="sm"
-              fullWidth={false}
-              disabled={listing}
-              onPress={runAction}
-            />
-          ) : null}
-        </PressableScale>
-      </View>
+          <Text variant="bodySm" color="tertiary" numberOfLines={2}>
+            {sub}
+          </Text>
+        </View>
+
+        {/* `Asked` sits here on a person's row. Yours carries the one word for
+            what tapping will do, in the same slot, at the same size. */}
+        {action ? (
+          <Text variant="caption" color="accent" style={styles.rowAsked}>
+            {action}
+          </Text>
+        ) : null}
+
+        <Icon
+          name={icons.chevronRight}
+          size={size.iconSm}
+          color={colors.text.tertiary}
+          style={styles.chevron}
+        />
+      </PressableScale>
     );
   };
 
@@ -893,19 +923,26 @@ const styles = StyleSheet.create({
     gap: space.groupGap,
   },
   consent: { gap: spacing.md },
-  // ── The pinned status bar ────────────────────────────────────────────────
-  // In the flow, directly under the switcher and above the list.
-  barWrap: { marginBottom: space.rowGap },
-  bar: {
-    flexDirection: "row",
+  // ── You, as the first row ────────────────────────────────────────────────
+  // No styles of its own for the row itself: it uses `styles.row` below, which
+  // is the people's. These three are only the marks that say which row is you.
+  //
+  // 40 outside, so the row's avatar column is the same width as everybody
+  // else's and the text lines up. 2 of border and 2 of inset leave the avatar
+  // itself at 32.
+  youRing: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: borderWidth.thick,
+    padding: 2,
     alignItems: "center",
-    gap: space.iconText,
-    padding: space.rowGap,
-    borderRadius: radius.card,
-    borderWidth: borderWidth.hairline,
+    justifyContent: "center",
   },
-  barText: { flex: 1, minWidth: 0, gap: space.titleSub },
-  barTitle: { fontFamily: fonts.bold },
+  youNameRow: { flexDirection: "row", alignItems: "center", gap: space.inlineGap },
+  // 7, not 8: an even dot beside this type sat a hair proud of the cap height
+  // and read as a bullet point rather than a status light.
+  youDot: { width: 7, height: 7, borderRadius: 4 },
   list: { gap: spacing.sm },
 
   // ── The spotlight ────────────────────────────────────────────────────────

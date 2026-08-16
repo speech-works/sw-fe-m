@@ -89,6 +89,32 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
    */
   const atCap = picked.length >= MAX_DISCOVERY_TAGS;
 
+  /**
+   * WHAT THE BUTTON WILL ACTUALLY DO.
+   *
+   * It said "Done", and "Done" was the honest word for it while the label was
+   * fixed: this one press commits BOTH halves, so its outcome genuinely
+   * differs. Turning the switch on puts you in front of strangers; turning it
+   * off takes you out; leaving it alone just saves your tags. One word cannot
+   * be true for all three, so the word follows the switch.
+   *
+   * That also gives the switch the confirmation it was missing. It commits on
+   * Done rather than on flip, which is right and matches Settings, but it left
+   * nothing on screen saying what the flip would do. Now the button changes
+   * under your thumb the moment you touch it.
+   *
+   * The nouns are the sheet's own: it already says "You're in the list right
+   * now" and the row that opens it says "Listed". Nothing new to learn.
+   */
+  const commitLabel =
+    on && !listed
+      ? "Put me in the list"
+      : !on && listed
+        // Short and undramatic on purpose. Leaving is not a punishment and
+        // does not get warning language.
+        ? "Take me out"
+        : "Save my card";
+
   const toggle = (tag: string) =>
     setPicked((prev) => {
       if (prev.includes(tag)) return prev.filter((t) => t !== tag);
@@ -147,13 +173,14 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
       onClose={onClose}
       title="Your card"
       // The same close affordance every other sheet in the app carries. Without
-      // it the only ways out were the backdrop and "Done", and "Done" reads as
-      // a commitment — so backing out of a picker you opened by mistake meant
-      // either guessing at the backdrop or saving something you did not mean to.
+      // it the only ways out were the backdrop and the commit button, and that
+      // button now names a consequence out loud, so backing out of a picker you
+      // opened by mistake would mean either guessing at the backdrop or doing
+      // the very thing you came to avoid.
       right={<IconButton name={icons.close} onPress={onClose} accessibilityLabel="Close" />}
       // Pinned, not the last thing in the list. Thirteen chips over two
-      // questions are taller than the sheet, so a Done button at the end of the
-      // content is only found by whoever scrolls to the bottom — and the count
+      // questions are taller than the sheet, so a commit button at the end of
+      // the content is only found by whoever scrolls to the bottom — and the count
       // that explains the cap went down there with it. `Sheet` floats this over
       // a fade in its own colour, so the list visibly carries on behind it.
       footer={
@@ -164,7 +191,7 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
               : `${picked.length} of ${MAX_DISCOVERY_TAGS} chosen`}
           </Text>
           <Button
-            label={saving ? "Saving…" : "Done"}
+            label={saving ? "Saving…" : commitLabel}
             disabled={saving}
             onPress={() => onSave(on, picked)}
           />
@@ -177,8 +204,8 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
             lived in Settings under a name nobody would think to look for. A
             switch you can turn on and not off is not a switch.
 
-            It commits with Done rather than on flip, matching the Settings
-            screen it mirrors — one mental model for the same control in two
+            It commits with the button rather than on flip, matching the
+            Settings screen it mirrors — one mental model for the same control in two
             places. Disabled while the server would refuse the write anyway,
             with the reason underneath, so it is never a silent no-op. */}
         <View style={[styles.listing, { borderBottomColor: colors.border.default }]}>
@@ -215,7 +242,7 @@ export default TagPickerSheet;
 const styles = StyleSheet.create({
   // NO horizontal padding. `Sheet` already puts `space.screenX` on its content,
   // and adding another gutter here put the body at 32 while the pinned footer
-  // sat on the sheet's real gutter of 16 — so Done was visibly out of line with
+  // sat on the sheet's real gutter of 16 — so the button was visibly out of line with
   // every chip above it.
   body: {
     paddingBottom: space.sectionGap,

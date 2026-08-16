@@ -86,6 +86,12 @@ export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
         <TabDock
           inline
           fitContent
+          // Both halves named. The icons are a person-plus and a magnifier, and
+          // neither is a word: with only the active tab labelled you could not
+          // read the half you were not on. It also holds the capsule at one
+          // width, which it was not while "Waiting" and "Discover" took turns
+          // being the only label in it.
+          labelAll
           accessibilityLabel="People page tabs"
           items={[
             { key: "waiting", label: "Waiting", icon: icons.addPerson, pillCount: waitingCount },

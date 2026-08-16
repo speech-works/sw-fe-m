@@ -65,8 +65,36 @@ export interface TabDockProps {
   onLongPress?: (key: string) => void;
   /** Hug the tabs instead of filling the width (for in-page docks). */
   fitContent?: boolean;
-  /** Render in normal flow (e.g. inside a header) instead of floating at the bottom. */
+  /**
+   * Render in normal flow (e.g. inside a header) instead of floating at the
+   * bottom — and, with it, the COMPACT geometry: a 56pt capsule around a 44pt
+   * pill instead of 70 around 48.
+   *
+   * The size is part of what `inline` means rather than a separate flag. The
+   * floating dock is 70 tall because it is a bar hovering over a screen and has
+   * to hold its own against everything behind it. A switcher sitting in a
+   * header is not competing with anything, and at 70 it read as the bottom nav
+   * dropped at the top of the page: same fill, same radius, same pill, one
+   * sixth of an SE screen spent before any content.
+   */
   inline?: boolean;
+  /**
+   * Name every tab, not just the active one.
+   *
+   * Icon-only inactive tabs are right for the bottom nav, which has four fixed
+   * destinations you learn once. They are wrong for a two-way in-page switcher,
+   * where the icon IS the label and you cannot read the half you are not on: a
+   * person-plus glyph is not the word "Waiting".
+   *
+   * It also stops the capsule resizing on every tap. `fitContent` hugs its
+   * content, so with one label showing at a time the control grows and shrinks
+   * by a whole word as you switch.
+   *
+   * OPT-IN, because it costs width. Three labelled tabs at 56pt measure about
+   * 348pt and an SE's content box is 343, so the crowded cases (and anything
+   * `scrollable`) must keep the icon-only treatment.
+   */
+  labelAll?: boolean;
   /** Horizontally scroll the tabs and keep the SELECTED tab centered — for docks
    *  with more tabs than fit on screen (e.g. the avatar studio's 8 slots), so no
    *  tab is ever stranded at the edge. Opt-in; the bottom nav never sets it. */
@@ -91,6 +119,7 @@ export const TabDock: React.FC<TabDockProps> = ({
   onLongPress,
   fitContent = false,
   inline = false,
+  labelAll = false,
   scrollable = false,
   accessibilityLabel,
   surfaceColor,
@@ -135,6 +164,7 @@ export const TabDock: React.FC<TabDockProps> = ({
       }
       style={[
         styles.bar,
+        inline ? styles.barInline : styles.barFloating,
         fitContent ? styles.barFit : styles.barFull,
         { backgroundColor: surfaceColor ?? colors.surface.elevated, shadowColor: colors.shadow },
         !inline && elevation.e3,
@@ -153,6 +183,8 @@ export const TabDock: React.FC<TabDockProps> = ({
           badgeDot={item.badgeDot ?? false}
           pillCount={item.pillCount ?? 0}
           fitContent={fitContent}
+          inline={inline}
+          labelAll={labelAll}
           reduceMotion={reduceMotion}
           onPress={() => onSelect(item.key)}
           onLongPress={onLongPress ? () => onLongPress(item.key) : undefined}
@@ -209,6 +241,8 @@ interface DockItemProps {
   badgeDot: boolean;
   pillCount: number;
   fitContent: boolean;
+  inline: boolean;
+  labelAll: boolean;
   reduceMotion: boolean;
   onPress: () => void;
   onLongPress?: () => void;
@@ -224,6 +258,8 @@ const DockItem: React.FC<DockItemProps> = ({
   badgeDot,
   pillCount,
   fitContent,
+  inline,
+  labelAll,
   reduceMotion,
   onPress,
   onLongPress,
@@ -241,16 +277,31 @@ const DockItem: React.FC<DockItemProps> = ({
   // beside the word it qualifies); the corner takes over the moment the pill
   // closes, because the chip's half of the pill no longer exists.
   const chipText = pillCount > 9 ? "9+" : String(pillCount);
-  const chipShowing = isFocused && pillCount > 0;
+  // A NAMED TAB KEEPS ITS COUNT WHILE RESTING. On the floating dock the chip
+  // lives in the half of the pill that only exists when open, so it has to go
+  // when the pill closes. A named tab's pill never closes, and "5 people are
+  // waiting" is the most useful thing on this page precisely when you are
+  // looking at the other half of it. Holding it also finishes the job the
+  // labels started: with the chip coming and going the capsule still resized by
+  // its width on every switch.
+  const chipShowing = pillCount > 0 && (labelAll || isFocused);
   const showCorner = !chipShowing;
+  // Unselected takes the same solid `surface.control` plate the DS Chip uses
+  // when it is not selected, rather than a wash — one convention for "a small
+  // plate at rest" across the app.
+  const chipRestPlate = colors.surface.control;
+  const chipActivePlate = withAlpha(activeContentColor, 0.16);
   // 2 glyphs at most, so an estimate is exact enough and costs no measuring pass.
   const chipWidth = chipText.length * 9 + 16;
 
   const [labelWidth, setLabelWidth] = useState(0);
   // Estimate until the real width is measured, so the active label never pops in at 0.
-  // +12 headroom so the exact-width wrapper can never hairline-clip the glyphs or show ellipsis.
+  // Headroom so the exact-width wrapper can never hairline-clip the glyphs or show
+  // ellipsis. 12 for the animated case, where the wrapper is being interpolated and
+  // the label is scaling inside it; 4 is enough once both are static, and width is
+  // the scarce resource on a control that has to name every tab.
   const targetWidth = labelWidth
-    ? labelWidth + 12
+    ? labelWidth + (labelAll ? 4 : 12)
     : Math.round(label.length * 10);
 
   const v = useDerivedValue(
@@ -265,23 +316,58 @@ const DockItem: React.FC<DockItemProps> = ({
   const pillStyle = useAnimatedStyle(() => ({
     // Clamp the colour input so spring overshoot can't push it past the fill.
     backgroundColor: interpolateColor(Math.min(1, Math.max(0, v.value)), [0, 1], ["transparent", activeColor]),
-    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [0, 18])),
+    // A named inactive tab keeps padding, or its label would run into the
+    // capsule's edge and into its neighbour. Only the icon-only treatment can
+    // collapse to nothing.
+    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [labelAll ? 14 : 0, 18])),
   }));
-  const textWrapperStyle = useAnimatedStyle(() => ({
+  const textWrapperStyle = useAnimatedStyle(() => {
+    // Named tabs hold their width open at all times: this wrapper is the thing
+    // that used to animate 0 → label, which is exactly what made the capsule
+    // grow and shrink by a word on every tap.
+    if (labelAll) return { width: targetWidth, marginLeft: 8, opacity: 1 };
     // max(0, …) absorbs spring undershoot so width/margin never go negative.
-    width: Math.max(0, interpolate(v.value, [0, 1], [0, targetWidth])),
-    marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 8])),
-    opacity: Math.max(0, Math.min(1, v.value)),
-  }));
+    return {
+      width: Math.max(0, interpolate(v.value, [0, 1], [0, targetWidth])),
+      marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 8])),
+      opacity: Math.max(0, Math.min(1, v.value)),
+    };
+  });
   const textStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(v.value, [0, 1], [0.85, 1]) }],
+    // The scale is the label's ENTRANCE: it grows in as the pill opens around
+    // it. A permanent label has no entrance, and leaving this on left every
+    // resting tab's word rendered at 85%, so the two halves of the switcher
+    // were set in visibly different sizes.
+    transform: [{ scale: labelAll ? 1 : interpolate(v.value, [0, 1], [0.85, 1]) }],
+  }));
+  // TWO COPIES OF THE LABEL, CROSSFADED — the same thing the icon above already
+  // does, and for the same reason: `onActive` is near-black, which is legible on
+  // the orange fill and invisible the moment the fill is not there. Crossfading
+  // two Texts keeps the colour change on the same spring as the pill, without
+  // animating a colour through a component that does not take an animated one.
+  const labelActiveStyle = useAnimatedStyle(() => ({
+    opacity: labelAll ? Math.max(0, Math.min(1, v.value)) : 1,
+  }));
+  const labelRestStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(0, Math.min(1, 1 - v.value)),
   }));
   // Rides the same `v` as the label, so the count arrives WITH the word it
   // belongs to instead of chasing it.
-  const chipStyle = useAnimatedStyle(() => ({
-    width: Math.max(0, interpolate(v.value, [0, 1], [0, chipWidth])),
-    marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 8])),
-    opacity: Math.max(0, Math.min(1, v.value)),
+  const chipStyle = useAnimatedStyle(() => {
+    if (labelAll) return { width: chipWidth, marginLeft: 8, opacity: 1 };
+    return {
+      width: Math.max(0, interpolate(v.value, [0, 1], [0, chipWidth])),
+      marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 8])),
+      opacity: Math.max(0, Math.min(1, v.value)),
+    };
+  });
+  // The plate follows the pill it sits in, on the same spring.
+  const chipPlateStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      Math.min(1, Math.max(0, v.value)),
+      [0, 1],
+      [chipRestPlate, chipActivePlate],
+    ),
   }));
   const inactiveIconStyle = useAnimatedStyle(() => ({ position: "absolute", opacity: 1 - v.value }));
   const activeIconStyle = useAnimatedStyle(() => ({ opacity: v.value, position: "absolute" }));
@@ -307,10 +393,10 @@ const DockItem: React.FC<DockItemProps> = ({
         // Reports to the dead-tap detector that this touch reached a control.
         onPressIn={notePress}
         activeOpacity={0.7}
-        // The bar is 70 tall with 8 of padding, so a tab only occupies the 54
-        // content box — the top and bottom 8dp resolved to the bar itself,
-        // which has no press handler, and silently ate those taps. hitSlop
-        // reclaims them without changing any layout.
+        // A tab only occupies the bar's content box (54 floating, 44 inline) —
+        // the padding band above and below resolved to the bar itself, which
+        // has no press handler, and silently ate those taps. hitSlop reclaims
+        // them without changing any layout, and 8 covers either padding.
         hitSlop={{ top: 8, bottom: 8 }}
         style={fitContent ? styles.touchableFit : styles.touchable}
         accessibilityRole="tab"
@@ -325,7 +411,7 @@ const DockItem: React.FC<DockItemProps> = ({
                 : label
         }
       >
-        <Animated.View style={[styles.pill, pillStyle]}>
+        <Animated.View style={[styles.pill, inline && styles.pillInline, pillStyle]}>
           <View style={styles.iconBox}>
             <Animated.View style={inactiveIconStyle}>
               <Icon name={iconName} size={size.tabIcon} color={inactiveColor} />
@@ -353,9 +439,21 @@ const DockItem: React.FC<DockItemProps> = ({
 
           <Animated.View style={[styles.textWrapper, textWrapperStyle]}>
             <Animated.View style={textStyle}>
-              <Text variant="bodySm" color={activeContentColor} numberOfLines={1} ellipsizeMode="clip" style={styles.label}>
-                {label}
-              </Text>
+              <Animated.View style={labelActiveStyle}>
+                <Text variant="bodySm" color={activeContentColor} numberOfLines={1} ellipsizeMode="clip" style={styles.label}>
+                  {label}
+                </Text>
+              </Animated.View>
+              {labelAll ? (
+                <Animated.View
+                  style={[StyleSheet.absoluteFill, styles.labelRest, labelRestStyle]}
+                  pointerEvents="none"
+                >
+                  <Text variant="bodySm" color={inactiveColor} numberOfLines={1} ellipsizeMode="clip" style={styles.label}>
+                    {label}
+                  </Text>
+                </Animated.View>
+              ) : null}
             </Animated.View>
           </Animated.View>
 
@@ -368,17 +466,39 @@ const DockItem: React.FC<DockItemProps> = ({
               an error. */}
           {pillCount > 0 ? (
             <Animated.View style={[styles.chipWrapper, chipStyle]}>
-              <View style={[styles.chip, { backgroundColor: withAlpha(activeContentColor, 0.16) }]}>
-                <Text
-                  variant="caption"
-                  color={activeContentColor}
-                  numberOfLines={1}
-                  ellipsizeMode="clip"
-                  style={styles.chipText}
-                >
-                  {chipText}
-                </Text>
-              </View>
+              <Animated.View style={[styles.chip, chipPlateStyle]}>
+                <Animated.View style={labelActiveStyle}>
+                  <Text
+                    variant="caption"
+                    color={activeContentColor}
+                    numberOfLines={1}
+                    ellipsizeMode="clip"
+                    style={styles.chipText}
+                  >
+                    {chipText}
+                  </Text>
+                </Animated.View>
+                {labelAll ? (
+                  // Same two-copy crossfade as the label above: the digit has to
+                  // go from near-black on orange to white on the rest plate, and
+                  // it must do it on the same spring as everything else in the
+                  // pill or the swap reads as three separate events.
+                  <Animated.View
+                    style={[StyleSheet.absoluteFill, styles.labelRest, labelRestStyle]}
+                    pointerEvents="none"
+                  >
+                    <Text
+                      variant="caption"
+                      color={colors.text.primary}
+                      numberOfLines={1}
+                      ellipsizeMode="clip"
+                      style={styles.chipText}
+                    >
+                      {chipText}
+                    </Text>
+                  </Animated.View>
+                ) : null}
+              </Animated.View>
             </Animated.View>
           ) : null}
 
@@ -441,9 +561,21 @@ const styles = StyleSheet.create({
   },
   bar: {
     flexDirection: "row",
+  },
+  // The floating nav: a bar hovering over a whole screen, sized to hold its own
+  // against it.
+  barFloating: {
     borderRadius: 35,
     height: 70,
     padding: 8,
+  },
+  // In a header, where it is competing with nothing. Radius stays exactly half
+  // the height, so the capsule is the same shape at both sizes rather than a
+  // differently-rounded rectangle.
+  barInline: {
+    borderRadius: 28,
+    height: 56,
+    padding: 6,
   },
   barFull: {
     width: "100%",
@@ -478,6 +610,19 @@ const styles = StyleSheet.create({
     height: 48,
     minWidth: 48,
     alignSelf: "center",
+  },
+  // 44, which is the touch minimum exactly — it is the floor, not a preference,
+  // so the compact capsule cannot shrink any further than this.
+  pillInline: {
+    height: 44,
+    minWidth: 44,
+  },
+  // The resting label, stacked on the active one and revealed as the fill goes.
+  // Centred both ways so the two copies sit on precisely the same baseline; any
+  // offset between them would show up as the word jittering during the swap.
+  labelRest: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconBox: {
     width: 24,
