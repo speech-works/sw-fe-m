@@ -39,7 +39,12 @@ export { Button } from "./Button";
 export type { ButtonProps } from "./Button";
 export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
-export { FloatingControls, FLOATING_CONTROL_SIZE, floatingControlSurface } from "./FloatingControls";
+export {
+  FloatingControls,
+  FLOATING_CONTROL_SIZE,
+  floatingControlSurface,
+  FLOATING_CONTROL_SHADOW,
+} from "./FloatingControls";
 export type {
   FloatingControlsProps,
   FloatingControlItem,

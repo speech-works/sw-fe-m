@@ -21,6 +21,7 @@ import PressableScale from "../../components/PressableScale";
 import {
   AnimatedNumber,
   borderWidth,
+  castShadow,
   easing,
   Gradient,
   Icon,
@@ -416,7 +417,10 @@ const BuyButton: React.FC<BuyButtonProps> = ({
       disabled={loading}
       style={[
         styles.buyCta,
-        { backgroundColor: colors.action.primary, shadowColor: colors.action.primary },
+        { backgroundColor: colors.action.primary },
+        // Brand-coloured lift under the buy CTA. `blur: 24` is the CSS form of
+        // the `shadowRadius: 12` this used to carry.
+        castShadow(colors.action.primary, { y: 4, blur: 24, alpha: 0.5, elevation: 8 }),
         primaryEdge(colors),
       ]}
     >
@@ -1031,10 +1035,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: radius.pill,
     alignSelf: "stretch",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
+    // Shadow applied inline via `castShadow` — it is the brand hue, not a
+    // static colour, and the legacy shadow* props never reached Android.
   },
   buyClip: {
     flex: 1,

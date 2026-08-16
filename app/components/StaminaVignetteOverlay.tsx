@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { triggerHeartbeatHaptic } from "../util/functions/haptics";
-import { useTheme } from "../design-system";
+import { castShadow, useTheme } from "../design-system";
 
 const PULSE_COUNT = 3;
 const PULSE_IN = 850;
@@ -66,7 +66,10 @@ const StaminaVignetteOverlay: React.FC = () => {
       <View
         style={[
           styles.borderRing,
-          { borderRadius: CORNER_RADIUS, borderColor: colors.action.primary, shadowColor: colors.action.primary },
+          { borderRadius: CORNER_RADIUS, borderColor: colors.action.primary },
+          // Full alpha is deliberate — this is a pulsing alert glow, not a
+          // resting shadow. `blur: 30` is the CSS form of `shadowRadius: 15`.
+          castShadow(colors.action.primary, { blur: 30, alpha: 1, elevation: 8 }),
         ]}
       />
     </Animated.View>
@@ -81,10 +84,8 @@ const styles = StyleSheet.create({
   borderRing: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 4, // Stronger boundary (colour applied inline from the theme)
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15, // Maximize glowing effect
-    elevation: 8, // Adds Android shadow support
+    // The glow is applied inline via `castShadow` — it needs the theme colour,
+    // and the legacy shadow* props here never reached Android at all.
   },
 });
 

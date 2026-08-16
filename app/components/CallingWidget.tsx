@@ -35,7 +35,7 @@ import * as Localization from "expo-localization";
 
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
-import { size, typography, Icon, icons, fonts, makeStyles, useTheme, withAlpha, radius, spacing } from "../design-system";
+import { size, typography, Icon, icons, fonts, makeStyles, useTheme, withAlpha, radius, spacing, castShadow, noShadow } from "../design-system";
 import { callerGlyph } from "../util/callerGlyph";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
@@ -3834,32 +3834,23 @@ const useStyles = makeStyles((c) => ({
     // No negative margin - fits inside the pill gracefully or slightly overlapping
     borderWidth: 0, // Removed thick stroke for a cleaner look
   },
+  // Accent-coloured glows. `blur` is the CSS form of the `shadowRadius` these
+  // used to carry (roughly double it) — the old props were iOS-only, so on
+  // Android the tint arrived at full strength with no blur at all.
   startCallButton: {
     backgroundColor: c.accent.success,
-    shadowColor: c.accent.success,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    ...castShadow(c.accent.success, { y: 4, blur: 24, alpha: 0.4, elevation: 6 }),
   },
   endCallButton: {
     backgroundColor: c.accent.danger,
-    shadowColor: c.accent.danger,
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
+    ...castShadow(c.accent.danger, { y: 6, blur: 32, alpha: 0.6, elevation: 10 }),
   },
   activeCallButtonGlow: {
-    shadowColor: c.accent.danger,
-    shadowOpacity: 0.8,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    ...castShadow(c.accent.danger, { y: 8, blur: 48, alpha: 0.8, elevation: 12 }),
   },
   disabledButton: {
     backgroundColor: c.surface.control, // Glassy disabled state
-    shadowOpacity: 0,
+    ...noShadow,
   },
   notificationBadgeModern: {
     position: "absolute",
@@ -3873,11 +3864,7 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.background.canvas, // Match bg
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: c.accent.danger,
-    shadowOpacity: 0.7,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 6,
+    ...castShadow(c.accent.danger, { y: 2, blur: 16, alpha: 0.7, elevation: 6 }),
   },
   notificationBadgeText: {
     color: c.accentOn.danger,
@@ -3937,11 +3924,7 @@ const useStyles = makeStyles((c) => ({
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: radius.chip,
-    shadowColor: c.action.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    ...castShadow(c.action.primary, { y: 4, blur: 24, alpha: 0.4, elevation: 6 }),
   },
   promptButtonSecondary: {
     paddingVertical: 12,

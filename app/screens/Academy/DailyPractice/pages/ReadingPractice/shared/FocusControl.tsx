@@ -8,6 +8,8 @@ import {
   Icon,
   icons,
   FLOATING_CONTROL_SIZE,
+  FLOATING_CONTROL_SHADOW,
+  castShadow,
   floatingControlSurface,
   makeStyles,
   onColor,
@@ -66,8 +68,8 @@ export function FocusControl({
             // Active fills with the accent (state is obvious); inactive is a quiet
             // surface with an accent icon — matching the other floating controls.
             backgroundColor: active ? accent : colors.surface.elevated,
-            shadowColor: colors.shadow,
           },
+          castShadow(colors.shadow, FLOATING_CONTROL_SHADOW),
         ]}
       >
         <Icon name={icons.focus} size={size.icon} color={active ? onAccent : accent} />

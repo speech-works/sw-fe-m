@@ -3,6 +3,7 @@ import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-
 import { useTheme } from "../useTheme";
 import { useNavBarInset } from "../useNavBarInset";
 import { spacing, size } from "../primitives/scale";
+import { castShadow, type CastShadowSpec } from "../elevation";
 import { Icon, IconName } from "./Icon";
 
 /** Fixed offset of the control slot from the screen bottom — clears the global
@@ -16,9 +17,19 @@ export const FLOATING_CONTROL_SIZE = 46;
 export const floatingControlSurface: ViewStyle = {
   width: FLOATING_CONTROL_SIZE,
   borderRadius: 14,
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 8,
+};
+
+/**
+ * The shadow those controls cast. It can't live in the style above because its
+ * colour is a theme role resolved at render time — every consumer pairs the
+ * surface with `castShadow(colors.shadow, FLOATING_CONTROL_SHADOW)`.
+ *
+ * `blur: 16` is the CSS form of the `shadowRadius: 8` this used to carry.
+ */
+export const FLOATING_CONTROL_SHADOW: CastShadowSpec = {
+  y: 4,
+  blur: 16,
+  alpha: 0.3,
   elevation: 6,
 };
 
@@ -105,10 +116,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
             key={i}
             style={[
               styles.control,
-              {
-                backgroundColor: item.accentColor ?? colors.action.primary,
-                shadowColor: colors.shadow,
-              },
+              { backgroundColor: item.accentColor ?? colors.action.primary },
+              castShadow(colors.shadow, FLOATING_CONTROL_SHADOW),
             ]}
             activeOpacity={0.85}
             onPress={item.onPress}

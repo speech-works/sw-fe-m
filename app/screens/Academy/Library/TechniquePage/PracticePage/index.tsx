@@ -34,6 +34,8 @@ import {
   FloatingControlItem,
   floatingControlSurface,
   FLOATING_CONTROL_SIZE,
+  FLOATING_CONTROL_SHADOW,
+  castShadow,
   useNavBarInset,
 } from "../../../../../design-system";
 import { useAppBackgrounded } from "../../../../../hooks/useAppBackgrounded";
@@ -397,7 +399,8 @@ const PracticePage = ({
         <View
           style={[
             styles.pager,
-            { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+            { backgroundColor: colors.surface.elevated },
+            castShadow(colors.shadow, FLOATING_CONTROL_SHADOW),
           ]}
         >
           <PressableScale

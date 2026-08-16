@@ -37,6 +37,8 @@ import {
   FloatingControlItem,
   floatingControlSurface,
   FLOATING_CONTROL_SIZE,
+  FLOATING_CONTROL_SHADOW,
+  castShadow,
   IconButton,
   useNavBarInset,
 } from "../../../../../../design-system";
@@ -206,7 +208,8 @@ export function ReadingStage({
           <View
             style={[
               styles.pager,
-              { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+              { backgroundColor: colors.surface.elevated },
+              castShadow(colors.shadow, FLOATING_CONTROL_SHADOW),
             ]}
           >
             <PressableScale
