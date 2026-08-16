@@ -897,8 +897,27 @@ const Community = () => {
   /** Measured once, and reserved at the top of BOTH halves — see below. */
   const [peopleHeaderHeight, setPeopleHeaderHeight] = useState(0);
   const lastPeopleY = useRef(0);
+  /**
+   * How far the header has been scrolled away.
+   *
+   * The header is a fixed overlay so a horizontal swipe cannot drag it
+   * sideways, and it is DRIVEN by the scroll offset so a vertical scroll still
+   * carries it off the top exactly as an in-flow header would. Both halves of
+   * that matter: without the overlay the whole page slid on a swipe, and
+   * without the travel the switcher would sit in the header and in the dock at
+   * the same time, which is two controls for one job.
+   */
+  const peopleHeaderY = useSharedValue(0);
+  /** Each half's own offset, so the header can meet the one you land on. */
+  const peoplePageY = useRef([0, 0]);
   const handlePeopleScroll = useCallback(
-    (y: number) => {
+    (page: number, y: number) => {
+      peoplePageY.current[page] = y;
+      // Only the half you are looking at moves the header. The other one can
+      // still be emitting the tail of a fling.
+      const active = useCommunityDock.getState().people === "discover" ? 1 : 0;
+      if (page !== active) return;
+      peopleHeaderY.value = y;
       const prev = lastPeopleY.current;
       lastPeopleY.current = y;
       if (!peopleCue || screenReaderRef.current) return;
@@ -908,8 +927,44 @@ const Community = () => {
         setDockMode("nav");
       }
     },
-    [peopleCue, setDockMode],
+    [peopleCue, peopleHeaderY, setDockMode],
   );
+
+  /**
+   * Landing on the other half.
+   *
+   * Its list is at its own offset, which is usually not the one the header is
+   * currently sitting at — swipe away from a scrolled list to one at the top
+   * and the header would be off-screen above a page that starts at the top.
+   * So it travels to meet the new half. Visible motion by design: the switcher
+   * coming back is what tells you this list starts from the beginning.
+   */
+  const settlePeopleHeader = useCallback(
+    (page: number) => {
+      const y = peoplePageY.current[page] ?? 0;
+      lastPeopleY.current = y;
+      peopleHeaderY.value = reduceMotion
+        ? y
+        : withTiming(y, { duration: duration.base, easing: easing.inOut });
+      // The cue is edge-triggered on scrolling, and this is not a scroll — so
+      // the mode is set outright from where the new half happens to be.
+      if (peopleCue && !screenReaderRef.current) {
+        setDockMode(y > peopleCue ? "tabs" : "nav");
+      }
+    },
+    [peopleCue, peopleHeaderY, reduceMotion, setDockMode],
+  );
+
+  const peopleHeaderStyle = useAnimatedStyle(() => ({
+    // Clamped at its own height: past that it is fully off screen anyway, and
+    // an unclamped value would keep it away for a whole fling's worth of
+    // scrolling back up.
+    transform: [
+      {
+        translateY: -Math.min(Math.max(peopleHeaderY.value, 0), peopleHeaderHeight),
+      },
+    ],
+  }));
 
   const peoplePagerRef = useRef<ScrollView>(null);
   // The dock and the in-page switcher both write `people`; the pager has to
@@ -935,7 +990,7 @@ const Community = () => {
    * screen; the halves reserve its measured height and start at zero.
    */
   const renderPeopleFixedHeader = () => (
-    <View
+    <Animated.View
       style={[
         styles.fixedHeader,
         {
@@ -943,6 +998,7 @@ const Community = () => {
           paddingTop: insets.top + space.inlineGap,
           paddingHorizontal: space.screenX,
         },
+        peopleHeaderStyle,
       ]}
       onLayout={(e) => setPeopleHeaderHeight(e.nativeEvent.layout.height)}
     >
@@ -953,7 +1009,7 @@ const Community = () => {
         onBack={closePeople}
         onCueLayout={setPeopleCue}
       />
-    </View>
+    </Animated.View>
   );
 
   const peopleHeaderPlaceholder = <View style={{ height: peopleHeaderHeight }} />;
@@ -993,10 +1049,11 @@ const Community = () => {
         onMomentumScrollEnd={(e) => {
           const i = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
           setPeople(i === 0 ? "waiting" : "discover");
+          settlePeopleHeader(i);
         }}
       >
         <View style={{ width: screenWidth }}>
-          <CustomScrollView onScrollY={handlePeopleScroll}>
+          <CustomScrollView onScrollY={(y: number) => handlePeopleScroll(0, y)}>
             <View
               style={[
                 styles.requestsBody,
@@ -1026,12 +1083,23 @@ const Community = () => {
           <Discover
             embedded
             header={peopleHeaderPlaceholder}
-            onScrollY={handlePeopleScroll}
+            onScrollY={(y: number) => handlePeopleScroll(1, y)}
           />
         </View>
       </ScrollView>
 
       {renderPeopleFixedHeader()}
+
+      {/* Opaque cap, LAST so it paints over the header as well as the list.
+          The header travels, so both of them pass through this band on the way
+          out and both would otherwise run through the system clock. */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.statusCap,
+          { height: insets.top, backgroundColor: colors.background.canvas },
+        ]}
+      />
     </ScreenView>
   );
 
