@@ -5,7 +5,10 @@ import { FormConfiguration, PackModule } from "../../../api/packs/types";
 import { PackContext } from "../../../utils/packActivityNavigation";
 
 export type ExploreStackParamList = {
-  Explore: undefined;
+  // `scrollToJumpIn` scrolls the page to the Jump in practice grid. Passed by
+  // DonePractice's "Explore More" and Home's level-1 InviteCard; the screen
+  // already read it, the type just never admitted it.
+  Explore: { scrollToJumpIn?: boolean } | undefined;
   DailyPracticeStack: undefined;
   LibraryStack: undefined;
   // `scrollTo` opens the report AT something rather than at the top. Both

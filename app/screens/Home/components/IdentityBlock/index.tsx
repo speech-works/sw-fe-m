@@ -20,6 +20,7 @@ import {
   SegmentRing,
 } from "../../../../design-system";
 import { AvatarSheen } from "./AvatarSheen";
+import InviteCard from "./InviteCard";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
 import { fetchDailyPlan, isVisibleAxis, GrowthAxis } from "../../../../api/dailyPlan";
@@ -329,6 +330,16 @@ export const IdentityBlock: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.grid}>
         {/* ── Level card ── */}
+        {/* Until level 2 (the second completed practice), this slot is the
+            first-practice invite instead of a ring stuck at 0%. `userLevel`
+            prefers the fresh levelStage and falls back to the CACHED user, so
+            an established account never flashes the invite while the stage
+            fetch is in flight. The swap back is automatic and permanent: the
+            Level card's first appearance lands right after the level-2
+            celebration, already showing real progress. */}
+        {userLevel <= 1 ? (
+          <InviteCard />
+        ) : (
         <PressableScale
           onPress={() =>
             navigation.navigate("ProgressDetail", { scrollTo: "achievements" })
@@ -385,6 +396,7 @@ export const IdentityBlock: React.FC = () => {
             </View>
           </View>
         </PressableScale>
+        )}
 
         {/* ── Avatar card, which is ALSO the energy meter ──
             The character the user owns, ringed by their energy. Always shows a
