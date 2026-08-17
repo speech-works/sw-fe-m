@@ -81,8 +81,18 @@ yarn-error.*
 
 # Prebuild-generated native projects (root only — anchored with a leading slash
 # so these do NOT also match local Expo modules' native source under modules/*/).
-/android/
-/ios/
+#
+# NO TRAILING SLASH, deliberately. Git treats `/android/` and `/android` the same
+# here because android is always a directory, but EAS does not. Its project copy
+# is an `fs.cp` filtered by the `ignore` npm package, which is asked about paths
+# as plain strings with no way to know which are directories. A trailing-slash
+# pattern therefore does not match the bare name `android`, so the directory got
+# created in the copy, while every child under it matched and was skipped. The
+# result was an empty `android/`, which `expo prebuild` reads as an existing but
+# malformed native project: "the android project is malformed, project files will
+# be cleared and reinitialized" on every single build.
+/android
+/ios
 
 # Local Expo modules: ignore only their build artifacts, keep the native source.
 modules/*/android/build/
