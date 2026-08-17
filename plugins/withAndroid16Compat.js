@@ -32,12 +32,12 @@
  *    plugin defers forever.
  */
 
-const { withAndroidManifest, AndroidConfig } = require("@expo/config-plugins");
+const { withAndroidManifest, AndroidConfig } = require("expo/config-plugins");
 
 const RESIZABILITY_PROPERTY =
   "android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY";
 
-/** @type {import('@expo/config-plugins').ConfigPlugin} */
+/** @type {import("expo/config-plugins").ConfigPlugin} */
 const withAndroid16Compat = (config) => {
   return withAndroidManifest(config, (config) => {
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(

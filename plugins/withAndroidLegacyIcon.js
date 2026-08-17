@@ -1,7 +1,7 @@
 const { createHash } = require("node:crypto");
 const { promises: fs } = require("node:fs");
 const path = require("node:path");
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod } = require("expo/config-plugins");
 const { generateImageAsync } = require("@expo/image-utils");
 
 const DPI = {
@@ -57,7 +57,7 @@ const generateLegacyIconsAsync = async (projectRoot, icon) => {
   );
 };
 
-/** @type {import('@expo/config-plugins').ConfigPlugin} */
+/** @type {import("expo/config-plugins").ConfigPlugin} */
 const withAndroidLegacyIcon = (config) =>
   withDangerousMod(config, [
     "android",

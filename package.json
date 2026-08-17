@@ -44,11 +44,10 @@
     "@babel/runtime": "^7.28.4",
     "@dr.pogodin/react-native-audio": "^1.16.0",
     "@expo-google-fonts/inter": "^0.3.0",
-    "@expo/config-plugins": "~10.1.2",
     "@expo/vector-icons": "^14.0.0",
     "@posthog/core": "1.27.5",
     "@react-native-async-storage/async-storage": "2.1.2",
-    "@react-native-community/datetimepicker": "8.3.0",
+    "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-community/slider": "4.5.6",
     "@react-navigation/bottom-tabs": "^7.3.15",
     "@react-navigation/native": "^7.1.11",
@@ -75,7 +74,6 @@
     "expo-keep-awake": "~14.1.4",
     "expo-linear-gradient": "~14.1.4",
     "expo-localization": "^16.1.5",
-    "expo-modules-core": "^2.3.13",
     "expo-notifications": "~0.31.3",
     "expo-secure-store": "^14.2.3",
     "expo-sensors": "~14.1.4",
@@ -98,7 +96,7 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-svg": "^15.15.1",
+    "react-native-svg": "15.15.4",
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "^6.17.0",
     "react-native-vision-camera": "^4.7.3",
@@ -127,7 +125,28 @@
     "patch-package": "^8.0.0",
     "react-test-renderer": "^19.0.0",
     "reactotron-react-native": "^5.1.18",
-    "typescript": "^5.8.3"
+    "typescript": "~5.8.3"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@sentry/react-native",
+        "react-native-svg"
+      ]
+    },
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@babel/runtime",
+          "@posthog/core",
+          "buffer",
+          "expo-av",
+          "react-native-chart-kit",
+          "react-native-pcm-player-lite",
+          "react-native-vector-icons"
+        ]
+      }
+    }
   },
   "private": true
 }

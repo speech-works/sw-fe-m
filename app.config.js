@@ -1,4 +1,4 @@
-const { withGradleProperties } = require("@expo/config-plugins");
+const { withGradleProperties } = require("expo/config-plugins");
 const withMediaPipeDuplicateFix = require("./plugins/withMediaPipeDuplicateFix");
 const withAndroid16Compat = require("./plugins/withAndroid16Compat");
 const withAndroidLegacyIcon = require("./plugins/withAndroidLegacyIcon");

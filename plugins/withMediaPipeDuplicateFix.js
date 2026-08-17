@@ -14,7 +14,7 @@
  * expo prebuild) that strips the duplicate -l flags from the aggregate app xcconfigs.
  */
 
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod } = require("expo/config-plugins");
 const fs = require("fs");
 const path = require("path");
 
@@ -38,7 +38,7 @@ const POST_INSTALL_HOOK = `
   end
 `;
 
-/** @type {import('@expo/config-plugins').ConfigPlugin} */
+/** @type {import("expo/config-plugins").ConfigPlugin} */
 const withMediaPipeDuplicateFix = (config) => {
   return withDangerousMod(config, [
     "ios",
