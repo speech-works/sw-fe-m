@@ -6,7 +6,8 @@ import { PackContext } from "../../../utils/packActivityNavigation";
 
 export type ExploreStackParamList = {
   // `scrollToJumpIn` scrolls the page to the Jump in practice grid. Passed by
-  // DonePractice's "Explore More" and Home's level-1 InviteCard; the screen
+  // DonePractice's "Explore More" and the Home priority card's EXPLORE_JUMP_IN
+  // intent (screens/Home/components/IdentityBlock/PriorityCard/intents.ts); the screen
   // already read it, the type just never admitted it.
   Explore: { scrollToJumpIn?: boolean } | undefined;
   DailyPracticeStack: undefined;
