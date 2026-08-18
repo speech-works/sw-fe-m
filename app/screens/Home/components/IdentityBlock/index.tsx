@@ -20,7 +20,8 @@ import {
   SegmentRing,
 } from "../../../../design-system";
 import { AvatarSheen } from "./AvatarSheen";
-import InviteCard from "./InviteCard";
+import PriorityCard from "./PriorityCard";
+import { usePriorityCard } from "./PriorityCard/usePriorityCard";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
 import { fetchDailyPlan, isVisibleAxis, GrowthAxis } from "../../../../api/dailyPlan";
@@ -171,6 +172,15 @@ export const IdentityBlock: React.FC = () => {
       if (takeOpenStudio()) navigation.navigate("AvatarStudio");
     }, [takeOpenStudio, navigation]),
   );
+
+  // The priority slot. Fetches on focus with its own stale throttle, and stays
+  // null whenever there is nothing to show, so the Level card below is the
+  // default rather than a fallback path anyone has to remember to handle.
+  const {
+    card: priorityCard,
+    queued: priorityCardQueued,
+    acknowledge: acknowledgePriorityCard,
+  } = usePriorityCard();
 
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   const [isLoadingLevel, setIsLoadingLevel] = useState(true);
@@ -329,16 +339,19 @@ export const IdentityBlock: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
-        {/* ── Level card ── */}
-        {/* Until level 2 (the second completed practice), this slot is the
-            first-practice invite instead of a ring stuck at 0%. `userLevel`
-            prefers the fresh levelStage and falls back to the CACHED user, so
-            an established account never flashes the invite while the stage
-            fetch is in flight. The swap back is automatic and permanent: the
-            Level card's first appearance lands right after the level-2
-            celebration, already showing real progress. */}
-        {userLevel <= 1 ? (
-          <InviteCard />
+        {/* ── The priority slot, or the Level card ── */}
+        {/* THE LEVEL CARD IS THE RESTING STATE, not the loser. This slot belongs
+            to it, and the server borrows it — rarely — when there is something
+            genuinely worth saying. `priorityCard` is null for loading, offline,
+            a failed request and every "nothing to say" state alike, because the
+            fallback for all of them is identical, so there is nothing here to
+            branch on. See PriorityCard/usePriorityCard.ts. */}
+        {priorityCard ? (
+          <PriorityCard
+            card={priorityCard}
+            queued={priorityCardQueued}
+            onAcknowledge={acknowledgePriorityCard}
+          />
         ) : (
         <PressableScale
           onPress={() =>
