@@ -182,13 +182,26 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
     setModalOpen(true);
   }, [card.intent, card.intentParams, go, hasChoices, onAcknowledge]);
 
-  const onChoose = useCallback(
-    (action: HomePriorityCardAction) => {
-      setModalOpen(false);
-      go(action.intent, action.intentParams);
-    },
-    [go],
-  );
+  /**
+   * Choosing CLOSES the sheet and remembers where to go. It does not navigate.
+   *
+   * The sheet is a native Modal and is still on screen throughout its exit, so
+   * navigating in the same tick mounts the destination underneath it and leaves
+   * the sheet lingering over the new screen. `Sheet` fires `onDismissed` once it
+   * has fully gone, and that is the only safe moment to move.
+   */
+  const [pending, setPending] = useState<HomePriorityCardAction | null>(null);
+
+  const onChoose = useCallback((action: HomePriorityCardAction) => {
+    setPending(action);
+    setModalOpen(false);
+  }, []);
+
+  const onDismissed = useCallback(() => {
+    if (!pending) return;
+    setPending(null);
+    go(pending.intent, pending.intentParams);
+  }, [go, pending]);
 
   const onSkip = useCallback(() => {
     setModalOpen(false);
@@ -349,6 +362,7 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
           onChoose={onChoose}
           onSkip={onSkip}
           onClose={() => setModalOpen(false)}
+          onDismissed={onDismissed}
         />
       ) : null}
     </View>

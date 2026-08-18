@@ -1,25 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
-import Animated, {
-  interpolate,
-  runOnJS,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import PressableScale from "../../../../../components/PressableScale";
 import {
+  Sheet,
+  Button,
   Text,
-  Icon,
   useTheme,
   spacing,
-  radius,
-  fonts,
-  duration,
-  easing,
 } from "../../../../../design-system";
-import { useRegisterNativeModal } from "../../../../../stores/nativeModal";
 import type {
   HomePriorityCard,
   HomePriorityCardAction,
@@ -28,37 +16,41 @@ import { resolveAccent } from "./accent";
 
 /**
  * ============================================================================
- * THE CHOOSER — a bottom sheet
+ * THE CHOOSER — the app's bottom sheet, not a new one
  * ----------------------------------------------------------------------------
  * Only ever reached from a card that offers TWO OR THREE choices. A card with a
  * single destination navigates straight there: putting a panel in front of it
  * would be one tap of ceremony in exchange for nothing.
  *
- * ── WHY A SHEET, AND WHAT THAT COST ────────────────────────────────────────
- * This was a centred panel that grew out of the card's measured rect — the
- * folder becoming the panel. That reads beautifully once and is the wrong shape
- * for something opened most days: it arrives in the middle of the screen, far
- * from the thumb, and nothing about it suggests how to get rid of it.
+ * ── WHY THIS IS NOW THE DS `Sheet` ──────────────────────────────────────────
+ * It used to be a hand-rolled native `Modal` with its own scrim, its own
+ * grabber, its own translate and its own padding. It worked, and it was wrong:
+ * side by side with Library's "Choose Mode", the metronome settings and the DAF
+ * consent sheet, it was visibly a different component. Left-aligned where they
+ * centre, a 36x4 grabber at 35% opacity where the system draws 40x5 in a colour
+ * chosen against the surface, square-ish 16pt buttons where the app uses pills,
+ * and a secondary action wearing a chevron that none of the others have.
  *
- * A sheet is anchored to the bottom, reachable one-handed, and its grabber says
- * "swipe me away" without a word. The trade, taken deliberately: the visual link
- * between the pressed card and the panel is gone. All the FLIP machinery went
- * with it — the origin rect, `measureInWindow`, the first-open-only rule, the
- * per-presentation scale maths. That machinery was also the source of the jank,
- * so the sheet is both simpler and smoother.
+ * None of those are opinions. `Sheet` and `Button` already encode the answers,
+ * so the rebuild deletes ~180 lines and inherits the rest:
  *
- * ── THE ACCENT COMES FROM THE CONSOLE ──────────────────────────────────────
- * `card.accent` is a design-system KEY, not a colour. `resolveAccent` turns it
- * into the fill, the AA-correct ink on that fill, the AA text cut for a normal
- * surface, and the boundary a filled object needs on paper. The primary action
- * is the only thing that takes the fill, which is how this app uses accent
- * everywhere else: one filled object per surface, never a field of them.
+ *   grabber      sized and CONTRASTED against whatever surface it lands on
+ *   bottom pad   real `useSafeAreaInsets`, replacing a guessed `spacing["3xl"]`
+ *   modal safety `useNativeModalStore`, so two native Modals cannot stack
+ *   motion       tokenised durations, reduced-motion aware, exit faster
+ *   dismissal    backdrop tap and Android back, both for free
  *
- * ── TWO THINGS THAT MUST NOT CHANGE ─────────────────────────────────────────
- * 1. No Reanimated `entering` / `exiting` / `layout` animation inside a native
- *    `Modal`. Unreliable on Android. All motion here is one shared value.
- * 2. Never let a second native Modal be open at once — an app-wide touch freeze
- *    on iOS, which is why this registers itself.
+ * ── THE ONE REAL BUG THIS CLOSES ────────────────────────────────────────────
+ * Choosing an action used to flip `visible` false and navigate in the same tick.
+ * A native Modal is still on screen through its exit, so the destination could
+ * mount UNDERNEATH it and the sheet would linger over the new screen. `Sheet`
+ * has `onDismissed` precisely for this, and the navigation now waits for it.
+ *
+ * ── WHAT IS DELIBERATELY NOT INHERITED ──────────────────────────────────────
+ * The eyebrow. No other sheet has one, and it is here because the console's
+ * accent has to be visible on both halves of the same object: the card carries
+ * `card.label` in `accent.text`, and so does the sheet it opens. Take it away
+ * and a lime card opens a sheet with no lime in it until you read the button.
  * ============================================================================
  */
 
@@ -69,6 +61,8 @@ export interface PriorityCardModalProps {
   /** A deliberate refusal. Retires the card for good. */
   onSkip: () => void;
   onClose: () => void;
+  /** Runs once the sheet is fully gone. Navigate from HERE, never from `onChoose`. */
+  onDismissed?: () => void;
 }
 
 export const PriorityCardModal: React.FC<PriorityCardModalProps> = ({
@@ -77,228 +71,95 @@ export const PriorityCardModal: React.FC<PriorityCardModalProps> = ({
   onChoose,
   onSkip,
   onClose,
+  onDismissed,
 }) => {
-  const { colors, elevation } = useTheme();
-  const reduced = useReducedMotion();
-
-  // Keep the native Modal mounted through the exit, then unmount.
-  const [mounted, setMounted] = useState(visible);
-  const progress = useSharedValue(0);
-
-  useRegisterNativeModal(mounted);
-
+  const { colors } = useTheme();
   const accent = resolveAccent(card.accent, colors);
   const [primary, ...secondary] = card.actions;
 
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      progress.value = withTiming(1, {
-        duration: duration.sheetIn,
-        easing: easing.out,
-      });
-      return;
-    }
-    if (!mounted) return;
-    // Exit is faster than enter: slow where the user is deciding, fast where the
-    // system is responding.
-    progress.value = withTiming(
-      0,
-      { duration: duration.sheetOut, easing: easing.out },
-      (finished) => {
-        if (finished) runOnJS(setMounted)(false);
-      },
-    );
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
-
-  const sheetStyle = useAnimatedStyle(() => {
-    // Reduced motion keeps the opacity and drops the travel, per the design
-    // system's rule. Gentler, not zero.
-    if (reduced) return { opacity: progress.value, transform: [] };
-    return {
-      opacity: progress.value,
-      // A PERCENTAGE, so the sheet always starts exactly its own height below
-      // the fold regardless of how much copy the console wrote into it.
-      // A PERCENTAGE, so the sheet always starts exactly its own height below
-      // the fold regardless of how much copy the console wrote into it — no
-      // measuring, and correct for a two-line title as well as a five-line one.
-      transform: [
-        { translateY: `${interpolate(progress.value, [0, 1], [100, 0])}%` },
-      ],
-    };
-  });
-
-  if (!mounted) return null;
-
   return (
-    <Modal
-      visible
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: colors.background.sunken },
-          scrimStyle,
-        ]}
-      />
-      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+    <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed}>
+      <View style={styles.content}>
+        <Text variant="eyebrow" color={accent.text} center numberOfLines={1}>
+          {card.label}
+        </Text>
 
-      <View style={styles.dock} pointerEvents="box-none">
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.background.raised,
-              borderColor: colors.border.default,
-            },
-            elevation.e3,
-            sheetStyle,
-          ]}
-        >
-          {/* The grabber. Decorative here — there is no drag gesture yet — but it
-              is the one mark that tells a thumb this is dismissible downward,
-              and it costs four points of height. */}
-          <View
-            style={[styles.grab, { backgroundColor: colors.text.tertiary }]}
+        <Text variant="h2" color="primary" center style={styles.title}>
+          {card.modalTitle ?? card.line1}
+        </Text>
+
+        {card.modalBody ? (
+          <Text variant="body" color="secondary" center style={styles.body}>
+            {card.modalBody}
+          </Text>
+        ) : null}
+
+        <View style={styles.actions}>
+          {/* The ONE filled object on this surface, and the only place the
+              console's accent becomes a fill rather than a text cut. */}
+          <Button
+            label={primary.label}
+            onPress={() => onChoose(primary)}
+            accentColor={accent.fill}
+            onAccentColor={accent.ink}
           />
+          {secondary.map((action) => (
+            <Button
+              key={action.id}
+              label={action.label}
+              variant="secondary"
+              onPress={() => onChoose(action)}
+            />
+          ))}
+        </View>
 
-          <Text variant="eyebrow" color={accent.text} numberOfLines={1}>
-            {card.label}
+        {/* The ONLY dismissal that retires the card. There is deliberately no
+            equivalent on the card itself: two considered taps to refuse a
+            message means no stray tap can throw one away. Tapping the backdrop
+            closes the sheet and leaves the card exactly where it was. */}
+        <PressableScale
+          onPress={onSkip}
+          accessibilityRole="button"
+          accessibilityLabel="Do not show this again"
+          style={styles.skip}
+        >
+          <Text variant="caption" color="tertiary">
+            Do not show this again
           </Text>
-          <Text variant="h2" color="primary" style={styles.title}>
-            {card.modalTitle ?? card.line1}
-          </Text>
-          {card.modalBody ? (
-            <Text variant="bodySm" color="tertiary" style={styles.body}>
-              {card.modalBody}
-            </Text>
-          ) : null}
-
-          <View style={styles.group}>
-            {/* The ONE filled object on this surface. Everything else is a row,
-                which is how the accent stays a signal rather than decoration. */}
-            <PressableScale
-              onPress={() => onChoose(primary)}
-              accessibilityRole="button"
-              accessibilityLabel={primary.label}
-              style={[styles.btn, { backgroundColor: accent.fill }, accent.edge]}
-            >
-              <Text variant="label" color={accent.ink} style={styles.btnLabel}>
-                {primary.label}
-              </Text>
-            </PressableScale>
-
-            {secondary.map((action) => (
-              <PressableScale
-                key={action.id}
-                onPress={() => onChoose(action)}
-                accessibilityRole="button"
-                accessibilityLabel={action.label}
-                style={[
-                  styles.btn,
-                  styles.btnRow,
-                  {
-                    backgroundColor: colors.surface.elevated,
-                    borderColor: colors.border.default,
-                  },
-                ]}
-              >
-                <Text
-                  variant="label"
-                  color="primary"
-                  numberOfLines={2}
-                  style={styles.grow}
-                >
-                  {action.label}
-                </Text>
-                <Icon
-                  name="chevron-right"
-                  size={16}
-                  color={colors.text.tertiary}
-                />
-              </PressableScale>
-            ))}
-          </View>
-
-          {/* The ONLY dismissal that retires the card. There is deliberately no
-              equivalent on the card itself: two considered taps to refuse a
-              message means no stray tap can throw one away. Tapping the scrim
-              closes the sheet and leaves the card exactly where it was. */}
-          <PressableScale
-            onPress={onSkip}
-            accessibilityRole="button"
-            accessibilityLabel="Do not show this again"
-            style={styles.skip}
-          >
-            <Text variant="caption" color="tertiary">
-              Do not show this again
-            </Text>
-          </PressableScale>
-        </Animated.View>
+        </PressableScale>
       </View>
-    </Modal>
+    </Sheet>
   );
 };
 
 export default PriorityCardModal;
 
+/**
+ * Spacing copied from Library's "Choose Mode" rather than re-derived, so the two
+ * sheets are the same object at the same rhythm. See `copy-existing-ui-pattern`:
+ * the app's existing instance beats a fresh reading of the tokens.
+ */
 const styles = StyleSheet.create({
-  dock: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    borderTopLeftRadius: radius.sheet,
-    borderTopRightRadius: radius.sheet,
-    borderWidth: StyleSheet.hairlineWidth,
-    // No bottom border: the sheet is flush with the screen edge, and a hairline
-    // there would draw a seam along the bezel.
-    borderBottomWidth: 0,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    // Clears the home indicator on a gesture phone without a safe-area inset,
-    // which is not available inside a native Modal on every platform.
-    paddingBottom: spacing["3xl"],
-  },
-  grab: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    opacity: 0.35,
-    alignSelf: "center",
-    marginBottom: spacing.lg,
+  content: {
+    alignItems: "center",
+    paddingTop: spacing.sm,
   },
   title: {
-    fontFamily: fonts.extrabold,
-    letterSpacing: -0.2,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  body: { marginTop: spacing.sm },
-  group: { marginTop: spacing.xl, gap: spacing.sm },
-  btn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+  body: {
+    lineHeight: 24,
+  },
+  actions: {
+    width: "100%",
     gap: spacing.md,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.input,
+    // On the body, not off it: `modalBody` is optional here where Library's
+    // subtitle is mandatory, and hanging the gap on a node that may not render
+    // would collapse the title straight onto the first button.
+    marginTop: spacing["2xl"],
   },
-  btnRow: {
-    justifyContent: "space-between",
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  btnLabel: { fontFamily: fonts.extrabold },
-  grow: { flex: 1, minWidth: 0 },
   skip: {
-    alignSelf: "center",
     marginTop: spacing.lg,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
