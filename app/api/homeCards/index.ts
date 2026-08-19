@@ -42,12 +42,18 @@ export async function fetchPriorityCard(): Promise<HomePriorityCardResponse | nu
  */
 export async function ackPriorityCard(
   cardKey: string,
-  reason: "tapped" | "skipped",
+  reason: "tapped" | "skipped" | "snoozed",
+  /**
+   * Which choice was taken. Sent only for a snooze, and the server reads the
+   * DURATION off the stored card rather than from here, so this identifies the
+   * choice without deciding how long it lasts.
+   */
+  actionId?: string,
 ): Promise<void> {
   try {
     await axiosClient.post(
       `/users/me/priority-card/${encodeURIComponent(cardKey)}/ack`,
-      { reason },
+      actionId ? { reason, actionId } : { reason },
     );
   } catch (err) {
     console.warn(`[homeCards] Could not acknowledge "${cardKey}"`, err);

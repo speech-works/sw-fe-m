@@ -56,12 +56,23 @@ export const SHEET_INTENT = "SHEET";
 /** "This choice just closes the sheet." Handled before navigation, never called. */
 export const CLOSE_INTENT = "CLOSE";
 
+/**
+ * "This choice hides the card for a while, then it comes back."
+ *
+ * Handled before navigation like CLOSE, and never called. It differs in one
+ * way that matters: it REPORTS, so the server can record the date. The number
+ * of days is not here and never travels from the app; the server reads it off
+ * the stored card.
+ */
+export const SNOOZE_INTENT = "SNOOZE";
+
 export const PRIORITY_CARD_INTENTS: Record<
   string,
   (nav: Nav, params?: Params) => void | Promise<void>
 > = {
   [SHEET_INTENT]: () => {},
   [CLOSE_INTENT]: () => {},
+  [SNOOZE_INTENT]: () => {},
 
   /** The free practice grid, scrolled to it rather than dropped at the top. */
   EXPLORE_JUMP_IN: (nav) =>

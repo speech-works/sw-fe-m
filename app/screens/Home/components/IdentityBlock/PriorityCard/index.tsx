@@ -18,7 +18,12 @@ import type {
   HomePriorityCardAction,
   NextCardPreview,
 } from "../../../../../api/homeCards";
-import { runIntent, SHEET_INTENT, CLOSE_INTENT } from "./intents";
+import {
+  runIntent,
+  SHEET_INTENT,
+  CLOSE_INTENT,
+  SNOOZE_INTENT,
+} from "./intents";
 import { safeIcon } from "./safeIcon";
 import { backPath, FACE_TOP } from "./folderPath";
 import { resolveAccent } from "./accent";
@@ -84,7 +89,10 @@ export interface PriorityCardProps {
    * the card into a folder: the pages need something to draw.
    */
   queued?: NextCardPreview[];
-  onAcknowledge: (reason: "tapped" | "skipped") => void;
+  onAcknowledge: (
+    reason: "tapped" | "skipped" | "snoozed",
+    actionId?: string,
+  ) => void;
 }
 
 /**
@@ -228,6 +236,18 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
        * sheet can say later and never in the author's own words.
        */
       if (action.intent === CLOSE_INTENT) {
+        setModalOpen(false);
+        return;
+      }
+
+      /**
+       * "Ask me later" sits between the two. It reports, so the server can hide
+       * the card for the days the console chose, and it navigates nowhere. The
+       * action's ID goes with it because the DURATION is read off the stored
+       * card, not sent from here.
+       */
+      if (action.intent === SNOOZE_INTENT) {
+        onAcknowledge("snoozed", action.id);
         setModalOpen(false);
         return;
       }

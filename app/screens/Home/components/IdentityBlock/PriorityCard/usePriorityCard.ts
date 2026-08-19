@@ -28,8 +28,18 @@ export interface PriorityCardHook {
    * intent, so it can be read but never opened.
    */
   queued: NextCardPreview[];
-  /** Report a tap or a deliberate skip. Flips `opened` locally straight away. */
-  acknowledge: (reason: "tapped" | "skipped") => void;
+  /**
+   * Report what happened to the card. A tap flips `opened` locally straight
+   * away; a skip or a snooze also takes it off the slot at once rather than
+   * leaving it there until a later fetch contradicts it.
+   *
+   * `actionId` is sent only for a snooze, so the server can find that choice on
+   * the stored card and read how many days it asks for.
+   */
+  acknowledge: (
+    reason: "tapped" | "skipped" | "snoozed",
+    actionId?: string,
+  ) => void;
 }
 
 /**
@@ -109,25 +119,31 @@ export function usePriorityCard(): PriorityCardHook {
   );
 
   const acknowledge = useCallback(
-    (reason: "tapped" | "skipped") => {
+    (reason: "tapped" | "skipped" | "snoozed", actionId?: string) => {
       const current = card;
       if (!current) return;
 
-      // Flip `opened` locally at once. This IS the in-session guard for the
-      // "grow on the first tap only" rule: it covers the window between the tap
-      // and the next fetch, so pressing twice in one session does not replay the
-      // animation. It layers on the server's `opened` rather than competing.
-      setCard((prev) => (prev ? { ...prev, opened: true } : prev));
+      // A snooze is not an open, so it must not flip `opened`: that flag drives
+      // "grow on the first tap only", and deferring a card is not opening it.
+      if (reason !== "snoozed") {
+        // Flip `opened` locally at once. This IS the in-session guard for the
+        // "grow on the first tap only" rule: it covers the window between the
+        // tap and the next fetch, so pressing twice in one session does not
+        // replay the animation. It layers on the server's `opened` rather than
+        // competing.
+        setCard((prev) => (prev ? { ...prev, opened: true } : prev));
+      }
 
-      // A skip retires the card for good, so drop it from the slot immediately
-      // rather than leaving it on screen until the next fetch contradicts it.
-      if (reason === "skipped") {
+      // Both of these take the card off the slot now rather than leaving it on
+      // screen until a later fetch contradicts it. A skip retires it for good;
+      // a snooze hides it for the days the console chose.
+      if (reason === "skipped" || reason === "snoozed") {
         setCard(null);
         setQueued(EMPTY);
       }
 
       // Fire and forget. Never block navigation on this.
-      void ackPriorityCard(current.key, reason);
+      void ackPriorityCard(current.key, reason, actionId);
     },
     [card],
   );
