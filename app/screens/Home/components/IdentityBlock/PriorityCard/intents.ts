@@ -66,6 +66,25 @@ export const PRIORITY_CARD_INTENTS: Record<
   MOOD_CHECK: (nav) =>
     inExploreTab(nav, "MoodCheckStack", { screen: "CheckIn" }),
 
+  /**
+   * Four levels deep, and every one of them is load bearing:
+   * Explore tab > DailyPracticeStack > CognitivePracticeStack > MirrorWorkPrep.
+   *
+   * `practiceData: {}` is not a placeholder. It is what `CognitivePractice`
+   * already passes for a standalone entry, and it is how PrepScreen tells a free
+   * run apart from one opened inside a pack. Drop it and the screen looks for
+   * pack context that is not there.
+   *
+   * Always the Prep screen, never the session directly. Prep is where the camera
+   * permission is asked for and where the prompts are fetched, so entering
+   * further in lands on a screen with nothing to show.
+   */
+  MIRROR_WORK: (nav) =>
+    inExploreTab(nav, "DailyPracticeStack", {
+      screen: "CognitivePracticeStack",
+      params: { screen: "MirrorWorkPrep", params: { practiceData: {} } },
+    }),
+
   /** A bare tab, no stack, no params. */
   BUDDY: (nav) => nav.navigate("Root", { screen: ROUTE_NAMES.COMMUNITY }),
 

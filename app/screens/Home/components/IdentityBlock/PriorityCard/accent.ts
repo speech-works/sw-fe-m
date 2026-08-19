@@ -35,6 +35,15 @@ export interface ResolvedAccent {
   text: string;
   tint: string;
   edge: ViewStyle;
+  /**
+   * The same boundary as `edge`, as a bare colour.
+   *
+   * `edge` is a `ViewStyle` and an SVG `<Path>` cannot take one. The folder's
+   * pages are drawn as paths, because a folded corner has to be a real hole in
+   * the sheet rather than a triangle painted over it. `"transparent"` on ink,
+   * exactly as `edge` resolves to `{}` there.
+   */
+  edgeColor: string;
 }
 
 type AccentKey = keyof SemanticColors["accent"];
@@ -70,6 +79,7 @@ export function resolveAccent(
       text: colors.text.accent,
       tint: colors.action.primaryTint,
       edge: primaryEdge(colors, true),
+      edgeColor: colors.action.primaryEdge,
     };
   }
 
@@ -79,5 +89,6 @@ export function resolveAccent(
     text: colors.accentText[accent],
     tint: colors.accentTint[accent],
     edge: accentEdge(colors, accent, true),
+    edgeColor: colors.accentEdge[accent],
   };
 }

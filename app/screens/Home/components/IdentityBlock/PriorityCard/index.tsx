@@ -98,6 +98,15 @@ export interface PriorityCardProps {
  */
 const FOLDER_DROP = 12;
 
+/**
+ * The icon's size, bare, with no tile around it.
+ *
+ * 18 against the eyebrow's 13pt cap height reads as its companion rather than as
+ * a button. The 26pt tile it replaces was a button-sized object doing a label's
+ * job, and it cost 34pt of a 118pt column once its gap is counted.
+ */
+const ICON_SIZE = 18;
+
 const PriorityCard: React.FC<PriorityCardProps> = ({
   card,
   queued,
@@ -217,17 +226,26 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
    */
   const body = (subLines: 1 | 2) => (
     <>
+      {/* ── WHY THE ICON SITS AT THE FAR RIGHT OF THIS ROW ───────────────────
+          There is nowhere on this card that is not somebody's text. The face is
+          90pt tall in the folder shape and the copy is bottom anchored in it, so
+          the only clear area is a 14pt strip above the label. The hero line uses
+          nearly the whole 118pt column at its 13-character limit, and the
+          caption uses most of it at 18. An icon parked in the corner therefore
+          does not sit in white space, it sits on the end of whichever line
+          happens to be longest, and it did.
+
+          So the icon shares a row, and the label row is the cheapest to share:
+          the eyebrow is the shortest line by nature. It goes at the FAR right
+          rather than leading the label, so a short label gets air instead of
+          being shoved along, and the icon reads as a fixed marker on the row
+          instead of a bullet attached to the words.
+
+          `flex: 1` on the label plus `numberOfLines={1}` is what guarantees no
+          overlap: the text truncates against the icon's edge instead of running
+          under it. The copy limit is set below what that width holds, so the
+          truncation should never actually fire. */}
       <View style={styles.top}>
-        {iconName ? (
-          <View
-            style={[
-              styles.iconChip,
-              { backgroundColor: accent.tint },
-            ]}
-          >
-            <Icon name={iconName} size={16} color={accent.text} />
-          </View>
-        ) : null}
         <Text
           variant="eyebrow"
           color={accent.text}
@@ -236,6 +254,9 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
         >
           {card.label}
         </Text>
+        {iconName ? (
+          <Icon name={iconName} size={ICON_SIZE} color={accent.text} />
+        ) : null}
       </View>
 
       <View>
@@ -309,7 +330,7 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
                 Wrap any two of them together and the pages land on the wrong
                 side of the face, so they hang out of the pocket instead of
                 sitting in it. */}
-            <Pages queued={queued} />
+            <Pages queued={queued} width={size.w} />
 
             {/* The front face. A View, not a path, so it can cast the
                 scheme-aware shadow that makes the peek read as BEHIND it.
@@ -427,14 +448,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  iconChip: {
-    width: 26,
-    height: 26,
-    borderRadius: radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flexible: { flexShrink: 1 },
+  /** Takes the row's leftover width, and truncates rather than running under the icon. */
+  flexible: { flex: 1 },
   hero: {
     fontFamily: fonts.extrabold,
     letterSpacing: -0.3,
