@@ -42,6 +42,8 @@ import {
 import ExpressYourself, {
   EXPRESSION_TYPE_ENUM,
 } from "./components/ExpressYourself";
+import { useEventStore } from "../../../../../stores/events";
+import { EVENT_NAMES } from "../../../../../stores/events/constants";
 import { getPracticeSuggestions } from "../../../../../api/recommendations";
 import { PracticeSuggestion } from "../../../../../api/recommendations/types";
 import SyncLoader from "../../../../../components/SyncLoader";
@@ -185,6 +187,7 @@ const FollowUp = () => {
   const { mood } = route.params;
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { emit } = useEventStore();
   const HEADER_HEIGHT = 60;
 
   const { FaceComponent, title, desc, accentKey } = moodContentMap[mood];
@@ -403,7 +406,7 @@ const FollowUp = () => {
           iconName:
             rec.activityType === "CHALLENGE"
               ? "flag"
-              : rec.activityType === "DRILL"
+              : rec.activityType === "TECHNIQUE"
               ? "activity"
               : rec.activityType === "ROLEPLAY"
               ? "film"
@@ -413,7 +416,7 @@ const FollowUp = () => {
               ? "RealLifeChallenge"
               : rec.activityType === "ROLEPLAY"
               ? "RoleplayBriefing"
-              : rec.activityType === "DRILL" || rec.activityType === "TECHNIQUE"
+              : rec.activityType === "TECHNIQUE"
               ? "TechniquePage"
               : "ExposurePractice",
           gradientToken:
@@ -429,10 +432,31 @@ const FollowUp = () => {
               ? ([colors.accent.info, colors.accent.info] as const)
               : undefined,
           params: {
-            techniqueId: ACTIVITY_ID_TO_TECHNIQUE[rec.id] || rec.id,
+            // The server resolves this now and sends it. The local map is a
+            // fallback for an app running against an older backend, and is the
+            // thing this field exists to retire: it drifted twice, once into a
+            // 404 dead end and once into a screen that taught a different
+            // technique from the one in its own title.
+            techniqueId: rec.techniqueId || ACTIVITY_ID_TO_TECHNIQUE[rec.id] || rec.id,
             techniqueDesc: rec.description,
             techniqueLevel: "BEGINNER",
-            hasFree: true,
+            // Was a hardcoded `true`, which was not a shortcut but a hole:
+            // TechniquePage computes `isContentAccessible = user?.isPaid ||
+            // hasFree`, so every free user arriving here was handed the
+            // Practice and Test stages of a PAID technique.
+            //
+            // The server answers it now. `locked === false` is a POSITIVE
+            // answer that this user may open this technique, which covers the
+            // case a blanket `false` would have broken: a genuinely FREE
+            // technique recommended to a free user. Hardcoding `false` would
+            // have walked them into locked Practice and Test tabs on content
+            // that is theirs.
+            //
+            // Written as `=== false` rather than `!rec.locked` on purpose. An
+            // older server sends no `locked` at all, and `!undefined` is true,
+            // which would silently restore the original hole. Unknown must mean
+            // "no", never "yes".
+            hasFree: rec.locked === false,
             id: rec.id,
             title: rec.title, // Pass title for RoleplayBriefing
             description: rec.description, // Pass description for RoleplayBriefing
@@ -551,6 +575,36 @@ const FollowUp = () => {
                     const config = getActivityConfig(rec);
                     return (
                       <View key={rec.id || idx} style={styles.cardContainer}>
+                        {/* The paid mark. Deliberately on the LEFT: the focus
+                            badge owns the right, and two absolute badges at the
+                            same corner would sit on top of each other.
+
+                            It reads "Membership", not "Locked" or "Premium".
+                            The card is still worth showing a free user, so the
+                            label should name what opens it rather than shout
+                            that they cannot have it.
+
+                            Solid fill, not a tint — the same rule the design
+                            system's chips follow, so it stays legible against
+                            the vivid card gradient underneath. */}
+                        {rec.locked && (
+                          <View
+                            style={[
+                              styles.paidBadge,
+                              { backgroundColor: colors.accent.warning },
+                              accentEdge(colors, "warning"),
+                            ]}
+                          >
+                            <Text
+                              variant="eyebrow"
+                              style={{ color: colors.accentOn.warning }}
+                              numberOfLines={1}
+                              maxFontSizeMultiplier={1.2}
+                            >
+                              Membership
+                            </Text>
+                          </View>
+                        )}
                         {rec.dominantPhoneme && (
                           <View
                             style={[
@@ -571,7 +625,21 @@ const FollowUp = () => {
                         )}
                         <TouchableOpacity
                           activeOpacity={0.9}
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            rec.locked
+                              ? `${rec.title}. Included with membership.`
+                              : rec.title
+                          }
                           onPress={() => {
+                            // A locked card never navigates. It opens the
+                            // membership sheet instead, which is also why a
+                            // card whose technique could not be resolved is
+                            // safe to mark locked: the sell has no dead end.
+                            if (rec.locked) {
+                              emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL);
+                              return;
+                            }
                             navigation.navigate({
                               name: config.action as any,
                               params: config.action === "TechniquePage" ? {
@@ -975,6 +1043,16 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     position: "relative",
+  },
+  /** Geometry copied from focusBadge, mirrored to the left edge. */
+  paidBadge: {
+    position: "absolute",
+    top: -8,
+    left: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    zIndex: 10,
   },
   focusBadge: {
     position: "absolute",
