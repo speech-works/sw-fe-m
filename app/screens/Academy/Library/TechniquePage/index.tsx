@@ -40,6 +40,8 @@ import {
   TechniqueStage,
 } from "../../../../api/library";
 import { useIsScrubbing } from "../../../../stores/scrubLock";
+import { useEventStore } from "../../../../stores/events";
+import { EVENT_NAMES } from "../../../../stores/events/constants";
 
 const STAGE_BY_INDEX: TechniqueStage[] = ["learn", "practice", "test"];
 
@@ -48,6 +50,7 @@ const TechniquePage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const { colors } = useTheme();
+  const { emit } = useEventStore();
   const insets = useSafeAreaInsets();
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
 
@@ -93,7 +96,12 @@ const TechniquePage = () => {
   const hasUserMovedRef = useRef(false);
 
   const handleStepChange = (index: number) => {
+    // Practice and Test are the paid half of a technique. A tap on either used
+    // to `return` in silence: no sheet, no message, not even a shake. The tab
+    // simply refused to move, on the one gesture that says most clearly what
+    // the person wants. Say something instead.
     if (index > 0 && !isContentAccessible) {
+      emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL);
       return;
     }
     hasUserMovedRef.current = true;
