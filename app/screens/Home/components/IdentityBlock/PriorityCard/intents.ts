@@ -42,10 +42,27 @@ const inExploreTab = (nav: Nav, screen: string, params?: object) =>
     params: { screen, params },
   });
 
+/**
+ * "This card opens its own sheet of choices."
+ *
+ * NOT a destination, and never called: the card short-circuits on it long
+ * before `runIntent`. It is in this map for exactly one reason, and the reason
+ * is `isKnownIntent`. A build that does not carry the word hides the card
+ * instead of rendering a sheet whose choices it may not understand either,
+ * which is the correct failure for a value that changes what a tap MEANS.
+ */
+export const SHEET_INTENT = "SHEET";
+
+/** "This choice just closes the sheet." Handled before navigation, never called. */
+export const CLOSE_INTENT = "CLOSE";
+
 export const PRIORITY_CARD_INTENTS: Record<
   string,
   (nav: Nav, params?: Params) => void | Promise<void>
 > = {
+  [SHEET_INTENT]: () => {},
+  [CLOSE_INTENT]: () => {},
+
   /** The free practice grid, scrolled to it rather than dropped at the top. */
   EXPLORE_JUMP_IN: (nav) =>
     inExploreTab(nav, "Explore", { scrollToJumpIn: true }),

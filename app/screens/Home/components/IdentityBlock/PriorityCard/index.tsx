@@ -18,7 +18,7 @@ import type {
   HomePriorityCardAction,
   NextCardPreview,
 } from "../../../../../api/homeCards";
-import { runIntent } from "./intents";
+import { runIntent, SHEET_INTENT, CLOSE_INTENT } from "./intents";
 import { safeIcon } from "./safeIcon";
 import { backPath, FACE_TOP } from "./folderPath";
 import { resolveAccent } from "./accent";
@@ -159,8 +159,18 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
    * folder itself changes material depending on what happens to be inside it.
    */
   const accent = resolveAccent(card.accent, colors);
-  // 0 or 1 choices means there is nothing to choose. Navigate straight there.
-  const hasChoices = card.actions.length >= 2;
+
+  /**
+   * ── THE SHEET IS DECLARED, NOT COUNTED ────────────────────────────────────
+   * This used to be `card.actions.length >= 2`. Counting worked, and it meant
+   * the card could not say what a tap did without inspecting a list, and the
+   * console had the same problem one layer up.
+   *
+   * The length check survives as a floor rather than the rule: a SHEET card
+   * whose choices have all been filtered out (see `usePriorityCard`) would
+   * otherwise open an empty sheet, and `PriorityCardModal` indexes [0].
+   */
+  const hasChoices = card.intent === SHEET_INTENT && card.actions.length >= 2;
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -177,15 +187,23 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
   );
 
   const onPress = useCallback(() => {
-    // Report first, navigate second. The ack is fire and forget and never
-    // blocks, so ordering only decides which one wins a race, and losing the
-    // ack costs one extra impression while losing the navigation costs the tap.
-    onAcknowledge("tapped");
-
     if (!hasChoices) {
+      // Report first, navigate second. The ack is fire and forget and never
+      // blocks, so ordering only decides which one wins a race, and losing the
+      // ack costs one extra impression while losing the navigation costs the
+      // tap.
+      onAcknowledge("tapped");
       go(card.intent, card.intentParams);
       return;
     }
+
+    /**
+     * ── OPENING A CHOOSER IS NOT CHOOSING ───────────────────────────────────
+     * This used to acknowledge here, before the sheet opened, and on an ON_TAP
+     * card that RETIRED it. Somebody who opened the sheet, read it and closed
+     * it had spent the card and never saw it again. The ack now waits for a
+     * choice; see `onChoose`.
+     */
     // No measuring. The sheet rises from the bottom of the screen rather than
     // out of this card, so it needs nothing about where the card happens to be.
     setModalOpen(true);
@@ -201,10 +219,27 @@ const PriorityCard: React.FC<PriorityCardProps> = ({
    */
   const [pending, setPending] = useState<HomePriorityCardAction | null>(null);
 
-  const onChoose = useCallback((action: HomePriorityCardAction) => {
-    setPending(action);
-    setModalOpen(false);
-  }, []);
+  const onChoose = useCallback(
+    (action: HomePriorityCardAction) => {
+      /**
+       * "Just close" is a soft no and must not spend the card. It is a
+       * different thing from the sheet's own "Do not show this again", which
+       * retires it for good, and the whole point of offering both is that a
+       * sheet can say later and never in the author's own words.
+       */
+      if (action.intent === CLOSE_INTENT) {
+        setModalOpen(false);
+        return;
+      }
+
+      // The real acknowledgement for a sheet card. Deliberately here rather
+      // than when the sheet opened: see `onPress`.
+      onAcknowledge("tapped");
+      setPending(action);
+      setModalOpen(false);
+    },
+    [onAcknowledge],
+  );
 
   const onDismissed = useCallback(() => {
     if (!pending) return;

@@ -54,6 +54,15 @@ export interface HomePriorityCard {
   modalTitle: string | null;
   modalBody: string | null;
   /**
+   * Does the sheet offer a permanent refusal, and in what words.
+   *
+   * `skipLabel` null means the app's own default. The console can turn the
+   * refusal off entirely for a card where "never show me this" is not a
+   * sensible thing to offer.
+   */
+  skipEnabled: boolean;
+  skipLabel: string | null;
+  /**
    * Design-system accent KEY chosen in the console, never a hex. Resolved by
    * `resolveAccent` into the fill / ink / text / edge the scheme needs.
    */

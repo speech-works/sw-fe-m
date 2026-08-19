@@ -5,7 +5,7 @@ import type {
   HomePriorityCard,
   NextCardPreview,
 } from "../../../../../api/homeCards";
-import { isKnownIntent } from "./intents";
+import { isKnownIntent, SHEET_INTENT } from "./intents";
 
 /** Matches SmartRecommendationCard: a card is not worth re-fetching every focus. */
 const STALE_THRESHOLD_MS = 5 * 60 * 1000;
@@ -51,6 +51,31 @@ export interface PriorityCardHook {
  * Here the same mistake would replace a live card with the Level card on a bad
  * network, which looks like the feature randomly turning itself off.
  */
+/**
+ * The card this build can actually honour, or null.
+ *
+ * ── WHY THE CHOICES ARE CHECKED TOO, AND NOT JUST THE CARD ──────────────────
+ * The card's own intent has always been checked, which is what makes publishing
+ * a card with a new destination safe on older installs: they hide it rather
+ * than showing something that does nothing. The CHOICES inside a sheet were
+ * not, so an old build would happily draw a sheet with a button that warned in
+ * dev and silently did nothing in production. That is the same dead tap the
+ * intent map exists to prevent, one level down.
+ *
+ * A sheet needs two choices to be a choice, so a card left with fewer than two
+ * reachable ones is dropped entirely rather than shown with one button. The
+ * next card in the queue takes its place, which is what happens with any other
+ * card this build cannot reach.
+ */
+const reachable = (card: HomePriorityCard): HomePriorityCard | null => {
+  if (!isKnownIntent(card.intent)) return null;
+  if (card.intent !== SHEET_INTENT) return card;
+
+  const actions = card.actions.filter((a) => isKnownIntent(a.intent));
+  if (actions.length < 2) return null;
+  return actions.length === card.actions.length ? card : { ...card, actions };
+};
+
 export function usePriorityCard(): PriorityCardHook {
   const [card, setCard] = useState<HomePriorityCard | null>(null);
   const [queued, setQueued] = useState<NextCardPreview[]>([]);
@@ -67,13 +92,14 @@ export function usePriorityCard(): PriorityCardHook {
         if (cancelled) return;
         lastFetchRef.current = Date.now();
 
-        if (!res?.card || !isKnownIntent(res.card.intent)) {
+        const usable = res?.card ? reachable(res.card) : null;
+        if (!usable) {
           setCard(null);
           setQueued(EMPTY);
           return;
         }
-        setCard(res.card);
-        setQueued(res.queued?.length ? res.queued : EMPTY);
+        setCard(usable);
+        setQueued(res?.queued?.length ? res.queued : EMPTY);
       })();
 
       return () => {

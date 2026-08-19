@@ -54,6 +54,9 @@ import { resolveAccent } from "./accent";
  * ============================================================================
  */
 
+/** What the refusal says when the console has not given it words of its own. */
+const DEFAULT_SKIP_LABEL = "Do not show this again";
+
 export interface PriorityCardModalProps {
   visible: boolean;
   card: HomePriorityCard;
@@ -76,6 +79,7 @@ export const PriorityCardModal: React.FC<PriorityCardModalProps> = ({
   const { colors } = useTheme();
   const accent = resolveAccent(card.accent, colors);
   const [primary, ...secondary] = card.actions;
+  const skipLabel = card.skipLabel?.trim() || DEFAULT_SKIP_LABEL;
 
   return (
     <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed}>
@@ -116,17 +120,29 @@ export const PriorityCardModal: React.FC<PriorityCardModalProps> = ({
         {/* The ONLY dismissal that retires the card. There is deliberately no
             equivalent on the card itself: two considered taps to refuse a
             message means no stray tap can throw one away. Tapping the backdrop
-            closes the sheet and leaves the card exactly where it was. */}
-        <PressableScale
-          onPress={onSkip}
-          accessibilityRole="button"
-          accessibilityLabel="Do not show this again"
-          style={styles.skip}
-        >
-          <Text variant="caption" color="tertiary">
-            Do not show this again
-          </Text>
-        </PressableScale>
+            closes the sheet and leaves the card exactly where it was.
+
+            ── WHY IT CAN BE TURNED OFF ────────────────────────────────────
+            It used to be unconditional, on every sheet, in these exact words.
+            "Never show me this" is not a sensible offer on every message, and
+            it is a judgement about the message rather than anything the app can
+            derive, so the console owns it. Default is on: a refusal that is
+            honoured is the entire reason this exists.
+
+            A blank label falls back rather than rendering an empty tap target,
+            and the screen reader gets the same words for the same reason. */}
+        {card.skipEnabled === false ? null : (
+          <PressableScale
+            onPress={onSkip}
+            accessibilityRole="button"
+            accessibilityLabel={skipLabel}
+            style={styles.skip}
+          >
+            <Text variant="caption" color="tertiary" numberOfLines={1}>
+              {skipLabel}
+            </Text>
+          </PressableScale>
+        )}
       </View>
     </Sheet>
   );
