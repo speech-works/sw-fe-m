@@ -82,6 +82,21 @@ export function formatUsd(amount: number): string {
 }
 
 /**
+ * Closes the gap between a LEADING currency symbol and its digits.
+ *
+ * Several locales put a non-breaking or narrow no-break space there, so `Intl`
+ * returns "$ 2.92" while the store's own string for the very same currency is
+ * "$2.92". Both appear on the membership sheet, one line apart, and the
+ * mismatch reads as a rendering fault rather than as two sources.
+ *
+ * Only a LEADING symbol is touched. Locales that put the symbol after the
+ * number ("2,92 €") need that space and keep it.
+ */
+export function tightenLeadingSymbol(formatted: string): string {
+  return formatted.replace(/^([^\d\s]+)\s+(?=\d)/u, "$1");
+}
+
+/**
  * Formats an amount we genuinely hold in that currency. Uses the platform's own
  * currency formatting so £, €, ¥ and the rest come out right without us
  * shipping a symbol table. Falls back to our two hand-rolled formatters if
@@ -94,12 +109,13 @@ export function formatCurrency(
 ): string | null {
   if (!Number.isFinite(amount) || !currencyCode) return null;
   try {
-    return new Intl.NumberFormat(undefined, {
+    const formatted = new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currencyCode,
       // INR is quoted in whole rupees across the app; everything else keeps cents.
       maximumFractionDigits: currencyCode === "INR" ? 0 : 2,
     }).format(amount);
+    return tightenLeadingSymbol(formatted);
   } catch {
     if (currencyCode === "INR") return formatInr(amount);
     if (currencyCode === "USD") return formatUsd(amount);

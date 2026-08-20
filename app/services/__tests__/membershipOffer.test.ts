@@ -4,8 +4,11 @@ import {
   orderBenefitsFor,
   HEADLINE_FOR,
   PROGRAMS_NOTE,
+  CALL_LENGTH_FIGURE,
 } from "../membershipOffer";
 import { EVENT_NAMES } from "../../stores/events/constants";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 /**
  * ===========================================================================
@@ -118,5 +121,120 @@ describe("Which benefit leads", () => {
       expect(headline.title.length).toBeGreaterThan(10);
       expect(`${headline.title} ${headline.message}`.toLowerCase()).not.toContain("program");
     }
+  });
+});
+
+describe("the shape every selling surface renders", () => {
+  // BenefitRows reads all four of these directly. A benefit added without one
+  // renders a blank second line or an uncoloured tile, and neither throws — it
+  // just quietly ships a broken row on the screen that charges.
+  it("every benefit carries a short line, an icon and an accent", () => {
+    for (const b of MEMBERSHIP_BENEFITS) {
+      expect(b.short.length).toBeGreaterThan(0);
+      expect(b.iconKey.length).toBeGreaterThan(0);
+      expect(["purple", "info", "warning"]).toContain(b.accentKey);
+    }
+  });
+
+  it("gives the three rows three DIFFERENT accents", () => {
+    const accents = new Set(MEMBERSHIP_BENEFITS.map((b) => b.accentKey));
+    expect(accents.size).toBe(MEMBERSHIP_BENEFITS.length);
+  });
+
+  // A row is scanned, not read. Past roughly forty characters it wraps to a
+  // third line on a small phone and the list stops being scannable.
+  it("keeps the short lines short", () => {
+    for (const b of MEMBERSHIP_BENEFITS) {
+      expect(b.short.length).toBeLessThanOrEqual(40);
+    }
+  });
+
+  // The em dash is banned in product copy, everywhere.
+  it("uses no em dash anywhere in the offer copy", () => {
+    const all = [
+      ...MEMBERSHIP_BENEFITS.flatMap((b) => [b.label, b.short, b.desc]),
+      ...Object.values(HEADLINE_FOR).flatMap((h) => [h.title, h.message]),
+      PROGRAMS_NOTE,
+      CALL_LENGTH_FIGURE.unit,
+    ];
+    for (const line of all) expect(line).not.toContain("\u2014");
+  });
+});
+
+describe("the call-length figure", () => {
+  // These are PhoneCallConfig's two limits. If somebody edits them here to
+  // make the hero look better, the number on the paywall stops matching the
+  // number the server enforces, and the buyer finds out mid-call.
+  it("is the real three-to-ten, and an increase", () => {
+    expect(CALL_LENGTH_FIGURE.from).toBe("3");
+    expect(CALL_LENGTH_FIGURE.to).toBe("10");
+    expect(Number(CALL_LENGTH_FIGURE.to)).toBeGreaterThan(
+      Number(CALL_LENGTH_FIGURE.from),
+    );
+  });
+
+  // Not a COUNT. Free users get slightly more calls than members, because the
+  // weekly taster refires whenever the balance hits zero. A hero built on the
+  // count would be advertising our weakest column.
+  it("is measured in minutes, not calls", () => {
+    expect(CALL_LENGTH_FIGURE.unit).toContain("minutes");
+    expect(CALL_LENGTH_FIGURE.unit).not.toMatch(/\bcalls\b/);
+  });
+});
+
+/**
+ * ===========================================================================
+ * THE PRODUCT HAS ONE NAME ON THE SURFACES THAT SELL IT
+ * ---------------------------------------------------------------------------
+ * It is "membership". The entitlement is `membership`, the benefits module is
+ * membershipOffer, the day-28 sheet says "Keep my access".
+ *
+ * "Premium" kept leaking back in, twice in one pass: the buy button read "Get
+ * Premium" long after the eyebrow above it said MEMBERSHIP, and the
+ * store-unavailable line still read "Premium isn't available yet". A product
+ * wearing two names on one screen reads as two products, and the screen where
+ * that happens is the one taking the money.
+ *
+ * Only PROSE is checked. `PremiumModal` is a route, `colors.premium.gold` is a
+ * token, `SHOW_PREMIUM_UPSELL` is an event — all fine, none of them is read by
+ * a buyer.
+ * ===========================================================================
+ */
+const SELLING_SURFACES = [
+  "app/screens/Payments/index.tsx",
+  "app/screens/Payments/PaywallPager.tsx",
+  "app/components/UpsellModal.tsx",
+  "app/components/MembershipDock.tsx",
+  "app/components/ContinueMembershipSheet.tsx",
+  "app/components/membership/BenefitRows.tsx",
+  "app/components/membership/CallLengthHero.tsx",
+  "app/components/membership/PlanPills.tsx",
+  "app/components/membership/MarkedHeadline.tsx",
+];
+
+const repoRoot = join(__dirname, "..", "..", "..");
+
+/** Source with comments stripped, so a note ABOUT the old copy is not a hit. */
+const prose = (file: string): string =>
+  readFileSync(join(repoRoot, file), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+
+/** Code identifiers that legitimately contain the word. */
+const CODE_USES = /PremiumModal|colors\.premium|premium\.|PREMIUM_|SHOW_PREMIUM|premiumGold/;
+
+describe("one name for the product", () => {
+  it.each(SELLING_SURFACES)("%s never calls it Premium in prose", (file) => {
+    const hits = prose(file)
+      .split("\n")
+      .filter((l) => /Premium/.test(l) && !CODE_USES.test(l));
+    expect(hits).toEqual([]);
+  });
+
+  // "billed once" sat four lines above "Renews automatically unless cancelled"
+  // and said the opposite of it. The annual plan is an auto-renewing
+  // subscription; any wording implying a single charge is a refund waiting.
+  it.each(SELLING_SURFACES)("%s never implies a one-off charge", (file) => {
+    expect(prose(file)).not.toMatch(/billed once|one[- ]time payment|pay once/i);
   });
 });

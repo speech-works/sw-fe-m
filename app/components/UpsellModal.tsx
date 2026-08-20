@@ -14,6 +14,7 @@ import { EVENT_NAMES } from "../stores/events/constants";
 import { navigationRef } from "../util/functions/navigation";
 import { purchasesAvailable } from "../services/purchases";
 import { useMembershipPrice } from "../hooks/useMembershipPrice";
+import { BenefitRows } from "./membership/BenefitRows";
 import {
   HEADLINE_FOR,
   PROGRAMS_NOTE,
@@ -48,6 +49,9 @@ import Animated, {
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.82;
 const CARD_GAP = 12;
+
+/** Height of the fixed buy footer, which floats over the scroll view. */
+const FOOTER_CLEARANCE = 180;
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -105,7 +109,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   portalScrollContent: {
-    paddingBottom: 180,
+    // Clearance for the fixed buy footer. It is a real number rather than a
+    // measured height because the footer never changes shape, and a scroll
+    // view that pads itself from a layout callback flickers on first paint.
+    paddingBottom: FOOTER_CLEARANCE,
   },
   glowOrb: {
     position: "absolute",
@@ -290,7 +297,7 @@ const UpsellModal = () => {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [modalTag, setModalTag] = useState("");
-  const [modalCta, setModalCta] = useState("See what's included");
+  const [modalCta, setModalCta] = useState("See what you get");
 
   const [orderedBenefits, setOrderedBenefits] =
     useState<ReturnType<typeof orderBenefitsFor>>(() => orderBenefitsFor(""));
@@ -357,7 +364,7 @@ const UpsellModal = () => {
           event.detail?.desc ||
           "";
         let tag =
-          event.detail?.modalTag || event.detail?.tag || "PREMIUM ACCESS";
+          event.detail?.modalTag || event.detail?.tag || "MEMBERSHIP";
 
         // ── THE HEADLINE FOLLOWS THE LEAD BENEFIT ────────────────────────
         // This used to hardcode one headline for both the premium and library
@@ -388,7 +395,7 @@ const UpsellModal = () => {
         // to PremiumModal, it does not buy anything. "Unlock Entire Library" /
         // "Unlock Stamina" both promised the tap would unlock something, and
         // what actually happens is a pricing screen opens.
-        setModalCta("See what's included");
+        setModalCta("See what you get");
 
         setModalVisible(true);
         clear(event.name);
@@ -410,7 +417,9 @@ const UpsellModal = () => {
   // The lead benefit and the two supporting it. Split here rather than in the
   // JSX so the render reads as "hero, then the rest" and cannot get them out
   // of order.
-  const [heroBenefit, ...restBenefits] = orderedBenefits;
+  // Only the LEAD is needed now: BenefitRows does its own ordering from the id,
+  // so the sheet no longer has to know what the other two are.
+  const [heroBenefit] = orderedBenefits;
 
   /**
    * The premium tier's gold-on-slate identity is DELIBERATELY outside the orange
@@ -468,7 +477,13 @@ const UpsellModal = () => {
       <ScrollView
         contentContainerStyle={[
           styles.portalScrollContent,
-          { paddingTop: 46, paddingBottom: insets.bottom },
+          // The footer sits ON TOP of the scroll view, so its height has to be
+          // added to the inset rather than replace it. Writing `paddingBottom:
+          // insets.bottom` here silently overrode the clearance above, and on
+          // any phone with no home indicator that inset is 0: the last benefit,
+          // the PRICE and the programs note were all parked behind the button
+          // with no way to scroll to them.
+          { paddingTop: 46, paddingBottom: FOOTER_CLEARANCE + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -490,7 +505,7 @@ const UpsellModal = () => {
           </Text>
         </View>
 
-        {/* ── HERO, THEN THE REST ─────────────────────────────────────────
+        {/* ── WHAT MEMBERSHIP INCLUDES ────────────────────────────────────
             This was a horizontal carousel of three cards with pagination dots.
             Two problems, both costing sales:
 
@@ -501,50 +516,18 @@ const UpsellModal = () => {
                reason to buy. Call length is the only column where membership
                wins by a wide margin.
 
-            So the lead benefit gets the hero and the other two sit right under
-            it, always visible, no gesture required. Which one leads depends on
-            what the person just hit — see leadBenefitFor.
+            It then became a big gold hero card with two dimmer rows beneath —
+            which fixed the swiping but left this sheet and the Payments screen
+            behind it drawing the same three facts in two different shapes. One
+            product should not change appearance when the buyer moves one screen
+            closer to paying. Both now render `BenefitRows`.
+
+            The lead is still emphasis, not omission: all three are on screen,
+            and which one is raised depends on what the person just hit. See
+            leadBenefitFor.
         */}
         <View style={styles.benefitsSection}>
-          <View
-            style={[
-              styles.heroBenefit,
-              { backgroundColor: gold.goldTint, borderColor: gold.goldBorder },
-            ]}
-          >
-            <View style={[styles.slideIconContainer, { backgroundColor: withAlpha(onSlate, 0.06) }]}>
-              <Icon name={icons[heroBenefit.iconKey]} size={size.tabIcon} color={gold.gold} />
-            </View>
-            <Text style={[styles.heroBenefitTitle, { color: onSlate }]}>
-              {heroBenefit.label}
-            </Text>
-            <Text style={[styles.slideDesc, { color: withAlpha(onSlate, 0.6) }]}>
-              {heroBenefit.desc}
-            </Text>
-          </View>
-
-          {restBenefits.map((benefit) => (
-            <View
-              key={benefit.id}
-              style={[
-                styles.benefitRow,
-                {
-                  backgroundColor: withAlpha(onSlate, 0.04),
-                  borderColor: withAlpha(onSlate, 0.08),
-                },
-              ]}
-            >
-              <Icon name={icons[benefit.iconKey]} size={size.icon} color={gold.gold} />
-              <View style={styles.benefitRowText}>
-                <Text style={[styles.benefitRowTitle, { color: onSlate }]}>
-                  {benefit.label}
-                </Text>
-                <Text style={[styles.benefitRowDesc, { color: withAlpha(onSlate, 0.45) }]}>
-                  {benefit.desc}
-                </Text>
-              </View>
-            </View>
-          ))}
+          <BenefitRows leadId={heroBenefit.id} long />
 
           {/* ── PRICE ───────────────────────────────────────────────────────
               Shown as a per-month figure with the billed total right beside it.

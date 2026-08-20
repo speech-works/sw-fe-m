@@ -103,8 +103,8 @@ export const ContinueMembershipSheet: React.FC<ContinueMembershipSheetProps> = (
 
         <Text variant="body" color="secondary" center style={styles.body}>
           {/* No claim about their speech. Only what they did, and what stops. */}
-          Membership is what has been giving you the longer calls and the whole
-          technique library. Keep it for {price.annualPerMonthLabel} a month.
+          Membership is the longer calls and the whole technique library. Keep
+          it for {price.annualPerMonthLabel} a month.
         </Text>
 
         <View style={styles.actions}>

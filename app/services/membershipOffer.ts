@@ -56,6 +56,12 @@ export const MEMBERSHIP_BENEFITS = [
     id: "calls",
     label: "Calls that run to ten minutes",
     iconKey: "ai",
+    /** Accent for the row's icon tile. Three different ones, so the list reads
+     *  as three distinct things rather than one block of gold. */
+    accentKey: "purple",
+    /** The row's second line. Six words at most: a row is scanned, not read.
+     *  `desc` is the long form, used where a benefit gets a whole card. */
+    short: "Four a month, unused ones bank up",
     // PhoneCallConfig: TASTER_HARD_LIMIT_MS is 3 minutes, CALL_HARD_LIMIT_MS is
     // 10. The 3 belongs to the free WEEKLY TASTER specifically, so the sentence
     // says so rather than claiming every free call is three minutes.
@@ -65,16 +71,28 @@ export const MEMBERSHIP_BENEFITS = [
     id: "library",
     label: "The whole technique library",
     iconKey: "journey",
+    accentKey: "info",
+    short: "Every technique: lesson, drill, test",
     desc: "Every technique, with its lesson, its drill and its test. New ones are included as they land.",
   },
   {
     id: "practice",
-    label: "Roughly double the daily practice",
+    // "Roughly double" UNDER-CLAIMED, by a lot. Read LevelStages.ts: free is
+    // 35 points regenerating at 41 min each, which caps at 5.0 activities a
+    // day. A member's pool starts at 80 points at 18 min each — 11.4 a day at
+    // the LOWEST level — and reaches 110 at 14 min, or 14.7. That is 2.3x to
+    // 2.9x, so "more than double" is true at every level and "roughly double"
+    // was quietly selling our own strongest practice number short.
+    label: "More than double the daily practice",
     iconKey: "energy",
+    accentKey: "warning",
+    short: "And the bar refills faster",
     // FREE_STAMINA_CONFIG is 35 max at 7 per activity (about five a day); the
     // level pool is 80 to 110 (about twelve). Both real, both already used on
     // the Payments screen. They must not disagree.
     desc: "About twelve activities a day instead of five, and the bar refills faster, so a good session doesn't stop because it ran out.",
+    // Twelve sits at the conservative end of the 11.4-to-14.7 range on purpose.
+    // A number on a paid screen should be one we beat, never one we chase.
   },
 ] as const;
 
@@ -131,3 +149,24 @@ export const HEADLINE_FOR: Record<MembershipBenefitId, { title: string; message:
  * library and asking for their money back.
  */
 export const PROGRAMS_NOTE = "Programs are sold separately.";
+
+/**
+ * ===========================================================================
+ * THE ONE FIGURE THAT SELLS THIS
+ * ---------------------------------------------------------------------------
+ * Three to ten minutes. It is the only column where membership wins by a wide
+ * margin, and a comparison people can hold in their head beats any adjective.
+ *
+ * Both numbers are read from PhoneCallConfig in sw-be-2: TASTER_HARD_LIMIT_MS
+ * is three minutes, CALL_HARD_LIMIT_MS is ten. If those move, these move.
+ *
+ * It is a MINUTES figure and not a count, because count is the one column
+ * where free quietly wins: the weekly taster refires whenever the balance hits
+ * zero. Putting the count on a hero would be advertising our weakest number.
+ * ===========================================================================
+ */
+export const CALL_LENGTH_FIGURE = {
+  from: "3",
+  to: "10",
+  unit: "minutes per call",
+} as const;

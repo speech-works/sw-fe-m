@@ -6,6 +6,7 @@ import {
   deriveAnchor,
   savingLabelFor,
   savingPercentFor,
+  tightenLeadingSymbol,
 } from "../priceDisplay";
 
 const inr = (s: string, n = 0) => ({ priceString: s, price: n, currencyCode: "INR" });
@@ -218,5 +219,28 @@ describe("formatCurrency", () => {
   it("returns null rather than guessing", () => {
     expect(formatCurrency(NaN, "USD")).toBeNull();
     expect(formatCurrency(10, "")).toBeNull();
+  });
+});
+
+describe("tightenLeadingSymbol", () => {
+  // THE BUG: the membership sheet shows the store's own "$34.99" one line
+  // below our derived per-month figure. Several locales make Intl put a
+  // no-break space after a leading symbol, so that derived figure came out
+  // "$ 2.92" and the pair read as a rendering fault.
+  it("closes the gap after a leading symbol", () => {
+    expect(tightenLeadingSymbol("$\u00A02.92")).toBe("$2.92");
+    expect(tightenLeadingSymbol("$\u202F2.92")).toBe("$2.92");
+    expect(tightenLeadingSymbol("US$\u00A02.92")).toBe("US$2.92");
+    expect(tightenLeadingSymbol("\u20B91,499")).toBe("\u20B91,499");
+  });
+
+  it("leaves a TRAILING symbol alone, where the space belongs", () => {
+    expect(tightenLeadingSymbol("2,92\u00A0\u20AC")).toBe("2,92\u00A0\u20AC");
+    expect(tightenLeadingSymbol("34,99 kr")).toBe("34,99 kr");
+  });
+
+  it("survives strings with no number at all", () => {
+    expect(tightenLeadingSymbol("")).toBe("");
+    expect(tightenLeadingSymbol("\u2014")).toBe("\u2014");
   });
 });
