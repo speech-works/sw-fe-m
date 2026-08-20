@@ -27,6 +27,7 @@ import { UserAvatar } from "../../../../components/UserAvatar";
 import { fetchDailyPlan, isVisibleAxis, GrowthAxis } from "../../../../api/dailyPlan";
 import { useOnboardingNudgeStore } from "../../../../stores/onboardingNudge";
 import { RingsInfoSheet } from "./RingsInfoSheet";
+import { isMember } from "../../../../util/functions/membership";
 
 /**
  * Home's identity block — two sibling cards, one visual grammar:
@@ -652,7 +653,7 @@ export const IdentityBlock: React.FC = () => {
           }
           // Only for free users — a member has nothing to buy here.
           onUpgrade={
-            user?.isPaid
+            isMember(user)
               ? undefined
               : () => closeSheetThen(() => navigation.navigate("PremiumModal"))
           }

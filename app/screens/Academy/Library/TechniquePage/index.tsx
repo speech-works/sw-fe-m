@@ -42,6 +42,7 @@ import {
 import { useIsScrubbing } from "../../../../stores/scrubLock";
 import { useEventStore } from "../../../../stores/events";
 import { EVENT_NAMES } from "../../../../stores/events/constants";
+import { isMember } from "../../../../util/functions/membership";
 
 const STAGE_BY_INDEX: TechniqueStage[] = ["learn", "practice", "test"];
 
@@ -77,7 +78,7 @@ const TechniquePage = () => {
   const scrollY_2 = useSharedValue(0);
   const activeIndexSv = useSharedValue(0);
 
-  const isContentAccessible = user?.isPaid || hasFree;
+  const isContentAccessible = isMember(user) || hasFree;
   const closeModal = () => setIsModalVisible(false);
 
   // A stage counts as done once you leave it (soft, not a gate). Nothing in the

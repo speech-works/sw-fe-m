@@ -46,6 +46,7 @@ import {
   FloatingControls,
   useNavBarInset,
 } from "../../../design-system";
+import { isMember } from "../../../util/functions/membership";
 
 // --- Data Definitions ---
 
@@ -404,7 +405,7 @@ const Library = () => {
               subtitle={group.subtitle}
               aboutText={group.about}
               techniques={group.items}
-              isPaidUser={user?.isPaid}
+              isPaidUser={isMember(user)}
               onTechniqueSelect={onTechniqueStart}
             />
           ))

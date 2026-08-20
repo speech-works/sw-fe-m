@@ -75,7 +75,7 @@ const OutOfStaminaController: React.FC = () => {
     setMessage(buildMessage(user));
     setVisible(true);
     track(ANALYTICS_EVENTS.STAMINA_DEPLETED, {
-      isPaid: user?.isPaid ?? null,
+      isMember: user?.membership?.active ?? null,
     });
     clear(EVENT_NAMES.SHOW_STAMINA_UPSELL);
   }, [events, clear]);

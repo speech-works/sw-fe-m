@@ -6,6 +6,15 @@ import {
 } from "../stamina";
 
 /**
+ * Membership comes from the server as a computed answer, never as a date the
+ * device compares itself. `active` is the only thing anything may gate on: a
+ * phone with a wrong clock, or one set forward deliberately, must not be able
+ * to grant itself a membership.
+ */
+const MEMBER = { active: true, until: "2027-01-01T00:00:00.000Z", daysRemaining: 120 };
+const NOT_A_MEMBER = { active: false, until: null, daysRemaining: null };
+
+/**
  * The cap fallback is only used in one window: after /auth/callback returns the
  * bare user row and before GET /users/me answers with the server-computed
  * cap. That window is exactly a new user's first Home render — so getting it
@@ -18,16 +27,16 @@ const user = (over: Partial<User>): User => ({ ...over }) as User;
 
 describe("staminaCapFor", () => {
   it("prefers the server-computed cap whenever it is present", () => {
-    expect(staminaCapFor(user({ maxStaminaCap: 110, isPaid: true }))).toBe(110);
-    expect(staminaCapFor(user({ maxStaminaCap: 35, isPaid: false }))).toBe(35);
+    expect(staminaCapFor(user({ maxStaminaCap: 110, membership: MEMBER }))).toBe(110);
+    expect(staminaCapFor(user({ maxStaminaCap: 35, membership: NOT_A_MEMBER }))).toBe(35);
   });
 
   it("falls back to the FREE bar for a free user, not the paid pool", () => {
-    expect(staminaCapFor(user({ isPaid: false }))).toBe(35);
+    expect(staminaCapFor(user({ membership: NOT_A_MEMBER }))).toBe(35);
   });
 
   it("falls back to the paid pool for a member", () => {
-    expect(staminaCapFor(user({ isPaid: true }))).toBe(80);
+    expect(staminaCapFor(user({ membership: MEMBER }))).toBe(80);
   });
 
   it("treats an unknown tier as free — never overstate the bar we cannot verify", () => {
@@ -38,7 +47,7 @@ describe("staminaCapFor", () => {
 
   it("shows a freshly-seeded free user as FULL, not 44%", () => {
     // Exactly the post-signup payload: currentStamina present, cap absent.
-    const fresh = user({ currentStamina: 35, isPaid: false });
+    const fresh = user({ currentStamina: 35, membership: NOT_A_MEMBER });
     const pct = Math.round((fresh.currentStamina! / staminaCapFor(fresh)) * 100);
     expect(pct).toBe(100);
   });
@@ -49,7 +58,7 @@ describe("estimateStaminaRecharge regen fallback", () => {
     const { estimatedStamina } = estimateStaminaRecharge(
       user({
         currentStamina: 0,
-        isPaid: false,
+        membership: NOT_A_MEMBER,
         lastStaminaUpdate: new Date(Date.now() - 82 * 60 * 1000),
       }),
       Date.now(),
@@ -61,7 +70,7 @@ describe("estimateStaminaRecharge regen fallback", () => {
     const { estimatedStamina } = estimateStaminaRecharge(
       user({
         currentStamina: 0,
-        isPaid: true,
+        membership: MEMBER,
         lastStaminaUpdate: new Date(Date.now() - 36 * 60 * 1000),
       }),
       Date.now(),
@@ -73,7 +82,7 @@ describe("estimateStaminaRecharge regen fallback", () => {
     const { estimatedStamina, isFull } = estimateStaminaRecharge(
       user({
         currentStamina: 30,
-        isPaid: false,
+        membership: NOT_A_MEMBER,
         lastStaminaUpdate: new Date(Date.now() - 100 * 60 * 60 * 1000),
       }),
       Date.now(),

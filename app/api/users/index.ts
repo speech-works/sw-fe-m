@@ -31,7 +31,27 @@ export interface User {
 
   totalXp?: number;
   xpLogs?: XPLog[];
-  isPaid?: boolean;
+  /**
+   * Membership, as the server decided it.
+   *
+   * Replaces the old `isPaid` boolean, which the server kept as a cached flag
+   * that nothing cleared when a membership expired. It is an OBJECT rather than
+   * a date on purpose, and the split is the important part:
+   *
+   *   active  the ONLY thing to gate on. Computed on the server.
+   *   until   DISPLAY ONLY. Never compare it against the device clock.
+   *
+   * A phone with the wrong date, or one the user set forward deliberately,
+   * would grant itself membership if the app decided this locally. The server
+   * has the only clock that counts.
+   */
+  membership?: {
+    active: boolean;
+    /** ISO instant, or null when they are not a member or have no end date. */
+    until: string | null;
+    /** Whole days left in the USER'S OWN calendar, computed server-side. */
+    daysRemaining: number | null;
+  };
   level?: number;
   currentStamina?: number;
   maxStaminaCap?: number;

@@ -25,6 +25,7 @@ import {
   space,
   radius,
 } from "../../../../../design-system";
+import { isMember } from "../../../../../util/functions/membership";
 
 interface TutorialPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -84,7 +85,7 @@ const TutorialPage = ({
         setTutorial(tut);
 
         try {
-          if (tut.isFree || user?.isPaid) {
+          if (tut.isFree || isMember(user)) {
             console.log(`[TutorialPage] Fetching premium video URL for tutorial: ${tut.id}`);
             try {
               const r = await getPremiumVideoUrl(tut.id);
@@ -127,7 +128,7 @@ const TutorialPage = ({
     return () => {
       cancelled = true;
     };
-  }, [techniqueId, user?.isPaid]);
+  }, [techniqueId, user?.membership?.active]);
 
   // Loading
   if (isLoading) {

@@ -37,7 +37,10 @@ let fetchUserInFlight = false;
 function identifyUserInAnalytics(user: User): void {
   identifyUser(String(user.id), {
     // Subscription & access
-    isPaid:              user.isPaid ?? null,
+    // Both, because "when does it end" is the question the old boolean
+    // could never answer, and it is what churn analysis actually needs.
+    isMember:            user.membership?.active ?? null,
+    membershipUntil:     user.membership?.until ?? null,
     isVerified:          user.isVerified ?? null,
     // Onboarding
     hasOnboarded:        user.hasCompletedOnboarding ?? null,

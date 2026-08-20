@@ -6,6 +6,7 @@ import {
   formatRechargeShort,
   staminaCapFor,
 } from "../../../../util/functions/stamina";
+import { isMember } from "../../../../util/functions/membership";
 
 export interface StaminaEstimate {
   estimatedStamina: number;
@@ -42,7 +43,7 @@ export function useStaminaEstimate(user: User | null): StaminaEstimate {
     if (
       !isFocused ||
       !user ||
-      !user.isPaid ||
+      !isMember(user) ||
       (user.currentStamina ?? 0) >= currentMaxStamina ||
       !user.lastStaminaUpdate
     ) {
@@ -80,7 +81,7 @@ export function useStaminaEstimate(user: User | null): StaminaEstimate {
     const interval = setInterval(updateTimerAndEstimation, 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.currentStamina, user?.lastStaminaUpdate, user?.isPaid, isFocused]);
+  }, [user?.currentStamina, user?.lastStaminaUpdate, user?.membership?.active, isFocused]);
 
   return { estimatedStamina, staminaPercentage, rechargeTimeLeft, currentMaxStamina };
 }

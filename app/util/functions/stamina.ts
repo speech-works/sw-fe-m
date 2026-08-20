@@ -1,4 +1,5 @@
 import { User } from "../../api/users";
+import { isMember } from "./membership";
 
 // Fallbacks for the window before GET /users/me has answered with the
 // server-computed cap/rate — notably right after signup, where the
@@ -14,7 +15,7 @@ const FREE_MAX_STAMINA = 35;
 /** The stamina cap to display: server value, else the fallback for their tier. */
 export function staminaCapFor(user: User | null | undefined): number {
   return (
-    user?.maxStaminaCap || (user?.isPaid ? PAID_MAX_STAMINA : FREE_MAX_STAMINA)
+    user?.maxStaminaCap || (isMember(user) ? PAID_MAX_STAMINA : FREE_MAX_STAMINA)
   );
 }
 
@@ -45,7 +46,7 @@ export function estimateStaminaRecharge(
   }
 
   const rechargeMs =
-    user.staminaRegenRateMs || (user.isPaid ? PAID_RECHARGE_MS : FREE_RECHARGE_MS);
+    user.staminaRegenRateMs || (isMember(user) ? PAID_RECHARGE_MS : FREE_RECHARGE_MS);
   const msPassed = nowMs - new Date(user.lastStaminaUpdate).getTime();
   const pointsRecharged = Math.max(0, Math.floor(msPassed / rechargeMs));
   const estimatedStamina = Math.min(max, current + pointsRecharged);
