@@ -2,7 +2,6 @@ import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { createReportedIssue } from "../../../../api/settings/helpSupport";
-import UniversalImageUploader from "../../../../components/UniversalImageUploader";
 import { useUserStore } from "../../../../stores/user";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -40,7 +39,6 @@ const ReportProblem = () => {
   const [selectedIssue, setSelectedIssue] = useState<ReportOptionType | null>(
     null,
   );
-  const [screenshots, setScreenshots] = useState<string[]>([]);
   const [deviceInfo, setDeviceInfo] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -68,7 +66,6 @@ const ReportProblem = () => {
       userEmail: user.email,
       issueType: selectedIssue.id,
       description: issueDesc,
-      screenshotUrls: screenshots,
       deviceInfo,
     });
     setShowSuccess(true);
@@ -116,12 +113,25 @@ const ReportProblem = () => {
             />
           </View>
 
-          {/* Screenshots */}
-          <UniversalImageUploader
-            images={screenshots}
-            onChange={setScreenshots}
-            label="screenshots (optional)"
-          />
+          {/* There was a screenshot picker here, and it never uploaded
+              anything. UniversalImageUploader (now deleted) ran a
+              `simulateUpload` timer,
+              fills a progress bar, and hands back the LOCAL device path from
+              the image picker. That path was stored verbatim and means nothing
+              to anybody but the phone it came from, so a person attached a
+              screenshot, watched it "upload", and sent nothing.
+
+              It could not have worked well even if it uploaded. The picker
+              reads the photo library, so the person must already have taken a
+              screenshot BEFORE walking to Settings > Support > Report, by which
+              point the broken screen is long gone.
+
+              Removed rather than fixed: when this comes back, the app should
+              capture the screen ITSELF at the moment the person says something
+              is wrong, from wherever they are. Asking them to go and find a
+              picture is the app's job pushed onto the user at the one moment
+              they cannot do it. `screenshotUrls` stays on the API and the table
+              for that future, and is simply not sent. */}
 
           {/* CTA */}
           <Button
