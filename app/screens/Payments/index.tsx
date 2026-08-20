@@ -153,10 +153,6 @@ const SubscribeScreen = () => {
     paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
       ? !!annual?.price
       : !!monthly?.price;
-  const selectedPlanSummary =
-    paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
-      ? `${monthlyLabel}/month`
-      : `${annualLabel}/year`;
 
   const sheetTranslateY = useSharedValue(Dimensions.get("window").height);
 
@@ -444,12 +440,17 @@ const SubscribeScreen = () => {
           <View style={styles.testModeIconWrap}>
             <Icon name="alert-circle" size={size.iconLg} color={colors.text.accent} />
           </View>
+          {/* This said "You're in test mode. Payments are disabled while we
+              finish the setup." — internal language pointed at a user, naming
+              a mode they are not in and a setup that is not their business.
+              What a person needs from this moment: what happened, that they
+              were not charged, and what to do. */}
           <DSText variant="h2" color="primary" center style={styles.testModeTitle}>
-            You&apos;re in test mode
+            Purchases aren&apos;t available
           </DSText>
           <DSText variant="body" color="secondary" center style={styles.testModeBody}>
-            Payments are disabled right now while we finish the setup. Current
-            pricing is {selectedPlanSummary}.
+            The store can&apos;t be reached right now, so nothing has been
+            charged. Please try again in a little while.
           </DSText>
           <TouchableOpacity
             activeOpacity={0.9}

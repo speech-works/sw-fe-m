@@ -161,7 +161,7 @@ const TutorialPage = ({
             isLocked={isLocked}
             autoPlay={true}
             isActive={isActive}
-            onPressGoPremium={() => emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL)}
+            onPressUnlock={() => emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL)}
           />
         </View>
 

@@ -77,7 +77,11 @@ interface VideoPlayerProps {
   title?: string;
   subtitle?: string;
   isLocked?: boolean;
-  onPressGoPremium?: () => void;
+  /** Opens the membership sheet. Named for the ACTION, not a product name:
+   *  this prop was `onPressGoPremium`, and "Premium" is the retired name for
+   *  membership — the overlay copy it drove was the last surface in the app
+   *  still selling under it. */
+  onPressUnlock?: () => void;
   hideControls?: boolean;
   /** If known ahead of time, pass the aspect ratio to avoid any layout shift */
   initialAspectRatio?: number;
@@ -127,7 +131,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   title,
   subtitle,
   isLocked = false,
-  onPressGoPremium,
+  onPressUnlock,
   hideControls = false,
   initialAspectRatio,
   isActive = true,
@@ -735,14 +739,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Locked Premium State Overlay */}
-      {isLocked && onPressGoPremium && (
+      {/* Locked-lesson overlay. One name for the product, everywhere it is
+          sold: this said "The full lesson comes with membership" / "Go Premium"
+          while every other surface says membership. */}
+      {isLocked && onPressUnlock && (
         <View style={styles.lockedOverlay}>
           <Icon name={icons.locked} size={48} color={ON_VIDEO} />
-          <Text style={styles.lockedText}>Unlock this tutorial with Premium</Text>
+          <Text style={styles.lockedText}>The full lesson comes with membership</Text>
           <Button
-            text="Go Premium"
-            onPress={onPressGoPremium}
+            text="See what you get"
+            onPress={onPressUnlock}
             style={styles.premiumButton}
           />
         </View>

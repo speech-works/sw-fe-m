@@ -210,6 +210,10 @@ const SELLING_SURFACES = [
   "app/components/membership/CallLengthHero.tsx",
   "app/components/membership/PlanPills.tsx",
   "app/components/membership/MarkedHeadline.tsx",
+  // The locked-lesson overlay sells membership too, and it was the last
+  // surface found still saying "Go Premium" — found by hand, which is the
+  // reason it joins the guarded list.
+  "app/components/VideoPlayer.tsx",
 ];
 
 const repoRoot = join(__dirname, "..", "..", "..");
@@ -236,5 +240,12 @@ describe("one name for the product", () => {
   // subscription; any wording implying a single charge is a refund waiting.
   it.each(SELLING_SURFACES)("%s never implies a one-off charge", (file) => {
     expect(prose(file)).not.toMatch(/billed once|one[- ]time payment|pay once/i);
+  });
+
+  // "You're in test mode. Payments are disabled while we finish the setup."
+  // shipped on the store-unreachable sheet: internal language pointed at a
+  // user, naming a mode they are not in and a setup that is not their business.
+  it.each(SELLING_SURFACES)("%s never speaks internal language", (file) => {
+    expect(prose(file)).not.toMatch(/test mode|we finish the setup|debug/i);
   });
 });

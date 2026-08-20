@@ -134,7 +134,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             style={{ width: "100%" }}
             autoPlay={true}
             isLocked={videoContent.isLocked}
-            onPressGoPremium={() =>
+            onPressUnlock={() =>
               (navigation as any).navigate("PremiumModal")
             }
           />
