@@ -51,6 +51,15 @@ export interface User {
     until: string | null;
     /** Whole days left in the USER'S OWN calendar, computed server-side. */
     daysRemaining: number | null;
+    /**
+     * Will it renew on its own?
+     *
+     * True for a store subscription, which Apple or Google renew without
+     * anyone doing anything. False for a membership we granted, above all the
+     * thirty free days a first-time pack buyer gets: that one simply stops,
+     * unannounced, and is the only case worth saying anything about.
+     */
+    willRenew?: boolean;
   };
   level?: number;
   currentStamina?: number;

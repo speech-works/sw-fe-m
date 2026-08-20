@@ -13,6 +13,7 @@ import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { navigationRef } from "../util/functions/navigation";
 import { purchasesAvailable } from "../services/purchases";
+import { useMembershipPrice } from "../hooks/useMembershipPrice";
 import {
   HEADLINE_FOR,
   PROGRAMS_NOTE,
@@ -85,6 +86,10 @@ const styles = StyleSheet.create({
   benefitRowText: { flex: 1, gap: 2 },
   benefitRowTitle: { ...typography.label },
   benefitRowDesc: { ...typography.caption },
+  priceLine: { alignItems: "center", gap: 2, marginTop: spacing.xs },
+  priceMain: { ...typography.h2 },
+  priceUnit: { ...typography.body },
+  priceSub: { ...typography.caption, textAlign: "center" },
   programsNote: {
     ...typography.caption,
     textAlign: "center",
@@ -289,6 +294,19 @@ const UpsellModal = () => {
 
   const [orderedBenefits, setOrderedBenefits] =
     useState<ReturnType<typeof orderBenefitsFor>>(() => orderBenefitsFor(""));
+
+  // ── THE PRICE, ON THE SHEET ITSELF ──────────────────────────────────────
+  // This screen used to name no price at all, so anybody weighing it up had to
+  // tap through to find out. That is a step in the funnel that exists only
+  // because the number was somewhere else, and it reads as withholding.
+  //
+  // Every figure is the STORE'S OWN localized string, through the same hook the
+  // Payments screen uses, so the two can never quote different numbers. A buyer
+  // in Ohio sees dollars.
+  //
+  // ABOVE the purchasesAvailable() early return, with the other hooks. Hooks
+  // cannot be called conditionally, and this file already learned that once.
+  const price = useMembershipPrice();
 
   const upsellOpacity = useSharedValue(0);
   const upsellTranslateY = useSharedValue(Dimensions.get("window").height);
@@ -527,6 +545,29 @@ const UpsellModal = () => {
               </View>
             </View>
           ))}
+
+          {/* ── PRICE ───────────────────────────────────────────────────────
+              Shown as a per-month figure with the billed total right beside it.
+              The small number is the one people compare, and putting the real
+              charge next to it is what keeps that honest rather than a trick.
+
+              Hidden entirely when no price is known: the offers call failing is
+              ordinary, and a subscription offered with no price attached is
+              what Guideline 3.1.2 forbids. An em dash where a price should be
+              also just looks broken. */}
+          {price.priceKnown && (
+            <View style={styles.priceLine}>
+              <Text style={[styles.priceMain, { color: onSlate }]}>
+                {price.annualPerMonthLabel}
+                <Text style={[styles.priceUnit, { color: withAlpha(onSlate, 0.5) }]}>
+                  {" "}a month
+                </Text>
+              </Text>
+              <Text style={[styles.priceSub, { color: withAlpha(onSlate, 0.45) }]}>
+                Billed yearly at {price.annualLabel}. Monthly is {price.monthlyLabel}.
+              </Text>
+            </View>
+          )}
 
           {/* The line that stops somebody buying membership for the library.
               Quiet on purpose: it is an expectation, not a benefit. */}

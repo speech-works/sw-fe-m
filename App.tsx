@@ -5,6 +5,7 @@ import { AppState, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { PostHogProvider } from "posthog-react-native";
 import UpsellModal from "./app/components/UpsellModal";
+import ContinueMembershipSheet from "./app/components/ContinueMembershipSheet";
 import OutcomeModal from "./app/components/OutcomeModal";
 import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
 // Safe-area probe for the Android bottom-inset question. Renders NOTHING
@@ -380,6 +381,12 @@ const App: React.FC = () => {
                     <ThemedNavRoot>
                       <MainNavigator />
                       <UpsellModal />
+                      {/* Day 28. A pack buyer's thirty free days end without a
+                          word today; this is the only place that says so.
+                          Mounted beside UpsellModal because it decides for
+                          itself whether it applies, and it must be reachable
+                          wherever the user happens to open the app. */}
+                      <ContinueMembershipSheet />
                       <OutcomeModal />
                       <StaminaVignetteOverlay />
                       <GlobalStaminaController />

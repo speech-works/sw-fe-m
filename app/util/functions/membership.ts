@@ -48,3 +48,40 @@ export function membershipDaysRemaining(
 ): number | null {
   return user?.membership?.daysRemaining ?? null;
 }
+
+/**
+ * ===========================================================================
+ * IS THIS MEMBERSHIP ABOUT TO END WITHOUT WARNING?
+ * ---------------------------------------------------------------------------
+ * True only for somebody who is a member NOW, whose access will NOT renew by
+ * itself, and whose last days are running out.
+ *
+ * The case it exists for is the first-time pack buyer. Buying a pack grants
+ * thirty free days of full membership. On day thirty one it stops, nobody is
+ * told, and the app says nothing at any point. That person has used the whole
+ * product for a month, by choice, and is the warmest audience this app will
+ * ever have.
+ *
+ * ── WHY EVERY PART OF THE CONDITION IS NEEDED ──────────────────────────────
+ *   active            saying "your access ends soon" to somebody who is not a
+ *                     member is nonsense
+ *   willRenew false   a store subscriber renews on their own. Warning them
+ *                     about an expiry that is not coming would read as a
+ *                     cancellation notice and cause the churn it meant to stop
+ *   daysRemaining     the count is server-computed in the user's own calendar,
+ *                     so "two days" means two of their days, not two of ours
+ *
+ * `willRenew` is optional in the payload: an older server does not send it, and
+ * `=== false` rather than `!willRenew` means an unknown answer is treated as
+ * "it renews", so nobody is warned on a guess.
+ * ===========================================================================
+ */
+export const CONTINUATION_WINDOW_DAYS = 2;
+
+export function membershipEndingSoon(user: User | null | undefined): boolean {
+  const m = user?.membership;
+  if (!m?.active) return false;
+  if (m.willRenew !== false) return false;
+  if (m.daysRemaining == null) return false;
+  return m.daysRemaining <= CONTINUATION_WINDOW_DAYS;
+}
