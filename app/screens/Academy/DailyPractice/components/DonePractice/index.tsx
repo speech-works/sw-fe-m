@@ -52,6 +52,7 @@ import { useOnboardingNudgeStore } from "../../../../../stores/onboardingNudge";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
 import { LevelUpTakeover } from "./LevelUpTakeover";
+import MembershipDock from "../../../../../components/MembershipDock";
 
 /** Same glyphs as the growth card — one axis, one icon, wherever it appears. */
 const AXIS_ICON: Record<string, IconName> = {
@@ -554,6 +555,27 @@ const DonePractice = ({
         </View>
       </View>
 
+      {/* ── THE MEMBERSHIP ASK, AT A MOMENT WORTH ASKING IN ─────────────────
+          The only place we sell membership today is the instant somebody runs
+          out of practice: they wanted to carry on, we stopped them, and the
+          next thing they saw was a price. This is the same offer after
+          something went well instead.
+
+          A DOCK, not a sheet, and rendered outside the centred content so it
+          cannot push the celebration around. It never blocks, it decides for
+          itself whether to appear at all (member, payments off, or asked
+          already this week), and it stays away entirely on an abandoned
+          session — congratulating nobody and then selling would be worse than
+          saying nothing.
+
+          It also waits for the level-up takeover. Two things asking for
+          attention at once is how both get dismissed. */}
+      {!isAborted && !showTakeover && (
+        <View style={[styles.membershipDock, { bottom: navBarInset + 16 }]}>
+          <MembershipDock />
+        </View>
+      )}
+
       {/* Level-up celebration — exclusive AnimatedModal, defers while any other
           native modal (e.g. the Reminder sheet) is up. onClose is the Phase-5
           reward-grant chaining seam. */}
@@ -573,6 +595,8 @@ const DonePractice = ({
 export default DonePractice;
 
 const styles = StyleSheet.create({
+  /** Pinned to the bottom, over the content rather than inside it. */
+  membershipDock: { position: "absolute", left: 16, right: 16 },
   screen: {
     flex: 1,
     paddingHorizontal: 0,

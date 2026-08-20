@@ -13,6 +13,12 @@ import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { navigationRef } from "../util/functions/navigation";
 import { purchasesAvailable } from "../services/purchases";
+import {
+  HEADLINE_FOR,
+  PROGRAMS_NOTE,
+  leadBenefitFor,
+  orderBenefitsFor,
+} from "../services/membershipOffer";
 // Deliberately the DARK elevation set: the premium card is gold-on-slate in both
 // schemes, so its inner shadows stay dark-tuned (see design-system/elevation.ts).
 import { elevationDark } from "../design-system/elevation";
@@ -41,52 +47,50 @@ import Animated, {
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.82;
 const CARD_GAP = 12;
-const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
   ANNUALLY = 1,
 }
 
-// Keep these in step with PREMIUM_SLIDES in screens/Payments — the two screens
-// sell the same thing and must not quote different numbers. The figures are
-// real: free is FREE_STAMINA_CONFIG (35 max at 7 per activity, about five a
-// day) and paid is the level pool (80-110, about twelve); calls are 4 per 30
-// days banking to 8. Both of the old values here were false in opposite
-// directions ("1 / Day" understated our own free tier fivefold, "No Limits"
-// promised something we do not sell).
-const ALL_BENEFITS = [
-  {
-    id: "unrestricted",
-    label: "Daily practice",
-    free: "About 5 a day",
-    pro: "About 12 a day",
-    icon: icons.energy, // the practice bar — this benefit is about it refilling faster
-    desc: "Premium roughly doubles your daily practice and refills faster, so a good session doesn't stop because the bar ran out.",
-  },
-  {
-    id: "library",
-    // Was "Clinical Library" / "clinical packs designed by Speechworks
-    // experts" — two claims we can't substantiate (clinical treatment, and
-    // expert authorship) on a screen that asks for money. See the matching
-    // slide in screens/Payments.
-    label: "Guided programs",
-    free: "Preview",
-    pro: "All of them",
-    icon: icons.journey, // the registry's word for a pack/program
-    desc: "Every program in the library, start to finish. Structured arcs that build week to week, not loose exercises.",
-  },
-  {
-    id: "ai_calls",
-    label: "Live AI calls",
-    free: "Basic",
-    pro: "4 a month",
-    icon: icons.ai,
-    desc: "Practice the call you keep putting off, with someone who won't finish your sentences. Four a month, banking up to eight.",
-  },
-];
+
 
 const styles = StyleSheet.create({
+  // ── The benefits block that replaced the carousel ───────────────────────
+  benefitsSection: { paddingHorizontal: 20, gap: 10 },
+  /**
+   * The lead benefit. Tinted gold rather than the neutral fill the other rows
+   * use, so which one is the argument is obvious before any word is read.
+   */
+  heroBenefit: {
+    borderRadius: radius.card,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  heroBenefitTitle: {
+    ...typography.h3,
+    // Two lines is the realistic worst case for these labels at the largest
+    // accessibility sizes; the card grows rather than clipping.
+    letterSpacing: -0.3,
+  },
+  benefitRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+    borderRadius: radius.input,
+    borderWidth: 1,
+    padding: spacing.md,
+  },
+  benefitRowText: { flex: 1, gap: 2 },
+  benefitRowTitle: { ...typography.label },
+  benefitRowDesc: { ...typography.caption },
+  programsNote: {
+    ...typography.caption,
+    textAlign: "center",
+    marginTop: spacing.xs,
+  },
+
   // Upsell Full Page Styles (Matched with SubscribeScreen)
   portalContainer: {
     flex: 1,
@@ -283,8 +287,8 @@ const UpsellModal = () => {
   const [modalTag, setModalTag] = useState("");
   const [modalCta, setModalCta] = useState("See what's included");
 
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [orderedBenefits, setOrderedBenefits] = useState(ALL_BENEFITS);
+  const [orderedBenefits, setOrderedBenefits] =
+    useState<ReturnType<typeof orderBenefitsFor>>(() => orderBenefitsFor(""));
 
   const upsellOpacity = useSharedValue(0);
   const upsellTranslateY = useSharedValue(Dimensions.get("window").height);
@@ -337,48 +341,30 @@ const UpsellModal = () => {
         let tag =
           event.detail?.modalTag || event.detail?.tag || "PREMIUM ACCESS";
 
+        // ── THE HEADLINE FOLLOWS THE LEAD BENEFIT ────────────────────────
+        // This used to hardcode one headline for both the premium and library
+        // triggers, and that headline named "Guided programs" — a benefit
+        // membership does not include (see MEMBERSHIP_BENEFITS above). The
+        // sentence is now derived from whichever benefit is leading, so the
+        // top of the sheet and the first thing under it can never disagree.
+        const lead = leadBenefitFor(event.name);
         if (
           event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL ||
           event.name === EVENT_NAMES.SHOW_LIBRARY_UPSELL
         ) {
-          // Was "Master Speech Management" / "…directly from expert SLPs."
-          // Two problems: "master" frames speech as something to be conquered,
-          // which is the framing this product exists to avoid; and the expert
-          // authorship is a credential claim we cannot back (the same claim was
-          // already cut from the benefits list below).
-          title = "Take it into a real conversation";
-          message =
-            "Guided programs, and live calls to try a technique before the day you need it.";
+          title = HEADLINE_FOR[lead].title;
+          message = HEADLINE_FOR[lead].message;
         }
 
         setModalTitle(title);
         setModalMessage(message);
         setModalTag(tag);
 
-        // Dynamic Reordering Logic
-        const newOrder = [...ALL_BENEFITS].sort((a, b) => {
-          if (event.name === EVENT_NAMES.SHOW_STAMINA_UPSELL) {
-            // Prioritize Stamina/Practice
-            if (a.id === "unrestricted") return -1;
-            if (b.id === "unrestricted") return 1;
-            if (a.id === "stamina") return -1;
-            if (b.id === "stamina") return 1;
-          } else if (event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL) {
-            // Prioritize AI Calls then Library
-            if (a.id === "ai_calls") return -1;
-            if (b.id === "ai_calls") return 1;
-            if (a.id === "library") return -1;
-            if (b.id === "library") return 1;
-          } else if (event.name === EVENT_NAMES.SHOW_LIBRARY_UPSELL) {
-            // Prioritize Library then AI Calls
-            if (a.id === "library") return -1;
-            if (b.id === "library") return 1;
-            if (a.id === "ai_calls") return -1;
-            if (b.id === "ai_calls") return 1;
-          }
-          return 0;
-        });
-        setOrderedBenefits(newOrder);
+        // One ordering rule, in one tested function. The sort this replaces
+        // was a chain of comparator branches naming benefit ids that no longer
+        // exist ("unrestricted", "stamina"), so two of its three cases were
+        // already dead and it silently did nothing.
+        setOrderedBenefits(orderBenefitsFor(event.name));
 
         // One label, because all three tapped the same button: this navigates
         // to PremiumModal, it does not buy anything. "Unlock Entire Library" /
@@ -402,6 +388,11 @@ const UpsellModal = () => {
 
   const gold = colors.premium;
   const onSlate = darkColors.text.primary;
+
+  // The lead benefit and the two supporting it. Split here rather than in the
+  // JSX so the render reads as "hero, then the rest" and cannot get them out
+  // of order.
+  const [heroBenefit, ...restBenefits] = orderedBenefits;
 
   /**
    * The premium tier's gold-on-slate identity is DELIBERATELY outside the orange
@@ -481,60 +472,67 @@ const UpsellModal = () => {
           </Text>
         </View>
 
-        <View style={styles.carouselSection}>
-          <ScrollView
-            horizontal
-            pagingEnabled={false}
-            decelerationRate="fast"
-            snapToInterval={SNAP_INTERVAL}
-            snapToAlignment="center"
-            showsHorizontalScrollIndicator={false}
-            onScroll={(e) => {
-              const x = e.nativeEvent.contentOffset.x;
-              const index = Math.round(x / SNAP_INTERVAL);
-              if (index !== carouselIndex) setCarouselIndex(index);
-            }}
-            scrollEventThrottle={16}
-            style={styles.carousel}
-            contentContainerStyle={styles.carouselContent}
+        {/* ── HERO, THEN THE REST ─────────────────────────────────────────
+            This was a horizontal carousel of three cards with pagination dots.
+            Two problems, both costing sales:
+
+            1. Each card was a SEPARATE argument, so a person saw one and left.
+               Most never swiped, which meant most never learned that the other
+               two benefits existed at all.
+            2. It gave the three equal weight, when one of them is the entire
+               reason to buy. Call length is the only column where membership
+               wins by a wide margin.
+
+            So the lead benefit gets the hero and the other two sit right under
+            it, always visible, no gesture required. Which one leads depends on
+            what the person just hit — see leadBenefitFor.
+        */}
+        <View style={styles.benefitsSection}>
+          <View
+            style={[
+              styles.heroBenefit,
+              { backgroundColor: gold.goldTint, borderColor: gold.goldBorder },
+            ]}
           >
-            {orderedBenefits.map((benefit) => (
-              <View key={benefit.id} style={styles.carouselSlide}>
-                <View
-                  style={[
-                    styles.slideInner,
-                    {
-                      backgroundColor: withAlpha(onSlate, 0.04),
-                      borderColor: withAlpha(onSlate, 0.08),
-                    },
-                  ]}
-                >
-                  <View style={[styles.slideIconContainer, { backgroundColor: withAlpha(onSlate, 0.06) }]}>
-                    <Icon name={benefit.icon} size={size.tabIcon} color={colors.premium.gold} />
-                  </View>
-                  <View style={styles.slideContent}>
-                    <Text style={[styles.slideTitle, { color: onSlate }]}>{benefit.label}</Text>
-                    <Text style={[styles.slideDesc, { color: withAlpha(onSlate, 0.45) }]}>
-                      {benefit.desc}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.paginationDots}>
-            {orderedBenefits.map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  carouselIndex === i
-                    ? [styles.activeDot, { backgroundColor: gold.gold }]
-                    : [styles.inactiveDot, { backgroundColor: withAlpha(onSlate, 0.2) }],
-                ]}
-              />
-            ))}
+            <View style={[styles.slideIconContainer, { backgroundColor: withAlpha(onSlate, 0.06) }]}>
+              <Icon name={icons[heroBenefit.iconKey]} size={size.tabIcon} color={gold.gold} />
+            </View>
+            <Text style={[styles.heroBenefitTitle, { color: onSlate }]}>
+              {heroBenefit.label}
+            </Text>
+            <Text style={[styles.slideDesc, { color: withAlpha(onSlate, 0.6) }]}>
+              {heroBenefit.desc}
+            </Text>
           </View>
+
+          {restBenefits.map((benefit) => (
+            <View
+              key={benefit.id}
+              style={[
+                styles.benefitRow,
+                {
+                  backgroundColor: withAlpha(onSlate, 0.04),
+                  borderColor: withAlpha(onSlate, 0.08),
+                },
+              ]}
+            >
+              <Icon name={icons[benefit.iconKey]} size={size.icon} color={gold.gold} />
+              <View style={styles.benefitRowText}>
+                <Text style={[styles.benefitRowTitle, { color: onSlate }]}>
+                  {benefit.label}
+                </Text>
+                <Text style={[styles.benefitRowDesc, { color: withAlpha(onSlate, 0.45) }]}>
+                  {benefit.desc}
+                </Text>
+              </View>
+            </View>
+          ))}
+
+          {/* The line that stops somebody buying membership for the library.
+              Quiet on purpose: it is an expectation, not a benefit. */}
+          <Text style={[styles.programsNote, { color: withAlpha(onSlate, 0.4) }]}>
+            {PROGRAMS_NOTE}
+          </Text>
         </View>
       </ScrollView>
 
