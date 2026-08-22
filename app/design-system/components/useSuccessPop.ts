@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import Animated, {
+import { useEffect } from "react";
+import {
   interpolate,
   useAnimatedStyle,
   useReducedMotion,
@@ -8,10 +8,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { duration, spring } from "../motion";
-import { radius } from "../primitives/scale";
-import { useTheme } from "../useTheme";
-import { Icon } from "./Icon";
-import { icons } from "../icons";
 
 /**
  * Animated style for a "pop": scales 0.6 → 1 while fading in. For genuine success/delight
@@ -41,37 +37,15 @@ export function useSuccessPop(active: boolean, options?: { celebrate?: boolean }
   }));
 }
 
-export interface SuccessCheckProps {
-  /** Disc diameter (default 56). */
-  size?: number;
-  /** When true, the check pops in (default true — pops on mount). */
-  active?: boolean;
-}
-
-/**
- * A self-contained success disc — a valence-success circle with a check glyph that
- * pops in via {@link useSuccessPop}. This is a plain inline `Animated.View` (NOT a
- * native Modal), so it can be layered over a Sheet/overlay without the stacked-modal
- * touch-freeze.
+/*
+ * THE `SuccessCheck` DISC USED TO LIVE HERE.
+ *
+ * A success circle with a check glyph that popped in via the hook above.
+ * Nothing ever imported it: every screen that wanted the pop reached for
+ * `useSuccessPop` and drew its own disc, because each one needed a different
+ * size, colour or glyph. The component was the special case nobody had.
+ *
+ * The hook is the part that earned its place, and it stays. If a plain success
+ * disc is ever wanted again, it is nine lines of JSX around this hook, and
+ * writing them at the call site is what every caller already chose to do.
  */
-export const SuccessCheck: React.FC<SuccessCheckProps> = ({ size = 56, active = true }) => {
-  const { colors } = useTheme();
-  const style = useSuccessPop(active);
-  return (
-    <Animated.View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: radius.full,
-          backgroundColor: colors.accent.success,
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        style,
-      ]}
-    >
-      <Icon name={icons.success} size={Math.round(size * 0.5)} color={colors.accentOn.success} />
-    </Animated.View>
-  );
-};
