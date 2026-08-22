@@ -17,6 +17,8 @@ interface ModuleLike {
 export interface ActiveProgram {
   packId: string;
   title: string;
+  /** One or two lines of what the arc is. See the note in InProgressSlide. */
+  description: string | null;
   /** Only for the arc's tone; the slide does not print it. */
   isRefresher: boolean;
   /** The day they are on, or the last one when everything is done. */
@@ -123,6 +125,7 @@ export function useActiveProgram(): ActiveProgramState {
             program: {
               packId: rec.pack.id,
               title: rec.pack.title,
+              description: rec.pack.description ?? null,
               isRefresher: !!rec.isRefresher,
               nextModule,
               moduleOrder: nextModule ? nextModule.orderIndex : total,

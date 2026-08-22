@@ -86,6 +86,17 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
           {program.title}
         </Text>
 
+        {program.description ? (
+          <Text
+            variant="bodySm"
+            color={ink}
+            numberOfLines={2}
+            style={styles.desc}
+          >
+            {program.description}
+          </Text>
+        ) : null}
+
         {/* Pushes everything below to the bottom edge, so a stretched slide
             grows in the MIDDLE and the action never drifts up the card. */}
         <View style={styles.spacer} />
@@ -161,6 +172,7 @@ const styles = StyleSheet.create({
     padding: space.cardPad,
   },
   title: { marginTop: spacing.xs },
+  desc: { opacity: 0.85, marginTop: spacing.xs },
   spacer: { flex: 1, minHeight: spacing.md },
   nextLabel: { opacity: 0.7, letterSpacing: 0.6 },
   next: { marginTop: spacing.xxs },
