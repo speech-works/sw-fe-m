@@ -281,11 +281,11 @@ const ReachRow: React.FC<{
  * against the bead. A hairline tick in a solid disc reads as a mistake.
  */
 const Tick: React.FC<{ color: string }> = ({ color }) => (
-  <Svg width={17} height={17} viewBox="0 0 24 24">
+  <Svg width={14} height={14} viewBox="0 0 24 24">
     <Path
       d="M5 12.5 L10 17.5 L19 7.5"
       stroke={color}
-      strokeWidth={3.6}
+      strokeWidth={3.2}
       strokeLinecap="round"
       strokeLinejoin="round"
       fill="none"
@@ -415,27 +415,33 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   /*
-   * PROPORTIONS TAKEN OFF THE REFERENCE, not guessed. Measured against its
-   * circle: the connector is 47% of the bead's height and 63% of its width, and
-   * the empty knob is 85% of it. Those ratios are what make the row read as one
-   * strung object; a thinner bar turns it into three buttons with a scratch
-   * between them, which is what the first attempt was.
+   * LONGER AND LEANER THAN THE REFERENCE, on purpose.
+   *
+   * Its ratios — connector 47% of the bead's height, 63% of its width — are
+   * tuned for a saturated orange card where the row is the loudest thing on it.
+   * This card is the opposite: near-canvas, one soft halo, fine type. Three
+   * solid discs at that weight were the heaviest object on a quiet card.
+   *
+   * So the beads come down and the bars stretch: the row covers more width on
+   * less ink. The bar can be 31% of a bead here — well under the reference —
+   * because HUE is what binds this row, not mass. The first attempt proved the
+   * other side of that: a 9pt bar in neutral grey read as a scratch between
+   * three buttons, and it was the colour that failed, not the thickness.
    */
   bead: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
-  bar: { width: 20, height: 15, marginHorizontal: -1 },
+  bar: { width: 34, height: 8, marginHorizontal: -1 },
   /*
-   * 27 is the reference's ratio, 85% of a bead, and it has to stay there: the
-   * bar is 15, so at 22 the knob was only half again its height and the three
-   * of them fused into one sausage. The knob has to clear the string it sits
-   * on for the row to read as nodes at all.
+   * Still has to CLEAR the bar it sits on, which is the rule the sausage taught.
+   * At 18 against an 8pt bar it clears by more than twice, so the nodes read
+   * even though everything shrank.
    */
-  knob: { width: 27, height: 27, borderRadius: radius.full },
+  knob: { width: 18, height: 18, borderRadius: radius.full },
   sub: { marginTop: spacing.sm },
   cta: {
     marginTop: spacing.lg,
