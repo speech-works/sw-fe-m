@@ -1,4 +1,4 @@
-import { GrowthAxis, AXIS_LABEL, AXIS_SUBTITLE, LOOP_TODAY } from "../index";
+import { GrowthAxis, AXIS_SUBTITLE, LOOP_TODAY, visibleTotals } from "../index";
 
 /**
  * ============================================================================
@@ -15,22 +15,32 @@ import { GrowthAxis, AXIS_LABEL, AXIS_SUBTITLE, LOOP_TODAY } from "../index";
  * ============================================================================
  */
 describe("Growth axis labels", () => {
-  it("shows STEADIER as 'Finisher', never as a fluency claim", () => {
-    // THE ONE THAT MATTERS. In a stuttering app "Steadier" is read as "my
-    // speech is steadier" — smoother, less shaky, more fluent. We refuse to
-    // measure fluency; it is a core part of how the product differentiates
-    // itself. A number called Steadier that goes up asserts exactly the thing
-    // we have committed to never claiming, and no subtitle can undo a word that
-    // makes the wrong claim by itself.
+  it("shows no invented axis name to a user, on any surface", () => {
+    // THE ONE THAT MATTERS NOW. Braver, Wider, Regular and Finisher were words
+    // this app made up and then had to teach: everywhere one appeared, a second
+    // line appeared under it to say what it meant. Three surfaces carried them.
+    // The Today ring was deleted, the completion chip says "11 hard things
+    // done", and the progress report leads with the plain sentence.
     //
-    // The enum keeps its stored value so nothing has to migrate; only the label
-    // changed.
-    expect(AXIS_LABEL[GrowthAxis.STEADIER]).toBe("Finisher");
-    expect(AXIS_LABEL[GrowthAxis.STEADIER].toLowerCase()).not.toContain("steady");
-    expect(AXIS_LABEL[GrowthAxis.STEADIER].toLowerCase()).not.toContain("smooth");
+    // `visibleTotals` is the single path every screen takes to render these
+    // counts, so pinning it here covers all of them at once. The enum keeps its
+    // stored values: renaming a server key to match a copy decision would be a
+    // migration for nothing.
+    const invented = /braver|wider|steadier|finisher|regular/i;
+    const rows = visibleTotals({
+      axes: Object.values(GrowthAxis).map((axis) => ({
+        axis,
+        count: 3,
+        lastAt: null,
+      })),
+    } as never);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(`${row.axis}:${invented.test(row.label)}`).toBe(`${row.axis}:false`);
+    }
   });
 
-  it("gives every axis a subtitle, because Wider is meaningless without one", () => {
+  it("gives every axis a plain name, because it is the only one shown", () => {
     // "Wider" alone reads as "did a wider variety of exercises" — app breadth
     // rather than life breadth, which is the dishonest meaning the axis was
     // nearly renamed to escape. It survives ONLY because its misreading is
@@ -68,16 +78,16 @@ describe("Growth axis labels", () => {
     }
   });
 
-  it("labels every axis, so a new one cannot ship nameless", () => {
+  it("names every axis, so a new one cannot ship nameless", () => {
     for (const axis of Object.values(GrowthAxis)) {
-      expect(AXIS_LABEL[axis]).toBeTruthy();
+      expect(AXIS_SUBTITLE[axis]).toBeTruthy();
     }
   });
 });
 
 /**
- * The daily wording. Separate from AXIS_LABEL/AXIS_SUBTITLE because those
- * describe a lifetime count, and a lifetime phrasing on a daily ring reads as
+ * The daily wording. Separate from AXIS_SUBTITLE because that describes a
+ * lifetime count, and a lifetime phrasing on a daily ring reads as
  * circular: "days you've practiced" on a segment that closes the moment you
  * practise once, today.
  */

@@ -20,16 +20,21 @@ export enum GrowthAxis {
  * claim we refuse to make. The enum keeps its stored value so no data has to
  * migrate; only the label changed.
  */
-export const AXIS_LABEL: Record<GrowthAxis, string> = {
-  [GrowthAxis.BRAVER]: "Braver",
-  [GrowthAxis.WIDER]: "Wider",
-  [GrowthAxis.STEADIER]: "Finisher",
-  [GrowthAxis.REGULAR]: "Regular",
-};
-
+/*
+ * BRAVER, WIDER AND REGULAR ARE GONE FROM THE UI.
+ *
+ * They were words this app invented and then had to teach: every place one
+ * appeared, a second line appeared under it to say what it meant. Three
+ * surfaces carried them. The Today ring was deleted, the practice-completion
+ * chip now says "11 hard things done", and the progress report now leads with
+ * the plain sentence that used to be the gloss.
+ *
+ * The enum stays. It is how the SERVER groups these counts, and renaming a
+ * stored key to match a copy decision would be a migration for no gain. What
+ * changed is that no user is shown the key any more.
+ */
 /**
- * Always rendered with the label — "Wider" alone reads as "did lots of
- * different exercises", which is the wrong meaning.
+ * THE USER-FACING NAME of each count, and now the only one.
  *
  * EACH ONE SAYS WHAT ITS NUMBER COUNTS, IN THE FEWEST PLAIN WORDS.
  * They used to be written to avoid making a claim rather than to explain a
@@ -222,7 +227,6 @@ export async function fetchGrowthTotals(): Promise<GrowthTotals | null> {
 export function visibleTotals(totals: GrowthTotals | null): {
   axis: GrowthAxis;
   label: string;
-  subtitle: string;
   count: number;
   lastAt: string | null;
 }[] {
@@ -230,8 +234,10 @@ export function visibleTotals(totals: GrowthTotals | null): {
   const byAxis = new Map(totals.axes.map((t) => [t.axis, t]));
   return VISIBLE_AXES.map((axis) => ({
     axis,
-    label: AXIS_LABEL[axis],
-    subtitle: AXIS_SUBTITLE[axis],
+    // THE PLAIN SENTENCE IS THE LABEL. It used to be the subtitle underneath
+    // "Braver", explaining what Braver meant. With the invented word gone it
+    // has nothing left to explain and is simply the name of the thing.
+    label: AXIS_SUBTITLE[axis],
     count: byAxis.get(axis)?.count ?? 0,
     lastAt: byAxis.get(axis)?.lastAt ?? null,
   }));

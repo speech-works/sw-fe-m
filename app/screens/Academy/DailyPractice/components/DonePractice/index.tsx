@@ -126,9 +126,8 @@ const DonePractice = ({
    * priority order, so taking the first names the most specific thing earned
    * and Regular only wins when nothing else applies.
    *
-   * THE LABEL IS NEVER SHOWN WITHOUT ITS SUBTITLE — "Wider" alone means "did a
-   * variety of exercises", the wrong meaning, and this is the one screen where
-   * a user meets the word for the first time.
+   * The axis picks WHICH count to show. Its name is never printed: the chip
+   * reads "11 hard things done", not "Braver · 11 times".
    */
   // Reads through a selector, so `earnedFor` MUST return a referentially stable
   // array on both branches (see NO_AXES in the celebration store) — under

@@ -39,10 +39,10 @@ import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
  * is a guilt generator, and guilt is the one thing this product cannot afford.
  * Three rings today and four tomorrow is correct behaviour, not a glitch.
  *
- * THE LABEL NEVER SHIPS WITHOUT ITS SUBTITLE. "Wider" alone reads as "did lots
- * of different exercises" — the wrong meaning, and the one the whole axis was
- * nearly renamed to avoid. The subtitle is what makes it mean a life instead of
- * a menu, so the two are rendered together or not at all.
+ * NO INVENTED NAMES. This strip says what today's work IS, through
+ * `LOOP_TODAY`, and never "Braver" or "Wider". Those needed a second line under
+ * them on every appearance to say what they meant, which is the definition of a
+ * word not carrying its own weight.
  *
  * IT RENDERS NOTHING WHEN THERE IS NOTHING HONEST TO SAY. No plan, no items, or
  * a failed request all collapse to null rather than an empty card or an error —

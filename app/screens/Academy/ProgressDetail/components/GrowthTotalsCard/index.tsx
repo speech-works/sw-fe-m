@@ -50,9 +50,11 @@ import { insetSurface } from "../../insetSurface";
  * calculating your growth" state either — nothing is calculating, and a promise
  * with a deadline we cannot meet is how the last one lost people's trust.
  *
- * THE LABEL NEVER APPEARS WITHOUT ITS SUBTITLE. "Wider" alone reads as "did a
- * variety of exercises" — app breadth instead of life breadth, the dishonest
- * meaning the axis was nearly renamed to escape.
+ * NO INVENTED NAMES. Each row used to read "Wider" with "Different situations
+ * you've spoken in" underneath explaining it. The explanation is the row now.
+ * "Wider" alone read as "did a variety of exercises" — app breadth instead of
+ * life breadth, the dishonest meaning the axis was nearly renamed to escape,
+ * and a word that needs a gloss on every appearance was never worth its rent.
  * ============================================================================
  */
 
@@ -162,12 +164,11 @@ const GrowthTotalsCard: React.FC<Props> = ({ totals }) => {
               </View>
 
               <View style={styles.flex1}>
+                {/* One line, not two. This used to be "Braver" with "Hard
+                    things you've done" underneath explaining it. The gloss is
+                    the label now, so there is nothing left to put beneath it. */}
                 <Text variant="body" style={styles.bold}>
                   {row.label}
-                </Text>
-                {/* Never separated from the label — see the note above. */}
-                <Text variant="caption" color="tertiary">
-                  {row.subtitle}
                 </Text>
                 {/* A PROMPT, NOT A VALUE. It used to open with "None yet."
                     and then say what to do — but the row has no number beside
