@@ -14,6 +14,7 @@ import {
   withAlpha,
 } from "../../design-system";
 import type { ActiveProgram } from "./useActiveProgram";
+import { dayCloseLine } from "../../util/packs/dayLock";
 import { packIconFor } from "./packIcon";
 
 /**
@@ -73,6 +74,17 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
 
   const { nextModule, moduleOrder, totalModules, percentComplete } = program;
 
+  // True only when we KNOW the next day has not opened. Null (no progress call,
+  // or a pack with no arc) leaves the card exactly as it was.
+  const dayLocked = program.nextModuleLocked === true;
+  const dayCloseState = {
+    // The day they finished is the one before the locked one, and `currentDay`
+    // is a better answer than arithmetic when we have it.
+    finishedDay: program.currentDay,
+    nextDay: program.nextModuleDay,
+    currentDay: program.currentDay,
+  };
+
   return (
     <PressableScale
       scaleTo={0.98}
@@ -80,7 +92,11 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
       accessibilityRole="button"
       accessibilityLabel={
         `${program.title}, in progress. ` +
-        (nextModule ? `Next: ${nextModule.title}. ` : "") +
+        (dayLocked
+          ? `${dayCloseLine(dayCloseState)} `
+          : nextModule
+            ? `Next: ${nextModule.title}. `
+            : "") +
         (totalModules ? `Module ${moduleOrder} of ${totalModules}. ` : "") +
         "Opens it."
       }
@@ -192,16 +208,18 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
 
         <View style={[styles.cta, { backgroundColor: ink }]}>
           <Icon
-            name={icons.play}
+            name={dayLocked ? icons.success : icons.play}
             size={size.iconInline}
             color={colors.action.primary}
           />
           <Text variant="label" style={{ color: colors.action.primary }}>
             {program.isRefresher
               ? "Start again"
-              : percentComplete > 0
-                ? "Continue"
-                : "Start"}
+              : dayLocked
+                ? "Done for today"
+                : percentComplete > 0
+                  ? "Continue"
+                  : "Start"}
           </Text>
         </View>
       </View>

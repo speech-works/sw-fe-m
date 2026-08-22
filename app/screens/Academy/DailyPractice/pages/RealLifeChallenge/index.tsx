@@ -281,8 +281,18 @@ const RealLifeChallenge = () => {
     setCurrentStep(ChallengeStep.REFLECTION);
   };
 
+  /**
+   * NOTHING READS `reflectionText`. It is bound to the input and it is never
+   * sent: there is no field for it on the completion call, and no column for it
+   * on `practice_activities`. The label said "Saving reflection" above a
+   * console.log, which is the only place it ever went.
+   *
+   * That is why the button no longer waits for it. Storing it properly needs a
+   * column and a change to the completion payload, which is a separate piece of
+   * work; until then the box is somewhere to think, and saying so is more
+   * honest than demanding text and dropping it.
+   */
   const handleReflectionComplete = async () => {
-    console.log("Saving reflection:", reflectionText);
     setShowVitalsModal(true);
   };
 
@@ -469,7 +479,24 @@ const RealLifeChallenge = () => {
     );
   }
 
-  // Step 2 — reflection.
+  /*
+   * Step 2 — reflection.
+   *
+   * THE BUTTON HAS NO `disabled` GATE. It used to carry
+   * `disabled={!reflectionText.trim()}`, so somebody who had just done the
+   * hardest thing in their week could not finish until they wrote a paragraph
+   * about it.
+   *
+   * That was survivable when real acts were rare. They are now the spine of
+   * every program and the close of all nine, so Interview Ready demanded nine
+   * forced paragraphs in fourteen days, and the last one landed immediately
+   * before the goal report, which asks about three goals. Two compulsory
+   * writing tasks, back to back, at the end of a two-week program, for people
+   * whose presenting problem is avoidance.
+   *
+   * The text was never sent anywhere either, so the gate protected no data. See
+   * the note on `handleReflectionComplete`.
+   */
   return (
     <>
       <Page
@@ -478,11 +505,7 @@ const RealLifeChallenge = () => {
         onBack={handleBack}
         keyboardAvoiding
         footer={
-          <Button
-            label="Complete Challenge"
-            onPress={handleReflectionComplete}
-            disabled={!reflectionText.trim()}
-          />
+          <Button label="Complete Challenge" onPress={handleReflectionComplete} />
         }
       >
         <View style={styles.reflectionHeader}>
@@ -498,6 +521,11 @@ const RealLifeChallenge = () => {
           </View>
           <Text variant="h2" color="primary">
             Reflection
+          </Text>
+          {/* Said out loud. Removing the gate is not enough on its own: a lone
+              text box above a button reads as required whether it is or not. */}
+          <Text variant="bodySm" color="secondary">
+            Optional. You can finish without it.
           </Text>
         </View>
 
