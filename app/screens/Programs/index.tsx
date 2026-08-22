@@ -218,7 +218,17 @@ const ProgramsScreen = () => {
     if (item.creditGrantAmount > 0) {
       chips.push(`${item.creditGrantAmount} AI calls`);
     }
-    if (item.bonusMembershipDays > 0 && offers?.bonusMembershipEligible) {
+    /*
+     * NOT ON SOMETHING THEY ALREADY BOUGHT. "1 month free" is a reason to
+     * purchase, and on an owned card it is either an offer they cannot take or
+     * one they already took. Either way it is the shop talking on the shelf
+     * that exists to get them back INTO the program.
+     */
+    if (
+      !item.owned &&
+      item.bonusMembershipDays > 0 &&
+      offers?.bonusMembershipEligible
+    ) {
       chips.push("1 month free");
     }
     return chips;
@@ -583,13 +593,35 @@ const ProgramsScreen = () => {
   const heroItem = hasSignal
     ? items.find((i) => i.match?.level === "top" && !i.owned)
     : undefined;
-  const restItems = heroItem ? items.filter((i) => i.key !== heroItem.key) : items;
+  const afterHero = heroItem ? items.filter((i) => i.key !== heroItem.key) : items;
+
+  /**
+   * ── WHAT THEY ALREADY BOUGHT COMES OUT OF THE SHOP ───────────────────────
+   * A program somebody owns sat in the sale list between two they could buy,
+   * marked only by a small tag. That is the wrong shelf: they are not deciding
+   * whether to get it, they are looking for the way back into it. Worse, a
+   * FINISHED program had nowhere else to be — the For-you shelf leads with the
+   * ACTIVE one, so completing a program made it disappear from every surface
+   * except a scroll through the shop.
+   *
+   * So owned programs lift into their own short section above, and the sale
+   * list below is only things to buy.
+   *
+   * THE TIER PILLS DO NOT TOUCH IT. They answer "which of these would I buy",
+   * and hiding a program somebody already paid for behind a shelf filter would
+   * make it unfindable for the second time.
+   */
+  const ownedItems = afterHero.filter((i) => i.owned);
+  const forSale = afterHero.filter((i) => !i.owned);
+
   // Filtered, never re-sorted. `items` arrives ranked for this user and a
   // previous `groupByShelf` was deleted precisely because grouping threw that
   // ranking away; `filter` preserves order by definition, which is the whole
-  // reason this is a filter and not a set of sections.
+  // reason this is a filter and not a set of sections. Splitting owned out is
+  // not that mistake repeated: it removes rows from the ranked list without
+  // reordering the ones that remain.
   const shownItems =
-    tier === "all" ? restItems : restItems.filter((i) => i.shelf === tier);
+    tier === "all" ? forSale : forSale.filter((i) => i.shelf === tier);
 
   // Gated on the branch that actually renders the shelf, NOT on the fetch
   // resolving — loading, failed and empty all resolve too, and none of them is
@@ -671,9 +703,22 @@ const ProgramsScreen = () => {
 
           {heroItem ? renderHero(heroItem) : null}
 
-          {heroItem ? (
+          {/* ABOVE THE SHOP, ALWAYS. Somebody who owns a program is not
+              browsing, and this is the only place a FINISHED one still lives. */}
+          {ownedItems.length ? (
+            <>
+              <Text variant="h3" color="primary" style={styles.sectionHeading}>
+                {ownedItems.length === 1 ? "Your program" : "Your programs"}
+              </Text>
+              {ownedItems.map(renderCard)}
+            </>
+          ) : null}
+
+          {/* Only when something sits ABOVE it. With no hero and nothing owned,
+              the list is the page and a heading over it labels nothing. */}
+          {(heroItem || ownedItems.length) && forSale.length ? (
             <Text variant="h3" color="primary" style={styles.sectionHeading}>
-              More programs
+              {ownedItems.length ? "More to explore" : "More programs"}
             </Text>
           ) : null}
 
@@ -683,7 +728,7 @@ const ProgramsScreen = () => {
               somebody tapped "Premium" would trade the one card most likely to
               convert for a tidier list. So the pills govern the list underneath
               them and nothing above. */}
-          {restItems.length > 1 ? (
+          {forSale.length > 1 ? (
             <View style={styles.filterBar}>
               {TIER_FILTERS.map((f) => (
                 <Chip
@@ -699,11 +744,18 @@ const ProgramsScreen = () => {
 
           {shownItems.length ? (
             shownItems.map(renderCard)
-          ) : (
+          ) : forSale.length ? (
+            // A shelf filter emptied the list, not the catalogue.
             <Text variant="bodySm" color="secondary" center>
               Nothing on this shelf yet.
             </Text>
-          )}
+          ) : ownedItems.length ? (
+            // They own every one. "Nothing on this shelf yet" would read as a
+            // catalogue that failed to load, which is the opposite of the truth.
+            <Text variant="bodySm" color="secondary" center>
+              You have them all. More are on the way.
+            </Text>
+          ) : null}
         </>
       )}
     </Page>
