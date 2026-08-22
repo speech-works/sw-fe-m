@@ -14,6 +14,7 @@ import {
   withAlpha,
 } from "../../design-system";
 import type { ActiveProgram } from "./useActiveProgram";
+import { packIconFor } from "./packIcon";
 
 /**
  * ===========================================================================
@@ -97,9 +98,18 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
             everything else, so every line of type lands on top of it without
             needing a zIndex to say so. Bled off two corners on purpose: a mark
             that sits neatly inside its card is an illustration, not a
-            watermark. The card clips it. */}
+            watermark. The card clips it.
+
+            THE PROGRAM'S OWN MARK, not one shared by all ten. The server says
+            which; `packIconFor` guarantees the answer is a glyph this build
+            actually has, because an unknown key would render an empty SVG at
+            220 points and leave a hole in the card. */}
         <View style={styles.watermark} pointerEvents="none">
-          <Icon name={icons.energy} size={220} color={withAlpha(ink, 0.1)} />
+          <Icon
+            name={icons[packIconFor(program.icon)]}
+            size={220}
+            color={withAlpha(ink, 0.1)}
+          />
         </View>
 
         <Text variant="eyebrow" color={ink}>

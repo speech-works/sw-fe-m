@@ -21,6 +21,8 @@ export interface ActiveProgram {
   description: string | null;
   /** Only for the arc's tone; the slide does not print it. */
   isRefresher: boolean;
+  /** The server's icon key for this program. Never indexed directly. */
+  icon: string | null;
   /** The day they are on, or the last one when everything is done. */
   nextModule: ModuleLike | null;
   moduleOrder: number;
@@ -127,6 +129,7 @@ export function useActiveProgram(): ActiveProgramState {
               title: rec.pack.title,
               description: rec.pack.description ?? null,
               isRefresher: !!rec.isRefresher,
+              icon: rec.pack.icon ?? null,
               nextModule,
               moduleOrder: nextModule ? nextModule.orderIndex : total,
               totalModules: total,

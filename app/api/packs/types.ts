@@ -140,6 +140,13 @@ export interface Pack {
   title: string;
   description: string;
   coverImage?: string;
+  /**
+   * The program's mark, as a key into this app's icon registry — set by the
+   * server so a new or renamed program does not need a release to get one.
+   * Optional, and unknown values are expected: resolve it through
+   * `packIconFor`, never by indexing `icons` directly.
+   */
+  icon?: string | null;
   category: PackCategory;
   intensity: PackIntensity;
   philosophy: PackPhilosophy;
