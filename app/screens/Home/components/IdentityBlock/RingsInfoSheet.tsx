@@ -40,67 +40,43 @@ interface Props {
 
 /**
  * ============================================================================
- * A DIAGRAM OF THE CARD, NOT A DESCRIPTION OF IT
+ * A PICTURE OF THE CARD, NOT A DESCRIPTION OF IT
  * ----------------------------------------------------------------------------
- * The card cannot say "three of what". It is 159pt wide, it already carries a
- * count and a status figure, and the three words it would need — Braver, Wider,
- * Regular — mean nothing until somebody has been told what they count.
+ * The card is 159pt wide and carries a ring, an avatar and a percentage with no
+ * room to say what any of them are. This says it, and it POINTS RATHER THAN
+ * ASSERTS: the real ring is drawn with the same component and the same value the
+ * card is showing this second, with the user's own character inside it. No
+ * wording here can contradict the picture, because it is the picture.
  *
- * THIS ANSWERS THAT, AND IT POINTS RATHER THAN ASSERTS. The old version showed
- * two separate swatch rings of equal size and told you in prose which was inner
- * and which was outer. That is exactly the sentence that went stale, and it was
- * asking the reader to hold a mapping in their head. Here the real nested rings
- * are drawn once — same components, same values, same avatar as the card is
- * showing this second — and a leader line runs from each to its label. Nothing
- * has to be remembered and no wording can contradict the picture.
+ * ── IT USED TO DRAW TWO RINGS, AND CARRIED THE MACHINERY FOR IT ─────────────
+ * Today (segmented) outside, Energy inside, with a leader line running from each
+ * arc to its own label, and trigonometry to work out how far each line had to
+ * reach back to actually touch its own curve.
  *
- * THE LEADER LINES ARE FLEX, NOT ABSOLUTE. Each line is a sibling of its label
- * in a row, and the two rows are spread over the ring's height. Positioning them
- * absolutely would look identical at the default text size and drift apart at
- * every other one — and this sheet exists precisely for the people who need it
- * spelled out, who are disproportionately the ones running large type.
+ * The Today ring is gone from the card, so all of that went with it. What was
+ * left behind for one ring was worse than either: a label column still pinned to
+ * the ring's height and spread with `space-between`, which with a single child
+ * pushes it to the top — so the text sat high against a 112pt ring with dead
+ * space under it. And a leader line that pointed at the only ring there is,
+ * which explains nothing.
  *
- * IT COUNTS AS THE INTRODUCTION. `markGrowthIntroduced` is fired by the opener,
- * on the "set on acknowledgement, not on render" rule the store states.
+ * ── SO: ONE ROW ────────────────────────────────────────────────────────────
+ * Ring, gap, text, vertically centred on each other. The ring is sized to the
+ * text beside it rather than to a second ring that no longer exists.
  * ============================================================================
  */
 
-/** Diagram geometry. Bigger than the card's so the segments read at a glance. */
 const DIAGRAM = {
-  outer: { size: 112, stroke: 7 },
-  inner: { size: 90, stroke: 5 },
-  avatar: 62,
-  /** Visible pointer length measured from the ring's bounding box outward. */
-  leader: 22,
-};
-
-/** Title 22 + gap 2 + caption 16 — see the note on the label data below. */
-const LABEL_BLOCK = 40;
-
-/**
- * HOW FAR A LEADER MUST REACH BACK TO ACTUALLY TOUCH ITS ARC.
- *
- * Both labels sit at the same distance from the ring's vertical centre, and both
- * lines began at the ring's BOUNDING BOX edge — but a circle only reaches that
- * edge at its midline. At the labels' height the outer arc has already curved
- * 13pt inward and the inner arc 29pt, so a single shared line length cannot
- * touch both: the green one grazed its ring and the orange one pointed at empty
- * card, which is exactly what it looked like.
- *
- * For a ring of `size` with any stroke, the outer edge of that stroke sits at
- * radius `size / 2` — (size − stroke)/2 + stroke/2 — so the horizontal reach at
- * a vertical offset `dy` is √((size/2)² − dy²), and the shortfall to make up is
- * the difference from the box's half-width. Computed rather than eyeballed, so
- * changing a ring size cannot silently detach its pointer again.
- */
-const leaderOverlap = (ringSize: number): number => {
-  const half = DIAGRAM.outer.size / 2;
-  const edge = ringSize / 2;
-  const dy = half - LABEL_BLOCK / 2;
-  const reach = Math.sqrt(Math.max(0, edge * edge - dy * dy));
-  // A hair short of touching: a line that lands exactly on the stroke reads as
-  // joined to it, which is heavier than pointing at it.
-  return Math.max(0, half - reach - 1);
+  /**
+   * 84, down from the 112 it needed as the OUTER of two.
+   *
+   * A ring is now beside a two-line label rather than around another ring, so
+   * its job is to balance that text, not to contain something. At 112 it was
+   * two and a half times the height of the words next to it and the row read as
+   * a picture with a caption stuck on the side.
+   */
+  ring: { size: 84, stroke: 6 },
+  avatar: 58,
 };
 
 export const RingsInfoSheet: React.FC<Props> = ({
@@ -129,8 +105,8 @@ export const RingsInfoSheet: React.FC<Props> = ({
   const rings = (
     <ProgressRing
       progress={staminaPercentage / 100}
-      size={DIAGRAM.outer.size}
-      strokeWidth={DIAGRAM.outer.stroke}
+      size={DIAGRAM.ring.size}
+      strokeWidth={DIAGRAM.ring.stroke}
       color={energyHue}
       trackColor={colors.surface.track}
     >
@@ -143,7 +119,6 @@ export const RingsInfoSheet: React.FC<Props> = ({
     title: "Energy",
     detail: "refills itself",
     value: `${staminaPercentage}%, ${energyLabel.toLowerCase()}`,
-    ringSize: DIAGRAM.outer.size,
   };
 
   const labels = [energyLabelBlock];
@@ -170,46 +145,27 @@ export const RingsInfoSheet: React.FC<Props> = ({
             .join(" ")}
         >
           {rings}
-          <View style={[styles.labels, { height: DIAGRAM.outer.size }]}>
-            {labels.map((l) => {
-              // Reach back over the ring far enough to meet ITS arc, not the
-              // shared bounding box. Negative margin rather than absolute
-              // positioning so the line stays welded to its own label row.
-              const overlap = leaderOverlap(l.ringSize);
-              return (
-              <View key={l.title} style={styles.labelRow}>
-                <View
-                  style={[
-                    styles.leader,
-                    {
-                      backgroundColor: l.accent,
-                      width: DIAGRAM.leader + overlap,
-                      marginLeft: -overlap,
-                    },
-                  ]}
-                  // Decorative: the accessibility label above carries the mapping.
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                />
-                <View style={styles.labelText}>
-                  {/* Title and its qualifier share one line, so the block stays
-                      two rows tall — the budget that keeps the leader lines
-                      aligned to their arcs. */}
-                  <View style={styles.titleRow}>
-                    <Text variant="title" style={{ color: l.accent }} numberOfLines={1}>
-                      {l.title}
-                    </Text>
-                    <Text variant="caption" color="tertiary" numberOfLines={1} style={styles.detail}>
-                      {l.detail}
-                    </Text>
-                  </View>
-                  <Text variant="caption" color="tertiary" numberOfLines={1}>
-                    {l.value}
+
+          {/* ONE ROW, CENTRED ON THE RING. No leader line: it existed to say
+              WHICH of two concentric arcs a label described, and there is one
+              arc now. A pointer to the only thing on screen is decoration that
+              claims to be explaining something. */}
+          <View style={styles.labels}>
+            {labels.map((l) => (
+              <View key={l.title} style={styles.labelText}>
+                <View style={styles.titleRow}>
+                  <Text variant="title" style={{ color: l.accent }} numberOfLines={1}>
+                    {l.title}
+                  </Text>
+                  <Text variant="caption" color="tertiary" numberOfLines={1} style={styles.detail}>
+                    {l.detail}
                   </Text>
                 </View>
+                <Text variant="caption" color="tertiary" numberOfLines={1}>
+                  {l.value}
+                </Text>
               </View>
-              );
-            })}
+            ))}
           </View>
         </View>
 
@@ -260,26 +216,12 @@ const styles = StyleSheet.create({
   diagram: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
+    gap: spacing.lg,
+    paddingVertical: spacing.sm,
   },
-  // Spread over the ring's height so the top line meets the outer ring near its
-  // crown and the bottom one meets the inner ring low — which is where each arc
-  // actually is. NO vertical padding: it would come straight out of the 32pt
-  // this has to distribute, and that gap is the whole composition.
   labels: {
     flex: 1,
-    justifyContent: "space-between",
-  },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  leader: {
-    width: DIAGRAM.leader,
-    height: StyleSheet.hairlineWidth * 2,
-    marginRight: spacing.sm,
-    flex: 0,
+    gap: spacing.md,
   },
   labelText: {
     flex: 1,
@@ -293,34 +235,6 @@ const styles = StyleSheet.create({
   // The qualifier yields first: "Today"/"Energy" must never truncate.
   detail: {
     flexShrink: 1,
-  },
-  listLabel: { marginBottom: spacing.sm },
-  listCard: {
-    borderRadius: radius.card,
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  // 24, not 20. At 20 the disc was barely larger than the glyph inside it and
-  // the row's leading column read as a bullet; at 24 it reads as a state.
-  mark: {
-    width: 24,
-    height: 24,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  markOpen: {
-    borderWidth: 2,
-  },
-  rowText: {
-    flex: 1,
-    gap: spacing.xxs,
   },
   actions: {
     gap: spacing.sm,
