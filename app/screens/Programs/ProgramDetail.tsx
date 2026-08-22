@@ -18,6 +18,7 @@ import {
   radius,
   Spinner,
 } from "../../design-system";
+import PressableScale from "../../components/PressableScale";
 import ProgramSalesFlow from "./ProgramSalesFlow";
 import NextDayCountdown from "./NextDayCountdown";
 import {
@@ -280,9 +281,14 @@ const ProgramDetailScreen = () => {
         moduleId: open.moduleId,
       };
     }
-    // Today is done and the next day has not opened. There is nothing to press,
-    // and the screen says so with a countdown rather than a button that would
-    // either lie or dump them on a locked day.
+    // Today is done and the next day has not opened. Nothing here CONTINUES
+    // the arc, so this state gets the countdown and no primary button — one
+    // would either lie or drop them on a locked day.
+    //
+    // It is not a dead end, though: days already behind them are still open
+    // (`isModuleUnlocked` only gates days AHEAD of the clock), and the day
+    // list above is where they are reached. That list is the way back in for
+    // every state, which is why there is no per-day button here to multiply.
     return {
       line: "",
       cta: "",
@@ -304,17 +310,37 @@ const ProgramDetailScreen = () => {
     ? new Date(progress.nextDayOpensAt)
     : null;
 
-  const openOwned = async () => {
+  /**
+   * Per-day state, keyed by the module id the brochure uses.
+   *
+   * The brochure calls it `id` and the progress payload calls it `moduleId`;
+   * they are the same value (`useActiveProgram` already joins them this way).
+   * Empty before progress lands, and for anybody whose progress call failed,
+   * which leaves every row inert rather than guessing that a day is open.
+   */
+  const moduleStateById = new Map(
+    (progress?.modules ?? []).map((m) => [m.moduleId, m]),
+  );
+
+  /**
+   * `targetModuleId` defaults to the arc's own CTA target. The review path
+   * passes the last completed day explicitly instead — it is never the
+   * restart case, so passing an id here also skips the `restartPack` call
+   * below regardless of `ownedState.finished`.
+   */
+  const openOwned = async (targetModuleId?: string) => {
     if (!offer.packId || opening) return;
     setOpening(true);
     try {
       // Awaited, not raced: PackModule reads progress on open, so a restart
       // fired alongside the navigation would land them on a day that has not
       // been cleared yet.
-      if (ownedState.finished) await restartPack(offer.packId);
+      if (!targetModuleId && ownedState.finished) {
+        await restartPack(offer.packId);
+      }
       navigation.navigate("PackModule", {
         packId: offer.packId,
-        moduleId: ownedState.moduleId,
+        moduleId: targetModuleId ?? ownedState.moduleId,
       });
     } catch (err) {
       console.error("Could not open the program", err);
@@ -364,18 +390,85 @@ const ProgramDetailScreen = () => {
             ]}
           >
             <Text variant="title" color="primary">
-              What&apos;s inside
+              {progress ? "The days" : "What\u2019s inside"}
             </Text>
-            {brochure.modules.map((m) => (
-              <View key={m.id} style={styles.moduleRow}>
-                <Text variant="label" color="tertiary" style={styles.dayLabel}>
-                  {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
-                </Text>
-                <Text variant="bodySm" color="secondary" style={styles.moduleTitle}>
-                  {m.title}
-                </Text>
-              </View>
-            ))}
+            {/*
+              ── THE LIST IS THE WAY BACK IN, NOT A BUTTON ───────────────────
+              A "Review Day N" button answers the question once and then has to
+              grow: on day 6 the same logic wants six of them, and picking one
+              day to feature is arbitrary. The list already names every day, so
+              it is the only surface that scales — one row per day, each one
+              carrying its own state and its own tap.
+
+              A row opens when the SERVER says it is open. `unlocked` comes
+              from GET /packs/{id}/progress; a day already behind the user is
+              never gated, because `isModuleUnlocked` only closes days AHEAD of
+              the clock. So finished days stay readable for the whole arc.
+            */}
+            {brochure.modules.map((m) => {
+              const mp = moduleStateById.get(m.id);
+              const done = mp?.status === "COMPLETED";
+              // Only an explicit `false` locks a row. An older backend that
+              // does not send the field leaves every day openable, which is
+              // what this screen did before the field existed.
+              const locked = mp?.unlocked === false;
+              const openable = !!mp && !locked;
+
+              const row = (
+                <View style={styles.moduleRow}>
+                  <Text variant="label" color="tertiary" style={styles.dayLabel}>
+                    {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
+                  </Text>
+                  <Text
+                    variant="bodySm"
+                    color={locked ? "tertiary" : "secondary"}
+                    style={styles.moduleTitle}
+                  >
+                    {m.title}
+                  </Text>
+                  {/* One slot, one glyph, so the titles all end at the same
+                      place whatever state the row is in. */}
+                  <View style={styles.moduleMark}>
+                    {done ? (
+                      <Icon
+                        name={icons.success}
+                        size={size.iconSm}
+                        color={colors.feedback.successText}
+                      />
+                    ) : locked ? (
+                      <Icon
+                        name={icons.locked}
+                        size={size.iconSm}
+                        color={colors.text.tertiary}
+                      />
+                    ) : openable ? (
+                      <Icon
+                        name={icons.chevronRight}
+                        size={size.iconSm}
+                        color={colors.text.tertiary}
+                      />
+                    ) : null}
+                  </View>
+                </View>
+              );
+
+              return openable ? (
+                <PressableScale
+                  key={m.id}
+                  scaleTo={0.98}
+                  disabled={opening}
+                  onPress={() => openOwned(m.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${
+                    m.dayIndex ? `Day ${m.dayIndex}` : `Session ${m.orderIndex}`
+                  }, ${m.title}.${done ? " Done." : ""} Opens it.`}
+                >
+                  {row}
+                </PressableScale>
+              ) : (
+                <View key={m.id}>{row}</View>
+              );
+            })}
           </View>
         )}
 
@@ -407,11 +500,13 @@ const ProgramDetailScreen = () => {
             />
           </View>
         ) : opensAt ? (
-          <NextDayCountdown
-            opensAt={opensAt}
-            dayIndex={progress?.nextIncompleteDay}
-            onOpened={refreshProgress}
-          />
+          <View style={styles.ownedBlock}>
+            <NextDayCountdown
+              opensAt={opensAt}
+              dayIndex={progress?.nextIncompleteDay}
+              onOpened={refreshProgress}
+            />
+          </View>
         ) : (
           <View style={styles.ownedRow}>
             <Icon
@@ -484,6 +579,12 @@ const styles = StyleSheet.create({
   },
   moduleTitle: {
     flex: 1,
+  },
+  // Fixed, so every title ends at the same place whether its row carries a
+  // tick, a lock, a chevron or nothing at all.
+  moduleMark: {
+    width: size.iconSm,
+    alignItems: "center",
   },
   ownedBlock: {
     gap: spacing.lg,

@@ -184,32 +184,35 @@ describe("the wait, when the server tells us the instant it lifts", () => {
         currentDay: 1,
         nextDayOpensAt: inFuture(20 * HOUR),
       }),
-    ).toBe("Day 1 done. Day 2 opens in 20 hours.");
+    ).toBe("Day 2 opens in 20 hours.");
   });
 });
 
 describe("dayCloseLine", () => {
-  it("closes the finished day and says when the next one opens", () => {
+  // No "Day N done" prefix: "opens in a day" already says today is done.
+  // `finishedDay` is threaded through the type for callers that still need to
+  // know which day, but the SENTENCE never repeats it.
+  it("says only when the next day opens, not that this one closed", () => {
     expect(
       dayCloseLine({ finishedDay: 2, nextDay: 3, currentDay: 2 }),
-    ).toBe("Day 2 done. Day 3 opens in a day.");
+    ).toBe("Day 3 opens in a day.");
   });
 
   it("counts further-out days", () => {
     expect(
       dayCloseLine({ finishedDay: 2, nextDay: 4, currentDay: 2 }),
-    ).toBe("Day 2 done. Day 4 opens in 2 days.");
+    ).toBe("Day 4 opens in 2 days.");
   });
 
-  it("stays true when it cannot name the day it finished", () => {
+  it("reads the same whether or not it can name the day it finished", () => {
     expect(
       dayCloseLine({ finishedDay: null, nextDay: 3, currentDay: 2 }),
-    ).toBe("That's you for today. Day 3 opens in a day.");
+    ).toBe("Day 3 opens in a day.");
   });
 
   it("degrades to the vague-but-true phrase with no clock", () => {
     expect(
       dayCloseLine({ finishedDay: 2, nextDay: 3, currentDay: null }),
-    ).toBe("Day 2 done. This day opens later.");
+    ).toBe("This day opens later.");
   });
 });

@@ -191,8 +191,7 @@ export function dayCloseLine(state: {
   /** From `PackProgress.nextDayOpensAt`. Optional; see `opensPhrase`. */
   nextDayOpensAt?: Date | string | null;
 }): string {
-  const { finishedDay, nextDay, currentDay } = state;
-  const opens = opensPhrase(nextDay, currentDay, state.nextDayOpensAt);
-  if (finishedDay == null) return `That's you for today. ${opens}`;
-  return `Day ${finishedDay} done. ${opens}`;
+  // No "Day N done" prefix: "opens in 20 hours" already says today is done.
+  // A day open finished it, so naming it again was the same fact twice.
+  return opensPhrase(state.nextDay, state.currentDay, state.nextDayOpensAt);
 }
