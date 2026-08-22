@@ -7,24 +7,17 @@ import {
   Icon,
   icons,
   useTheme,
-  accentEdge,
   spacing,
   radius,
-  SegmentRing,
   ProgressRing,
 } from "../../../../design-system";
 import PressableScale from "../../../../components/PressableScale";
 import { UserAvatar } from "../../../../components/UserAvatar";
 import type { AvatarManifest } from "../../../../types/avatar";
-import { GrowthAxis, LOOP_TODAY } from "../../../../api/dailyPlan";
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  /** The axes today's ring is divided into, in ring order. */
-  loops: GrowthAxis[];
-  /** Which of those are already closed. */
-  closed: GrowthAxis[];
   staminaPercentage: number;
   energyHue: string;
   energyLabel: string;
@@ -43,17 +36,6 @@ interface Props {
   onUpgrade?: () => void;
   /** Fires after the sheet has fully animated out — where navigation belongs. */
   onDismissed?: () => void;
-  /**
-   * Which ring is drawn outside — DERIVED FROM THE GEOMETRY, never typed here.
-   *
-   * This sheet once shipped saying "the inner ring — today" and stayed that way
-   * through a swap that moved today to the outside. It read as authoritative and
-   * was simply wrong, in the one place whose entire job is to explain which ring
-   * is which. Prose cannot be kept in sync with a constant by remembering, so
-   * the caller compares the two ring sizes and BOTH the wording and the drawing
-   * below follow from it.
-   */
-  todayIsOuter: boolean;
 }
 
 /**
@@ -124,101 +106,54 @@ const leaderOverlap = (ringSize: number): number => {
 export const RingsInfoSheet: React.FC<Props> = ({
   visible,
   onClose,
-  loops,
-  closed,
   staminaPercentage,
   energyHue,
   energyLabel,
   avatarManifest,
-  todayIsOuter,
   onEditAvatar,
   onUpgrade,
   onDismissed,
 }) => {
   const { colors } = useTheme();
-  const done = new Set(closed);
 
-  const todayRing = (
-    <SegmentRing
-      total={loops.length}
-      done={closed.length}
-      size={todayIsOuter ? DIAGRAM.outer.size : DIAGRAM.inner.size}
-      strokeWidth={todayIsOuter ? DIAGRAM.outer.stroke : DIAGRAM.inner.stroke}
-      color={colors.accentText.success}
-      trackColor={colors.surface.track}
-    />
-  );
-
-  const energyRing = (
+  /**
+   * ONE RING NOW. The today ring was removed from the card: its segments were
+   * nested rather than independent, so one interview filled all three and a
+   * reading filled one, which made it a ladder drawn as a checklist. See the
+   * note in IdentityBlock.
+   *
+   * The diagram machinery below still handles a stack of rings with leader
+   * lines to their labels, because the avatar sits inside the ring either way.
+   * It just has one of each to draw.
+   */
+  const rings = (
     <ProgressRing
       progress={staminaPercentage / 100}
-      size={todayIsOuter ? DIAGRAM.inner.size : DIAGRAM.outer.size}
-      strokeWidth={todayIsOuter ? DIAGRAM.inner.stroke : DIAGRAM.outer.stroke}
+      size={DIAGRAM.outer.size}
+      strokeWidth={DIAGRAM.outer.stroke}
       color={energyHue}
       trackColor={colors.surface.track}
-    />
+    >
+      <UserAvatar manifest={avatarManifest} size={DIAGRAM.avatar} />
+    </ProgressRing>
   );
 
-  /**
-   * Nest them in whichever order the geometry says, with the avatar innermost.
-   * Cloning to inject the child keeps this to one expression instead of two
-   * near-identical JSX trees that could drift.
-   */
-  const avatar = <UserAvatar manifest={avatarManifest} size={DIAGRAM.avatar} />;
-  const outerRing = todayIsOuter ? todayRing : energyRing;
-  const innerRing = todayIsOuter ? energyRing : todayRing;
-  const rings = React.cloneElement(
-    outerRing,
-    undefined,
-    React.cloneElement(innerRing, undefined, avatar),
-  );
-
-  /**
-   * ONE VALUE LINE EACH, AND THE REASON IS ARITHMETIC.
-   *
-   * The label column is pinned to the ring's height so the leader lines meet the
-   * arcs they point at. A title plus TWO caption lines is 22 + 2 + 16 + 2 + 16 =
-   * 58, and two of those is 116 against a 112 container — four points OVER, so
-   * `space-between` had nothing to distribute and the two blocks rendered
-   * touching. Exactly the failure the card had, for exactly the same reason.
-   *
-   * Title plus one line is 40, two blocks is 80, and the gap comes out at 32.
-   * The sentences that used to be the second lines are not lost — they are the
-   * single caption under the diagram, where they read better as prose anyway.
-   */
-  const todayLabel = {
-    accent: colors.accent.success,
-    title: "Today",
-    // Beside the title, not below the diagram. As its own sentence this was a
-    // full line of grey prose explaining both rings at once, sitting between the
-    // picture and the list and belonging to neither. Two words next to the word
-    // they qualify say the same thing and cost no height.
-    detail: "resets daily",
-    value:
-      closed.length === 0
-        ? `None of ${loops.length} yet`
-        : `${closed.length} of ${loops.length} done`,
-    ringSize: todayIsOuter ? DIAGRAM.outer.size : DIAGRAM.inner.size,
-  };
   const energyLabelBlock = {
     accent: energyHue,
     title: "Energy",
     detail: "refills itself",
     value: `${staminaPercentage}%, ${energyLabel.toLowerCase()}`,
-    ringSize: todayIsOuter ? DIAGRAM.inner.size : DIAGRAM.outer.size,
+    ringSize: DIAGRAM.outer.size,
   };
-  // Top label belongs to the outer ring, bottom to the inner — the same order
-  // the eye travels, and the same order the rings are drawn.
-  const labels = todayIsOuter
-    ? [todayLabel, energyLabelBlock]
-    : [energyLabelBlock, todayLabel];
+
+  const labels = [energyLabelBlock];
 
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
       onDismissed={onDismissed}
-      title="Your two rings"
+      title="Your energy"
     >
       <View style={styles.body}>
         {/* ── The diagram ── */}
@@ -227,7 +162,12 @@ export const RingsInfoSheet: React.FC<Props> = ({
           // The picture is the explanation, and a screen reader gets none of it.
           accessible
           accessibilityRole="image"
-          accessibilityLabel={`Two rings. ${labels[0].title}, ${labels[0].value}, on the outside. ${labels[1].title}, ${labels[1].value}, inside it.`}
+          // Built from `labels` rather than written out, so it cannot go stale
+          // the way it just did: it read `labels[1]` and crashed the moment the
+          // today ring was removed and the array became one entry long.
+          accessibilityLabel={labels
+            .map((l) => `${l.title}, ${l.value}.`)
+            .join(" ")}
         >
           {rings}
           <View style={[styles.labels, { height: DIAGRAM.outer.size }]}>
@@ -273,88 +213,6 @@ export const RingsInfoSheet: React.FC<Props> = ({
           </View>
         </View>
 
-
-        {/* A HEADING, BECAUSE THE LIST HAD NONE. Three rows sat under the ring
-            with nothing saying what they were, so they read as three loose
-            sentences rather than as the parts of the thing above them. */}
-        <Text variant="label" color="tertiary" style={styles.listLabel}>
-          WHAT CLOSES EACH PART
-        </Text>
-
-        {/* ── What would close each segment today ──
-            ONE LINE, NOT A NAME AND A DEFINITION. This used to read "Braver /
-            Hard things you've done", which had two problems on a DAILY ring.
-            The name has to be taught before the ring means anything, and the
-            definition is a lifetime count: "Regular / Days you've practiced"
-            sat on a segment that closes the moment you practise once, today.
-
-            `LOOP_TODAY` says the same thing in words nobody has to learn, so
-            the subtitle has nothing left to explain and is gone.
-
-            ROWS IN ONE GROUPED CARD, not three separate filled pills. Filled,
-            all-done rendered as a wall of saturated green and nothing-done as a
-            wall of grey — the same shape either way, with no hierarchy and the
-            word "Done" repeating what the tick and the colour already said. */}
-        <View style={[styles.listCard, { backgroundColor: colors.surface.default }]}>
-          {loops.map((axis, i) => {
-            const isDone = done.has(axis);
-            return (
-              <View
-                key={axis}
-                style={[
-                  styles.row,
-                  i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border.hairline },
-                ]}
-                accessible
-                accessibilityLabel={`${LOOP_TODAY[axis].name}. ${
-                  LOOP_TODAY[axis].hint
-                }. ${isDone ? "Done today." : "Still open."}`}
-              >
-                {/* A PLAIN CHECK, NOT `icons.success`.
-                    That key is "circle-check" — a tick already inside its own
-                    ring — so drawing it on a green disc produced a circle within
-                    a circle, thin and small, with the glyph fighting its own
-                    container. `check` is the bare mark, sized to fill the disc.
-
-                    The ink stays `accentOn.success` (7.62:1 on the green). White
-                    would match the mockup and measures 1.79:1, which is not a
-                    tick anybody with low vision can see. */}
-                {isDone ? (
-                  <View style={[styles.mark, { backgroundColor: colors.accent.success }, accentEdge(colors, "success")]}>
-                    <Icon name="check" size={size.iconInline} color={colors.accentOn.success} />
-                  </View>
-                ) : (
-                  <View style={[styles.mark, styles.markOpen, { borderColor: colors.surface.track }]} />
-                )}
-                <View style={styles.rowText}>
-                  <Text variant="body" color={isDone ? colors.accentText.success : "primary"}>
-                    {LOOP_TODAY[axis].name}
-                  </Text>
-                  {/* NEVER SHOWN WITHOUT THE LINE ABOVE. A name this short is
-                      not unambiguous on its own, which is why the two-line
-                      shape exists at all. The first pass deleted the name and
-                      kept only this line, and three bare descriptions under a
-                      ring read as nothing in particular. */}
-                  <Text variant="caption" color="tertiary">
-                    {LOOP_TODAY[axis].hint}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* The permission this whole feature rests on: without it a partly empty
-            ring is a chore list; with it, it is an offer.
-
-            NO CONTAINER. Boxed, it read as a fourth entry in the list — a peer
-            of Braver, Wider and Regular, which it is not. As bare text tucked
-            under the group it reads as a note ON the list, which is what it is.
-            The negative margin closes the body's 20pt gap to 8, so it belongs to
-            the block above rather than floating between two. */}
-        <Text variant="bodySm" color="tertiary" style={styles.hint}>
-          Any one of them is a good day.
-        </Text>
 
         {/* ── The card's other doors ──
             These were nested tap targets on the card: a 28pt button and a 36pt

@@ -17,14 +17,12 @@ import {
   icons,
   fonts,
   ProgressRing,
-  SegmentRing,
 } from "../../../../design-system";
 import { AvatarSheen } from "./AvatarSheen";
 import PriorityCard from "./PriorityCard";
 import { usePriorityCard } from "./PriorityCard/usePriorityCard";
 import { useStaminaEstimate } from "./useStaminaEstimate";
 import { UserAvatar } from "../../../../components/UserAvatar";
-import { fetchDailyPlan, isVisibleAxis, GrowthAxis } from "../../../../api/dailyPlan";
 import { useOnboardingNudgeStore } from "../../../../stores/onboardingNudge";
 import { RingsInfoSheet } from "./RingsInfoSheet";
 import { isMember } from "../../../../util/functions/membership";
@@ -56,18 +54,16 @@ import { isMember } from "../../../../util/functions/membership";
 const LEVEL_RING = { size: 34, stroke: 3 };
 
 /**
- * THE AVATAR CARD CARRIES TWO RINGS, AND BORROWS THE LEVEL CARD'S SKELETON.
+ * THE AVATAR CARD CARRIES ONE RING, AND BORROWS THE LEVEL CARD'S SKELETON.
  *
- * Outer is TODAY (segmented), inner is ENERGY, avatar innermost. Both rings are
- * DS components nested — `SegmentRing` takes `ProgressRing` as its child, which
- * takes the avatar — so neither re-derives any arc maths.
+ * ENERGY, with the avatar inside it. Both are DS components nested, so neither
+ * re-derives any arc maths.
  *
- * TODAY IS OUTSIDE (owner's directive), reversing an earlier build. The reason
- * for putting it inside was that a CONTINUOUS today arc lost to energy's
- * near-complete circle — a short crescent against a full ring reads as the
- * decoration, not the point. Segmenting killed that argument: gaps make slots
- * read as slots at any radius, so today wins the outer position on merit and
- * energy becomes the calm outline it always was.
+ * IT USED TO CARRY TWO. The outer one was TODAY, segmented by the day's growth
+ * axes. It is gone: the segments were nested rather than independent, so one
+ * interview filled all three and a reading filled one, and it could not be
+ * explained without a legend in the info sheet. See the longer note beside the
+ * energy state below.
  *
  * ── THE VERTICAL BUDGET, AND WHY THE TEXT IS ONE ROW ─────────────────────────
  * `cardInner` uses `justify-content: space-between`, so the gap between the
@@ -101,9 +97,6 @@ const LEVEL_RING = { size: 34, stroke: 3 };
  * ring at all — so the character is now the biggest it has ever been here, not
  * merely restored.
  */
-const TODAY_RING = { size: 70, stroke: 2.5 };
-const ENERGY_RING = { size: 62, stroke: 2 };
-const AVATAR_SIZE = 52;
 /** The pre-rings size, kept for the single-ring fallback — see `today` below. */
 const SOLO_RING = { size: 62, stroke: 3 };
 const SOLO_AVATAR_SIZE = 46;
@@ -213,61 +206,27 @@ export const IdentityBlock: React.FC = () => {
     : 0;
 
   /**
-   * TODAY'S PROGRESS, ON THE SAME TERMS THE REST OF THE APP USES.
+   * ── THE TODAY RING IS GONE, DELIBERATELY ──────────────────────────────────
+   * This card used to carry a second, outer ring divided into the day's growth
+   * axes, plus a "1 of 3" hero line and a legend in the info sheet.
    *
-   * The denominator is `loops` — the axes the SERVER says something in today's
-   * plan can actually close — filtered through `isVisibleAxis`, exactly as
-   * `TodayStrip` does. That filtering is not cosmetic here: an outer ring that
-   * counts Finisher in its denominator could never reach full, and a ring that
-   * cannot be finished is the precise harm the daily-plan design forbids.
+   * It was removed because its three segments were NESTED, not independent:
+   * everything that closes Wider also closes Braver, and everything that
+   * closes either also closes Regular. So one interview took the ring from 0
+   * of 3 to 3 of 3, and a reading took it to 1 of 3. It was a ladder measuring
+   * the hardest thing you did, drawn as though it were three separate tasks —
+   * which is why it could not be explained without a sheet, and why three
+   * attempts at that sheet's wording never made it clearer.
    *
-   * NULL WHEN THERE IS NOTHING HONEST TO DRAW — no plan, a failed request, or a
-   * day whose only closable loop is hidden. The card then renders exactly what
-   * it renders today: one energy ring, avatar at its old size. A second ring
-   * that sits permanently at zero because we could not load a plan would be
-   * worse than no second ring at all.
+   * It was also the fifth surface telling somebody about today's practice
+   * (the start card beside it, Explore's week, the practice hub's TodayStrip,
+   * and the progress report are the others), and the only one that needed a
+   * legend. TodayStrip keeps the job: it is where somebody has gone looking,
+   * and it lists the actual items rather than categories.
+   *
+   * What is left is what shipped before any of it: one energy ring, avatar at
+   * its full size.
    */
-  /**
-   * THE AXES ARE CARRIED, NOT JUST THE COUNT, because the info sheet names them.
-   * The card has no room to say "three of WHAT"; the sheet does, and it must not
-   * invent the answer — these are the same axes the ring's segments are drawn
-   * from, in the same order.
-   */
-  const [today, setToday] = useState<{
-    loops: GrowthAxis[];
-    closed: GrowthAxis[];
-  } | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      let alive = true;
-      void fetchDailyPlan().then((plan) => {
-        if (!alive) return;
-        if (!plan) {
-          setToday(null);
-          return;
-        }
-        const loops = plan.loops.filter(isVisibleAxis) as GrowthAxis[];
-        if (loops.length === 0) {
-          setToday(null);
-          return;
-        }
-        // Only closures that belong to a loop we are actually drawing, so the
-        // numerator can never exceed the denominator.
-        const closed = plan.closed.filter(
-          (a) => isVisibleAxis(a) && loops.includes(a as GrowthAxis),
-        ) as GrowthAxis[];
-        setToday({ loops, closed });
-      });
-      return () => {
-        alive = false;
-      };
-    }, []),
-  );
-
-  const todayTotal = today?.loops.length ?? 0;
-  const todayDone = today?.closed.length ?? 0;
-  const hasToday = today !== null;
 
   const [infoOpen, setInfoOpen] = useState(false);
   const growthIntroduced = useOnboardingNudgeStore(
@@ -431,21 +390,14 @@ export const IdentityBlock: React.FC = () => {
             was going anyway. The ⚡ is no longer a target at all; upgrading
             moved into the sheet, where there is room to say what it buys. */}
         <PressableScale
-          onPress={hasToday ? openInfo : () => navigation.navigate("AvatarStudio")}
+          onPress={openInfo}
           style={[
             styles.card,
             { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
             elevation.e2,
           ]}
           accessibilityRole="button"
-          // TWO RINGS ARE TWO FACTS, and neither is visible to a screen reader.
-          // Today leads because it is the value that changes, and because a
-          // screen reader gets no help at all from which ring is drawn where.
-          accessibilityLabel={`${
-            hasToday ? `Today, ${todayDone} of ${todayTotal} done. ` : ""
-          }Energy ${staminaPercentage} percent, ${energyLabel}. ${
-            hasToday ? "Explains these rings." : "Opens the avatar studio."
-          }`}
+          accessibilityLabel={`Energy ${staminaPercentage} percent, ${energyLabel}. Explains your energy.`}
         >
           <View style={styles.cardInner}>
             {/* THE SAME ANCHOR SHAPE AS THE LEVEL CARD: a ringed thing, then its
@@ -470,38 +422,6 @@ export const IdentityBlock: React.FC = () => {
                     : "Your avatar, not personalised yet. Opens the avatar studio."
                 }
               >
-              {hasToday ? (
-                // ONE SLOT PER LOOP, not one arc for a fraction. The denominator
-                // stops being a claim in the hero line and becomes the shape —
-                // and an untouched day reads as three visible empty bays instead
-                // of an arc of length zero.
-                <SegmentRing
-                  total={todayTotal}
-                  done={todayDone}
-                  size={TODAY_RING.size}
-                  strokeWidth={TODAY_RING.stroke}
-                  // The same green a closed loop takes in `TodayStrip`, so a
-                  // filled slot and a ticked chip mean one thing across the app.
-                  // The per-scheme cut, not the fill: as a stroke on the paper
-                  // card the raw hue is 1.76:1 and the arc disappears.
-                  color={colors.accentText.success}
-                  trackColor={colors.surface.track}
-                >
-                  <ProgressRing
-                    progress={staminaPercentage / 100}
-                    size={ENERGY_RING.size}
-                    strokeWidth={ENERGY_RING.stroke}
-                    color={energyHue}
-                    trackColor={colors.surface.track}
-                  >
-                    <UserAvatar manifest={user?.avatarManifest} size={AVATAR_SIZE} animate />
-                  </ProgressRing>
-                </SegmentRing>
-              ) : (
-                // Exactly what shipped before any of this: one energy ring at 62,
-                // avatar at 46. A day with no closable loop has no today ring to
-                // draw, so the avatar gets its old size back rather than sitting
-                // shrunken inside a ring that is not there.
                 <ProgressRing
                   progress={staminaPercentage / 100}
                   size={SOLO_RING.size}
@@ -511,28 +431,7 @@ export const IdentityBlock: React.FC = () => {
                 >
                   <UserAvatar manifest={user?.avatarManifest} size={SOLO_AVATAR_SIZE} animate />
                 </ProgressRing>
-              )}
               </PressableScale>
-              {/* The word, beside the ring — `LEVEL`'s opposite number, in the
-                  today ring's own green so the eyebrow, the segments and the
-                  hero line below are visibly one object. Rendered only with a
-                  ring to label. */}
-              {hasToday ? (
-                <Text
-                  variant="label"
-                  color={colors.accentText.success}
-                  // ONE LINE, NON-NEGOTIABLE. A 70pt ring plus the row gap leaves
-                  // this about 45pt of the card's 127, and "TODAY" fills roughly
-                  // 42 of it. At a larger accessibility text size it would wrap,
-                  // and a two-line eyebrow grows the anchor row — which spends
-                  // the 8pt gap that is the whole cost of this layout. Truncating
-                  // is the safe failure; closing the gap is not.
-                  numberOfLines={1}
-                  style={styles.anchorLabel}
-                >
-                  TODAY
-                </Text>
-              ) : null}
             </View>
 
             {/* ── ONE ROW, WHICH IS WHAT BUYS THE 52pt AVATAR ──
@@ -555,11 +454,11 @@ export const IdentityBlock: React.FC = () => {
             <View style={styles.heroRow}>
               <Text
                 variant="h2"
-                color={hasToday ? colors.accentText.success : colors.text.primary}
+                color={colors.text.primary}
                 numberOfLines={1}
                 style={[styles.heroName, styles.heroCount]}
               >
-                {hasToday ? `${todayDone} of ${todayTotal}` : "Avatar"}
+                Avatar
               </Text>
 
               {/* NOT A TAP TARGET ANY MORE — a reading.
@@ -593,8 +492,7 @@ export const IdentityBlock: React.FC = () => {
               button stays put afterwards. It rides the same `growthIntroducedAt`
               flag every other introduction uses, so anyone who met the words on
               the completion screen never sees it. */}
-          {hasToday ? (
-            <PressableScale
+          <PressableScale
               haptic={false}
               onPress={openInfo}
               // The card underneath is itself pressable, so this needs a real
@@ -603,7 +501,7 @@ export const IdentityBlock: React.FC = () => {
               // 52pt target this always had, rather than landing on 44 exactly.
               hitSlop={spacing.lg}
               accessibilityRole="button"
-              accessibilityLabel="What these rings mean"
+              accessibilityLabel="What your energy ring means"
               style={styles.infoBtn}
             >
               <Icon name={icons.info} size={size.iconInline} color={colors.text.tertiary} />
@@ -623,8 +521,7 @@ export const IdentityBlock: React.FC = () => {
                   ]}
                 />
               ) : null}
-            </PressableScale>
-          ) : null}
+          </PressableScale>
 
           {/* Mounted only for the ~1s it takes to cross, so the card carries no
               extra layer for the 99.99% of its life when nothing is being
@@ -639,8 +536,7 @@ export const IdentityBlock: React.FC = () => {
       {/* Rendered outside the card's PressableScale — a native Modal nested in a
           pressable is a touch-handling trap, and the sheet must outlive any
           press state on the card. */}
-      {today ? (
-        <RingsInfoSheet
+      <RingsInfoSheet
           visible={infoOpen}
           onClose={() => setInfoOpen(false)}
           onDismissed={() => {
@@ -657,18 +553,11 @@ export const IdentityBlock: React.FC = () => {
               ? undefined
               : () => closeSheetThen(() => navigation.navigate("PremiumModal"))
           }
-          loops={today.loops}
-          closed={today.closed}
-          // Computed, not asserted — the two constants above are the only place
-          // the ring order is decided, so the sheet's wording AND its diagram
-          // both follow them.
-          todayIsOuter={TODAY_RING.size > ENERGY_RING.size}
           avatarManifest={user?.avatarManifest}
           staminaPercentage={staminaPercentage}
           energyHue={energyHue}
           energyLabel={energyLabel}
         />
-      ) : null}
     </View>
   );
 };
