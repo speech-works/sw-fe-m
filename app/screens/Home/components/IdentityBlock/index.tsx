@@ -22,6 +22,7 @@ import { AvatarSheen } from "./AvatarSheen";
 import PriorityCard from "./PriorityCard";
 import { usePriorityCard } from "./PriorityCard/usePriorityCard";
 import { useStaminaEstimate } from "./useStaminaEstimate";
+import { practicesLeftFor } from "../../../../util/functions/stamina";
 import { UserAvatar } from "../../../../components/UserAvatar";
 import { useOnboardingNudgeStore } from "../../../../stores/onboardingNudge";
 import { RingsInfoSheet } from "./RingsInfoSheet";
@@ -263,7 +264,16 @@ export const IdentityBlock: React.FC = () => {
     setInfoOpen(false);
   }, []);
 
-  const { staminaPercentage, rechargeTimeLeft } = useStaminaEstimate(user ?? null);
+  const { staminaPercentage, rechargeTimeLeft, estimatedStamina } =
+    useStaminaEstimate(user ?? null);
+
+  /**
+   * HOW MANY PRACTICES THEY CAN STILL START.
+   *
+   * Resolved here rather than in the sheet, because this is where the user and
+   * the live estimate already are. The sheet shows it and does no arithmetic.
+   */
+  const practicesLeft = practicesLeftFor(user ?? null, estimatedStamina);
   const isLow = staminaPercentage <= LOW_ENERGY;
   // The per-scheme FOREGROUND cuts, not the fill hues. This value is a ring
   // stroke AND the `%` label beside it, and both are thin marks on a surface:
@@ -555,6 +565,8 @@ export const IdentityBlock: React.FC = () => {
           }
           avatarManifest={user?.avatarManifest}
           staminaPercentage={staminaPercentage}
+          practicesLeft={practicesLeft}
+          rechargeTimeLeft={rechargeTimeLeft}
           energyHue={energyHue}
           energyLabel={energyLabel}
         />

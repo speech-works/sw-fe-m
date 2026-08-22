@@ -63,6 +63,11 @@ export interface User {
   };
   level?: number;
   currentStamina?: number;
+  /**
+   * What one practice costs, from the server. Lets the app say "5 practices
+   * left" rather than "35%". See `practicesLeftFor`.
+   */
+  practiceStaminaCost?: number;
   maxStaminaCap?: number;
   staminaRegenRateMs?: number;
   lastStaminaUpdate?: Date;

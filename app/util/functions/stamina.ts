@@ -12,11 +12,47 @@ const FREE_RECHARGE_MS = 41 * 60 * 1000; // FREE_STAMINA_CONFIG
 const PAID_MAX_STAMINA = 80;
 const FREE_MAX_STAMINA = 35;
 
+/**
+ * What one practice costs, when the server has not said.
+ *
+ * Same fallback rule as the two above: `GET /users/me` sends the real value
+ * (`practiceStaminaCost`), and this only covers the window before it answers.
+ * It mirrors TASK_CONFIG[PRACTICE].staminaCost in the backend and must be
+ * changed with it.
+ */
+const PRACTICE_STAMINA_COST = 7;
+
 /** The stamina cap to display: server value, else the fallback for their tier. */
 export function staminaCapFor(user: User | null | undefined): number {
   return (
     user?.maxStaminaCap || (isMember(user) ? PAID_MAX_STAMINA : FREE_MAX_STAMINA)
   );
+}
+
+/**
+ * HOW MANY PRACTICES THEY CAN STILL START.
+ *
+ * ── WHY THIS EXISTS ────────────────────────────────────────────────────────
+ * Energy was shown as a percentage, which answers a question nobody has. What
+ * somebody wants to know is how much they can still do, and 100% does not say
+ * it: the cap is 35 for a free account and 80 for a member, so the same "100%"
+ * is five practices for one person and eleven for another.
+ *
+ * ── IT FLOORS, AND THAT IS THE POINT ───────────────────────────────────────
+ * Half a practice is not a practice. Rounding up would promise something the
+ * stamina gate then refuses, which is worse than a smaller number.
+ *
+ * PRACTICE is the only task type that costs stamina today, so one number
+ * describes everything. If a second type ever charges, this becomes a lie and
+ * the wording has to change with it.
+ */
+export function practicesLeftFor(
+  user: User | null | undefined,
+  stamina: number,
+): number {
+  const cost = user?.practiceStaminaCost || PRACTICE_STAMINA_COST;
+  if (cost <= 0) return 0;
+  return Math.max(0, Math.floor(stamina / cost));
 }
 
 export interface StaminaRechargeEstimate {

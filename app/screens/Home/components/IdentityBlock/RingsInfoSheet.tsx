@@ -18,7 +18,16 @@ import type { AvatarManifest } from "../../../../types/avatar";
 interface Props {
   visible: boolean;
   onClose: () => void;
+  /** Still the ring's fill — a proportion is exactly what an arc is for. */
   staminaPercentage: number;
+  /**
+   * How many practices they can still start. Resolved by the caller, which
+   * already holds the user and the live stamina estimate; this component stays
+   * presentational and never does the division itself.
+   */
+  practicesLeft: number;
+  /** Members-only countdown to full, or "" when there is nothing to count. */
+  rechargeTimeLeft: string;
   energyHue: string;
   energyLabel: string;
   /** So the diagram shows the user's own character, exactly as the card does. */
@@ -83,6 +92,8 @@ export const RingsInfoSheet: React.FC<Props> = ({
   visible,
   onClose,
   staminaPercentage,
+  practicesLeft,
+  rechargeTimeLeft,
   energyHue,
   energyLabel,
   avatarManifest,
@@ -114,14 +125,32 @@ export const RingsInfoSheet: React.FC<Props> = ({
     </ProgressRing>
   );
 
-  const energyLabelBlock = {
-    accent: energyHue,
-    title: "Energy",
-    detail: "refills itself",
-    value: `${staminaPercentage}%, ${energyLabel.toLowerCase()}`,
-  };
+  /**
+   * ── A COUNT, NOT A PERCENTAGE ──────────────────────────────────────────────
+   * This said "100%, charged". A percentage answers a question nobody has: what
+   * somebody wants to know is how much they can still do.
+   *
+   * It was also ambiguous in a way the figure hid. The cap is 35 on a free
+   * account and 80 on a member's, so the same "100%" is five practices for one
+   * person and eleven for another. The count says which.
+   *
+   * `practicesLeftFor` floors and takes the cost from the server, so this can
+   * never offer a practice the stamina gate would then refuse.
+   */
+  const countLine = practicesLeft === 0
+    ? "No practices left"
+    : `${practicesLeft} ${practicesLeft === 1 ? "practice" : "practices"} left`;
 
-  const labels = [energyLabelBlock];
+  /**
+   * The second line is the ANSWER TO "so when can I?", and it only exists when
+   * there is one. `rechargeTimeLeft` is a members-only countdown, so a free
+   * account gets the plain fact instead of an empty line.
+   */
+  const refillLine = rechargeTimeLeft
+    ? `Full in ${rechargeTimeLeft}`
+    : energyLabel.toLowerCase() === "charged"
+      ? "Refills on its own"
+      : `${energyLabel}. Refills on its own.`;
 
   return (
     <Sheet
@@ -137,12 +166,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
           // The picture is the explanation, and a screen reader gets none of it.
           accessible
           accessibilityRole="image"
-          // Built from `labels` rather than written out, so it cannot go stale
-          // the way it just did: it read `labels[1]` and crashed the moment the
-          // today ring was removed and the array became one entry long.
-          accessibilityLabel={labels
-            .map((l) => `${l.title}, ${l.value}.`)
-            .join(" ")}
+          accessibilityLabel={`Energy. ${countLine}. ${refillLine}.`}
         >
           {rings}
 
@@ -151,21 +175,28 @@ export const RingsInfoSheet: React.FC<Props> = ({
               arc now. A pointer to the only thing on screen is decoration that
               claims to be explaining something. */}
           <View style={styles.labels}>
-            {labels.map((l) => (
-              <View key={l.title} style={styles.labelText}>
-                <View style={styles.titleRow}>
-                  <Text variant="title" style={{ color: l.accent }} numberOfLines={1}>
-                    {l.title}
-                  </Text>
-                  <Text variant="caption" color="tertiary" numberOfLines={1} style={styles.detail}>
-                    {l.detail}
-                  </Text>
-                </View>
-                <Text variant="caption" color="tertiary" numberOfLines={1}>
-                  {l.value}
-                </Text>
-              </View>
-            ))}
+            {/* THE COUNT IS THE HEADLINE, at display size, because it is the
+                one thing on this sheet somebody came to find out. "Energy" is
+                demoted to an eyebrow: it names the ring, and the ring is
+                already right there. */}
+            <Text variant="eyebrow" color="tertiary">
+              ENERGY
+            </Text>
+            <Text
+              variant="h1"
+              style={[styles.count, { color: energyHue }]}
+              numberOfLines={1}
+              // Tabular so the figure does not shift width as it counts down.
+              accessibilityElementsHidden
+            >
+              {practicesLeft}
+            </Text>
+            <Text variant="body" color="secondary" numberOfLines={1}>
+              {practicesLeft === 1 ? "practice left" : "practices left"}
+            </Text>
+            <Text variant="caption" color="tertiary" numberOfLines={1} style={styles.refill}>
+              {refillLine}
+            </Text>
           </View>
         </View>
 
@@ -223,9 +254,15 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.md,
   },
-  labelText: {
-    flex: 1,
-    gap: spacing.xxs,
+  count: {
+    // Tabular so the figure keeps its width as it counts down, and tight
+    // leading so the number and its unit read as one block rather than two.
+    fontVariant: ["tabular-nums"],
+    lineHeight: 34,
+    marginTop: spacing.xxs,
+  },
+  refill: {
+    marginTop: spacing.xs,
   },
   titleRow: {
     flexDirection: "row",
