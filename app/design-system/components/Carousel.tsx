@@ -143,7 +143,15 @@ export function Carousel<T>({
             // The bleed lives here and nowhere else, so the dots below stay
             // centred on the page rather than on the widened scroll viewport.
             style={{ marginRight: -effBleed }}
-            contentContainerStyle={{ paddingRight: effPeek }}
+            // `alignItems: "stretch"` is the flex DEFAULT, and it is written
+            // out because it is load-bearing here: it is what lets a row of
+            // slides take the height of its tallest member, with the shorter
+            // ones growing to match rather than leaving a gap beneath them.
+            // Slides opt in by setting `flex: 1` on their own card.
+            contentContainerStyle={{
+              paddingRight: effPeek,
+              alignItems: "stretch",
+            }}
           >
             {data.map((item, i) => (
               <View

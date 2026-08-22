@@ -110,7 +110,10 @@ export default MoreProgramsTile;
 
 const styles = StyleSheet.create({
   tile: {
-    height: SLIDE_CARD_HEIGHT,
+    // Was a fixed height, which made this the one slide that could not stretch
+    // with the rest of the row. Floor plus flex, same as OfferSlide.
+    flex: 1,
+    minHeight: SLIDE_CARD_HEIGHT,
     borderRadius: radius.card,
     borderWidth: borderWidth.hairline,
     alignItems: "center",

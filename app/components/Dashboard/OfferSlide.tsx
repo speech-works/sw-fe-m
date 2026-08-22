@@ -392,6 +392,14 @@ const styles = StyleSheet.create({
   // is exactly the drift the eyebrow row above exists to prevent. Every tier
   // starts its chip at the same y, so every tier starts its title at the same y.
   slide: {
+    // `flex: 1` ON TOP OF THE MINIMUM, and the two do different jobs.
+    //
+    // The minimum is the floor: a slide is never shorter than Home's 260pt card
+    // rhythm. `flex: 1` is what makes it STRETCH when a taller card shares the
+    // row — the in-progress program is now slide one and is taller than any
+    // offer, and without this the offers kept their natural size and left a gap
+    // under each of them. See the note at the top of InProgressSlide.
+    flex: 1,
     minHeight: SLIDE_CARD_HEIGHT,
     borderRadius: radius.card,
     overflow: "visible",

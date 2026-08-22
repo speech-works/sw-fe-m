@@ -69,10 +69,15 @@ export function selectForYou(
   // a detail page that cannot load.
   const eligible = all.filter((i) => !i.owned && isOpenable(i));
 
-  // THEY OWN EVERYTHING. The only state where rendering nothing is right: the
-  // sibling card is already saying "today's work is done", and a browse card
-  // under that is a shop that won't take no for an answer. Checked BEFORE
-  // signalLevel, because it stays true regardless of signal.
+  // THEY OWN EVERYTHING. Nothing to SELL, which is all this function decides.
+  //
+  // It used to say "the sibling card is already saying today's work is done".
+  // That sibling was SmartRecommendationCard, which no longer exists: the shelf
+  // absorbed it, and the shelf now renders the finished-everything card itself
+  // before it ever asks this function anything. `hidden` still means "sell
+  // nothing here" — it just no longer implies that something else on Home is
+  // covering the state. Checked BEFORE signalLevel, because it stays true
+  // regardless of signal.
   //
   // Deliberately `every(owned)` and NOT `eligible.length === 0`. Those differ
   // when the catalogue advertises products with no pack behind them: nothing

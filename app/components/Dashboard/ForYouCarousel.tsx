@@ -28,6 +28,9 @@ import OfferSlide, {
   CTA_BOTTOM_FROM_CARD_TOP,
 } from "./OfferSlide";
 import MoreProgramsTile from "./MoreProgramsTile";
+import InProgressSlide from "./InProgressSlide";
+import AllCompleteSlide from "./AllCompleteSlide";
+import { useActiveProgram, type ActiveProgram } from "./useActiveProgram";
 import PressableScale from "../PressableScale";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import RecHeroCard from "./RecHeroCard";
@@ -155,7 +158,15 @@ type ProgramsSource =
  * list to reach N, for the same family of reasons.
  */
 type Slide =
-  | { kind: "offer"; item: OfferItem }
+  /**
+   * `offerIndex` is its RANK AMONG OFFERS, which is no longer its position in
+   * the carousel. The in-progress slide sits in front of them, so offer 0 is
+   * slide 1 — and everything that used to read `items[slideIndex]` would be off
+   * by one. The impression tracker reads this instead.
+   */
+  | { kind: "offer"; item: OfferItem; offerIndex: number }
+  | { kind: "inProgress"; program: ActiveProgram }
+  | { kind: "allComplete" }
   | { kind: "more" };
 
 const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
@@ -249,22 +260,55 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   // time. It reads `selectionRef`, so the tracker never goes stale despite
   // never being rebuilt. Dedup, the dwell gate and the slide-0 seed all live in
   // `forYouImpressions`, which is where they can be tested — see its header.
+  /**
+   * WHAT THE CAROUSEL IS ACTUALLY SHOWING, for the impression tracker to read.
+   *
+   * A ref rather than state because the tracker is built once and never rebuilt
+   * — the same reason `selectionRef` exists a few lines up. Kept in step with
+   * the rendered list at the bottom of this component.
+   */
+  const carouselSlidesRef = useRef<Slide[]>([]);
+
+  /**
+   * The program they are in the middle of, which now leads this shelf instead
+   * of sitting in its own card above it.
+   */
+  const active = useActiveProgram();
+
   const slidesRef = useRef<SlideImpressionTracker | null>(null);
   if (slidesRef.current === null) {
     slidesRef.current = createSlideImpressionTracker({
       dwellMs: SLIDE_DWELL_MS,
-      keyFor: (index) => selectionRef.current.items[index]?.key ?? null,
+      /**
+       * ── READ THE SLIDE, NOT THE OFFER LIST ──────────────────────────────
+       * This used to be `selection.items[index]`, which was correct while every
+       * slide was an offer. It is not any more: the program somebody is in the
+       * middle of leads the shelf, so slide 1 is offer 0, and the old lookup
+       * would have filed every impression one position along — the same class
+       * of fault that once gave this funnel a denominator nobody had seen.
+       *
+       * A non-offer slide returns null, so the in-progress card and the end
+       * tile are never counted as programs somebody considered buying.
+       */
+      keyFor: (index) => {
+        const slide = carouselSlidesRef.current[index];
+        return slide?.kind === "offer" ? slide.item.key : null;
+      },
       emit: (index, trigger: SlideTrigger, dwellMs) => {
+        const slide = carouselSlidesRef.current[index];
+        if (slide?.kind !== "offer") return;
         const sel = selectionRef.current;
-        const item = sel.items[index];
-        if (!item) return;
+        const { item, offerIndex } = slide;
         track(ANALYTICS_EVENTS.FOR_YOU_SLIDE_VIEWED, {
           surface: "home_for_you",
-          index,
+          /** Its rank among offers, so the series survives a leading slide. */
+          index: offerIndex,
+          /** Where it actually sat, for anyone reading position effects. */
+          slideIndex: index,
           catalogKey: item.key,
           packId: item.packId,
           priceInr: item.priceInr,
-          highlight: index === 0 && sel.highlightFirst,
+          highlight: offerIndex === 0 && sel.highlightFirst,
           dwellMs,
           trigger,
         });
@@ -385,14 +429,65 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     });
   };
 
+  /**
+   * Straight into the day they are on. The card this replaced opened a "Ready
+   * to start?" sheet that named the module and then navigated — the module's
+   * own screen names it too, so the sheet spent a tap repeating a title.
+   */
+  const openProgram = (program: ActiveProgram) => {
+    track(ANALYTICS_EVENTS.PACK_CLICKED, {
+      source: "home_for_you_in_progress",
+      catalogKey: null,
+      packId: program.packId,
+      priceInr: null,
+      hasMatchReason: false,
+      position: 0,
+    });
+    navigation.navigate("ExploreStack", {
+      screen: "PackModule",
+      params: {
+        packId: program.packId,
+        moduleId: program.nextModule?.id,
+      },
+    });
+  };
+
   const goToPrograms = (source: ProgramsSource) => {
     track(ANALYTICS_EVENTS.PROGRAMS_LIST_OPENED, { source });
     navigation.navigate("ExploreStack", { screen: "Programs" });
   };
 
-  // `selectForYou` already decided which of the three this is — deliberately,
-  // so this cannot drift from the analytics above.
-  if (selection.mode === "hidden") return null;
+  /**
+   * ── THE ACTIVE PROGRAM OUTRANKS EVERY OTHER STATE ──────────────────────────
+   * `selectForYou` decides what to do with the OFFERS, and it knows nothing
+   * about what somebody is in the middle of. So its answer cannot be the last
+   * word any more: a person with no offers to show but a program on day 3 was
+   * getting "Find your next program", and the program they had paid for did not
+   * appear on Home at all.
+   *
+   * Hidden included. A shelf with nothing to sell is still the right place for
+   * the thing they already own.
+   */
+  const hasProgram = !!active.program;
+
+  /**
+   * ── OWNS EVERYTHING AND HAS FINISHED IT ────────────────────────────────────
+   * Checked FIRST, and that is not tidiness. `selectForYou` returns `hidden`
+   * when every product is owned, and its comment explains why that was safe:
+   * "the sibling card is already saying today's work is done". That sibling was
+   * SmartRecommendationCard, and it is gone — so without this line the exact
+   * hole it was written to prevent opens up, and the person who has bought
+   * everything and done all of it gets a blank space on Home.
+   */
+  if (!hasProgram && active.allComplete) {
+    return (
+      <View ref={shelfRef} onLayout={measureShelf} style={style}>
+        <AllCompleteSlide />
+      </View>
+    );
+  }
+
+  if (selection.mode === "hidden" && !hasProgram) return null;
 
   let inner: React.ReactNode;
 
@@ -412,10 +507,9 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
         />
       </View>
     );
-  } else if (selection.mode === "browse") {
-    // No second error card even when the fetch failed: SmartRecommendationCard
-    // already owns that, and two red cards on Home is worse than one honest
-    // fallback. No eyebrow claim, no badge — we have nothing to back one.
+  } else if (!hasProgram && selection.mode === "browse") {
+    // No second error card even when the fetch failed. No eyebrow claim, no
+    // badge — we have nothing to back one.
     inner = (
       <RecHeroCard
         eyebrow="PROGRAMS"
@@ -432,12 +526,28 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     const hasMore = selection.remaining > 0;
     // NOT `slides` — that name is taken by the impression tracker a few lines
     // up, and the two must never be confused for one another.
-    const carouselSlides: Slide[] = hasMore
-      ? [
-          ...selection.items.map((item) => ({ kind: "offer" as const, item })),
-          { kind: "more" as const },
-        ]
-      : selection.items.map((item) => ({ kind: "offer" as const, item }));
+    /**
+     * ── THE ORDER, AND WHY IT IS THIS ORDER ────────────────────────────────
+     * The program somebody is in the middle of comes first: it is the only
+     * slide about something they already paid for, and it was a separate card
+     * stacked above this shelf until now — two rows about programs, the taller
+     * one on top, pushing what you could buy off the fold.
+     *
+     * `offerIndex` is carried rather than inferred from position, because
+     * position is no longer rank. See the note on `Slide`.
+     */
+    const carouselSlides: Slide[] = [
+      ...(active.program
+        ? [{ kind: "inProgress" as const, program: active.program }]
+        : []),
+      ...selection.items.map((item, offerIndex) => ({
+        kind: "offer" as const,
+        item,
+        offerIndex,
+      })),
+      ...(hasMore ? [{ kind: "more" as const }] : []),
+    ];
+    carouselSlidesRef.current = carouselSlides;
 
     inner = (
       <>
@@ -484,23 +594,40 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
 
         <Carousel
           data={carouselSlides}
-          keyExtractor={(s, i) => (s.kind === "offer" ? s.item.key : `more-${i}`)}
+          keyExtractor={(s, i) =>
+            s.kind === "offer" ? s.item.key : `${s.kind}-${i}`
+          }
           onIndexChange={onIndexChange}
           bleedRight={space.screenX}
-          renderItem={({ item: slide, index }) =>
-            slide.kind === "offer" ? (
-              <OfferSlide
-                item={slide.item}
-                store={storePrices[slide.item.tierProductId]}
-                highlight={index === 0 && selection.highlightFirst}
-                onPress={openDetail}
-              />
-            ) : (
+          renderItem={({ item: slide }) => {
+            if (slide.kind === "inProgress") {
+              return (
+                <InProgressSlide
+                  program={slide.program}
+                  onPress={openProgram}
+                />
+              );
+            }
+            if (slide.kind === "offer") {
+              return (
+                <OfferSlide
+                  item={slide.item}
+                  store={storePrices[slide.item.tierProductId]}
+                  // `offerIndex`, not the slide's position. The top match is
+                  // still the top match when something sits in front of it.
+                  highlight={
+                    slide.offerIndex === 0 && selection.highlightFirst
+                  }
+                  onPress={openDetail}
+                />
+              );
+            }
+            return (
               <MoreProgramsTile
                 onPress={() => goToPrograms("home_for_you_end_tile")}
               />
-            )
-          }
+            );
+          }}
         />
       </>
     );

@@ -5,7 +5,6 @@ import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
 import { showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 import { loadServerOnboardingAnswers } from "../../util/functions/loadServerOnboardingAnswers";
-import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
 import {
   answeredRequiredCount,
@@ -333,10 +332,16 @@ const Home = () => {
       >
         <IdentityBlock />
 
-        <SmartRecommendationCard key={`rec-${refreshKey}`} />
+        {/* ── ONE ROW ABOUT PROGRAMS, NOT TWO ───────────────────────────────
+            SmartRecommendationCard used to sit here, above the shelf, carrying
+            the program somebody was in the middle of. Two stacked rows about
+            programs, the taller one on top — so the thing you could buy was
+            pushed off the fold by the thing you already own.
 
-        {/* The only thing on Home that sells. SmartRecommendationCard above
-            keeps "what to do today"; this shows what to consider next. */}
+            The shelf leads with the active program now, then the ranked offers,
+            then the way into the shop. When there is no active program the top
+            recommendation leads instead, and when there is nothing to
+            recommend the shelf shows its own card. See ForYouCarousel. */}
         <ForYouCarousel key={`foryou-${refreshKey}`} />
 
 
