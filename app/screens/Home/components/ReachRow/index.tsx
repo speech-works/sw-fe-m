@@ -137,8 +137,26 @@ const ReachRow: React.FC<{
    * It does not break the rule that light is earned. The tint is the MATERIAL
    * the row is made of; what marks a thing as done is the solid bead and the
    * tick in it, and neither of those appears until it is.
+   *
+   * MIXED INTO THE CARD, not laid over it at low alpha. Alpha-compositing a
+   * cool green onto the flat card's warm brown left three muddy blobs that
+   * belonged to neither colour. Mixing starts from the card's own surface, so
+   * the string reads as part of whichever card it is on.
+   *
+   * AND IT ONLY GOES GREEN WHEN THE CARD DOES. On a flat card nothing has been
+   * done, so three green knobs would be the only colour on it, claiming
+   * something none of them earned. There the string is neutral: three empty
+   * slots, waiting, saying nothing.
    */
-  const quiet = withAlpha(colors.accent.success, 0.22);
+  const quiet = lit
+    // The same hue the halo is using, so a warm card does not carry a green
+    // string. One card, one colour.
+    ? mix(
+        cardBg,
+        glow === "warm" ? colors.action.primary : colors.accent.success,
+        0.22,
+      )
+    : mix(cardBg, colors.text.primary, 0.13);
 
   return (
     <PressableScale
@@ -411,6 +429,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bar: { width: 20, height: 15, marginHorizontal: -1 },
+  /*
+   * 27 is the reference's ratio, 85% of a bead, and it has to stay there: the
+   * bar is 15, so at 22 the knob was only half again its height and the three
+   * of them fused into one sausage. The knob has to clear the string it sits
+   * on for the row to read as nodes at all.
+   */
   knob: { width: 27, height: 27, borderRadius: radius.full },
   sub: { marginTop: spacing.sm },
   cta: {
