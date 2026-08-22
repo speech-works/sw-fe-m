@@ -54,6 +54,36 @@ export const AXIS_SUBTITLE: Record<GrowthAxis, string> = {
 };
 
 /**
+ * THE SAME AXES, SAID FOR TODAY.
+ *
+ * ── WHY A SECOND MAP AND NOT A SECOND USE OF THE FIRST ─────────────────────
+ * `AXIS_LABEL` and `AXIS_SUBTITLE` describe a LIFETIME COUNT: "Braver — hard
+ * things you've done · 11". That is right on the progress report and on the
+ * done-practice chip, where a number is moving.
+ *
+ * It is wrong on today's ring, which is divided into these same axes as
+ * SEGMENTS, and the mismatch showed: "Regular — days you've practiced" sat on a
+ * segment that closes the moment you practise once, today. A lifetime phrasing
+ * on a daily thing reads as circular, because it is.
+ *
+ * ── AND WHY THE NAMES ARE GONE HERE ────────────────────────────────────────
+ * "Braver" and "Wider" have to be taught before the ring means anything, which
+ * is why they always shipped with a subtitle attached. On a daily ring the
+ * subtitle can just BE the label: one plain line that says what would close
+ * that segment. Nothing to learn, and one line instead of two.
+ *
+ * Short on purpose. These render inside a chip in the practice hub as well as
+ * in the rings sheet, and both are narrow.
+ */
+export const LOOP_TODAY: Record<GrowthAxis, string> = {
+  [GrowthAxis.BRAVER]: "Something harder than usual",
+  [GrowthAxis.WIDER]: "Somewhere you don't usually speak",
+  // Hidden from users (see VISIBLE_AXES) but kept accurate.
+  [GrowthAxis.STEADIER]: "Finishing what you started",
+  [GrowthAxis.REGULAR]: "Turning up at all",
+};
+
+/**
  * The axes a user is currently shown — THE ONE PLACE THAT DECIDES.
  *
  * Finisher is deliberately absent. It is not a broken axis: "seeing things

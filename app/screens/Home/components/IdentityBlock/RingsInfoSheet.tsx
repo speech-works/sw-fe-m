@@ -16,7 +16,7 @@ import {
 import PressableScale from "../../../../components/PressableScale";
 import { UserAvatar } from "../../../../components/UserAvatar";
 import type { AvatarManifest } from "../../../../types/avatar";
-import { AXIS_LABEL, AXIS_SUBTITLE, GrowthAxis } from "../../../../api/dailyPlan";
+import { GrowthAxis, LOOP_TODAY } from "../../../../api/dailyPlan";
 
 interface Props {
   visible: boolean;
@@ -274,10 +274,15 @@ export const RingsInfoSheet: React.FC<Props> = ({
         </View>
 
 
-        {/* ── The axes, named, because here there is room ──
-            Each label ships with its subtitle: the rule this vocabulary has
-            carried since it was written, because "Wider" alone reads as "did
-            lots of different exercises", which is the wrong meaning.
+        {/* ── What would close each segment today ──
+            ONE LINE, NOT A NAME AND A DEFINITION. This used to read "Braver /
+            Hard things you've done", which had two problems on a DAILY ring.
+            The name has to be taught before the ring means anything, and the
+            definition is a lifetime count: "Regular / Days you've practiced"
+            sat on a segment that closes the moment you practise once, today.
+
+            `LOOP_TODAY` says the same thing in words nobody has to learn, so
+            the subtitle has nothing left to explain and is gone.
 
             ROWS IN ONE GROUPED CARD, not three separate filled pills. Filled,
             all-done rendered as a wall of saturated green and nothing-done as a
@@ -294,8 +299,9 @@ export const RingsInfoSheet: React.FC<Props> = ({
                   i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border.hairline },
                 ]}
                 accessible
-                accessibilityLabel={`${AXIS_LABEL[axis]}. ${AXIS_SUBTITLE[axis]}. ${isDone ? "Done today." : "Still open."
-                  }`}
+                accessibilityLabel={`${LOOP_TODAY[axis]}. ${
+                  isDone ? "Done today." : "Still open."
+                }`}
               >
                 {/* A PLAIN CHECK, NOT `icons.success`.
                     That key is "circle-check" — a tick already inside its own
@@ -315,10 +321,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
                 )}
                 <View style={styles.rowText}>
                   <Text variant="body" color={isDone ? colors.accentText.success : "primary"}>
-                    {AXIS_LABEL[axis]}
-                  </Text>
-                  <Text variant="caption" color="tertiary">
-                    {AXIS_SUBTITLE[axis]}
+                    {LOOP_TODAY[axis]}
                   </Text>
                 </View>
               </View>

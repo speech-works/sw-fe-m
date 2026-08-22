@@ -1,4 +1,4 @@
-import { GrowthAxis, AXIS_LABEL, AXIS_SUBTITLE } from "../index";
+import { GrowthAxis, AXIS_LABEL, AXIS_SUBTITLE, LOOP_TODAY } from "../index";
 
 /**
  * ============================================================================
@@ -71,6 +71,54 @@ describe("Growth axis labels", () => {
   it("labels every axis, so a new one cannot ship nameless", () => {
     for (const axis of Object.values(GrowthAxis)) {
       expect(AXIS_LABEL[axis]).toBeTruthy();
+    }
+  });
+});
+
+/**
+ * The daily wording. Separate from AXIS_LABEL/AXIS_SUBTITLE because those
+ * describe a lifetime count, and a lifetime phrasing on a daily ring reads as
+ * circular: "days you've practiced" on a segment that closes the moment you
+ * practise once, today.
+ */
+describe("LOOP_TODAY", () => {
+  const axes = Object.values(GrowthAxis);
+
+  it("covers every axis, so a segment can never render blank", () => {
+    for (const axis of axes) {
+      expect(LOOP_TODAY[axis]).toBeTruthy();
+    }
+  });
+
+  it("carries none of the invented names", () => {
+    // The whole reason it exists: nothing here should need teaching before the
+    // ring means anything.
+    for (const axis of axes) {
+      const phrase = LOOP_TODAY[axis].toLowerCase();
+      for (const invented of ["braver", "wider", "steadier", "finisher", "regular"]) {
+        expect(phrase).not.toContain(invented);
+      }
+    }
+  });
+
+  it("says nothing about a lifetime, because this is about today", () => {
+    for (const axis of axes) {
+      const phrase = LOOP_TODAY[axis].toLowerCase();
+      expect(phrase).not.toMatch(/you've|days|so far|total|times you/);
+    }
+  });
+
+  it("makes no claim about fluency", () => {
+    // The standing rule for every axis word this app shows.
+    for (const axis of axes) {
+      const phrase = LOOP_TODAY[axis].toLowerCase();
+      expect(phrase).not.toMatch(/smooth|fluent|steady|stutter-free/);
+    }
+  });
+
+  it("stays short enough for the chip in the practice hub", () => {
+    for (const axis of axes) {
+      expect(LOOP_TODAY[axis].length).toBeLessThanOrEqual(36);
     }
   });
 });

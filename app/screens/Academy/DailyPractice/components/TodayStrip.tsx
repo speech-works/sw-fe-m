@@ -15,8 +15,7 @@ import {
   fetchDailyPlan,
   DailyPlan,
   GrowthAxis,
-  AXIS_LABEL,
-  AXIS_SUBTITLE,
+  LOOP_TODAY,
   isVisibleAxis,
 } from "../../../../api/dailyPlan";
 import { axisAccent } from "../../../../util/growth/accents";
@@ -153,9 +152,7 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
               // was the one that did not.
               accessible
               accessibilityRole="text"
-              accessibilityLabel={`${AXIS_LABEL[axis as GrowthAxis]}, ${
-                AXIS_SUBTITLE[axis as GrowthAxis]
-              }. ${done ? "Done today." : "Not yet today."}`}
+              accessibilityLabel={`${LOOP_TODAY[axis as GrowthAxis]}. ${done ? "Done today." : "Not yet today."}`}
               style={[
                 styles.loop,
                 {
@@ -190,15 +187,16 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
                 />
               )}
               <View>
+                {/* ONE LINE. This was "Braver" over "Hard things you've
+                    done": a name that has to be taught, above a LIFETIME count
+                    sitting on a strip about today. `LOOP_TODAY` says what would
+                    close it today, in words nobody has to learn, so the second
+                    line has nothing left to explain. */}
                 <Text
                   variant="bodySm"
                   color={done ? colors.accentText.success : colors.text.primary}
                 >
-                  {AXIS_LABEL[axis as GrowthAxis]}
-                </Text>
-                {/* Never shown without this — see the note at the top. */}
-                <Text variant="caption" color={colors.text.tertiary}>
-                  {AXIS_SUBTITLE[axis as GrowthAxis]}
+                  {LOOP_TODAY[axis as GrowthAxis]}
                 </Text>
               </View>
             </View>
