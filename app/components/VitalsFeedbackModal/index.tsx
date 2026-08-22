@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { askVitalsNow } from "../../util/practice/vitalsCadence";
 import {
   AnimatedModal,
   Button,
@@ -80,6 +81,43 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
   const [autonomy, setAutonomy] = useState(INITIAL);
   const [accuracy, setAccuracy] = useState(INITIAL);
 
+  /**
+   * ── HOW OFTEN THIS APPEARS AT ALL ─────────────────────────────────────────
+   * The cadence gate lives HERE rather than in the callers. Twelve places
+   * across seven screens open this modal, and a rule copied into twelve places
+   * is a rule that is right in eleven of them. One gate, and every caller gets
+   * it without knowing.
+   *
+   * NOT ASKING routes through `onSkip`, which every caller already implements
+   * as "complete the activity with no vitals and carry on". That is exactly
+   * what a skipped question means, so there is no new path to get wrong.
+   *
+   * `settled` stops the check running twice for one opening. It is keyed on the
+   * transition, so the next completion asks again.
+   */
+  const [allowed, setAllowed] = useState(false);
+  const settled = useRef(false);
+
+  useEffect(() => {
+    if (!visible) {
+      settled.current = false;
+      setAllowed(false);
+      return;
+    }
+    if (settled.current) return;
+    settled.current = true;
+
+    let alive = true;
+    void askVitalsNow().then((ask) => {
+      if (!alive) return;
+      if (ask) setAllowed(true);
+      else onSkip();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [visible, onSkip]);
+
   const handleSubmit = () => {
     onSubmit({
       effortScore: Math.round(effort),
@@ -89,7 +127,7 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
   };
 
   return (
-    <AnimatedModal visible={visible} onClose={onSkip} maxWidth={420}>
+    <AnimatedModal visible={visible && allowed} onClose={onSkip} maxWidth={420}>
       <View style={styles.content}>
         <View style={styles.header}>
           <Text variant="h2" color="primary" center>

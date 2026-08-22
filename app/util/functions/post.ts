@@ -29,23 +29,29 @@ export const activityKindFromContentType = (
   }
 };
 
-/** Templates offered for an activity, best-first. Every list ends with `minimal` (custom). */
+/**
+ * Templates offered for an activity, best-first. Every list ends with `minimal` (custom).
+ *
+ * `"streak"` was in four of these five lists and is retired — see the note on
+ * `getPostTemplate`. Where it led a list, the next-best template takes its place
+ * rather than the list shrinking to two options.
+ */
 export const templatesForActivity = (
   kind: ActivityKind,
 ): TemplateId[] => {
   switch (kind) {
     case "EXPOSURE_PRACTICE":
       // The courage of facing it is the story — never the score.
-      return ["courage", "milestone", "streak", "minimal"];
+      return ["courage", "milestone", "minimal"];
     case "COGNITIVE_PRACTICE":
-      return ["calm", "streak", "milestone", "minimal"];
+      return ["calm", "milestone", "minimal"];
     case "READING_PRACTICE":
-      return ["streak", "milestone", "calm", "minimal"];
+      return ["milestone", "calm", "minimal"];
     case "FUN_PRACTICE":
-      return ["streak", "milestone", "minimal"];
+      return ["milestone", "calm", "minimal"];
     case "TECHNIQUE_PRACTICE":
     default:
-      return ["milestone", "streak", "minimal"];
+      return ["milestone", "calm", "minimal"];
   }
 };
 
@@ -71,7 +77,6 @@ export const candidateFields = (): PracticePayloadField[] => {
     "durationSeconds",
     "timeOfDay",
     "showedUp",
-    "streakDays",
     "xpEarned",
     "leveledUp",
     "levelStageTitle",

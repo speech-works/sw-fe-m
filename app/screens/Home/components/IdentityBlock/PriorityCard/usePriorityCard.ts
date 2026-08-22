@@ -1,14 +1,11 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { fetchPriorityCard, ackPriorityCard } from "../../../../../api/homeCards";
 import type {
   HomePriorityCard,
   NextCardPreview,
 } from "../../../../../api/homeCards";
 import { isKnownIntent, SHEET_INTENT } from "./intents";
-
-/** Matches SmartRecommendationCard: a card is not worth re-fetching every focus. */
-const STALE_THRESHOLD_MS = 5 * 60 * 1000;
 
 /**
  * One shared empty array, never a fresh `[]`.
@@ -51,15 +48,23 @@ export interface PriorityCardHook {
  * handing it three ways to say "nothing" would only invite three code paths
  * that do the same thing.
  *
- * ── THE THROTTLE BUG THIS DELIBERATELY AVOIDS ───────────────────────────────
- * The focus guard reads ONLY `lastFetchRef`, never a state value. The same hook
- * shape in SmartRecommendationCard once had `&& !loading` in this condition,
- * which made the throttle DEAD CODE: the fetcher is `useCallback(..., [])`, so
- * the callback captured `loading` at its initial `true` forever and the guard
- * never returned early. That cost two API calls on every return to Home, and a
- * single flaky request would replace a perfectly good card with an error one.
- * Here the same mistake would replace a live card with the Level card on a bad
- * network, which looks like the feature randomly turning itself off.
+ * ── WHY THERE IS NO STALE THRESHOLD HERE ────────────────────────────────────
+ * This hook used to throttle its fetch to once every five minutes, copying
+ * SmartRecommendationCard. That is correct for a recommendation and WRONG here,
+ * because the cards in this slot carry a `CONDITION` lifetime: `come_back`
+ * declares "I leave the moment they practise", and the server re-derives that on
+ * every request. A cache turns that promise into a lie.
+ *
+ * The reported symptom: tap "No rush, start again", go and do the exercise, come
+ * back to Home, and the card is still there telling you to start. Energy and the
+ * Today ring had already updated, because `fetchUser` and `fetchDailyPlan` in
+ * IdentityBlock refetch on every focus. Only this one was cached, so the row
+ * looked half broken.
+ *
+ * Cost of removing it: one small request per Home focus. The endpoint is cheap
+ * by design (`HomePriorityCardService.resolve` stops at the first audience match
+ * and memoises its query tier), and its own controller says it is safe to call
+ * on every focus.
  */
 /**
  * The card this build can actually honour, or null.
@@ -89,18 +94,13 @@ const reachable = (card: HomePriorityCard): HomePriorityCard | null => {
 export function usePriorityCard(): PriorityCardHook {
   const [card, setCard] = useState<HomePriorityCard | null>(null);
   const [queued, setQueued] = useState<NextCardPreview[]>([]);
-  const lastFetchRef = useRef<number>(0);
 
   useFocusEffect(
     useCallback(() => {
-      // `lastFetchRef` starts at 0, so the first focus always fetches.
-      if (Date.now() - lastFetchRef.current < STALE_THRESHOLD_MS) return;
-
       let cancelled = false;
       void (async () => {
         const res = await fetchPriorityCard();
         if (cancelled) return;
-        lastFetchRef.current = Date.now();
 
         const usable = res?.card ? reachable(res.card) : null;
         if (!usable) {

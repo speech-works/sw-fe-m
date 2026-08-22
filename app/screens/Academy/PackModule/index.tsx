@@ -5,7 +5,7 @@ import {
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import {
   completeModule,
@@ -18,6 +18,9 @@ import {
   PackModule,
   ReferenceBlockContent,
 } from "../../../api/packs/types";
+import { getProgramGoals } from "../../../api/programGoals";
+import { ProgramGoal } from "../../../api/programGoals/types";
+import { DailyLog } from "../../Programs/DailyLog";
 import { classifyPackError } from "../../../util/packs/packErrors";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
@@ -253,6 +256,54 @@ const PackModuleScreen = () => {
 
     navigation.navigate("Explore" as never);
   }, [navigation]);
+
+  /**
+   * ── THE GOAL GATE ─────────────────────────────────────────────────────────
+   * A program asks one question before day 1, and this is where it is asked.
+   *
+   * IT SITS HERE, not in the callers. Home's recommendation card, the daily
+   * plan, DonePractice's "next module" and half a dozen activity screens all
+   * navigate straight to PackModule. A check in each of them is a check
+   * somebody forgets to add to the seventh one. Every road passes through here.
+   *
+   * ONCE PER VISIT. `offeredRef` is why backing out of the ask does not bounce
+   * you straight back into it. Leaving is allowed: somebody who opened the app
+   * to do one module and met a form has to be able to say no. The server still
+   * says `needsAsk`, so it is offered again next time they open the program.
+   *
+   * NEVER BLOCKS. If this request fails the module opens exactly as before. A
+   * question about goals must not stand between a person and their practice.
+   */
+  const offeredRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (offeredRef.current) return;
+      let alive = true;
+      getProgramGoals(packId)
+        .then((state) => {
+          if (!alive) return;
+          // The report comes first. It is only ever owed once the work is
+          // finished, so the two can never both be true, but if a bug ever made
+          // them both true, asking for goals from somebody who already has some
+          // is the worse mistake.
+          if (state.needsReport) {
+            offeredRef.current = true;
+            navigation.navigate("ProgramGoalsReport", { packId });
+            return;
+          }
+          if (state.needsAsk) {
+            offeredRef.current = true;
+            navigation.navigate("ProgramGoalsAsk", { packId });
+          }
+        })
+        .catch(() => {
+          /* The module opens regardless. */
+        });
+      return () => {
+        alive = false;
+      };
+    }, [packId, navigation]),
+  );
 
   // The arc position. Deliberately its own effect and its own failure path:
   // it is decoration on the header, and must never delay or break the module.
@@ -492,6 +543,10 @@ const PackModuleScreen = () => {
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
+  /** Handed to DailyLog so it does not refetch what handleComplete just read. */
+  const [goalsAfterModule, setGoalsAfterModule] = useState<
+    ProgramGoal[] | undefined
+  >(undefined);
   const [nextModuleId, setNextModuleId] = useState<string | null>(null);
 
   const handleComplete = async () => {
@@ -529,6 +584,28 @@ const PackModuleScreen = () => {
         completedBlocks: completedInteractiveBlocks.size,
         totalBlocks: module.blocks?.length ?? 0,
       });
+
+      // ── THE REPORT IS THE LAST DAY'S ENDING ────────────────────────────
+      // A program that asked for goals does not close on the last module. It
+      // closes when the user says what happened to each one, and this is the
+      // moment to ask: they are still here, and they have just finished.
+      //
+      // `replace`, not `navigate`, so "Done" on the report lands where the
+      // module was entered from rather than back on a finished module.
+      //
+      // Wrapped and swallowed: a failure here shows the ordinary success screen
+      // and the goal gate catches them next time. Finishing a module must never
+      // fail because we could not fetch a question.
+      try {
+        const goalState = await getProgramGoals(packId);
+        setGoalsAfterModule(goalState.goals);
+        if (goalState.needsReport) {
+          navigation.replace("ProgramGoalsReport", { packId });
+          return;
+        }
+      } catch {
+        /* Fall through to the normal success screen. */
+      }
 
       setShowSuccess(true);
     } catch (error) {
@@ -647,6 +724,12 @@ const PackModuleScreen = () => {
             Great job taking time for your nervous system. You're making real
             progress.
           </Text>
+
+          {/* The day's work is done and they are already stopped here. Asking
+              at the START of a module would delay the thing they opened the
+              app to do, and after the LAST module this screen is replaced by
+              the report, so the two never collide. */}
+          <DailyLog packId={packId} goals={goalsAfterModule} />
 
           <View style={styles.successActionContainer}>
             {nextModuleId && (

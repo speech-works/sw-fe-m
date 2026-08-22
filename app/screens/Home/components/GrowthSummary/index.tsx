@@ -26,6 +26,22 @@ import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
 
 /**
  * ============================================================================
+ * DORMANT. NOT RENDERED ANYWHERE.
+ * ----------------------------------------------------------------------------
+ * Home's slot now holds ReachRow, which shows a sentence the USER wrote instead
+ * of three counts under words the app invented (Braver, Wider, Regular). The
+ * axes card on the progress report is a separate component and is untouched.
+ *
+ * Kept rather than deleted so the geometry and the reasoning below stay
+ * readable while Reach settles. Delete it once that is done; nothing imports
+ * it, so nothing breaks either way.
+ *
+ * Everything under this line describes the OLD card.
+ * ============================================================================
+ */
+
+/**
+ * ============================================================================
  * THE ONE THING ON HOME THAT IS ABOUT THEIR LIFE
  * ----------------------------------------------------------------------------
  * Home's only meters were a game level starting at zero and an energy ring that

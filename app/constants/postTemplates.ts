@@ -30,14 +30,6 @@ export const POST_TEMPLATES: PostTemplate[] = [
     blurb: "Celebrate a count you've reached",
   },
   {
-    id: "streak",
-    label: "Streak",
-    icon: "fire",
-    gradient: ["#FF9040", "#FF6B00"],
-    emphasizes: ["streakDays", "showedUp"],
-    blurb: "Show your consistency",
-  },
-  {
     id: "courage",
     label: "Courage",
     icon: "shield-star",
@@ -66,5 +58,21 @@ export const POST_TEMPLATES: PostTemplate[] = [
   },
 ];
 
+/**
+ * `"streak"` is RETIRED and deliberately absent from the list above.
+ *
+ * It emphasised `streakDays` — a true consecutive-day count with a flame — which
+ * is the one mechanic this product will not ship: a broken streak is a documented
+ * cause of quitting, and it lands hardest on people who blame themselves, which
+ * is our whole audience. `streakDays` is also gone from the composer's candidate
+ * fields and from STAT_ORDER, so it can no longer be toggled on or rendered.
+ *
+ * The id stays in `TemplateId` and the fallback below still resolves, so posts
+ * already shared with `templateId: "streak"` render as `minimal` rather than
+ * crashing. Nothing is migrated.
+ *
+ * NOT affected: the Explore weekly chart, which counts days inside a week and
+ * cannot break.
+ */
 export const getPostTemplate = (id: TemplateId): PostTemplate =>
   POST_TEMPLATES.find((t) => t.id === id) ?? POST_TEMPLATES[POST_TEMPLATES.length - 1];

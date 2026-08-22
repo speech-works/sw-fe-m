@@ -14,12 +14,30 @@ export type ExploreStackParamList = {
   LibraryStack: undefined;
   // `scrollTo` opens the report AT something rather than at the top. Both
   // targets live on the Lifetime tab, so the screen switches tab as well as
-  // scrolling. "achievements" comes from Home's Level card, "growth" from
-  // Home's GrowthSummary.
+  // scrolling. "achievements" comes from Home's Level card. "growth" was used
+  // by Home's GrowthSummary, which Reach replaced; the axes card it points at
+  // still exists on the report, so the param stays valid.
   ProgressDetail: { scrollTo?: "achievements" | "growth" } | undefined;
   PaymentStack: undefined;
   Programs: undefined;
   ProgramDetail: { catalogKey: string; packId: string | null };
+  /**
+   * The one question a program asks before day 1. Opened by PackModule when the
+   * server says `needsAsk`, and by nothing else: one gate covers every way into
+   * a module, rather than a check in each caller.
+   */
+  /**
+   * What they said they would do, and what happened. Replaces the growth
+   * summary as the one thing on Home that is about their life rather than
+   * about the app.
+   */
+  Reach: undefined;
+  ProgramGoalsAsk: { packId: string };
+  /**
+   * The report a program will not close without. Reached from the last module's
+   * completion, and again from the goal gate if they left before answering.
+   */
+  ProgramGoalsReport: { packId: string };
   PackModule: {
     module?: PackModule;
     packId: string;

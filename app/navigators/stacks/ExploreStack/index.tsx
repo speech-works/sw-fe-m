@@ -23,6 +23,9 @@ import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingP
 import Explore from "../../../screens/Explore";
 import ProgramsScreen from "../../../screens/Programs";
 import ProgramDetailScreen from "../../../screens/Programs/ProgramDetail";
+import GoalsAskScreen from "../../../screens/Programs/GoalsAsk";
+import ReachScreen from "../../../screens/Programs/Reach";
+import GoalsReportScreen from "../../../screens/Programs/GoalsReport";
 import PaymentStackNavigator from "../PaymentStack";
 import DPStackNavigator from "./DailyPracticeStack";
 import LibStackNavigator from "./LibraryStack";
@@ -41,6 +44,19 @@ export default function ExploreStackNavigator() {
       <Stack.Screen name="Programs" component={ProgramsScreen} />
       <Stack.Screen name="ProgramDetail" component={ProgramDetailScreen} />
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
+      <Stack.Screen name="Reach" component={ReachScreen} />
+      <Stack.Screen
+        name="ProgramGoalsAsk"
+        component={GoalsAskScreen}
+        // Leaving is allowed; swiping out of a half-typed form by accident is
+        // not. Back is a button on the screen, which the code can step through.
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="ProgramGoalsReport"
+        component={GoalsReportScreen}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="PackModule" component={PackModuleScreen} />
       <Stack.Screen name="PackForm" component={PackFormScreen} />
       <Stack.Screen

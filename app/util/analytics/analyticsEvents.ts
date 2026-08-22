@@ -49,6 +49,24 @@ export const ANALYTICS_EVENTS = {
     PACK_CLICKED: 'pack_clicked',                   // props: { source, catalogKey, packId, priceInr, hasMatchReason, position? }
     PROGRAM_DETAIL_VIEWED: 'program_detail_viewed', // props: { catalogKey, packId }
 
+    // ── The goal harness ───────────────────────────────────────────────
+    // The only place we learn whether a program moved anybody in the real
+    // world. `none` is the interesting number, not `full`: a program where
+    // everyone reports "not yet" is a program that taught and changed nothing,
+    // and no completion rate would ever have shown that.
+    //
+    // NOTE `full` is NOT a win on a prediction program. There it means the
+    // feared thing happened. Always split by `answerType` before reading it.
+    PROGRAM_GOALS_SET: 'program_goals_set',         // props: { packId, answerType, questionVersion, count }
+    PROGRAM_GOALS_REPORTED: 'program_goals_reported', // props: { packId, answerType, questionVersion, total, full, partial, none, packClosed }
+    REACH_ROW_TAPPED: 'reach_row_tapped',           // props: { total, done, waiting, state }
+    WAITING_GOAL_ANSWERED: 'waiting_goal_answered', // props: { answer, isFurthest }
+    // A goal closed one at a time, away from the end-of-program report. Without
+    // it, every act reported DURING a program is invisible and the only number
+    // we have is the day-8 report, which undercounts by everything somebody did
+    // and ticked off on the day.
+    PROGRAM_GOAL_CLOSED: 'program_goal_closed',     // props: { surface, isFurthest, xpAwarded }
+
     // ── For-you shelf: what was actually SEEN ──────────────────────────
     // Measured against the viewport minus the band the floating dock covers, so
     // "shown" means a human could have read it. Two properties carry the whole

@@ -85,6 +85,15 @@ export const PRIORITY_CARD_INTENTS: Record<
 
   PROGRAMS: (nav) => inExploreTab(nav, "Programs"),
 
+  /**
+   * Their record of what they said they would do outside the app.
+   *
+   * Pairs with the GOAL_WAITING_14D audience, which is the only reason a card
+   * would send somebody here. Anybody else lands on the screen that explains
+   * what Reach is, which is a fair place to arrive.
+   */
+  REACH: (nav) => inExploreTab(nav, "Reach"),
+
   PROGRAM_DETAIL: (nav, params) =>
     inExploreTab(nav, "ProgramDetail", {
       catalogKey: params?.catalogKey,

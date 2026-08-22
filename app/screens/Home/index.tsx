@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { InteractionManager, RefreshControl, View } from "react-native";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
@@ -17,7 +18,13 @@ import { useUserStore } from "../../stores/user";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import NotificationPermissionPrompt from "../../components/NotificationPermissionPrompt";
 import { IdentityBlock } from "./components/IdentityBlock";
-import GrowthSummary from "./components/GrowthSummary";
+import ReachRow from "./components/ReachRow";
+import {
+  WaitingGoalCard,
+  isDismissedToday,
+} from "./components/WaitingGoalCard";
+import { getReachSummary } from "../../api/programGoals";
+import { ReachSummary } from "../../api/programGoals/types";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import ForYouCarousel from "../../components/Dashboard/ForYouCarousel";
 import FirstCallCard, {
@@ -101,6 +108,43 @@ const Home = () => {
     serverFirstCallShape ??
     guessFirstCallShape({ takenAt: user?.firstCallTakenAt, deferredAt });
 
+  /**
+   * ONE FETCH, TWO SURFACES.
+   *
+   * Home owns this rather than each component fetching for itself, for the
+   * reason the For-you shelf already learned the hard way: a card that reserves
+   * space and then renders null costs the fold. The waiting-goal card is only
+   * pushed into the rotation once we KNOW there is a goal to put in it, so a
+   * user with none never has a slot held open for one.
+   *
+   * ReachRow reads the same object, so the row and the card can never disagree
+   * about what is outstanding.
+   */
+  const [reach, setReach] = useState<ReachSummary | null>(null);
+  const [waitingHidden, setWaitingHidden] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void (async () => {
+        try {
+          const summary = await getReachSummary();
+          if (!alive) return;
+          setReach(summary);
+          // "Still not yet" hides it for the rest of the day. Checked here so
+          // the card is never pushed and then withdrawn on the next frame.
+          const goal = summary.oldestWaiting;
+          setWaitingHidden(!goal || (await isDismissedToday(goal.id)));
+        } catch {
+          /* Both surfaces are absent rather than broken. */
+        }
+      })();
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
   const cards: string[] = [];
   if (showOnboarding) cards.push("onboarding");
 
@@ -108,6 +152,11 @@ const Home = () => {
   // account, the mood check is a thing to do today. Today's business goes last
   // because it comes back tomorrow.
   if (firstCallShape !== "none") cards.push("firstCall");
+
+  // Before the mood check, after the call, for the same reason the call is:
+  // this is a standing thing about their life, and the mood check is today's
+  // business that comes back tomorrow.
+  if (reach?.oldestWaiting && !waitingHidden) cards.push("goal");
 
   if (showMoodCheck) cards.push("mood");
 
@@ -237,6 +286,15 @@ const Home = () => {
         />
       );
     }
+    if (cardType === "goal" && reach?.oldestWaiting) {
+      return (
+        <WaitingGoalCard
+          key={`goal-${reach.oldestWaiting.id}`}
+          goal={reach.oldestWaiting}
+          onDone={() => setWaitingHidden(true)}
+        />
+      );
+    }
     if (cardType === "mood") {
       return interactionsDone ? (
         <MoodCheckBanner />
@@ -286,7 +344,7 @@ const Home = () => {
             about what somebody has done should not have to be swiped to, and
             should not sit in a rotation with today's business. It renders
             nothing at all until there is something true to show. */}
-        <GrowthSummary key={`growth-${refreshKey}`} />
+        <ReachRow key={`reach-${refreshKey}`} summary={reach} />
 
         {cards.length > 0 ? (
           <Carousel
