@@ -50,12 +50,12 @@ export function packIconFor(icon: string | null | undefined): IconKey {
  * the test that reads it says so.
  */
 export const SEEDED_PACK_ICONS = [
-  "share",
+  "volume",
   "call",
   "roleplay",
   "refresh",
   "heart",
-  "focus",
+  "warning",
   "growth",
   "tip",
   "voiceTool",
