@@ -31,6 +31,7 @@ import MoreProgramsTile from "./MoreProgramsTile";
 import InProgressSlide from "./InProgressSlide";
 import AllCompleteSlide from "./AllCompleteSlide";
 import { useActiveProgram, type ActiveProgram } from "./useActiveProgram";
+import { restartPack } from "../../api/packs";
 import PressableScale from "../PressableScale";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import RecHeroCard from "./RecHeroCard";
@@ -434,15 +435,41 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
    * to start?" sheet that named the module and then navigated — the module's
    * own screen names it too, so the sheet spent a tap repeating a title.
    */
-  const openProgram = (program: ActiveProgram) => {
+  const openProgram = async (program: ActiveProgram) => {
     track(ANALYTICS_EVENTS.PACK_CLICKED, {
-      source: "home_for_you_in_progress",
+      source: program.isRefresher
+        ? "home_for_you_refresher"
+        : "home_for_you_in_progress",
       catalogKey: null,
       packId: program.packId,
       priceInr: null,
       hasMatchReason: false,
       position: 0,
     });
+
+    /**
+     * ── A REFRESHER HAS TO ACTUALLY RESTART ────────────────────────────────
+     * Opening a module does not reset anything, so a finished pack stayed
+     * finished: every module COMPLETED, nothing for "the first module that is
+     * not completed" to find, and the card offering day 1 for ever — even
+     * immediately after somebody completed day 1 again.
+     *
+     * `restartPack` is the only thing that clears it. It is free and unlimited
+     * by design, and it is what "start again" has always meant.
+     *
+     * AWAITED, not fired alongside the navigation: PackModule reads progress on
+     * open, and racing the reset against that read is how it would show a
+     * completed day 1 anyway. A failure is swallowed — landing on day 1 without
+     * the reset is exactly today's behaviour, and better than a dead button.
+     */
+    if (program.isRefresher) {
+      try {
+        await restartPack(program.packId);
+      } catch (err) {
+        console.error("Failed to restart the pack", err);
+      }
+    }
+
     navigation.navigate("ExploreStack", {
       screen: "PackModule",
       params: {

@@ -72,6 +72,17 @@ export const completeModule = async (
  * when a gated call fails: doing that is what produced a real pack title over
  * an empty module with a "1 of 1" progress bar.
  */
+/**
+ * Start an owned pack over from day 1.
+ *
+ * Resets every module to NOT_STARTED, clears the completion, restarts the arc
+ * clock and bumps `restartCount` — which is also what gives a re-run its own
+ * set of program goals. Free and unlimited by design.
+ */
+export const restartPack = async (packId: string): Promise<void> => {
+  await axiosClient.post(`/packs/${packId}/restart`);
+};
+
 export const getPack = async (packId: string): Promise<any> => {
   try {
     const response = await axiosClient.get(`/packs/${packId}`);

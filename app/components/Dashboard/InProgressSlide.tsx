@@ -37,6 +37,21 @@ import type { ActiveProgram } from "./useActiveProgram";
  * What is left is the four facts they need: which program, how far in, what is
  * next, and the way in.
  *
+ * ── A FINISHED PACK IS NOT A PACK IN PROGRESS ──────────────────────────────
+ * The recommendation engine offers a pack you have completed back to you as a
+ * refresher. Drawn with the in-progress furniture that read as a lie: "NEXT UP
+ * Day 1 · Module 1 of 7" with an empty bar says you are at the start of a
+ * seven-day arc, when you are at the end of one.
+ *
+ * Worse, it was a dead end. Nothing restarts a pack by opening a module, so
+ * every module stayed COMPLETED, "the first module that is not completed"
+ * found none, and the card said Day 1 for ever — including straight after
+ * somebody finished Day 1 again. That is the bug this state was reported for.
+ *
+ * So a refresher says what it is, drops the bar and the module count, and its
+ * button actually restarts the pack. After that it is a real day 1 and behaves
+ * like any other run.
+ *
  * ── NO CONFIRMATION SHEET ──────────────────────────────────────────────────
  * The old card opened a "Ready to start?" sheet that named the module and then
  * navigated. The module's own screen names it too, so the sheet cost a tap to
@@ -79,7 +94,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
         ]}
       >
         <Text variant="eyebrow" color={ink}>
-          {program.isRefresher ? "AGAIN" : "IN PROGRESS"}
+          {program.isRefresher ? "YOU FINISHED THIS" : "IN PROGRESS"}
         </Text>
 
         <Text variant="h2" color={ink} numberOfLines={2} style={styles.title}>
@@ -101,7 +116,16 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
             grows in the MIDDLE and the action never drifts up the card. */}
         <View style={styles.spacer} />
 
-        {nextModule ? (
+        {/* A refresher has no "next" and no position in an arc it already
+            finished. One line about what pressing this does, and nothing that
+            looks like progress. */}
+        {program.isRefresher ? (
+          <Text variant="body" color={ink} style={styles.again}>
+            Start it again from day one.
+          </Text>
+        ) : null}
+
+        {!program.isRefresher && nextModule ? (
           <>
             <Text variant="caption" color={ink} style={styles.nextLabel}>
               NEXT UP
@@ -117,7 +141,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
           </>
         ) : null}
 
-        {totalModules > 0 ? (
+        {!program.isRefresher && totalModules > 0 ? (
           <>
             {/* NOT the DS `ProgressBar`. Its track is `surface.control`, a
                 neutral step designed for a card surface — on the brand fill it
@@ -151,7 +175,11 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
             color={colors.action.primary}
           />
           <Text variant="label" style={{ color: colors.action.primary }}>
-            {percentComplete > 0 ? "Continue" : "Start"}
+            {program.isRefresher
+              ? "Start again"
+              : percentComplete > 0
+                ? "Continue"
+                : "Start"}
           </Text>
         </View>
       </View>
@@ -174,6 +202,7 @@ const styles = StyleSheet.create({
   title: { marginTop: spacing.xs },
   desc: { opacity: 0.85, marginTop: spacing.xs },
   spacer: { flex: 1, minHeight: spacing.md },
+  again: { opacity: 0.9 },
   nextLabel: { opacity: 0.7, letterSpacing: 0.6 },
   next: { marginTop: spacing.xxs },
   bar: {
