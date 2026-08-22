@@ -93,6 +93,15 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
           primaryEdge(colors),
         ]}
       >
+        {/* THE WATERMARK, FIRST. Absolutely positioned and painted before
+            everything else, so every line of type lands on top of it without
+            needing a zIndex to say so. Bled off two corners on purpose: a mark
+            that sits neatly inside its card is an illustration, not a
+            watermark. The card clips it. */}
+        <View style={styles.watermark} pointerEvents="none">
+          <Icon name={icons.energy} size={220} color={withAlpha(ink, 0.1)} />
+        </View>
+
         <Text variant="eyebrow" color={ink}>
           {program.isRefresher ? "YOU FINISHED THIS" : "IN PROGRESS"}
         </Text>
@@ -198,6 +207,14 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: radius.card,
     padding: space.cardPad,
+    // Clips the watermark to the card's corners.
+    overflow: "hidden",
+  },
+  watermark: {
+    position: "absolute",
+    top: -20,
+    right: -60,
+    transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
   title: { marginTop: spacing.xs },
   desc: { opacity: 0.85, marginTop: spacing.xs },

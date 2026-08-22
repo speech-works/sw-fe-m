@@ -332,6 +332,17 @@ const Home = () => {
       >
         <IdentityBlock />
 
+        {/* ABOVE the carousel and outside it, deliberately. A standing fact
+            about what somebody has done should not have to be swiped to, and
+            should not sit in a rotation with today's business.
+
+            It costs the shelf nothing, because it renders NOTHING AT ALL until
+            there is something true to show — no skeleton and no reserved box.
+            Somebody who has never named a goal sees the carousel exactly where
+            it was. Anybody else gets one short card of their own words before
+            the app starts offering them things, which is the right order. */}
+        <ReachRow key={`reach-${refreshKey}`} summary={reach} />
+
         {/* ── ONE ROW ABOUT PROGRAMS, NOT TWO ───────────────────────────────
             SmartRecommendationCard used to sit here, above the shelf, carrying
             the program somebody was in the middle of. Two stacked rows about
@@ -343,13 +354,6 @@ const Home = () => {
             recommendation leads instead, and when there is nothing to
             recommend the shelf shows its own card. See ForYouCarousel. */}
         <ForYouCarousel key={`foryou-${refreshKey}`} />
-
-
-        {/* ABOVE the carousel and outside it, deliberately. A standing fact
-            about what somebody has done should not have to be swiped to, and
-            should not sit in a rotation with today's business. It renders
-            nothing at all until there is something true to show. */}
-        <ReachRow key={`reach-${refreshKey}`} summary={reach} />
 
         {cards.length > 0 ? (
           <Carousel
