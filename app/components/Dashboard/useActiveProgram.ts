@@ -29,6 +29,21 @@ export interface ActiveProgram {
   totalModules: number;
   /** 0 to 1. Zero on a refresher, which starts the arc again. */
   percentComplete: number;
+  /**
+   * `nextModule` is the next UNFINISHED day, which on an arc pack is regularly
+   * a day that has not opened yet — you get there by finishing today. The card
+   * used to advertise it as "NEXT UP" behind a "Continue" button, which is how
+   * people ended up on the day-locked screen being told the work they had just
+   * done was still waiting for them.
+   *
+   * Null means we could not tell (no progress call, or a pack with no arc), and
+   * the card behaves exactly as it did before.
+   */
+  nextModuleLocked: boolean | null;
+  /** The day `nextModule` belongs to, for saying WHICH day opens later. */
+  nextModuleDay: number | null;
+  /** Which day is open by the clock, so the card can count the wait. */
+  currentDay: number | null;
 }
 
 export interface ActiveProgramState {
@@ -121,6 +136,18 @@ export function useActiveProgram(): ActiveProgramState {
 
           const nextModule = current ?? sorted[sorted.length - 1] ?? null;
 
+          // Has that day actually opened? The progress payload has always
+          // carried `unlocked`; reading it is the difference between "Continue"
+          // and a locked screen one tap later. A refresher restarts the arc, so
+          // its day 1 is open by definition.
+          const nextProgress = nextModule
+            ? progress?.modules.find((pm) => pm.moduleId === nextModule.id)
+            : undefined;
+          const nextModuleLocked =
+            rec.isRefresher || !nextProgress || nextProgress.unlocked == null
+              ? null
+              : !nextProgress.unlocked;
+
           setState({
             loading: false,
             allComplete: false,
@@ -134,6 +161,9 @@ export function useActiveProgram(): ActiveProgramState {
               moduleOrder: nextModule ? nextModule.orderIndex : total,
               totalModules: total,
               percentComplete,
+              nextModuleLocked,
+              nextModuleDay: nextProgress?.dayIndex ?? null,
+              currentDay: progress?.currentDay ?? null,
             },
           });
         } catch (err) {

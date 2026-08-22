@@ -225,12 +225,39 @@ export interface ModuleProgress {
   completedAt: Date | string | null;
   isMandatory: boolean;
   progress?: number;
+  /** Which day of the arc this module belongs to. Null on packs with no arc. */
+  dayIndex?: number | null;
+  /**
+   * Has this module's day opened? The backend has always sent this; the app
+   * simply never read it, which is how "Start Next Module" came to offer
+   * tomorrow's module and dead-end on the day-locked screen.
+   *
+   * Optional so a stale backend reads as `undefined` rather than `false` —
+   * treat only an explicit `false` as locked, never a missing field.
+   */
+  unlocked?: boolean;
 }
 
 export interface PackProgress {
   packStatus: PackStatus;
   completedAt: Date | string | null;
   modules: ModuleProgress[];
+  /**
+   * Day state for arc packs. All optional for the same reason as `unlocked`
+   * above: absent means "this backend didn't tell us", which must never be
+   * mistaken for a real value. Mirrors PackProgressService.getPackProgress.
+   */
+  startedAt?: Date | string | null;
+  restartCount?: number;
+  arcDays?: number | null;
+  /** Which day is open by the clock. Null for packs with no arc. */
+  currentDay?: number | null;
+  /**
+   * The first day that still has unfinished work, which may be well behind
+   * `currentDay` if they were away. Missed days stay open — there is no "days
+   * behind" concept anywhere, on purpose.
+   */
+  nextIncompleteDay?: number | null;
 }
 
 /**

@@ -38,8 +38,6 @@ import { useInboxStore } from "../../../../../stores/inbox";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
 import {
-  AXIS_LABEL,
-  AXIS_SUBTITLE,
   VISIBLE_AXES,
   GrowthAxis,
   fetchGrowthTotals,
@@ -172,11 +170,6 @@ const DonePractice = ({
   const markGrowthIntroduced = useOnboardingNudgeStore(
     (s) => s.markGrowthIntroduced,
   );
-  const showIntro = !isAborted && !!shownAxis && !growthIntroduced;
-  useEffect(() => {
-    if (!showIntro) return;
-    return () => markGrowthIntroduced();
-  }, [showIntro, markGrowthIntroduced]);
 
   /**
    * THE RUNNING TOTAL, because "3 days" is a reward and "days you've practised"
@@ -205,17 +198,46 @@ const DonePractice = ({
   }, [shownAxis, isAborted]);
 
   /**
-   * The unit, spelled out beside the number.
+   * The unit, spelled out beside the number, and now carrying the whole
+   * meaning on its own.
    *
-   * "3 days" not "3" — inside a chip there is no subtitle above it to say what
-   * is being counted, and the three axes deliberately count different things.
-   * `countPhrase` owns the singular/plural so "1 days" cannot slip through;
-   * the number itself is stripped because `AnimatedNumber` renders it.
+   * This chip used to read "Braver · 11 times", with "Hard things you've done"
+   * on a second line underneath to say what Braver meant. Three lines to
+   * deliver one number, and the first word of it was a word we invented. It now
+   * reads "11 hard things done" and needs no gloss.
+   *
+   * The three axes deliberately count different things, so they cannot share a
+   * noun. `countPhrase` owns the singular/plural so "1 days" cannot slip
+   * through; the number itself is stripped because `AnimatedNumber` renders it.
    */
   const countUnit =
     shownAxis && axisCount !== null
       ? countPhrase(shownAxis, axisCount).replace(/^\d+\s/, "")
       : "";
+
+  /**
+   * No number, no chip.
+   *
+   * The old chip could render on the axis NAME alone while the count was in
+   * flight, because "Braver" said something by itself. The phrase that replaced
+   * it does not: "hard things done" with no figure in front of it is a caption
+   * for a missing number. The chip exists to show a total move, so if the total
+   * has not arrived there is nothing to show, and the entrance animation simply
+   * runs when it does.
+   */
+  const showChip = !isAborted && !!shownAxis && axisCount !== null;
+
+  /**
+   * Declared here rather than beside the store reads above, because it now
+   * hangs off `showChip`: the explanation must not appear over a chip that is
+   * not there, and burning the once-ever introduction on a screen where the
+   * count never loaded would spend it on nothing.
+   */
+  const showIntro = showChip && !growthIntroduced;
+  useEffect(() => {
+    if (!showIntro) return;
+    return () => markGrowthIntroduced();
+  }, [showIntro, markGrowthIntroduced]);
 
   /**
    * The chip lands AFTER the tick, not with it.
@@ -231,11 +253,11 @@ const DonePractice = ({
    */
   const chipIn = useSharedValue(0);
   useEffect(() => {
-    if (!shownAxis || isAborted) return;
+    if (!showChip) return;
     chipIn.value = reduced
       ? withDelay(200, withTiming(1, { duration: duration.base }))
       : withDelay(260, withSpring(1, spring.bouncy));
-  }, [shownAxis, isAborted, reduced, chipIn]);
+  }, [showChip, reduced, chipIn]);
   const chipStyle = useAnimatedStyle(() => ({
     opacity: chipIn.value,
     transform: [
@@ -401,42 +423,28 @@ const DonePractice = ({
               a number that moved because of what you just did is worth reading
               every time. Nothing at all when the activity moved no VISIBLE
               axis. */}
-          {!isAborted && shownAxis ? (
+          {showChip ? (
             <Animated.View style={[styles.earnedChip, { backgroundColor: axisAccentFill }, chipStyle]}>
-              <Icon name={AXIS_ICON[shownAxis] ?? icons.growth} size={size.iconSm} color={axisAccentOn} />
+              <Icon name={AXIS_ICON[shownAxis!] ?? icons.growth} size={size.iconSm} color={axisAccentOn} />
+              {/* Counts up rather than appearing, so the number is seen to
+                  MOVE. The count is the whole reason it is here. */}
+              <AnimatedNumber value={axisCount!} variant="title" color={axisAccentOn} />
               <Text variant="title" color={axisAccentOn}>
-                {AXIS_LABEL[shownAxis]}
+                {` ${countUnit}`}
               </Text>
-              {axisCount !== null ? (
-                <>
-                  <Text variant="title" color={axisAccentOn} style={styles.chipDot}>
-                    ·
-                  </Text>
-                  {/* Counts up rather than appearing, so the number is seen to
-                      MOVE. The count is the whole reason it is here. */}
-                  <AnimatedNumber value={axisCount} variant="title" color={axisAccentOn} />
-                  <Text variant="title" color={axisAccentOn}>
-                    {` ${countUnit}`}
-                  </Text>
-                </>
-              ) : null}
             </Animated.View>
           ) : null}
 
-          {/* The plain meaning, once and quietly, under the thing it explains. */}
-          {!isAborted && shownAxis ? (
-            <Text variant="bodySm" color={mutedForeground} center style={styles.earnedText}>
-              {AXIS_SUBTITLE[shownAxis]}
-            </Text>
-          ) : null}
+          {/* The gloss under the chip is GONE, not moved. It existed to explain
+              the invented word above it, and the chip now says the plain thing
+              itself, so keeping it would just print the same sentence twice. */}
 
-          {/* First time only. Says what the app is counting and where to find
-              it — nothing about what we are NOT measuring, which was the old
-              version's job and made the reader's first task disproving
-              something. */}
+          {/* First time only. Says where the counting lives, and nothing about
+              what we are NOT measuring — that was the old version's job and it
+              made the reader's first task disproving something. */}
           {showIntro ? (
             <Text variant="caption" color={mutedForeground} center style={styles.introText}>
-              We count three of these. See them in your progress report.
+              We keep a running count. See it in your progress report.
             </Text>
           ) : null}
         </View>

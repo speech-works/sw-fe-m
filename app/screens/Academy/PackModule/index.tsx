@@ -6,7 +6,8 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 import {
   completeModule,
   getModule,
@@ -22,6 +23,7 @@ import { getProgramGoals } from "../../../api/programGoals";
 import { ProgramGoal } from "../../../api/programGoals/types";
 import { DailyLog } from "../../Programs/DailyLog";
 import { classifyPackError } from "../../../util/packs/packErrors";
+import { dayLockMessage, dayCloseLine } from "../../../util/packs/dayLock";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
@@ -29,6 +31,9 @@ import { useActivityStore } from "../../../stores/activity";
 import {
   size,
   radius,
+  borderWidth,
+  space,
+  staggerEntering,
   Button,
   Icon,
   IconName,
@@ -40,6 +45,7 @@ import {
   spacing,
   useTheme,
   Sheet,
+  SchemeStatusBar,
 } from "../../../design-system";
 import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
 import { track } from "../../../util/analytics/postHog";
@@ -65,6 +71,7 @@ const PackModuleScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"PackModule">>();
   const route = useRoute<PackModuleScreenRouteProp>();
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
   const {
     module: initialModule,
     packId,
@@ -82,6 +89,17 @@ const PackModuleScreen = () => {
    * showing them a purchase prompt would be both wrong and insulting.
    */
   const [dayLocked, setDayLocked] = useState(false);
+  /**
+   * What the day-locked screen is allowed to claim. Null means the progress
+   * call failed and the screen falls back to the one thing it can always say
+   * truthfully: this day opens later.
+   */
+  const [lockState, setLockState] = useState<{
+    lockedDay: number | null;
+    currentDay: number | null;
+    nextIncompleteDay: number | null;
+    openModuleId: string | null;
+  } | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
   /**
@@ -402,6 +420,35 @@ const PackModuleScreen = () => {
           // They DO own it, this day just hasn't unlocked yet. Different
           // situation, different answer — never a purchase prompt.
           if (kind === "DAY_LOCKED") {
+            // Ask what IS open before saying anything. Without this the screen
+            // could only guess, and it guessed wrong: it told people today's
+            // work was waiting for them at the very moment they had just
+            // finished it. The progress endpoint knows the truth and is a
+            // separate call, so a 403 on the module does not block it.
+            try {
+              const progress = await getPackProgress(packId);
+              const locked = progress.modules.find(
+                (m) => m.moduleId === targetModuleId,
+              );
+              setLockState({
+                lockedDay: locked?.dayIndex ?? null,
+                currentDay: progress.currentDay ?? null,
+                nextIncompleteDay: progress.nextIncompleteDay ?? null,
+                // The module to send them to if there IS open work. Only
+                // meaningful when that day is at or behind the clock.
+                openModuleId:
+                  progress.modules.find(
+                    (m) =>
+                      m.dayIndex != null &&
+                      m.dayIndex === progress.nextIncompleteDay &&
+                      m.status !== "COMPLETED" &&
+                      m.unlocked !== false,
+                  )?.moduleId ?? null,
+              });
+            } catch {
+              // Say the vague-but-true thing rather than nothing at all.
+              setLockState(null);
+            }
             setDayLocked(true);
             return;
           }
@@ -548,6 +595,17 @@ const PackModuleScreen = () => {
     ProgramGoal[] | undefined
   >(undefined);
   const [nextModuleId, setNextModuleId] = useState<string | null>(null);
+  /**
+   * Set only when the module they just finished was the last OPEN one — i.e.
+   * the arc continues but tomorrow is tomorrow. Lets the success screen close
+   * the day out loud instead of just quietly dropping the "next" button, which
+   * reads as the app having run out of things to say.
+   */
+  const [dayClose, setDayClose] = useState<{
+    finishedDay: number | null;
+    nextDay: number | null;
+    currentDay: number | null;
+  } | null>(null);
 
   const handleComplete = async () => {
     if (!module) return;
@@ -566,11 +624,36 @@ const PackModuleScreen = () => {
           const nextMod = result.modules.find(
             (m) => m.orderIndex === module.orderIndex + 1 && m.status === "NOT_STARTED",
           );
-          if (nextMod) {
+          // THE NEXT MODULE IS NOT ALWAYS TODAY'S.
+          //
+          // On a day-gated pack the module at orderIndex+1 is frequently
+          // TOMORROW's — on a one-module-per-day arc it always is. Offering it
+          // sent the user straight into the day-locked screen, one tap after
+          // finishing, on a button we drew ourselves. `unlocked` is what the
+          // backend has always said about that; read it.
+          //
+          // Only an explicit `false` counts as locked. A backend that doesn't
+          // send the field leaves this exactly as it was.
+          if (nextMod && nextMod.unlocked !== false) {
             setNextModuleId(nextMod.moduleId);
           } else {
             setNextModuleId(null);
           }
+
+          // What to say instead. `dayIndex` is this module's own day, so a
+          // finished day can close itself honestly rather than going quiet.
+          const finishedDay =
+            result.modules.find((m) => m.moduleId === module.id)?.dayIndex ??
+            null;
+          setDayClose(
+            nextMod && nextMod.unlocked === false
+              ? {
+                  finishedDay,
+                  nextDay: nextMod.dayIndex ?? null,
+                  currentDay: result.currentDay ?? null,
+                }
+              : null,
+          );
         }
       } catch (e) {
         console.warn("Failed to find next module", e);
@@ -659,7 +742,7 @@ const PackModuleScreen = () => {
   if (loading) {
     return (
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         <View style={styles.centerFill}>
           <Spinner label="Loading content..." />
         </View>
@@ -670,25 +753,70 @@ const PackModuleScreen = () => {
   // Owned, but this day hasn't opened yet. NOT a purchase prompt — they have
   // already paid; the only thing between them and the content is the calendar.
   if (dayLocked) {
+    const lockMessage = dayLockMessage(lockState);
+    // A finished day gets the check; a day they still owe gets the hourglass.
+    // Neither is a padlock: nothing is being withheld either way.
+    const lockedIsDone = lockMessage.action === "leave" && !!lockState;
+
     return (
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
-        <StatusBar barStyle="light-content" />
-        <View style={styles.centerFill}>
-          <Text variant="h2" color="primary" center>
-            Not yet
-          </Text>
-          <Text variant="body" color="secondary" center>
-            This day of the programme opens later. Today&apos;s work is waiting
-            for you on the pack page.
-          </Text>
-          <Button
-            label="Back to the pack"
-            onPress={() =>
-              navigation.canGoBack()
-                ? navigation.goBack()
-                : navigateToHomeFallback()
-            }
-          />
+        <SchemeStatusBar />
+        <View style={styles.lockedFill}>
+          <Animated.View
+            entering={staggerEntering(0, reduceMotion)}
+            style={[
+              styles.lockedGlyph,
+              {
+                backgroundColor: colors.surface.control,
+                borderColor: colors.border.default,
+              },
+            ]}
+          >
+            <Icon
+              name={lockedIsDone ? icons.success : icons.soon}
+              size={size.iconLg}
+              color={colors.text.secondary}
+            />
+          </Animated.View>
+
+          <Animated.View
+            entering={staggerEntering(1, reduceMotion)}
+            style={styles.lockedCopy}
+          >
+            <Text variant="h2" color="primary" center>
+              {lockMessage.title}
+            </Text>
+            <Text variant="body" color="secondary" center>
+              {lockMessage.body}
+            </Text>
+          </Animated.View>
+
+          <Animated.View
+            entering={staggerEntering(2, reduceMotion)}
+            style={styles.lockedAction}
+          >
+            <Button
+              label={lockMessage.actionLabel}
+              fullWidth={false}
+              onPress={() => {
+                if (
+                  lockMessage.action === "catchUp" &&
+                  lockState?.openModuleId
+                ) {
+                  // `replace`, not push: the locked day is not somewhere they
+                  // should be able to swipe back into.
+                  navigation.replace("PackModule", {
+                    module: { id: lockState.openModuleId } as any,
+                    packId,
+                  });
+                  return;
+                }
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigateToHomeFallback();
+              }}
+            />
+          </Animated.View>
         </View>
       </ScreenView>
     );
@@ -697,7 +825,7 @@ const PackModuleScreen = () => {
   if (showSuccess) {
     return (
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         <View style={styles.successContent}>
           <View
             style={[
@@ -724,6 +852,23 @@ const PackModuleScreen = () => {
             Great job taking time for your nervous system. You're making real
             progress.
           </Text>
+
+          {/* WHY THE DAY CLOSES ITSELF HERE.
+              The arc continues but tomorrow is tomorrow, so there is no "next"
+              button to offer. Saying nothing looked like the app running out
+              of things to say, and the button we used to show instead led
+              straight to a locked screen that told them today's work was still
+              waiting. This is the honest version of that button. */}
+          {dayClose ? (
+            <Text
+              variant="body"
+              color="accent"
+              center
+              style={styles.successDayClose}
+            >
+              {dayCloseLine(dayClose)}
+            </Text>
+          ) : null}
 
           {/* The day's work is done and they are already stopped here. Asking
               at the START of a module would delay the thing they opened the
@@ -759,7 +904,7 @@ const PackModuleScreen = () => {
   if (!module) {
     return (
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         <View style={styles.centerFill}>
           <Text variant="body" color="secondary" center>
             Module not found.
@@ -767,8 +912,8 @@ const PackModuleScreen = () => {
           <Button
             label="Go Back"
             variant="ghost"
+            fullWidth={false}
             onPress={() => navigation.goBack()}
-            style={{ marginTop: spacing.lg }}
           />
         </View>
       </ScreenView>
@@ -956,6 +1101,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: spacing["3xl"],
+    gap: space.sectionGap,
+  },
+  // Day-locked state. Same centred fill, but composed as three groups
+  // (glyph, copy, action) so the gaps say what belongs together.
+  lockedFill: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: space.screenX,
+    // Dead centre reads LOW on an otherwise empty screen. Reserving a little
+    // more room below than above puts the group on the optical centre.
+    paddingBottom: spacing["6xl"],
+  },
+  lockedGlyph: {
+    width: size.control,
+    height: size.control,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: borderWidth.hairline,
+    marginBottom: space.sectionGap,
+  },
+  lockedCopy: {
+    alignItems: "center",
+    gap: spacing.sm,
+    // Measure, not gutter: centred prose past ~320 gets hard to track back to
+    // the start of the next line. The screen gutter stays screenX.
+    maxWidth: 320,
+  },
+  lockedAction: {
+    // A deliberate step between "what happened" and "what to do", bigger than
+    // the gaps inside the copy group, so the button reads as a separate move.
+    marginTop: spacing["3xl"],
   },
   emptyText: {
     marginTop: spacing["4xl"],
@@ -986,6 +1164,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing["3xl"],
+  },
+  successDayClose: {
+    marginBottom: spacing["2xl"],
   },
   successSubtitle: {
     marginTop: spacing.md,

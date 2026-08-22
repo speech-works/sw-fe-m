@@ -147,7 +147,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
         {!program.isRefresher && nextModule ? (
           <>
             <Text variant="caption" color={ink} style={styles.nextLabel}>
-              NEXT UP
+              {dayLocked ? "TODAY" : "NEXT UP"}
             </Text>
             <Text
               variant="title"
@@ -155,7 +155,10 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
               numberOfLines={2}
               style={styles.next}
             >
-              {nextModule.title}
+              {/* Don't advertise a day that cannot be started. `nextModule` is
+                  the next UNFINISHED day, and on an arc pack the ordinary way
+                  to be looking at a locked one is to have finished today. */}
+              {dayLocked ? dayCloseLine(dayCloseState) : nextModule.title}
             </Text>
           </>
         ) : null}

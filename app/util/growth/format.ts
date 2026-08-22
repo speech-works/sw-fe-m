@@ -18,14 +18,25 @@ import { GrowthAxis } from "../../api/dailyPlan";
  * ============================================================================
  */
 
-/** How each axis's number should be read aloud. */
+/**
+ * How each axis's number should be read aloud.
+ *
+ * EVERY UNIT SAYS WHAT IT COUNTS, so the phrase stands on its own with no axis
+ * name beside it. That is the point: "11 times" needs "Braver" in front of it
+ * to mean anything, and Braver is a word we invented and the reader has to be
+ * taught. "11 hard things done" needs nothing.
+ *
+ * The progress report still shows the names, because that is the one screen
+ * somebody opens on purpose and it prints the definition next to each. A chip
+ * that flashes up after a practice does not get to teach vocabulary.
+ */
 const UNIT: Record<string, { one: string; many: string }> = {
-  [GrowthAxis.BRAVER]: { one: "time", many: "times" },
+  [GrowthAxis.BRAVER]: { one: "hard thing done", many: "hard things done" },
   // Not "times". Wider is a breadth count of distinct speech acts.
   [GrowthAxis.WIDER]: { one: "kind of situation", many: "kinds of situation" },
   // Not "times". Regular is a count of days you turned up.
-  [GrowthAxis.REGULAR]: { one: "day", many: "days" },
-  [GrowthAxis.STEADIER]: { one: "time", many: "times" },
+  [GrowthAxis.REGULAR]: { one: "day practised", many: "days practised" },
+  [GrowthAxis.STEADIER]: { one: "time you saw it through", many: "times you saw it through" },
 };
 
 export function countPhrase(axis: GrowthAxis | string, count: number): string {

@@ -21,18 +21,45 @@ const daysAgo = (n: number): string => {
 };
 
 describe("countPhrase", () => {
+  const VISIBLE = [GrowthAxis.BRAVER, GrowthAxis.WIDER, GrowthAxis.REGULAR];
+
   it("gives each axis the noun its number actually means", () => {
-    expect(countPhrase(GrowthAxis.BRAVER, 6)).toBe("6 times");
+    expect(countPhrase(GrowthAxis.BRAVER, 6)).toBe("6 hard things done");
     // NOT "times" — the server counts distinct speech acts here.
     expect(countPhrase(GrowthAxis.WIDER, 2)).toBe("2 kinds of situation");
     // NOT "times" — the server counts distinct days here.
-    expect(countPhrase(GrowthAxis.REGULAR, 21)).toBe("21 days");
+    expect(countPhrase(GrowthAxis.REGULAR, 21)).toBe("21 days practised");
   });
 
   it("says one of each properly", () => {
-    expect(countPhrase(GrowthAxis.BRAVER, 1)).toBe("1 time");
+    expect(countPhrase(GrowthAxis.BRAVER, 1)).toBe("1 hard thing done");
     expect(countPhrase(GrowthAxis.WIDER, 1)).toBe("1 kind of situation");
-    expect(countPhrase(GrowthAxis.REGULAR, 1)).toBe("1 day");
+    expect(countPhrase(GrowthAxis.REGULAR, 1)).toBe("1 day practised");
+  });
+
+  it("stands on its own, with no axis name in front of it", () => {
+    // The property the done-practice chip depends on. "6 times" needed
+    // "Braver" beside it to mean anything, and Braver is a word we invented and
+    // the reader has to be taught. A bare unit here would put that word back.
+    const bare = /^\d+ (times?|days?)$/;
+    for (const axis of VISIBLE) {
+      expect(countPhrase(axis, 6)).not.toMatch(bare);
+      expect(countPhrase(axis, 1)).not.toMatch(bare);
+    }
+  });
+
+  it("never says one of the retired axis names", () => {
+    const invented = /braver|wider|steadier|finisher|regular/i;
+    for (const axis of VISIBLE) {
+      expect(countPhrase(axis, 3)).not.toMatch(invented);
+    }
+  });
+
+  it("gives the three visible axes three different nouns", () => {
+    // They count different things. One shared noun would quietly restate them
+    // as one measure and make two of the three false.
+    const nouns = VISIBLE.map((a) => countPhrase(a, 5).replace(/^\d+ /, ""));
+    expect(new Set(nouns).size).toBe(3);
   });
 });
 
