@@ -84,41 +84,61 @@ describe("Growth axis labels", () => {
 describe("LOOP_TODAY", () => {
   const axes = Object.values(GrowthAxis);
 
-  it("covers every axis, so a segment can never render blank", () => {
+  it("gives every axis both lines, so a row can never render half-empty", () => {
     for (const axis of axes) {
-      expect(LOOP_TODAY[axis]).toBeTruthy();
+      expect(LOOP_TODAY[axis].name).toBeTruthy();
+      expect(LOOP_TODAY[axis].hint).toBeTruthy();
     }
   });
 
   it("carries none of the invented names", () => {
-    // The whole reason it exists: nothing here should need teaching before the
-    // ring means anything.
     for (const axis of axes) {
-      const phrase = LOOP_TODAY[axis].toLowerCase();
+      const text = `${LOOP_TODAY[axis].name} ${LOOP_TODAY[axis].hint}`.toLowerCase();
       for (const invented of ["braver", "wider", "steadier", "finisher", "regular"]) {
-        expect(phrase).not.toContain(invented);
+        expect(text).not.toContain(invented);
       }
+    }
+  });
+
+  it("claims nothing the app cannot actually check", () => {
+    // The defect this exists for. The first version said "something harder
+    // than usual" and "somewhere you don't usually speak". The app never
+    // compares anything to a person's usual, and has no idea where they
+    // normally speak. What closes a segment is a fixed set of activity types.
+    for (const axis of axes) {
+      const text = `${LOOP_TODAY[axis].name} ${LOOP_TODAY[axis].hint}`.toLowerCase();
+      expect(text).not.toMatch(/usual|normally|harder than|you don't usually/);
+    }
+  });
+
+  it("names an exercise the user can go and open", () => {
+    // Every row has to answer "so what do I do?". The vocabulary of the app's
+    // actual activity types is the only honest way to do that.
+    const doable = /call|interview|challenge|practice|reading|breathing|technique|finish/;
+    for (const axis of axes) {
+      const text = `${LOOP_TODAY[axis].name} ${LOOP_TODAY[axis].hint}`.toLowerCase();
+      expect(text).toMatch(doable);
     }
   });
 
   it("says nothing about a lifetime, because this is about today", () => {
     for (const axis of axes) {
-      const phrase = LOOP_TODAY[axis].toLowerCase();
-      expect(phrase).not.toMatch(/you've|days|so far|total|times you/);
+      const text = `${LOOP_TODAY[axis].name} ${LOOP_TODAY[axis].hint}`.toLowerCase();
+      expect(text).not.toMatch(/you've|days|so far|total|times you/);
     }
   });
 
   it("makes no claim about fluency", () => {
-    // The standing rule for every axis word this app shows.
     for (const axis of axes) {
-      const phrase = LOOP_TODAY[axis].toLowerCase();
-      expect(phrase).not.toMatch(/smooth|fluent|steady|stutter-free/);
+      const text = `${LOOP_TODAY[axis].name} ${LOOP_TODAY[axis].hint}`.toLowerCase();
+      expect(text).not.toMatch(/smooth|fluent|steady|stutter-free/);
     }
   });
 
-  it("stays short enough for the chip in the practice hub", () => {
+  it("keeps both lines short enough for the chip in the practice hub", () => {
     for (const axis of axes) {
-      expect(LOOP_TODAY[axis].length).toBeLessThanOrEqual(36);
+      expect(LOOP_TODAY[axis].name.length).toBeLessThanOrEqual(26);
+      expect(LOOP_TODAY[axis].hint.length).toBeLessThanOrEqual(44);
     }
   });
 });

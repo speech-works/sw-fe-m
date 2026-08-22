@@ -54,33 +54,53 @@ export const AXIS_SUBTITLE: Record<GrowthAxis, string> = {
 };
 
 /**
- * THE SAME AXES, SAID FOR TODAY.
+ * THE SAME AXES, SAID FOR TODAY — AND SAID AS THINGS YOU CAN GO AND DO.
  *
  * ── WHY A SECOND MAP AND NOT A SECOND USE OF THE FIRST ─────────────────────
  * `AXIS_LABEL` and `AXIS_SUBTITLE` describe a LIFETIME COUNT: "Braver — hard
- * things you've done · 11". That is right on the progress report and on the
- * done-practice chip, where a number is moving.
+ * things you've done · 11". Right on the progress report and the done-practice
+ * chip, where a number is moving. Wrong on today's ring, which is divided into
+ * these same axes as SEGMENTS: "Regular — days you've practiced" sat on a
+ * segment that closes the moment you practise once, today.
  *
- * It is wrong on today's ring, which is divided into these same axes as
- * SEGMENTS, and the mismatch showed: "Regular — days you've practiced" sat on a
- * segment that closes the moment you practise once, today. A lifetime phrasing
- * on a daily thing reads as circular, because it is.
+ * ── AND WHY THEY NAME EXERCISES, NOT EFFORT ────────────────────────────────
+ * The first attempt at this map said "Something harder than usual" and
+ * "Somewhere you don't usually speak". Both are claims the app cannot make. It
+ * never compares anything to your usual, and it has no idea where you normally
+ * speak. What actually closes each segment is a fixed set of ACTIVITY TYPES,
+ * listed in the backend's GROWTH_POINTS:
  *
- * ── AND WHY THE NAMES ARE GONE HERE ────────────────────────────────────────
- * "Braver" and "Wider" have to be taught before the ring means anything, which
- * is why they always shipped with a subtitle attached. On a daily ring the
- * subtitle can just BE the label: one plain line that says what would close
- * that segment. Nothing to learn, and one line instead of two.
+ *   Braver   AI call · interview · social challenge · real-life challenge
+ *   Wider    interview · social challenge · real-life challenge
+ *   Regular  every recognised attempt, whatever it was
  *
- * Short on purpose. These render inside a chip in the practice hub as well as
- * in the rings sheet, and both are narrow.
+ * So the wording names those. A person reading it knows which thing to open,
+ * and nothing here can be argued with.
+ *
+ * NOTE Braver and Wider share three of four types, so one challenge usually
+ * ticks both. That is the model, not a bug in the copy.
+ *
+ * `hint` is never shown without `name` — the name alone is too short to be
+ * unambiguous, which is the whole reason the two-line shape exists.
  */
-export const LOOP_TODAY: Record<GrowthAxis, string> = {
-  [GrowthAxis.BRAVER]: "Something harder than usual",
-  [GrowthAxis.WIDER]: "Somewhere you don't usually speak",
+export const LOOP_TODAY: Record<GrowthAxis, { name: string; hint: string }> = {
+  [GrowthAxis.BRAVER]: {
+    name: "Speaking to someone",
+    hint: "A call, an interview or a challenge",
+  },
+  [GrowthAxis.WIDER]: {
+    name: "A situation, not a drill",
+    hint: "An interview or a challenge",
+  },
   // Hidden from users (see VISIBLE_AXES) but kept accurate.
-  [GrowthAxis.STEADIER]: "Finishing what you started",
-  [GrowthAxis.REGULAR]: "Turning up at all",
+  [GrowthAxis.STEADIER]: {
+    name: "Staying with it",
+    hint: "Finishing something you started",
+  },
+  [GrowthAxis.REGULAR]: {
+    name: "Any practice",
+    hint: "Reading, breathing or a technique all count",
+  },
 };
 
 /**

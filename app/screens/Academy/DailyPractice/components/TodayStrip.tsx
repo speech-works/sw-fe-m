@@ -152,7 +152,9 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
               // was the one that did not.
               accessible
               accessibilityRole="text"
-              accessibilityLabel={`${LOOP_TODAY[axis as GrowthAxis]}. ${done ? "Done today." : "Not yet today."}`}
+              accessibilityLabel={`${LOOP_TODAY[axis as GrowthAxis].name}, ${
+                LOOP_TODAY[axis as GrowthAxis].hint
+              }. ${done ? "Done today." : "Not yet today."}`}
               style={[
                 styles.loop,
                 {
@@ -196,7 +198,11 @@ const TodayStrip: React.FC<Props> = ({ onOpen }) => {
                   variant="bodySm"
                   color={done ? colors.accentText.success : colors.text.primary}
                 >
-                  {LOOP_TODAY[axis as GrowthAxis]}
+                  {LOOP_TODAY[axis as GrowthAxis].name}
+                </Text>
+                {/* Never shown without the name — see the note at the top. */}
+                <Text variant="caption" color={colors.text.tertiary}>
+                  {LOOP_TODAY[axis as GrowthAxis].hint}
                 </Text>
               </View>
             </View>

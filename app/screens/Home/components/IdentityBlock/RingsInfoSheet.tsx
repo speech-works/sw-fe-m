@@ -274,6 +274,13 @@ export const RingsInfoSheet: React.FC<Props> = ({
         </View>
 
 
+        {/* A HEADING, BECAUSE THE LIST HAD NONE. Three rows sat under the ring
+            with nothing saying what they were, so they read as three loose
+            sentences rather than as the parts of the thing above them. */}
+        <Text variant="label" color="tertiary" style={styles.listLabel}>
+          WHAT CLOSES EACH PART
+        </Text>
+
         {/* ── What would close each segment today ──
             ONE LINE, NOT A NAME AND A DEFINITION. This used to read "Braver /
             Hard things you've done", which had two problems on a DAILY ring.
@@ -299,9 +306,9 @@ export const RingsInfoSheet: React.FC<Props> = ({
                   i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border.hairline },
                 ]}
                 accessible
-                accessibilityLabel={`${LOOP_TODAY[axis]}. ${
-                  isDone ? "Done today." : "Still open."
-                }`}
+                accessibilityLabel={`${LOOP_TODAY[axis].name}. ${
+                  LOOP_TODAY[axis].hint
+                }. ${isDone ? "Done today." : "Still open."}`}
               >
                 {/* A PLAIN CHECK, NOT `icons.success`.
                     That key is "circle-check" — a tick already inside its own
@@ -321,7 +328,15 @@ export const RingsInfoSheet: React.FC<Props> = ({
                 )}
                 <View style={styles.rowText}>
                   <Text variant="body" color={isDone ? colors.accentText.success : "primary"}>
-                    {LOOP_TODAY[axis]}
+                    {LOOP_TODAY[axis].name}
+                  </Text>
+                  {/* NEVER SHOWN WITHOUT THE LINE ABOVE. A name this short is
+                      not unambiguous on its own, which is why the two-line
+                      shape exists at all. The first pass deleted the name and
+                      kept only this line, and three bare descriptions under a
+                      ring read as nothing in particular. */}
+                  <Text variant="caption" color="tertiary">
+                    {LOOP_TODAY[axis].hint}
                   </Text>
                 </View>
               </View>
@@ -421,6 +436,7 @@ const styles = StyleSheet.create({
   detail: {
     flexShrink: 1,
   },
+  listLabel: { marginBottom: spacing.sm },
   listCard: {
     borderRadius: radius.card,
     overflow: "hidden",
