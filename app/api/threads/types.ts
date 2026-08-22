@@ -88,8 +88,10 @@ export type TemplateId = "milestone" | "streak" | "courage" | "calm" | "minimal"
 // on this same payload promises "never clinical taxonomy" — and this was the
 // exception nobody spotted.
 //
-// The live vocabulary is the four axes in `api/dailyPlan`, which are always
-// rendered through AXIS_LABEL with their subtitles.
+// There is no live axis vocabulary any more. Braver, Wider and Regular were
+// removed from every screen, and the label map with them, so nothing in the app
+// turns an axis enum into words. That closes this hole from the other side: a
+// populated `axis` field now has nothing to render it.
 
 export interface PracticePayload {
   v: 1;

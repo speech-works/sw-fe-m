@@ -33,8 +33,12 @@ export interface PracticeActivity {
    * Which growth axes this attempt moved, resolved SERVER-SIDE from the growth
    * point registry. Computed per response, never stored.
    *
-   * Enum values (`STEADIER`, not the "Finisher" label) — render through
-   * AXIS_LABEL, and filter through VISIBLE_AXES. Absent on responses that do
+   * NOTHING RENDERS THIS. The server still computes it, and the field is kept
+   * so the type describes what the wire actually carries, but every surface
+   * that showed these counts is gone: the progress-report card, the completion
+   * chip and the Today strip. There is no label map left to render it through.
+   *
+   * Enum values (`STEADIER`, never a display name). Absent on responses that do
    * not go through the enrichment path, and empty for the activity types the
    * registry deliberately omits.
    */
