@@ -219,11 +219,11 @@ export const IdentityBlock: React.FC = () => {
    * which is why it could not be explained without a sheet, and why three
    * attempts at that sheet's wording never made it clearer.
    *
-   * It was also the fifth surface telling somebody about today's practice
-   * (the start card beside it, Explore's week, the practice hub's TodayStrip,
-   * and the progress report are the others), and the only one that needed a
-   * legend. TodayStrip keeps the job: it is where somebody has gone looking,
-   * and it lists the actual items rather than categories.
+   * It was also one of several surfaces telling somebody about today's
+   * practice (the start card beside it, Explore's week and the progress report
+   * are the others), and the only one that needed a legend to be read at all.
+   * Explore keeps the job: it is where somebody has gone looking, and it lists
+   * the actual items rather than categories.
    *
    * What is left is what shipped before any of it: one energy ring, avatar at
    * its full size.

@@ -51,8 +51,7 @@ import { MAX_DOTS, ReachGlow, resolveReachRow } from "./state";
  *
  * ── NOTHING AT ALL BEFORE THERE IS SOMETHING TRUE TO SAY ───────────────────
  * No skeleton and no zeros while the request is in flight. This slot was empty
- * a moment ago, and a grey box is not more honest than nothing. TodayStrip set
- * that rule and this follows it.
+ * a moment ago, and a grey box is not more honest than nothing.
  * ============================================================================
  */
 const ReachRow: React.FC<{
