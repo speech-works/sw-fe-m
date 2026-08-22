@@ -118,7 +118,7 @@ export function resolveReachRow(
       kind: "some_done",
       eyebrow: "YOU DID THIS",
       said: goalText(summary.latestDone),
-      sub: subForSomeDone(done, total, waiting),
+      sub: subForSomeDone(done, total),
       glow: "on",
       dots: { total, done },
       cta: null,
@@ -148,7 +148,7 @@ export function resolveReachRow(
     kind: "running",
     eyebrow: "ON YOUR LIST",
     said: goalText(summary.oldestUnreported),
-    sub: `You wrote ${countWord(total)} of these on day one`,
+    sub: "You named these before you started.",
     glow: "warm",
     dots: { total, done: 0 },
     cta: null,
@@ -156,23 +156,22 @@ export function resolveReachRow(
 }
 
 /**
- * "Your first" rather than "1 of 3". It marks a BEGINNING instead of a
- * fraction, and it reads the same whether somebody has three goals or ten.
+ * THE LINE STOPPED COUNTING WHEN THE BEADS STARTED.
+ *
+ * It used to read "Two done. One still on your list." — which is exactly what
+ * the row of beads above it now shows, one filled circle at a time. Two things
+ * saying the same number is one of them wasted.
+ *
+ * So the sentence does the job the beads cannot: it says how to feel about
+ * them. The count is a picture; this is the tone.
  */
-function subForSomeDone(done: number, total: number, waiting: number): string {
-  const left = total - done;
-  if (done === 1) {
-    return left === 1
-      ? "Your first. One more when you want it."
-      : `Your first. ${capitalise(countWord(left))} more when you want them.`;
-  }
-  if (waiting === 0 && left > 0) {
-    // Done some, and the rest have not been answered at all yet.
-    return `${capitalise(countWord(done))} done so far.`;
-  }
-  return left === 1
-    ? `${capitalise(countWord(done))} done. One still on your list.`
-    : `${capitalise(countWord(done))} done. ${capitalise(countWord(left))} still on your list.`;
+function subForSomeDone(done: number, total: number): string {
+  // The first one carries more than the rest, and saying so is the only
+  // encouragement here that is true of everybody: for people whose problem is
+  // avoidance, starting IS the expensive part.
+  if (done === 1) return "The first one is the hardest.";
+  if (done === total) return "Everything you set out to do.";
+  return "They keep. Take your time.";
 }
 
 const WORDS = [
@@ -194,4 +193,3 @@ export function countWord(n: number): string {
   return WORDS[n] ?? String(n);
 }
 
-const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

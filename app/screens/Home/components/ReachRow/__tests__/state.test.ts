@@ -89,8 +89,29 @@ describe("resolveReachRow", () => {
   // ── THE WORDS ───────────────────────────────────────────────────────────
   it("marks a beginning rather than a fraction", () => {
     const s = resolveReachRow(sum({ total: 3, done: 1, waiting: 2, latestDone: goal("a") }))!;
-    expect(s.sub).toBe("Your first. Two more when you want them.");
+    expect(s.sub).toBe("The first one is the hardest.");
     expect(s.sub).not.toMatch(/1 of 3|33%/);
+  });
+
+  it("leaves the counting to the beads", () => {
+    // The row of beads shows how many are done, one filled circle at a time.
+    // A sentence that says the same number is the second of two things saying
+    // one thing, so every sub-line here carries tone instead: how to feel about
+    // them, not how many there are.
+    const withBeads = [
+      sum({ total: 3, oldestUnreported: goal("a") }),
+      sum({ total: 3, waiting: 3, oldestWaiting: goal("a") }),
+      sum({ total: 3, done: 1, waiting: 2, latestDone: goal("a") }),
+      sum({ total: 3, done: 2, waiting: 1, latestDone: goal("a") }),
+      sum({ total: 3, done: 3, latestDone: goal("a") }),
+    ];
+    // A QUANTITY, not the pronoun. "The first one is the hardest" says nothing
+    // about how many there are; "one more" and "two done" do.
+    const counts = /\d|\b(two|three|four|five|six|seven|eight|nine|ten)\b|\bone (more|of|left|done|still)\b/i;
+    for (const s of withBeads) {
+      const r = resolveReachRow(s)!;
+      expect(`${r.kind}:${counts.test(r.sub)}`).toBe(`${r.kind}:false`);
+    }
   });
 
   it("says the count in words, never as a ratio or a percentage", () => {
@@ -136,11 +157,14 @@ describe("resolveReachRow", () => {
     expect(s.sub).not.toContain("them");
   });
 
-  it("keeps singular and plural straight either side", () => {
+  it("says the same thing whatever the count is", () => {
+    // No singular/plural to get wrong any more, because no sub-line counts.
     expect(resolveReachRow(sum({ total: 2, done: 1, waiting: 1, latestDone: goal("a") }))!.sub)
-      .toBe("Your first. One more when you want it.");
+      .toBe("The first one is the hardest.");
     expect(resolveReachRow(sum({ total: 3, done: 2, waiting: 1, latestDone: goal("a") }))!.sub)
-      .toBe("Two done. One still on your list.");
+      .toBe("They keep. Take your time.");
+    expect(resolveReachRow(sum({ total: 9, done: 4, waiting: 5, latestDone: goal("a") }))!.sub)
+      .toBe("They keep. Take your time.");
   });
 
   // ── SHAPE ───────────────────────────────────────────────────────────────

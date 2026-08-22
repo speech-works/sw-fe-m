@@ -1,12 +1,13 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import PressableScale from "../../../../components/PressableScale";
 import { getReachSummary } from "../../../../api/programGoals";
 import { ReachSummary } from "../../../../api/programGoals/types";
 import {
   Text,
+  accentEdge,
   mix,
   radius,
   spacing,
@@ -125,6 +126,20 @@ const ReachRow: React.FC<{
   // wrote has not earned the same room as one they did.
   const ours = kind === "empty" || kind === "predictions";
 
+  /**
+   * The string is a TINT OF THE SAME HUE, not a neutral grey.
+   *
+   * Grey was the first attempt and it was wrong: it made three separate blobs
+   * with a scratch between them instead of one strung object. The reference
+   * binds its row by making the track a tint of the card's own colour, and that
+   * shared hue is doing most of the work.
+   *
+   * It does not break the rule that light is earned. The tint is the MATERIAL
+   * the row is made of; what marks a thing as done is the solid bead and the
+   * tick in it, and neither of those appears until it is.
+   */
+  const quiet = withAlpha(colors.accent.success, 0.22);
+
   return (
     <PressableScale
       scaleTo={0.98}
@@ -172,44 +187,93 @@ const ReachRow: React.FC<{
             </Text>
           </View>
         ) : (
-          <View style={styles.row}>
-            {/* ONE DOT PER GOAL, filled for done — the whole history in a line
-                you read without counting. Past MAX_DOTS they stop being
-                countable and start being texture, so the row drops them and
-                keeps the sentence. */}
-            {dots.total > 0 && dots.total <= MAX_DOTS
-              ? Array.from({ length: dots.total }).map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor:
-                          i < dots.done
-                            ? colors.accent.success
-                            : colors.text.disabled,
-                      },
-                    ]}
-                  />
-                ))
-              : null}
-            {/* SECONDARY, NOT TERTIARY. This line carries the only count on the
-                card, and on paper it would sit over the tint, which is exactly
-                where tertiary's AA margin runs out. */}
+          <>
+            {/* ONE BEAD PER GOAL, STRUNG TOGETHER.
+                These were six-point dots, and six points cannot hold a tick or
+                read as a sequence — they were punctuation. Beads joined by a
+                short bar read as one object with an order to it: done, done,
+                and the plain knob where the next one goes.
+
+                It takes only the width it needs and stops. A row stretched to
+                the card edge would read as a progress bar, and a progress bar
+                implies a deadline, which is the one thing this feature refuses
+                to imply.
+
+                Past MAX_DOTS they stop being countable and start being texture,
+                so the row drops them and keeps the sentence. */}
+            {dots.total > 0 && dots.total <= MAX_DOTS ? (
+              <View style={styles.track}>
+                {Array.from({ length: dots.total }).map((_, i) => {
+                  const done = i < dots.done;
+                  return (
+                    <React.Fragment key={i}>
+                      {i > 0 ? (
+                        <View style={[styles.bar, { backgroundColor: quiet }]} />
+                      ) : null}
+                      {done ? (
+                        <View
+                          style={[
+                            styles.bead,
+                            { backgroundColor: colors.accent.success },
+                            // On paper a bright green circle on a near-white
+                            // card has a hue but no SHAPE: luminance is what
+                            // draws an edge, and there is barely any between
+                            // them. No-op on ink.
+                            accentEdge(colors, "success"),
+                          ]}
+                        >
+                          <Tick color={colors.accentOn.success} />
+                        </View>
+                      ) : (
+                        <View
+                          style={[styles.knob, { backgroundColor: quiet }]}
+                        />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </View>
+            ) : null}
+            {/* SECONDARY, NOT TERTIARY. On paper this sits over the tint, which
+                is exactly where tertiary's AA margin runs out. */}
             <Text
               variant="caption"
               color={colors.text.secondary}
               numberOfLines={1}
-              style={dots.total > 0 ? styles.subAfterDots : undefined}
+              style={styles.sub}
             >
               {sub}
             </Text>
-          </View>
+          </>
         )}
       </View>
     </PressableScale>
   );
 };
+
+/**
+ * A BARE CHECK, DRAWN.
+ *
+ * The obvious move was `icons.success`, which is `circle-check` — a tick inside
+ * a ring. Put that in a bead and every one of them is a circle drawn inside a
+ * circle: busy at 26 points, and the single thing that made the row look like a
+ * cheap copy rather than the reference.
+ *
+ * So it is a path, with a round cap and a stroke thick enough to hold its own
+ * against the bead. A hairline tick in a solid disc reads as a mistake.
+ */
+const Tick: React.FC<{ color: string }> = ({ color }) => (
+  <Svg width={17} height={17} viewBox="0 0 24 24">
+    <Path
+      d="M5 12.5 L10 17.5 L19 7.5"
+      stroke={color}
+      strokeWidth={3.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
 
 export default ReachRow;
 
@@ -321,14 +385,34 @@ const styles = StyleSheet.create({
   halo: { position: "absolute", left: -30, top: -70 },
   inner: { position: "relative" },
   said: { marginTop: spacing.sm },
-  row: {
+  /**
+   * `width: "auto"` by virtue of not stretching: the row is only as wide as its
+   * beads. Stretched to the card it would read as a progress bar, and this is
+   * a list of things somebody chose, not a distance to a deadline.
+   */
+  track: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
+    alignSelf: "flex-start",
     marginTop: spacing.lg,
   },
-  dot: { width: 6, height: 6, borderRadius: radius.full },
-  subAfterDots: { marginLeft: spacing.xs, flex: 1 },
+  /*
+   * PROPORTIONS TAKEN OFF THE REFERENCE, not guessed. Measured against its
+   * circle: the connector is 47% of the bead's height and 63% of its width, and
+   * the empty knob is 85% of it. Those ratios are what make the row read as one
+   * strung object; a thinner bar turns it into three buttons with a scratch
+   * between them, which is what the first attempt was.
+   */
+  bead: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bar: { width: 20, height: 15, marginHorizontal: -1 },
+  knob: { width: 27, height: 27, borderRadius: radius.full },
+  sub: { marginTop: spacing.sm },
   cta: {
     marginTop: spacing.lg,
     alignSelf: "flex-start",
