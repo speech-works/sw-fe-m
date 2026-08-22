@@ -87,4 +87,12 @@ export interface ReachSummary {
   latestDone: ProgramGoal | null;
   /** Shown instead when nothing is done yet, so the row is never empty. */
   oldestWaiting: ProgramGoal | null;
+  /**
+   * The last fallback: a goal from a program still running.
+   *
+   * For the passive record ROW only. The waiting CARD, which asks "did you do
+   * it?", must never use this: that question against a goal on day 2 asks about
+   * work the program has not reached yet.
+   */
+  oldestUnreported: ProgramGoal | null;
 }

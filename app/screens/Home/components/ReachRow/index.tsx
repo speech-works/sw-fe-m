@@ -76,10 +76,16 @@ const ReachRow: React.FC<{
   // moment ago and a grey box is not more honest than nothing.
   if (!summary) return null;
 
-  // Their newest finished thing, or the oldest one still waiting. Never both,
-  // and never a placeholder: one line is the whole card.
-  const headline = summary.latestDone ?? summary.oldestWaiting;
+  // Their newest finished thing, then the oldest one still waiting, then one
+  // from a program still running. Never a placeholder: one line is the card.
+  //
+  // The third fallback exists because the first two are both empty for the
+  // whole length of a program, and without it somebody who had just named
+  // three goals was shown the row written for somebody with none.
+  const headline =
+    summary.latestDone ?? summary.oldestWaiting ?? summary.oldestUnreported;
   const isDone = !!summary.latestDone;
+  const isRunning = !summary.latestDone && !summary.oldestWaiting;
 
   /**
    * ── THE LOCKED ROW ────────────────────────────────────────────────────────
@@ -107,7 +113,11 @@ const ReachRow: React.FC<{
     ? "REACH"
     : isDone
       ? "YOU DID THIS"
-      : "STILL ON YOUR LIST";
+      : // No "still" while the program is running. Nothing has been asked yet,
+        // so there is nothing to be still doing.
+        isRunning
+        ? "ON YOUR LIST"
+        : "STILL ON YOUR LIST";
 
   const title = locked
     ? "Things you want to do outside the app"
@@ -115,9 +125,13 @@ const ReachRow: React.FC<{
 
   const caption = locked
     ? "Every program starts by asking. Your answers live here."
-    : `${summary.done} of ${summary.total} done${
-        summary.waiting > 0 ? ` · ${summary.waiting} waiting` : ""
-      }`;
+    : // "0 of 3 done" on day 1 reads as a failure before anything could have
+      // happened. Until something IS done, just say how many they named.
+      summary.done === 0
+      ? `${summary.total} ${summary.total === 1 ? "thing" : "things"} you named`
+      : `${summary.done} of ${summary.total} done${
+          summary.waiting > 0 ? ` · ${summary.waiting} waiting` : ""
+        }`;
 
   return (
     <PressableScale

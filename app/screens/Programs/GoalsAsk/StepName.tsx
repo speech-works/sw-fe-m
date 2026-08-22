@@ -72,6 +72,19 @@ export function StepName({
           }}
           onFocus={() => setFocused(i)}
           placeholder={placeholderFor(harness.placeholder, i)}
+          /**
+           * THE KEYBOARD WAS EDITING THEIR WORDS.
+           *
+           * iOS capitalises the first letter of a field by default, so "the
+           * visa interview" arrived as "The visa interview" and the goal read
+           * "Get through The visa interview". These answers are FRAGMENTS that
+           * get wrapped in a verb, not sentences.
+           *
+           * A name is the exception: Art of Disclosure collects people, and
+           * "priya" would be worse than the capital ever was. The harness
+           * already says which kind of thing it is asking for.
+           */
+          autoCapitalize={harness.noun === "person" ? "words" : "none"}
           returnKeyType={i === values.length - 1 ? "done" : "next"}
           onSubmitEditing={() => refs.current[i + 1]?.focus()}
           maxLength={120}
