@@ -43,6 +43,20 @@ import {
  * The brochure is safe to fetch before purchase: it carries titles and day
  * numbers, never blocks. See sw-be-2/src/types/packBrochure.types.ts.
  */
+/**
+ * The day's title WITHOUT the day number it already carries.
+ *
+ * The seed writes titles as "Day 1: Stop the panic", which is right when the
+ * title stands alone (Home's card, the module screen's own header). In a list
+ * that already has a "Day 1" gutter it printed the number twice on every row.
+ *
+ * Display only, and a no-op on anything that does not start that way, so a
+ * pack whose titles are not numbered is untouched.
+ */
+export function dayTitle(title: string): string {
+  return title.replace(/^\s*Day\s+\d+\s*[:.\u2013\u2014-]\s*/i, "");
+}
+
 const ProgramDetailScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"ProgramDetail">>();
   const route = useRoute<ExploreStackRouteProp<"ProgramDetail">>();
@@ -379,99 +393,6 @@ const ProgramDetailScreen = () => {
           </View>
         )}
 
-        {brochure && brochure.modules.length > 0 && (
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.surface.default,
-                borderColor: colors.border.default,
-              },
-            ]}
-          >
-            <Text variant="title" color="primary">
-              {progress ? "The days" : "What\u2019s inside"}
-            </Text>
-            {/*
-              ── THE LIST IS THE WAY BACK IN, NOT A BUTTON ───────────────────
-              A "Review Day N" button answers the question once and then has to
-              grow: on day 6 the same logic wants six of them, and picking one
-              day to feature is arbitrary. The list already names every day, so
-              it is the only surface that scales — one row per day, each one
-              carrying its own state and its own tap.
-
-              A row opens when the SERVER says it is open. `unlocked` comes
-              from GET /packs/{id}/progress; a day already behind the user is
-              never gated, because `isModuleUnlocked` only closes days AHEAD of
-              the clock. So finished days stay readable for the whole arc.
-            */}
-            {brochure.modules.map((m) => {
-              const mp = moduleStateById.get(m.id);
-              const done = mp?.status === "COMPLETED";
-              // Only an explicit `false` locks a row. An older backend that
-              // does not send the field leaves every day openable, which is
-              // what this screen did before the field existed.
-              const locked = mp?.unlocked === false;
-              const openable = !!mp && !locked;
-
-              const row = (
-                <View style={styles.moduleRow}>
-                  <Text variant="label" color="tertiary" style={styles.dayLabel}>
-                    {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
-                  </Text>
-                  <Text
-                    variant="bodySm"
-                    color={locked ? "tertiary" : "secondary"}
-                    style={styles.moduleTitle}
-                  >
-                    {m.title}
-                  </Text>
-                  {/* One slot, one glyph, so the titles all end at the same
-                      place whatever state the row is in. */}
-                  <View style={styles.moduleMark}>
-                    {done ? (
-                      <Icon
-                        name={icons.success}
-                        size={size.iconSm}
-                        color={colors.feedback.successText}
-                      />
-                    ) : locked ? (
-                      <Icon
-                        name={icons.locked}
-                        size={size.iconSm}
-                        color={colors.text.tertiary}
-                      />
-                    ) : openable ? (
-                      <Icon
-                        name={icons.chevronRight}
-                        size={size.iconSm}
-                        color={colors.text.tertiary}
-                      />
-                    ) : null}
-                  </View>
-                </View>
-              );
-
-              return openable ? (
-                <PressableScale
-                  key={m.id}
-                  scaleTo={0.98}
-                  disabled={opening}
-                  onPress={() => openOwned(m.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${
-                    m.dayIndex ? `Day ${m.dayIndex}` : `Session ${m.orderIndex}`
-                  }, ${m.title}.${done ? " Done." : ""} Opens it.`}
-                >
-                  {row}
-                </PressableScale>
-              ) : (
-                <View key={m.id}>{row}</View>
-              );
-            })}
-          </View>
-        )}
-
         {/* THE WAY IN. Without this the screen was a receipt. */}
         {ownedState.canOpen ? (
           <View style={styles.ownedBlock}>
@@ -523,6 +444,137 @@ const ProgramDetailScreen = () => {
             </Text>
           </View>
         )}
+        {brochure && brochure.modules.length > 0 && (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface.default,
+                borderColor: colors.border.default,
+              },
+            ]}
+          >
+            <Text variant="h3" color="primary">
+              {progress ? "The days" : "What\u2019s inside"}
+            </Text>
+            {/*
+              ── THE LIST IS THE WAY BACK IN, NOT A BUTTON ───────────────────
+              A "Review Day N" button answers the question once and then has to
+              grow: on day 6 the same logic wants six of them, and picking one
+              day to feature is arbitrary. The list already names every day, so
+              it is the only surface that scales.
+
+              A row opens when the SERVER says it is open. `unlocked` comes
+              from GET /packs/{id}/progress; a day already behind the user is
+              never gated, because `isModuleUnlocked` only closes days AHEAD of
+              the clock. So finished days stay readable for the whole arc.
+            */}
+            <View style={styles.dayList}>
+              {brochure.modules.map((m, i) => {
+                const mp = moduleStateById.get(m.id);
+                const done = mp?.status === "COMPLETED";
+                // Only an explicit `false` locks a row. An older backend that
+                // does not send the field leaves every day openable, which is
+                // what this screen did before the field existed.
+                const locked = mp?.unlocked === false;
+                const openable = !!mp && !locked;
+
+                const row = (
+                  <View style={styles.moduleRow}>
+                    <Text variant="label" color="tertiary" style={styles.dayLabel}>
+                      {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
+                    </Text>
+                    <Text
+                      variant="body"
+                      color={locked ? "tertiary" : "primary"}
+                      style={styles.moduleTitle}
+                    >
+                      {dayTitle(m.title)}
+                    </Text>
+                    {/*
+                      TWO SLOTS, TWO JOBS. The state glyph says what this day
+                      IS; the chevron says the row opens. They were one slot,
+                      and a finished day showed only its tick — which reads as
+                      "done", not as "tap me". The one row the user most wants
+                      to reopen was the one row with no affordance on it.
+                    */}
+                    <View style={styles.moduleMark}>
+                      {done ? (
+                        <Icon
+                          name={icons.success}
+                          size={size.iconSm}
+                          color={colors.feedback.successText}
+                        />
+                      ) : locked ? (
+                        <Icon
+                          name={icons.locked}
+                          size={size.iconSm}
+                          color={colors.text.tertiary}
+                        />
+                      ) : null}
+                    </View>
+                    <View style={styles.moduleChevron}>
+                      {openable ? (
+                        <Icon
+                          name={icons.chevronRight}
+                          size={size.iconSm}
+                          color={colors.text.tertiary}
+                        />
+                      ) : null}
+                    </View>
+                  </View>
+                );
+
+                // A hairline between rows, never under the last one. Rows are
+                // tappable now, so they need to read as separate targets
+                // rather than as lines of one paragraph.
+                const divider =
+                  i < brochure.modules.length - 1 ? (
+                    <View
+                      style={[
+                        styles.dayDivider,
+                        { backgroundColor: colors.border.default },
+                      ]}
+                    />
+                  ) : null;
+
+                return (
+                  <React.Fragment key={m.id}>
+                    {openable ? (
+                      <PressableScale
+                        scaleTo={0.99}
+                        disabled={opening}
+                        onPress={() => openOwned(m.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${
+                          m.dayIndex
+                            ? `Day ${m.dayIndex}`
+                            : `Session ${m.orderIndex}`
+                        }, ${dayTitle(m.title)}.${
+                          done ? " Done." : ""
+                        } Opens it.`}
+                      >
+                        {row}
+                      </PressableScale>
+                    ) : (
+                      <View
+                        accessibilityLabel={`${
+                          m.dayIndex
+                            ? `Day ${m.dayIndex}`
+                            : `Session ${m.orderIndex}`
+                        }, ${dayTitle(m.title)}. Not open yet.`}
+                      >
+                        {row}
+                      </View>
+                    )}
+                    {divider}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
       </Page>
     );
   }
@@ -569,22 +621,43 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.md,
   },
+  // The card owns the gap between its heading and the list; the list owns the
+  // rows. Without this the card's own `gap` doubled up with the row padding.
+  dayList: {
+    marginTop: spacing.xs,
+  },
   moduleRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: spacing.md,
+    // A row is a tap target now. It used to be text height (about 20pt), which
+    // is half the 44pt minimum and the real reason tapping a day felt wrong.
+    minHeight: 44,
+    paddingVertical: spacing.sm,
   },
   dayLabel: {
-    minWidth: 52,
+    minWidth: 46,
   },
   moduleTitle: {
     flex: 1,
   },
   // Fixed, so every title ends at the same place whether its row carries a
-  // tick, a lock, a chevron or nothing at all.
+  // tick, a lock or nothing at all.
   moduleMark: {
     width: size.iconSm,
     alignItems: "center",
+  },
+  // Its own slot, so the state glyph never shifts when a chevron appears
+  // beside it.
+  moduleChevron: {
+    width: size.iconSm,
+    alignItems: "center",
+  },
+  dayDivider: {
+    height: StyleSheet.hairlineWidth,
+    // Starts under the title, not under the day number: an inset rule reads as
+    // "these belong to one list", a full-bleed one cuts the card into strips.
+    marginLeft: 46 + spacing.md,
   },
   ownedBlock: {
     gap: spacing.lg,

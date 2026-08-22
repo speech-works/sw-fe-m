@@ -126,8 +126,10 @@ const NextDayCountdown: React.FC<Props> = ({ opensAt, dayIndex, onOpened }) => {
           size={size.iconSm}
           color={colors.feedback.successText}
         />
+        {/* `title`. It is the card's heading, and at 13pt it sat below the
+            weight of the countdown it introduces. */}
         <Text
-          variant="label"
+          variant="title"
           color={colors.feedback.successText}
           style={styles.doneText}
         >

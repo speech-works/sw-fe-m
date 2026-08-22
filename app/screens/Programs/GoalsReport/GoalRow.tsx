@@ -44,7 +44,9 @@ export function GoalRow({
 
   return (
     <View style={styles.root}>
-      <Text variant="title" color="primary">
+      {/* Their own words, and the thing the three buttons below are about.
+          `h3` is the app's section heading, which is what this is. */}
+      <Text variant="h3" color="primary">
         {goal.text}
       </Text>
 
@@ -73,14 +75,22 @@ export function GoalRow({
                   picked ? primaryEdge(colors) : null,
                 ]}
               >
+                {/*
+                  `bodySm`, not `label`. These three are the single most
+                  important choice in the feature — the whole program waits on
+                  them — and they were set at 13pt, smaller than the caption
+                  under them. `title` is too heavy for a three-across row that
+                  has to hold "Something smaller" on two lines, so this is the
+                  step up that fits.
+                */}
                 <Text
-                  variant="label"
+                  variant="bodySm"
                   center
                   numberOfLines={2}
                   style={{
                     color: picked
                       ? colors.action.onPrimary
-                      : colors.text.secondary,
+                      : colors.text.primary,
                   }}
                 >
                   {labels[option]}
@@ -109,7 +119,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: spacing.sm },
   cell: { flex: 1 },
   button: {
-    minHeight: 56,
+    // 64, not 56. The labels wrap to two lines at this width and the taller
+    // text was crowding the padding.
+    minHeight: 64,
     paddingHorizontal: spacing.sm,
     paddingVertical: space.inlineGap,
     borderRadius: radius.input,

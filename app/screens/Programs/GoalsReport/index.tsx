@@ -174,7 +174,10 @@ const GoalsReportScreen = () => {
               <Text variant="body" color="primary" style={styles.flex}>
                 {goal.text}
               </Text>
-              <Text variant="label" color="secondary">
+              {/* `bodySm` against the goal's `body`. `label` is 13 against 16,
+                  which read as a footnote rather than as the answer to the
+                  line beside it. */}
+              <Text variant="bodySm" color="secondary">
                 {goal.report
                   ? REPORT_LABELS[goal.reportStyle][goal.report]
                   : ""}

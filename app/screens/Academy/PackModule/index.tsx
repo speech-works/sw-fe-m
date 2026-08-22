@@ -883,17 +883,26 @@ const PackModuleScreen = () => {
               the report, so the two never collide. */}
           <DailyLog packId={packId} goals={goalsAfterModule} />
 
+          {/*
+            THE EXIT IS NOT ALWAYS A SECOND CHOICE. On a day-gated pack there
+            is usually no next module, so "back" was the only thing on the
+            screen — drawn as a ghost, i.e. bare text with no button shape.
+            The sole action on a screen has to look like an action.
+
+            It also said "Dashboard", which is not a place in this app. The tab
+            is called Home.
+          */}
           <View style={styles.successActionContainer}>
             {nextModuleId && (
               <Button
-                label="Start Next Module"
+                label="Start the next one"
                 leftIcon={icons.play}
                 onPress={handleNextModule}
               />
             )}
             <Button
-              label="Back to Dashboard"
-              variant="ghost"
+              label="Back to Home"
+              variant={nextModuleId ? "ghost" : "secondary"}
               onPress={() => navigation.goBack()}
             />
           </View>
@@ -1158,11 +1167,15 @@ const styles = StyleSheet.create({
     flex: 1.5,
   },
   // Success screen
+  // `space.screenX`, not `spacing["3xl"]`. This screen was inset 32 while every
+  // other screen in the app is inset 16, so its copy measured narrower than the
+  // module the user had just read and the whole page looked like a different
+  // app.
   successContent: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing["3xl"],
+    paddingHorizontal: space.screenX,
   },
   successIconContainer: {
     width: 120,
@@ -1170,19 +1183,22 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing["3xl"],
+    marginBottom: space.sectionGap,
   },
   successDayClose: {
-    marginBottom: spacing["2xl"],
+    marginTop: space.rowGap,
   },
+  // ONE OWNER FOR THE GAP UNDER THE COPY. This used to carry a 40pt bottom
+  // margin while `DailyLog` carried a 24pt top margin, so the space between the
+  // subtitle and the log was 64 — a hole big enough to read as a missing
+  // element. The block below owns its own separation now.
   successSubtitle: {
-    marginTop: spacing.md,
-    marginBottom: spacing["4xl"],
-    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
   },
   successActionContainer: {
     width: "100%",
     gap: spacing.md,
+    marginTop: spacing["3xl"],
   },
   // Skip Confirmation Modal
   skipModalContainer: {
