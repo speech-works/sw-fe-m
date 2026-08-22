@@ -83,6 +83,13 @@ export interface ReachSummary {
   done: number;
   /** Answered, but not finished. These keep surfacing. */
   waiting: number;
+  /**
+   * How many were PREDICTIONS rather than deeds. A person whose only program
+   * collected fears has no done deed, nothing waiting and nothing unreported,
+   * so this is the only thing that separates them from somebody who has never
+   * set a goal at all.
+   */
+  predictions: number;
   /** The newest thing they did, in their own words. */
   latestDone: ProgramGoal | null;
   /** Shown instead when nothing is done yet, so the row is never empty. */
