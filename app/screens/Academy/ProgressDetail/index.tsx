@@ -34,13 +34,7 @@ import {
 } from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
-import {
-  fetchGrowthTotals,
-  GrowthAxis,
-  type GrowthTotals,
-} from "../../../api/dailyPlan";
 import Achievements from "./components/Achievements";
-import GrowthTotalsCard from "./components/GrowthTotalsCard";
 import DetailedWeeklySummary, {
   WeeklySummarySkeleton,
 } from "./components/DetailedWeeklySummary";
@@ -78,35 +72,6 @@ const ProgressDetail = () => {
   const { user } = useUserStore();
   const { weeklyReport, lifetimeReport, loading, errors, fetchReport } =
     useProgressReportStore();
-
-  /**
-   * The totals are fetched here rather than inside the card so a pull-to-refresh
-   * moves them too, and so the card stays a pure render of what it is handed.
-   *
-   * Refetched on focus, not just on mount: the number that changed while the
-   * user was away doing the thing is the entire reason they came back to look.
-   */
-  const [growthTotals, setGrowthTotals] = useState<GrowthTotals | null>(null);
-  const loadGrowthTotals = React.useCallback(async () => {
-    const totals = await fetchGrowthTotals();
-    if (totals) setGrowthTotals(totals);
-  }, []);
-  useFocusEffect(
-    React.useCallback(() => {
-      void loadGrowthTotals();
-    }, [loadGrowthTotals]),
-  );
-
-  React.useEffect(() => {
-    if (!growthTotals) return;
-    const byAxis = new Map(growthTotals.axes.map((a) => [a.axis, a.count]));
-    track(ANALYTICS_EVENTS.GROWTH_CARD_SHOWN, {
-      stage: growthTotals.hasAny ? "counts" : "empty",
-      braver: byAxis.get(GrowthAxis.BRAVER) ?? 0,
-      wider: byAxis.get(GrowthAxis.WIDER) ?? 0,
-      regular: byAxis.get(GrowthAxis.REGULAR) ?? 0,
-    });
-  }, [growthTotals]);
 
   /**
    * "DOES ANYONE OPEN THIS?" — previously unanswerable.
@@ -203,10 +168,7 @@ const ProgressDetail = () => {
   const onRefresh = async () => {
     if (!user?.id) return;
     setRefreshing(true);
-    // Both, and in parallel — a pull that visibly refreshes the cards below
-    // while leaving the growth counts on a stale value would read as the
-    // counts being broken rather than simply not included.
-    await Promise.all([loadActiveReport(activeTab, true), loadGrowthTotals()]);
+    await loadActiveReport(activeTab, true);
     setRefreshing(false);
   };
 
@@ -288,7 +250,6 @@ const ProgressDetail = () => {
             growthY.current = event.nativeEvent.layout.y;
           }}
         >
-          <GrowthTotalsCard totals={growthTotals} />
         </View>
         <LifetimeJourneyCard journey={lifetimeReport.journey} loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
         <DPSummary distribution={lifetimeReport.distribution} timeframe="lifetime" loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />

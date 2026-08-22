@@ -2,19 +2,12 @@ import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSpring,
-  withTiming,
 } from "react-native-reanimated";
 
 import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 import ScreenView from "../../../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import {
-  size,
   useTheme,
   useSuccessPop,
   spacing,
@@ -25,11 +18,7 @@ import {
   icons,
   onColor,
   withAlpha,
-  AnimatedNumber,
-  duration,
-  spring,
   useNavBarInset,
-  type IconName,
 } from "../../../../../design-system";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
@@ -37,27 +26,11 @@ import { getMyBuddy } from "../../../../../api/buddies";
 import { useInboxStore } from "../../../../../stores/inbox";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
-import {
-  VISIBLE_AXES,
-  GrowthAxis,
-  fetchGrowthTotals,
-} from "../../../../../api/dailyPlan";
-import { axisAccent } from "../../../../../util/growth/accents";
-import { countPhrase } from "../../../../../util/growth/format";
-import { useCelebrationStore } from "../../../../../stores/celebration";
 import { useUserStore } from "../../../../../stores/user";
-import { useOnboardingNudgeStore } from "../../../../../stores/onboardingNudge";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
 import { LevelUpTakeover } from "./LevelUpTakeover";
 import MembershipDock from "../../../../../components/MembershipDock";
-
-/** Same glyphs as the growth card — one axis, one icon, wherever it appears. */
-const AXIS_ICON: Record<string, IconName> = {
-  [GrowthAxis.BRAVER]: icons.courage,
-  [GrowthAxis.WIDER]: icons.globe,
-  [GrowthAxis.REGULAR]: icons.streak,
-};
 
 interface DonePracticeProps {
   practiceName?: string;
@@ -111,158 +84,6 @@ const DonePractice = ({
   // a gentler settle when the session was ended early. Reduced-motion aware.
   const discPop = useSuccessPop(true, { celebrate: !isAborted });
   const { reduced } = useMotion();
-
-  /**
-   * "That counts as Braver — taking on harder things."
-   *
-   * The axes come from the SERVER, recorded at the completion chokepoint and
-   * bound to this activity's id — the client has no copy of the growth-point
-   * registry and must not grow one, because the mapping depends on the practice
-   * sub-type and a second copy would drift and be wrong about somebody's
-   * growth.
-   *
-   * ONE axis, not a list. An interview moves both Braver and Wider, but three
-   * clauses on a success screen reads as a scoreboard; VISIBLE_AXES is in
-   * priority order, so taking the first names the most specific thing earned
-   * and Regular only wins when nothing else applies.
-   *
-   * The axis picks WHICH count to show. Its name is never printed: the chip
-   * reads "11 hard things done", not "Braver · 11 times".
-   */
-  // Reads through a selector, so `earnedFor` MUST return a referentially stable
-  // array on both branches (see NO_AXES in the celebration store) — under
-  // zustand v5 a fresh `[]` here is an infinite re-render, not a wasted one.
-  const earnedAxes = useCelebrationStore((s) => s.earnedFor(activityId));
-  const shownAxis = VISIBLE_AXES.find((axis) => earnedAxes.includes(axis));
-  /**
-   * The chip's own colour, and the ink that is legible ON it.
-   *
-   * From the shared axis map so this screen cannot invent a hue, and so the
-   * chip here is the same purple as the Regular block on Home and the Regular
-   * disc on the growth card. `on`, never `fill`, for the text — the bright
-   * fills are a documented contrast failure as foreground.
-   *
-   * The chip sits on an accent-coloured page (`accentColor`) on some screens,
-   * so its own solid fill is what keeps it readable there too.
-   */
-  const accent = axisAccent(shownAxis ?? "", colors);
-  const axisAccentFill = accent.fill;
-  const axisAccentOn = accent.on;
-
-
-  /**
-   * THE ONE TIME WE EXPLAIN THE VOCABULARY, if this screen gets there first.
-   *
-   * Highest attention and lowest defensiveness in the product: they have just
-   * finished something and are already reading. The alternative surface is
-   * Home's growth row, which only carries it for people whose first count came
-   * from the welcome call — that call ends on a feelings check-in we keep free
-   * of scorekeeping on purpose.
-   *
-   * Marked on unmount rather than on render, so leaving the screen is what
-   * counts as having had the chance to read it. A completion dismissed in half
-   * a second should not burn the only explanation the words ever get.
-   */
-  const growthIntroduced = useOnboardingNudgeStore(
-    (s) => s.growthIntroducedAt !== null,
-  );
-  const markGrowthIntroduced = useOnboardingNudgeStore(
-    (s) => s.markGrowthIntroduced,
-  );
-
-  /**
-   * THE RUNNING TOTAL, because "3 days" is a reward and "days you've practised"
-   * is a definition.
-   *
-   * A definition is worth reading once; a number that went up because of what
-   * you just did is worth reading every time. Fetched here rather than passed
-   * down, so no completion screen has to know about growth to show it, and
-   * alongside the buddy check this screen already makes.
-   *
-   * The chip renders on the label alone if this fails or is slow — the axis is
-   * still true without its count, and a success screen must never wait on a
-   * network call to say well done.
-   */
-  const [axisCount, setAxisCount] = useState<number | null>(null);
-  useEffect(() => {
-    if (!shownAxis || isAborted) return;
-    let alive = true;
-    void fetchGrowthTotals().then((totals) => {
-      const n = totals?.axes.find((a) => a.axis === shownAxis)?.count ?? null;
-      if (alive) setAxisCount(n);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [shownAxis, isAborted]);
-
-  /**
-   * The unit, spelled out beside the number, and now carrying the whole
-   * meaning on its own.
-   *
-   * This chip used to read "Braver · 11 times", with "Hard things you've done"
-   * on a second line underneath to say what Braver meant. Three lines to
-   * deliver one number, and the first word of it was a word we invented. It now
-   * reads "11 hard things done" and needs no gloss.
-   *
-   * The three axes deliberately count different things, so they cannot share a
-   * noun. `countPhrase` owns the singular/plural so "1 days" cannot slip
-   * through; the number itself is stripped because `AnimatedNumber` renders it.
-   */
-  const countUnit =
-    shownAxis && axisCount !== null
-      ? countPhrase(shownAxis, axisCount).replace(/^\d+\s/, "")
-      : "";
-
-  /**
-   * No number, no chip.
-   *
-   * The old chip could render on the axis NAME alone while the count was in
-   * flight, because "Braver" said something by itself. The phrase that replaced
-   * it does not: "hard things done" with no figure in front of it is a caption
-   * for a missing number. The chip exists to show a total move, so if the total
-   * has not arrived there is nothing to show, and the entrance animation simply
-   * runs when it does.
-   */
-  const showChip = !isAborted && !!shownAxis && axisCount !== null;
-
-  /**
-   * Declared here rather than beside the store reads above, because it now
-   * hangs off `showChip`: the explanation must not appear over a chip that is
-   * not there, and burning the once-ever introduction on a screen where the
-   * count never loaded would spend it on nothing.
-   */
-  const showIntro = showChip && !growthIntroduced;
-  useEffect(() => {
-    if (!showIntro) return;
-    return () => markGrowthIntroduced();
-  }, [showIntro, markGrowthIntroduced]);
-
-  /**
-   * The chip lands AFTER the tick, not with it.
-   *
-   * Two things popping at once is one event; two things in sequence is a
-   * consequence — the tick says "done", then the thing you earned arrives
-   * because of it. `spring.bouncy` is the DS preset documented for exactly this
-   * ("celebration / reaction pop — small overshoot"), so the overshoot is the
-   * system's, not a number picked here.
-   *
-   * Reduced motion keeps the delay and the opacity and drops the scale, per the
-   * house rule: gentler, never zero.
-   */
-  const chipIn = useSharedValue(0);
-  useEffect(() => {
-    if (!showChip) return;
-    chipIn.value = reduced
-      ? withDelay(200, withTiming(1, { duration: duration.base }))
-      : withDelay(260, withSpring(1, spring.bouncy));
-  }, [showChip, reduced, chipIn]);
-  const chipStyle = useAnimatedStyle(() => ({
-    opacity: chipIn.value,
-    transform: [
-      { scale: reduced ? 1 : interpolate(chipIn.value, [0, 1], [0.82, 1]) },
-    ],
-  }));
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
@@ -413,39 +234,16 @@ const DonePractice = ({
             </Text>
           ) : null}
 
-          {/* WHAT THIS COUNTED AS — an object you earned, not a caption.
-              The axis was a third paragraph of muted text among four, which
-              read as a footnote to a celebration rather than the substance of
-              it. It is now a solid chip in the axis's own colour carrying its
-              running total, because "3 days" is a reward and "days you've
-              practised" is a definition — a definition is worth reading once,
-              a number that moved because of what you just did is worth reading
-              every time. Nothing at all when the activity moved no VISIBLE
-              axis. */}
-          {showChip ? (
-            <Animated.View style={[styles.earnedChip, { backgroundColor: axisAccentFill }, chipStyle]}>
-              <Icon name={AXIS_ICON[shownAxis!] ?? icons.growth} size={size.iconSm} color={axisAccentOn} />
-              {/* Counts up rather than appearing, so the number is seen to
-                  MOVE. The count is the whole reason it is here. */}
-              <AnimatedNumber value={axisCount!} variant="title" color={axisAccentOn} />
-              <Text variant="title" color={axisAccentOn}>
-                {` ${countUnit}`}
-              </Text>
-            </Animated.View>
-          ) : null}
+          {/* NO RUNNING COUNT HERE.
+              A chip used to land after the tick with a lifetime total on it,
+              first as "Braver · 11 times" and later as "11 hard things done".
+              Both were the same idea: a number the app keeps about you, shown
+              on the screen that exists to say you finished.
 
-          {/* The gloss under the chip is GONE, not moved. It existed to explain
-              the invented word above it, and the chip now says the plain thing
-              itself, so keeping it would just print the same sentence twice. */}
-
-          {/* First time only. Says where the counting lives, and nothing about
-              what we are NOT measuring — that was the old version's job and it
-              made the reader's first task disproving something. */}
-          {showIntro ? (
-            <Text variant="caption" color={mutedForeground} center style={styles.introText}>
-              We keep a running count. See it in your progress report.
-            </Text>
-          ) : null}
+              The counts themselves are gone from the product. Reach carries
+              what somebody set out to do, and XP carries the game. A third
+              scoreboard, in words this app had to invent and then teach, was
+              never the thing anyone came back for. */}
         </View>
 
         {/* Actions */}
