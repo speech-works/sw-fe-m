@@ -14,7 +14,6 @@ import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import DonePractice from "../../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
-import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import { useTheme } from "../../../../../../../design-system";
 
@@ -45,7 +44,6 @@ const Chat = () => {
     user?.id,
   );
   const [isDone, setIsDone] = useState(false);
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [, setIsLoading] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -124,11 +122,6 @@ const Chat = () => {
 
   const markActivityComplete = async (
     activityId: string,
-    vitals?: {
-      effortScore: number;
-      autonomyScore: number;
-      accuracyScore?: number;
-    },
   ) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
@@ -146,7 +139,6 @@ const Chat = () => {
       userId: userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
-      vitals,
     });
     updateActivity(activityId, {
       ...completedActivity,
@@ -159,14 +151,14 @@ const Chat = () => {
       console.error("Activity could not be started");
       return;
     }
-    setShowVitalsModal(true);
+    void finishActivity();
   };
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: practiceActivityId,
-    isCompleted: isDone || showVitalsModal,
+    isCompleted: isDone,
     onSave: onDonePress,
     accentColor,
     family: "Exposure",
@@ -174,18 +166,13 @@ const Chat = () => {
     packContext,
   });
 
-  const handleVitalsSubmit = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
-    setShowVitalsModal(false);
+  const finishActivity = async () => {
     setIsLoading(true);
     try {
       if (!practiceActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(practiceActivityId, vitals);
+      await markActivityComplete(practiceActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
         activityId: practiceActivityId,
@@ -239,14 +226,6 @@ const Chat = () => {
         options={currentOptions}
         onAdvance={handleAdvance}
         onComplete={onDonePress}
-        accentColor={accentColor}
-        onAccentColor={onAccentColor}
-      />
-
-      <VitalsFeedbackModal
-        visible={showVitalsModal}
-        onSkip={() => handleVitalsSubmit(undefined)}
-        onSubmit={handleVitalsSubmit}
         accentColor={accentColor}
         onAccentColor={onAccentColor}
       />

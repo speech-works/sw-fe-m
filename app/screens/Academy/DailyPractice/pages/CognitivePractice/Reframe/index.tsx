@@ -53,7 +53,6 @@ import {
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useUserStore } from "../../../../../../stores/user";
 import DonePractice from "../../../components/DonePractice";
-import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
@@ -129,7 +128,6 @@ const Reframe = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     practiceActivity?.id || null,
   );
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   const onBackPress = () => {
     if (from === "MOOD_CHECK") {
@@ -171,29 +169,24 @@ const Reframe = () => {
   });
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
-  // Save opens the existing vitals modal (the normal completion path). isCompleted
-  // includes showVitalsModal so an open vitals modal doesn't trigger a 2nd prompt.
+  // Save takes the normal completion path, which now finishes outright:
+  // the vitals modal that used to sit in front of it is gone.
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: currentActivityId,
-    isCompleted: isDone || showVitalsModal,
-    onSave: () => setShowVitalsModal(true),
+    isCompleted: isDone,
+    onSave: () => void finishActivity(),
     accentColor,
     family: "Cognitive",
     from,
     packContext,
   });
 
-  const markActivityDone = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
+  const markActivityDone = async () => {
     console.log("markActivityDone [Reframe] called", {
       cognitivePracticeId,
       currentActivityId,
       userId: user?.id || practiceSession?.user?.id,
-      vitals,
     });
 
     if (!cognitivePracticeId || !currentActivityId) {
@@ -225,7 +218,6 @@ const Reframe = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
-        vitals,
       });
 
       console.log("Reframe Activity COMPLETED:", completedActivity);
@@ -259,16 +251,11 @@ const Reframe = () => {
     }
   };
 
-  const handleVitalsSubmit = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
-    setShowVitalsModal(false);
+  const finishActivity = async () => {
     try {
-      await markActivityDone(vitals);
+      await markActivityDone();
     } catch (e) {
-      console.error("Failed to submit vitals and complete activity", e);
+      console.error("Failed to complete activity", e);
     }
   };
 
@@ -708,7 +695,7 @@ const Reframe = () => {
             {(selectedReframe || writtenReframe.length > 0) && (
               <Button
                 label="Submit Reframe"
-                onPress={() => setShowVitalsModal(true)}
+                onPress={() => void finishActivity()}
                 accentColor={accentColor}
                 onAccentColor={onAccentColor}
                 style={styles.submitButton}
@@ -745,14 +732,6 @@ const Reframe = () => {
       ) : null}
 
       {librarySheet}
-
-      <VitalsFeedbackModal
-        visible={showVitalsModal}
-        onSkip={() => handleVitalsSubmit(undefined)}
-        onSubmit={handleVitalsSubmit}
-        accentColor={accentColor}
-        onAccentColor={onAccentColor}
-      />
 
       {exitSheet}
     </View>

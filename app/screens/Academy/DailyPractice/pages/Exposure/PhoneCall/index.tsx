@@ -65,7 +65,6 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 
-import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../components/DonePractice";
 import PhoneCallReport from "./Report";
@@ -159,7 +158,6 @@ const PhoneCall = () => {
   const [reportActivityId, setReportActivityId] = useState<string | null>(null);
   const [reportDismissed, setReportDismissed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showExhaustionSheet, setShowExhaustionSheet] = useState(false);
   /** Declined the AI-call disclosure — leave, but only once the sheet is gone. */
   const [consentDeclined, setConsentDeclined] = useState(false);
@@ -277,11 +275,7 @@ const PhoneCall = () => {
     }
   };
 
-  const markActivityComplete = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }): Promise<boolean> => {
+  const markActivityComplete = async (): Promise<boolean> => {
     const activityId = currentActivityIdRef.current || currentActivityId;
     if (!activityId) return false;
     const userId = user?.id; // Always use real ID from store if available
@@ -294,7 +288,6 @@ const PhoneCall = () => {
         userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
-        vitals,
       });
 
       updateActivity(activityId, {
@@ -361,7 +354,7 @@ const PhoneCall = () => {
     if (!currentActivityIdRef.current && !currentActivityId) return;
 
     if (shouldComplete) {
-      setShowVitalsModal(true);
+      void finishActivity();
       return;
     }
 
@@ -385,13 +378,8 @@ const PhoneCall = () => {
     }
   };
 
-  const handleVitalsSubmit = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
-    setShowVitalsModal(false);
-    await markActivityComplete(vitals);
+  const finishActivity = async () => {
+    await markActivityComplete();
   };
 
   useEffect(() => {
@@ -423,7 +411,7 @@ const PhoneCall = () => {
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: currentActivityId,
-    isCompleted: isDone || showVitalsModal,
+    isCompleted: isDone,
     onSave: () => {
       markActivityComplete();
     },
@@ -657,14 +645,6 @@ const PhoneCall = () => {
               })}
         </View>
       </Sheet>
-
-      <VitalsFeedbackModal
-        visible={showVitalsModal}
-        onSkip={() => handleVitalsSubmit(undefined)}
-        onSubmit={handleVitalsSubmit}
-        accentColor={accentColor}
-        onAccentColor={onAccentColor}
-      />
 
       <AICallConsentModal
         visible={

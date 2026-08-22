@@ -32,7 +32,6 @@ import {
 import { useMarkActivityStart } from "../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../components/DonePractice";
-import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
 import IRLConfirmationModal from "../../../../../components/IRLConfirmationModal";
 import { recordGrowthPointDecline } from "../../../../../api/growthPoints";
@@ -166,7 +165,6 @@ const RealLifeChallenge = () => {
 
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
   const [reflectionText, setReflectionText] = useState("");
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIRLModal, setShowIRLModal] = useState(false);
 
   // One derivation, shared by the id, the type and the title — see
@@ -208,8 +206,8 @@ const RealLifeChallenge = () => {
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: currentActivityId,
-    isCompleted: currentStep === ChallengeStep.SUMMARY || showVitalsModal,
-    onSave: () => setShowVitalsModal(true),
+    isCompleted: currentStep === ChallengeStep.SUMMARY,
+    onSave: () => void finishActivity(),
     family: "Explore",
     from,
     packContext,
@@ -240,11 +238,7 @@ const RealLifeChallenge = () => {
 
   // --- Handlers ---
 
-  const markActivityComplete = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
+  const markActivityComplete = async () => {
     if (!currentActivityId) return;
     try {
       // If we are in a pack, we rely on the backend handling the "pack-session" logic or similar
@@ -260,7 +254,6 @@ const RealLifeChallenge = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
-        vitals,
       });
 
       updateActivity(currentActivityId, {
@@ -293,16 +286,11 @@ const RealLifeChallenge = () => {
    * honest than demanding text and dropping it.
    */
   const handleReflectionComplete = async () => {
-    setShowVitalsModal(true);
+    void finishActivity();
   };
 
-  const handleVitalsSubmit = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
-    setShowVitalsModal(false);
-    await markActivityComplete(vitals);
+  const finishActivity = async () => {
+    await markActivityComplete();
     setCurrentStep(ChallengeStep.SUMMARY);
   };
 
@@ -462,12 +450,6 @@ const RealLifeChallenge = () => {
           </View>
         </Page>
 
-        <VitalsFeedbackModal
-          visible={showVitalsModal}
-          onSkip={() => handleVitalsSubmit(undefined)}
-          onSubmit={handleVitalsSubmit}
-        />
-
         <IRLConfirmationModal
           visible={showIRLModal}
           onClose={() => setShowIRLModal(false)}
@@ -545,12 +527,6 @@ const RealLifeChallenge = () => {
           />
         </Surface>
       </Page>
-
-      <VitalsFeedbackModal
-        visible={showVitalsModal}
-        onSkip={() => handleVitalsSubmit(undefined)}
-        onSubmit={handleVitalsSubmit}
-      />
 
       <IRLConfirmationModal
         visible={showIRLModal}

@@ -41,10 +41,13 @@ export interface PracticeActivity {
   axesMoved?: string[];
 }
 
-// Request interface for completing an activity with optional vitals
+/*
+ * Completing an activity carries nothing but who did it.
+ *
+ * It used to accept `effortScore`, `autonomyScore` and `accuracyScore` from a
+ * modal shown after every practice. Those were stored, averaged, and read by a
+ * five-axis model that no screen in this app ever displayed. Removed with it.
+ */
 export interface CompleteActivityRequest {
   userId: string;
-  effortScore?: number; // 20-100, always shown for EXPOSURE/COGNITIVE
-  autonomyScore?: number; // 20-100, always shown for EXPOSURE/COGNITIVE
-  accuracyScore?: number; // 20-100, only for TECHNIQUE_DRILL
 }

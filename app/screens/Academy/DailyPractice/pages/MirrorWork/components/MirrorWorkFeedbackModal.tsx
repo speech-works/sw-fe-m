@@ -3,9 +3,20 @@ import { makeStyles, useTheme, radius } from "../../../../../../design-system";
 import { View, Text, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 
+/*
+ * ONE QUESTION, AND IT IS ABOUT US.
+ *
+ * This modal used to open with the same two sliders the app asked after every
+ * other practice: how hard was it, how much control did you feel. Both fed
+ * `user_practice_vitals`, which fed a five-axis model that no screen ever
+ * showed, so the answers were collected and never read. They went with that
+ * model.
+ *
+ * What is left is the one question that earns its place: whether our detection
+ * matched what the person actually experienced. That rates OUR work, not
+ * theirs, and it is the signal the weight table is tuned against.
+ */
 interface FeedbackData {
-  effortScore: number;
-  autonomyScore: number;
   detectionAccuracyRating: number;
 }
 
@@ -17,17 +28,11 @@ interface MirrorWorkFeedbackModalProps {
 export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = ({ onSubmit, onClose }) => {
   const { colors } = useTheme();
   const styles = useStyles();
-  // We use 1-5 scales for the UI, then convert to 20-100 before submit
-  const [effortScore, setEffortScore] = useState(3);
-  const [autonomyScore, setAutonomyScore] = useState(3);
+  // A 1-5 scale in the UI, converted to 20-100 before submit.
   const [accuracyRating, setAccuracyRating] = useState(3);
 
   const handleSubmit = () => {
-    onSubmit({
-      effortScore: effortScore * 20,
-      autonomyScore: autonomyScore * 20,
-      detectionAccuracyRating: accuracyRating * 20,
-    });
+    onSubmit({ detectionAccuracyRating: accuracyRating * 20 });
   };
 
   return (
@@ -36,43 +41,7 @@ export const MirrorWorkFeedbackModal: React.FC<MirrorWorkFeedbackModalProps> = (
         <Text style={styles.title}>Session Reflection</Text>
         <Text style={styles.subtitle}>Help us understand how this felt for you.</Text>
 
-        <View style={styles.sliderSection}>
-          <Text style={styles.question}>How difficult was it to stay focused on the camera?</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={1}
-            maximumValue={5}
-            step={1}
-            value={effortScore}
-            onValueChange={setEffortScore}
-            minimumTrackTintColor={colors.action.primary}
-            maximumTrackTintColor={colors.border.hairline}
-          />
-          <View style={styles.labels}>
-            <Text style={styles.labelText}>Very Easy</Text>
-            <Text style={styles.labelText}>Very Hard</Text>
-          </View>
-        </View>
-
-        <View style={styles.sliderSection}>
-          <Text style={styles.question}>How much control did you feel over your breathing and pace?</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={1}
-            maximumValue={5}
-            step={1}
-            value={autonomyScore}
-            onValueChange={setAutonomyScore}
-            minimumTrackTintColor={colors.action.primary}
-            maximumTrackTintColor={colors.border.hairline}
-          />
-          <View style={styles.labels}>
-            <Text style={styles.labelText}>None</Text>
-            <Text style={styles.labelText}>Fully In Control</Text>
-          </View>
-        </View>
-
-        <View style={styles.sliderSection}>
+                        <View style={styles.sliderSection}>
           <Text style={styles.question}>Looking at the summary, how well does this match what you experienced?</Text>
           <Slider
             style={styles.slider}

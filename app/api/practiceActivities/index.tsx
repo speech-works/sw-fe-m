@@ -169,14 +169,8 @@ export async function completePracticeActivity({
   userId,
   packId,
   moduleId,
-  vitals,
   toolsUsed,
 }: UpdateActivityReq & {
-  vitals?: {
-    effortScore?: number;
-    autonomyScore?: number;
-    accuracyScore?: number;
-  };
   /** Fluency tools actually activated during this activity (DAF/Chorus/...). */
   toolsUsed?: ToolType[];
 }): Promise<PracticeActivity> {
@@ -188,7 +182,6 @@ export async function completePracticeActivity({
 
     const requestBody: any = {
       userId,
-      ...vitals, // Spread vitals if provided
     };
 
     if (packId) requestBody.packId = packId;
@@ -229,10 +222,6 @@ export interface MirrorWorkCompletionApiPayload {
       arc: string;
     };
   };
-  vitals: {
-    effortScore: number;
-    autonomyScore: number;
-  };
   detectionAccuracyRating: number;
   reflectionText: string;
   promptsAttempted: number;
@@ -246,7 +235,7 @@ export interface MirrorWorkCompletionApiPayload {
  * Complete a Mirror Work practice activity.
  *
  * Calls the dedicated POST /practice-activities/{id}/complete-mirror-work
- * endpoint, which stores the full session payload (signals, scores, vitals,
+ * endpoint, which stores the full session payload (signals, scores,
  * reflection) and feeds overallEaseScore into the IMPAIRMENT_STRUGGLE
  * clinical domain trend.
  */

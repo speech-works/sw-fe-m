@@ -190,7 +190,7 @@ export const SummaryScreen: React.FC = () => {
 
   const handleComplete = () => setShowFeedbackModal(true);
 
-  const submitFinalData = async (feedback: { effortScore: number; autonomyScore: number; detectionAccuracyRating: number }) => {
+  const submitFinalData = async (feedback: { detectionAccuracyRating: number }) => {
     setShowFeedbackModal(false);
     setIsSubmitting(true);
     // Mark completed synchronously (before the await) so the post-completion
@@ -200,10 +200,6 @@ export const SummaryScreen: React.FC = () => {
     const mirrorWorkPayload = {
       detectedSignals: signalCounts || {},
       awarenessScores: scores || { gazeMaintained: 100, jawEase: 100, lipEase: 100, overallEaseScore: 100 },
-      vitals: {
-        effortScore: feedback.effortScore,
-        autonomyScore: feedback.autonomyScore,
-      },
       detectionAccuracyRating: feedback.detectionAccuracyRating,
       reflectionText: reflectionText || '',
       promptsAttempted: promptsAttempted || 0,

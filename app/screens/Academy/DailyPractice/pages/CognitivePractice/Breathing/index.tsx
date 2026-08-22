@@ -24,16 +24,10 @@ import {
   abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
-import {
-  shouldCollectAccuracy,
-  shouldCollectVitals,
-  validateVitals,
-} from "../../../../../../utils/vitals";
 import DonePractice from "../../../components/DonePractice";
 import { useFirstCallStore } from "../../../../../../stores/firstCall";
 import {
@@ -87,11 +81,8 @@ const Breathing = () => {
   const [techniques, setTechniques] = useState<CognitivePractice[]>([]);
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [showAccuracy, setShowAccuracy] = useState(false);
   const [showEarlyExitPrompt, setShowEarlyExitPrompt] = useState(false);
   const [isAborted, setIsAborted] = useState(false);
-  const [currentActivity, setCurrentActivity] = useState<any>(null);
 
   const totalSessionDurationInSeconds = 5 * 60; // 5 minutes converted to seconds
 
@@ -128,117 +119,35 @@ const Breathing = () => {
   );
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
-  // Save opens the existing vitals modal (the normal completion path). isCompleted
-  // includes showVitalsModal so an open vitals modal doesn't trigger a 2nd prompt.
+  // Save takes the normal completion path, which now finishes outright:
+  // the vitals modal that used to sit in front of it is gone.
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: currentActivityId,
-    isCompleted: isDone || showVitalsModal,
-    onSave: () => setShowVitalsModal(true),
+    isCompleted: isDone,
+    onSave: () => void finishActivity(),
     accentColor,
     family: "Cognitive",
     from,
     packContext,
   });
 
-  const markActivityDone = async () => {
-    // Get userId from session or user store
-    const userId = practiceSession?.user?.id || user?.id;
 
-    if (!userId || !cognitivePracticeId || !currentActivityId) {
-      // Changed apiContentId to cognitivePracticeId to match original logic
-      console.warn(
-        "Cannot complete activity: Missing userId, contentId, or currentActivityId",
-      );
-      return;
-    }
-
+  /*
+   * The old "skip the vitals" path, which is now the only path. The other one
+   * validated two slider scores and sent them; nothing read them, so it went
+   * with the modal.
+   */
+  const finishActivity = async () => {
     try {
-      console.log(
-        "[Breathing Debug] markActivityDone: Completing activity",
-        currentActivityId,
-      );
-      const completedActivity = await completePracticeActivity({
-        id: currentActivityId, // The ID of the started activity instance
-        userId: userId,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
-      useUserStore.getState().fetchUser();
-
-      console.log(
-        "[Breathing Debug] markActivityDone: API success, updating store",
-        completedActivity,
-      );
-      updateActivity(currentActivityId, {
-        ...completedActivity,
-      });
-      setCurrentActivity(completedActivity);
-      // We can optionally dispatch an event or update unrelated state here
-    } catch (err) {
-      console.error("Failed to complete activity:", err);
-    }
-  };
-
-  const handleVitalsSubmit = async (vitals: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
-    const validation = validateVitals(vitals);
-    if (!validation.valid) {
-      showErrorBottomSheet("Invalid Input", validation.error);
-      return;
-    }
-
-    try {
-      setShowVitalsModal(false);
-      const userId = practiceSession?.user?.id || user?.id;
-      if (!currentActivityId || !userId) return;
-
-      // Stop audio before navigating
-      await stopBackground();
-
-      const completedActivity = await completePracticeActivity({
-        id: currentActivityId,
-        userId,
-        vitals,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
-      updateActivity(currentActivityId, completedActivity);
-      useUserStore.getState().fetchUser();
-      if (packContext && navigation.canGoBack()) {
-        navigation.goBack();
-      } else if (packContext) {
-        navigation.navigate("PackModule", {
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          initialBlockIndex: packContext.blockIndex,
-        });
-      } else {
-        setIsDone(true);
-      }
-    } catch (error) {
-      console.error("Failed to complete activity:", error);
-      showErrorBottomSheet(
-        "Save Failed",
-        "We couldn't save your progress. Please try again.",
-      );
-    }
-  };
-
-  const handleVitalsSkip = async () => {
-    try {
-      setShowVitalsModal(false);
-      const userId = practiceSession?.user?.id || user?.id;
+            const userId = practiceSession?.user?.id || user?.id;
       if (!currentActivityId || !userId) return;
 
       // Stop audio before navigating
       await stopBackground();
 
       console.log(
-        "[Breathing Debug] handleVitalsSkip: Completing activity",
+        "[Breathing] completing activity",
         currentActivityId,
       );
       const completedActivity = await completePracticeActivity({
@@ -249,7 +158,7 @@ const Breathing = () => {
       });
 
       console.log(
-        "[Breathing Debug] handleVitalsSkip: API success, updating store",
+        "[Breathing] completed, updating store",
         completedActivity,
       );
       updateActivity(currentActivityId, completedActivity);
@@ -278,27 +187,15 @@ const Breathing = () => {
   const handleComplete = async () => {
     setIsLoading(true);
     try {
-      // Check if vitals should be collected
-      if (currentActivity && shouldCollectVitals(currentActivity.contentType)) {
-        setShowAccuracy(shouldCollectAccuracy(currentActivity));
-        setShowVitalsModal(true);
-      } else {
-        console.log("[Breathing Debug] Marking activity done via manual completion");
-        await markActivityDone();
-
-        // Stop audio before navigating
-        await stopBackground();
-
-        if (packContext && navigation.canGoBack()) {
-          navigation.goBack();
-        } else if (packContext) {
-          navigation.navigate("PackModule", {
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            initialBlockIndex: packContext.blockIndex,
-          });
-        }
-      }
+      /*
+       * ONE PATH. This used to branch on `shouldCollectVitals`: activities that
+       * collected them opened the modal, and the rest completed directly. With
+       * the modal gone both arms did the same work, and `finishActivity` is the
+       * more complete of the two — it also sets `isDone` when there is no pack
+       * context, which the other arm never did, leaving a free-practice user on
+       * a finished screen with nothing to show for it.
+       */
+      await finishActivity();
     } finally {
       setIsLoading(false);
     }
@@ -314,8 +211,9 @@ const Breathing = () => {
 
   const confirmEarlyExit = () => {
     setShowEarlyExitPrompt(false);
-    // Allow the Sheet to fully animate out (300ms) before
-    // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
+    // Let the Sheet finish animating out (300ms) before aborting, which
+    // navigates. Two native modals overlapping is an app-wide touch freeze
+    // on iOS, and the margin costs nothing.
     setTimeout(() => {
       handleAbort();
     }, 400);
@@ -334,7 +232,6 @@ const Breathing = () => {
           moduleId: packContext?.moduleId,
         });
         updateActivity(currentActivityId, abortedActivity);
-        setCurrentActivity(abortedActivity);
         useUserStore.getState().fetchUser();
       }
 
@@ -487,8 +384,6 @@ const Breathing = () => {
     packContext,
     currentActivityId,
     setActivityId: setCurrentActivityId,
-    // Mirror the page-local currentActivity state on start.
-    onActivityStarted: (activity) => setCurrentActivity(activity),
     navigation,
     logTag: "Breathing",
     // Breathing historically does not emit ACTIVITY_STARTED analytics.
@@ -543,14 +438,6 @@ const Breathing = () => {
         </View>
 
         {/* Vitals Feedback Modal */}
-        <VitalsFeedbackModal
-          visible={showVitalsModal}
-          onSubmit={handleVitalsSubmit}
-          onSkip={handleVitalsSkip}
-          showAccuracy={showAccuracy}
-          accentColor={accentColor}
-          onAccentColor={onAccentColor}
-        />
 
         {/* Early Exit Prompt Bottom Sheet */}
         <Sheet
@@ -774,14 +661,6 @@ const Breathing = () => {
       </Sheet>
 
       {/* Vitals Feedback Modal */}
-      <VitalsFeedbackModal
-        visible={showVitalsModal}
-        onSubmit={handleVitalsSubmit}
-        onSkip={handleVitalsSkip}
-        showAccuracy={showAccuracy}
-        accentColor={accentColor}
-        onAccentColor={onAccentColor}
-      />
 
       {exitSheet}
     </>

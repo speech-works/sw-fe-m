@@ -46,7 +46,6 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import DonePractice from "../../../components/DonePractice";
-import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
@@ -78,7 +77,6 @@ const Meditation = () => {
   // Mute toggle for both background and hover audio
   const [mute, setMute] = useState(false);
   const [isDone, setIsDone] = useState(false);
-  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showEarlyExitPrompt, setShowEarlyExitPrompt] = useState(false);
   const [isAborted, setIsAborted] = useState(false);
 
@@ -114,14 +112,13 @@ const Meditation = () => {
   const TOTAL_SESSION_SECONDS = 5 * 60; // 5 minutes in seconds
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
-  // Save opens the existing vitals modal (the normal completion path). isCompleted
-  // includes showVitalsModal so the 5-min auto-complete window (which opens the
-  // vitals modal) doesn't trigger a second prompt.
+  // Save takes the normal completion path, which now finishes outright:
+  // the vitals modal that used to sit in front of it is gone.
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: currentActivityId,
-    isCompleted: isDone || showVitalsModal,
-    onSave: () => setShowVitalsModal(true),
+    isCompleted: isDone,
+    onSave: () => void finishActivity(),
     accentColor,
     family: "Cognitive",
     from,
@@ -420,17 +417,12 @@ const Meditation = () => {
     }
   };
 
-  const markActivityComplete = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
+  const markActivityComplete = async () => {
     console.log("markActivityComplete [Meditation] called", {
       currentActivityId,
       practiceSession: practiceSession?.id,
       packContext,
       selectedIndex,
-      vitals,
     });
 
     if (
@@ -465,7 +457,6 @@ const Meditation = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
-        vitals,
       });
 
       console.log("Activity COMPLETED:", completedActivity);
@@ -481,11 +472,6 @@ const Meditation = () => {
         contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
         title: meditationScenarios[selectedIndex]?.name,
         isPackContext: !!packContext?.packId,
-        vitals: vitals ? {
-          effortScore: vitals.effortScore,
-          autonomyScore: vitals.autonomyScore,
-          accuracyScore: vitals.accuracyScore ?? null,
-        } : null
       });
 
       useUserStore.getState().fetchUser();
@@ -510,7 +496,7 @@ const Meditation = () => {
             clearInterval(intervalRef.current!);
             setIsPlaying(false); // Stop playing when session is complete
             // Show vitals modal instead of completing immediately
-            setShowVitalsModal(true);
+            void finishActivity();
             return TOTAL_SESSION_SECONDS;
           }
           return prevProgress + 1;
@@ -551,8 +537,9 @@ const Meditation = () => {
 
   const confirmEarlyExit = () => {
     setShowEarlyExitPrompt(false);
-    // Allow the Sheet to fully animate out (300ms) before
-    // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
+    // Let the Sheet finish animating out (300ms) before aborting, which
+    // navigates. Two native modals overlapping is an app-wide touch freeze
+    // on iOS, and the margin costs nothing.
     setTimeout(() => {
       handleAbort();
     }, 400);
@@ -608,17 +595,12 @@ const Meditation = () => {
   const handleComplete = () => {
     setIsPlaying(false);
     setIsStarted(false); // Add this to exit immersive view when showing vitals
-    setShowVitalsModal(true);
+    void finishActivity();
   };
 
-  const handleVitalsSubmit = async (vitals?: {
-    effortScore: number;
-    autonomyScore: number;
-    accuracyScore?: number;
-  }) => {
-    setShowVitalsModal(false);
+  const finishActivity = async () => {
     try {
-      await markActivityComplete(vitals);
+      await markActivityComplete();
       if (packContext) {
         if (navigation.canGoBack()) {
           navigation.goBack();
@@ -857,14 +839,6 @@ const Meditation = () => {
             })}
         </View>
       </Sheet>
-
-      <VitalsFeedbackModal
-        visible={showVitalsModal}
-        onSkip={() => handleVitalsSubmit(undefined)}
-        onSubmit={handleVitalsSubmit}
-        accentColor={accentColor}
-        onAccentColor={onAccentColor}
-      />
 
       {exitSheet}
     </>
