@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getOffers, type OfferItem } from "../../api";
 import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
@@ -19,6 +19,7 @@ import {
   Spinner,
 } from "../../design-system";
 import ProgramSalesFlow from "./ProgramSalesFlow";
+import NextDayCountdown from "./NextDayCountdown";
 import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
@@ -129,6 +130,18 @@ const ProgramDetailScreen = () => {
       cancelled = true;
     };
   }, [catalogKey, packId]);
+
+  // The clock ran out while they were sitting here. Ask the server what is
+  // open now, so the wait turns into the way in without a manual reload.
+  const refreshProgress = useCallback(() => {
+    if (!offer?.packId) return;
+    getPackProgress(offer.packId)
+      .then(setProgress)
+      .catch(() => {
+        /* Nothing to recover: the countdown stays at "Opening now" and a
+           back-and-forward re-fetches anyway. */
+      });
+  }, [offer?.packId]);
 
   const handleBuy = async () => {
     if (!offer) return;
@@ -267,14 +280,29 @@ const ProgramDetailScreen = () => {
         moduleId: open.moduleId,
       };
     }
+    // Today is done and the next day has not opened. There is nothing to press,
+    // and the screen says so with a countdown rather than a button that would
+    // either lie or dump them on a locked day.
     return {
-      line: "That's today done. The next day opens tomorrow.",
+      line: "",
       cta: "",
       canOpen: false,
       finished: false,
       moduleId: undefined,
     };
   })();
+
+  /**
+   * The instant the next day unlocks, straight from the server.
+   *
+   * Never derived on the device. The gate is elapsed-24h measured on the
+   * server clock, so deriving it here would be a second copy of that formula,
+   * free to drift from the one that actually holds the lock. An older backend
+   * that does not send it simply gets no countdown.
+   */
+  const opensAt = progress?.nextDayOpensAt
+    ? new Date(progress.nextDayOpensAt)
+    : null;
 
   const openOwned = async () => {
     if (!offer.packId || opening) return;
@@ -351,22 +379,55 @@ const ProgramDetailScreen = () => {
           </View>
         )}
 
-        <View style={styles.ownedRow}>
-          <Icon name={icons.success} size={size.iconSm} color={colors.feedback.successText} />
-          <Text variant="title" color={colors.feedback.successText}>
-            {ownedState.line}
-          </Text>
-        </View>
-
         {/* THE WAY IN. Without this the screen was a receipt. */}
         {ownedState.canOpen ? (
-          <Button
-            label={ownedState.cta}
-            leftIcon={ownedState.finished ? icons.refresh : icons.play}
-            loading={opening}
-            onPress={openOwned}
+          <View style={styles.ownedBlock}>
+            <View style={styles.ownedRow}>
+              <Icon
+                name={icons.success}
+                size={size.iconSm}
+                color={colors.feedback.successText}
+              />
+              {/* flex: 1 — a Text in a row does not shrink in React Native, so
+                  without it this line overflowed the screen gutter on both
+                  sides and the tick sat outside the page padding. */}
+              <Text
+                variant="title"
+                color={colors.feedback.successText}
+                style={styles.ownedText}
+              >
+                {ownedState.line}
+              </Text>
+            </View>
+            <Button
+              label={ownedState.cta}
+              leftIcon={ownedState.finished ? icons.refresh : icons.play}
+              loading={opening}
+              onPress={openOwned}
+            />
+          </View>
+        ) : opensAt ? (
+          <NextDayCountdown
+            opensAt={opensAt}
+            dayIndex={progress?.nextIncompleteDay}
+            onOpened={refreshProgress}
           />
-        ) : null}
+        ) : (
+          <View style={styles.ownedRow}>
+            <Icon
+              name={icons.success}
+              size={size.iconSm}
+              color={colors.feedback.successText}
+            />
+            <Text
+              variant="title"
+              color={colors.feedback.successText}
+              style={styles.ownedText}
+            >
+              That&apos;s today done.
+            </Text>
+          </View>
+        )}
       </Page>
     );
   }
@@ -395,10 +456,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing["3xl"],
     alignItems: "center",
   },
+  // No bottom margin here or on `card`: `Page` already puts space.groupGap
+  // between its children, and the hand-rolled margins were stacking on top of
+  // it for a rhythm nothing else on the screen shared.
   metaRow: {
     flexDirection: "row",
     gap: spacing.sm,
-    marginBottom: spacing.lg,
   },
   metaChip: {
     flexDirection: "row",
@@ -410,7 +473,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.xl,
     gap: spacing.md,
-    marginBottom: spacing.xl,
   },
   moduleRow: {
     flexDirection: "row",
@@ -423,11 +485,17 @@ const styles = StyleSheet.create({
   moduleTitle: {
     flex: 1,
   },
+  ownedBlock: {
+    gap: spacing.lg,
+  },
+  // Left-aligned like every other block on the page. It used to centre itself,
+  // which on an overflowing row pushed the tick outside the screen gutter.
   ownedRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    justifyContent: "center",
-    paddingVertical: spacing.xl,
+  },
+  ownedText: {
+    flex: 1,
   },
 });

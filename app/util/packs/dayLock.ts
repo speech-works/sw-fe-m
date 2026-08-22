@@ -35,6 +35,12 @@ export interface DayLockState {
   nextIncompleteDay: number | null;
   /** A module inside `nextIncompleteDay` to send them to, when one is open. */
   openModuleId: string | null;
+  /**
+   * When the next day unlocks, from `PackProgress.nextDayOpensAt`. Optional:
+   * an older backend does not send it and the message falls back to counting
+   * days.
+   */
+  nextDayOpensAt?: Date | string | null;
 }
 
 export type DayLockAction =
@@ -50,17 +56,74 @@ export interface DayLockMessage {
   action: DayLockAction;
 }
 
-/** "opens tomorrow" / "opens in 3 days" / "opens later" — never a guess. */
-function opensPhrase(lockedDay: number | null, currentDay: number | null): string {
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * How long until the next day opens, in words, rounded UP.
+ *
+ * Always up. A wait rounded down promises the day is ready before it is, and
+ * sends somebody back to the locked screen they just left. Rounded up, the
+ * worst case is that they arrive to find it already open.
+ *
+ * Returns null when we were not told the instant, so the caller can fall back
+ * to counting days.
+ */
+function waitPhrase(opensAt: Date | string | null | undefined, now: number): string | null {
+  if (!opensAt) return null;
+  const target = new Date(opensAt).getTime();
+  if (!Number.isFinite(target)) return null;
+  const left = target - now;
+  // Already open, or so close that any number would be stale before it is read.
+  if (left <= MINUTE_MS) return "in a moment";
+  if (left < HOUR_MS) {
+    const m = Math.ceil(left / MINUTE_MS);
+    // Rounding up can land on 60, and "in 60 minutes" is a thing nobody says.
+    if (m >= 60) return "in 1 hour";
+    return `in ${m} ${m === 1 ? "minute" : "minutes"}`;
+  }
+  if (left < DAY_MS) {
+    const h = Math.ceil(left / HOUR_MS);
+    return `in ${h} ${h === 1 ? "hour" : "hours"}`;
+  }
+  const d = Math.ceil(left / DAY_MS);
+  return `in ${d} ${d === 1 ? "day" : "days"}`;
+}
+
+/**
+ * "opens in 20 hours" / "opens in 3 days" / "opens later" — never a guess.
+ *
+ * It used to say "opens tomorrow" for the one-day case, and that was wrong in
+ * two ways at once. The gate is 24 hours from when the day was started, not a
+ * calendar boundary, so a day begun at 9pm opens the next one at 9pm rather
+ * than at midnight. And anybody reading it after midnight is already IN
+ * tomorrow, and is being told to wait for a day that has, as far as they can
+ * tell, arrived. Both go away once the app says how LONG instead of when.
+ *
+ * `opensAt` comes from the server (`PackProgress.nextDayOpensAt`) and is never
+ * derived here: the same arithmetic held in two places is how a wait ends up
+ * disagreeing with the lock it describes. Without it we count days, as before.
+ */
+function opensPhrase(
+  lockedDay: number | null,
+  currentDay: number | null,
+  opensAt?: Date | string | null,
+  now: number = Date.now(),
+): string {
+  const day = lockedDay == null ? "This day" : `Day ${lockedDay}`;
+  const wait = waitPhrase(opensAt, now);
+  if (wait) return `${day} opens ${wait}.`;
+
   if (lockedDay == null || currentDay == null) return "This day opens later.";
   const daysAway = lockedDay - currentDay;
   if (daysAway <= 0) {
-    // Shouldn't happen (the day would be open), but claiming "tomorrow" for a
+    // Shouldn't happen (the day would be open), but claiming a wait for a
     // day that is already open is exactly the class of lie this module exists
     // to stop.
     return `Day ${lockedDay} opens later.`;
   }
-  if (daysAway === 1) return `Day ${lockedDay} opens tomorrow.`;
+  if (daysAway === 1) return `Day ${lockedDay} opens in a day.`;
   return `Day ${lockedDay} opens in ${daysAway} days.`;
 }
 
@@ -77,6 +140,7 @@ export function dayLockMessage(state: DayLockState | null): DayLockMessage {
   }
 
   const { lockedDay, currentDay, nextIncompleteDay, openModuleId } = state;
+  const opens = opensPhrase(lockedDay, currentDay, state.nextDayOpensAt);
 
   const caughtUp =
     nextIncompleteDay == null || nextIncompleteDay > currentDay;
@@ -87,7 +151,7 @@ export function dayLockMessage(state: DayLockState | null): DayLockMessage {
   if (caughtUp) {
     return {
       title: "That's today done",
-      body: opensPhrase(lockedDay, currentDay),
+      body: opens,
       actionLabel: "Done for today",
       action: "leave",
     };
@@ -96,7 +160,7 @@ export function dayLockMessage(state: DayLockState | null): DayLockMessage {
   // CASE 2 — there is real work behind them. Name the day rather than pointing
   // vaguely at a page, and only offer to go there if we actually have a module
   // to open.
-  const behindBody = `${opensPhrase(lockedDay, currentDay)} Day ${nextIncompleteDay} is still open.`;
+  const behindBody = `${opens} Day ${nextIncompleteDay} is still open.`;
 
   if (openModuleId) {
     return {
@@ -124,9 +188,11 @@ export function dayCloseLine(state: {
   finishedDay: number | null;
   nextDay: number | null;
   currentDay: number | null;
+  /** From `PackProgress.nextDayOpensAt`. Optional; see `opensPhrase`. */
+  nextDayOpensAt?: Date | string | null;
 }): string {
   const { finishedDay, nextDay, currentDay } = state;
-  const opens = opensPhrase(nextDay, currentDay);
+  const opens = opensPhrase(nextDay, currentDay, state.nextDayOpensAt);
   if (finishedDay == null) return `That's you for today. ${opens}`;
   return `Day ${finishedDay} done. ${opens}`;
 }

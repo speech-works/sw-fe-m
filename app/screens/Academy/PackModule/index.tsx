@@ -99,6 +99,7 @@ const PackModuleScreen = () => {
     currentDay: number | null;
     nextIncompleteDay: number | null;
     openModuleId: string | null;
+    nextDayOpensAt: Date | string | null;
   } | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
@@ -444,6 +445,7 @@ const PackModuleScreen = () => {
                       m.status !== "COMPLETED" &&
                       m.unlocked !== false,
                   )?.moduleId ?? null,
+                nextDayOpensAt: progress.nextDayOpensAt ?? null,
               });
             } catch {
               // Say the vague-but-true thing rather than nothing at all.
@@ -605,6 +607,7 @@ const PackModuleScreen = () => {
     finishedDay: number | null;
     nextDay: number | null;
     currentDay: number | null;
+    nextDayOpensAt: Date | string | null;
   } | null>(null);
 
   const handleComplete = async () => {
@@ -651,6 +654,10 @@ const PackModuleScreen = () => {
                   finishedDay,
                   nextDay: nextMod.dayIndex ?? null,
                   currentDay: result.currentDay ?? null,
+                  // How long the wait is, not the word "tomorrow" — which is
+                  // wrong for anyone finishing a day after midnight, and wrong
+                  // anyway because the gate is 24h from the start.
+                  nextDayOpensAt: result.nextDayOpensAt ?? null,
                 }
               : null,
           );

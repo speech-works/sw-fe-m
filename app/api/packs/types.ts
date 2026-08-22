@@ -258,6 +258,16 @@ export interface PackProgress {
    * behind" concept anywhere, on purpose.
    */
   nextIncompleteDay?: number | null;
+  /**
+   * When the next day unlocks. Optional for the same reason as the fields above:
+   * an older backend does not send it, and absent must never be read as "now".
+   *
+   * The app must NOT derive this from `startedAt`. The gate is elapsed-24h on
+   * the SERVER clock (PackAccessService.resolveDayState), so a second copy of
+   * that arithmetic here would be a countdown that could disagree with the lock
+   * it counts down to.
+   */
+  nextDayOpensAt?: Date | string | null;
 }
 
 /**

@@ -44,6 +44,12 @@ export interface ActiveProgram {
   nextModuleDay: number | null;
   /** Which day is open by the clock, so the card can count the wait. */
   currentDay: number | null;
+  /**
+   * When the next day unlocks, so the card can say how LONG the wait is
+   * instead of "tomorrow" — which is wrong after midnight and wrong anyway,
+   * because the gate is 24h from the start, not a calendar date.
+   */
+  nextDayOpensAt: Date | string | null;
 }
 
 export interface ActiveProgramState {
@@ -164,6 +170,7 @@ export function useActiveProgram(): ActiveProgramState {
               nextModuleLocked,
               nextModuleDay: nextProgress?.dayIndex ?? null,
               currentDay: progress?.currentDay ?? null,
+              nextDayOpensAt: progress?.nextDayOpensAt ?? null,
             },
           });
         } catch (err) {
