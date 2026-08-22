@@ -2,12 +2,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { getOffers, type OfferItem } from "../../api";
-import { getPackBrochure } from "../../api/packs";
+import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
 import { selectOffer } from "../../util/packs/offers";
-import { PackBrochure } from "../../api/packs/types";
+import { PackBrochure, PackProgress } from "../../api/packs/types";
 import { purchaseCatalogItem, pollWalletUntil } from "../../services/purchases";
 import {
   size,
+  Button,
   Page,
   Text,
   Icon,
@@ -57,6 +58,19 @@ const ProgramDetailScreen = () => {
   const [bonusEligible, setBonusEligible] = useState(false);
   const [brochure, setBrochure] = useState<PackBrochure | null>(null);
   const [owned, setOwned] = useState(false);
+  /**
+   * ── OWNING A PROGRAM USED TO BE A DEAD END ────────────────────────────────
+   * This screen said "You own this. It's unlocked." and offered no way in. The
+   * list card that got you here goes to this screen for owned packs too, so the
+   * only route back into something you had paid for was Home's For-you shelf,
+   * which shows the ACTIVE program and nothing else.
+   *
+   * PackModule cannot work this out for itself: handed a `packId` with no
+   * `moduleId` it logs "No module ID provided" and renders nothing. So the
+   * screen that offers the button has to know which day the button opens.
+   */
+  const [progress, setProgress] = useState<PackProgress | null>(null);
+  const [opening, setOpening] = useState(false);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
 
@@ -81,6 +95,16 @@ const ProgramDetailScreen = () => {
         setIsFounder(offers.isFounderCohort);
         setBonusEligible(offers.bonusMembershipEligible);
         setOwned(match?.owned ?? false);
+        // Only for owners: for everybody else the endpoint is a 403 and the
+        // sales flow needs nothing from it.
+        if (match?.owned && match.packId) {
+          getPackProgress(match.packId)
+            .then(setProgress)
+            .catch(() => {
+              /* The button falls back to "Open", which PackModule can still
+                 resolve from day one. Never worth blocking the screen. */
+            });
+        }
       } catch (error) {
         console.error("[ProgramDetail] Failed to load offer:", error);
       }
@@ -198,6 +222,79 @@ const ProgramDetailScreen = () => {
   const dayCount = brochure?.arcDays ?? null;
   const moduleCount = brochure?.moduleCount ?? 0;
 
+  /**
+   * What the owned screen can honestly offer, in three states.
+   *
+   * The middle one is the one worth having: today's work is DONE and tomorrow
+   * has not opened, so there is nothing to press. A button there would either
+   * lie or dump them on a locked day, and this feature has spent a lot of
+   * effort not doing that to people.
+   */
+  const ownedState = (() => {
+    if (!progress) {
+      return {
+        line: "You own this. It's unlocked.",
+        cta: "Open",
+        canOpen: true,
+        finished: false,
+        moduleId: undefined as string | undefined,
+      };
+    }
+    const finished = progress.packStatus === "COMPLETED";
+    if (finished) {
+      return {
+        line: "You finished this one.",
+        cta: "Start again from day one",
+        canOpen: true,
+        finished: true,
+        moduleId: undefined,
+      };
+    }
+    const open = progress.modules.find(
+      (m) =>
+        m.dayIndex != null &&
+        m.dayIndex === progress.nextIncompleteDay &&
+        m.status !== "COMPLETED" &&
+        m.unlocked !== false,
+    );
+    if (open) {
+      const started = progress.modules.some((m) => m.status === "COMPLETED");
+      return {
+        line: "You own this. It's unlocked.",
+        cta: started ? "Continue" : "Start day one",
+        canOpen: true,
+        finished: false,
+        moduleId: open.moduleId,
+      };
+    }
+    return {
+      line: "That's today done. The next day opens tomorrow.",
+      cta: "",
+      canOpen: false,
+      finished: false,
+      moduleId: undefined,
+    };
+  })();
+
+  const openOwned = async () => {
+    if (!offer.packId || opening) return;
+    setOpening(true);
+    try {
+      // Awaited, not raced: PackModule reads progress on open, so a restart
+      // fired alongside the navigation would land them on a day that has not
+      // been cleared yet.
+      if (ownedState.finished) await restartPack(offer.packId);
+      navigation.navigate("PackModule", {
+        packId: offer.packId,
+        moduleId: ownedState.moduleId,
+      });
+    } catch (err) {
+      console.error("Could not open the program", err);
+    } finally {
+      setOpening(false);
+    }
+  };
+
   // OWNED — a calm confirmation with the curriculum recap, no buy affordance.
   // Kept on the standard Page (the sales funnel is only for the buyable state).
   if (owned) {
@@ -257,9 +354,19 @@ const ProgramDetailScreen = () => {
         <View style={styles.ownedRow}>
           <Icon name={icons.success} size={size.iconSm} color={colors.feedback.successText} />
           <Text variant="title" color={colors.feedback.successText}>
-            You own this. It&apos;s unlocked.
+            {ownedState.line}
           </Text>
         </View>
+
+        {/* THE WAY IN. Without this the screen was a receipt. */}
+        {ownedState.canOpen ? (
+          <Button
+            label={ownedState.cta}
+            leftIcon={ownedState.finished ? icons.refresh : icons.play}
+            loading={opening}
+            onPress={openOwned}
+          />
+        ) : null}
       </Page>
     );
   }

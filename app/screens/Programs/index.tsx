@@ -205,7 +205,12 @@ const ProgramsScreen = () => {
     if (item.creditGrantAmount > 0) {
       lines.push(`${item.creditGrantAmount} AI practice calls`);
     }
-    if (item.bonusMembershipDays > 0 && offers?.bonusMembershipEligible) {
+    // Same rule as the chips: not on a card for something already bought.
+    if (
+      !item.owned &&
+      item.bonusMembershipDays > 0 &&
+      offers?.bonusMembershipEligible
+    ) {
       lines.push("First month of membership free");
     }
     return lines;
