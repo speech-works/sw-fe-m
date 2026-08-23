@@ -48,6 +48,13 @@
         "REVENUECAT_ANDROID_API_KEY": "goog_HZDWdjmUnwCVMhuQRdEcPrcEVav",
         "REVENUECAT_IOS_API_KEY": "appl_YDUpxLTgbLvrcgxWiapEerUUTBn"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
