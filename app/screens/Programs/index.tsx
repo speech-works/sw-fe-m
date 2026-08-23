@@ -1,6 +1,23 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import {
+  type LayoutChangeEvent,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import Svg, { Line } from "react-native-svg";
 import { getOffers, type OfferItem, type Offers } from "../../api";
 import { track } from "../../util/analytics/postHog";
@@ -23,8 +40,15 @@ import {
   borderWidth,
   withAlpha,
   Spinner,
+  haptics,
+  spring,
+  useNavBarInset,
+  zIndex,
+  IconButton,
+  SchemeStatusBar,
 } from "../../design-system";
 import PressableScale from "../../components/PressableScale";
+import ScreenView from "../../components/ScreenView";
 import RecHeroCard, { CTA_ICON } from "../../components/Dashboard/RecHeroCard";
 import {
   programEyebrow,
@@ -35,6 +59,8 @@ import {
 import { useStorePrices } from "../../hooks/useStorePrices";
 import { openOnboarding } from "../../util/functions/openOnboarding";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
+import { useProgramsDock, type ProgramsView } from "../../stores/programsDock";
+import ProgramsDock from "./ProgramsDock";
 
 /**
  * THE SHOP — every program we sell, ranked for the person looking at it.
@@ -95,6 +121,29 @@ const ProgramsScreen = () => {
   );
 
   /**
+   * ── THE SHOP'S TWO HALVES ────────────────────────────────────────────────
+   * `view` lives in the store rather than in this component because the
+   * control that changes it is the bottom dock, which is rendered by
+   * `CustomTabBar` at the root of the app. One value, two readers, and the
+   * dock and the screen can never disagree about which half is showing.
+   */
+  const view = useProgramsDock((s) => s.view);
+  const setView = useProgramsDock((s) => s.setView);
+  const enterDock = useProgramsDock((s) => s.enter);
+  const leaveDock = useProgramsDock((s) => s.leave);
+  const setOwnedCount = useProgramsDock((s) => s.setOwnedCount);
+
+  // The dock is the shop's for exactly as long as the shop is on screen. The
+  // Menu pill is handed the ONE navigator that can actually leave: `goBack` on
+  // the tab navigator would pop the tab, not this stack screen inside it.
+  useFocusEffect(
+    useCallback(() => {
+      enterDock(() => navigation.goBack());
+      return () => leaveDock();
+    }, [enterDock, leaveDock, navigation]),
+  );
+
+  /**
    * THIS SCREEN USED TO FIRE NOTHING AT ALL. Not a view, not a click — so a
    * purchase that started in the shop was indistinguishable from one that
    * started anywhere else, and the only measured arm of the funnel was Home's.
@@ -104,7 +153,7 @@ const ProgramsScreen = () => {
    */
   const openDetail = (
     item: OfferItem,
-    source: "programs_hero" | "programs_list",
+    source: "programs_hero" | "programs_list" | "programs_owned",
     position: number,
   ) => {
     track(ANALYTICS_EVENTS.PACK_CLICKED, {
@@ -301,7 +350,11 @@ const ProgramsScreen = () => {
               and finally gets a ground that suits it. */}
           <View style={styles.stubRow}>
             <View style={[styles.claimChip, { backgroundColor: ink }]}>
-              <Icon name={icons.star} size={size.iconInline} color={colors.accent.lime} />
+              <Icon
+                name={icons.star}
+                size={size.iconInline}
+                color={colors.accent.lime}
+              />
               <Text variant="eyebrow" color={colors.accent.lime}>
                 TOP MATCH
               </Text>
@@ -413,7 +466,10 @@ const ProgramsScreen = () => {
               role is transparent, so all three of these draw nothing.
 
               Drawn after the tear line so the discs still cover its ends. */}
-          <View style={[styles.heroOutline, primaryEdge(colors)]} pointerEvents="none" />
+          <View
+            style={[styles.heroOutline, primaryEdge(colors)]}
+            pointerEvents="none"
+          />
           <View
             style={[
               styles.notch,
@@ -433,7 +489,6 @@ const ProgramsScreen = () => {
             pointerEvents="none"
           />
         </View>
-
       </PressableScale>
     );
   };
@@ -461,7 +516,11 @@ const ProgramsScreen = () => {
   // `index` is the position within `restItems` — the position on screen, which
   // is what a position metric has to mean. Indexing `items` instead would report
   // 1 for the first card whenever a hero was lifted out above it.
-  const renderCard = (item: OfferItem, index: number) => {
+  const renderCard = (
+    item: OfferItem,
+    index: number,
+    source: "programs_list" | "programs_owned" = "programs_list",
+  ) => {
     const reason = item.match?.reason ?? null;
     const isDeep = item.shelf === "deep";
     const facts = factChips(item);
@@ -471,7 +530,7 @@ const ProgramsScreen = () => {
       <PressableScale
         key={item.key}
         scaleTo={0.98}
-        onPress={() => openDetail(item, "programs_list", index)}
+        onPress={() => openDetail(item, source, index)}
         style={[
           styles.card,
           // e1 — empty on ink, a soft lift on paper. A near-white card on a
@@ -494,9 +553,17 @@ const ProgramsScreen = () => {
             its header for why "Deep work" was retired. */}
         {isDeep ? (
           <View
-            style={[styles.tierChip, { backgroundColor: colors.accent.purple }, accentEdge(colors, "purple")]}
+            style={[
+              styles.tierChip,
+              { backgroundColor: colors.accent.purple },
+              accentEdge(colors, "purple"),
+            ]}
           >
-            <Icon name={icons.pro} size={size.iconInline} color={colors.accentOn.purple} />
+            <Icon
+              name={icons.pro}
+              size={size.iconInline}
+              color={colors.accentOn.purple}
+            />
             <Text variant="eyebrow" color={colors.accentOn.purple}>
               {programShelfLabel(item)}
             </Text>
@@ -512,16 +579,33 @@ const ProgramsScreen = () => {
             {item.title}
           </Text>
           {item.owned ? (
-            <View style={styles.ownedTag}>
-              <Icon
-                name={icons.success}
-                size={size.iconSm}
-                color={colors.feedback.successText}
-              />
-              <Text variant="title" color={colors.feedback.successText}>
-                Owned
-              </Text>
-            </View>
+            /* ON THE YOURS SHELF, "OWNED" IS THE NAME OF THE SHELF.
+               Printing it on every card there says nothing the tab did not
+               already say, and it says it where the only useful thing a card
+               can offer is a way in. So the badge becomes the action. */
+            view === "yours" ? (
+              <View style={styles.ownedTag}>
+                <Text variant="title" color={colors.text.accent}>
+                  Open
+                </Text>
+                <Icon
+                  name={icons.chevronRight}
+                  size={size.iconSm}
+                  color={colors.text.accent}
+                />
+              </View>
+            ) : (
+              <View style={styles.ownedTag}>
+                <Icon
+                  name={icons.success}
+                  size={size.iconSm}
+                  color={colors.feedback.successText}
+                />
+                <Text variant="title" color={colors.feedback.successText}>
+                  Owned
+                </Text>
+              </View>
+            )
           ) : (
             <PriceTag
               priceInr={item.priceInr}
@@ -553,7 +637,9 @@ const ProgramsScreen = () => {
              inclusion bullets is how a signal stops meaning anything. Success
              green says "included", which is what a tick means, and
              `accentText.*` resolves per scheme so it is legible on both. */
-          <View style={[styles.incl, { borderTopColor: colors.border.default }]}>
+          <View
+            style={[styles.incl, { borderTopColor: colors.border.default }]}
+          >
             {lines.map((line) => (
               <View key={line} style={styles.inclLine}>
                 <Icon
@@ -561,7 +647,11 @@ const ProgramsScreen = () => {
                   size={size.iconInline}
                   color={colors.accentText.success}
                 />
-                <Text variant="bodySm" color="secondary" style={styles.inclText}>
+                <Text
+                  variant="bodySm"
+                  color="secondary"
+                  style={styles.inclText}
+                >
                   {line}
                 </Text>
               </View>
@@ -577,7 +667,10 @@ const ProgramsScreen = () => {
             {facts.map((fact) => (
               <View
                 key={fact}
-                style={[styles.fact, { backgroundColor: colors.surface.control }]}
+                style={[
+                  styles.fact,
+                  { backgroundColor: colors.surface.control },
+                ]}
               >
                 <Text variant="caption" color="secondary">
                   {fact}
@@ -598,7 +691,9 @@ const ProgramsScreen = () => {
   const heroItem = hasSignal
     ? items.find((i) => i.match?.level === "top" && !i.owned)
     : undefined;
-  const afterHero = heroItem ? items.filter((i) => i.key !== heroItem.key) : items;
+  const afterHero = heroItem
+    ? items.filter((i) => i.key !== heroItem.key)
+    : items;
 
   /**
    * ── WHAT THEY ALREADY BOUGHT COMES OUT OF THE SHOP ───────────────────────
@@ -609,12 +704,18 @@ const ProgramsScreen = () => {
    * ACTIVE one, so completing a program made it disappear from every surface
    * except a scroll through the shop.
    *
-   * So owned programs lift into their own short section above, and the sale
-   * list below is only things to buy.
+   * It first lifted into its own short SECTION above the sale list, and that
+   * fixed the wrong-shelf problem while creating a worse one: the second card
+   * on the page was something nobody could buy, and every further program a
+   * person owned pushed the catalogue further down. The more they had bought,
+   * the less shop they saw.
    *
-   * THE TIER PILLS DO NOT TOUCH IT. They answer "which of these would I buy",
-   * and hiding a program somebody already paid for behind a shelf filter would
-   * make it unfindable for the second time.
+   * So the two are now two halves of the screen, switched by the bottom dock.
+   * Browse is only things to buy. Yours is only things they have.
+   *
+   * THE TIER PILLS BELONG TO BROWSE ONLY. They answer "which of these would I
+   * buy", and hiding a program somebody already paid for behind a shelf filter
+   * would make it unfindable for the second time.
    */
   const ownedItems = afterHero.filter((i) => i.owned);
   const forSale = afterHero.filter((i) => !i.owned);
@@ -627,6 +728,13 @@ const ProgramsScreen = () => {
   // reordering the ones that remain.
   const shownItems =
     tier === "all" ? forSale : forSale.filter((i) => i.shelf === tier);
+
+  // The number ON the Yours tab. Written from here rather than read by the
+  // dock, because the offers request is the only place that knows it, and the
+  // dock has no business fetching anything.
+  useEffect(() => {
+    setOwnedCount(ownedItems.length);
+  }, [ownedItems.length, setOwnedCount]);
 
   // Gated on the branch that actually renders the shelf, NOT on the fetch
   // resolving — loading, failed and empty all resolve too, and none of them is
@@ -651,121 +759,455 @@ const ProgramsScreen = () => {
     heroItem?.key,
   ]);
 
-  return (
-    <Page
-      title="Programs"
-      description="Guided programs built around one situation at a time. Buy once, yours to keep."
-      onBack={() => navigation.goBack()}
-    >
-      {loading ? (
-        <View style={styles.centered}>
-          <Spinner label="Loading programs…" />
-        </View>
-      ) : failed ? (
-        <View style={styles.centered}>
-          <Text variant="body" color="secondary" center>
-            We couldn&apos;t load the programs just now. Pull back and try again
-            in a moment.
-          </Text>
-        </View>
-      ) : items.length === 0 ? (
-        // Deliberately not an error: an empty catalog is a normal state before
-        // anything is on sale, and it should read as "nothing yet", not "broken".
-        <View style={styles.centered}>
-          <Text variant="body" color="secondary" center>
-            No programs are available right now. Check back soon.
-          </Text>
-        </View>
-      ) : (
-        <>
-          {/*
-            THIS CARD STANDS IN THE HERO'S SLOT, and the two are mutually
-            exclusive: the hero needs `hasSignal`, this renders only when we
-            don't have it. So it is not a small aside above the shop — when it
-            shows, it is the ONLY thing at the top of the screen, and the list
-            below it is unranked because of the very thing it is asking for.
-            A muted bordered row understated all of that.
+  /**
+   * ── SWIPING BETWEEN THE TWO HALVES ───────────────────────────────────────
+   * A REAL PAGER: both halves sit side by side in one row, and the row follows
+   * the finger. Half a swipe is half the next shelf, and reversing mid-drag
+   * brings the old one back, because nothing is decided until you let go.
+   *
+   * Two earlier attempts are worth recording so neither comes back.
+   *
+   * A pan that only nudged the page and swapped the content on release. It
+   * answered "did the tab change" and nothing else: half a swipe showed a
+   * shrug, and changing your mind halfway did nothing, because the direction
+   * was only ever read at the end.
+   *
+   * A native `pagingEnabled` ScrollView, which would have been free. It cannot
+   * work here: each half is itself a vertical ScrollView, and the inner one
+   * swallows the horizontal pan before the outer sees it. `Gesture.Pan`
+   * does not have that problem, because gesture-handler arbitrates across the
+   * whole tree rather than letting the innermost scroll view win by default.
+   *
+   * `activeOffsetX` at 16 with `failOffsetY` at 12 is what keeps the vertical
+   * lists feeling untouched: the pan cannot claim the gesture until the finger
+   * has clearly gone sideways, and it gives up the moment it goes down.
+   */
+  const { width: windowW } = useWindowDimensions();
+  const navBarInset = useNavBarInset();
+  const reduced = useReducedMotion();
 
-            It gets the vivid banner treatment for that reason, in LIME rather
-            than the default blue: it is not a product, and it must not read as
-            one more thing to buy. Nothing else in the shop is lime, and the
-            accent is unclaimed elsewhere in the app — the colour alone says
-            "this one is different" before a word is read.
-          */}
-          {!hasSignal ? (
-            <RecHeroCard
-              accentKey="lime"
-              eyebrow="PERSONALISE THIS LIST"
-              title="Not sure where to start?"
-              subtitle="Answer a few questions and we'll point you to the program built for what you find hardest."
-              ctaLabel="Get matched"
-              // Not the default pack glyph: this button doesn't open a program,
-              // it starts the questions that decide which one to point at.
-              ctaIcon={icons.roadmap}
-              onPress={startOnboarding}
+  // The pages are as wide as the column, not as the window: they live inside
+  // `Page`, which owns the screen gutter. Seeded from the window so the very
+  // first frame is right, then corrected from the real layout.
+  const [pageW, setPageW] = useState(windowW);
+  const onPagerLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    setPageW((prev) => (Math.abs(prev - w) < 1 ? prev : w));
+  }, []);
+
+  const index = view === "yours" ? 1 : 0;
+  const x = useSharedValue(0);
+  const startX = useSharedValue(0);
+
+  /**
+   * ── THE CROSSING IS SOFT, THE ENDS ARE SHARP ─────────────────────────────
+   * A blur laid over both halves while the row is in motion, at zero on both
+   * ends and full in the middle. What it buys is not decoration: two shelves
+   * of cards side by side, both perfectly legible and both sliding, is a lot
+   * of small type asking to be read while it moves. Softening the crossing
+   * says "this is one thing becoming another" instead of asking the eye to
+   * track nine prices going past.
+   *
+   * ZERO AT BOTH ENDS, deliberately. A blur that is still clearing when the
+   * page lands would undo the thing this pager was rebuilt for: you have to be
+   * able to see where you are going, and you have to arrive sharp.
+   *
+   * MOUNTED ONLY WHILE MOVING. A blur view at zero opacity is still a blur
+   * view: the compositor does the work and throws it away, on every frame of a
+   * screen people sit and read. So it exists for the length of the transition
+   * and no longer.
+   */
+  const [blurring, setBlurring] = useState(false);
+
+  // The dock drives the row. Also runs on mount and whenever the column is
+  // remeasured, which is what keeps a rotation from leaving it between pages.
+  useEffect(() => {
+    const target = -index * pageW;
+    if (reduced) {
+      x.value = target;
+      return;
+    }
+    if (x.value !== target) setBlurring(true);
+    x.value = withSpring(target, spring.gentle, (finished) => {
+      if (finished) runOnJS(setBlurring)(false);
+    });
+  }, [index, pageW, reduced, x]);
+
+  const commitView = useCallback(
+    (next: ProgramsView) => {
+      haptics.selection();
+      setView(next);
+    },
+    [setView],
+  );
+
+  const pan = Gesture.Pan()
+    // A wide gap between the two on purpose. The pan may not claim the gesture
+    // until the finger has gone 20 points sideways, and it gives up as soon as
+    // it has gone 8 points down, so a drag that is mostly vertical fails before
+    // it can ever activate. Narrow the gap and a fast diagonal flick starts
+    // paging when the person meant to scroll.
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-8, 8])
+    .onBegin(() => {
+      // From wherever the row currently is, not from where the last page
+      // settled. Grabbing it mid-flight has to catch it, not restart it.
+      startX.value = x.value;
+      if (!reduced) runOnJS(setBlurring)(true);
+    })
+    .onUpdate((e) => {
+      const raw = startX.value + e.translationX;
+      const min = -pageW;
+      // Past either end the row still moves, at a quarter rate. Rubber-banding
+      // says "nothing over there" without a message and without a dead stop.
+      x.value =
+        raw > 0 ? raw * 0.25 : raw < min ? min + (raw - min) * 0.25 : raw;
+    })
+    .onEnd((e) => {
+      // Where the row WOULD come to rest if it kept its speed. A flick that
+      // has barely moved still lands on the next page, which is what makes a
+      // quick gesture feel heard.
+      const projected = x.value + e.velocityX * 0.15;
+      const next = projected < -pageW / 2 ? 1 : 0;
+      x.value = withSpring(-next * pageW, spring.gentle, (finished) => {
+        if (finished) runOnJS(setBlurring)(false);
+      });
+      if (next !== index) {
+        runOnJS(commitView)(next === 1 ? "yours" : "browse");
+      }
+    });
+
+  const rowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+  }));
+
+  /**
+   * ── THE HEADER MOVES ON ONE AXIS AND NOT THE OTHER ───────────────────────
+   * Vertically it behaves like every other screen in the app: the title and
+   * the back arrow scroll away with the content, because they are part of the
+   * page and not a bar bolted to the top of it.
+   *
+   * Horizontally it does not move at all. It belongs to the screen, not to
+   * either half, and a back button that slides sideways while you are deciding
+   * whether to swipe is one you cannot aim at.
+   *
+   * So it lives OUTSIDE the sliding row, in a layer of its own, and that layer
+   * is pushed up by exactly the scroll offset of whichever half is showing.
+   * Same rate as the content, so the two never drift apart and never overlap.
+   *
+   * BLENDED ACROSS THE SWIPE rather than switched at the end of it. The two
+   * halves keep separate scroll positions, and if the header jumped from one
+   * to the other on release it would snap at the exact moment everything else
+   * had finished settling. Interpolating on the row's own position means the
+   * header is already where the incoming half needs it by the time it lands.
+   */
+  const insets = useSafeAreaInsets();
+  const browseY = useSharedValue(0);
+  const yoursY = useSharedValue(0);
+
+  const onBrowseScroll = useAnimatedScrollHandler((e) => {
+    browseY.value = e.contentOffset.y;
+  });
+  const onYoursScroll = useAnimatedScrollHandler((e) => {
+    yoursY.value = e.contentOffset.y;
+  });
+
+  const blurStyle = useAnimatedStyle(() => {
+    const t = pageW > 0 ? Math.min(1, Math.max(0, -x.value / pageW)) : 0;
+    // A half sine: 0 at both ends, 1 halfway across. Not linear-to-the-middle,
+    // which would leave a visible corner in the fade at the exact moment the
+    // eye is on it.
+    return { opacity: Math.sin(Math.PI * t) };
+  });
+
+  const headerStyle = useAnimatedStyle(() => {
+    const t = pageW > 0 ? Math.min(1, Math.max(0, -x.value / pageW)) : 0;
+    const y = browseY.value * (1 - t) + yoursY.value * t;
+    // Not clamped at zero: on an overscroll bounce the content comes down, and
+    // the header has to come with it or it detaches from the page it is part of.
+    return { transform: [{ translateY: -y }] };
+  });
+
+  // Each half scrolls on its own, so each needs its own clearance under the
+  // dock. `Page` only reserves this on its own scroll body, and the body here
+  // is the pager.
+  /**
+   * Exactly `PageHeader`'s geometry, rebuilt from the same tokens: the safe
+   * area, its 8pt breath, the back bar's own height, then the 28pt drop to the
+   * title. The bar is a floating layer now, so each half has to leave the room
+   * the bar would have taken.
+   */
+  const headerPad =
+    insets.top + space.inlineGap + size.backBtn + space.titleGap;
+
+  const pageContent = {
+    paddingTop: headerPad,
+    paddingHorizontal: space.screenX,
+    paddingBottom: size.tabBarSafe + navBarInset,
+    gap: space.groupGap,
+  };
+
+  // ── WHAT THE CATALOGUE HALF HOLDS ─────────────────────────────────────────
+  const browseBody = (
+    <>
+      {/*
+        THIS CARD STANDS IN THE HERO'S SLOT, and the two are mutually
+        exclusive: the hero needs `hasSignal`, this renders only when we don't
+        have it. So it is not a small aside above the shop — when it shows, it
+        is the ONLY thing at the top of the screen, and the list below it is
+        unranked because of the very thing it is asking for.
+
+        It gets the vivid banner treatment in LIME rather than the default
+        blue: it is not a product, and it must not read as one more thing to
+        buy. Nothing else in the shop is lime.
+      */}
+      {!hasSignal ? (
+        <RecHeroCard
+          accentKey="lime"
+          eyebrow="PERSONALISE THIS LIST"
+          title="Not sure where to start?"
+          subtitle="Answer a few questions and we'll point you to the program built for what you find hardest."
+          ctaLabel="Get matched"
+          // Not the default pack glyph: this button doesn't open a program, it
+          // starts the questions that decide which one to point at.
+          ctaIcon={icons.roadmap}
+          onPress={startOnboarding}
+        />
+      ) : null}
+
+      {heroItem ? renderHero(heroItem) : null}
+
+      {/* Only when the hero sits above it. With no hero the list is the page,
+          and a heading over it labels nothing. It reads "More programs" in
+          every case now: what they own is no longer on this half, so there is
+          nothing for "More to explore" to be more THAN. */}
+      {heroItem && forSale.length ? (
+        <Text variant="h3" color="primary" style={styles.sectionHeading}>
+          More programs
+        </Text>
+      ) : null}
+
+      {/* BELOW THE HERO, AND THE HERO IS NEVER FILTERED. The top match is the
+          answer to "which one is for me", and a shelf filter is a different
+          question entirely — hiding the best-matched pack because somebody
+          tapped "Premium" would trade the one card most likely to convert for
+          a tidier list. So the pills govern the list underneath them and
+          nothing above. */}
+      {forSale.length > 1 ? (
+        <View style={styles.filterBar}>
+          {TIER_FILTERS.map((f) => (
+            <Chip
+              key={f.value}
+              label={f.label}
+              icon={f.icon}
+              selected={tier === f.value}
+              onPress={() => setTier(f.value)}
             />
-          ) : null}
+          ))}
+        </View>
+      ) : null}
 
-          {heroItem ? renderHero(heroItem) : null}
+      {shownItems.length ? (
+        shownItems.map((item, index) => renderCard(item, index))
+      ) : forSale.length ? (
+        // A shelf filter emptied the list, not the catalogue.
+        <Text variant="bodySm" color="secondary" center>
+          Nothing on this shelf yet.
+        </Text>
+      ) : ownedItems.length ? (
+        // They own every one. "Nothing on this shelf yet" would read as a
+        // catalogue that failed to load, which is the opposite of the truth.
+        <Text variant="bodySm" color="secondary" center>
+          You have them all. More are on the way.
+        </Text>
+      ) : null}
+    </>
+  );
 
-          {/* ABOVE THE SHOP, ALWAYS. Somebody who owns a program is not
-              browsing, and this is the only place a FINISHED one still lives. */}
-          {ownedItems.length ? (
-            <>
-              <Text variant="h3" color="primary" style={styles.sectionHeading}>
-                {ownedItems.length === 1 ? "Your program" : "Your programs"}
-              </Text>
-              {ownedItems.map(renderCard)}
-            </>
-          ) : null}
+  // ── AND WHAT THE OTHER ONE HOLDS ──────────────────────────────────────────
+  // No hero, no filter pills, no prices. Nothing on this half is a decision,
+  // so nothing on it should look like one.
+  const yoursBody = ownedItems.length ? (
+    ownedItems.map((item, index) => renderCard(item, index, "programs_owned"))
+  ) : (
+    /* The half exists before anything is in it, on purpose: a screen that
+       changes shape the first time you buy something is a screen you have to
+       learn twice. So it says what will be here, and sends them back to the
+       half that can put something in it. */
+    <View style={styles.centered}>
+      <Text variant="body" color="secondary" center>
+        Nothing here yet. A program you buy stays yours, and it will wait for
+        you on this shelf.
+      </Text>
+      <View style={styles.emptyAction}>
+        <Chip
+          label="See what's available"
+          icon={icons.explore}
+          onPress={() => setView("browse")}
+        />
+      </View>
+    </View>
+  );
 
-          {/* Only when something sits ABOVE it. With no hero and nothing owned,
-              the list is the page and a heading over it labels nothing. */}
-          {(heroItem || ownedItems.length) && forSale.length ? (
-            <Text variant="h3" color="primary" style={styles.sectionHeading}>
-              {ownedItems.length ? "More to explore" : "More programs"}
-            </Text>
-          ) : null}
+  const status = loading ? (
+    <View style={styles.centered}>
+      <Spinner label="Loading programs…" />
+    </View>
+  ) : failed ? (
+    <View style={styles.centered}>
+      <Text variant="body" color="secondary" center>
+        We couldn&apos;t load the programs just now. Pull back and try again in
+        a moment.
+      </Text>
+    </View>
+  ) : items.length === 0 ? (
+    // Deliberately not an error: an empty catalog is a normal state before
+    // anything is on sale, and it should read as "nothing yet", not "broken".
+    <View style={styles.centered}>
+      <Text variant="body" color="secondary" center>
+        No programs are available right now. Check back soon.
+      </Text>
+    </View>
+  ) : null;
 
-          {/* BELOW THE HERO, AND THE HERO IS NEVER FILTERED. The top match is
-              the answer to "which one is for me", and a shelf filter is a
-              different question entirely — hiding the best-matched pack because
-              somebody tapped "Premium" would trade the one card most likely to
-              convert for a tidier list. So the pills govern the list underneath
-              them and nothing above. */}
-          {forSale.length > 1 ? (
-            <View style={styles.filterBar}>
-              {TIER_FILTERS.map((f) => (
-                <Chip
-                  key={f.value}
-                  label={f.label}
-                  icon={f.icon}
-                  selected={tier === f.value}
-                  onPress={() => setTier(f.value)}
-                />
-              ))}
+  // A catalogue that has not arrived yet is not two halves of anything, so it
+  // gets one page and no pager. The dock stays: it is the frame, and a frame
+  // that appears once the content loads is a screen that jumps.
+  if (status) {
+    return (
+      <View style={styles.screen}>
+        <Page
+          title="Programs"
+          description={BROWSE_DESCRIPTION}
+          onBack={() => navigation.goBack()}
+          tabBarSafe
+        >
+          {status}
+        </Page>
+        <ProgramsDock />
+      </View>
+    );
+  }
+
+  return (
+    <ScreenView style={{ backgroundColor: colors.background.canvas }}>
+      <SchemeStatusBar />
+
+      <GestureDetector gesture={pan}>
+        <Animated.View
+          onLayout={onPagerLayout}
+          style={styles.pagerViewport}
+          collapsable={false}
+        >
+          <Animated.View
+            style={[styles.pagerRow, { width: pageW * 2 }, rowStyle]}
+          >
+            <View style={{ width: pageW }}>
+              <Animated.ScrollView
+                onScroll={onBrowseScroll}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={pageContent}
+              >
+                {/* THE TITLE RIDES INSIDE THE HALF. The two shelves are not
+                    the same thing and do not have the same name, so the name
+                    travels with the shelf. Left in the fixed bar it would have
+                    to change at the end of every swipe, and a word swapping
+                    itself the instant everything else stops moving is the one
+                    kind of snap this pager was rebuilt to remove. */}
+                <Text variant="h1">Programs</Text>
+                <Text
+                  variant="body"
+                  color="secondary"
+                  style={styles.pageDescription}
+                >
+                  {BROWSE_DESCRIPTION}
+                </Text>
+                {browseBody}
+              </Animated.ScrollView>
             </View>
-          ) : null}
 
-          {shownItems.length ? (
-            shownItems.map(renderCard)
-          ) : forSale.length ? (
-            // A shelf filter emptied the list, not the catalogue.
-            <Text variant="bodySm" color="secondary" center>
-              Nothing on this shelf yet.
-            </Text>
-          ) : ownedItems.length ? (
-            // They own every one. "Nothing on this shelf yet" would read as a
-            // catalogue that failed to load, which is the opposite of the truth.
-            <Text variant="bodySm" color="secondary" center>
-              You have them all. More are on the way.
-            </Text>
-          ) : null}
-        </>
-      )}
-    </Page>
+            <View style={{ width: pageW }}>
+              <Animated.ScrollView
+                onScroll={onYoursScroll}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={pageContent}
+              >
+                <Text variant="h1">Your programs</Text>
+                <Text
+                  variant="body"
+                  color="secondary"
+                  style={styles.pageDescription}
+                >
+                  Everything you have bought. Open one to carry on.
+                </Text>
+                {yoursBody}
+              </Animated.ScrollView>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </GestureDetector>
+
+      {/* Over the halves, under the header: the title and the back arrow stay
+          readable while the shelves behind them soften. */}
+      {blurring ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.blurLayer, blurStyle]}
+        >
+          <BlurView
+            intensity={Platform.OS === "ios" ? 24 : 40}
+            tint={isDark ? "dark" : "light"}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      ) : null}
+
+      {/* THE ONE THING THAT DOES NOT SLIDE. It scrolls away with the page like
+          any other header, but it never moves sideways, because it belongs to
+          the screen rather than to either half. Above the blur too: chrome you
+          might need mid-transition should not go soft with the content.
+
+          `box-none` so only the button itself takes a touch. */}
+      <Animated.View
+        pointerEvents="box-none"
+        style={[
+          styles.backLayer,
+          headerStyle,
+          {
+            paddingTop: insets.top + space.inlineGap,
+            paddingLeft: space.screenX,
+          },
+        ]}
+      >
+        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
+      </Animated.View>
+
+      {/* Opaque status-bar cap, the same one `Page` carries: a title that
+          scrolls away has to disappear BEHIND the clock rather than through it. */}
+      {insets.top > 0 ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.statusCap,
+            {
+              height: insets.top,
+              backgroundColor: colors.background.canvas,
+            },
+          ]}
+        />
+      ) : null}
+
+      {/* OUTSIDE the pager, so the dock does not slide with the content it is
+          switching. It is the frame, not the picture. */}
+      <ProgramsDock />
+    </ScreenView>
   );
 };
+
+const BROWSE_DESCRIPTION =
+  "Guided programs built around one situation at a time. Buy once, yours to keep.";
 
 export default ProgramsScreen;
 
@@ -814,6 +1256,29 @@ const PERF_GAP = spacing.md;
 const NOTCH_Y = spacing["2xl"] + STUB_H + PERF_GAP;
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  /**
+   * The window the row slides behind. `overflow: hidden` is what stops the
+   * off-screen half from painting into the gutter, and `flex: 1` is what gives
+   * both halves a height to scroll inside.
+   */
+  pagerViewport: { flex: 1, overflow: "hidden" },
+  pagerRow: { flex: 1, flexDirection: "row" },
+  /** Between the sliding halves and the header that sits still above them. */
+  blurLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+  /** Above the halves AND above the blur, below the status cap. */
+  backLayer: { position: "absolute", top: 0, left: 0, zIndex: 2 },
+  /** The h1 → subtitle gap, the same one `PageHeader` uses. */
+  pageDescription: { marginTop: space.titleSub },
+  statusCap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: zIndex.sticky,
+  },
+  /** The sentence and its way out are one block, not two stacked paragraphs. */
+  emptyAction: { marginTop: space.groupGap, alignItems: "center" },
   centered: {
     paddingVertical: spacing["3xl"],
     alignItems: "center",
