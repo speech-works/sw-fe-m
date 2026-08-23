@@ -23,8 +23,21 @@ android {
 }
 
 dependencies {
-  // MediaPipe Tasks Vision for FaceLandmarker + blendshapes
-  implementation 'com.google.mediapipe:tasks-vision:0.10.14'
+  // MediaPipe Tasks Vision for FaceLandmarker + blendshapes.
+  // Pinned exactly. 0.10.14 shipped libmediapipe_tasks_vision_jni.so with 4 KB ELF
+  // segment alignment, which fails Play's 16 KB page-size requirement (enforced for
+  // apps targeting Android 15+ from 2026-11-01). It was the ONLY library in the
+  // bundle that failed. From 0.10.35 the native lib moved into the transitive
+  // tasks-core artifact as libmediapipe_tasks_jni.so, built at 16 KB alignment and
+  // covering all four ABIs (0.10.14 had no x86_64 at all). The API surface this
+  // module uses is unchanged across the bump.
+  //
+  // 0.10.35 specifically, not 1.0.0: iOS already resolves MediaPipeTasksVision to
+  // 0.10.35 via `~> 0.10` in the podspec, so this is the runtime the same model and
+  // the same calling code already run against in production. Matching it keeps
+  // blendshape behaviour identical across platforms, which matters because the
+  // Mirror Work tension thresholds are shared TypeScript.
+  implementation 'com.google.mediapipe:tasks-vision:0.10.35'
 
   // VisionCamera FrameProcessorPlugin API — compileOnly since the app provides it at runtime
   compileOnly project(':react-native-vision-camera')
