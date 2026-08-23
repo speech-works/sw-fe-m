@@ -39,10 +39,18 @@ export interface ReachRowState {
 }
 
 /**
- * Past this many, dots stop being countable and become a stripe. The row keeps
- * the sentence and drops them rather than printing confetti.
+ * The last count you can read without counting.
+ *
+ * Beads are a picture of a SEQUENCE — this one, then this one, then the plain
+ * knob where the next goes — and that reading survives about six. Past it the
+ * eye stops seeing an order and starts seeing texture, and the row has to be
+ * counted rather than glanced at, which is the one job it exists to save you.
+ *
+ * So past this the same material becomes one continuous bar. Not a different
+ * idea: the identical track colour, the identical hue rule, drawn as a length
+ * instead of as parts.
  */
-export const MAX_DOTS = 8;
+export const MAX_DOTS = 6;
 
 const goalText = (g: ProgramGoal | null): string => g?.text ?? "";
 

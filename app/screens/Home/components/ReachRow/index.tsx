@@ -9,6 +9,7 @@ import {
   Text,
   accentEdge,
   mix,
+  primaryEdge,
   radius,
   spacing,
   useTheme,
@@ -16,7 +17,7 @@ import {
 } from "../../../../design-system";
 import { track } from "../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
-import { MAX_DOTS, ReachGlow, resolveReachRow } from "./state";
+import { MAX_DOTS, ReachGlow, countWord, resolveReachRow } from "./state";
 
 /**
  * ============================================================================
@@ -217,8 +218,9 @@ const ReachRow: React.FC<{
                 implies a deadline, which is the one thing this feature refuses
                 to imply.
 
-                Past MAX_DOTS they stop being countable and start being texture,
-                so the row drops them and keeps the sentence. */}
+                Past MAX_DOTS they stop being countable and start being
+                texture, and the row becomes a Meter: the same track colour and
+                the same hue rule, drawn as one length instead of as parts. */}
             {dots.total > 0 && dots.total <= MAX_DOTS ? (
               <View style={styles.track}>
                 {Array.from({ length: dots.total }).map((_, i) => {
@@ -251,6 +253,14 @@ const ReachRow: React.FC<{
                   );
                 })}
               </View>
+            ) : dots.total > 0 ? (
+              <Meter
+                done={dots.done}
+                total={dots.total}
+                track={quiet}
+                warm={glow === "warm"}
+                colors={colors}
+              />
             ) : null}
             {/* SECONDARY, NOT TERTIARY. On paper this sits over the tint, which
                 is exactly where tertiary's AA margin runs out. */}
@@ -292,6 +302,85 @@ const Tick: React.FC<{ color: string }> = ({ color }) => (
     />
   </Svg>
 );
+
+/**
+ * ============================================================================
+ * PAST SIX, THE STRING BECOMES A LENGTH
+ * ----------------------------------------------------------------------------
+ * Beads are a picture of a sequence, and that picture holds up to about six.
+ * Nine of them is not a sequence any more, it is a stripe with gaps in it: you
+ * have to COUNT the row to read it, which is the one job the row exists to
+ * save you.
+ *
+ * So the same material is drawn as one continuous thing. Nothing new is
+ * introduced — the track is the identical `quiet` tint the connectors were, the
+ * fill is the identical hue the beads were, and the hue still follows the card
+ * rather than the feature (warm card, warm fill). A reader who has seen the
+ * bead row on one program and this on another should not feel they have moved
+ * to a different card.
+ *
+ * ── IT SAYS THE NUMBER, BECAUSE IT CAN NO LONGER SHOW IT ────────────────────
+ * The bead row never printed a count: four filled circles ARE "four". A bar
+ * cannot be counted, so the number comes back beside it, in words. Words, not
+ * "4/9" and not a percentage — a ratio turns nine real conversations somebody
+ * had into a task list at forty-four per cent, which is the tone this whole
+ * card is built to avoid.
+ *
+ * ── THE FILL NEVER VANISHES ────────────────────────────────────────────────
+ * One of nine is 11% of the track, which at this width rounds to a couple of
+ * points and reads as nothing at all. A `minWidth` of the bar's own height
+ * floors it at a round cap, so the first one you did is always visible. It
+ * slightly overstates one, and overstating the first is the correct direction:
+ * the alternative is telling somebody who did the hardest one that they have
+ * done nothing.
+ * ============================================================================
+ */
+const METER_HEIGHT = 12;
+
+const Meter: React.FC<{
+  done: number;
+  total: number;
+  /** The connector's tint, already resolved against this card. */
+  track: string;
+  warm: boolean;
+  colors: ReturnType<typeof useTheme>["colors"];
+}> = ({ done, total, track, warm, colors }) => {
+  const pct = total > 0 ? Math.max(0, Math.min(1, done / total)) : 0;
+  const word = countWord(done);
+
+  return (
+    <View style={styles.meterRow}>
+      <View style={[styles.meterTrack, { backgroundColor: track }]}>
+        {done > 0 ? (
+          <View
+            style={[
+              styles.meterFill,
+              {
+                width: `${pct * 100}%`,
+                backgroundColor: warm
+                  ? colors.action.primary
+                  : colors.accent.success,
+              },
+              // Same reason the beads carry one: on paper a bright fill has a
+              // hue but no edge against a near-white card. No-op on ink.
+              warm ? primaryEdge(colors, true) : accentEdge(colors, "success", true),
+            ]}
+          />
+        ) : null}
+      </View>
+
+      {done > 0 ? (
+        <Text
+          variant="label"
+          color={colors.text.secondary}
+          style={styles.meterCount}
+        >
+          {`${word.charAt(0).toUpperCase()}${word.slice(1)} done`}
+        </Text>
+      ) : null}
+    </View>
+  );
+};
 
 export default ReachRow;
 
@@ -442,6 +531,34 @@ const styles = StyleSheet.create({
    * even though everything shrank.
    */
   knob: { width: 18, height: 18, borderRadius: radius.full },
+  /*
+   * The bar DOES stretch, where the bead row deliberately did not.
+   *
+   * A bead row pulled to the card edge would be claiming to be a progress bar
+   * while still being a list of three things. A bar that stops short of the
+   * edge is worse: it is a progress bar that looks broken. Once the row is a
+   * length, the length has to mean something, so it takes the full column and
+   * the fraction is read against a constant.
+   */
+  meterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.lg,
+  },
+  meterTrack: {
+    flex: 1,
+    height: METER_HEIGHT,
+    borderRadius: radius.full,
+    // Keeps the fill inside the track's round ends. Without it a full fill
+    // squares off against the track on Android.
+    overflow: "hidden",
+  },
+  meterFill: {
+    height: "100%",
+    minWidth: METER_HEIGHT,
+    borderRadius: radius.full,
+  },
+  meterCount: { marginLeft: spacing.md },
   sub: { marginTop: spacing.sm },
   cta: {
     marginTop: spacing.lg,

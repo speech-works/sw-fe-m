@@ -180,8 +180,16 @@ describe("resolveReachRow", () => {
   });
 
   it("has a point past which dots stop being countable", () => {
-    // The row drops them and keeps the sentence rather than printing confetti.
-    expect(MAX_DOTS).toBeLessThanOrEqual(10);
+    // Past it the row draws one bar instead, so the threshold has to sit where
+    // a glance still resolves separate beads. Six is the last count that does.
+    expect(MAX_DOTS).toBe(6);
+  });
+
+  it("still carries the counts past the bead threshold, so the bar can size itself", () => {
+    // The bar needs the real numbers. This used to render nothing at all above
+    // MAX_DOTS, and dropping the dots here would bring that back.
+    const s = resolveReachRow(sum({ total: 9, done: 4, waiting: 5, latestDone: goal("a") }))!;
+    expect(s.dots).toEqual({ total: 9, done: 4 });
   });
 
   it("renders nothing at all before the summary arrives", () => {
