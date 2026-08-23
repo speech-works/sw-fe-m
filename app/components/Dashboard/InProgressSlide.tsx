@@ -83,6 +83,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
     finishedDay: program.currentDay,
     nextDay: program.nextModuleDay,
     currentDay: program.currentDay,
+    nextDayOpensAt: program.nextDayOpensAt,
   };
 
   return (

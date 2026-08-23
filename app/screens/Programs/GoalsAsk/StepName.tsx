@@ -5,6 +5,7 @@ import {
   Text,
   TextField,
   haptics,
+  radius,
   space,
   spacing,
   useTheme,
@@ -97,7 +98,9 @@ export function StepName({
 
       {harness.cues.length > 0 && (
         <View style={styles.cues}>
-          <Text variant="caption" color="tertiary">
+          {/* `label`, not `caption`. It heads a row of tappable chips, so it is
+              a form label rather than a footnote. */}
+          <Text variant="label" color="secondary">
             {ASK_COPY.cueLabel}
           </Text>
           <View style={styles.cueRow}>
@@ -131,6 +134,8 @@ const styles = StyleSheet.create({
   nudge: {
     marginTop: spacing.sm,
     padding: space.cardPad,
-    borderRadius: 16,
+    // `radius.card`, not a raw 16 — the only hardcoded radius left in the
+    // Programs tree.
+    borderRadius: radius.card,
   },
 });

@@ -182,7 +182,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         key="hook"
         topPad={topPad}
         bottomPad={bottomPad}
-        eyebrow={dayCount ? `${dayCount}-DAY PROGRAM` : "GUIDED PROGRAM"}
+        eyebrow={dayCount ? `${dayCount}-day program` : "Guided program"}
         title={title}
         pitch={pitch}
         matchReason={offer.match?.reason ?? null}
@@ -337,7 +337,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
           setSheetOpen(false);
         }}
         reduceMotion={reduceMotion}
-        eyebrow={dayCount ? `${dayCount}-DAY PROGRAM` : "GUIDED PROGRAM"}
+        eyebrow={dayCount ? `${dayCount}-day program` : "Guided program"}
         title={title}
         matchReason={offer.match?.reason ?? null}
         dayCount={dayCount}
@@ -597,7 +597,7 @@ const HookPage: React.FC<HookPageProps> = ({
         <View style={styles.hookGap} />
 
         <Animated.View entering={staggerEntering(0, reduceMotion)}>
-          <Text variant="label" color="accent">
+          <Text variant="eyebrow" color="accent">
             {eyebrow}
           </Text>
         </Animated.View>
@@ -854,7 +854,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
         {/* Identity — compact on purpose, so the offer and CTA stay above the
             fold (the single biggest conversion lever on a small screen). */}
         <View>
-          <Text variant="label" color="tertiary">
+          <Text variant="eyebrow" color="tertiary">
             {eyebrow}
           </Text>
           <Text variant="h1" color="primary" style={styles.pageTitle}>

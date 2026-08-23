@@ -13,6 +13,7 @@ import {
   Chip,
   Snackbar,
   Text,
+  TextLink,
   haptics,
   space,
   spacing,
@@ -155,18 +156,31 @@ export function DailyLog({
 
   return (
     <View style={styles.root}>
-      <Text variant="label" color="secondary">
+      {/*
+        `title`, not `label`. This is a QUESTION put to the user and the only
+        interactive thing on the screen below it; at 13pt it read as a caption
+        on the paragraph above and the chips looked like stray tags.
+      */}
+      <Text variant="title" color="primary" center>
         Did any of these happen?
       </Text>
 
+      {/* Centred, because everything above it on this screen is centred. A
+          left-aligned block under a centred column reads as a rendering fault
+          rather than as a choice. */}
       <View style={styles.chips}>
         {open.map((goal) => (
           <Chip key={goal.id} label={goal.text} onPress={() => mark(goal)} />
         ))}
-        {/* Not an answer, just a way out. Nothing is written and nothing is
-            counted: a day where none of it happened is an ordinary day. */}
-        <Chip label="Not yet" onPress={() => setDismissed(true)} />
       </View>
+
+      {/*
+        NOT A FOURTH CHIP. "Not yet" is a way out, not a fourth thing that
+        might have happened, and drawn identically it read as one — the one
+        button on the screen that means the opposite of the others looked
+        exactly like them. A quiet text link says "leave" without competing.
+      */}
+      <TextLink label="Not yet" onPress={() => setDismissed(true)} />
 
       {undoable && (
         <Snackbar message="Marked done" actionLabel="Undo" onAction={undo} />
@@ -178,6 +192,19 @@ export function DailyLog({
 }
 
 const styles = StyleSheet.create({
-  root: { gap: spacing.md, marginTop: space.sectionGap, width: "100%" },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  root: {
+    gap: space.rowGap,
+    // The gap under the copy above is owned HERE, once. The success screen used
+    // to add a 40pt bottom margin of its own on top of this, which put a 64pt
+    // hole between the subtitle and this question.
+    marginTop: spacing["3xl"],
+    width: "100%",
+    alignItems: "center",
+  },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
 });

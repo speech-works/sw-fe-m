@@ -5,6 +5,7 @@ import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 import { useInboxStore } from "../stores/inbox";
 import { useCommunityDock } from "../stores/communityDock";
+import { useProgramsDock } from "../stores/programsDock";
 import {
   useNotificationPermissionStore,
   selectNotificationsNeedAttention,
@@ -29,12 +30,14 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
   const people = useCommunityDock((s) => s.people);
   const setPeople = useCommunityDock((s) => s.setPeople);
 
+  // The shop draws its own dock while it is focused — see `stores/programsDock`.
+  const programsActive = useProgramsDock((s) => s.active);
+
   const focusedRoute = state.routes[state.index];
   const focusedOptions = descriptors[focusedRoute.key].options;
 
-  if ((focusedOptions.tabBarStyle as any)?.display === "none") {
-    return null;
-  }
+  // A screen that has explicitly asked for no chrome at all (reading practice,
+  // the recorder pages) gets none, and that outranks everything below.
   if (!isTabBarVisible) return null;
 
   const onCommunity = focusedRoute.name === ROUTE_NAMES.COMMUNITY;
@@ -43,6 +46,23 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
   // The People morph is NOT gated on pairing — that page exists mostly for
   // people who have no buddy yet, which is exactly when `dockEnabled` is false.
   const onPeople = dockActive && onCommunity && people !== null;
+
+  // ── THE SHOP TAKES THE BOTTOM OF THE SCREEN, AND DRAWS IT ITSELF. ──
+  //
+  // Unlike Community, the shop does not morph this dock. It cannot: the
+  // ExploreStack is ALSO registered as a root screen in `AppNavigator`, and
+  // Home's "See more" navigates to that one, so the shop opened from Home is
+  // mounted outside the tab navigator and this component is not in that tree
+  // at all. A dock owned here would appear on one route in and vanish on the
+  // other.
+  //
+  // So the screen renders `screens/Programs/ProgramsDock`, which is true on
+  // every route in, and this stands down while the shop is up. Still one dock.
+  //
+  // Checked ABOVE the `display: "none"` guard because `getTabBarVisibility`
+  // hides the dock on every screen that is not the root of its stack, and
+  // standing down has to happen on a pushed screen too.
+  if (programsActive) return null;
 
   // ── PEOPLE mode: the same capsule, now the Waiting/Discover switcher. ──
   //
@@ -118,6 +138,12 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
         accessibilityLabel="Buddy page tabs"
       />
     );
+  }
+
+  // Every other pushed screen: no dock. Checked here rather than at the top so
+  // the shop's own dock can sit above it — see the comment there.
+  if ((focusedOptions.tabBarStyle as any)?.display === "none") {
+    return null;
   }
 
   // ── NAV mode: the standard global menu dock (re-tap Community / scroll to morph). ──
