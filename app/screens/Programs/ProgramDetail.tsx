@@ -199,6 +199,25 @@ const ProgramDetailScreen = () => {
         );
         if (wallet) {
           setOwned(true);
+          // WITHOUT THIS, "Open" HAS NOWHERE TO SEND THEM. `ownedState` reads
+          // `progress`, and the mount-time effect above only fetches it when
+          // the pack is ALREADY owned — a purchase made mid-visit never
+          // triggers that fetch, so `progress` stays null and `ownedState`
+          // falls into its no-progress branch, which has no `moduleId`.
+          // `openOwned()` then navigates to PackModule with `moduleId:
+          // undefined`, and PackModule does not resolve day one from a
+          // missing id (confirmed by reading it, despite a comment nearby
+          // claiming it does) — it errors and shows "Module not found."
+          // Fetching progress the same way the mount effect does for a
+          // pre-owned pack is what lets `ownedState` name day one's real id.
+          if (offer.packId) {
+            getPackProgress(offer.packId)
+              .then(setProgress)
+              .catch(() => {
+                /* The button falls back to "Open" with no moduleId — the
+                   known gap above, not a new one introduced here. */
+              });
+          }
           // CLAIM THE GIFT — but only once the wallet proves it landed.
           // The bonus membership month is granted silently by the webhook and
           // was never mentioned anywhere in the app, which wasted the single
