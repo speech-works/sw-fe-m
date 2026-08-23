@@ -417,7 +417,20 @@ const ProgramDetailScreen = () => {
               label={ownedState.cta}
               leftIcon={ownedState.finished ? icons.refresh : icons.play}
               loading={opening}
-              onPress={openOwned}
+              // NOT `onPress={openOwned}`. `PressableScale` forwards the raw
+              // `GestureResponderEvent` to whatever `onPress` it is given —
+              // `Button`'s `onPress: () => void` type does not stop that at
+              // the call site, since a function expecting fewer args is a
+              // valid `() => void`. Passed directly, that event object BECAME
+              // `targetModuleId` (`targetModuleId ?? ownedState.moduleId` sees
+              // a truthy event and never falls through), so every tap of this
+              // button sent PackModule a moduleId that was never a string —
+              // `getModule` 404'd, surfacing as "Module not found." on
+              // return from GoalsAsk (the redirect there races ahead of the
+              // failed content fetch, which is why the bug is invisible on
+              // the page you land on first). The wrapper is what the day-row
+              // taps already do correctly a few lines below.
+              onPress={() => openOwned()}
             />
           </View>
         ) : opensAt ? (

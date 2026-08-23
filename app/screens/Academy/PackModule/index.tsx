@@ -22,6 +22,12 @@ import {
 import { getProgramGoals } from "../../../api/programGoals";
 import { ProgramGoal } from "../../../api/programGoals/types";
 import { DailyLog } from "../../Programs/DailyLog";
+import {
+  doneBlocksKey,
+  mergeBlockCompletion,
+  parseDoneBlocks,
+  serializeDoneBlocks,
+} from "../../../util/packs/blockCompletion";
 import { classifyPackError } from "../../../util/packs/packErrors";
 import { dayLockMessage, dayCloseLine } from "../../../util/packs/dayLock";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
@@ -246,16 +252,23 @@ const PackModuleScreen = () => {
           }
         }
 
-        // Update state if different
+        // ADDED TO, NEVER REPLACED BY. `completed` is only what we can prove
+        // right now, and a retry in flight makes it prove LESS: the block's
+        // activity id has been overwritten with the new, unfinished attempt.
+        // Replacing here is what would let an abandoned retry un-finish a step
+        // that was genuinely done. See util/packs/blockCompletion.
         setCompletedInteractiveBlocks((prev) => {
-          const prevIds = Array.from(prev).sort().join(",");
-          const newIds = Array.from(completed).sort().join(",");
-          console.log(
-            "[PackModule Debug] Updating completed interactive blocks?",
-            prevIds !== newIds,
-            newIds,
-          );
-          return prevIds !== newIds ? completed : prev;
+          const next = mergeBlockCompletion(prev, completed);
+          if (next !== prev && module?.id) {
+            void AsyncStorage.setItem(
+              doneBlocksKey(packId, module.id),
+              serializeDoneBlocks(next),
+            ).catch(() => {
+              /* The screen is still correct this session; the latch refills
+                 from the derived snapshot on the next visit. */
+            });
+          }
+          return next;
         });
       };
 
@@ -482,6 +495,33 @@ const PackModuleScreen = () => {
     initModule();
   }, [initialModule, initialModuleId, navigateToHomeFallback, navigation, packId]);
 
+  /**
+   * Seed the completion latch before anything derives from it.
+   *
+   * Without this the record only lives as long as the screen does, so an
+   * abandoned retry would survive one visit and then lose the block on the
+   * next mount — the same failure, just delayed by a navigation.
+   */
+  useEffect(() => {
+    if (!module?.id) return;
+    let alive = true;
+    AsyncStorage.getItem(doneBlocksKey(packId, module.id))
+      .then((raw) => {
+        if (!alive) return;
+        const latched = parseDoneBlocks(raw);
+        if (latched.size === 0) return;
+        setCompletedInteractiveBlocks((prev) =>
+          mergeBlockCompletion(prev, latched),
+        );
+      })
+      .catch(() => {
+        /* No latch is recoverable: the derived snapshot refills it. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [packId, module?.id]);
+
   // Load persistent block-to-activity mapping on mount
   useEffect(() => {
     if (!module) return;
@@ -534,16 +574,24 @@ const PackModuleScreen = () => {
         }
       });
 
-      // Merge with existing (preserves FORM completions already in the set)
+      // Additive, via the shared rule rather than a second copy of it. This
+      // effect already merged by hand, which is exactly how the two drift:
+      // the focus effect above used to REPLACE, and only one of the two was
+      // wrong. One implementation, one place to read why.
       setCompletedInteractiveBlocks((prev) => {
-        const merged = new Set(prev);
-        completed.forEach((id) => merged.add(id));
-        const prevIds = Array.from(prev).sort().join(",");
-        const mergedIds = Array.from(merged).sort().join(",");
-        return prevIds !== mergedIds ? merged : prev;
+        const next = mergeBlockCompletion(prev, completed);
+        if (next !== prev && module?.id) {
+          void AsyncStorage.setItem(
+            doneBlocksKey(packId, module.id),
+            serializeDoneBlocks(next),
+          ).catch(() => {
+            /* Recoverable: the latch refills from the derived snapshot. */
+          });
+        }
+        return next;
       });
     }
-  }, [activities, module?.blocks, blockToActivityMap, isActivityCompleted]);
+  }, [activities, module?.blocks, module?.id, packId, blockToActivityMap, isActivityCompleted]);
 
   const handleNext = () => {
     if (module?.blocks && currentBlockIndex < module.blocks.length - 1) {
