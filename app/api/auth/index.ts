@@ -97,7 +97,8 @@ interface RefreshTokenProps {
 }
 interface RefreshTokenResponse {
   error: string;
-  token: string;
+  /** The server's field name. It has never been called `token`. */
+  appJwt: string;
 }
 export async function refreshToken({
   refreshToken,
