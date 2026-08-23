@@ -25,7 +25,7 @@ import { useMarkActivityStart } from "../../hooks/useMarkActivityStart";
 import { useActivityStore } from "../../stores/activity";
 import { useAICallConsentStore } from "../../stores/aiCallConsent";
 import { useFirstCallStore } from "../../stores/firstCall";
-import { useOnboardingDraftStore } from "../../stores/onboardingDraft";
+import { useDraftReplaySettled } from "../../stores/onboardingDraft/useDraftReplaySettled";
 import { useUserStore } from "../../stores/user";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { track } from "../../util/analytics/postHog";
@@ -66,9 +66,6 @@ const RINGING_SOUND_FILE = require("../../assets/sounds/dial-tone_us.wav");
  *   aftercare → "how do you feel?", and a minute of breathing if it was a lot
  * ============================================================================
  */
-
-/** How long to wait for the Act 1 replay before asking anyway. */
-const REPLAY_WAIT_MS = 6000;
 
 type Phase =
   | "loading"
@@ -168,41 +165,16 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
     consentHydrated && !aiConsented && !user?.aiCallConsentAt;
 
   /**
-   * WAIT FOR THE ANSWERS TO LAND BEFORE ASKING WHO IS CALLING.
+   * WAIT FOR THE ANSWERS TO LAND BEFORE ASKING WHO IS CALLING — see
+   * `useDraftReplaySettled`, which both first-call entry points share.
    *
-   * Act 1's answers live on the device until signup, and MainNavigator replays
-   * them in an effect that races this screen's mount. Ask too early and the
-   * server has no signals to match on, so it falls back to the default caller
-   * — and the pre-signup screen has already promised a name. Being handed
-   * Sofia after being told Omar would ring is the one way this screen can
-   * quietly break its own promise.
-   *
-   * `hasPendingReplay()` goes false either when the replay succeeds or when
-   * there was nothing to replay, so the gate opens on both. The ceiling exists
-   * because a FAILED replay leaves it pending forever: after that we ask
-   * anyway and take the default, which is a worse call than we meant to give
-   * but far better than a spinner that never resolves.
+   * Not conditional on `standalone` any more. The wait used to be, on the
+   * reasoning that only the post-signup route could outrun the replay; but the
+   * Home route reaches this screen with an offer ALREADY FETCHED (`seeded`),
+   * and that fetch is the one that has to wait. Home now waits too, and this
+   * screen simply waits on every route.
    */
-  const [replayed, setReplayed] = useState(
-    () => !standalone || !useOnboardingDraftStore.getState().hasPendingReplay(),
-  );
-  useEffect(() => {
-    if (replayed) return;
-    // `hasPendingReplay` reads the live store rather than the emitted state,
-    // so it is called off getState() — the subscription is only the trigger.
-    // It flips false the moment `markReplayed` runs, which is immediately
-    // after the server acknowledges the answers: exactly the right moment.
-    const unsub = useOnboardingDraftStore.subscribe(() => {
-      if (!useOnboardingDraftStore.getState().hasPendingReplay()) {
-        setReplayed(true);
-      }
-    });
-    const ceiling = setTimeout(() => setReplayed(true), REPLAY_WAIT_MS);
-    return () => {
-      unsub();
-      clearTimeout(ceiling);
-    };
-  }, [replayed]);
+  const replayed = useDraftReplaySettled();
 
   useEffect(() => {
     if (seeded?.scenario || !replayed) return;

@@ -26,6 +26,7 @@ import {
   withAlpha,
 } from "../../design-system";
 import { isFirstCallQuieted, useFirstCallStore } from "../../stores/firstCall";
+import { useDraftReplaySettled } from "../../stores/onboardingDraft/useDraftReplaySettled";
 import { useUserStore } from "../../stores/user";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { track } from "../../util/analytics/postHog";
@@ -248,8 +249,20 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
   // call, and a stale/absent field simply means we ask.
   const alreadyTaken = !!takenAt;
 
+  /**
+   * ASK ONLY ONCE ACT 1'S ANSWERS ARE WITH THE SERVER.
+   *
+   * This card is the FIRST thing to ask who is calling for somebody who has
+   * just signed up, and the answer it gets is handed to the ringing screen as
+   * a seeded offer — which makes that screen skip its own wait. So the wait
+   * has to happen HERE, or the caller named on the gate is matched on answers
+   * the server has not received yet, and the app rings with the fallback after
+   * naming somebody specific before signup.
+   */
+  const replayed = useDraftReplaySettled();
+
   useEffect(() => {
-    if (alreadyTaken) return;
+    if (alreadyTaken || !replayed) return;
     let alive = true;
     (async () => {
       const fresh = await fetchFirstCallOffer();
@@ -267,8 +280,9 @@ const FirstCallCard: React.FC<FirstCallCardProps> = ({ onShapeChange }) => {
       alive = false;
     };
     // Fetched once per mount; Home remounts this on pull-to-refresh via its key.
+    // `replayed` only ever goes false → true, so it can add at most one fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alreadyTaken]);
+  }, [alreadyTaken, replayed]);
 
   /**
    * THEY ALREADY SAID YES — BEFORE THEY HAD AN ACCOUNT.
