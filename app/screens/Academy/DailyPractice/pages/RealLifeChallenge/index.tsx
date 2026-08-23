@@ -425,29 +425,44 @@ const RealLifeChallenge = () => {
             appears after a skip. Someone deciding whether to attempt this at all
             should be able to see the gentler option BEFORE they fail at this
             one — offering it only afterwards makes it a consolation prize.
+
+            EXPOSURE-SOURCED ONLY. This screen is shared with COGNITIVE
+            REAL_LIFE_CHALLENGE activities (e.g. "5-4-3-2-1 Grounding") — see
+            `challengeData`'s OR above and `navigateToCognitive` in
+            packActivityNavigation.ts, which routes that type here too. A
+            grounding or breathing technique has no graded ladder to step down;
+            `getEasierExposureVariant` only exists for the exposure hierarchy,
+            so `handleTryEasier` read `exposurePractice?.id`, found nothing on a
+            cognitive-sourced activity, and returned on its first line — a
+            button that looked identical to the working one but silently did
+            nothing on every tap. Gating the whole row on `exposurePractice`
+            being present is the honest fix: no ladder exists here, so no rung
+            is offered.
           */}
-          <View style={styles.pacingRow}>
-            <Text variant="bodySm" color="tertiary" center>
-              Go at your own pace. Starting smaller is a real choice, not a
-              step backwards.
-            </Text>
-            {easierState === "none" ? (
-              <Text variant="label" color="tertiary" center>
-                This is already the gentlest challenge of its kind.
+          {practiceActivityState?.exposurePractice ? (
+            <View style={styles.pacingRow}>
+              <Text variant="bodySm" color="tertiary" center>
+                Go at your own pace. Starting smaller is a real choice, not a
+                step backwards.
               </Text>
-            ) : (
-              <Button
-                label={
-                  easierState === "loading"
-                    ? "Finding something easier…"
-                    : "Try something easier"
-                }
-                variant="secondary"
-                disabled={easierState === "loading"}
-                onPress={handleTryEasier}
-              />
-            )}
-          </View>
+              {easierState === "none" ? (
+                <Text variant="label" color="tertiary" center>
+                  This is already the gentlest challenge of its kind.
+                </Text>
+              ) : (
+                <Button
+                  label={
+                    easierState === "loading"
+                      ? "Finding something easier…"
+                      : "Try something easier"
+                  }
+                  variant="secondary"
+                  disabled={easierState === "loading"}
+                  onPress={handleTryEasier}
+                />
+              )}
+            </View>
+          ) : null}
         </Page>
 
         <IRLConfirmationModal

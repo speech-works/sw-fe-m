@@ -24,6 +24,7 @@ import {
 import {
   size,
     Text,
+    TextLink,
     Icon,
     icons,
     Spinner,
@@ -66,10 +67,29 @@ interface ContentRendererProps {
  * items read elsewhere (e.g. PracticeGrid's corner badge), NOT a bright gradient
  * hero (which stays reserved for the active call-to-action).
  */
-const CompletedCard: React.FC<{ title: string; children?: React.ReactNode }> = ({
-  title,
-  children,
-}) => {
+/**
+ * A finished step, and the way back into it.
+ *
+ * ── WHY THE RETRY IS A LINK AND NOT A BUTTON ───────────────────────────────
+ * This card is not asking for anything. The step is done and the only thing
+ * the screen still wants from this person is to move on, which the footer's
+ * Next/Complete already says in the loudest voice on the page. A second solid
+ * button here would compete with it and turn a finished step back into a
+ * decision.
+ *
+ * But it has to be THERE. Practice you cannot repeat is not practice, and
+ * these are techniques whose whole value is the reps. The card used to be a
+ * dead end: once done, the only way to do it again was to abandon the module
+ * and come back through the day list, which most people will never find.
+ *
+ * Doing it again NEVER un-finishes the step — see util/packs/blockCompletion
+ * for why that has to be enforced rather than assumed.
+ */
+const CompletedCard: React.FC<{
+  title: string;
+  children?: React.ReactNode;
+  onRetry?: () => void;
+}> = ({ title, children, onRetry }) => {
   const { colors } = useTheme();
   const styles = useStyles();
   return (
@@ -86,6 +106,11 @@ const CompletedCard: React.FC<{ title: string; children?: React.ReactNode }> = (
         </Text>
         {children}
       </View>
+      {onRetry ? (
+        <View style={styles.completedRetry}>
+          <TextLink label="Do it again" onPress={onRetry} underline={false} />
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -249,7 +274,10 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       // Done → calm success card; active → solid action.primary CTA hero.
       if (isCompleted) {
         return (
-          <CompletedCard title={content.titleOverride || "Practice Activity"}>
+          <CompletedCard
+            title={content.titleOverride || "Practice Activity"}
+            onRetry={handleStartActivity}
+          >
             <SimpleMarkdown
               content={activityDescription}
               textColor={colors.text.secondary}
@@ -337,7 +365,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       // hero so the two block types read as different steps at a glance.
       if (isCompleted) {
         return (
-          <CompletedCard title={formTitle}>
+          <CompletedCard title={formTitle} onRetry={handleStartForm}>
             {config?.description ? (
               <Text variant="body" color="secondary">
                 {config.description}
@@ -468,6 +496,16 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.border.hairline,
     gap: space.groupGap,
     alignItems: "flex-start",
+  },
+  /**
+   * Divided from the card's own content, because it is an action and the rest
+   * is a record. `groupGap` alone read as a fourth line of the same block.
+   */
+  completedRetry: {
+    alignSelf: "stretch",
+    paddingTop: space.groupGap,
+    borderTopWidth: 1,
+    borderTopColor: c.border.hairline,
   },
   completedChip: {
     flexDirection: "row",
