@@ -178,6 +178,19 @@ const ProgramDetailScreen = () => {
           ...payProps,
           reason: outcome.status === "error" ? outcome.message : outcome.status,
         });
+        // A STORE ERROR MUST SAY SO. This branch used to track and nothing else,
+        // so a failed unlock closed the sheet and left the screen unchanged: a
+        // dead button. That silence is what App Review saw when it reported it
+        // "cannot locate the In-App Purchases" (Guideline 2.1(b)). It also hid
+        // the real cause from us, which is why 10 of 11 purchase attempts are on
+        // record with no reason attached.
+        //
+        // Only "error" speaks. A "cancelled" is the user's own choice and must
+        // stay quiet or every backed-out sheet accuses them of a failure. Same
+        // split, same copy as the membership paywall (screens/Payments/index.tsx).
+        if (outcome.status === "error") {
+          showErrorBottomSheet("Purchase didn't complete", outcome.message);
+        }
       }
       if (outcome.status === "purchased") {
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
