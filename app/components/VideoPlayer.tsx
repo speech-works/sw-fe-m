@@ -216,6 +216,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const hideTimer = useRef<NodeJS.Timeout | undefined>(undefined);
   const restoreTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const videoContainerWidth = useRef<number>(0);
+  // Width the player is actually given, measured on an unconstrained wrapper.
+  const [availableWidth, setAvailableWidth] = useState(0);
   const isRestoringRef = useRef(false);
   const lastSetVolumeRef = useRef<number>(-1);
   const lastFullScreenToggleAt = useRef<number>(0);
@@ -550,6 +552,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     videoContainerWidth.current = ev.nativeEvent.layout.width;
   };
 
+  // Measured on the wrapper, which carries no ratio/height constraints, so this
+  // is the honest width available to the player.
+  const onWrapperLayout = (ev: any) => {
+    const w = ev.nativeEvent.layout.width;
+    if (w && Math.abs(w - availableWidth) > 0.5) setAvailableWidth(w);
+  };
+
   const controlsTranslateY = controlsAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [50, 0],
@@ -574,24 +583,33 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // ratio, capped so a tall video can't eat the screen. Deriving the height from
   // `Dimensions` instead guessed a box as wide as the *screen*, so inside any
   // gutter the box came out too tall and `cover` quietly cropped the sides.
+  // `aspectRatio` + `maxHeight` is a trap: when the cap bites, Yoga preserves the
+  // ratio by shrinking the box's WIDTH, so a portrait lesson ended up a narrow
+  // column with the card showing through beside it. Landscape videos never hit
+  // the cap, which is why Library looked fine. Measure the width we're given and
+  // set an explicit height instead — full width always, only the height capped.
   const maxVideoHeight = Dimensions.get("window").height * 0.65;
-  const videoBoxStyle = {
-    aspectRatio: videoAspectRatio,
-    maxHeight: maxVideoHeight,
-  };
+  const videoBoxStyle = availableWidth
+    ? {
+        width: "100%" as const,
+        height: Math.min(availableWidth / videoAspectRatio, maxVideoHeight),
+      }
+    : { width: "100%" as const, aspectRatio: videoAspectRatio };
 
   // Placeholder until we know the real aspect ratio — same box the player will
   // occupy, so the swap isn't a jolt.
   if (!aspectRatioReady) {
     return (
-      <Skeleton
-        width="100%"
-        radius={radius.input}
-        style={{
-          ...videoBoxStyle,
-          backgroundColor: colors.background.canvas,
-        }}
-      />
+      <View style={styles.measureWrapper} onLayout={onWrapperLayout}>
+        <Skeleton
+          width="100%"
+          radius={radius.input}
+          style={{
+            ...videoBoxStyle,
+            backgroundColor: colors.background.canvas,
+          }}
+        />
+      </View>
     );
   }
 
@@ -1000,7 +1018,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // Scheme-locked dark in BOTH modes: the player is a black surface whose
         // overlays sit on video and black gradients, so its text must resolve
         // on-dark even when the app is in the light scheme.
-        <ForceDark>{renderPlayer()}</ForceDark>
+        <ForceDark>
+          <View style={styles.measureWrapper} onLayout={onWrapperLayout}>
+            {renderPlayer()}
+          </View>
+        </ForceDark>
       )}
     </>
   );
@@ -1013,6 +1035,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
+    width: "100%",
+  },
+  // No ratio or height constraints — exists only to report the real width.
+  measureWrapper: {
     width: "100%",
   },
   fullScreenRoot: {
