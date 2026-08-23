@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import Svg, { Line } from "react-native-svg";
 import { getOffers, type OfferItem, type Offers } from "../../api";
+import { getRecommendedPack } from "../../api/packs";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PriceTag from "../../components/PriceTag";
@@ -116,6 +117,43 @@ const ProgramsScreen = () => {
         });
       return () => {
         cancelled = true;
+      };
+    }, []),
+  );
+
+  /**
+   * WHICH ONE HOME IS SHOWING.
+   *
+   * The shelf of things they own can hold several programs at once, and one of
+   * them is the one they are actually in the middle of: the one the For-you
+   * carousel leads with, counting down to the next day. That one says
+   * "Resume". The rest say "Open", because opening a program you are not
+   * currently running is a visit, not a continuation.
+   *
+   * The SAME source Home reads (`/packs/recommended`), not a guess assembled
+   * from progress rows: two surfaces disagreeing about which program somebody
+   * is on is worse than neither saying it. One extra request on a screen that
+   * already makes one, and if it fails every card falls back to "Open", which
+   * is never wrong, only less specific.
+   *
+   * A REFRESHER IS NOT A RESUME. When the recommendation is a pack they have
+   * already finished and are being offered again, there is nothing to carry on
+   * from: it restarts at day one.
+   */
+  const [activePackId, setActivePackId] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      getRecommendedPack()
+        .then((rec) => {
+          if (!alive) return;
+          setActivePackId(rec?.isRefresher ? null : (rec?.pack?.id ?? null));
+        })
+        .catch(() => {
+          /* Every card says "Open". Less specific, still true. */
+        });
+      return () => {
+        alive = false;
       };
     }, []),
   );
@@ -586,7 +624,9 @@ const ProgramsScreen = () => {
             view === "yours" ? (
               <View style={styles.ownedTag}>
                 <Text variant="title" color={colors.text.accent}>
-                  Open
+                  {item.packId && item.packId === activePackId
+                    ? "Resume"
+                    : "Open"}
                 </Text>
                 <Icon
                   name={icons.chevronRight}
