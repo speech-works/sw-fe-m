@@ -17,12 +17,21 @@
  *
  * 2. **An anchor must be in the SAME currency, and must be real.** Best is a
  *    store price for the anchor itself (`anchorStore`) — that works in all ~170
- *    countries with no price book of our own. Failing that we fall back to the
+ *    countries with no price book of our own, and once the store has quoted the
+ *    anchor in the buyer's currency its verdict is FINAL: if that quote is not
+ *    above the charged price, there is no strike, and we do not go looking for a
+ *    friendlier number in our own constants. Failing that we fall back to the
  *    backend's INR/USD anchors, which are only meaningful to an INR/USD buyer.
  *    In any other currency we show NO strike: a missing strike is a small loss;
  *    "₹999" struck through above "£5.99" is nonsense, and converting one
  *    ourselves would be a fabricated price. `PriceTag` promises "never a
  *    fabricated 'was'".
+ *
+ *    An anchor also has to clear the price ACTUALLY BEING CHARGED, not just the
+ *    backend's idea of it. The two can disagree — a regional price point or a
+ *    console edit moves the store price without touching the constant the
+ *    backend reads — and ₹999 struck over a charged ₹1,099 is worse than no
+ *    discount at all.
  *
  * 3. **If the store is silent, fall back to INR.** Payments disabled, offline,
  *    or the product not yet created in the console — all land here. India is the
@@ -45,16 +54,18 @@ export interface PriceInputs {
   store?: StorePrice | null;
   /**
    * Store price for the ANCHOR (the struck-through "was"). When present this is
-   * what makes a real discount showable in any currency on earth.
+   * what makes a real discount showable in any currency on earth. Resolve it by
+   * looking the offer's `anchorTierProductId` up in the store, the same way the
+   * charged price comes from `tierProductId`.
    */
   anchorStore?: StorePrice | null;
   /** Backend price in INR (always present). */
   inr: number;
   /** Backend price in USD (always present). */
   usd: number;
-  /** Backend anchor in INR. Equal to `inr` when nothing is discounted. */
+  /** Backend anchor in INR. Fallback for `anchorStore`; equal to `inr` when nothing is discounted. */
   anchorInr?: number;
-  /** Backend anchor in USD. Equal to `usd` when nothing is discounted. */
+  /** Backend anchor in USD. Fallback for `anchorStore`; equal to `usd` when nothing is discounted. */
   anchorUsd?: number;
 }
 
@@ -171,28 +182,53 @@ export function resolvePriceDisplay(input: PriceInputs): PriceDisplay {
   const currencyCode = store.currencyCode;
 
   // ── Rule 2, best case: a real store price for the anchor. Any currency. ──
-  if (
-    isUsable(anchorStore) &&
-    anchorStore.currencyCode === currencyCode &&
-    anchorStore.price > store.price
-  ) {
+  //
+  // AUTHORITATIVE, and note that it returns even when it decides NOT to strike.
+  // The store has quoted both products in this buyer's currency, so it has
+  // already answered "is the was-price higher here?" — falling through to our
+  // INR/USD constants after a "no" would overrule a real price with a made-up
+  // one, which is the whole bug this anchor exists to close. A regional pricing
+  // quirk that lands the anchor tier at or below the charged tier means this
+  // buyer has no discount, not that we should go find one.
+  if (isUsable(anchorStore) && anchorStore.currencyCode === currencyCode) {
+    const higher = anchorStore.price > store.price;
     return {
       price: store.priceString,
-      anchor: anchorStore.priceString,
+      anchor: higher ? anchorStore.priceString : null,
       exact: true,
       currencyCode,
       priceAmount: store.price,
-      anchorAmount: anchorStore.price,
+      anchorAmount: higher ? anchorStore.price : null,
     };
   }
 
   // ── Rule 2, fallback: our own price book, which covers INR and USD only. ──
+  //
+  // Reached when payments are off for the anchor lookup, the anchor product does
+  // not exist in the console yet, or the store answered in a currency that does
+  // not match the price (unusable — never struck against it).
+  //
+  // TWO comparisons, not one. `> inr` asks the backend whether anything is
+  // discounted at all; `> store.price` asks whether the number we are about to
+  // strike really sits above what this buyer gets charged. They disagree exactly
+  // when the constant has drifted from the store, and that is precisely when a
+  // strike would be a fabrication.
   let anchor: string | null = null;
   let anchorAmount: number | null = null;
-  if (currencyCode === "INR" && anchorInr != null && anchorInr > inr) {
+  if (
+    currencyCode === "INR" &&
+    anchorInr != null &&
+    anchorInr > inr &&
+    anchorInr > store.price
+  ) {
     anchor = formatInr(anchorInr);
     anchorAmount = anchorInr;
-  } else if (currencyCode === "USD" && anchorUsd != null && anchorUsd > usd) {
+  } else if (
+    currencyCode === "USD" &&
+    anchorUsd != null &&
+    anchorUsd > usd &&
+    anchorUsd > store.price
+  ) {
     anchor = formatUsd(anchorUsd);
     anchorAmount = anchorUsd;
   }

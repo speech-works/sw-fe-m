@@ -18,8 +18,8 @@ export {
     getDailyActivityStatsForTheWeek,
 } from "./progressReport";
 export { createRecording, deleteRecording } from "./recordings";
-export { deleteMe, updateUserById, getWallet, getOffers, createPurchaseIntent } from "./users";
-export type { Wallet, Offers, OfferItem, MembershipOffer, TopupOffer, PurchaseIntentResponse, EntitlementKey } from "./users";
+export { deleteMe, updateUserById, getWallet, reconcileWallet, getOffers, createPurchaseIntent } from "./users";
+export type { Wallet, ReconciledWallet, Offers, OfferItem, MembershipOffer, TopupOffer, PurchaseIntentResponse, EntitlementKey } from "./users";
 
 // Form Submission API (for exposure feedback, pack reflections, etc.)
 export { submitFormResponse } from "./forms";

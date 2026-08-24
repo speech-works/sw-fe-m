@@ -112,7 +112,37 @@ function opensPhrase(
   now: number = Date.now(),
 ): string {
   const day = lockedDay == null ? "This day" : `Day ${lockedDay}`;
-  const wait = waitPhrase(opensAt, now);
+
+  // `opensAt` is the instant ONE day opens: the day after `currentDay`. Read
+  // against any other day it states a wait that is too SHORT, and a wait that
+  // is too short sends somebody back to the screen they just left — the exact
+  // failure `waitPhrase` rounds up to avoid. So it is only used for the day it
+  // actually describes, and the day count below answers for the rest.
+  //
+  // THIS GUARD IS LIVE, NOT DEFENSIVE. Users reach it today, and it is not
+  // about gaps in an arc: every shipped arc runs day 1 to arcDays with one
+  // module per day. The day named here is the next INCOMPLETE day, and that is
+  // free to sit far ahead of the clock.
+  //
+  // A restart is how. It nulls `status` on every module row while
+  // `firstCompletedAt` survives, so every day the user has ever finished is
+  // replayable at once and can be redone the same day, while a day they never
+  // finished stays behind the clock. Skip Interview Ready's optional day 10,
+  // finish the pack, restart it, replay days 1 to 9 that afternoon:
+  // `nextIncompleteDay` is 10 and `currentDay` is 1. `nextDayOpensAt` is when
+  // day 2 opens, nine days short of the truth, and InProgressSlide prints that
+  // pair as one sentence on the Home card.
+  //
+  // The SERVER does not promise the two agree either.
+  // `PackAccessService.resolveDayState` reads the days the pack really has, "so
+  // a gap in the middle is found rather than skipped past", while
+  // `nextDayOpensAt` stays `startedAt + currentDay * DAY_MS`.
+  //
+  // Both-null is left alone: with no days to compare, the timestamp is the best
+  // fact available, and "This day opens later" is worse than a close estimate.
+  const describesLockedDay =
+    lockedDay == null || currentDay == null || lockedDay === currentDay + 1;
+  const wait = describesLockedDay ? waitPhrase(opensAt, now) : null;
   if (wait) return `${day} opens ${wait}.`;
 
   if (lockedDay == null || currentDay == null) return "This day opens later.";
@@ -195,3 +225,122 @@ export function dayCloseLine(state: {
   // A day open finished it, so naming it again was the same fact twice.
   return opensPhrase(state.nextDay, state.currentDay, state.nextDayOpensAt);
 }
+
+/** The subset of `ModuleProgress` this decision reads. */
+export interface NextModuleCandidate {
+  moduleId: string;
+  orderIndex: number;
+  /** Absent on an older backend. Only an explicit `false` means locked. */
+  unlocked?: boolean;
+  /**
+   * The first time this user EVER finished this module, on any run of the pack.
+   * `null` means they never have. Absent on an older backend.
+   *
+   * It is the only field that can tell "never done" apart from "done before,
+   * then the pack was restarted", because a restart nulls both `status` and
+   * `completedAt`. See UserPackModuleProgress.firstCompletedAt.
+   */
+  firstCompletedAt?: Date | string | null;
+  /**
+   * Optional (bonus) modules can be skipped, so a pack can reach COMPLETED
+   * without them. Absent reads as mandatory.
+   */
+  isMandatory?: boolean;
+}
+
+/** The pack-level facts the per-module rule needs. Both absent on an older backend. */
+export interface OfferablePackContext {
+  /** `PackProgress.packStatus`. Only the literal "COMPLETED" changes anything. */
+  packStatus?: string | null;
+  /** Non-null means this pack is a day-gated arc. */
+  arcDays?: number | null;
+}
+
+/**
+ * WOULD THE SERVER LET THIS PERSON OPEN THIS MODULE RIGHT NOW.
+ *
+ * One place for the rule, because two screens ask it: the success screen (which
+ * module to offer next) and the day list on ProgramDetail (which rows to make
+ * tappable). When they disagreed, the day list drew a row that dead-ended.
+ *
+ * There are two independent reasons the server says no, and they need different
+ * fields:
+ *
+ *  1. The day has not opened yet. `unlocked` answers this.
+ *  2. The pack is FINISHED and this module never was. `firstCompletedAt`
+ *     answers this, and nothing else can.
+ *
+ * Both read an absent field as "no opinion", never as a refusal, so an app
+ * talking to a backend one deploy behind keeps working the way it did before
+ * the field existed.
+ */
+export function isModuleOfferable(
+  module: NextModuleCandidate,
+  pack: OfferablePackContext,
+): boolean {
+  // 1. Tomorrow's day. On a day-gated arc the module at orderIndex+1 is usually
+  //    TOMORROW's; offering it dropped the user onto the day-locked screen one
+  //    tap after finishing, on a button we drew ourselves.
+  if (module.unlocked === false) return false;
+
+  // 2. An unfinished module on a finished pack.
+  //
+  //    This is the case a comment here used to say could not exist. It said
+  //    `unlocked` was the only gate needed because "a pack's status describes
+  //    the run, not this module". That is true of a module the user FINISHED,
+  //    and it is why a replay is offered freely. It is false for a module they
+  //    never finished: an OPTIONAL day can be skipped, so a pack reaches
+  //    COMPLETED with that day still undone, and once the pack is finished the
+  //    clock sits past every day — so `unlocked` is true for that day too and
+  //    cannot filter it. Interview Ready's day 10 is exactly this shape.
+  if (pack.packStatus !== "COMPLETED") return true;
+  // Only an explicit `null` means "never finished", for the same
+  // absent-is-no-opinion reason as `unlocked`.
+  if (module.firstCompletedAt !== null) return true;
+
+  // Which unfinished modules the server actually refuses, mirroring
+  // PackProgressService.startModule:
+  //   - any module on a day-gated arc → PackCompletedError (409). A restart
+  //     moves `startedAt`, which re-locks every later day, so it has to be
+  //     asked for rather than done silently.
+  //   - an optional module on any pack → refused outright.
+  // The one case it allows is a MANDATORY module on a pack with no arc: that
+  // quietly reopens the pack (the Refresher flow), so keep offering it.
+  if (pack.arcDays != null) return false;
+  return module.isMandatory !== false;
+}
+
+/**
+ * THE MODULE THE SUCCESS SCREEN OFFERS NEXT, or null for "no button".
+ *
+ * The other half of `dayCloseLine`: one of the two always answers, because a
+ * screen that offers nothing and says nothing reads as the app having run out
+ * of things to say.
+ *
+ * ── THE TWO TESTS THAT USED TO LIVE HERE ───────────────────────────────────
+ * The screen used to skip this decision when the pack was COMPLETED, and to
+ * require the next module to be NOT_STARTED. Together they meant that a user
+ * repeating a program they had already finished never got this button once, on
+ * any module. Every repeated module ended at "Back to Home", and the only route
+ * to the next one was Home, then Programs, then the pack, then the day list.
+ * That was the whole of a second pass through a program they had paid for.
+ *
+ * The NOT_STARTED test was simply wrong: a module's status describes what the
+ * user did BEFORE, which is not what is being asked.
+ *
+ * The pack-COMPLETED test was too broad, but it was not pointless, and this
+ * comment used to claim it was. It was the only thing standing between a
+ * skipped optional day and a button that leads nowhere. `isModuleOfferable`
+ * replaces it with the narrow version: on a finished pack, refuse the modules
+ * the server refuses, and keep offering every module the user has finished.
+ */
+export function nextOpenModuleId(
+  modules: NextModuleCandidate[],
+  finishedOrderIndex: number,
+  pack: OfferablePackContext,
+): string | null {
+  const next = modules.find((m) => m.orderIndex === finishedOrderIndex + 1);
+  if (!next) return null;
+  return isModuleOfferable(next, pack) ? next.moduleId : null;
+}
+

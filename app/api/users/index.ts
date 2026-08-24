@@ -288,13 +288,32 @@ export interface OfferItem {
   priceInr: number;
   priceUsd: number;
   /**
-   * The pack's standing shelf price. When a discount applies (founder or the
-   * launch offer) this is HIGHER than priceInr/Usd and the app strikes it
-   * through; otherwise it equals the price and no strike is shown. Always a real
-   * store price, never a fabricated "was".
+   * The pack's standing shelf price, in our own two-currency price book.
+   *
+   * FALLBACK ONLY — prefer `anchorTierProductId`. These come off a hardcoded
+   * backend constant whose own header says the store is the source of truth, so
+   * the moment a store price point or a regional override diverges they stop
+   * describing what anyone is charged. Striking one of these over a real store
+   * price is how a fabricated "was" gets on screen, which is why
+   * `resolvePriceDisplay` only reaches for them when no store anchor resolved,
+   * and only for an INR or USD buyer.
    */
   anchorPriceInr: number;
   anchorPriceUsd: number;
+  /**
+   * The STORE PRODUCT ID of the tier the anchor quotes — the "was" as its own
+   * purchasable product. Look it up in the store exactly like `tierProductId`
+   * and the struck price becomes a real, store-localized string in the buyer's
+   * own currency, so the launch/founder discount is visible in all ~170
+   * countries instead of only the two we keep a price book for.
+   *
+   * Null when nothing is discounted, or when the backend cannot name a tier to
+   * anchor against. Treat null — and a missing field, from a backend older than
+   * this contract — identically: no store anchor is available, fall back to
+   * `anchorPriceInr`/`anchorPriceUsd`, and show no strike in any other currency
+   * rather than converting one ourselves.
+   */
+  anchorTierProductId: string | null;
   owned: boolean;
   /**
    * The pack this offer sells, for opening GET /packs/{id}/brochure.
@@ -385,6 +404,45 @@ export async function getWallet(): Promise<Wallet> {
     return response.data;
   } catch (error) {
     console.error("Error getting wallet:", error);
+    throw error;
+  }
+}
+
+/**
+ * The reconcile endpoint's answer: the wallet, plus whether the reconcile it
+ * was asked to run actually finished.
+ *
+ * The flag matters because the endpoint deliberately does NOT fail when
+ * RevenueCat is unreachable — it still returns the wallet it has, so a store
+ * outage never turns into a 500 in the user's face. Without `reconciled` the
+ * app could not tell "we checked and you own nothing" from "we could not
+ * check", and those two owe the user completely different sentences.
+ *
+ * Optional, and absent means TRUE: an older build of the backend answers with a
+ * plain Wallet, and treating that silence as a failure would tell every user
+ * their restore did not complete when it did.
+ */
+export interface ReconciledWallet extends Wallet {
+  reconciled?: boolean;
+}
+
+/**
+ * POST /users/me/wallet/reconcile — force a RevenueCat reconcile NOW and return
+ * the wallet that results from it.
+ *
+ * GET /users/me/wallet also reconciles, but lazily and at most once every ten
+ * minutes per user. Both screens that host a Restore Purchases button load the
+ * wallet when they open, which spends that window before the user's thumb can
+ * reach the button, so restore had nothing left to trigger. This route bypasses
+ * the throttle; it exists for restore and should not be used for ordinary
+ * wallet reads.
+ */
+export async function reconcileWallet(): Promise<ReconciledWallet> {
+  try {
+    const response = await axiosClient.post("/users/me/wallet/reconcile");
+    return response.data;
+  } catch (error) {
+    console.error("Error reconciling wallet:", error);
     throw error;
   }
 }

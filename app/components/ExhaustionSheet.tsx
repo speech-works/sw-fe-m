@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { getOffers, getWallet, type Offers } from "../api";
+import { getOffers, getWallet, type Offers, type Wallet } from "../api";
 import {
   purchaseProductById,
   pollWalletUntil,
+  recheckWalletUntil,
 } from "../services/purchases";
-import { size, Text, Button, Icon, Sheet, space, spacing, useTheme } from "../design-system";
+import { size, Text, Button, Icon, icons, Sheet, space, spacing, useTheme } from "../design-system";
 import { useStorePrices } from "../hooks/useStorePrices";
 import { resolvePriceDisplay } from "../services/priceDisplay";
 // This sheet sells `sw.membership.*`, an AUTO-RENEWING subscription, so it is a
@@ -46,6 +47,33 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   const [offers, setOffers] = useState<Offers | null>(null);
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [purchasing, setPurchasing] = useState<"credits" | "membership" | null>(null);
+  /**
+   * ── MONEY HAS LEFT THE USER'S ACCOUNT ─────────────────────────────────────
+   * Which product was actually paid for, latched the instant the store says
+   * `purchased` and BEFORE the wallet is asked anything.
+   *
+   * `sw.credits.2` is a store consumable by design (see
+   * sw-be-2/docs/PAYMENTS-GO-LIVE-RUNBOOK.md), so the store itself will take a
+   * second payment for it without a word. This sheet used to clear `purchasing`
+   * in a `finally` whatever happened, and the buy button's only guard was that
+   * flag, so a wallet poll that timed out left a live full-price button in
+   * front of somebody who had already paid, was locked out of a call, and was
+   * as motivated as a person ever gets to tap it again. That second tap was a
+   * second real charge.
+   *
+   * Once this is set the sheet NEVER offers to sell again: the buy buttons are
+   * replaced by the pending block, whose only action is to check again.
+   * Cleared once the grant lands, because a later top-up is a new intent.
+   */
+  const [charged, setCharged] = useState<"credits" | "membership" | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  /**
+   * A wallet check is in flight, whether it is the one that follows the charge
+   * or an explicit "Check again". Both drive the same button, so they share one
+   * spinner and one guard: without this the pending button sat idle and
+   * re-tappable for the whole 30 seconds of the first poll.
+   */
+  const checking = purchasing !== null || confirming;
   const { restoring, restore } = useRestorePurchases();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Local-currency prices for the two fixed SKUs. Empty ⇒ INR fallback.
@@ -81,6 +109,47 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
       });
   }, [visible]);
 
+  /**
+   * Ask our own side whether the grant has landed, for whichever product was
+   * paid for. Shared by both buy handlers and by the pending block's "Check
+   * again", so a confirmation that shows up late does exactly what an instant
+   * one does.
+   *
+   * A false answer means our side has not caught up yet. That is a WAIT, never
+   * a reason to put the product back on sale.
+   *
+   * `userInitiated` picks WHICH DOOR the question goes through, and it is the
+   * difference between a button that works and one that cannot. Left at false
+   * this reads GET /users/me/wallet, whose reconcile is throttled to one pass
+   * per ten minutes and is already spent by the `getWallet` call this sheet
+   * makes as it opens, a few seconds before the purchase. That is fine for the
+   * automatic check straight after paying: the webhook is what we are waiting
+   * on there, and it usually arrives inside the poll. It is useless for the tap,
+   * which is the last thing a stranded buyer has, and needs the store asked
+   * again rather than our own ledger re-read. See recheckWalletUntil.
+   */
+  const confirmPurchase = async (
+    product: "credits" | "membership",
+    { userInitiated = false }: { userInitiated?: boolean } = {},
+  ): Promise<boolean> => {
+    const landed = (w: Wallet) =>
+      product === "credits"
+        ? startingBalance === null || w.balance > startingBalance
+        : w.entitlements.includes("membership");
+    const wallet = userInitiated
+      ? await recheckWalletUntil(landed)
+      : await pollWalletUntil(landed);
+    if (!wallet) return false;
+    // Money and credits now agree, so this intent is closed and the latch has
+    // done its job. Clearing it matters: someone who tops up, spends both calls
+    // and runs out again in the same session is a NEW intent and has to be able
+    // to buy. ProgramDetail gets the same result by letting its owned state win
+    // over the latch.
+    setCharged(null);
+    onResolved();
+    return true;
+  };
+
   const handleBuyCredits = async () => {
     if (!offers?.topup) return;
     setErrorMessage(null);
@@ -88,16 +157,12 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     try {
       const outcome = await purchaseProductById(offers.topup.productId);
       if (outcome.status === "purchased") {
-        const wallet = await pollWalletUntil(
-          (w) => startingBalance === null || w.balance > startingBalance,
-        );
-        if (wallet) {
-          onResolved();
-          return;
-        }
-        setErrorMessage(
-          "Purchase went through, but it's taking longer than usual to show up. Try closing and reopening the call.",
-        );
+        // LATCH FIRST, ASK THE WALLET SECOND. The charge is real by this line,
+        // so whatever the wallet says next, this sheet is done selling.
+        setCharged("credits");
+        // A false answer needs no message of its own: the buy button is already
+        // gone and the pending block that took its place says what is going on.
+        await confirmPurchase("credits");
       } else if (outcome.status === "error") {
         setErrorMessage(outcome.message);
       }
@@ -114,21 +179,38 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     try {
       const outcome = await purchaseProductById(offers.membership.productId);
       if (outcome.status === "purchased") {
-        const wallet = await pollWalletUntil((w) =>
-          w.entitlements.includes("membership"),
-        );
-        if (wallet) {
-          onResolved();
-          return;
-        }
-        setErrorMessage(
-          "Purchase went through, but it's taking longer than usual to show up. Try closing and reopening the call.",
-        );
+        // Same latch, same reason. A subscription the store already sold is
+        // usually refused the second time, but "usually" is not a guard, and
+        // the sheet has no business asking for money twice either way.
+        setCharged("membership");
+        await confirmPurchase("membership");
       } else if (outcome.status === "error") {
         setErrorMessage(outcome.message);
       }
     } finally {
       setPurchasing(null);
+    }
+  };
+
+  // The pending block's button. Runs the same check, and on success takes the
+  // identical path an instant confirmation takes. `userInitiated` is what makes
+  // it a real check: a person is standing here asking, so the store gets asked
+  // rather than the throttled window getting consulted and found empty.
+  const recheckPurchase = async () => {
+    if (!charged || checking) return;
+    setErrorMessage(null);
+    setConfirming(true);
+    try {
+      const confirmed = await confirmPurchase(charged, { userInitiated: true });
+      if (!confirmed) {
+        // Inline, never a bottom sheet. This sheet is itself a native modal,
+        // and a second one presented over it freezes touches app-wide on iOS.
+        setErrorMessage(
+          "Still confirming. Your payment is safe. Check again in a moment.",
+        );
+      }
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -142,71 +224,107 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
        iOS, so it waits for the registry to clear instead of stacking. */
     <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed} exclusive>
       <View style={styles.content}>
-        {/* Title and body are one block, tight together — they are a single
-            thought. The actions get the wider gap below. */}
-        <View style={styles.copyBlock}>
-          <Text variant="h2" color="primary">
-            Out of calls
-          </Text>
-          {/* LEADS WITH THE FREE OPTION. Someone who has just been stopped from
-              doing the thing they came to do should hear what they already have
-              before they hear a price — and the free weekly call is the more
-              reassuring fact anyway.
+        {charged ? (
+          /* PAID, NOT YET CONFIRMED. The only thing this sheet may show once a
+             charge is real: no price, no buy button, and one action that costs
+             nothing to repeat. Restore, Terms and Privacy stay below, and
+             Restore is worth having here in particular: it is the one free,
+             idempotent action that recovers a payment whose grant never
+             arrived. */
+          <>
+            <View style={styles.copyBlock}>
+              <Text variant="h2" color="primary">
+                Payment received
+              </Text>
+              {/* SAYS THE ONE THING THEY NEED TO HEAR: they will not be billed
+                  again. The old copy for this state said the purchase was
+                  "taking longer than usual to show up. Try closing and
+                  reopening the call", which read as a fault and sent them back
+                  to the button that charges. */}
+              <Text variant="body" color="secondary">
+                We&apos;re confirming it now. This can take a moment. You
+                won&apos;t be charged again.
+              </Text>
+            </View>
 
-              "one free call a week" is a standing fact rather than a date. The
-              reset is seven days from their LAST call, so "comes back next
-              week" is right for some people and wrong for others; naming the
-              shape is true for everyone. */}
-          <Text variant="body" color="secondary">
-            You get one free call a week. Top up if you&apos;d rather not wait
-            for the next one.
-          </Text>
-        </View>
+            <View style={styles.actions}>
+              <Button
+                label="Check again"
+                leftIcon={icons.retry}
+                loading={checking}
+                onPress={() => void recheckPurchase()}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Title and body are one block, tight together — they are a single
+                thought. The actions get the wider gap below. */}
+            <View style={styles.copyBlock}>
+              <Text variant="h2" color="primary">
+                Out of calls
+              </Text>
+              {/* LEADS WITH THE FREE OPTION. Someone who has just been stopped from
+                  doing the thing they came to do should hear what they already have
+                  before they hear a price — and the free weekly call is the more
+                  reassuring fact anyway.
 
-        <View style={styles.actions}>
-          {/*
-            Product ids AND prices come from GET /users/me/offers — never from a
-            literal here. A hardcoded "₹99" is a price that goes stale silently
-            the day we change it, and the user gets charged something other than
-            what the button promised. Until offers load we show the button
-            disabled with no price rather than guessing one.
+                  "one free call a week" is a standing fact rather than a date. The
+                  reset is seven days from their LAST call, so "comes back next
+                  week" is right for some people and wrong for others; naming the
+                  shape is true for everyone. */}
+              <Text variant="body" color="secondary">
+                You get one free call a week. Top up if you&apos;d rather not wait
+                for the next one.
+              </Text>
+            </View>
 
-            NO leftIcon. The DS Button locks its label to one line and shrinks
-            the type to fit; an icon takes width from that same row, so a phone
-            glyph here bought nothing and made "Get 2 calls · ₹99" the first
-            thing to go small. The price is the point — it should be full size.
-          */}
-          <Button
-            label={
-              offers?.topup
-                ? `Get ${offers.topup.credits} calls · ${topupPrice}`
-                : "Get more calls"
-            }
-            loading={purchasing === "credits"}
-            disabled={purchasing !== null || !offers?.topup}
-            onPress={handleBuyCredits}
-          />
+            <View style={styles.actions}>
+              {/*
+                Product ids AND prices come from GET /users/me/offers — never from a
+                literal here. A hardcoded "₹99" is a price that goes stale silently
+                the day we change it, and the user gets charged something other than
+                what the button promised. Until offers load we show the button
+                disabled with no price rather than guessing one.
 
-          {offers?.showMembershipOffer && offers.membership ? (
-            <Button
-              label={`Membership · ${membershipPrice}/month`}
-              variant="secondary"
-              loading={purchasing === "membership"}
-              disabled={purchasing !== null}
-              onPress={handleBuyMembership}
-            />
-          ) : null}
-        </View>
+                NO leftIcon. The DS Button locks its label to one line and shrinks
+                the type to fit; an icon takes width from that same row, so a phone
+                glyph here bought nothing and made "Get 2 calls · ₹99" the first
+                thing to go small. The price is the point — it should be full size.
+              */}
+              <Button
+                label={
+                  offers?.topup
+                    ? `Get ${offers.topup.credits} calls · ${topupPrice}`
+                    : "Get more calls"
+                }
+                loading={purchasing === "credits"}
+                disabled={purchasing !== null || !offers?.topup}
+                onPress={handleBuyCredits}
+              />
 
-        {/* Renewal terms, only when the auto-renewing product is on screen. The
-            credit top-up is a consumable and renews nothing, so saying so there
-            would be false. */}
-        {offers?.showMembershipOffer && offers.membership ? (
-          <Text variant="caption" color="tertiary" center style={styles.renewal}>
-            {membershipPrice} per month. Renews automatically unless cancelled 24
-            hours before the period ends.
-          </Text>
-        ) : null}
+              {offers?.showMembershipOffer && offers.membership ? (
+                <Button
+                  label={`Membership · ${membershipPrice}/month`}
+                  variant="secondary"
+                  loading={purchasing === "membership"}
+                  disabled={purchasing !== null}
+                  onPress={handleBuyMembership}
+                />
+              ) : null}
+            </View>
+
+            {/* Renewal terms, only when the auto-renewing product is on screen. The
+                credit top-up is a consumable and renews nothing, so saying so there
+                would be false. */}
+            {offers?.showMembershipOffer && offers.membership ? (
+              <Text variant="caption" color="tertiary" center style={styles.renewal}>
+                {membershipPrice} per month. Renews automatically unless cancelled 24
+                hours before the period ends.
+              </Text>
+            ) : null}
+          </>
+        )}
 
         {/* Restore, Terms and Privacy stay on the sheet whichever offer shows.
             Apple looks for Restore on the purchase surface itself, and a buyer
@@ -217,7 +335,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
             variant="caption"
             color="tertiary"
             style={styles.legalLink}
-            onPress={restoring || purchasing !== null ? undefined : restore}
+            onPress={restoring || checking ? undefined : restore}
           >
             {restoring ? "Restoring…" : "Restore Purchases"}
           </Text>
@@ -263,14 +381,16 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
             and nearly the same weight as the actual call to action, which is
             how a sheet ends up with two primary-looking choices. Declining is
             the exception here, so it should look like one. */}
+        {/* "Not now" is a refusal, and once the money has moved there is
+            nothing left to refuse: leaving is just leaving. */}
         <Text
           variant="bodySm"
           color="secondary"
           center
           style={styles.dismiss}
-          onPress={purchasing === null ? onClose : undefined}
+          onPress={checking ? undefined : onClose}
         >
-          Not now
+          {charged ? "Close" : "Not now"}
         </Text>
       </View>
     </Sheet>

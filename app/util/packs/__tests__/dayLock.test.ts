@@ -1,4 +1,10 @@
-import { dayLockMessage, dayCloseLine, DayLockState } from "../dayLock";
+import {
+  dayLockMessage,
+  dayCloseLine,
+  nextOpenModuleId,
+  isModuleOfferable,
+  DayLockState,
+} from "../dayLock";
 
 const state = (over: Partial<DayLockState> = {}): DayLockState => ({
   lockedDay: 3,
@@ -176,6 +182,53 @@ describe("the wait, when the server tells us the instant it lifts", () => {
     );
   });
 
+  /**
+   * The instant is when ONE day opens: the day after `currentDay`. Every arc
+   * shipped today runs 1..arcDays with no gaps, so that is always the day the
+   * user is looking at. The server does not promise it — `resolveDayState`
+   * finds a gap "rather than skipped past" — so the day count has to take over
+   * when the two disagree, or the app states a wait far shorter than the truth.
+   */
+  it("does not read the next day's instant against a day further out", () => {
+    const msg = dayLockMessage(
+      state({
+        lockedDay: 5,
+        currentDay: 2,
+        nextIncompleteDay: 5,
+        // When day 3 opens, not day 5.
+        nextDayOpensAt: inFuture(20 * HOUR),
+      }),
+    );
+    expect(msg.body).toBe("Day 5 opens in 3 days.");
+    expect(msg.body).not.toMatch(/hours/);
+  });
+
+  it("gives no wait at all for a day the clock has already reached", () => {
+    // Should not arrive here: an open day would not have been refused. Saying
+    // it opens in 20 hours would be the plainest lie of the set.
+    const msg = dayLockMessage(
+      state({ lockedDay: 2, currentDay: 2, nextDayOpensAt: inFuture(20 * HOUR) }),
+    );
+    expect(msg.body).toBe("Day 2 opens later.");
+  });
+
+  it("still trusts the instant when it cannot name the day, since a close guess beats none", () => {
+    expect(
+      dayLockMessage(state({ lockedDay: null, nextDayOpensAt: inFuture(20 * HOUR) })).body,
+    ).toBe("This day opens in 20 hours.");
+  });
+
+  it("holds on the success screen too, which reads the same instant", () => {
+    expect(
+      dayCloseLine({
+        finishedDay: 2,
+        nextDay: 5,
+        currentDay: 2,
+        nextDayOpensAt: inFuture(20 * HOUR),
+      }),
+    ).toBe("Day 5 opens in 3 days.");
+  });
+
   it("reaches the Home card's line too — the loudest surface the wrong word was on", () => {
     expect(
       dayCloseLine({
@@ -216,3 +269,160 @@ describe("dayCloseLine", () => {
     ).toBe("This day opens later.");
   });
 });
+
+describe("nextOpenModuleId — the second pass must chain like the first", () => {
+  /** A finished 3-day arc, and the same arc mid-run. */
+  const DONE = { packStatus: "COMPLETED", arcDays: 3 };
+  const RUNNING = { packStatus: "IN_PROGRESS", arcDays: 3 };
+
+  /**
+   * A 3-day arc the user has already finished once. Every module is COMPLETED
+   * and every day is behind the clock, so the server reports them all unlocked,
+   * and every one carries the date it was first finished.
+   * This is the exact state the old rule failed on.
+   */
+  const finishedPack = [
+    { moduleId: "m1", orderIndex: 0, unlocked: true, firstCompletedAt: "2026-08-01" },
+    { moduleId: "m2", orderIndex: 1, unlocked: true, firstCompletedAt: "2026-08-02" },
+    { moduleId: "m3", orderIndex: 2, unlocked: true, firstCompletedAt: "2026-08-03" },
+  ];
+
+  /**
+   * THE SAME ARC, FINISHED WITH DAY 3 SKIPPED. Day 3 is optional, so the pack
+   * reached COMPLETED without it, and it was never done: `firstCompletedAt` is
+   * null. Every day is still `unlocked: true`, because the clock is past the end
+   * of the arc — which is why `unlocked` cannot tell this apart from a day they
+   * finished. Interview Ready's day 10 is this shape.
+   */
+  const skippedDayPack = [
+    { moduleId: "m1", orderIndex: 0, unlocked: true, firstCompletedAt: "2026-08-01" },
+    { moduleId: "m2", orderIndex: 1, unlocked: true, firstCompletedAt: "2026-08-02" },
+    {
+      moduleId: "m3",
+      orderIndex: 2,
+      unlocked: true,
+      firstCompletedAt: null,
+      isMandatory: false,
+    },
+  ];
+
+  /**
+   * THE DEFECT. The screen used to stop on two tests before it got here: it
+   * returned early when the pack was COMPLETED, and it required the next module
+   * to be NOT_STARTED. On a repeat pass both are false for every module, so the
+   * button never appeared once. The user had to go Home, then Programs, then the
+   * pack, then the day list, for every single module of a program they had paid
+   * for and were doing again.
+   */
+  it("offers the next module on a pack that is already finished", () => {
+    expect(nextOpenModuleId(finishedPack, 0, DONE)).toBe("m2");
+    expect(nextOpenModuleId(finishedPack, 1, DONE)).toBe("m3");
+  });
+
+  it("lets a replay chain from any point, not just from the start", () => {
+    // Day order is a first-pass idea. Somebody redoing day 2 gets day 3 next.
+    expect(nextOpenModuleId(finishedPack, 1, DONE)).toBe("m3");
+  });
+
+  it("offers nothing after the last module", () => {
+    expect(nextOpenModuleId(finishedPack, 2, DONE)).toBeNull();
+  });
+
+  it("still refuses a module the server says is shut", () => {
+    // The first pass, mid-arc: tomorrow's module must never be offered, or the
+    // user lands on the day-locked screen one tap after finishing.
+    const firstPass = [
+      { moduleId: "m1", orderIndex: 0, unlocked: true },
+      { moduleId: "m2", orderIndex: 1, unlocked: false },
+    ];
+    expect(nextOpenModuleId(firstPass, 0, RUNNING)).toBeNull();
+  });
+
+  it("treats a missing unlocked field as no opinion, not as shut", () => {
+    // An older backend does not send the field. Reading absent as false would
+    // remove the button for everybody on that build.
+    expect(nextOpenModuleId([{ moduleId: "m2", orderIndex: 1 }], 0, RUNNING)).toBe(
+      "m2",
+    );
+  });
+
+  it("returns null rather than throwing when the list has a gap", () => {
+    // orderIndex is the server's, so the app must not assume it is dense.
+    expect(nextOpenModuleId(finishedPack, 7, DONE)).toBeNull();
+    expect(nextOpenModuleId([], 0, DONE)).toBeNull();
+  });
+
+  /**
+   * THE SECOND DEFECT, and the one this fixture exists for. Replaying day 2 of a
+   * finished program offered day 3, which the user had skipped. `startModule`
+   * refuses that one (PackCompletedError, 409), so the button we drew ourselves
+   * led to an error sheet and, on the older detection, to "check your
+   * connection and tap Complete again" with a perfect connection.
+   */
+  it("does not offer a day that was skipped on a program the user finished", () => {
+    expect(nextOpenModuleId(skippedDayPack, 1, DONE)).toBeNull();
+  });
+
+  it("still offers a day they DID finish on that same program", () => {
+    // The narrow rule must not become the old broad one: a replay of a finished
+    // day is exactly what the button is for.
+    expect(nextOpenModuleId(skippedDayPack, 0, DONE)).toBe("m2");
+  });
+
+  it("offers a never-finished day while the program is still running", () => {
+    // Mid-run this is the normal case: day 3 is unlocked and not yet done, and
+    // the server starts it happily. Only a FINISHED pack closes it.
+    expect(nextOpenModuleId(skippedDayPack, 1, RUNNING)).toBe("m3");
+  });
+});
+
+describe("isModuleOfferable — the rule both screens share", () => {
+  const DONE_ARC = { packStatus: "COMPLETED", arcDays: 14 };
+  const DONE_NO_ARC = { packStatus: "COMPLETED", arcDays: null };
+  const skipped = { moduleId: "m", orderIndex: 0, unlocked: true, firstCompletedAt: null };
+
+  it("treats a missing firstCompletedAt as no opinion, not as never finished", () => {
+    // A backend that does not send the field must not make every day of every
+    // finished program untappable. Same rule as `unlocked`: absent is silence.
+    expect(
+      isModuleOfferable({ moduleId: "m", orderIndex: 0, unlocked: true }, DONE_ARC),
+    ).toBe(true);
+  });
+
+  it("refuses an unfinished day on a finished arc whether or not it was optional", () => {
+    // `isMandatory` does not enter into it on an arc: the server throws
+    // PackCompletedError before it looks at the flag.
+    expect(isModuleOfferable({ ...skipped, isMandatory: false }, DONE_ARC)).toBe(false);
+    expect(isModuleOfferable({ ...skipped, isMandatory: true }, DONE_ARC)).toBe(false);
+  });
+
+  it("allows an unfinished MANDATORY module on a finished pack with no arc", () => {
+    // The one case the server permits: it quietly reopens the pack, which is
+    // the Refresher flow. Refusing here would remove a route that works.
+    expect(isModuleOfferable({ ...skipped, isMandatory: true }, DONE_NO_ARC)).toBe(
+      true,
+    );
+  });
+
+  it("refuses an unfinished OPTIONAL module even with no arc", () => {
+    expect(isModuleOfferable({ ...skipped, isMandatory: false }, DONE_NO_ARC)).toBe(
+      false,
+    );
+  });
+
+  it("puts the day lock first: a shut day is shut whatever the pack status says", () => {
+    expect(
+      isModuleOfferable(
+        { moduleId: "m", orderIndex: 0, unlocked: false, firstCompletedAt: "2026-08-01" },
+        { packStatus: "IN_PROGRESS", arcDays: 14 },
+      ),
+    ).toBe(false);
+  });
+
+  it("says nothing about a pack whose status never arrived", () => {
+    // progress can fail. Absent status must read as the ordinary running case,
+    // not as COMPLETED, or a failed call would lock the whole day list.
+    expect(isModuleOfferable(skipped, {})).toBe(true);
+  });
+});
+

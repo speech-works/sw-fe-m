@@ -75,6 +75,16 @@ export interface OfferSlideProps {
   item: OfferItem;
   /** Local-currency price from the store; falls back to INR when absent. */
   store?: StorePrice | null;
+  /**
+   * Local-currency price of the ANCHOR tier — the struck-through "was".
+   *
+   * Passing this is what stops the strike being a number we made up. Without it
+   * `PriceTag` falls back to `item.anchorPriceInr`, a backend constant, and
+   * strikes it above a real store price for an INR buyer. Resolve it with
+   * `storePriceFor(storePrices, item.anchorTierProductId)`, which is already in
+   * the carousel's price map because `offerStoreIds` fetches both ids per offer.
+   */
+  storeAnchor?: StorePrice | null;
   /** The vivid treatment, reserved for a top match that earned a reason. */
   highlight?: boolean;
   /** Revealed at the exact contact frame of the full-screen rubber die. */
@@ -84,6 +94,7 @@ export interface OfferSlideProps {
 const OfferSlide: React.FC<OfferSlideProps> = ({
   item,
   store,
+  storeAnchor,
   highlight,
   onPress,
 }) => {
@@ -337,6 +348,7 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
               priceUsd={item.priceUsd}
               anchorUsd={item.anchorPriceUsd}
               store={store}
+              storeAnchor={storeAnchor}
               compact
               ink={skin.priceInk}
             />

@@ -41,7 +41,7 @@ import {
   withAlpha,
 } from "../../design-system";
 import PriceTag from "../../components/PriceTag";
-import { useStorePrices } from "../../hooks/useStorePrices";
+import { storePriceFor, useStorePrices } from "../../hooks/useStorePrices";
 import {
   resolvePriceDisplay,
   savingLabelFor,
@@ -143,21 +143,32 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   const title = brochure?.title ?? offer.title;
   const pitch = brochure?.description ?? offer.blurb ?? null;
 
-  const discounted = offer.anchorPriceInr > offer.priceInr;
-  const { prices: storePrices } = useStorePrices([offer.tierProductId]);
+  // TWO ids: what this pack charges, and the tier its struck "was" quotes. The
+  // hook dedupes, so an offer that anchors against itself costs one lookup.
+  const { prices: storePrices } = useStorePrices([
+    offer.tierProductId,
+    offer.anchorTierProductId,
+  ]);
   const storePrice = storePrices[offer.tierProductId];
+  const storeAnchor = storePriceFor(storePrices, offer.anchorTierProductId);
+  // ONE resolution drives the strike, the badge and the saving line, so they can
+  // never disagree. Resolved rather than read off `anchorPriceInr > priceInr`:
+  // that constant can claim a discount the store does not actually give this
+  // buyer, and a "Launch offer" badge with no struck price under it is the same
+  // unbacked claim as a fabricated "was".
+  const priceDisplay = resolvePriceDisplay({
+    store: storePrice,
+    anchorStore: storeAnchor,
+    inr: offer.priceInr,
+    usd: offer.priceUsd,
+    anchorInr: offer.anchorPriceInr,
+    anchorUsd: offer.anchorPriceUsd,
+  });
+  const discounted = priceDisplay.anchorAmount != null;
   // The saving must be quoted in the SAME currency as the price above it.
   // savingLabelFor returns null when there is no honest saving to state, and the
   // whole line is then withheld rather than shown in the wrong money.
-  const savingLabel = savingLabelFor(
-    resolvePriceDisplay({
-      store: storePrice,
-      inr: offer.priceInr,
-      usd: offer.priceUsd,
-      anchorInr: offer.anchorPriceInr,
-      anchorUsd: offer.anchorPriceUsd,
-    }),
-  );
+  const savingLabel = savingLabelFor(priceDisplay);
   const priceNote = discounted
     ? isFounder
       ? "Founder price"
@@ -305,6 +316,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
             priceUsd={offer.priceUsd}
             anchorUsd={offer.anchorPriceUsd}
             store={storePrice}
+            storeAnchor={storeAnchor}
             center
           />
           {discounted && priceNote && savingLabel ? (
@@ -349,6 +361,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         priceUsd={offer.priceUsd}
         anchorUsd={offer.anchorPriceUsd}
         store={storePrice}
+        storeAnchor={storeAnchor}
         savingLabel={savingLabel}
         note={priceNote}
       />
@@ -802,6 +815,8 @@ interface PurchaseSheetProps {
   priceUsd: number;
   anchorUsd: number;
   store?: StorePrice | null;
+  /** Store price of the anchor tier — a real "was", in the buyer's currency. */
+  storeAnchor?: StorePrice | null;
   /** Pre-formatted saving in the displayed currency; null ⇒ withhold the line. */
   savingLabel: string | null;
   note?: string;
@@ -833,11 +848,23 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
   priceUsd,
   anchorUsd,
   store,
+  storeAnchor,
   savingLabel,
   note,
 }) => {
   const { colors } = useTheme();
-  const discounted = anchorInr > priceInr;
+  // Same rule as the dock: the deal badge appears only when a real strike does.
+  // `anchorInr > priceInr` would badge "Launch offer" over a single unstruck
+  // price whenever the backend constant and the store disagree.
+  const discounted =
+    resolvePriceDisplay({
+      store,
+      anchorStore: storeAnchor,
+      inr: priceInr,
+      usd: priceUsd,
+      anchorInr,
+      anchorUsd,
+    }).anchorAmount != null;
   const showGift = giftDays > 0 && bonusEligible;
 
   return (
@@ -903,6 +930,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
               priceUsd={priceUsd}
               anchorUsd={anchorUsd}
               store={store}
+              storeAnchor={storeAnchor}
             />
           </View>
           {discounted && savingLabel ? (

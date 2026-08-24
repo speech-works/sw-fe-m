@@ -34,6 +34,18 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
 }
 
 /**
+ * The HTTP status of a failed request, or undefined if it never got one.
+ *
+ * Undefined is a real and different answer: it means the request did not
+ * complete at all (offline, DNS, timeout), so there is no server opinion to
+ * read. Callers that branch on a specific code must not treat that as a 0.
+ */
+export function httpStatus(error: unknown): number | undefined {
+  const status = (error as any)?.response?.status;
+  return typeof status === "number" ? status : undefined;
+}
+
+/**
  * Was this a rejection rather than a fault?
  *
  * A 4xx from a user-supplied value — a mistyped invite code — is an expected
@@ -42,8 +54,8 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
  * how a wrong buddy code came to look like a crash.
  */
 export function isClientError(error: unknown): boolean {
-  const status = (error as any)?.response?.status;
-  return typeof status === "number" && status >= 400 && status < 500;
+  const status = httpStatus(error);
+  return status !== undefined && status >= 400 && status < 500;
 }
 
 /**
@@ -60,5 +72,5 @@ export function isClientError(error: unknown): boolean {
  * outcome. For a READ, a 404 is real and must not be swallowed.
  */
 export function isNotFound(error: unknown): boolean {
-  return (error as any)?.response?.status === 404;
+  return httpStatus(error) === 404;
 }

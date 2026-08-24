@@ -20,6 +20,12 @@ export type PackErrorKind =
   | "DAY_LOCKED"
   /** 402 NO_CREDITS / INSUFFICIENT_STAMINA — handled by GlobalModal. */
   | "RESOURCE_EXHAUSTED"
+  /**
+   * 409 PACK_COMPLETED — the program is finished and this module never was, so
+   * only a restart can open it. Retrying cannot succeed, which is what made the
+   * old handling so bad: see `classifyPackError`.
+   */
+  | "PACK_COMPLETED"
   /** Anything else: a genuine failure that must surface as one. */
   | "UNKNOWN";
 
@@ -28,18 +34,48 @@ export type PackErrorKind =
  * the HTTP status, because the code is the contract — a status alone cannot
  * tell NO_CREDITS from PACK_NOT_OWNED, since the backend deliberately returns
  * 402 for both.
+ *
+ * ── WHY PACK_COMPLETED WAS WORTH MOVING IN HERE ────────────────────────────
+ * PackModule used to test that refusal inline, and got all three parts of it
+ * wrong at once: it looked for HTTP 400 (it is 409), in a body field called
+ * `message` (BaseController.handleError names the field `error` in every
+ * branch), for the text "already complete" (the sentence is "This program is
+ * complete. Restart it to run through it again"). So the branch could not run.
+ * The refusal fell through to the transient path, and a person on a perfect
+ * connection was told to check their connection and try again, forever, with no
+ * tap that could ever work.
+ *
+ * That is exactly the drift this module exists to stop, so the rule lives here
+ * with the others now, where it is tested and where one screen cannot hold a
+ * different idea of the shape than another.
  */
 export function classifyPackError(error: unknown): PackErrorKind {
   const err = error as
-    | { response?: { status?: number; data?: { errorCode?: string } } }
+    | {
+        response?: {
+          status?: number;
+          data?: { errorCode?: string; error?: string };
+        };
+      }
     | undefined;
   const code = err?.response?.data?.errorCode;
   const status = err?.response?.status;
 
   if (code === "PACK_NOT_OWNED") return "NOT_OWNED";
   if (code === "PACK_DAY_LOCKED") return "DAY_LOCKED";
+  if (code === "PACK_COMPLETED") return "PACK_COMPLETED";
   if (code === "INSUFFICIENT_STAMINA" || code === "NO_CREDITS") {
     return "RESOURCE_EXHAUSTED";
+  }
+
+  // The same refusal for a pack with NO arc is a plain Error server-side, so it
+  // arrives with no errorCode and no reliable status. Its text is the only
+  // handle it has: "This pack is already complete. Optional modules are not
+  // accessible after pack completion." Read the field the backend actually
+  // sends, which is `error`.
+  const text = err?.response?.data?.error;
+  if (typeof text === "string" && text.includes("already complete")) {
+    return "PACK_COMPLETED";
   }
 
   // No code (older backend, proxy error, malformed body) — fall back to status.
@@ -77,6 +113,17 @@ export function packErrorMessage(kind: PackErrorKind): PackErrorMessage | null {
       return {
         title: "Not yet",
         body: "This day of the programme opens later. Today's work is waiting on the pack page.",
+      };
+    case "PACK_COMPLETED":
+      return {
+        title: "This program is finished",
+        // No "try again". Nothing this person can tap will start this module:
+        // the only thing that opens it is starting the program again, which
+        // lives on the program page.
+        //
+        // "this" rather than "this day": a pack with no arc has sessions, not
+        // days, and the non-arc pack is one of the cases that lands here.
+        body: "You did not finish this the first time. Start the program again to open it.",
       };
     case "UNKNOWN":
     default:

@@ -1,4 +1,8 @@
 import type { OfferItem } from "../../api";
+import {
+  resolvePriceDisplay,
+  type StorePrice,
+} from "../../services/priceDisplay";
 
 /**
  * Choosing WHICH product to show, and grouping the shop — the two decisions
@@ -110,18 +114,41 @@ export function programShelfLabel(item: OfferItem): string {
 
 /**
  * Why a struck-through price is struck through — "Founder price" / "Launch
- * offer" — or null when nothing is actually discounted.
+ * offer" — or undefined when nothing is actually discounted.
  *
- * THE NULL IS THE POINT. It is keyed off the server's own anchor being higher
- * than the price, never off a flag or a date the app decides, so the app cannot
- * print "Launch offer" beside a price that isn't reduced. Lifted verbatim out of
- * `ProgramSalesFlow` so the shop hero explains a discount in the same words the
- * purchase screen does.
+ * THE UNDEFINED IS THE POINT, and it has to agree with the price beside it. It
+ * asks `resolvePriceDisplay` — the one function that decides whether a strike
+ * happens at all — rather than comparing the backend's INR numbers itself. The
+ * two answers used to be able to disagree, because the INR test knows nothing
+ * about the buyer's currency:
+ *
+ *   A buyer in London gets no strike (rule 2 shows no anchor outside INR/USD
+ *   rather than converting one), while the INR test still says the pack is
+ *   discounted. So "Launch offer" printed under a bare "£5.99", explaining a
+ *   reduction that was nowhere on screen.
+ *
+ * Same for a regional price point that lands the anchor tier at or below the
+ * charged tier: the store has said this buyer has no discount, so the note must
+ * not claim one.
+ *
+ * Pass the same `store` and `storeAnchor` the `PriceTag` gets. With neither, it
+ * degrades to exactly the old INR comparison, which is the right answer when
+ * there is no store data to be had.
  */
 export function priceNoteFor(
   item: OfferItem,
   isFounder: boolean,
+  store?: StorePrice | null,
+  storeAnchor?: StorePrice | null,
 ): string | undefined {
-  if (item.anchorPriceInr <= item.priceInr) return undefined;
+  const { anchor } = resolvePriceDisplay({
+    store,
+    anchorStore: storeAnchor,
+    inr: item.priceInr,
+    usd: item.priceUsd,
+    anchorInr: item.anchorPriceInr,
+    anchorUsd: item.anchorPriceUsd,
+  });
+  if (!anchor) return undefined;
   return isFounder ? "Founder price" : "Launch offer";
 }

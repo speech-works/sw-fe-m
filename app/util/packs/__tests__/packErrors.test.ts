@@ -45,6 +45,59 @@ describe("classifyPackError", () => {
     expect(classifyPackError(new Error("network down"))).toBe("UNKNOWN");
     expect(classifyPackError(undefined)).toBe("UNKNOWN");
   });
+
+  /**
+   * ── THE REFUSAL THAT COULD NOT BE DETECTED ────────────────────────────────
+   * PackModule tested this shape itself and got all three parts wrong: HTTP 400
+   * instead of 409, a body field named `message` instead of `error`, and the
+   * text "already complete" instead of the sentence the server actually sends.
+   * So a person who reopened a day they had skipped on a finished program was
+   * told to check their connection and try again, on a good connection, with no
+   * tap that could ever work.
+   */
+  it("recognises the finished-program refusal by its code", () => {
+    expect(classifyPackError(apiError(409, "PACK_COMPLETED"))).toBe(
+      "PACK_COMPLETED",
+    );
+  });
+
+  it("does not depend on the status, which is 409 and never was 400", () => {
+    // The code is the contract. If the status is what we matched on, one change
+    // to the mapping table silently breaks the branch again.
+    expect(classifyPackError(apiError(400, "PACK_COMPLETED"))).toBe(
+      "PACK_COMPLETED",
+    );
+    expect(classifyPackError(apiError(undefined, "PACK_COMPLETED"))).toBe(
+      "PACK_COMPLETED",
+    );
+  });
+
+  it("reads the same refusal from the `error` field when it carries no code", () => {
+    // A pack with no arc refuses with a plain Error, so there is no errorCode
+    // and no dependable status. `error` is the field BaseController.handleError
+    // writes in every branch; `message` is the field that does not exist.
+    expect(
+      classifyPackError({
+        response: {
+          status: 500,
+          data: {
+            error:
+              "This pack is already complete. Optional modules are not accessible after pack completion.",
+          },
+        },
+      }),
+    ).toBe("PACK_COMPLETED");
+  });
+
+  it("does not find that refusal in a `message` field, because the server sends none", () => {
+    // Proves the old test could not have worked: with the body shaped the way
+    // the old code expected, nothing classifies.
+    expect(
+      classifyPackError({
+        response: { status: 400, data: { message: "already complete" } },
+      }),
+    ).toBe("UNKNOWN");
+  });
 });
 
 describe("packErrorMessage", () => {
@@ -56,7 +109,9 @@ describe("packErrorMessage", () => {
 
   it("never tells a blocked user to try again", () => {
     // The whole point. Retrying a paywall or a day lock cannot succeed.
-    for (const kind of ["NOT_OWNED", "DAY_LOCKED"] as const) {
+    // PACK_COMPLETED belongs in this list for the same reason and is the case
+    // that actually shipped the wrong advice.
+    for (const kind of ["NOT_OWNED", "DAY_LOCKED", "PACK_COMPLETED"] as const) {
       const message = packErrorMessage(kind);
       expect(message).not.toBeNull();
       expect(message!.body.toLowerCase()).not.toContain("try again");

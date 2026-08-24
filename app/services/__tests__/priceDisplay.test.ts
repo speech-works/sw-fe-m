@@ -161,6 +161,135 @@ describe("anchorStore — a real store 'was' price, in ANY currency", () => {
   });
 });
 
+/**
+ * THE FABRICATED "WAS" (item 13).
+ *
+ * The charged price came from the store, in the buyer's own currency, while the
+ * struck one came from a hardcoded backend TIER_PRICES constant whose own header
+ * says the store is the source of truth. Two consequences, both fixed by giving
+ * the anchor its own store product id: an INR/USD buyer saw a number we invented
+ * struck over a real one the moment the two drifted, and every buyer in any
+ * other currency lost the discount entirely, because a mismatched-currency
+ * anchor is (correctly) suppressed.
+ */
+describe("the anchor is a REAL store price, not a constant", () => {
+  it("1. store anchor above the price → strikes it, both in store currency", () => {
+    const r = resolvePriceDisplay({
+      store: gbp("£5.99", 5.99),
+      anchorStore: gbp("£9.99", 9.99),
+      inr: 499,
+      usd: 6.99,
+      anchorInr: 999,
+      anchorUsd: 9.99,
+    });
+    expect(r.price).toBe("£5.99");
+    expect(r.anchor).toBe("£9.99");
+    expect(r.currencyCode).toBe("GBP");
+    expect(r.anchorAmount).toBe(9.99);
+    expect(savingPercentFor(r)).toBe(40);
+  });
+
+  it("2. store anchor EQUAL to the price → no strike", () => {
+    const r = resolvePriceDisplay({
+      store: gbp("£9.99", 9.99),
+      anchorStore: gbp("£9.99", 9.99),
+      inr: 999,
+      usd: 9.99,
+    });
+    expect(r.price).toBe("£9.99");
+    expect(r.anchor).toBeNull();
+    expect(r.anchorAmount).toBeNull();
+  });
+
+  it("3. store anchor BELOW the price → no strike (a regional quirk can do this)", () => {
+    const r = resolvePriceDisplay({
+      store: gbp("£9.99", 9.99),
+      anchorStore: gbp("£7.99", 7.99),
+      inr: 999,
+      usd: 9.99,
+    });
+    expect(r.anchor).toBeNull();
+  });
+
+  it("4. store anchor in a DIFFERENT currency → no strike, never mixed", () => {
+    const r = resolvePriceDisplay({
+      store: gbp("£5.99", 5.99),
+      anchorStore: usd("$9.99", 9.99),
+      inr: 499,
+      usd: 6.99,
+    });
+    expect(r.price).toBe("£5.99");
+    expect(r.anchor).toBeNull();
+  });
+
+  it("5. no store anchor, INR anchor present → the legacy fallback still works", () => {
+    const r = resolvePriceDisplay({
+      store: inr("₹499", 499),
+      anchorStore: null,
+      inr: 499,
+      usd: 6.99,
+      anchorInr: 999,
+      anchorUsd: 9.99,
+    });
+    expect(r.price).toBe("₹499");
+    expect(r.anchor).toBe("₹999");
+    expect(r.exact).toBe(true);
+  });
+
+  it("6. payments off entirely → INR price and INR anchor, exactly as today", () => {
+    const r = resolvePriceDisplay({
+      inr: 499,
+      usd: 6.99,
+      anchorInr: 999,
+      anchorUsd: 9.99,
+    });
+    expect(r.price).toBe("₹499");
+    expect(r.anchor).toBe("₹999");
+    expect(r.exact).toBe(false);
+    expect(r.currencyCode).toBe("INR");
+  });
+
+  // The regression that makes this a fix rather than a new code path: once the
+  // store has quoted the anchor in the buyer's currency it is the LAST WORD. A
+  // "no" from a real price must not be overruled by a friendlier constant.
+  it("a same-currency store anchor is FINAL — no falling back to the price book", () => {
+    const r = resolvePriceDisplay({
+      store: inr("₹999", 999),
+      anchorStore: inr("₹999", 999), // the store says: no discount here
+      inr: 999,
+      usd: 9.99,
+      anchorInr: 1999, // the constant says: half price!
+      anchorUsd: 19.99,
+    });
+    expect(r.anchor).toBeNull();
+  });
+
+  it("the price-book anchor must also clear what is actually CHARGED", () => {
+    // Console raised this region to ₹1,099; the constant still reads 499/999.
+    // Striking ₹999 over a charged ₹1,099 is worse than showing no discount.
+    const r = resolvePriceDisplay({
+      store: inr("₹1,099", 1099),
+      inr: 499,
+      usd: 6.99,
+      anchorInr: 999,
+      anchorUsd: 9.99,
+    });
+    expect(r.price).toBe("₹1,099");
+    expect(r.anchor).toBeNull();
+  });
+
+  it("an unusable store anchor is the same as none — the book still covers INR", () => {
+    const r = resolvePriceDisplay({
+      store: inr("₹499", 499),
+      anchorStore: { priceString: "", price: 999, currencyCode: "INR" },
+      inr: 499,
+      usd: 6.99,
+      anchorInr: 999,
+    });
+    expect(r.anchor).toBe("₹999");
+  });
+});
+
 describe("deriveAnchor — the annual membership's 12x 'was'", () => {
   it("builds a 12x anchor in the buyer's own currency", () => {
     const a = deriveAnchor(gbp("£3.99", 3.99), 12);

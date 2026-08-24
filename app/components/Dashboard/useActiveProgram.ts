@@ -5,6 +5,7 @@ import {
   getPackProgress,
   getRecommendedPack,
 } from "../../api/packs";
+import { isModuleOfferable } from "../../util/packs/dayLock";
 
 /** The shape both a pack's own modules and a brochure outline share. */
 interface ModuleLike {
@@ -19,7 +20,15 @@ export interface ActiveProgram {
   title: string;
   /** One or two lines of what the arc is. See the note in InProgressSlide. */
   description: string | null;
-  /** Only for the arc's tone; the slide does not print it. */
+  /**
+   * The card offers a restart instead of a "next day", and `openProgram`
+   * performs one before it navigates.
+   *
+   * True for a pack the recommender itself calls a refresher, and ALSO for a
+   * finished pack whose next unfinished day is one the server refuses to start
+   * (a skipped optional day). Both have the same single route forward, so they
+   * get the same card.
+   */
   isRefresher: boolean;
   /** The server's icon key for this program. Never indexed directly. */
   icon: string | null;
@@ -126,19 +135,54 @@ export function useActiveProgram(): ActiveProgramState {
             progress?.modules.filter((m) => m.status === "COMPLETED") ?? [];
           const total = modules.length;
 
-          let percentComplete = total > 0 ? completed.length / total : 0;
-          if (progress?.packStatus === "COMPLETED") percentComplete = 1;
-          if (rec.isRefresher) percentComplete = 0;
-
           const sorted = [...modules].sort(
             (a, b) => a.orderIndex - b.orderIndex,
           );
 
+          const progressFor = (id: string) =>
+            progress?.modules.find((pm) => pm.moduleId === id);
+
           let current = sorted.find((m) => {
-            const p = progress?.modules.find((pm) => pm.moduleId === m.id);
+            const p = progressFor(m.id);
             return !p || p.status !== "COMPLETED";
           });
-          if (rec.isRefresher) current = sorted[0];
+
+          /**
+           * ── NEVER ADVERTISE A DAY THE SERVER WILL REFUSE ────────────────────
+           * `current` is the first module that is not COMPLETED, and that is not
+           * always a module `startModule` will open. An OPTIONAL day can be
+           * skipped, so a pack reaches COMPLETED with that day still undone —
+           * and once the pack is finished the clock sits past every day, so
+           * `unlocked` is true for that day and cannot filter it out. The card
+           * therefore drew it as "NEXT UP" behind a live press, and the one tap
+           * it invited ended on PackCompletedError (409). Interview Ready's day
+           * 10 is this shape.
+           *
+           * The pack page and the success screen already share one rule for
+           * this; Home was the surface still deciding on its own.
+           *
+           * `unlocked !== false` keeps the two reasons apart. A day the CLOCK
+           * has not reached is a wait, and the card says so; it must never be
+           * turned into an offer to restart, which would move `startedAt` and
+           * re-lock the run they are in the middle of. A skipped day on a
+           * finished pack has no wait to report — a restart is the only route
+           * back to it, which is what a refresher already is.
+           */
+          const chosen = current ? progressFor(current.id) : undefined;
+          const skippedDay =
+            !!chosen &&
+            chosen.unlocked !== false &&
+            !isModuleOfferable(chosen, {
+              packStatus: progress?.packStatus,
+              arcDays: progress?.arcDays ?? null,
+            });
+
+          const refresher = !!rec.isRefresher || skippedDay;
+          if (refresher) current = sorted[0];
+
+          let percentComplete = total > 0 ? completed.length / total : 0;
+          if (progress?.packStatus === "COMPLETED") percentComplete = 1;
+          if (refresher) percentComplete = 0;
 
           const nextModule = current ?? sorted[sorted.length - 1] ?? null;
 
@@ -147,10 +191,10 @@ export function useActiveProgram(): ActiveProgramState {
           // and a locked screen one tap later. A refresher restarts the arc, so
           // its day 1 is open by definition.
           const nextProgress = nextModule
-            ? progress?.modules.find((pm) => pm.moduleId === nextModule.id)
+            ? progressFor(nextModule.id)
             : undefined;
           const nextModuleLocked =
-            rec.isRefresher || !nextProgress || nextProgress.unlocked == null
+            refresher || !nextProgress || nextProgress.unlocked == null
               ? null
               : !nextProgress.unlocked;
 
@@ -161,7 +205,7 @@ export function useActiveProgram(): ActiveProgramState {
               packId: rec.pack.id,
               title: rec.pack.title,
               description: rec.pack.description ?? null,
-              isRefresher: !!rec.isRefresher,
+              isRefresher: refresher,
               icon: rec.pack.icon ?? null,
               nextModule,
               moduleOrder: nextModule ? nextModule.orderIndex : total,

@@ -33,7 +33,11 @@ import AllCompleteSlide from "./AllCompleteSlide";
 import { useActiveProgram, type ActiveProgram } from "./useActiveProgram";
 import { restartPack } from "../../api/packs";
 import PressableScale from "../PressableScale";
-import { useStorePrices } from "../../hooks/useStorePrices";
+import {
+  offerStoreIds,
+  storePriceFor,
+  useStorePrices,
+} from "../../hooks/useStorePrices";
 import RecHeroCard from "./RecHeroCard";
 import {
   Carousel,
@@ -240,9 +244,14 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   );
 
   const selection = selectForYou(offers);
-  // One lookup for the whole carousel rather than one per slide.
+  // One lookup for the whole carousel rather than one per slide, covering each
+  // offer's charged tier AND its anchor tier. The anchor prices are what let a
+  // struck "was" be a real store price instead of a backend constant — used by
+  // the slides right here, and already warm in the shared cache by the time the
+  // buyer taps through to the sales flow. `offerStoreIds` dedupes via the hook,
+  // so two offers anchoring against the same tier still cost one lookup.
   const { prices: storePrices } = useStorePrices(
-    selection.items.map((i) => i.tierProductId),
+    offerStoreIds(selection.items),
   );
 
   // Read by the impression callbacks, which have to stay stable across renders
@@ -640,6 +649,10 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
                 <OfferSlide
                   item={slide.item}
                   store={storePrices[slide.item.tierProductId]}
+                  storeAnchor={storePriceFor(
+                    storePrices,
+                    slide.item.anchorTierProductId,
+                  )}
                   // `offerIndex`, not the slide's position. The top match is
                   // still the top match when something sits in front of it.
                   highlight={

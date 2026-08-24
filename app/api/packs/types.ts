@@ -223,6 +223,21 @@ export interface ModuleProgress {
   status: ModuleStatus;
   attempts: number;
   completedAt: Date | string | null;
+  /**
+   * The first time this user EVER finished this module, on any run of the pack.
+   * `null` means they never have.
+   *
+   * Why `completedAt` and `status` cannot answer that question: a restart, and
+   * every other reset, nulls both. This one survives them, so it is the only
+   * field that separates "never done" from "done before, then restarted". The
+   * server has sent it all along (PackProgressService.getPackProgress); the app
+   * did not read it, which is how a skipped optional day on a finished program
+   * came to be offered as the next module and then refused.
+   *
+   * Optional so a stale backend reads as `undefined` rather than `null` — treat
+   * only an explicit `null` as "never finished", never a missing field.
+   */
+  firstCompletedAt?: Date | string | null;
   isMandatory: boolean;
   progress?: number;
   /** Which day of the arc this module belongs to. Null on packs with no arc. */

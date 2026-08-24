@@ -9,6 +9,7 @@ import {
   Text,
   useTheme,
 } from "../../design-system";
+import { dayCloseLine } from "../../util/packs/dayLock";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -48,6 +49,11 @@ interface Props {
   /** The day being waited for. Omitted when the backend did not say. */
   dayIndex?: number | null;
   /**
+   * Which day is open by the clock (`PackProgress.currentDay`). Needed to tell
+   * whether `opensAt` describes `dayIndex` at all — see `describesNamedDay`.
+   */
+  currentDay?: number | null;
+  /**
    * Fired once, the moment the wait ends. The screen refetches progress and
    * turns this card into the way in — so a user who is sitting here when the
    * clock runs out is not left looking at a dead zero.
@@ -68,9 +74,34 @@ interface Props {
  * A countdown cannot be wrong about either. It also answers the question the
  * sentence never did: not "when, roughly" but "how long".
  */
-const NextDayCountdown: React.FC<Props> = ({ opensAt, dayIndex, onOpened }) => {
+const NextDayCountdown: React.FC<Props> = ({
+  opensAt,
+  dayIndex,
+  currentDay,
+  onOpened,
+}) => {
   const { colors } = useTheme();
   const target = opensAt.getTime();
+
+  /**
+   * Does `opensAt` describe the day this card has to NAME?
+   *
+   * `nextDayOpensAt` is the instant ONE day opens: the day after `currentDay`.
+   * `dayIndex` is the next INCOMPLETE day, and after a restart those are not
+   * the same day. A restart nulls `status` on every module while
+   * `firstCompletedAt` survives, so every day the user has ever finished is
+   * replayable at once, while a day they never finished stays behind the clock.
+   * Skip Interview Ready's optional day 10, finish, restart, replay days 1 to 9
+   * that afternoon: this card was handed day 10 with the instant day 2 opens
+   * and printed "Day 10 opens in" over a 20-hour clock, nine days short.
+   *
+   * A clock is the wrong shape for that state anyway — nobody sent us the
+   * instant day 10 opens, so there is nothing to tick. The day count is the
+   * only honest answer, and `dayCloseLine` is the one place that rule lives.
+   */
+  const describesNamedDay =
+    dayIndex == null || currentDay == null || dayIndex === currentDay + 1;
+
   const [remaining, setRemaining] = useState(() =>
     target - Date.now() <= 0 ? OPEN_NOW : formatRemaining(target - Date.now()),
   );
@@ -141,23 +172,39 @@ const NextDayCountdown: React.FC<Props> = ({ opensAt, dayIndex, onOpened }) => {
         style={[styles.rule, { backgroundColor: colors.border.default }]}
       />
 
-      <View style={styles.clockBlock}>
-        <Text variant="eyebrow" color="tertiary">
-          {dayIndex ? `Day ${dayIndex} opens in` : "Next day opens in"}
-        </Text>
-        {/* Tabular figures: without them every tick changes the width of the
-            number and the whole line twitches. */}
-        <Text variant="h1" color="primary" style={styles.clock}>
-          {remaining}
-        </Text>
-        <Text variant="bodySm" color="tertiary">
-          at{" "}
-          {opensAt.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
+      {describesNamedDay ? (
+        <View style={styles.clockBlock}>
+          <Text variant="eyebrow" color="tertiary">
+            {dayIndex ? `Day ${dayIndex} opens in` : "Next day opens in"}
+          </Text>
+          {/* Tabular figures: without them every tick changes the width of the
+              number and the whole line twitches. */}
+          <Text variant="h1" color="primary" style={styles.clock}>
+            {remaining}
+          </Text>
+          <Text variant="bodySm" color="tertiary">
+            at{" "}
+            {opensAt.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+        </View>
+      ) : (
+        /* No clock and no wall time: both belong to a different day, and the
+           wall time is the more convincing of the two lies. The timer above
+           still runs, and that is deliberate — when this instant passes,
+           `onOpened` refetches, `currentDay` moves up one, and the count below
+           drops by a day without the user having to leave the screen. */
+        <Text variant="title" color="primary">
+          {dayCloseLine({
+            finishedDay: currentDay ?? null,
+            nextDay: dayIndex ?? null,
+            currentDay: currentDay ?? null,
+            nextDayOpensAt: opensAt,
           })}
         </Text>
-      </View>
+      )}
     </View>
   );
 };

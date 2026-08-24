@@ -7,9 +7,11 @@ interface PriceTagProps {
   /** The price actually charged, in INR. */
   priceInr: number;
   /**
-   * The standing/anchor price, in INR. When higher than `priceInr` it is struck
-   * through (a founder or launch-offer discount); when equal, only the price
-   * shows. Always a real server-supplied price — never a fabricated "was".
+   * The standing/anchor price, in INR. FALLBACK ONLY — pass `storeAnchor` when
+   * you can. This comes from a backend constant, not from the store, so once a
+   * store price point or a regional override diverges it is a number we made up
+   * sitting next to a real one. It is used only when no store anchor resolved,
+   * and only for an INR buyer.
    */
   anchorInr: number;
   /**
@@ -25,6 +27,17 @@ interface PriceTagProps {
    * which is the behaviour that shipped before store pricing existed.
    */
   store?: StorePrice | null;
+  /**
+   * What the store says the ANCHOR costs — the offer's `anchorTierProductId`
+   * looked up the same way `store` is. This is what keeps the "never a
+   * fabricated 'was'" promise by construction: the struck number is then a real
+   * price of a real product, in the same currency as the one beside it, which
+   * also means the discount finally shows outside India and the US instead of
+   * being suppressed as a currency mismatch.
+   *
+   * Optional. Omit it and the INR/USD fallback behaves exactly as it does today.
+   */
+  storeAnchor?: StorePrice | null;
   /** Optional line under the price, e.g. "Launch offer", "Founder price", "2 months free". */
   note?: string;
   center?: boolean;
@@ -63,6 +76,7 @@ export const PriceTag = ({
   priceUsd,
   anchorUsd,
   store,
+  storeAnchor,
   note,
   center,
   compact,
@@ -70,9 +84,11 @@ export const PriceTag = ({
 }: PriceTagProps) => {
   // One place decides the strings: which currency, and whether an honest anchor
   // exists in it at all. See priceDisplay.ts for why a mismatched-currency
-  // strike is suppressed rather than converted.
+  // strike is suppressed rather than converted, and why a same-currency store
+  // anchor is the last word on whether a strike happens.
   const { price, anchor } = resolvePriceDisplay({
     store,
+    anchorStore: storeAnchor,
     inr: priceInr,
     usd: priceUsd ?? 0,
     anchorInr,

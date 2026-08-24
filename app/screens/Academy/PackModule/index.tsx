@@ -28,8 +28,12 @@ import {
   parseDoneBlocks,
   serializeDoneBlocks,
 } from "../../../util/packs/blockCompletion";
-import { classifyPackError } from "../../../util/packs/packErrors";
-import { dayLockMessage, dayCloseLine } from "../../../util/packs/dayLock";
+import { classifyPackError, packErrorMessage } from "../../../util/packs/packErrors";
+import {
+  dayLockMessage,
+  dayCloseLine,
+  nextOpenModuleId,
+} from "../../../util/packs/dayLock";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
@@ -52,7 +56,9 @@ import {
   useTheme,
   Sheet,
   SchemeStatusBar,
+  ErrorState,
 } from "../../../design-system";
+import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
@@ -107,6 +113,29 @@ const PackModuleScreen = () => {
     openModuleId: string | null;
     nextDayOpensAt: Date | string | null;
   } | null>(null);
+  /**
+   * WHY THIS SCREEN HAS NOTHING TO SHOW — and it is never "the content is gone"
+   * unless we actually know that.
+   *
+   * This screen sits inside a program the user has PAID for, so every dead end
+   * here costs real trust. The three cases are kept apart because the honest
+   * sentence is different for each:
+   *
+   *  - "no-module": we were navigated here with no module id at all (a caller
+   *    bug, e.g. ProgramDetail passing `moduleId: undefined`). Retrying cannot
+   *    help, so that state offers two ways OUT instead of a Try again.
+   *  - "not-found": the server answered 404. The day genuinely is not there.
+   *  - "load-failed": anything else, which in practice is almost always the
+   *    network. Retryable, and worded as a failure to LOAD rather than as
+   *    missing content. When we cannot tell the two apart we land here on
+   *    purpose: telling someone their paid program was deleted, when they were
+   *    really just in a lift, is the far worse mistake.
+   */
+  const [loadError, setLoadError] = useState<
+    "no-module" | "not-found" | "load-failed" | null
+  >(null);
+  /** Bumped by Try again to re-run the init effect. */
+  const [retryToken, setRetryToken] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
   /**
@@ -356,29 +385,87 @@ const PackModuleScreen = () => {
     };
   }, [packId]);
 
+  /**
+   * ── THE START MUST BE REMEMBERED ──────────────────────────────────────────
+   * Marking the module started used to be fire-and-forget. When that request
+   * failed for a transient reason the server never learned the module began,
+   * so every later `completeModule` failed too: the day never recorded, the
+   * next day never unlocked, and the user got an error on every tap of
+   * Complete with nothing they could do about it.
+   *
+   * So the outcome is latched. A ref, not state: nothing renders from it, and
+   * it must be readable by `handleComplete` without waiting for a re-render.
+   */
+  const startedOkRef = useRef(false);
+
+  /**
+   * Returns what happened, not just whether it worked:
+   *  - "ok"      the server has the start.
+   *  - "handled" it failed for a reason we have already answered on screen
+   *              (the pack is finished) — the caller must stay quiet.
+   *  - "failed"  transient. The caller decides what to say.
+   */
+  const runStartModule = useCallback(
+    async (moduleId: string): Promise<"ok" | "handled" | "failed"> => {
+      try {
+        await startModule(packId, moduleId);
+        startedOkRef.current = true;
+        return "ok";
+      } catch (err: any) {
+        startedOkRef.current = false;
+        console.log("Failed to mark start", err);
+        /**
+         * THE SERVER REFUSED, AND IT WILL REFUSE EVERY RETRY.
+         *
+         * A module this person never finished, on a program that IS finished, is
+         * the one thing `startModule` will not accept: reopening a day-gated arc
+         * has to move `startedAt`, which re-locks every later day, so the server
+         * makes it an explicit restart instead of a silent side effect.
+         *
+         * This used to be tested inline here, and every part of that test was
+         * wrong (status, field name and text — see `classifyPackError`), so the
+         * branch never ran and the refusal fell through to the transient path
+         * below. `classifyPackError` owns the shape now, where it is tested.
+         */
+        const kind = classifyPackError(err);
+        if (kind === "PACK_COMPLETED") {
+          const message = packErrorMessage(kind);
+          if (message) {
+            showErrorBottomSheet(message.title, message.body);
+          }
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigateToHomeFallback();
+          }
+          return "handled";
+        }
+        return "failed";
+      }
+    },
+    [packId, navigation, navigateToHomeFallback],
+  );
+
   useEffect(() => {
     const initModule = async () => {
       try {
+        setLoading(true);
+        setLoadError(null);
+
         const targetModuleId = initialModule?.id || initialModuleId;
         if (!targetModuleId) {
           console.error("No module ID provided");
+          // Never fall through to the spinner. Without this the screen sat on
+          // "Loading content..." with no header, no back button and nothing to
+          // press, inside a program the user had paid for.
+          setLoadError("no-module");
           return;
         }
 
-        startModule(packId, targetModuleId).catch((err) => {
-          console.log("Failed to mark start", err);
-          if (
-            err?.response?.status === 400 &&
-            err?.response?.data?.message?.includes("already complete")
-          ) {
-            alert("This pack is already complete. Optional modules are not accessible after pack completion.");
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigateToHomeFallback();
-            }
-          }
-        });
+        // Still not awaited: the module must open whether or not the server
+        // records the start. The difference is that the outcome is now kept,
+        // so Complete can repair it later. See `runStartModule`.
+        void runStartModule(targetModuleId);
 
         if (
           initialModule &&
@@ -484,16 +571,36 @@ const PackModuleScreen = () => {
           });
         } else {
           console.error("Module data is empty/not found even after fallback");
+          setLoadError("load-failed");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch module details", err);
+        // A FAILED FETCH IS NOT DELETED CONTENT. This used to leave `module`
+        // null and drop the user on a bare "Module not found." — telling
+        // someone inside a paid program that their day does not exist, when
+        // the real answer was that the request did not arrive.
+        //
+        // 404 is the one status that genuinely means gone. Everything else,
+        // including a request that never reached a server at all (no
+        // `response`), is treated as retryable on purpose: over-promising a
+        // retry costs a tap, and wrongly claiming their content is missing
+        // costs their trust in the program they bought.
+        setLoadError(err?.response?.status === 404 ? "not-found" : "load-failed");
       } finally {
         setLoading(false);
       }
     };
 
     initModule();
-  }, [initialModule, initialModuleId, navigateToHomeFallback, navigation, packId]);
+  }, [
+    initialModule,
+    initialModuleId,
+    navigateToHomeFallback,
+    navigation,
+    packId,
+    runStartModule,
+    retryToken,
+  ]);
 
   /**
    * Seed the completion latch before anything derives from it.
@@ -662,6 +769,24 @@ const PackModuleScreen = () => {
     if (!module) return;
     try {
       setIsCompleting(true);
+
+      // REPAIR THE START BEFORE COMPLETING. The server refuses to complete a
+      // module it never saw begin, so a start that failed at open time used to
+      // break Complete permanently: every tap failed, the day never recorded,
+      // and the next day never unlocked. One retry here closes that hole.
+      if (!startedOkRef.current) {
+        const started = await runStartModule(module.id);
+        // "handled" already said its piece and is navigating away.
+        if (started === "handled") return;
+        if (started === "failed") {
+          showErrorBottomSheet(
+            "We could not save that yet",
+            "Your work is not lost. Check your connection and tap Complete again.",
+          );
+          return;
+        }
+      }
+
       // skipTally is null unless they answered the "why" question, and null is
       // the honest signal for "unknown" -- see completeModule.
       await completeModule(packId, module.id, skipTally);
@@ -669,47 +794,46 @@ const PackModuleScreen = () => {
       // Check for next module
       try {
         const result = await getPackProgress(packId);
-        if (result.packStatus === "COMPLETED") {
-          setNextModuleId(null);
-        } else {
-          const nextMod = result.modules.find(
-            (m) => m.orderIndex === module.orderIndex + 1 && m.status === "NOT_STARTED",
-          );
-          // THE NEXT MODULE IS NOT ALWAYS TODAY'S.
-          //
-          // On a day-gated pack the module at orderIndex+1 is frequently
-          // TOMORROW's — on a one-module-per-day arc it always is. Offering it
-          // sent the user straight into the day-locked screen, one tap after
-          // finishing, on a button we drew ourselves. `unlocked` is what the
-          // backend has always said about that; read it.
-          //
-          // Only an explicit `false` counts as locked. A backend that doesn't
-          // send the field leaves this exactly as it was.
-          if (nextMod && nextMod.unlocked !== false) {
-            setNextModuleId(nextMod.moduleId);
-          } else {
-            setNextModuleId(null);
-          }
 
-          // What to say instead. `dayIndex` is this module's own day, so a
-          // finished day can close itself honestly rather than going quiet.
-          const finishedDay =
-            result.modules.find((m) => m.moduleId === module.id)?.dayIndex ??
-            null;
-          setDayClose(
-            nextMod && nextMod.unlocked === false
-              ? {
-                  finishedDay,
-                  nextDay: nextMod.dayIndex ?? null,
-                  currentDay: result.currentDay ?? null,
-                  // How long the wait is, not the word "tomorrow" — which is
-                  // wrong for anyone finishing a day after midnight, and wrong
-                  // anyway because the gate is 24h from the start.
-                  nextDayOpensAt: result.nextDayOpensAt ?? null,
-                }
-              : null,
-          );
-        }
+        // WHICH MODULE COMES NEXT, and why it is not a question this screen
+        // answers itself: see `nextOpenModuleId`. The short version is that the
+        // two tests that used to live here (pack COMPLETED, module NOT_STARTED)
+        // silently removed this button for anybody repeating a program they had
+        // already finished, which is the whole of a second pass.
+        //
+        // The pack context is what keeps the narrow half of the COMPLETED test:
+        // on a finished arc every day is behind the clock, so `unlocked` alone
+        // would also offer a day that was SKIPPED and never done, and the server
+        // refuses to start that one.
+        const nextMod = result.modules.find(
+          (m) => m.orderIndex === module.orderIndex + 1,
+        );
+        setNextModuleId(
+          nextOpenModuleId(result.modules, module.orderIndex, {
+            packStatus: result.packStatus,
+            arcDays: result.arcDays,
+          }),
+        );
+
+        // What to say instead. `dayIndex` is this module's own day, so a
+        // finished day can close itself honestly rather than going quiet.
+        // A finished pack never reaches this: every day of it is behind the
+        // clock, so none of its modules can come back `unlocked: false`.
+        const finishedDay =
+          result.modules.find((m) => m.moduleId === module.id)?.dayIndex ?? null;
+        setDayClose(
+          nextMod && nextMod.unlocked === false
+            ? {
+                finishedDay,
+                nextDay: nextMod.dayIndex ?? null,
+                currentDay: result.currentDay ?? null,
+                // How long the wait is, not the word "tomorrow" — which is
+                // wrong for anyone finishing a day after midnight, and wrong
+                // anyway because the gate is 24h from the start.
+                nextDayOpensAt: result.nextDayOpensAt ?? null,
+              }
+            : null,
+        );
       } catch (e) {
         console.warn("Failed to find next module", e);
       }
@@ -748,7 +872,11 @@ const PackModuleScreen = () => {
       setShowSuccess(true);
     } catch (error) {
       console.error("Failed to complete module", error);
-      alert("Failed to complete module. Please try again.");
+      // The app's own error sheet, not a raw OS alert.
+      showErrorBottomSheet(
+        "We could not save that yet",
+        "Your work is not lost. Check your connection and tap Complete again.",
+      );
     } finally {
       setIsCompleting(false);
     }
@@ -786,9 +914,16 @@ const PackModuleScreen = () => {
       setShowSuccess(false);
       setCurrentBlockIndex(0);
       setLoading(true);
-      // Navigate to self with new params - essentially resetting the screen
+      // Navigate to self with new params - essentially resetting the screen.
+      //
+      // `moduleId`, NOT a stub `module` object. Passing `{ id }` cast to a
+      // PackModule handed the next screen something that looked like a module
+      // and had no `title` and no `blocks`, and the first read of `.title`
+      // crashed the app to the error screen — throwing the user clean out of a
+      // program they had paid for. Every other route into this screen passes
+      // an id and lets it load the real thing; so does this one now.
       navigation.replace("PackModule", {
-        module: { id: nextModuleId } as any,
+        moduleId: nextModuleId,
         packId,
       });
     }
@@ -800,6 +935,58 @@ const PackModuleScreen = () => {
         <SchemeStatusBar />
         <View style={styles.centerFill}>
           <Spinner label="Loading content..." />
+        </View>
+      </ScreenView>
+    );
+  }
+
+  // NOTHING LOADED, AND ALWAYS SOMETHING TO DO. This sits ahead of every other
+  // empty branch on purpose: a failure has to be able to say so before the
+  // screen falls through to a bare "Module not found."
+  if (loadError) {
+    const retryable = loadError === "load-failed";
+    const copy =
+      loadError === "no-module"
+        ? {
+            title: "We could not open this day",
+            message:
+              "Something went wrong on the way here. Go back and open the day again.",
+          }
+        : loadError === "not-found"
+          ? {
+              title: "This day is not here",
+              message:
+                "We could not find this day in your program. Go back and pick it from the program page.",
+            }
+          : {
+              title: "We could not load this day",
+              message:
+                "Check your connection and try again. Your program and your progress are safe.",
+            };
+
+    return (
+      <ScreenView style={{ backgroundColor: colors.background.canvas }}>
+        <SchemeStatusBar />
+        <View style={styles.centerFill}>
+          <ErrorState
+            title={copy.title}
+            message={copy.message}
+            // No Try again on the two cases a retry cannot fix. Offering a
+            // button that is guaranteed to fail is worse than not offering one.
+            onRetry={
+              retryable ? () => setRetryToken((token) => token + 1) : undefined
+            }
+          />
+          <Button
+            label="Go back"
+            variant={retryable ? "ghost" : "secondary"}
+            fullWidth={false}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigateToHomeFallback()
+            }
+          />
         </View>
       </ScreenView>
     );
@@ -859,9 +1046,10 @@ const PackModuleScreen = () => {
                   lockState?.openModuleId
                 ) {
                   // `replace`, not push: the locked day is not somewhere they
-                  // should be able to swipe back into.
+                  // should be able to swipe back into. And `moduleId`, not a
+                  // stub module — same crash as the "next module" button.
                   navigation.replace("PackModule", {
-                    module: { id: lockState.openModuleId } as any,
+                    moduleId: lockState.openModuleId,
                     packId,
                   });
                   return;
@@ -951,7 +1139,13 @@ const PackModuleScreen = () => {
             <Button
               label="Back to Home"
               variant={nextModuleId ? "ghost" : "secondary"}
-              onPress={() => navigation.goBack()}
+              // Same no-dead-ends rule as everywhere else on this screen: if
+              // there is no stack to go back to, go Home rather than nowhere.
+              onPress={() =>
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigateToHomeFallback()
+              }
             />
           </View>
         </View>
@@ -970,21 +1164,34 @@ const PackModuleScreen = () => {
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
         <SchemeStatusBar />
         <View style={styles.centerFill}>
-          <Text variant="body" color="secondary" center>
-            Module not found.
-          </Text>
+          {/* Last resort: no module and no recorded reason. Same retryable
+              wording as a load failure, because "we don't know" and "the
+              request failed" are indistinguishable from here. */}
+          <ErrorState
+            title="We could not load this day"
+            message="Check your connection and try again. Your program and your progress are safe."
+            onRetry={() => setRetryToken((token) => token + 1)}
+          />
           <Button
-            label="Go Back"
+            label="Go back"
             variant="ghost"
             fullWidth={false}
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigateToHomeFallback()
+            }
           />
         </View>
       </ScreenView>
     );
   }
 
-  const moduleTitle = module.title.replace(/^Module \d+:\s*/, "");
+  // Guarded: a module that arrives without a title must not crash the render.
+  // The stub-object navigation that used to cause exactly that is gone, but the
+  // read is one character from being a crash and the fallback costs nothing.
+  const moduleTitle =
+    (module.title ?? "").replace(/^Module \d+:\s*/, "") || "Today's module";
   // "Module 3 of 9" once we know the total; "Module 3" until then, which is
   // exactly what it said before — so a slow or failed count costs nothing.
   const modulePosition = arc

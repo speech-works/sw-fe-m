@@ -1,11 +1,21 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { getOffers, type OfferItem } from "../../api";
+import { getOffers, type OfferItem, type Wallet } from "../../api";
 import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
 import { selectOffer } from "../../util/packs/offers";
+import { isModuleOfferable } from "../../util/packs/dayLock";
+import { packErrorMessage } from "../../util/packs/packErrors";
 import { PackBrochure, PackProgress } from "../../api/packs/types";
-import { purchaseCatalogItem, pollWalletUntil } from "../../services/purchases";
+import {
+  purchaseCatalogItem,
+  pollWalletUntil,
+  recheckWalletUntil,
+} from "../../services/purchases";
 import {
   size,
   Button,
@@ -17,6 +27,7 @@ import {
   spacing,
   radius,
   Spinner,
+  ErrorState,
 } from "../../design-system";
 import PressableScale from "../../components/PressableScale";
 import ProgramSalesFlow from "./ProgramSalesFlow";
@@ -57,6 +68,32 @@ export function dayTitle(title: string): string {
   return title.replace(/^\s*Day\s+\d+\s*[:.\u2013\u2014-]\s*/i, "");
 }
 
+/**
+ * Day one's module id, for the restart path.
+ *
+ * A restarted pack has to open on a REAL module id: PackModule cannot resolve
+ * day one from a missing one, so passing `undefined` there is a spinner that
+ * never resolves.
+ *
+ * Arc packs are ordered by `dayIndex`; packs with no arc carry nulls there and
+ * are ordered by `orderIndex` instead. The two are never mixed in one sort,
+ * because a list where some rows have a day and some don't has no single
+ * ordering, and guessing one is how the wrong day gets opened.
+ */
+export function firstDayModuleId(
+  modules: {
+    moduleId: string;
+    dayIndex?: number | null;
+    orderIndex: number;
+  }[],
+): string | undefined {
+  const dayed = modules.filter((m) => m.dayIndex != null);
+  const ordered = dayed.length
+    ? [...dayed].sort((a, b) => (a.dayIndex ?? 0) - (b.dayIndex ?? 0))
+    : [...modules].sort((a, b) => a.orderIndex - b.orderIndex);
+  return ordered[0]?.moduleId;
+}
+
 const ProgramDetailScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"ProgramDetail">>();
   const route = useRoute<ExploreStackRouteProp<"ProgramDetail">>();
@@ -82,19 +119,74 @@ const ProgramDetailScreen = () => {
    * which shows the ACTIVE program and nothing else.
    *
    * PackModule cannot work this out for itself: handed a `packId` with no
-   * `moduleId` it logs "No module ID provided" and renders nothing. So the
-   * screen that offers the button has to know which day the button opens.
+   * `moduleId` it has no day to open and nothing useful to show (it used to
+   * hang on a spinner forever). So the screen that offers the button has to
+   * know which day the button opens, and must offer no button at all when it
+   * does not.
    */
   const [progress, setProgress] = useState<PackProgress | null>(null);
+  /**
+   * The progress call FAILED, as opposed to not having answered yet. Without
+   * this the two look identical (`progress` is null either way) and the screen
+   * used to offer an "Open" button in both — a button with no `moduleId`, which
+   * is the stuck-spinner dead end described above. Failure now earns a retry;
+   * still-in-flight earns a spinner.
+   */
+  const [progressError, setProgressError] = useState(false);
+  const [refreshingProgress, setRefreshingProgress] = useState(false);
   const [opening, setOpening] = useState(false);
   const [loading, setLoading] = useState(true);
+  /**
+   * The offer call failed. NOT the same thing as `offer === null`, which means
+   * the program is genuinely not on sale. One is "try again", the other is
+   * "this is retired", and telling a user with flaky signal that the program is
+   * gone sends them away for good.
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [purchasing, setPurchasing] = useState(false);
+  /**
+   * ── MONEY HAS LEFT THE USER'S ACCOUNT ─────────────────────────────────────
+   * Latched the instant the store says `purchased`, BEFORE the wallet is asked
+   * anything. The tier SKUs are consumable on purpose (see
+   * sw-be-2/docs/PAYMENTS-GO-LIVE-RUNBOOK.md), so the store will happily charge
+   * a second time. This screen used to leave the full-price buy button live
+   * whenever the wallet poll timed out, and a second tap was a second charge.
+   *
+   * Once this is true the screen NEVER shows a buy affordance again in this
+   * session: it either becomes the owned screen or the pending screen below.
+   */
+  const [charged, setCharged] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  /**
+   * The mount-time load already fetches progress, so the first focus must not
+   * fetch it a second time. Every focus after that does.
+   */
+  const skipFirstProgressFocus = useRef(true);
 
   // Funnel: the recommendation→click→DETAIL step. Fires once per opened
   // program, independent of how the user got here (Home rec, shop, deep link).
   useEffect(() => {
     track(ANALYTICS_EVENTS.PROGRAM_DETAIL_VIEWED, { catalogKey, packId });
   }, [catalogKey, packId]);
+
+  /**
+   * The one place progress is fetched. Records a failure instead of swallowing
+   * it, because the UI has to be able to tell "we don't know yet" from "we
+   * asked and it failed" — see `progressError` above.
+   */
+  const fetchProgress = useCallback(async (targetPackId: string) => {
+    try {
+      const fresh = await getPackProgress(targetPackId);
+      setProgress(fresh);
+      setProgressError(false);
+      return fresh;
+    } catch (error) {
+      console.error("[ProgramDetail] Failed to load pack progress:", error);
+      setProgressError(true);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,18 +203,18 @@ const ProgramDetailScreen = () => {
         setIsFounder(offers.isFounderCohort);
         setBonusEligible(offers.bonusMembershipEligible);
         setOwned(match?.owned ?? false);
+        setLoadFailed(false);
         // Only for owners: for everybody else the endpoint is a 403 and the
         // sales flow needs nothing from it.
         if (match?.owned && match.packId) {
-          getPackProgress(match.packId)
-            .then(setProgress)
-            .catch(() => {
-              /* The button falls back to "Open", which PackModule can still
-                 resolve from day one. Never worth blocking the screen. */
-            });
+          // A failure here is recorded, not swallowed: the owned screen shows a
+          // retry rather than an "Open" button with no day to open.
+          void fetchProgress(match.packId);
         }
       } catch (error) {
         console.error("[ProgramDetail] Failed to load offer:", error);
+        // The offer is unknown, not absent. Say so, and offer a way back.
+        if (!cancelled) setLoadFailed(true);
       }
 
       // The curriculum is a nice-to-have: a missing brochure costs the outline,
@@ -144,19 +236,163 @@ const ProgramDetailScreen = () => {
     return () => {
       cancelled = true;
     };
-  }, [catalogKey, packId]);
+  }, [catalogKey, packId, reloadNonce, fetchProgress]);
+
+  // "Try again" after a failed load. Bumping the nonce re-runs the effect
+  // above, so there is still exactly one loading path.
+  const retryLoad = useCallback(() => {
+    setLoading(true);
+    setLoadFailed(false);
+    setReloadNonce((n) => n + 1);
+  }, []);
 
   // The clock ran out while they were sitting here. Ask the server what is
   // open now, so the wait turns into the way in without a manual reload.
   const refreshProgress = useCallback(() => {
     if (!offer?.packId) return;
-    getPackProgress(offer.packId)
-      .then(setProgress)
-      .catch(() => {
-        /* Nothing to recover: the countdown stays at "Opening now" and a
-           back-and-forward re-fetches anyway. */
-      });
-  }, [offer?.packId]);
+    void fetchProgress(offer.packId);
+  }, [offer?.packId, fetchProgress]);
+
+  // The same refresh with a spinner on it, for the explicit retry button.
+  const retryProgress = useCallback(async () => {
+    if (!offer?.packId || refreshingProgress) return;
+    setRefreshingProgress(true);
+    try {
+      await fetchProgress(offer.packId);
+    } finally {
+      setRefreshingProgress(false);
+    }
+  }, [offer?.packId, refreshingProgress, fetchProgress]);
+
+  /**
+   * COMING BACK FROM A DAY MUST NOT SHOW YESTERDAY'S SCREEN.
+   *
+   * Progress used to be fetched on mount only, so finishing a day and pressing
+   * back left the tick missing and the CTA still inviting them to redo the day
+   * they had just done. One refresh per focus, and the first focus is skipped
+   * because the mount load already fetched it.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!offer?.packId || !owned) return;
+      if (skipFirstProgressFocus.current) {
+        skipFirstProgressFocus.current = false;
+        return;
+      }
+      refreshProgress();
+    }, [offer?.packId, owned, refreshProgress]),
+  );
+
+  /**
+   * Turn a completed payment into an unlocked program.
+   *
+   * Shared by the buy button and the pending screen's "Check again", so a
+   * confirmation that arrives late does exactly what an instant one does:
+   * unlock the screen, fetch progress so "Open" has a day to open, say the
+   * purchase went through, and name the bonus month when there really is one.
+   *
+   * Returns false when the wallet has not caught up yet. That is a WAIT, never
+   * a reason to show a buy button again.
+   *
+   * `userInitiated` chooses WHICH DOOR the question goes through, and on the
+   * pending screen it is the difference between a button that can work and one
+   * that cannot. False reads GET /users/me/wallet, whose reconcile is throttled
+   * to one pass per user per ten minutes and is spent by any ordinary wallet
+   * read (the credit chip, the call gate) long before a purchase here. That is
+   * the right door for the automatic check after paying, where the webhook is
+   * what we are waiting on. It is the wrong one for a tap from somebody whose
+   * webhook never came, because it cannot ask the store at all. See
+   * recheckWalletUntil.
+   */
+  const confirmPurchase = useCallback(
+    async ({ userInitiated = false }: { userInitiated?: boolean } = {}) => {
+      if (!offer) return false;
+      const landed = (w: Wallet) =>
+        w.entitlements.includes(`pack:${offer.key}`);
+      const wallet = userInitiated
+        ? await recheckWalletUntil(landed)
+        : await pollWalletUntil(landed);
+      if (!wallet) return false;
+      setOwned(true);
+      // WITHOUT THIS, "Open" HAS NOWHERE TO SEND THEM. `ownedState` reads
+      // `progress`, and the mount-time effect above only fetches it when the pack
+      // is ALREADY owned — a purchase made mid-visit never triggers that fetch,
+      // so `progress` stays null and the screen cannot name day one's real id.
+      if (offer.packId) {
+        await fetchProgress(offer.packId);
+      }
+      // CLAIM THE GIFT, but only when all three of these agree.
+      //
+      // The bonus membership month is granted silently by the webhook and was
+      // never mentioned anywhere in the app, which wasted the single most
+      // generous thing we do. Naming it needs all three, because the wallet on
+      // its own cannot tell "this purchase gave you a month" apart from "you
+      // already had membership":
+      //
+      //   bonusEligible  the server's own answer, from before the purchase, to
+      //                  whether this user would really be given it. It is
+      //                  `!everHadMembership`, so it is false for a paying member
+      //                  and for a repeat pack buyer whose earlier bonus month is
+      //                  still running. Those are precisely the people the
+      //                  webhook withholds it from (strategy §6.9).
+      //   gift days      this pack gifts one at all. Not every pack does.
+      //   the wallet     it landed. A race, a refund or a changed rule must never
+      //                  produce a congratulation for a gift nobody gave.
+      //
+      // With only the wallet check, an existing member who buys a pack was
+      // congratulated on a free month the backend had already decided to withhold.
+      // Same condition as the Programs list (screens/Programs/index.tsx), and what
+      // the API contract asks for in so many words: gate every "free month
+      // included" line on `bonusMembershipEligible`.
+      //
+      // `bonusEligible` starts false, so a failed offers fetch says nothing rather
+      // than guessing. That is the safe direction: the harm is claiming a gift
+      // that was never given, not staying quiet about one that was.
+      const giftLanded =
+        bonusEligible &&
+        offer.bonusMembershipDays > 0 &&
+        wallet.entitlements.includes("membership");
+      if (giftLanded) {
+        setBonusEligible(false); // spent, never advertise it twice
+        showSuccessBottomSheet(
+          "You're in. The first month is on us",
+          "Your program is unlocked, plus a free month of membership: 4 AI practice calls to use whenever you want them.",
+        );
+      } else {
+        // THE PURCHASE STILL HAS TO BE ACKNOWLEDGED. This used to be the only
+        // success sheet on the screen, sitting inside the gift branch, so anyone
+        // who bought a pack without a gift attached paid and got no sentence at
+        // all. Tightening the branch above without this one would have turned a
+        // wrong congratulation into a silent charge, which is worse.
+        showSuccessBottomSheet(
+          "You're in",
+          "Your program is unlocked. You can start now.",
+        );
+      }
+      return true;
+    },
+    [offer, fetchProgress, bonusEligible],
+  );
+
+  // The pending screen's button. Re-runs the same check, and on success takes
+  // the identical path a confirmed purchase takes. `userInitiated` is what gives
+  // it any power: a person is standing here asking, so the store gets asked too,
+  // instead of the ten-minute window getting consulted and found spent.
+  const recheckPurchase = useCallback(async () => {
+    if (confirming) return;
+    setConfirming(true);
+    try {
+      const confirmed = await confirmPurchase({ userInitiated: true });
+      if (!confirmed) {
+        showErrorBottomSheet(
+          "Still confirming",
+          "Your payment is safe. Please check again in a moment.",
+        );
+      }
+    } finally {
+      setConfirming(false);
+    }
+  }, [confirming, confirmPurchase]);
 
   const handleBuy = async () => {
     if (!offer) return;
@@ -194,48 +430,18 @@ const ProgramDetailScreen = () => {
       }
       if (outcome.status === "purchased") {
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
-        const wallet = await pollWalletUntil((w) =>
-          w.entitlements.includes(`pack:${offer.key}`),
-        );
-        if (wallet) {
-          setOwned(true);
-          // WITHOUT THIS, "Open" HAS NOWHERE TO SEND THEM. `ownedState` reads
-          // `progress`, and the mount-time effect above only fetches it when
-          // the pack is ALREADY owned — a purchase made mid-visit never
-          // triggers that fetch, so `progress` stays null and `ownedState`
-          // falls into its no-progress branch, which has no `moduleId`.
-          // `openOwned()` then navigates to PackModule with `moduleId:
-          // undefined`, and PackModule does not resolve day one from a
-          // missing id (confirmed by reading it, despite a comment nearby
-          // claiming it does) — it errors and shows "Module not found."
-          // Fetching progress the same way the mount effect does for a
-          // pre-owned pack is what lets `ownedState` name day one's real id.
-          if (offer.packId) {
-            getPackProgress(offer.packId)
-              .then(setProgress)
-              .catch(() => {
-                /* The button falls back to "Open" with no moduleId — the
-                   known gap above, not a new one introduced here. */
-              });
-          }
-          // CLAIM THE GIFT — but only once the wallet proves it landed.
-          // The bonus membership month is granted silently by the webhook and
-          // was never mentioned anywhere in the app, which wasted the single
-          // most generous thing we do. Read it back from the wallet rather
-          // than assuming from pre-purchase eligibility: a race, a refund or a
-          // changed rule must never produce a congratulation for a gift the
-          // user did not actually get.
-          if (wallet.entitlements.includes("membership")) {
-            setBonusEligible(false); // spent — never advertise it twice
-            showSuccessBottomSheet(
-              "You're in. The first month is on us",
-              "Your program is unlocked, plus a free month of membership: 4 AI practice calls to use whenever you want them.",
-            );
-          }
-        } else {
+        // LATCH FIRST, ASK THE WALLET SECOND. The charge is already real, so
+        // from here on this screen must never offer to sell it again, whatever
+        // the wallet says next.
+        setCharged(true);
+        const confirmed = await confirmPurchase();
+        if (!confirmed) {
+          // Not a failure: the store took the payment and our side has not
+          // caught up. The pending screen below is what they land on, and it
+          // carries the way to check again.
           showErrorBottomSheet(
             "Almost there",
-            "Your purchase went through but is still being confirmed. It should appear shortly.",
+            "We have your payment. It is still being confirmed.",
           );
         }
       }
@@ -257,6 +463,25 @@ const ProgramDetailScreen = () => {
         <View style={styles.centered}>
           <Spinner label="Loading…" />
         </View>
+      </Page>
+    );
+  }
+
+  // THE CALL FAILED, THE PROGRAM DID NOT DIE. These two used to share one
+  // message, so a dropped connection told the user the program was gone and
+  // gave them nothing to press. A failure gets a retry; only a genuinely
+  // missing offer gets the "not available" line below.
+  if (loadFailed) {
+    return (
+      <Page
+        title={brochure?.title ?? "Program"}
+        onBack={() => navigation.goBack()}
+      >
+        <ErrorState
+          title="Couldn't load this program"
+          message="Check your connection and try again."
+          onRetry={retryLoad}
+        />
       </Page>
     );
   }
@@ -283,19 +508,26 @@ const ProgramDetailScreen = () => {
   const moduleCount = brochure?.moduleCount ?? 0;
 
   /**
-   * What the owned screen can honestly offer, in three states.
+   * What the owned screen can honestly offer.
    *
-   * The middle one is the one worth having: today's work is DONE and tomorrow
-   * has not opened, so there is nothing to press. A button there would either
-   * lie or dump them on a locked day, and this feature has spent a lot of
-   * effort not doing that to people.
+   * The countdown state is the one worth having: today's work is DONE and
+   * tomorrow has not opened, so there is nothing to press. A button there would
+   * either lie or dump them on a locked day, and this feature has spent a lot
+   * of effort not doing that to people.
+   *
+   * NO PROGRESS = NO OPEN BUTTON. It used to offer one anyway, with no
+   * `moduleId` behind it, which sent the user to a PackModule that has no day
+   * to open. Waiting shows a spinner here instead; a failed fetch shows a
+   * retry.
    */
   const ownedState = (() => {
     if (!progress) {
       return {
         line: "You own this. It's unlocked.",
-        cta: "Open",
-        canOpen: true,
+        cta: "",
+        canOpen: false,
+        needsRetry: progressError,
+        loadingProgress: !progressError,
         finished: false,
         moduleId: undefined as string | undefined,
       };
@@ -306,6 +538,8 @@ const ProgramDetailScreen = () => {
         line: "You finished this one.",
         cta: "Start again from day one",
         canOpen: true,
+        needsRetry: false,
+        loadingProgress: false,
         finished: true,
         moduleId: undefined,
       };
@@ -323,6 +557,8 @@ const ProgramDetailScreen = () => {
         line: "You own this. It's unlocked.",
         cta: started ? "Continue" : "Start day one",
         canOpen: true,
+        needsRetry: false,
+        loadingProgress: false,
         finished: false,
         moduleId: open.moduleId,
       };
@@ -339,6 +575,8 @@ const ProgramDetailScreen = () => {
       line: "",
       cta: "",
       canOpen: false,
+      needsRetry: false,
+      loadingProgress: false,
       finished: false,
       moduleId: undefined,
     };
@@ -375,24 +613,97 @@ const ProgramDetailScreen = () => {
    * below regardless of `ownedState.finished`.
    */
   const openOwned = async (targetModuleId?: string) => {
-    if (!offer.packId || opening) return;
+    const targetPackId = offer.packId;
+    if (!targetPackId || opening) return;
     setOpening(true);
     try {
-      // Awaited, not raced: PackModule reads progress on open, so a restart
-      // fired alongside the navigation would land them on a day that has not
-      // been cleared yet.
-      if (!targetModuleId && ownedState.finished) {
-        await restartPack(offer.packId);
+      // The review path: an explicit day, nothing to resolve or restart.
+      if (targetModuleId) {
+        navigation.navigate("PackModule", {
+          packId: targetPackId,
+          moduleId: targetModuleId,
+        });
+        return;
+      }
+
+      if (ownedState.finished) {
+        /**
+         * ── RESTART USED TO DESTROY PROGRESS AND THEN STRAND THEM ───────────
+         * `restartPack` wiped the finished arc server-side and the navigation
+         * that followed carried `moduleId: undefined`, which PackModule cannot
+         * resolve into a day. A completed pack became a dead end with the
+         * progress already gone.
+         *
+         * So: resolve a destination FIRST, from data we already hold. If day
+         * one cannot be named, nothing is wiped and they keep their pack.
+         */
+        const fallbackDayOne =
+          firstDayModuleId(progress?.modules ?? []) ??
+          firstDayModuleId(
+            (brochure?.modules ?? []).map((m) => ({
+              moduleId: m.id,
+              dayIndex: m.dayIndex,
+              orderIndex: m.orderIndex,
+            })),
+          );
+        if (!fallbackDayOne) {
+          showErrorBottomSheet(
+            "Couldn't start it again",
+            "Your progress is safe. Please try again in a moment.",
+          );
+          return;
+        }
+        // Awaited, not raced: PackModule reads progress on open, so a restart
+        // fired alongside the navigation would land them on a day that has not
+        // been cleared yet.
+        await restartPack(targetPackId);
+        // Read the reset arc back and take ITS day one. Module ids survive a
+        // restart (it clears progress, not content), so the pre-restart id is a
+        // safe fallback if this refetch fails.
+        const fresh = await fetchProgress(targetPackId);
+        navigation.navigate("PackModule", {
+          packId: targetPackId,
+          moduleId: firstDayModuleId(fresh?.modules ?? []) ?? fallbackDayOne,
+        });
+        return;
+      }
+
+      // Every other CTA. `canOpen` already implies a real id, but never
+      // navigate on a maybe: an undefined id is the stuck spinner.
+      if (!ownedState.moduleId) {
+        setProgressError(true);
+        showErrorBottomSheet(
+          "Couldn't open it",
+          "Please try again in a moment.",
+        );
+        return;
       }
       navigation.navigate("PackModule", {
-        packId: offer.packId,
-        moduleId: targetModuleId ?? ownedState.moduleId,
+        packId: targetPackId,
+        moduleId: ownedState.moduleId,
       });
     } catch (err) {
       console.error("Could not open the program", err);
+      showErrorBottomSheet(
+        "Couldn't open it",
+        "Please try again in a moment.",
+      );
     } finally {
       setOpening(false);
     }
+  };
+
+  /**
+   * A day they skipped, on a program they have since finished.
+   *
+   * `startModule` refuses this one (PackCompletedError), so this never asks.
+   * It says what the refusal would have said, without the round trip and
+   * without a failure the person has to interpret. The words come from the one
+   * place that owns them, so this row and PackModule cannot disagree.
+   */
+  const explainSkippedDay = () => {
+    const message = packErrorMessage("PACK_COMPLETED");
+    if (message) showErrorBottomSheet(message.title, message.body);
   };
 
   // OWNED — a calm confirmation with the curriculum recap, no buy affordance.
@@ -426,7 +737,40 @@ const ProgramDetailScreen = () => {
         )}
 
         {/* THE WAY IN. Without this the screen was a receipt. */}
-        {ownedState.canOpen ? (
+        {ownedState.needsRetry ? (
+          // A retry, NOT an "Open" button. There is no day id to open, and a
+          // button that leads to a spinner that never resolves is worse than
+          // no button at all.
+          <View style={styles.ownedBlock}>
+            <View style={styles.ownedRow}>
+              <Icon
+                name={icons.success}
+                size={size.iconSm}
+                color={colors.feedback.successText}
+              />
+              <Text
+                variant="title"
+                color={colors.feedback.successText}
+                style={styles.ownedText}
+              >
+                {ownedState.line}
+              </Text>
+            </View>
+            <Text variant="body" color="secondary">
+              We couldn&apos;t load your days just now.
+            </Text>
+            <Button
+              label="Try again"
+              leftIcon={icons.retry}
+              loading={refreshingProgress}
+              onPress={() => void retryProgress()}
+            />
+          </View>
+        ) : ownedState.loadingProgress ? (
+          <View style={styles.centered}>
+            <Spinner label="Loading your days…" />
+          </View>
+        ) : ownedState.canOpen ? (
           <View style={styles.ownedBlock}>
             <View style={styles.ownedRow}>
               <Icon
@@ -470,6 +814,9 @@ const ProgramDetailScreen = () => {
             <NextDayCountdown
               opensAt={opensAt}
               dayIndex={progress?.nextIncompleteDay}
+              // Without this the card paired a day number with an instant that
+              // belongs to a different day. See `describesNamedDay` there.
+              currentDay={progress?.currentDay}
               onOpened={refreshProgress}
             />
           </View>
@@ -513,6 +860,11 @@ const ProgramDetailScreen = () => {
               from GET /packs/{id}/progress; a day already behind the user is
               never gated, because `isModuleUnlocked` only closes days AHEAD of
               the clock. So finished days stay readable for the whole arc.
+
+              That last sentence is why `unlocked` cannot be the only gate once
+              the arc is COMPLETE: at that point EVERY day is behind the user,
+              including one they skipped and never did. `isModuleOfferable` adds
+              that second question.
             */}
             <View style={styles.dayList}>
               {brochure.modules.map((m, i) => {
@@ -522,7 +874,34 @@ const ProgramDetailScreen = () => {
                 // does not send the field leaves every day openable, which is
                 // what this screen did before the field existed.
                 const locked = mp?.unlocked === false;
-                const openable = !!mp && !locked;
+                // `!!mp && !locked` was not enough on a FINISHED arc. Progress
+                // returns a row for every module, so `!!mp` is always true, and
+                // every day of a finished arc is behind the clock, so `locked`
+                // is always false. A day the user SKIPPED therefore looked open
+                // and dead-ended: the server refuses to start it. One shared
+                // rule now answers this for both surfaces.
+                const offerable =
+                  !!mp &&
+                  isModuleOfferable(mp, {
+                    packStatus: progress?.packStatus,
+                    // Fall back to the brochure: `arcDays` is the field that
+                    // decides the refusal, so it must not read as "no arc" just
+                    // because one payload left it out.
+                    arcDays: progress?.arcDays ?? brochure?.arcDays ?? null,
+                  });
+                // Not offerable, and NOT because the clock has yet to reach it:
+                // a day they skipped on a program they have since finished.
+                //
+                // Closing the row is right, but closing it silently is the same
+                // dead end one step quieter. With no chevron and no lock glyph
+                // the row reads as ordinary text, and a paid row that ignores a
+                // tap without saying anything is exactly the kind of thing
+                // people write reviews about. So it stays pressable and
+                // explains itself instead.
+                const skipped = !!mp && !locked && !offerable;
+                const dayName = m.dayIndex
+                  ? `Day ${m.dayIndex}`
+                  : `Session ${m.orderIndex}`;
 
                 const row = (
                   <View style={styles.moduleRow}>
@@ -531,7 +910,7 @@ const ProgramDetailScreen = () => {
                     </Text>
                     <Text
                       variant="body"
-                      color={locked ? "tertiary" : "primary"}
+                      color={locked || skipped ? "tertiary" : "primary"}
                       style={styles.moduleTitle}
                     >
                       {dayTitle(m.title)}
@@ -550,7 +929,11 @@ const ProgramDetailScreen = () => {
                           size={size.iconSm}
                           color={colors.feedback.successText}
                         />
-                      ) : locked ? (
+                      ) : locked || skipped ? (
+                        // A skipped day on a finished program is closed too, so
+                        // it carries the same glyph. The two are not the same
+                        // reason, and the sheet on tap is what tells them apart:
+                        // this one needs a restart, not a wait.
                         <Icon
                           name={icons.locked}
                           size={size.iconSm}
@@ -559,7 +942,7 @@ const ProgramDetailScreen = () => {
                       ) : null}
                     </View>
                     <View style={styles.moduleChevron}>
-                      {openable ? (
+                      {offerable ? (
                         <Icon
                           name={icons.chevronRight}
                           size={size.iconSm}
@@ -585,29 +968,25 @@ const ProgramDetailScreen = () => {
 
                 return (
                   <React.Fragment key={m.id}>
-                    {openable ? (
+                    {offerable || skipped ? (
                       <PressableScale
                         scaleTo={0.99}
                         disabled={opening}
-                        onPress={() => openOwned(m.id)}
+                        onPress={() =>
+                          skipped ? explainSkippedDay() : openOwned(m.id)
+                        }
                         accessibilityRole="button"
-                        accessibilityLabel={`${
-                          m.dayIndex
-                            ? `Day ${m.dayIndex}`
-                            : `Session ${m.orderIndex}`
-                        }, ${dayTitle(m.title)}.${
+                        accessibilityLabel={`${dayName}, ${dayTitle(m.title)}.${
                           done ? " Done." : ""
-                        } Opens it.`}
+                        } ${skipped ? "Not open. Explains why." : "Opens it."}`}
                       >
                         {row}
                       </PressableScale>
                     ) : (
                       <View
-                        accessibilityLabel={`${
-                          m.dayIndex
-                            ? `Day ${m.dayIndex}`
-                            : `Session ${m.orderIndex}`
-                        }, ${dayTitle(m.title)}. Not open yet.`}
+                        accessibilityLabel={`${dayName}, ${dayTitle(
+                          m.title,
+                        )}. Not open yet.`}
                       >
                         {row}
                       </View>
@@ -620,6 +999,45 @@ const ProgramDetailScreen = () => {
           </View>
         )}
 
+      </Page>
+    );
+  }
+
+  // PAID, NOT YET CONFIRMED — the only other thing this screen may show once a
+  // charge has happened. The sales flow below is unreachable from here, because
+  // the tier SKUs are consumable and a second tap of Buy is a second charge.
+  if (charged) {
+    return (
+      <Page
+        title={brochure?.title ?? offer.title}
+        onBack={() => navigation.goBack()}
+      >
+        <View style={styles.ownedBlock}>
+          <View style={styles.ownedRow}>
+            <Icon
+              name={icons.success}
+              size={size.iconSm}
+              color={colors.feedback.successText}
+            />
+            <Text
+              variant="title"
+              color={colors.feedback.successText}
+              style={styles.ownedText}
+            >
+              Payment received
+            </Text>
+          </View>
+          <Text variant="body" color="secondary">
+            We&apos;re confirming it now. This can take a moment. You won&apos;t
+            be charged again.
+          </Text>
+          <Button
+            label="Check again"
+            leftIcon={icons.retry}
+            loading={confirming}
+            onPress={() => void recheckPurchase()}
+          />
+        </View>
       </Page>
     );
   }

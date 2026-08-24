@@ -57,7 +57,11 @@ import {
   shelfLabel,
   priceNoteFor,
 } from "../../util/packs/offers";
-import { useStorePrices } from "../../hooks/useStorePrices";
+import {
+  offerStoreIds,
+  storePriceFor,
+  useStorePrices,
+} from "../../hooks/useStorePrices";
 import { openOnboarding } from "../../util/functions/openOnboarding";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
 import { useProgramsDock, type ProgramsView } from "../../stores/programsDock";
@@ -91,10 +95,13 @@ const ProgramsScreen = () => {
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  // Local-currency prices for every tier on the shelf. Empty until the store
-  // answers (and forever, if payments are off) — PriceTag falls back to INR.
+  // Local-currency prices for every tier on the shelf, AND for every tier a
+  // strike-through quotes — otherwise the "was" price has to come from a backend
+  // constant and stops being a real price the moment the store diverges. Empty
+  // until the store answers (and forever, if payments are off) — PriceTag falls
+  // back to INR.
   const { prices: storePrices } = useStorePrices(
-    (offers?.items ?? []).map((i) => i.tierProductId),
+    offerStoreIds(offers?.items ?? []),
   );
 
   // Refetched on focus so returning from a purchase shows the pack as owned
@@ -447,7 +454,16 @@ const ProgramsScreen = () => {
                 priceUsd={item.priceUsd}
                 anchorUsd={item.anchorPriceUsd}
                 store={storePrices[item.tierProductId]}
-                note={priceNoteFor(item, offers?.isFounderCohort ?? false)}
+                storeAnchor={storePriceFor(
+                  storePrices,
+                  item.anchorTierProductId,
+                )}
+                note={priceNoteFor(
+                  item,
+                  offers?.isFounderCohort ?? false,
+                  storePrices[item.tierProductId],
+                  storePriceFor(storePrices, item.anchorTierProductId),
+                )}
                 ink={ink}
               />
 
@@ -653,6 +669,7 @@ const ProgramsScreen = () => {
               priceUsd={item.priceUsd}
               anchorUsd={item.anchorPriceUsd}
               store={storePrices[item.tierProductId]}
+              storeAnchor={storePriceFor(storePrices, item.anchorTierProductId)}
               compact
             />
           )}
