@@ -27,10 +27,18 @@ export enum ContentBlockType {
   ACTIVITY = "ACTIVITY",
 }
 
+/**
+ * What job a TEXT block does inside its day.
+ *
+ * Mirrors TextBlockRole in sw-be-2/src/models/ModuleContentBlock.ts. A block
+ * with no role counts as teaching, which is every block written before the
+ * paid day standard existed.
+ */
+export type TextBlockRole = "bridge_in" | "teach" | "bridge_out";
+
 export type TextBlockContent = {
   markdown: string;
-  titleOverride?: string;
-  descriptionOverride?: string;
+  role?: TextBlockRole;
 };
 
 export type VideoBlockContent = {
@@ -39,10 +47,24 @@ export type VideoBlockContent = {
   videoUrl?: string; // Hydrated by backend
   durationSeconds?: number;
   thumbnailUrl?: string;
-  titleOverride?: string;
-  descriptionOverride?: string;
-  isLocked?: boolean; // Hydrated by backend based on user premium status
 };
+
+/**
+ * NO titleOverride, descriptionOverride OR isLocked ON EITHER OF THE ABOVE.
+ *
+ * All three were declared here and none of them has ever been sent. The server
+ * carries titleOverride and descriptionOverride on FORM and ACTIVITY blocks
+ * only, where they name the card the user taps, and it writes isLocked nowhere
+ * at all.
+ *
+ * isLocked is the one worth explaining, because it looked like a paywall. The
+ * gate is at the endpoint: getModuleWithBlocks calls assertOwned and throws
+ * before it returns a single block, so somebody who has not bought the pack
+ * never receives content to lock. There is no in-block locked state to render,
+ * which is why nothing ever set the flag. VideoPlayer keeps its own isLocked
+ * prop, which the library tutorial page uses for its fifteen second glimpse;
+ * that path is real and unaffected.
+ */
 
 
 

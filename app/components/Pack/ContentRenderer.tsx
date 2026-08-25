@@ -152,16 +152,24 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       );
       return (
         <View style={styles.mediaContainer}>
+          {/*
+            No isLocked or onPressUnlock. Both were passed for years and neither
+            ever did anything: the server writes isLocked nowhere, so the prop
+            was always undefined and the unlock path unreachable. It is not a
+            gap in the paywall. getModuleWithBlocks refuses a pack the user has
+            not bought before it returns any block at all, so a video that
+            reaches this renderer is one they own.
+
+            The title is fixed for the same reason: VideoBlockContent has no
+            titleOverride on the server, so this read undefined every time and
+            fell through to the same string.
+          */}
           <VideoPlayer
             uri={videoUri}
             poster={videoContent.thumbnailUrl}
-            title={block.content.titleOverride || "Video Lesson"}
+            title="Video Lesson"
             style={{ width: "100%" }}
             autoPlay={true}
-            isLocked={videoContent.isLocked}
-            onPressUnlock={() =>
-              (navigation as any).navigate("PremiumModal")
-            }
           />
         </View>
       );
