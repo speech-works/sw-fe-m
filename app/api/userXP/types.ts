@@ -27,9 +27,12 @@ export interface AwardXpPayload {
  */
 export interface XPLog {
   id: string;
-  userId: string;
   amount: number;
   source: XPSource;
   // ISO string in UTC
   createdAt: string;
 }
+
+// No userId. These arrive nested under the user they belong to (User.xpLogs),
+// and the server's own XPLog carries a full `user` relation rather than an id,
+// so a `userId: string` here was a field nothing could ever populate.

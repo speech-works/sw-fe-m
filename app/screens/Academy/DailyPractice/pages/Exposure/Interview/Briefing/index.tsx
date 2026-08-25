@@ -40,7 +40,7 @@ const Briefing = () => {
     practiceActivity?.id || null,
   );
 
-  const data = interview.practiceData || interview.interviewPracticeData;
+  const data = interview.interviewPracticeData;
 
   const markActivityStart = useMarkActivityStart({
     contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,

@@ -52,8 +52,8 @@ const Briefing = () => {
         try {
           // Try fetching as Exposure Practice (Ordering Coffee, Job Interview)
           const practice = await getExposurePracticeById(id);
-          const rawStage = (practice.socialChallengeData || practice.practiceData || practice.interviewPracticeData)?.stage;
-          const rawScenario = (practice.socialChallengeData || practice.practiceData || practice.interviewPracticeData)?.scenario;
+          const rawStage = (practice.socialChallengeData || practice.interviewPracticeData)?.stage;
+          const rawScenario = (practice.socialChallengeData || practice.interviewPracticeData)?.scenario;
 
           if (rawStage && rawScenario) {
             setData({
