@@ -25,6 +25,7 @@ export enum ContentBlockType {
   VIDEO = "VIDEO",
   FORM = "FORM",
   ACTIVITY = "ACTIVITY",
+  QUIZ = "QUIZ",
 }
 
 /**
@@ -47,6 +48,45 @@ export type VideoBlockContent = {
   videoUrl?: string; // Hydrated by backend
   durationSeconds?: number;
   thumbnailUrl?: string;
+};
+
+/**
+ * A short quiz inside a program day.
+ *
+ * Mirrors QuizBlockContent in sw-be-2/src/models/ModuleContentBlock.ts.
+ *
+ * `questions` arrives already narrowed. A recall block names a pool of three to
+ * five on the server and exactly ONE of them is sent, because a question
+ * payload carries the correct option and every explanation, so shipping the
+ * pool would hand the user the answers to the next three days. `questionKeys`
+ * comes back empty for the same reason: it is authoring data.
+ */
+export type QuizBlockMode = "recall" | "check";
+
+export interface QuizOption {
+  text: string;
+  value: string | number;
+  explanation?: string;
+  isCorrect?: boolean;
+}
+
+export interface QuizQuestionInBlock {
+  /** The database id. This is what POST /quiz/submit expects. */
+  id: string;
+  text: string;
+  options: QuizOption[];
+}
+
+export type QuizBlockContent = {
+  mode: QuizBlockMode;
+  questionKeys: string[];
+  questions?: QuizQuestionInBlock[];
+  /**
+   * Whether this user has already answered it, on this run of the program.
+   * Decided on the server from the answer history rather than on the phone, so
+   * a reinstall does not make somebody sit the same quiz twice.
+   */
+  completed?: boolean;
 };
 
 /**
@@ -130,7 +170,8 @@ export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
   | FormBlockContent
-  | ReferenceBlockContent;
+  | ReferenceBlockContent
+  | QuizBlockContent;
 
 export interface ModuleContentBlock {
   id: string;

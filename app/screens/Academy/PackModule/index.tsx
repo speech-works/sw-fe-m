@@ -17,6 +17,7 @@ import {
 import {
   ContentBlockType,
   PackModule,
+  QuizBlockContent,
   ReferenceBlockContent,
 } from "../../../api/packs/types";
 import { getProgramGoals } from "../../../api/programGoals";
@@ -78,6 +79,21 @@ type PackModuleScreenRouteProp = RouteProp<
   },
   "params"
 >;
+
+/**
+ * Blocks the user has to DO something in, rather than read or watch.
+ *
+ * One set, used by both the footer label and the skip guard. They were two
+ * separate inline expressions listing ACTIVITY and FORM, six hundred lines
+ * apart, so adding QUIZ to one and not the other would have produced a day
+ * where the button says "Skip" and skipping it is not offered, or worse the
+ * reverse.
+ */
+const INTERACTIVE_BLOCK_TYPES = new Set<ContentBlockType>([
+  ContentBlockType.ACTIVITY,
+  ContentBlockType.FORM,
+  ContentBlockType.QUIZ,
+]);
 
 const PackModuleScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"PackModule">>();
@@ -280,6 +296,17 @@ const PackModuleScreen = () => {
             completed.add(block.id);
           }
         }
+
+        // QUIZ blocks say so themselves. The server decides this from the
+        // answer history rather than from anything on the phone, so a reinstall
+        // does not make somebody sit the same quiz twice, and a second run of
+        // the program correctly shows them unanswered again.
+        module.blocks.forEach((block) => {
+          if (block.type !== ContentBlockType.QUIZ) return;
+          if ((block.content as QuizBlockContent).completed) {
+            completed.add(block.id);
+          }
+        });
 
         // ADDED TO, NEVER REPLACED BY. `completed` is only what we can prove
         // right now, and a retry in flight makes it prove LESS: the block's
@@ -745,6 +772,29 @@ const PackModuleScreen = () => {
     });
   }, [packId, module?.id]);
 
+  /**
+   * Every question in a QUIZ block has been answered.
+   *
+   * Nothing is written to the phone here. Each answer was already sent to the
+   * server as it was given, and the server decides on the next load whether the
+   * block is done. This only moves the footer out of "Skip" for the rest of
+   * this sitting.
+   */
+  const handleQuizCompleted = useCallback((blockId: string) => {
+    track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
+      packId,
+      ...(module?.id ? { moduleId: module.id } : {}),
+      blockId,
+      type: "QUIZ",
+    });
+
+    setCompletedInteractiveBlocks((prev) => {
+      const next = new Set(prev);
+      next.add(blockId);
+      return next;
+    });
+  }, [packId, module?.id]);
+
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
   /** Handed to DailyLog so it does not refetch what handleComplete just read. */
@@ -884,9 +934,9 @@ const PackModuleScreen = () => {
 
   const handleFooterAction = () => {
     const currentBlock = blocks[currentBlockIndex];
-    const isInteractiveBlock =
-      currentBlock?.type === ContentBlockType.ACTIVITY ||
-      currentBlock?.type === ContentBlockType.FORM;
+    const isInteractiveBlock = INTERACTIVE_BLOCK_TYPES.has(
+      currentBlock?.type as ContentBlockType,
+    );
     const isBlockCompleted = completedInteractiveBlocks.has(
       currentBlock?.id || "",
     );
@@ -1203,9 +1253,9 @@ const PackModuleScreen = () => {
       : `${modulePosition} · Step ${currentBlockIndex + 1} of ${blocks.length}`;
 
   // Footer action button — mirrors the legacy Skip / Complete / Next logic.
-  const isInteractiveBlock =
-    currentBlock?.type === ContentBlockType.ACTIVITY ||
-    currentBlock?.type === ContentBlockType.FORM;
+  const isInteractiveBlock = INTERACTIVE_BLOCK_TYPES.has(
+    currentBlock?.type as ContentBlockType,
+  );
   const isCurrentBlockCompleted = completedInteractiveBlocks.has(
     currentBlock?.id || "",
   );
@@ -1276,6 +1326,7 @@ const PackModuleScreen = () => {
           isCompleted={completedInteractiveBlocks.has(currentBlock?.id || "")}
           onActivityCreated={handleActivityCreated}
           onFormCompleted={handleFormCompleted}
+          onQuizCompleted={handleQuizCompleted}
           blockIndex={currentBlockIndex}
         />
       )}

@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { getQuizByTechnique } from "../../../../../api/library";
 import {
@@ -10,6 +10,7 @@ import {
 } from "../../../../../api/library/types";
 import { submitQuizAnswer as submitAnswerApi } from "../../../../../api/quiz";
 import CustomScrollView from "../../../../../components/CustomScrollView";
+import QuizRunner from "../../../../../components/Quiz/QuizRunner";
 import {
   LibStackNavigationProp,
   LibStackParamList,
@@ -19,11 +20,8 @@ import {
   Text,
   Icon,
   icons,
-  Button,
-  Surface,
   Spinner,
   EmptyState,
-  ProgressBar,
   useTheme,
   spacing,
   space,
@@ -39,68 +37,51 @@ interface QuizPageProps {
   outerScrollY?: Animated.SharedValue<number>;
 }
 
-const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: QuizPageProps) => {
+/**
+ * The technique library's quiz.
+ *
+ * Owns the things that are specific to the library: fetching by technique id,
+ * and handing the finished answers to the summary screen. The question view
+ * itself lives in components/Quiz/QuizRunner, shared with the quiz blocks
+ * inside paid program days.
+ *
+ * It does NOT set `revealExplanation`. This flow explains every answer at once
+ * on the summary screen, which is what its users already know. A program day
+ * explains each answer as it is given, because there is no summary screen at
+ * the end of a block.
+ */
+const QuizPage = ({
+  techniqueId,
+  techniqueName,
+  from,
+  header,
+  outerScrollY,
+}: QuizPageProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const { colors } = useTheme();
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedAnsIndex, setSelectedAnsIndex] = useState<number>();
-  const [answers, setAnswers] = useState<FinalAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const nextQuestion = () => {
-    if (quiz && quiz.length > 0) {
-      setSelectedIndex((prevIndex) => (prevIndex + 1) % quiz.length);
-    }
-  };
-
-  const selectOption = (i: number) => {
-    setSelectedAnsIndex(i);
-  };
-
-  const resetOptionSelection = () => {
-    setSelectedAnsIndex(undefined);
-  };
 
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
         setIsLoading(true);
-        console.log("🔍 Fetching quiz for techniqueId:", techniqueId);
         const quizQuestions = await getQuizByTechnique(techniqueId);
-        console.log("📝 Quiz response:", quizQuestions);
-        console.log("📊 Quiz length:", quizQuestions?.length);
-        console.log("📋 Quiz type:", typeof quizQuestions);
-        console.log("📦 Quiz is array?", Array.isArray(quizQuestions));
-
-        if (
-          quizQuestions &&
-          Array.isArray(quizQuestions) &&
-          quizQuestions.length > 0
-        ) {
-          console.log(
-            "✅ Setting quiz with",
-            quizQuestions.length,
-            "questions",
-          );
-          setQuiz(quizQuestions);
-        } else {
-          console.warn("⚠️ Quiz data is empty or invalid:", quizQuestions);
-          setQuiz([]);
-        }
+        setQuiz(
+          Array.isArray(quizQuestions) && quizQuestions.length > 0
+            ? quizQuestions
+            : [],
+        );
       } catch (error) {
-        console.error("❌ Error fetching quiz:", error);
+        console.error("Error fetching quiz:", error);
         setQuiz([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchQuiz();
+    void fetchQuiz();
   }, [techniqueId]);
-
-  const progress = quiz.length > 0 ? (selectedIndex + 1) / quiz.length : 0;
 
   if (isLoading) {
     return (
@@ -110,7 +91,7 @@ const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: Qu
     );
   }
 
-  if (!quiz || quiz.length === 0) {
+  if (quiz.length === 0) {
     return (
       <View style={styles.stateContainer}>
         <EmptyState
@@ -122,190 +103,37 @@ const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: Qu
     );
   }
 
-  const currentQuestion = quiz[selectedIndex];
-  if (!currentQuestion) {
-    return (
-      <View style={styles.stateContainer}>
-        <Spinner label="Loading question..." />
-      </View>
-    );
-  }
-
-  const isNextDisabled = selectedAnsIndex === undefined || isSubmitting;
-
   return (
-    <CustomScrollView contentContainerStyle={styles.scrollContent} outerScrollY={outerScrollY}>
+    <CustomScrollView
+      contentContainerStyle={styles.scrollContent}
+      outerScrollY={outerScrollY}
+    >
       {header}
       <View style={styles.innerContainer}>
-        {/* Progress Indicator */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <Text variant="bodySm" color="secondary">
-              Question {selectedIndex + 1} of {quiz.length}
-            </Text>
-            <Text variant="bodySm" color="primary">
-              {Math.round(progress * 100)}%
-            </Text>
-          </View>
-          <ProgressBar value={progress} color={colors.text.accent} height={8} />
-        </View>
+        <QuizRunner
+          questions={quiz}
+          onAnswer={async ({ question, selectedIndex }) => {
+            await submitAnswerApi(question.id, [selectedIndex]);
+          }}
+          onFinished={(answers) => {
+            // Looked up in `quiz` rather than read off the runner's copy, so
+            // the summary screen gets the library's own option type with its
+            // required isCorrect, instead of the looser shape the shared
+            // component accepts.
+            const finalAnswers: FinalAnswer[] = answers.flatMap((a) => {
+              const original = quiz.find((q) => q.id === a.question.id);
+              const yourAnswer = original?.options[a.selectedIndex];
+              return original && yourAnswer ? [{ question: original, yourAnswer }] : [];
+            });
+            navigation.navigate("SummaryPage", {
+              techniqueId,
+              techniqueName,
+              finalAnswers,
+              from,
+            });
+          }}
+        />
 
-        {/* Quiz Card */}
-        <Surface level="default" rounded="card" bordered style={styles.quizContainer}>
-          <View style={styles.questionSection}>
-            <View style={styles.questionHeader}>
-              <View
-                style={[
-                  styles.questionNumberBadge,
-                  { backgroundColor: colors.action.primaryTint },
-                ]}
-              >
-                <Text variant="title" color="primary">
-                  {selectedIndex + 1}
-                </Text>
-              </View>
-              <Text variant="eyebrow" color="tertiary">
-                ASSESSMENT QUESTION
-              </Text>
-            </View>
-            <Text variant="h3" color="primary" style={styles.qText}>
-              {currentQuestion.text}
-            </Text>
-          </View>
-
-          {/* Answer Options */}
-          <View style={styles.answers}>
-            {currentQuestion.options?.map((opt, i) => {
-              const isSelected = selectedAnsIndex === i;
-              return (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => {
-                    selectOption(i);
-                  }}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.ansRow,
-                    {
-                      backgroundColor: isSelected
-                        ? colors.action.primaryTint
-                        : colors.surface.control,
-                      borderColor: isSelected
-                        ? colors.border.selected
-                        : colors.border.default,
-                    },
-                  ]}
-                >
-                  <View style={styles.ansRowContent}>
-                    {/* Radio Button */}
-                    <View
-                      style={[
-                        styles.radioOuter,
-                        {
-                          borderColor: isSelected
-                            ? colors.action.primary
-                            : colors.border.strong,
-                          backgroundColor: isSelected
-                            ? colors.action.primary
-                            : "transparent",
-                        },
-                      ]}
-                    >
-                      {isSelected && (
-                        <Icon name="check" size={size.iconXs} color={colors.action.onPrimary} />
-                      )}
-                    </View>
-
-                    {/* Answer Text */}
-                    <Text
-                      variant="body"
-                      color={isSelected ? "primary" : "secondary"}
-                      style={styles.ansText}
-                    >
-                      {opt.text}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Footer with Navigation */}
-          <View style={[styles.quizFooter, { borderTopColor: colors.border.default }]}>
-            <Button
-              key={`next-btn-${selectedIndex}`}
-              label={
-                isSubmitting
-                  ? "Submitting..."
-                  : selectedIndex + 1 === quiz.length
-                    ? "Submit Quiz"
-                    : "Next Question"
-              }
-              size="md"
-              fullWidth={false}
-              loading={isSubmitting}
-              disabled={isNextDisabled}
-              onPress={async () => {
-                if (selectedAnsIndex === undefined) return;
-
-                try {
-                  setIsSubmitting(true);
-                  // Submit answer to backend for mastery tracking
-                  // Note: The API expects array of selected indices
-                  await submitAnswerApi(currentQuestion.id, [selectedAnsIndex]);
-
-                  const currentAnswer: FinalAnswer = {
-                    question: currentQuestion,
-                    yourAnswer: currentQuestion.options[selectedAnsIndex!],
-                  };
-
-                  if (selectedIndex + 1 === quiz.length) {
-                    const finalAnswersWithLast = [...answers, currentAnswer];
-                    navigation.navigate("SummaryPage", {
-                      techniqueId,
-                      techniqueName,
-                      finalAnswers: finalAnswersWithLast, from,
-                    });
-                  } else {
-                    setAnswers((old) => [...old, currentAnswer]);
-                    resetOptionSelection();
-                    nextQuestion();
-                  }
-                } catch (error) {
-                  console.error("Failed to submit answer", error);
-                  // Optional: Show alert to user? For now we just log
-                  // Proceed anyway? Or block?
-                  // Let's block to ensure data consistency, or maybe allow proceed in offline?
-                  // For now, we'll allow proceed to not block user flow on network error,
-                  // but ideally we should retry.
-
-                  // Construct answer anyway for local flow
-                  const currentAnswer: FinalAnswer = {
-                    question: currentQuestion,
-                    yourAnswer: currentQuestion.options[selectedAnsIndex!],
-                  };
-
-                  if (selectedIndex + 1 === quiz.length) {
-                    const finalAnswersWithLast = [...answers, currentAnswer];
-                    navigation.navigate("SummaryPage", {
-                      techniqueId,
-                      techniqueName,
-                      finalAnswers: finalAnswersWithLast, from,
-                    });
-                  } else {
-                    setAnswers((old) => [...old, currentAnswer]);
-                    resetOptionSelection();
-                    nextQuestion();
-                  }
-                } finally {
-                  setIsSubmitting(false);
-                }
-              }}
-            />
-          </View>
-        </Surface>
-
-        {/* Info Banner */}
         <View
           style={[
             styles.quizInfo,
@@ -346,74 +174,6 @@ const styles = StyleSheet.create({
   innerContainer: {
     gap: spacing.xl,
   },
-  // Progress Section
-  progressSection: {
-    gap: spacing.md,
-    paddingHorizontal: spacing.xs,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  // Quiz Container
-  quizContainer: {
-    gap: spacing["2xl"],
-    padding: spacing["2xl"],
-  },
-  questionSection: {
-    gap: spacing.lg,
-  },
-  questionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  questionNumberBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  qText: {
-    lineHeight: 30,
-  },
-  // Answers
-  answers: {
-    gap: spacing.md,
-  },
-  ansRow: {
-    padding: spacing.lg,
-    borderWidth: borderWidth.thick,
-    borderRadius: radius.input,
-  },
-  ansRowContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.lg,
-  },
-  radioOuter: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.full,
-    borderWidth: borderWidth.thick,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  ansText: {
-    flex: 1,
-    lineHeight: 24,
-  },
-  // Footer
-  quizFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingTop: spacing.lg,
-    borderTopWidth: borderWidth.hairline,
-  },
-  // Info Banner
   quizInfo: {
     flexDirection: "row",
     alignItems: "flex-start",
