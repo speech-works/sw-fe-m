@@ -31,6 +31,10 @@ export type {
 export { getKeepsakes } from "./keepsakes";
 export type { Keepsake, KeepsakeAnswer } from "./keepsakes/types";
 
+// Program mastery (what the quizzes say about one program)
+export { getPackMastery } from "./mastery";
+export type { ProgramMastery } from "./mastery/types";
+
 // Quiz API (mastery tracking)
 export { submitQuizAnswer } from "./quiz";
 export type { QuizSubmissionResult } from "./quiz/types";
