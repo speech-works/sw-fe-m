@@ -27,6 +27,10 @@ export type {
     FormContext, FormResponse, FormSubmitRequest
 } from "./forms/types";
 
+// Keepsakes API (the card a program leaves the user holding)
+export { getKeepsakes } from "./keepsakes";
+export type { Keepsake, KeepsakeAnswer } from "./keepsakes/types";
+
 // Quiz API (mastery tracking)
 export { submitQuizAnswer } from "./quiz";
 export type { QuizSubmissionResult } from "./quiz/types";

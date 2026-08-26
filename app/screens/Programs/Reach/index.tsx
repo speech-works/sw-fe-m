@@ -1,18 +1,24 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { getKeepsakes } from "../../../api/keepsakes";
+import { Keepsake } from "../../../api/keepsakes/types";
 import { getAllProgramGoals } from "../../../api/programGoals";
 import { GoalBlock } from "../../../api/programGoals/types";
 import {
   Card,
+  EmptyState,
   Page,
+  Segmented,
   Spinner,
   Text,
+  icons,
   space,
   spacing,
 } from "../../../design-system";
 import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
 import { GoalLine } from "./GoalLine";
+import { KeepsakeDeck } from "./KeepsakeDeck";
 import { LockedState } from "./LockedState";
 
 /**
@@ -36,11 +42,24 @@ import { LockedState } from "./LockedState";
  * Two runs of the same program are two blocks. They were two different sets of
  * goals, usually aimed at different people or different calls, and merging them
  * would read as one long list of things half-done.
+ *
+ * ── TWO HALVES, ONE PRINCIPLE ──────────────────────────────────────────────
+ * Goals are what they said they would do. Cards are what they wrote down and
+ * keep: their line, their plan, their routine. Both are the user's own words
+ * handed back, which is why they share a screen and why neither is scored.
+ *
+ * The tabs are shown even when one side is empty, and each side says its own
+ * emptiness in its own words. Hiding a tab because it has nothing in it makes
+ * the screen change shape under somebody between two visits, and leaves them no
+ * way to find out that cards exist at all.
  * ===========================================================================
  */
+type ReachTab = "Goals" | "Cards";
 const ReachScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Reach">>();
   const [blocks, setBlocks] = useState<GoalBlock[] | null>(null);
+  const [keepsakes, setKeepsakes] = useState<Keepsake[] | null>(null);
+  const [tab, setTab] = useState<ReachTab>("Goals");
 
   useFocusEffect(
     useCallback(() => {
@@ -51,13 +70,16 @@ const ReachScreen = () => {
         // which is wrong, but the alternative is an error page over somebody's
         // own words. Refocusing retries.
         .catch(() => alive && setBlocks([]));
+      getKeepsakes()
+        .then((data) => alive && setKeepsakes(data))
+        .catch(() => alive && setKeepsakes([]));
       return () => {
         alive = false;
       };
     }, []),
   );
 
-  if (blocks === null) {
+  if (blocks === null || keepsakes === null) {
     return (
       <Page title="Reach" onBack={() => navigation.goBack()}>
         <View style={styles.centre}>
@@ -67,7 +89,11 @@ const ReachScreen = () => {
     );
   }
 
-  if (blocks.length === 0) {
+  // Only when BOTH halves are empty has the user genuinely not started. With
+  // goals but no cards, the tabs still belong on screen: a card arrives on the
+  // last day of a program, and somebody mid-way through should be able to see
+  // that it is coming.
+  if (blocks.length === 0 && keepsakes.length === 0) {
     return (
       <Page
         title="Reach"
@@ -85,7 +111,32 @@ const ReachScreen = () => {
       description="Your words, not ours."
       onBack={() => navigation.goBack()}
     >
-      {blocks.map((block, i) => (
+      <View style={styles.tabs}>
+        <Segmented
+          options={["Goals", "Cards"] as ReachTab[]}
+          value={tab}
+          onChange={(next) => setTab(next as ReachTab)}
+        />
+      </View>
+
+      {tab === "Cards" ? (
+        keepsakes.length === 0 ? (
+          <EmptyState
+            icon={icons.checklist}
+            title="No cards yet"
+            message="Programs that end with something to keep leave it here. Your line, your plan, in your own words."
+          />
+        ) : (
+          <KeepsakeDeck keepsakes={keepsakes} />
+        )
+      ) : blocks.length === 0 ? (
+        <EmptyState
+          icon={icons.checklist}
+          title="No goals yet"
+          message="Programs that ask what you want to do will show your answers here."
+        />
+      ) : (
+        blocks.map((block, i) => (
         <Card key={`${block.packId}-${i}`} style={styles.block}>
           <Text variant="h3" color="primary">
             {block.packTitle}
@@ -102,13 +153,15 @@ const ReachScreen = () => {
             <GoalLine key={goal.id} goal={goal} />
           ))}
         </Card>
-      ))}
+        ))
+      )}
     </Page>
   );
 };
 
 const styles = StyleSheet.create({
   centre: { paddingVertical: space.sectionGap },
+  tabs: { marginBottom: spacing.lg },
   block: { gap: spacing.xs },
   question: { marginBottom: spacing.sm },
 });
