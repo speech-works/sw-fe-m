@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { getOffers, Offers, OfferItem } from "../../api/users";
 import { selectForYou, ForYouSelection } from "../../util/packs/forYou";
+import { isOpenable } from "../../util/packs/offers";
 import {
   cardVisibility,
   createSlideImpressionTracker,
@@ -559,7 +560,27 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     // The tile only exists when there is genuinely something else to see. With
     // nothing left over it would be a door onto a room the person has already
     // been shown, and the heading action goes with it for the same reason.
-    const hasMore = selection.remaining > 0;
+    /**
+     * ── THE DOOR OUT IS NOT CONDITIONAL ON HAVING SOLD ANYTHING ────────────
+     * `remaining` counts eligible offers BEYOND the ones shown, so it is 0 in
+     * two opposite situations: the shelf showed everything there was, and the
+     * shelf showed nothing at all.
+     *
+     * The second is what a person with a program but no clinical signal gets.
+     * `selectForYou` returns `browse` with no items — deliberately, because a
+     * "For you" shelf with no basis for the claim reads as an advert — and the
+     * shelf then rendered their in-progress program as the only slide, with no
+     * dots, nothing to swipe and no way through to the other nine programs.
+     * A dead end on the one row of Home that is about programs.
+     *
+     * So the tile appears whenever there is a catalogue to open, and it changes
+     * its words rather than its presence: after real slides it is "more", after
+     * none it is "all". `showsOffers` is what separates the two, NOT `remaining`.
+     */
+    const showsOffers = selection.items.length > 0;
+    const hasMore = showsOffers
+      ? selection.remaining > 0
+      : (offers?.items ?? []).some((i) => !i.owned && isOpenable(i));
     // NOT `slides` — that name is taken by the impression tracker a few lines
     // up, and the two must never be confused for one another.
     /**
@@ -607,7 +628,9 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
               scaleTo={0.97}
               onPress={() => goToPrograms("home_for_you_header")}
               accessibilityRole="link"
-              accessibilityLabel="See more programs"
+              accessibilityLabel={
+                showsOffers ? "See more programs" : "Browse all programs"
+              }
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={styles.headingAction}
             >
@@ -617,7 +640,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
                   enough that the heading still leads, familiar enough to read
                   as the same kind of thing as every other link. */}
               <Text variant="bodySm" color="link">
-                See more
+                {showsOffers ? "See more" : "Browse all"}
               </Text>
               <Icon
                 name={icons.chevronRight}
@@ -664,6 +687,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
             }
             return (
               <MoreProgramsTile
+                variant={showsOffers ? "more" : "all"}
                 onPress={() => goToPrograms("home_for_you_end_tile")}
               />
             );

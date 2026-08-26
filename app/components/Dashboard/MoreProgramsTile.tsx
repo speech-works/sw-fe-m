@@ -35,17 +35,47 @@ import {
  */
 export interface MoreProgramsTileProps {
   onPress: () => void;
+  /**
+   * `more` follows slides the shelf has already shown. `all` is the whole
+   * catalogue, for when it showed none.
+   *
+   * The words matter more than they look. "More programs" and "the other
+   * situations" are both claims about what came before the tile, and after a
+   * shelf with nothing on it they are simply false: there is no "more" and no
+   * "other". The same tile in that position has to say what it is actually a
+   * door to.
+   */
+  variant?: "more" | "all";
 }
 
-const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
+const COPY = {
+  more: {
+    title: "More programs",
+    subtitle: "Plans for the other situations",
+    cta: "See more",
+    label: "See more programs",
+  },
+  all: {
+    title: "All programs",
+    subtitle: "Guided plans, one situation each",
+    cta: "Browse all",
+    label: "Browse all programs",
+  },
+} as const;
+
+const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
+  onPress,
+  variant = "more",
+}) => {
   const { colors } = useTheme();
+  const copy = COPY[variant];
 
   return (
     <PressableScale
       scaleTo={0.98}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="See more programs"
+      accessibilityLabel={copy.label}
     >
       <View
         style={[
@@ -73,10 +103,10 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
 
         <View style={styles.copy}>
           <Text variant="h3" color="primary" center>
-            More programs
+            {copy.title}
           </Text>
           <Text variant="bodySm" color="secondary" center>
-            Plans for the other situations
+            {copy.subtitle}
           </Text>
         </View>
 
@@ -93,7 +123,7 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
           ]}
         >
           <Text variant="title" color="primary">
-            See more
+            {copy.cta}
           </Text>
           <Icon
             name={icons.chevronRight}
