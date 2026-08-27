@@ -288,7 +288,11 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
     // The badge is a SIBLING of the card, not a child: the card clips to its own
     // radius. It stays inside the Pressable so the corner is still part of the
     // tap target and it scales with the card on press — one object, one motion.
-    <PressableScale scaleTo={0.98} onPress={() => onPress(item)}>
+    <PressableScale
+      scaleTo={0.98}
+      onPress={() => onPress(item)}
+      style={styles.press}
+    >
       <View
         style={[
           styles.slide,
@@ -403,6 +407,9 @@ const styles = StyleSheet.create({
   // 12pt higher than every other slide's — a visible jolt on every swipe, which
   // is exactly the drift the eyebrow row above exists to prevent. Every tier
   // starts its chip at the same y, so every tier starts its title at the same y.
+  // Same reasoning as InProgressSlide's `press`: `slide`'s own `flex: 1` has
+  // nothing to grow into unless the Pressable around it stretches too.
+  press: { flex: 1 },
   slide: {
     // `flex: 1` ON TOP OF THE MINIMUM, and the two do different jobs.
     //

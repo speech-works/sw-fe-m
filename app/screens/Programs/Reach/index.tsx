@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { Directions, Gesture, GestureDetector } from "react-native-gesture-handler";
 import { getKeepsakes } from "../../../api/keepsakes";
 import { Keepsake } from "../../../api/keepsakes/types";
 import { getAllProgramGoals } from "../../../api/programGoals";
@@ -9,8 +10,8 @@ import {
   Card,
   EmptyState,
   Page,
-  Segmented,
   Spinner,
+  TabDock,
   Text,
   icons,
   space,
@@ -55,11 +56,25 @@ import { LockedState } from "./LockedState";
  * ===========================================================================
  */
 type ReachTab = "Goals" | "Cards";
+const REACH_TABS = [
+  { key: "Goals" as ReachTab, label: "Goals", icon: icons.checklist },
+  { key: "Cards" as ReachTab, label: "Cards", icon: icons.keepsakeCard },
+];
 const ReachScreen = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Reach">>();
   const [blocks, setBlocks] = useState<GoalBlock[] | null>(null);
   const [keepsakes, setKeepsakes] = useState<Keepsake[] | null>(null);
   const [tab, setTab] = useState<ReachTab>("Goals");
+
+  // Horizontal fling between Goals/Cards, matching the app's other in-page
+  // TabDock switchers (e.g. Avatar Studio) — a swipe on the content, not just
+  // a tap on the dock. Only two tabs, so a fling in either direction just
+  // flips the current one.
+  const flipTab = () => setTab((cur) => (cur === "Goals" ? "Cards" : "Goals"));
+  const tabSwipe = Gesture.Race(
+    Gesture.Fling().direction(Directions.LEFT).numberOfPointers(1).runOnJS(true).onEnd(flipTab),
+    Gesture.Fling().direction(Directions.RIGHT).numberOfPointers(1).runOnJS(true).onEnd(flipTab),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -112,48 +127,65 @@ const ReachScreen = () => {
       onBack={() => navigation.goBack()}
     >
       <View style={styles.tabs}>
-        <Segmented
-          options={["Goals", "Cards"] as ReachTab[]}
-          value={tab}
-          onChange={(next) => setTab(next as ReachTab)}
+        <TabDock
+          inline
+          fitContent
+          labelAll
+          accessibilityLabel="Reach tabs"
+          items={REACH_TABS}
+          activeKey={tab}
+          onSelect={(key) => setTab(key as ReachTab)}
         />
       </View>
 
       {tab === "Cards" ? (
         keepsakes.length === 0 ? (
-          <EmptyState
-            icon={icons.checklist}
-            title="No cards yet"
-            message="Programs that end with something to keep leave it here. Your line, your plan, in your own words."
-          />
+          <GestureDetector gesture={tabSwipe}>
+            <View>
+              <EmptyState
+                icon={icons.checklist}
+                title="No cards yet"
+                message="Programs that end with something to keep leave it here. Your line, your plan, in your own words."
+              />
+            </View>
+          </GestureDetector>
         ) : (
+          // The deck is already its own horizontal swipe (one keepsake to the
+          // next), so it's left OUT of the tab-flip gesture below — the same
+          // fast swipe would otherwise fight the carousel for the touch.
           <KeepsakeDeck keepsakes={keepsakes} />
         )
-      ) : blocks.length === 0 ? (
-        <EmptyState
-          icon={icons.checklist}
-          title="No goals yet"
-          message="Programs that ask what you want to do will show your answers here."
-        />
       ) : (
-        blocks.map((block, i) => (
-        <Card key={`${block.packId}-${i}`} style={styles.block}>
-          <Text variant="h3" color="primary">
-            {block.packTitle}
-          </Text>
-          {/* The question is kept next to the answers on purpose. Months later
-              "the landlord" means nothing without "name 3 calls you keep
-              putting off" above it, and the wording is the one they were
-              actually shown, not whatever the program asks today. */}
-          <Text variant="caption" color="tertiary" style={styles.question}>
-            {block.question}
-          </Text>
+        <GestureDetector gesture={tabSwipe}>
+          <View>
+            {blocks.length === 0 ? (
+              <EmptyState
+                icon={icons.checklist}
+                title="No goals yet"
+                message="Programs that ask what you want to do will show your answers here."
+              />
+            ) : (
+              blocks.map((block, i) => (
+              <Card key={`${block.packId}-${i}`} style={styles.block}>
+                <Text variant="h3" color="primary">
+                  {block.packTitle}
+                </Text>
+                {/* The question is kept next to the answers on purpose. Months later
+                    "the landlord" means nothing without "name 3 calls you keep
+                    putting off" above it, and the wording is the one they were
+                    actually shown, not whatever the program asks today. */}
+                <Text variant="caption" color="tertiary" style={styles.question}>
+                  {block.question}
+                </Text>
 
-          {block.goals.map((goal) => (
-            <GoalLine key={goal.id} goal={goal} />
-          ))}
-        </Card>
-        ))
+                {block.goals.map((goal) => (
+                  <GoalLine key={goal.id} goal={goal} />
+                ))}
+              </Card>
+              ))
+            )}
+          </View>
+        </GestureDetector>
       )}
     </Page>
   );

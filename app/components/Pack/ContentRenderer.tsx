@@ -451,7 +451,6 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         <QuizRunner
           questions={questions}
           eyebrow={quiz.mode === "recall" ? "FROM YESTERDAY" : "CHECK"}
-          finishLabel="Done"
           // Explain each answer as it is given. Every option carries an
           // explanation and a wrong answer costs nothing here, so there is no
           // reason to make somebody wait until the end to find out.

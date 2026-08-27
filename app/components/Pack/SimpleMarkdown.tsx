@@ -19,146 +19,251 @@ export const SimpleMarkdown = ({
 
   if (!content) return null;
 
-  // Normalize line endings and split
+  // Normalize line endings, split, then group into blocks BEFORE rendering.
+  // A block can span several raw source lines (a wrapped list item, a
+  // multi-line quote) — grouping first is what lets those render as one
+  // element instead of one element per line.
   const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const blocks = groupBlocks(lines);
 
   const textStyle = textColor ? { color: textColor } : {};
   const linkColor = colors.text.link;
 
   return (
     <View style={styles.container}>
-      {lines.map((line, index) => {
-        const trimmedLine = line.trim();
+      {blocks.map((block, index) => {
+        switch (block.kind) {
+          case "blank":
+            return <View key={index} style={{ height: 12 }} />;
 
-        // Headers
-        if (trimmedLine.startsWith("#### ")) {
-          return (
-            <Text key={index} style={[styles.h4, textStyle]}>
-              {trimmedLine.replace("#### ", "")}
-            </Text>
-          );
-        }
-        if (trimmedLine.startsWith("### ")) {
-          return (
-            <Text
-              key={index}
-              style={[styles.h3, index === 0 && { marginTop: 0 }, textStyle]}
-            >
-              {trimmedLine.replace("### ", "")}
-            </Text>
-          );
-        }
-        if (trimmedLine.startsWith("## ")) {
-          return (
-            <Text key={index} style={[styles.h2, textStyle]}>
-              {trimmedLine.replace("## ", "")}
-            </Text>
-          );
-        }
-        if (trimmedLine.startsWith("# ")) {
-          return (
-            <Text key={index} style={[styles.h1, textStyle]}>
-              {trimmedLine.replace("# ", "")}
-            </Text>
-          );
-        }
-
-        // Blockquotes
-        if (trimmedLine.startsWith("> ")) {
-          return (
-            <View key={index} style={styles.blockquote}>
-              <Text style={[styles.blockquoteText, textStyle]}>
-                {parseLinksAndBold(trimmedLine.replace("> ", ""), linkColor, textColor)}
-              </Text>
-            </View>
-          );
-        }
-
-        // Checkboxes (- [ ] or - [x])
-        const checkboxMatch = trimmedLine.match(/^- \[([ xX])\] (.*)/);
-        if (checkboxMatch) {
-          const isChecked = checkboxMatch[1].toLowerCase() === "x";
-          return (
-            <View key={index} style={styles.listItem}>
-              <MaterialCommunityIcons
-                name={isChecked ? "checkbox-marked" : "checkbox-blank-outline"}
-                size={18}
-                color={
-                  isChecked
-                    ? colors.feedback.success
-                    : textColor || colors.text.secondary
-                }
-                style={styles.checkboxIcon}
-              />
+          case "header": {
+            const headerStyle = {
+              1: styles.h1,
+              2: styles.h2,
+              3: styles.h3,
+              4: styles.h4,
+            }[block.level];
+            return (
               <Text
+                key={index}
                 style={[
-                  variant === "instruction" ? styles.bodyLarge : styles.body,
-                  isChecked && styles.completedText,
+                  headerStyle,
+                  block.level === 3 && index === 0 && { marginTop: 0 },
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(checkboxMatch[2], linkColor, textColor)}
+                {block.text}
               </Text>
-            </View>
-          );
-        }
+            );
+          }
 
-        // List items
-        if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ")) {
-          const content = trimmedLine.replace(/^[-*] /, "");
-          return (
-            <View key={index} style={styles.listItem}>
-              <Text style={[styles.bullet, textStyle]}>•</Text>
-              <Text
-                style={[
-                  variant === "instruction" ? styles.bodyLarge : styles.body,
-                  textStyle,
-                ]}
-              >
-                {parseLinksAndBold(content, linkColor, textColor)}
-              </Text>
-            </View>
-          );
-        }
+          case "blockquote":
+            return (
+              <View key={index} style={styles.blockquote}>
+                <Text style={[styles.blockquoteText, textStyle]}>
+                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                </Text>
+              </View>
+            );
 
-        // Ordered list (basic support for "1. ")
-        const orderedMatch = trimmedLine.match(/^(\d+)\.\s(.*)/);
-        if (orderedMatch) {
-          return (
-            <View key={index} style={styles.listItem}>
-              <Text style={[styles.bullet, textStyle]}>{orderedMatch[1]}.</Text>
+          case "checkbox":
+            return (
+              <View key={index} style={styles.listItem}>
+                <MaterialCommunityIcons
+                  name={
+                    block.checked ? "checkbox-marked" : "checkbox-blank-outline"
+                  }
+                  size={18}
+                  color={
+                    block.checked
+                      ? colors.feedback.success
+                      : textColor || colors.text.secondary
+                  }
+                  style={styles.checkboxIcon}
+                />
+                <Text
+                  style={[
+                    variant === "instruction" ? styles.bodyLarge : styles.body,
+                    block.checked && styles.completedText,
+                    textStyle,
+                  ]}
+                >
+                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                </Text>
+              </View>
+            );
+
+          case "list":
+            return (
+              <View key={index} style={styles.listItem}>
+                <Text style={[styles.bullet, textStyle]}>{block.marker}</Text>
+                <Text
+                  style={[
+                    variant === "instruction" ? styles.bodyLarge : styles.body,
+                    styles.listText,
+                    textStyle,
+                  ]}
+                >
+                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                </Text>
+              </View>
+            );
+
+          case "paragraph":
+          default:
+            return (
               <Text
+                key={index}
                 style={[
                   variant === "instruction" ? styles.bodyLarge : styles.body,
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(orderedMatch[2], linkColor, textColor)}
+                {parseLinksAndBold(block.text, linkColor, textColor)}
               </Text>
-            </View>
-          );
+            );
         }
-
-        // Regular Text (with bold support)
-        if (trimmedLine === "") {
-          return <View key={index} style={{ height: 12 }} />;
-        }
-
-        return (
-          <Text
-            key={index}
-            style={[
-              variant === "instruction" ? styles.bodyLarge : styles.body,
-              textStyle,
-            ]}
-          >
-            {parseLinksAndBold(line, linkColor, textColor)}
-          </Text>
-        );
       })}
     </View>
   );
 };
+
+type Block =
+  | { kind: "blank" }
+  | { kind: "header"; level: 1 | 2 | 3 | 4; text: string }
+  | { kind: "blockquote"; text: string }
+  | { kind: "checkbox"; checked: boolean; text: string }
+  | { kind: "list"; marker: string; text: string }
+  | { kind: "paragraph"; text: string };
+
+/** Does a trimmed line carry a marker that starts a genuinely new block? */
+function isBlockMarker(trimmed: string): boolean {
+  return (
+    trimmed.startsWith("#") ||
+    trimmed.startsWith("> ") ||
+    trimmed.startsWith("- ") ||
+    trimmed.startsWith("* ") ||
+    /^\d+\.\s/.test(trimmed)
+  );
+}
+
+/** Does a trimmed line start a NEW block, rather than continue the current one? */
+function startsNewBlock(trimmed: string): boolean {
+  return trimmed === "" || isBlockMarker(trimmed);
+}
+
+/**
+ * Groups raw source lines into render blocks.
+ *
+ * The server wraps prose at arbitrary source-line boundaries — a single quote
+ * or a single list item's text routinely spans several lines with no blank
+ * line between them. Rendering one line at a time (the previous behaviour)
+ * turned each of those into its own element: a wrapped list item lost its
+ * hanging indent the moment its second line didn't start with "2. ", and a
+ * multi-line quote became several disconnected boxes with the sentence cut
+ * between them. Grouping first — a blockquote run joins into one quote, a
+ * list item swallows any immediately-following unmarked lines as its own
+ * continuation — is what lets those render as a single element again.
+ */
+function groupBlocks(lines: string[]): Block[] {
+  const blocks: Block[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+
+    if (trimmed === "") {
+      blocks.push({ kind: "blank" });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith("#### ")) {
+      blocks.push({ kind: "header", level: 4, text: trimmed.slice(5) });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      blocks.push({ kind: "header", level: 3, text: trimmed.slice(4) });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      blocks.push({ kind: "header", level: 2, text: trimmed.slice(3) });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("# ")) {
+      blocks.push({ kind: "header", level: 1, text: trimmed.slice(2) });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith("> ")) {
+      const parts = [trimmed.slice(2)];
+      i++;
+      while (i < lines.length && lines[i].trim().startsWith("> ")) {
+        parts.push(lines[i].trim().slice(2));
+        i++;
+      }
+      blocks.push({ kind: "blockquote", text: parts.join(" ") });
+      continue;
+    }
+
+    const checkboxMatch = trimmed.match(/^- \[([ xX])\] (.*)/);
+    if (checkboxMatch) {
+      blocks.push({
+        kind: "checkbox",
+        checked: checkboxMatch[1].toLowerCase() === "x",
+        text: checkboxMatch[2],
+      });
+      i++;
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^[-*] (.*)/);
+    const orderedMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+    if (bulletMatch || orderedMatch) {
+      const marker = orderedMatch ? `${orderedMatch[1]}.` : "•";
+      const parts = [orderedMatch ? orderedMatch[2] : bulletMatch![1]];
+      i++;
+      // Lazy continuation: unmarked lines right after a list item are that
+      // item's own wrapped text. A blank line inside that run is swallowed
+      // as an internal paragraph break rather than ending the item — it only
+      // really ends the item when the blank is followed by nothing else, or
+      // by the start of the next block (a new list entry, a header, a quote).
+      // Without this, a stray blank line mid-explanation knocks the rest of
+      // the item's own text out to the left margin as an unindented paragraph.
+      while (i < lines.length) {
+        const next = lines[i].trim();
+        if (next === "") {
+          const after = lines[i + 1]?.trim() ?? "";
+          if (after === "" || isBlockMarker(after)) break;
+          i++;
+          continue;
+        }
+        if (isBlockMarker(next)) break;
+        parts.push(next);
+        i++;
+      }
+      blocks.push({ kind: "list", marker, text: parts.join(" ") });
+      continue;
+    }
+
+    // Paragraph: merge consecutive unmarked lines into one block of prose,
+    // the same way a blank-line-free run of lines is one paragraph in
+    // standard markdown.
+    const parts = [trimmed];
+    i++;
+    while (i < lines.length && !startsNewBlock(lines[i].trim())) {
+      parts.push(lines[i].trim());
+      i++;
+    }
+    blocks.push({ kind: "paragraph", text: parts.join(" ") });
+  }
+
+  return blocks;
+}
 
 /**
  * Inline token pattern, tried left to right at every position:
@@ -430,6 +535,11 @@ const useStyles = makeStyles((c, t) => ({
     marginBottom: 8,
     paddingRight: 16,
   },
+  // flexShrink so a merged multi-line item wraps within the row instead of
+  // pushing past it — items can now carry a full continuation paragraph.
+  listText: {
+    flexShrink: 1,
+  },
   bullet: {
     ...t.typography.body,
     color: c.text.secondary,
@@ -449,10 +559,11 @@ const useStyles = makeStyles((c, t) => ({
     borderLeftWidth: 4,
     borderLeftColor: c.action.primary,
     paddingLeft: 16,
-    paddingVertical: 4,
+    paddingRight: 16,
+    paddingVertical: 12,
     marginVertical: 12,
     backgroundColor: c.action.primaryTint,
-    borderRadius: t.radius.xs,
+    borderRadius: t.radius.sm,
   },
   blockquoteText: {
     ...t.typography.bodySm,

@@ -76,6 +76,7 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={copy.label}
+      style={styles.press}
     >
       <View
         style={[
@@ -139,6 +140,9 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
 export default MoreProgramsTile;
 
 const styles = StyleSheet.create({
+  // Same reasoning as InProgressSlide's `press`: `tile`'s own `flex: 1` has
+  // nothing to grow into unless the Pressable around it stretches too.
+  press: { flex: 1 },
   tile: {
     // Was a fixed height, which made this the one slide that could not stretch
     // with the rest of the row. Floor plus flex, same as OfferSlide.

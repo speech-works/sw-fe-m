@@ -138,6 +138,13 @@ export default function QuizRunner({
       } finally {
         setBusy(false);
       }
+      // The last question ends on this reveal, not on a second tap. A "Done"
+      // button here used to call `advance()`, which resets `selected` and
+      // `revealed` for the next question that never comes — so the card the
+      // user is looking at appeared to forget their answer instead of moving
+      // on. There's nowhere left to move to inside the quiz: the host screen
+      // already carries its own Next/Complete action for that.
+      if (isLast) onFinished?.([...answers, answer]);
       return;
     }
 
@@ -285,29 +292,36 @@ export default function QuizRunner({
           </View>
         ) : null}
 
-        <View
-          style={[styles.footer, { borderTopColor: colors.border.default }]}
-        >
-          <Button
-            key={`quiz-next-${index}-${revealed ? "revealed" : "open"}`}
-            label={footerLabel()}
-            size="md"
-            fullWidth={false}
-            loading={busy}
-            disabled={selected === undefined || busy}
-            onPress={() => {
-              if (revealExplanation && revealed) {
-                advance({
-                  question,
-                  selectedIndex: selected as number,
-                  isCorrect: gotItRight,
-                });
-                return;
-              }
-              void submit();
-            }}
-          />
-        </View>
+        {/* Nothing to press once the last question is revealed — the quiz
+            already finished (see `submit`), and the host screen's own
+            Next/Complete button is the way past it. A button here would
+            either repeat that action under a different label or, in the case
+            this replaced, invite a tap that only reset the answer on screen. */}
+        {revealExplanation && revealed && isLast ? null : (
+          <View
+            style={[styles.footer, { borderTopColor: colors.border.default }]}
+          >
+            <Button
+              key={`quiz-next-${index}-${revealed ? "revealed" : "open"}`}
+              label={footerLabel()}
+              size="md"
+              fullWidth={false}
+              loading={busy}
+              disabled={selected === undefined || busy}
+              onPress={() => {
+                if (revealExplanation && revealed) {
+                  advance({
+                    question,
+                    selectedIndex: selected as number,
+                    isCorrect: gotItRight,
+                  });
+                  return;
+                }
+                void submit();
+              }}
+            />
+          </View>
+        )}
       </Surface>
     </View>
   );
