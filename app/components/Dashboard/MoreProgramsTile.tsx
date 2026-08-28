@@ -29,9 +29,21 @@ import {
  * true whenever the tile is rendered at all, which is the only bar worth
  * clearing on a shelf that is careful about what it claims.
  *
- * RECESSED, NOT RAISED. The programs beside it are the offer; this is the door.
- * `surface.inset` steps DOWN from the card surface in both schemes, so the tile
- * reads as part of the rail rather than as a fourth thing to buy.
+ * A RESTING CARD ON PAPER NEEDS A SHADOW (see elevation.ts). This used to sit
+ * on `surface.inset` with no shadow, on the reasoning that a recessed fill
+ * would read as "part of the rail" rather than as a fourth thing to buy. That
+ * held on ink, where the fill step is real — but `inset` (#F5EFE4) sits at a
+ * mere 1.03:1 against the paper canvas (#F7F2EA), FAINTER than the raised
+ * `card`/`elevated` surfaces it was meant to look recessed relative to. With
+ * no offer slide in view to compare against (the `all` variant, when the
+ * shelf has nothing else to show), the tile had nothing but a hairline
+ * telling it apart from the page, and vanished into it.
+ *
+ * `surface.elevated` + `border.strong` + `elevation.e1` is the same recipe
+ * `OfferSlide` uses for its own neutral resting card on paper. It reads as a
+ * real object on the page in both schemes; staying wordless and iconographic
+ * (no product art, no price) is what still keeps it from reading as a fourth
+ * thing to buy.
  */
 export interface MoreProgramsTileProps {
   onPress: () => void;
@@ -67,7 +79,7 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
   onPress,
   variant = "more",
 }) => {
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
   const copy = COPY[variant];
 
   return (
@@ -82,9 +94,10 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
         style={[
           styles.tile,
           {
-            backgroundColor: colors.surface.inset,
-            borderColor: colors.border.default,
+            backgroundColor: colors.surface.elevated,
+            borderColor: colors.border.strong,
           },
+          elevation.e1,
         ]}
       >
         {/* `journey` (a stack of layers) is this app's word for a PROGRAM: it
