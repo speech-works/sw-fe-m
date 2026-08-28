@@ -49,7 +49,7 @@ export interface TabDockItem {
    * accent and inverts on the active pill to stay legible on the fill.
    *
    * It rode INSIDE the pill for a while, as a plate beside the label. That cost
-   * 36pt of a 302pt control, about 12&#37;, on a thing whose whole job is to be
+   * 36pt of a 302pt control, about 12%, on a thing whose whole job is to be
    * small. As a corner badge on the icon it is absolutely positioned and costs
    * nothing. Setting it suppresses `badge` and `badgeDot`, which would
    * otherwise stack a second marker on the same icon.
@@ -172,7 +172,7 @@ export const TabDock: React.FC<TabDockProps> = ({
       accessibilityLabel={accessibilityLabel}
       accessibilityLiveRegion="polite"
     >
-      {items.map((item, index) => (
+      {items.map((item) => (
         <DockItem
           key={item.key}
           isFocused={activeKey === item.key}
@@ -181,20 +181,8 @@ export const TabDock: React.FC<TabDockProps> = ({
           badge={item.badge ?? 0}
           badgeDot={item.badgeDot ?? false}
           count={item.count ?? 0}
-          fitContent={fitContent}
           inline={inline}
           labelAll={labelAll}
-          // Only the full-width nav needs this. A `fitContent` dock hugs its
-          // tabs, so its outer inset is already the padding and nothing else.
-          edge={
-            fitContent || items.length < 2
-              ? undefined
-              : index === 0
-                ? "start"
-                : index === items.length - 1
-                  ? "end"
-                  : undefined
-          }
           reduceMotion={reduceMotion}
           onPress={() => onSelect(item.key)}
           onLongPress={onLongPress ? () => onLongPress(item.key) : undefined}
@@ -250,24 +238,8 @@ interface DockItemProps {
   badge: number;
   badgeDot: boolean;
   count: number;
-  fitContent: boolean;
   inline: boolean;
   labelAll: boolean;
-  /**
-   * The FIRST or LAST tab of the full-width nav: pin its pill to the padding
-   * box's edge, and take a half share of the leftover space rather than a full
-   * one (see `containerStyle`).
-   *
-   * The two halves are one mechanism. Pinning alone puts the outer inset at
-   * exactly `padding`, but it also dumps this slot's whole share of the
-   * leftover on the inside — so the first gap came out 1.5× every other gap.
-   * Halving the share is what makes them all equal again.
-   *
-   * Centred and full-share, which is what this replaced, the dock's edge inset
-   * was `padding + (slot - pill) / 2`: a REMAINDER that moved with which tab
-   * was selected, how long that tab's word was, and how wide the phone was.
-   */
-  edge?: "start" | "end";
   reduceMotion: boolean;
   onPress: () => void;
   onLongPress?: () => void;
@@ -282,10 +254,8 @@ const DockItem: React.FC<DockItemProps> = ({
   badge,
   badgeDot,
   count,
-  fitContent,
   inline,
   labelAll,
-  edge,
   reduceMotion,
   onPress,
   onLongPress,
@@ -309,61 +279,31 @@ const DockItem: React.FC<DockItemProps> = ({
   const [labelWidth, setLabelWidth] = useState(0);
   // Estimate until the real width is measured, so the active label never pops in at 0.
   // Headroom so the exact-width wrapper can never hairline-clip the glyphs or show
-  // ellipsis. 12 for the animated case, where the wrapper is being interpolated and
+  // ellipsis. 8 for the animated case, where the wrapper is being interpolated and
   // the label is scaling inside it; 4 is enough once both are static, and width is
   // the scarce resource on a control that has to name every tab.
   const targetWidth = labelWidth
-    ? labelWidth + (labelAll ? 4 : 12)
-    : Math.round(label.length * 10);
+    ? labelWidth + (labelAll ? 4 : 8)
+    : Math.round(label.length * 9);
 
   const v = useDerivedValue(
     () => (reduceMotion ? (isFocused ? 1 : 0) : withSpring(isFocused ? 1 : 0, DOCK_SPRING)),
     [isFocused, reduceMotion],
   );
 
-  // ── HOW THE FULL-WIDTH NAV DIVIDES ITSELF UP ──
-  //
-  // It used to be `flex: 1` resting and `flex: 2.5` focused, and 2.5 was a GUESS
-  // at how much room a grown pill needs. The guess is never right, and every
-  // pixel of the miss came out as slack that the pill was then centred inside —
-  // so the slack landed in a different place in every state. That is what made
-  // both the edge inset and the gaps between the icons wander.
-  //
-  // Now each slot is sized to the pill it holds (`flexBasis`) and the leftover
-  // is what gets shared out (`flexGrow`). The edge tabs take a HALF share and
-  // pin their pill outward, so their half lands entirely on the inside; every
-  // other tab takes a full share and centres. Total grow is therefore n - 1,
-  // and the arithmetic falls out exactly:
-  //
-  //     outer inset  = padding, always
-  //     every gap    = (content - Σ pill widths) / (n - 1), all equal
-  //
-  // The slots still tile the whole bar, so there is no dead strip between tabs
-  // for a tap to fall into — the gaps are drawn, not laid out.
-  const restWidth = inline ? 44 : 48;
-  // The pill's own width, rebuilt from the values that draw it below, so the
-  // slot tracks the pill on the SAME spring instead of trailing it:
-  // 2 × paddingHorizontal(18) + iconBox(24) + marginLeft(8) + label(targetWidth).
-  const growWeight = edge ? 0.5 : 1;
-  const containerStyle = useAnimatedStyle(() => {
-    if (fitContent) return {};
-    const width = 24 + Math.max(0, v.value) * (44 + targetWidth);
-    return {
-      flexBasis: Math.max(restWidth, width),
-      flexGrow: growWeight,
-      // Only bites if the labels outgrow the bar. Slots then give way in
-      // proportion, which crowds the middle rather than bursting the ends.
-      flexShrink: 1,
-    };
-  });
   const pillStyle = useAnimatedStyle(() => ({
     // Clamp the colour input so spring overshoot can't push it past the fill.
-    backgroundColor: interpolateColor(Math.min(1, Math.max(0, v.value)), [0, 1], ["transparent", activeColor]),
+    backgroundColor: interpolateColor(
+      Math.min(1, Math.max(0, v.value)),
+      [0, 1],
+      ["transparent", activeColor],
+    ),
     // A named inactive tab keeps padding, or its label would run into the
     // capsule's edge and into its neighbour. Only the icon-only treatment can
     // collapse to nothing.
-    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [labelAll ? 14 : 0, 18])),
+    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [labelAll ? 14 : 0, 16])),
   }));
+
   const textWrapperStyle = useAnimatedStyle(() => {
     // Named tabs hold their width open at all times: this wrapper is the thing
     // that used to animate 0 → label, which is exactly what made the capsule
@@ -376,6 +316,7 @@ const DockItem: React.FC<DockItemProps> = ({
       opacity: Math.max(0, Math.min(1, v.value)),
     };
   });
+
   const textStyle = useAnimatedStyle(() => ({
     // The scale is the label's ENTRANCE: it grows in as the pill opens around
     // it. A permanent label has no entrance, and leaving this on left every
@@ -383,6 +324,7 @@ const DockItem: React.FC<DockItemProps> = ({
     // were set in visibly different sizes.
     transform: [{ scale: labelAll ? 1 : interpolate(v.value, [0, 1], [0.85, 1]) }],
   }));
+
   // TWO COPIES OF THE LABEL, CROSSFADED — the same thing the icon above already
   // does, and for the same reason: `onActive` is near-black, which is legible on
   // the orange fill and invisible the moment the fill is not there. Crossfading
@@ -394,6 +336,7 @@ const DockItem: React.FC<DockItemProps> = ({
   const labelRestStyle = useAnimatedStyle(() => ({
     opacity: Math.max(0, Math.min(1, 1 - v.value)),
   }));
+
   /**
    * The subject-count badge INVERTS as the pill fills under it.
    *
@@ -424,7 +367,7 @@ const DockItem: React.FC<DockItemProps> = ({
 
   return (
     <Animated.View
-      style={[styles.itemContainer, containerStyle]}
+      style={styles.itemContainer}
       entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}
       // Leaving is what makes a mode change read as a MORPH rather than a swap.
       // Without it a removed tab is simply gone on the next frame while the
@@ -440,12 +383,12 @@ const DockItem: React.FC<DockItemProps> = ({
         // Reports to the dead-tap detector that this touch reached a control.
         onPressIn={notePress}
         activeOpacity={0.7}
-        // A tab only occupies the bar's content box (54 floating, 44 inline) —
+        // A tab only occupies the bar's content box (48 floating, 44 inline) —
         // the padding band above and below resolved to the bar itself, which
         // has no press handler, and silently ate those taps. hitSlop reclaims
-        // them without changing any layout, and 8 covers either padding.
-        hitSlop={{ top: 8, bottom: 8 }}
-        style={fitContent ? styles.touchableFit : styles.touchable}
+        // them without changing any layout, and 11 covers the full bar height.
+        hitSlop={{ top: 11, bottom: 11, left: 8, right: 8 }}
+        style={styles.touchable}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
         accessibilityLabel={
@@ -462,8 +405,6 @@ const DockItem: React.FC<DockItemProps> = ({
           style={[
             styles.pill,
             inline && styles.pillInline,
-            edge === "start" && styles.pillStart,
-            edge === "end" && styles.pillEnd,
             pillStyle,
           ]}
         >
@@ -616,13 +557,8 @@ const styles = StyleSheet.create({
   barFloating: {
     borderRadius: 35,
     height: 70,
-    // 11, NOT 8 — it is (70 - 48) / 2, the inset the 48pt pill already has above
-    // and below it. At 8 the pill sat 11 from the top and 8 from the side, and
-    // the place that reads is the CORNER, where the capsule's 35pt arc is
-    // turning: the pill's own cap crowds it on the way round and the whole
-    // corner looks mis-struck. Matching them also makes the nesting properly
-    // concentric — outer 35 minus an 11 inset is 24, which is exactly the
-    // radius of a 48pt capsule, so the two arcs are now parallel the whole way.
+    // 11 padding creates exact concentric arcs: outer radius (35) minus 11
+    // inset equals 24, exactly matching the 48pt pill's 24pt radius on all sides.
     padding: 11,
   },
   // In a header, where it is competing with nothing. Radius stays exactly half
@@ -645,15 +581,8 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 30,
   },
   touchable: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  touchableFit: {
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
@@ -665,15 +594,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 48,
     minWidth: 48,
-    alignSelf: "center",
-  },
-  // The first and last pill sit against the padding box rather than floating in
-  // the middle of their slot — see `edge` on DockItem for why.
-  pillStart: {
-    alignSelf: "flex-start",
-  },
-  pillEnd: {
-    alignSelf: "flex-end",
   },
   // 44, which is the touch minimum exactly — it is the floor, not a preference,
   // so the compact capsule cannot shrink any further than this.
