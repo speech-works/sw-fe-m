@@ -42,8 +42,8 @@ export const gradients = {
   // Glossy top highlight for elevated chrome.
   sheen: { colors: [p.whiteA(0.1), p.whiteA(0)], ...vertical },
 
-  // Premium tier (BuyPro) — slate container + metallic-gold CTA.
-  premiumSlate: { colors: [p.premium.slate, p.premium.slateMid, p.premium.slate], ...diagonal },
+  // Premium tier (BuyPro) — obsidian container + metallic-gold CTA.
+  premiumGround: { colors: [p.premium.ground, p.premium.groundMid, p.premium.ground], ...diagonal },
   premiumGold: { colors: [p.premium.gold, p.premium.goldDeep], ...diagonal },
 } as const satisfies Record<string, GradientToken>;
 

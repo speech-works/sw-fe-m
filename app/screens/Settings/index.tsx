@@ -34,6 +34,7 @@ import {
   IconName,
 } from "../../design-system";
 import { AvatarButton } from "../../components/AvatarButton";
+import { MembershipRow } from "../../components/membership/MembershipRow";
 import FullProfile from "./components/FullProfile";
 import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
@@ -157,6 +158,15 @@ const Settings = () => {
     desc: string;
     onClick: () => void;
   };
+
+  // Whether this build can actually take money. Read once so the membership
+  // row and the entrance stagger below it can never disagree about how many
+  // groups are on screen.
+  const sellMembership = purchasesAvailable();
+  // The membership row is group 1 when it exists, so everything after it
+  // starts one step later. Without this the menu's fade-up would skip a beat
+  // on a build that cannot sell.
+  const groupOffset = sellMembership ? 2 : 1;
 
   // Grouped, not one flat list of eight. The old order interleaved the two help
   // rows with Reminders and left privacy controls sitting between blocking and
@@ -315,6 +325,39 @@ const Settings = () => {
           />
         </Reanimated.View>
 
+        {/* ── THE ONLY UNCONDITIONAL WAY TO BUY A MEMBERSHIP ───────────────
+            Its own group, above Preferences, and it never hides on account
+            state. Every OTHER route to the paywall is gated on the user
+            looking like a prospect: MembershipDock wants `!isMember(user)`
+            and a finished session, the stamina upsell only fires on an empty
+            bar, and the rings sheet drops its Upgrade button for members. Hand
+            App Review a demo account carrying credits and a bought pack, which
+            is what we did, and all three go quiet at once. Build 1.0.2 (22) was
+            rejected twice under Guideline 2.1(b) for in-app purchases the
+            reviewer could not find. This row is the fix: Settings, first row,
+            any account.
+
+            Do NOT add an `isMember` condition here. A member seeing it is the
+            point; it is also where they look to check what they pay for.
+
+            Gated on purchasesAvailable() for the same reason the Restore row
+            is: without a RevenueCat key for this platform the paywall cannot
+            charge, and a row into a screen that cannot sell is a dead button.
+            Every eas.json profile sets both keys, so it ships in real builds. */}
+        {sellMembership ? (
+          <Reanimated.View entering={m.stagger(1)}>
+            {/* No `styles.group` wrapper and no `surface.default`. This row
+                paints its own slate: it is the one thing on this screen with
+                something to sell, and a warm group box around it would put the
+                list's skin back on over the tier's. It keeps the group's
+                radius and the list's row geometry, so it still lines up. */}
+            <MembershipRow
+              isMember={isMember}
+              onPress={() => navigation.navigate("PremiumModal")}
+            />
+          </Reanimated.View>
+        ) : null}
+
         {/* Menu */}
         {menuGroups.map((group, groupIndex) => (
           <Reanimated.View
@@ -322,7 +365,7 @@ const Settings = () => {
             // to "Restoring…" mid-flight, and a changing key would remount the
             // whole group and replay its entrance under the user's thumb.
             key={groupIndex}
-            entering={m.stagger(1 + groupIndex)}
+            entering={m.stagger(groupOffset + groupIndex)}
             style={[styles.group, { backgroundColor: colors.surface.default }]}
           >
             {/* Sits above Preferences, and only exists while the OS has
@@ -352,7 +395,7 @@ const Settings = () => {
 
         {/* Footer */}
         <Reanimated.View
-          entering={m.stagger(1 + menuGroups.length)}
+          entering={m.stagger(groupOffset + menuGroups.length)}
           style={styles.footer}
         >
           <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>

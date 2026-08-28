@@ -164,18 +164,39 @@ export const palette = {
   inputBgLight: "#FFFDF8",
   inputBorderLight: "#D9D1C3",
 
-  // Premium tier — a deliberately distinct gold-on-slate identity (NOT the orange
-  // system). Scoped to the BuyPro upsell card.
+  /* Premium tier — a deliberately distinct gold-on-obsidian identity (NOT the
+     orange system). Scoped to the surfaces that sell: the paywall, the
+     membership row, the upsell card.
+
+     ── IT WAS GOLD ON SLATE, AND THE SLATE WAS THE PROBLEM ──────────────────
+     `slate` / `slateMid` were #0F172A / #1E293B, a navy. Gold is a yellow, so
+     every tinted layer the tier draws (a 12% gold wash over the ground, a gold
+     glow, a warm sheen) was a warm colour composited onto a cool one, and the
+     result of that is olive. The workarounds are still visible in the history
+     of this file's consumers: the paywall's wash note explains at length why it
+     had to stop being the accent, because gold over navy went muddy.
+
+     Obsidian is the same idea without the fight. #12100B is a near-black
+     carrying the app's own warmth, #221D12 is a bronze rather than a blue-grey,
+     and gold measures 8.90:1 on the ground — BETTER than the 8.35:1 it managed
+     on the navy, so nothing legible got less legible in the move.
+
+     ── WHY THE KEYS ARE ROLES AND NOT COLOURS ───────────────────────────────
+     `slate` was a name that could go wrong, and did: for one commit this held
+     a brown called `slate`. `ground` / `groundMid` / `onGround` say what the
+     value is FOR, so the next hue change is a value edit and not a rename. */
   premium: {
-    slate: "#0F172A",
-    slateMid: "#1E293B",
+    /** The tier's ground. Scheme-invariant: see the semantic `premium` block. */
+    ground: "#12100B",
+    /** One step up from the ground — a wash, a raised plate, a gradient's far stop. */
+    groundMid: "#221D12",
     gold: "#D4AF37",
     goldDeep: "#996515",
     goldTint: "rgba(212,175,55,0.15)",
-    // Ink for text/icons ON a gold fill. The slate is the tier's own dark, and
-    // it measures 8.49:1 on `gold` — white was 2.10:1, which is the same
+    // Ink for text/icons ON a gold fill. The ground is the tier's own dark, and
+    // it measures 10.1:1 on `gold` — white was 2.10:1, which is the same
     // dark-on-bright rule the rest of the app already follows.
-    onGold: "#0F172A",
+    onGold: "#12100B",
     goldBorder: "rgba(212,175,55,0.3)",
     cyan: "#22D3EE",
     purple: "#8B5CF6",

@@ -412,7 +412,7 @@ const UpsellModal = () => {
   if (!purchasesAvailable()) return null;
 
   const gold = colors.premium;
-  const onSlate = darkColors.text.primary;
+  const onGround = darkColors.text.primary;
 
   // The lead benefit and the two supporting it. Split here rather than in the
   // JSX so the render reads as "hero, then the rest" and cannot get them out
@@ -430,9 +430,9 @@ const UpsellModal = () => {
    * tier can be restyled from one place.
    */
   const renderPortalContent = () => (
-    <View style={[styles.portalContainer, { backgroundColor: gold.slate }]}>
+    <View style={[styles.portalContainer, { backgroundColor: gold.ground }]}>
       <View style={StyleSheet.absoluteFillObject}>
-        <Gradient token="premiumSlate" style={{ flex: 1 }} />
+        <Gradient token="premiumGround" style={{ flex: 1 }} />
         <View
           style={[
             styles.glowOrb,
@@ -465,8 +465,8 @@ const UpsellModal = () => {
           style={[
             styles.backButton,
             {
-              backgroundColor: withAlpha(onSlate, 0.1),
-              borderColor: withAlpha(onSlate, 0.15),
+              backgroundColor: withAlpha(onGround, 0.1),
+              borderColor: withAlpha(onGround, 0.15),
             },
           ]}
         >
@@ -488,7 +488,7 @@ const UpsellModal = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroContainer}>
-          <View style={[styles.badgeGlass, { backgroundColor: withAlpha(onSlate, 0.05) }]}>
+          <View style={[styles.badgeGlass, { backgroundColor: withAlpha(onGround, 0.05) }]}>
             <View
               style={[
                 styles.badgeInner,
@@ -499,8 +499,8 @@ const UpsellModal = () => {
               <Text style={[styles.badgeText, { color: gold.gold }]}>{modalTag}</Text>
             </View>
           </View>
-          <Text style={[styles.heroTitle, { color: onSlate }]}>{modalTitle}</Text>
-          <Text style={[styles.heroSubtitle, { color: withAlpha(onSlate, 0.7) }]}>
+          <Text style={[styles.heroTitle, { color: onGround }]}>{modalTitle}</Text>
+          <Text style={[styles.heroSubtitle, { color: withAlpha(onGround, 0.7) }]}>
             {modalMessage}
           </Text>
         </View>
@@ -540,13 +540,13 @@ const UpsellModal = () => {
               also just looks broken. */}
           {price.priceKnown && (
             <View style={styles.priceLine}>
-              <Text style={[styles.priceMain, { color: onSlate }]}>
+              <Text style={[styles.priceMain, { color: onGround }]}>
                 {price.annualPerMonthLabel}
-                <Text style={[styles.priceUnit, { color: withAlpha(onSlate, 0.5) }]}>
+                <Text style={[styles.priceUnit, { color: withAlpha(onGround, 0.5) }]}>
                   {" "}a month
                 </Text>
               </Text>
-              <Text style={[styles.priceSub, { color: withAlpha(onSlate, 0.45) }]}>
+              <Text style={[styles.priceSub, { color: withAlpha(onGround, 0.45) }]}>
                 Billed yearly at {price.annualLabel}. Monthly is {price.monthlyLabel}.
               </Text>
             </View>
@@ -554,7 +554,7 @@ const UpsellModal = () => {
 
           {/* The line that stops somebody buying membership for the library.
               Quiet on purpose: it is an expectation, not a benefit. */}
-          <Text style={[styles.programsNote, { color: withAlpha(onSlate, 0.4) }]}>
+          <Text style={[styles.programsNote, { color: withAlpha(onGround, 0.4) }]}>
             {PROGRAMS_NOTE}
           </Text>
         </View>
@@ -565,8 +565,8 @@ const UpsellModal = () => {
           styles.buyProFooterFixed,
           {
             paddingBottom: Math.max(insets.bottom, 4),
-            backgroundColor: withAlpha(gold.slate, 0.95),
-            borderTopColor: withAlpha(onSlate, 0.1),
+            backgroundColor: withAlpha(gold.ground, 0.95),
+            borderTopColor: withAlpha(onGround, 0.1),
           },
         ]}
       >
@@ -602,7 +602,7 @@ const UpsellModal = () => {
           {/* Not Apple Pay / Google Pay — this is StoreKit and Play Billing.
               Naming a payment product we don't use is factually wrong on a
               purchase screen, and Apple rejects Apple Pay claims for IAP. */}
-          <Text style={[styles.buyProTrustText, { color: withAlpha(onSlate, 0.4) }]}>
+          <Text style={[styles.buyProTrustText, { color: withAlpha(onGround, 0.4) }]}>
             {Platform.OS === "ios"
               ? "Secure payment through the App Store"
               : "Secure payment through Google Play"}
