@@ -37,7 +37,7 @@ const Chat = () => {
   const route = useRoute<InterviewEDPStackRouteProp<"InterviewChat">>();
 
   const { interview, practiceActivityId, packContext, from } = route.params;
-  const data = interview.practiceData || interview.interviewPracticeData;
+  const data = interview.interviewPracticeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();

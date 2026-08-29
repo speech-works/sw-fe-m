@@ -156,6 +156,7 @@ export const icons = {
   ai: "bot", // AI feature
   roadmap: "map", // roadmap / what's next
   checklist: "square-check",
+  keepsakeCard: "bookmark", // a kept card (Reach's "Cards" tab) — something written down and held onto
 
   // ── Media transport + editing (was FontAwesome5 / Ionicons in 25 files) ──
   pause: "pause", // pause playback

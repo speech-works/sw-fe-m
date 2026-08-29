@@ -35,7 +35,7 @@ const Chat = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"SCChat">>();
   const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
   const { sc, practiceActivityId, packContext, from } = route.params;
-  const data = sc.practiceData || sc.socialChallengeData;
+  const data = sc.socialChallengeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();

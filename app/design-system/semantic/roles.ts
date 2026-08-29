@@ -157,15 +157,22 @@ export type SemanticColors = {
   /** The paper boundary for a filled category tile — see `accentEdge`. */
   categoryEdge: { reading: string; breathing: string; mirror: string; exposure: string; fun: string; realLife: string };
   gamification: { xp: string; streak: string; stamina: string; gold: string };
-  // Premium tier (gold-on-slate) accents — scoped to the BuyPro upsell card.
+  // Premium tier (gold-on-obsidian) accents — scoped to the surfaces that sell.
   premium: {
-    slate: string;
-    slateMid: string;
+    /** The tier's ground (obsidian). Invariant across schemes. */
+    ground: string;
+    /** One step up from `ground` — washes, raised plates, gradient far stops. */
+    groundMid: string;
     gold: string;
     goldDeep: string;
     goldTint: string;
     goldBorder: string;
+    /** Dark ink for text/icons ON a gold fill. */
     onGold: string;
+    /** Light ink for text ON the ground — invariant, like the ground itself. */
+    onGround: string;
+    /** The secondary cut of `onGround`, for a sublabel on the ground. */
+    onGroundMuted: string;
     orbCyan: string;
     orbPurple: string;
   };

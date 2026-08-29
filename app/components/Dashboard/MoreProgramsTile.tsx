@@ -29,31 +29,75 @@ import {
  * true whenever the tile is rendered at all, which is the only bar worth
  * clearing on a shelf that is careful about what it claims.
  *
- * RECESSED, NOT RAISED. The programs beside it are the offer; this is the door.
- * `surface.inset` steps DOWN from the card surface in both schemes, so the tile
- * reads as part of the rail rather than as a fourth thing to buy.
+ * A RESTING CARD ON PAPER NEEDS A SHADOW (see elevation.ts). This used to sit
+ * on `surface.inset` with no shadow, on the reasoning that a recessed fill
+ * would read as "part of the rail" rather than as a fourth thing to buy. That
+ * held on ink, where the fill step is real — but `inset` (#F5EFE4) sits at a
+ * mere 1.03:1 against the paper canvas (#F7F2EA), FAINTER than the raised
+ * `card`/`elevated` surfaces it was meant to look recessed relative to. With
+ * no offer slide in view to compare against (the `all` variant, when the
+ * shelf has nothing else to show), the tile had nothing but a hairline
+ * telling it apart from the page, and vanished into it.
+ *
+ * `surface.elevated` + `border.strong` + `elevation.e1` is the same recipe
+ * `OfferSlide` uses for its own neutral resting card on paper. It reads as a
+ * real object on the page in both schemes; staying wordless and iconographic
+ * (no product art, no price) is what still keeps it from reading as a fourth
+ * thing to buy.
  */
 export interface MoreProgramsTileProps {
   onPress: () => void;
+  /**
+   * `more` follows slides the shelf has already shown. `all` is the whole
+   * catalogue, for when it showed none.
+   *
+   * The words matter more than they look. "More programs" and "the other
+   * situations" are both claims about what came before the tile, and after a
+   * shelf with nothing on it they are simply false: there is no "more" and no
+   * "other". The same tile in that position has to say what it is actually a
+   * door to.
+   */
+  variant?: "more" | "all";
 }
 
-const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
-  const { colors } = useTheme();
+const COPY = {
+  more: {
+    title: "More programs",
+    subtitle: "Plans for the other situations",
+    cta: "See more",
+    label: "See more programs",
+  },
+  all: {
+    title: "All programs",
+    subtitle: "Guided plans, one situation each",
+    cta: "Browse all",
+    label: "Browse all programs",
+  },
+} as const;
+
+const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
+  onPress,
+  variant = "more",
+}) => {
+  const { colors, elevation } = useTheme();
+  const copy = COPY[variant];
 
   return (
     <PressableScale
       scaleTo={0.98}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="See more programs"
+      accessibilityLabel={copy.label}
+      style={styles.press}
     >
       <View
         style={[
           styles.tile,
           {
-            backgroundColor: colors.surface.inset,
-            borderColor: colors.border.default,
+            backgroundColor: colors.surface.elevated,
+            borderColor: colors.border.strong,
           },
+          elevation.e1,
         ]}
       >
         {/* `journey` (a stack of layers) is this app's word for a PROGRAM: it
@@ -73,10 +117,10 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
 
         <View style={styles.copy}>
           <Text variant="h3" color="primary" center>
-            More programs
+            {copy.title}
           </Text>
           <Text variant="bodySm" color="secondary" center>
-            Plans for the other situations
+            {copy.subtitle}
           </Text>
         </View>
 
@@ -93,7 +137,7 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
           ]}
         >
           <Text variant="title" color="primary">
-            See more
+            {copy.cta}
           </Text>
           <Icon
             name={icons.chevronRight}
@@ -109,6 +153,9 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({ onPress }) => {
 export default MoreProgramsTile;
 
 const styles = StyleSheet.create({
+  // Same reasoning as InProgressSlide's `press`: `tile`'s own `flex: 1` has
+  // nothing to grow into unless the Pressable around it stretches too.
+  press: { flex: 1 },
   tile: {
     // Was a fixed height, which made this the one slide that could not stretch
     // with the rest of the row. Floor plus flex, same as OfferSlide.

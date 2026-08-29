@@ -8,6 +8,8 @@ import {
   radius,
   size,
   spacing,
+  borderWidth,
+  typography,
   useTheme,
   useMotion,
   withAlpha,
@@ -68,6 +70,49 @@ export interface BenefitRowsProps {
    * than the offer contains.
    */
   compact?: boolean;
+  /**
+   * The other direction from {@link compact}: fuller padding, a bigger tile and
+   * more air between rows, for a surface with height to spare. The paywall's
+   * middle page is 450pt tall on a 17 Pro Max and the default density left a
+   * third of it empty, which reads as a rendering fault rather than as room.
+   *
+   * Ignored when `compact` is set. A caller that passes both is asking for two
+   * opposite things and compact is the one that prevents clipping.
+   */
+  roomy?: boolean;
+}
+
+/**
+ * The three densities, as the numbers the styles below use. Exported through
+ * {@link benefitRowsHeight} so a caller that has to lay out a band AROUND these
+ * rows can ask how tall they are instead of hardcoding a guess that goes stale
+ * the first time this padding changes.
+ */
+const DENSITY = {
+  compact: { pad: spacing.sm, gap: spacing.xs, tile: 36 },
+  default: { pad: spacing.md, gap: spacing.sm, tile: 44 },
+  roomy: { pad: spacing.lg, gap: spacing.md, tile: 56 },
+} as const;
+
+export type BenefitRowsDensity = keyof typeof DENSITY;
+
+/** The label line, its 2pt gap, and the one-line second line. */
+const SECOND_LH = 17;
+const TEXT_H = typography.label.lineHeight + 2 + SECOND_LH;
+
+/**
+ * Exact rendered height at a given density, for the short (one-line) second
+ * line this component draws by default.
+ *
+ * Deliberately NOT valid for `long`, whose descriptions wrap to a count that
+ * depends on the width they land in. A caller that needs to reserve space must
+ * either measure that case or not use it.
+ */
+export function benefitRowsHeight(density: BenefitRowsDensity): number {
+  const d = DENSITY[density];
+  const row = d.pad * 2 + Math.max(d.tile, TEXT_H) + borderWidth.thin * 2;
+  const n = MEMBERSHIP_BENEFITS.length;
+  return row * n + d.gap * (n - 1);
 }
 
 export const BenefitRows: React.FC<BenefitRowsProps> = ({
@@ -76,6 +121,7 @@ export const BenefitRows: React.FC<BenefitRowsProps> = ({
   animate = false,
   staggerFrom = 0,
   compact = false,
+  roomy = false,
 }) => {
   const { colors } = useTheme();
   const motion = useMotion();
@@ -90,7 +136,7 @@ export const BenefitRows: React.FC<BenefitRowsProps> = ({
     : [...MEMBERSHIP_BENEFITS];
 
   return (
-    <View style={[styles.list, compact && styles.listCompact]}>
+    <View style={[styles.list, compact ? styles.listCompact : roomy && styles.listRoomy]}>
       {ordered.map((benefit, i) => {
         const isLead = !!leadId && benefit.id === leadId;
         const accent = colors.accent[benefit.accentKey as BenefitRowsAccent];
@@ -101,7 +147,7 @@ export const BenefitRows: React.FC<BenefitRowsProps> = ({
             entering={animate ? motion.stagger(staggerFrom + i) : undefined}
             style={[
               styles.row,
-              compact && styles.rowCompact,
+              compact ? styles.rowCompact : roomy && styles.rowRoomy,
               {
                 backgroundColor: isLead
                   ? withAlpha(accent, 0.08)
@@ -113,13 +159,13 @@ export const BenefitRows: React.FC<BenefitRowsProps> = ({
             <View
               style={[
                 styles.tile,
-                compact && styles.tileCompact,
+                compact ? styles.tileCompact : roomy && styles.tileRoomy,
                 { backgroundColor: withAlpha(accent, isLead ? 0.18 : 0.12) },
               ]}
             >
               <Icon
                 name={icons[benefit.iconKey as keyof typeof icons]}
-                size={compact ? size.iconSm : size.icon}
+                size={compact ? size.iconSm : roomy ? size.iconLg : size.icon}
                 color={accent}
               />
             </View>
@@ -142,27 +188,41 @@ export const BenefitRows: React.FC<BenefitRowsProps> = ({
 export default BenefitRows;
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.sm },
-  listCompact: { gap: spacing.xs },
+  // Every number below comes from DENSITY, so `benefitRowsHeight` and what is
+  // actually drawn cannot drift apart.
+  list: { gap: DENSITY.default.gap },
+  listCompact: { gap: DENSITY.compact.gap },
+  listRoomy: { gap: DENSITY.roomy.gap },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
     borderRadius: radius.card,
-    borderWidth: 1,
-    padding: spacing.md,
+    borderWidth: borderWidth.thin,
+    padding: DENSITY.default.pad,
   },
-  rowCompact: { padding: spacing.sm, gap: spacing.sm },
+  rowCompact: { padding: DENSITY.compact.pad, gap: spacing.sm },
+  rowRoomy: { padding: DENSITY.roomy.pad, gap: spacing.lg },
   // A fixed square. The rows have different text lengths, and letting the tile
   // stretch to the row would make the three icons visibly different sizes.
   tile: {
-    width: 44,
-    height: 44,
+    width: DENSITY.default.tile,
+    height: DENSITY.default.tile,
     borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  tileCompact: { width: 36, height: 36, flexBasis: 36 },
+  tileCompact: {
+    width: DENSITY.compact.tile,
+    height: DENSITY.compact.tile,
+    flexBasis: DENSITY.compact.tile,
+  },
+  tileRoomy: {
+    width: DENSITY.roomy.tile,
+    height: DENSITY.roomy.tile,
+    flexBasis: DENSITY.roomy.tile,
+    borderRadius: radius.input,
+  },
   text: { flex: 1, gap: 2 },
-  second: { lineHeight: 17 },
+  second: { lineHeight: SECOND_LH },
 });

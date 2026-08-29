@@ -19,146 +19,278 @@ export const SimpleMarkdown = ({
 
   if (!content) return null;
 
-  // Normalize line endings and split
+  // Normalize line endings, split, then group into blocks BEFORE rendering.
+  // A block can span several raw source lines (a wrapped list item, a
+  // multi-line quote) — grouping first is what lets those render as one
+  // element instead of one element per line.
   const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const blocks = groupBlocks(lines);
 
   const textStyle = textColor ? { color: textColor } : {};
   const linkColor = colors.text.link;
 
   return (
     <View style={styles.container}>
-      {lines.map((line, index) => {
-        const trimmedLine = line.trim();
+      {blocks.map((block, index) => {
+        switch (block.kind) {
+          case "blank":
+            return <View key={index} style={{ height: 12 }} />;
 
-        // Headers
-        if (trimmedLine.startsWith("#### ")) {
-          return (
-            <Text key={index} style={[styles.h4, textStyle]}>
-              {trimmedLine.replace("#### ", "")}
-            </Text>
-          );
-        }
-        if (trimmedLine.startsWith("### ")) {
-          return (
-            <Text
-              key={index}
-              style={[styles.h3, index === 0 && { marginTop: 0 }, textStyle]}
-            >
-              {trimmedLine.replace("### ", "")}
-            </Text>
-          );
-        }
-        if (trimmedLine.startsWith("## ")) {
-          return (
-            <Text key={index} style={[styles.h2, textStyle]}>
-              {trimmedLine.replace("## ", "")}
-            </Text>
-          );
-        }
-        if (trimmedLine.startsWith("# ")) {
-          return (
-            <Text key={index} style={[styles.h1, textStyle]}>
-              {trimmedLine.replace("# ", "")}
-            </Text>
-          );
-        }
+          case "header": {
+            const headerStyle = {
+              1: styles.h1,
+              2: styles.h2,
+              3: styles.h3,
+              4: styles.h4,
+            }[block.level];
 
-        // Blockquotes
-        if (trimmedLine.startsWith("> ")) {
-          return (
-            <View key={index} style={styles.blockquote}>
-              <Text style={[styles.blockquoteText, textStyle]}>
-                {parseLinksAndBold(trimmedLine.replace("> ", ""), linkColor, textColor)}
-              </Text>
-            </View>
-          );
-        }
+            // A level-2 heading carries the brand mark, and the mark is its own
+            // fixed-width View rather than a border on the Text.
+            //
+            // The border version was tried first and is wrong on real content.
+            // A bordered Text hugs its words only while the words fit one line;
+            // the moment the text wraps, the Text fills the column and the rule
+            // spans the full width. 52% of the 141 headings in the catalogue
+            // wrap at this size, so half the shelf silently rendered as a
+            // full-bleed masthead and half as a content-width rule — one
+            // component producing two different designs, decided by how long
+            // somebody's heading happened to be.
+            //
+            // A fixed mark reads identically at every heading length.
+            if (block.level === 2) {
+              return (
+                // No marginTop reset at index 0. A teach block opens on its
+                // heading, and that heading sits directly under the progress
+                // bar; zeroing the margin crowds the two together. The 36 is
+                // the breathing room at the top of a day, not dead space.
+                <View key={index} style={styles.h2Block}>
+                  <Text style={[styles.h2, textStyle]}>{block.text}</Text>
+                  <View style={styles.h2Mark} />
+                </View>
+              );
+            }
 
-        // Checkboxes (- [ ] or - [x])
-        const checkboxMatch = trimmedLine.match(/^- \[([ xX])\] (.*)/);
-        if (checkboxMatch) {
-          const isChecked = checkboxMatch[1].toLowerCase() === "x";
-          return (
-            <View key={index} style={styles.listItem}>
-              <MaterialCommunityIcons
-                name={isChecked ? "checkbox-marked" : "checkbox-blank-outline"}
-                size={18}
-                color={
-                  isChecked
-                    ? colors.feedback.success
-                    : textColor || colors.text.secondary
-                }
-                style={styles.checkboxIcon}
-              />
+            return (
               <Text
+                key={index}
                 style={[
-                  variant === "instruction" ? styles.bodyLarge : styles.body,
-                  isChecked && styles.completedText,
+                  headerStyle,
+                  block.level === 3 && index === 0 && { marginTop: 0 },
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(checkboxMatch[2], linkColor, textColor)}
+                {block.text}
               </Text>
-            </View>
-          );
-        }
+            );
+          }
 
-        // List items
-        if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ")) {
-          const content = trimmedLine.replace(/^[-*] /, "");
-          return (
-            <View key={index} style={styles.listItem}>
-              <Text style={[styles.bullet, textStyle]}>•</Text>
+          case "blockquote":
+            return (
+              <View key={index} style={styles.blockquote}>
+                <Text style={[styles.blockquoteText, textStyle]}>
+                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                </Text>
+              </View>
+            );
+
+          case "checkbox":
+            return (
+              <View key={index} style={styles.listItem}>
+                <MaterialCommunityIcons
+                  name={
+                    block.checked ? "checkbox-marked" : "checkbox-blank-outline"
+                  }
+                  size={18}
+                  color={
+                    block.checked
+                      ? colors.feedback.success
+                      : textColor || colors.text.secondary
+                  }
+                  style={styles.checkboxIcon}
+                />
+                <Text
+                  style={[
+                    variant === "instruction" ? styles.bodyLarge : styles.body,
+                    block.checked && styles.completedText,
+                    textStyle,
+                  ]}
+                >
+                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                </Text>
+              </View>
+            );
+
+          case "list":
+            return (
+              <View key={index} style={styles.listItem}>
+                <Text style={[styles.bullet, textStyle]}>{block.marker}</Text>
+                <Text
+                  style={[
+                    variant === "instruction" ? styles.bodyLarge : styles.body,
+                    styles.listText,
+                    textStyle,
+                  ]}
+                >
+                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                </Text>
+              </View>
+            );
+
+          case "paragraph":
+          default:
+            return (
               <Text
+                key={index}
                 style={[
                   variant === "instruction" ? styles.bodyLarge : styles.body,
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(content, linkColor, textColor)}
+                {parseLinksAndBold(block.text, linkColor, textColor)}
               </Text>
-            </View>
-          );
+            );
         }
-
-        // Ordered list (basic support for "1. ")
-        const orderedMatch = trimmedLine.match(/^(\d+)\.\s(.*)/);
-        if (orderedMatch) {
-          return (
-            <View key={index} style={styles.listItem}>
-              <Text style={[styles.bullet, textStyle]}>{orderedMatch[1]}.</Text>
-              <Text
-                style={[
-                  variant === "instruction" ? styles.bodyLarge : styles.body,
-                  textStyle,
-                ]}
-              >
-                {parseLinksAndBold(orderedMatch[2], linkColor, textColor)}
-              </Text>
-            </View>
-          );
-        }
-
-        // Regular Text (with bold support)
-        if (trimmedLine === "") {
-          return <View key={index} style={{ height: 12 }} />;
-        }
-
-        return (
-          <Text
-            key={index}
-            style={[
-              variant === "instruction" ? styles.bodyLarge : styles.body,
-              textStyle,
-            ]}
-          >
-            {parseLinksAndBold(line, linkColor, textColor)}
-          </Text>
-        );
       })}
     </View>
   );
 };
+
+type Block =
+  | { kind: "blank" }
+  | { kind: "header"; level: 1 | 2 | 3 | 4; text: string }
+  | { kind: "blockquote"; text: string }
+  | { kind: "checkbox"; checked: boolean; text: string }
+  | { kind: "list"; marker: string; text: string }
+  | { kind: "paragraph"; text: string };
+
+/** Does a trimmed line carry a marker that starts a genuinely new block? */
+function isBlockMarker(trimmed: string): boolean {
+  return (
+    trimmed.startsWith("#") ||
+    trimmed.startsWith("> ") ||
+    trimmed.startsWith("- ") ||
+    trimmed.startsWith("* ") ||
+    /^\d+\.\s/.test(trimmed)
+  );
+}
+
+/** Does a trimmed line start a NEW block, rather than continue the current one? */
+function startsNewBlock(trimmed: string): boolean {
+  return trimmed === "" || isBlockMarker(trimmed);
+}
+
+/**
+ * Groups raw source lines into render blocks.
+ *
+ * The server wraps prose at arbitrary source-line boundaries — a single quote
+ * or a single list item's text routinely spans several lines with no blank
+ * line between them. Rendering one line at a time (the previous behaviour)
+ * turned each of those into its own element: a wrapped list item lost its
+ * hanging indent the moment its second line didn't start with "2. ", and a
+ * multi-line quote became several disconnected boxes with the sentence cut
+ * between them. Grouping first — a blockquote run joins into one quote, a
+ * list item swallows any immediately-following unmarked lines as its own
+ * continuation — is what lets those render as a single element again.
+ */
+function groupBlocks(lines: string[]): Block[] {
+  const blocks: Block[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+
+    if (trimmed === "") {
+      blocks.push({ kind: "blank" });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith("#### ")) {
+      blocks.push({ kind: "header", level: 4, text: trimmed.slice(5) });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      blocks.push({ kind: "header", level: 3, text: trimmed.slice(4) });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      blocks.push({ kind: "header", level: 2, text: trimmed.slice(3) });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("# ")) {
+      blocks.push({ kind: "header", level: 1, text: trimmed.slice(2) });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith("> ")) {
+      const parts = [trimmed.slice(2)];
+      i++;
+      while (i < lines.length && lines[i].trim().startsWith("> ")) {
+        parts.push(lines[i].trim().slice(2));
+        i++;
+      }
+      blocks.push({ kind: "blockquote", text: parts.join(" ") });
+      continue;
+    }
+
+    const checkboxMatch = trimmed.match(/^- \[([ xX])\] (.*)/);
+    if (checkboxMatch) {
+      blocks.push({
+        kind: "checkbox",
+        checked: checkboxMatch[1].toLowerCase() === "x",
+        text: checkboxMatch[2],
+      });
+      i++;
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^[-*] (.*)/);
+    const orderedMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+    if (bulletMatch || orderedMatch) {
+      const marker = orderedMatch ? `${orderedMatch[1]}.` : "•";
+      const parts = [orderedMatch ? orderedMatch[2] : bulletMatch![1]];
+      i++;
+      // Lazy continuation: unmarked lines right after a list item are that
+      // item's own wrapped text. A blank line inside that run is swallowed
+      // as an internal paragraph break rather than ending the item — it only
+      // really ends the item when the blank is followed by nothing else, or
+      // by the start of the next block (a new list entry, a header, a quote).
+      // Without this, a stray blank line mid-explanation knocks the rest of
+      // the item's own text out to the left margin as an unindented paragraph.
+      while (i < lines.length) {
+        const next = lines[i].trim();
+        if (next === "") {
+          const after = lines[i + 1]?.trim() ?? "";
+          if (after === "" || isBlockMarker(after)) break;
+          i++;
+          continue;
+        }
+        if (isBlockMarker(next)) break;
+        parts.push(next);
+        i++;
+      }
+      blocks.push({ kind: "list", marker, text: parts.join(" ") });
+      continue;
+    }
+
+    // Paragraph: merge consecutive unmarked lines into one block of prose,
+    // the same way a blank-line-free run of lines is one paragraph in
+    // standard markdown.
+    const parts = [trimmed];
+    i++;
+    while (i < lines.length && !startsNewBlock(lines[i].trim())) {
+      parts.push(lines[i].trim());
+      i++;
+    }
+    blocks.push({ kind: "paragraph", text: parts.join(" ") });
+  }
+
+  return blocks;
+}
 
 /**
  * Inline token pattern, tried left to right at every position:
@@ -396,39 +528,86 @@ const useStyles = makeStyles((c, t) => ({
     marginBottom: 16,
     marginTop: 20,
   },
-  h2: {
-    ...t.typography.h2,
-    color: c.text.primary,
+  // ── THE SLAB ──────────────────────────────────────────────────────────
+  // A section heading is an OBJECT, not just larger text: 25 against a 16px
+  // body is a 1.56x jump where `typography.h2` gave 1.37x, and the brand rule
+  // under it is structural rather than decorative. Not a new hue — the rule is
+  // `action.primary`, the same orange the CTA uses.
+  //
+  // `alignSelf: "flex-start"` is the React Native equivalent of
+  // `width: fit-content`, and it is load-bearing: without it the Text
+  // stretches to the column and the rule runs edge to edge, which is a
+  // different (and much heavier) design than the one that was chosen.
+  //
+  // The values are spelled out rather than spread from a typography token
+  // because no token carries this pairing, and inventing `typography.slab`
+  // for one consumer would put a pack-specific decision in the design system.
+  // The wrapper owns the spacing so the heading and its mark move together.
+  // More room above than below, so a heading binds to the section it opens
+  // rather than to the paragraph it follows. It used to get 16 on both.
+  h2Block: {
+    marginTop: 36,
     marginBottom: 12,
-    marginTop: 16,
+  },
+  h2: {
+    fontFamily: fonts.extrabold,
+    fontSize: 25,
+    lineHeight: 28.5,
+    letterSpacing: -0.7,
+    color: c.text.primary,
+  },
+  // Fixed width on purpose. See the note at the level-2 branch above: anything
+  // that derives its width from the text is a different design on a heading
+  // that wraps, and most of them do.
+  h2Mark: {
+    width: 44,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: c.action.primary,
+    marginTop: 12,
   },
   h3: {
-    ...t.typography.h3,
+    ...t.typography.title,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.2,
     color: c.text.primary,
+    marginTop: 28,
     marginBottom: 8,
-    marginTop: 16,
-    letterSpacing: -0.3,
   },
   h4: {
-    ...t.typography.h3,
+    ...t.typography.title,
+    fontSize: 16,
     color: c.text.primary,
+    marginTop: 22,
     marginBottom: 8,
-    marginTop: 12,
   },
   body: {
     ...t.typography.body,
     color: c.text.primary,
-    marginBottom: 12,
+    // 4, not 12. A blank source line already emits its own 12px spacer, so a
+    // 12 here made every paragraph gap 24px and the day read as one long
+    // undifferentiated column. 4 + 12 = the 16 that was wanted all along.
+    marginBottom: 4,
   },
+  // Was byte-identical to `body`, which made `variant="instruction"` a no-op
+  // at its one call site (RealLifeChallenge). It now actually is larger.
   bodyLarge: {
     ...t.typography.body,
+    fontSize: 17,
+    lineHeight: 26,
     color: c.text.primary,
-    marginBottom: 12,
+    marginBottom: 4,
   },
   listItem: {
     flexDirection: "row",
     marginBottom: 8,
     paddingRight: 16,
+  },
+  // flexShrink so a merged multi-line item wraps within the row instead of
+  // pushing past it — items can now carry a full continuation paragraph.
+  listText: {
+    flexShrink: 1,
   },
   bullet: {
     ...t.typography.body,
@@ -445,19 +624,29 @@ const useStyles = makeStyles((c, t) => ({
     textDecorationLine: "line-through",
     opacity: 0.6,
   },
+  // A blockquote in pack content is never an aside. It carries the lines the
+  // user is meant to say out loud, and the definitions. Rendering it SMALLER
+  // than the prose around it inverted the emphasis.
   blockquote: {
-    borderLeftWidth: 4,
-    borderLeftColor: c.action.primary,
-    paddingLeft: 16,
-    paddingVertical: 4,
-    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginVertical: 16,
     backgroundColor: c.action.primaryTint,
-    borderRadius: t.radius.xs,
+    borderRadius: t.radius.md,
   },
   blockquoteText: {
-    ...t.typography.bodySm,
-    fontStyle: "italic",
-    color: c.text.secondary,
-    lineHeight: 22,
+    ...t.typography.body,
+    // Semibold, not italic. A run of italic at body length is harder to read,
+    // and weight carries the emphasis without costing legibility.
+    fontFamily: fonts.semibold,
+    lineHeight: 24,
+    // A FALLBACK, not the effective value. Every caller passes `textColor`,
+    // which is applied after this style and wins — which is why the old
+    // `text.secondary` here never actually rendered grey. It is kept at
+    // `primary` so the style is still correct on its own if a future caller
+    // omits the prop, rather than falling through to platform-default black.
+    // If a variant ever needs the quote to own its colour (a solid brand fill
+    // needs `action.onPrimary`), the override in the component has to move.
+    color: c.text.primary,
   },
 }));

@@ -249,8 +249,6 @@ export interface ExposureRealLifeData {
   encouragement: string;
   completionCriteria: string;
   completionPlaceholder: string;
-  xpReward?: number;
-  durationMinutes?: number;
 }
 
 export enum CognitiveRealLifeCategory {
@@ -263,9 +261,13 @@ export interface CognitiveRealLifeData {
   instructions: string;
   encouragement: string;
   completionPlaceholder: string;
-  xpReward?: number;
-  durationMinutes?: number;
 }
+
+// Neither of the two above carries xpReward or durationMinutes. Both were
+// declared here and neither has ever been sent: a real life challenge is done
+// when the user says it is done, so there is no duration to count, and XP is
+// awarded by the server against the session rather than described by the
+// content.
 
 export type RealLifeChallengeData =
   | ExposureRealLifeData
@@ -277,7 +279,9 @@ export interface ExposurePractice {
   name: string;
   description: string;
   difficulty: DifficultyLevel;
-  practiceData?: FixedRolePlayData;
+  // No practiceData. It was declared here, never sent, and read first in four
+  // screens as `x.practiceData || x.socialChallengeData`, so the fallback won
+  // every time. The named fields below are the real ones.
   socialChallengeData?: FixedRolePlayData;
   interviewPracticeData?: FixedRolePlayData;
   phoneCallData?: {

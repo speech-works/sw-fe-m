@@ -36,7 +36,7 @@ const Briefing = () => {
     practiceActivity?.id || null,
   );
 
-  const data = sc.practiceData || sc.socialChallengeData;
+  const data = sc.socialChallengeData;
 
   // ...
 

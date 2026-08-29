@@ -49,7 +49,7 @@ export interface TabDockItem {
    * accent and inverts on the active pill to stay legible on the fill.
    *
    * It rode INSIDE the pill for a while, as a plate beside the label. That cost
-   * 36pt of a 302pt control, about 12&#37;, on a thing whose whole job is to be
+   * 36pt of a 302pt control, about 12%, on a thing whose whole job is to be
    * small. As a corner badge on the icon it is absolutely positioned and costs
    * nothing. Setting it suppresses `badge` and `badgeDot`, which would
    * otherwise stack a second marker on the same icon.
@@ -181,7 +181,6 @@ export const TabDock: React.FC<TabDockProps> = ({
           badge={item.badge ?? 0}
           badgeDot={item.badgeDot ?? false}
           count={item.count ?? 0}
-          fitContent={fitContent}
           inline={inline}
           labelAll={labelAll}
           reduceMotion={reduceMotion}
@@ -239,7 +238,6 @@ interface DockItemProps {
   badge: number;
   badgeDot: boolean;
   count: number;
-  fitContent: boolean;
   inline: boolean;
   labelAll: boolean;
   reduceMotion: boolean;
@@ -256,7 +254,6 @@ const DockItem: React.FC<DockItemProps> = ({
   badge,
   badgeDot,
   count,
-  fitContent,
   inline,
   labelAll,
   reduceMotion,
@@ -282,30 +279,31 @@ const DockItem: React.FC<DockItemProps> = ({
   const [labelWidth, setLabelWidth] = useState(0);
   // Estimate until the real width is measured, so the active label never pops in at 0.
   // Headroom so the exact-width wrapper can never hairline-clip the glyphs or show
-  // ellipsis. 12 for the animated case, where the wrapper is being interpolated and
+  // ellipsis. 8 for the animated case, where the wrapper is being interpolated and
   // the label is scaling inside it; 4 is enough once both are static, and width is
   // the scarce resource on a control that has to name every tab.
   const targetWidth = labelWidth
-    ? labelWidth + (labelAll ? 4 : 12)
-    : Math.round(label.length * 10);
+    ? labelWidth + (labelAll ? 4 : 8)
+    : Math.round(label.length * 9);
 
   const v = useDerivedValue(
     () => (reduceMotion ? (isFocused ? 1 : 0) : withSpring(isFocused ? 1 : 0, DOCK_SPRING)),
     [isFocused, reduceMotion],
   );
 
-  // Full-width nav distributes space via flex; an in-page dock sizes to content.
-  const containerStyle = useAnimatedStyle(() =>
-    fitContent ? {} : { flex: interpolate(v.value, [0, 1], [1, 2.5]) },
-  );
   const pillStyle = useAnimatedStyle(() => ({
     // Clamp the colour input so spring overshoot can't push it past the fill.
-    backgroundColor: interpolateColor(Math.min(1, Math.max(0, v.value)), [0, 1], ["transparent", activeColor]),
+    backgroundColor: interpolateColor(
+      Math.min(1, Math.max(0, v.value)),
+      [0, 1],
+      ["transparent", activeColor],
+    ),
     // A named inactive tab keeps padding, or its label would run into the
     // capsule's edge and into its neighbour. Only the icon-only treatment can
     // collapse to nothing.
-    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [labelAll ? 14 : 0, 18])),
+    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [labelAll ? 14 : 0, 16])),
   }));
+
   const textWrapperStyle = useAnimatedStyle(() => {
     // Named tabs hold their width open at all times: this wrapper is the thing
     // that used to animate 0 → label, which is exactly what made the capsule
@@ -318,6 +316,7 @@ const DockItem: React.FC<DockItemProps> = ({
       opacity: Math.max(0, Math.min(1, v.value)),
     };
   });
+
   const textStyle = useAnimatedStyle(() => ({
     // The scale is the label's ENTRANCE: it grows in as the pill opens around
     // it. A permanent label has no entrance, and leaving this on left every
@@ -325,6 +324,7 @@ const DockItem: React.FC<DockItemProps> = ({
     // were set in visibly different sizes.
     transform: [{ scale: labelAll ? 1 : interpolate(v.value, [0, 1], [0.85, 1]) }],
   }));
+
   // TWO COPIES OF THE LABEL, CROSSFADED — the same thing the icon above already
   // does, and for the same reason: `onActive` is near-black, which is legible on
   // the orange fill and invisible the moment the fill is not there. Crossfading
@@ -336,6 +336,7 @@ const DockItem: React.FC<DockItemProps> = ({
   const labelRestStyle = useAnimatedStyle(() => ({
     opacity: Math.max(0, Math.min(1, 1 - v.value)),
   }));
+
   /**
    * The subject-count badge INVERTS as the pill fills under it.
    *
@@ -366,7 +367,7 @@ const DockItem: React.FC<DockItemProps> = ({
 
   return (
     <Animated.View
-      style={[styles.itemContainer, containerStyle]}
+      style={styles.itemContainer}
       entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}
       // Leaving is what makes a mode change read as a MORPH rather than a swap.
       // Without it a removed tab is simply gone on the next frame while the
@@ -382,12 +383,12 @@ const DockItem: React.FC<DockItemProps> = ({
         // Reports to the dead-tap detector that this touch reached a control.
         onPressIn={notePress}
         activeOpacity={0.7}
-        // A tab only occupies the bar's content box (54 floating, 44 inline) —
+        // A tab only occupies the bar's content box (48 floating, 44 inline) —
         // the padding band above and below resolved to the bar itself, which
         // has no press handler, and silently ate those taps. hitSlop reclaims
-        // them without changing any layout, and 8 covers either padding.
-        hitSlop={{ top: 8, bottom: 8 }}
-        style={fitContent ? styles.touchableFit : styles.touchable}
+        // them without changing any layout, and 11 covers the full bar height.
+        hitSlop={{ top: 11, bottom: 11, left: 8, right: 8 }}
+        style={styles.touchable}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
         accessibilityLabel={
@@ -400,7 +401,13 @@ const DockItem: React.FC<DockItemProps> = ({
                 : label
         }
       >
-        <Animated.View style={[styles.pill, inline && styles.pillInline, pillStyle]}>
+        <Animated.View
+          style={[
+            styles.pill,
+            inline && styles.pillInline,
+            pillStyle,
+          ]}
+        >
           <View style={styles.iconBox}>
             <Animated.View style={inactiveIconStyle}>
               <Icon name={iconName} size={size.tabIcon} color={inactiveColor} />
@@ -550,7 +557,9 @@ const styles = StyleSheet.create({
   barFloating: {
     borderRadius: 35,
     height: 70,
-    padding: 8,
+    // 11 padding creates exact concentric arcs: outer radius (35) minus 11
+    // inset equals 24, exactly matching the 48pt pill's 24pt radius on all sides.
+    padding: 11,
   },
   // In a header, where it is competing with nothing. Radius stays exactly half
   // the height, so the capsule is the same shape at both sizes rather than a
@@ -572,15 +581,8 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 30,
   },
   touchable: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  touchableFit: {
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
@@ -592,7 +594,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 48,
     minWidth: 48,
-    alignSelf: "center",
   },
   // 44, which is the touch minimum exactly — it is the floor, not a preference,
   // so the compact capsule cannot shrink any further than this.

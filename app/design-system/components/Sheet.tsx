@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
+import { useKeyboardInset } from "../useKeyboardInset";
 import { radius, space, size, spacing } from "../primitives/scale";
 import { duration } from "../motion";
 import {
@@ -85,6 +86,7 @@ export const Sheet: React.FC<SheetProps> = ({
 }) => {
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
   const sheetId = useId();
   const hasHeader = !!(title || right);
 
@@ -320,11 +322,40 @@ export const Sheet: React.FC<SheetProps> = ({
       animationType="none"
       onRequestClose={onClose}
     >
+      {/*
+        ANDROID GETS NO `behavior`, ON PURPOSE.
+
+        It used to be `"height"`, which shrinks this view by the keyboard's
+        height. That is correct only when the window itself does NOT already
+        resize — and under `edgeToEdgeEnabled` the reverse assumption inside
+        KeyboardAvoidingView goes wrong: it kept a stale reduced height after
+        the IME closed, so the card (capped at 0.85 of the SCREEN, not of this
+        box) outgrew its container and, in a `flex-end` column, overflowed
+        UPWARDS — pushing the header, and with it the Save and close buttons,
+        off the top of the screen. Reproduced on Edit Profile by opening the
+        phone-number numpad and dismissing it.
+
+        Android is handled instead by `keyboardInset` below, which is the same
+        mechanism `Page`'s footer already uses for edge-to-edge: pad the bottom
+        of the container by the real IME height, so the bottom-anchored card
+        lifts above the keyboard and its available height shrinks by exactly
+        the same amount. iOS keeps `padding`, unchanged.
+      */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          // A ceiling, not a gap: `flex-end` means this only bites once the
+          // sheet is tall enough to reach the top, and it keeps the header out
+          // from under the status bar when it does.
+          paddingTop: insets.top,
+          paddingBottom: keyboardInset,
+        }}
+      >
         {/* Opaque backdrop — fades in place, never slides. */}
         <Animated.View
           style={[
@@ -335,7 +366,11 @@ export const Sheet: React.FC<SheetProps> = ({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
         {/* Header + card slide up together as one unit. */}
-        <Animated.View style={{ transform: [{ translateY }] }}>
+        {/* `flexShrink` is what keeps the header on screen. Without it this
+            unit takes its content height whatever the container has left, and
+            a `flex-end` column spills the excess off the TOP — the header is
+            the first thing to go. */}
+        <Animated.View style={{ flexShrink: 1, transform: [{ translateY }] }}>
           {hasHeader ? (
             <View style={styles.header}>
               {title ? <Text variant="h2">{title}</Text> : <View style={{ flex: 1 }} />}
@@ -352,6 +387,7 @@ export const Sheet: React.FC<SheetProps> = ({
                 {
                   borderTopLeftRadius: radius.pill,
                   borderTopRightRadius: radius.pill,
+                  flexShrink: 1,
                   maxHeight: SCREEN_H * 0.85,
                   overflow: "hidden",
                   backgroundColor: gradientColors[0],
@@ -370,6 +406,7 @@ export const Sheet: React.FC<SheetProps> = ({
                   borderTopLeftRadius: radius.pill,
                   borderTopRightRadius: radius.pill,
                   ...contentPad,
+                  flexShrink: 1,
                   maxHeight: SCREEN_H * 0.85,
                 },
                 elevation.e3,

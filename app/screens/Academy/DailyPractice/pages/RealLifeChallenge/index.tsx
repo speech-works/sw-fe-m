@@ -7,7 +7,10 @@ import {
   getEasierExposureVariant,
   getExposurePracticeById,
 } from "../../../../../api/dailyPractice";
-import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
+import {
+  ExposurePractice,
+  RealLifeChallengeData,
+} from "../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
 } from "../../../../../api/practiceActivities";
@@ -112,28 +115,56 @@ const RealLifeChallenge = () => {
   const initialStep = ChallengeStep.INSTRUCTION;
 
   /**
-   * "idle" — the swap is offered; "loading" — fetching; "none" — the backend
-   * says this is already the gentlest of its kind, so the offer is replaced by
-   * a plain statement rather than a button that would do nothing.
+   * "checking" — asking the backend whether a gentler rung exists, before
+   * offering one; "available" — it does, and `easierVariant` holds it;
+   * "none" — this is already the gentlest of its kind, so the offer is a
+   * plain statement rather than a button.
+   *
+   * THE CHECK RUNS UP FRONT, NOT ON TAP. It used to be the tap that asked —
+   * so "Try something easier" sat on screen, looking like a real option, for
+   * every challenge including the ones already at the bottom of their
+   * ladder, and only admitted there was nothing to offer after the user
+   * pressed it. Asking first and rendering the honest button is what "not a
+   * button that would do nothing" actually requires.
    */
-  const [easierState, setEasierState] = useState<"idle" | "loading" | "none">(
-    "idle",
+  const [easierState, setEasierState] = useState<
+    "checking" | "available" | "none"
+  >("checking");
+  const [easierVariant, setEasierVariant] = useState<ExposurePractice | null>(
+    null,
   );
 
-  const handleTryEasier = async () => {
-    const sourceId = practiceActivityState?.exposurePractice?.id;
-    if (!sourceId) return;
+  const easierSourceId = practiceActivityState?.exposurePractice?.id;
 
-    setEasierState("loading");
-    const easier = await getEasierExposureVariant(sourceId);
-
-    if (!easier) {
-      // Already the gentlest rung, or the only easier options are locked behind
-      // a pack. Either way there is nothing to offer, and saying so plainly is
-      // kinder than a button that silently fails.
+  useEffect(() => {
+    if (!easierSourceId) {
       setEasierState("none");
       return;
     }
+
+    let cancelled = false;
+    setEasierState("checking");
+    setEasierVariant(null);
+
+    getEasierExposureVariant(easierSourceId).then((easier) => {
+      if (cancelled) return;
+      if (easier) {
+        setEasierVariant(easier);
+        setEasierState("available");
+      } else {
+        // Already the gentlest rung, or the only easier options are locked
+        // behind a pack. Either way there is nothing to offer.
+        setEasierState("none");
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [easierSourceId]);
+
+  const handleTryEasier = () => {
+    if (!easierSourceId || !easierVariant) return;
 
     // RECORD THAT THE HARDER ONE WAS PASSED OVER — as an APPROACH.
     //
@@ -145,7 +176,7 @@ const RealLifeChallenge = () => {
     // turned down too.
     void recordGrowthPointDecline({
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-      contentId: sourceId,
+      contentId: easierSourceId,
       easierOffered: true,
       easierAccepted: true,
     });
@@ -153,14 +184,14 @@ const RealLifeChallenge = () => {
     // Swap in place rather than pushing a new screen: the user asked for THIS
     // challenge to be gentler, so landing them back on a briefing for the same
     // step — with the easier challenge in it — keeps their place in the flow.
+    // Already fetched above, so the swap is instant — no loading state to show.
     setPracticeActivityState({
       id: undefined,
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-      exposurePractice: easier,
+      exposurePractice: easierVariant,
     } as any);
     setCurrentActivityId(null);
     setCurrentStep(ChallengeStep.INSTRUCTION);
-    setEasierState("idle");
   };
 
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
@@ -421,10 +452,19 @@ const RealLifeChallenge = () => {
             offered the same challenge again the next day, and not one of the
             103 exposure activities said anywhere that stepping down was allowed.
 
-            Deliberately plain and always visible, rather than a prompt that
-            appears after a skip. Someone deciding whether to attempt this at all
-            should be able to see the gentler option BEFORE they fail at this
-            one — offering it only afterwards makes it a consolation prize.
+            Shown BEFORE the user attempts the challenge, not after a skip —
+            someone deciding whether to attempt this at all should see the
+            gentler option up front, rather than getting it only as a
+            consolation prize once they've already failed.
+
+            ONLY WHEN THERE IS SOMEWHERE TO GO. The row used to render
+            unconditionally and let the tap find out whether a gentler rung
+            existed — so on the already-gentlest rung this text and a working
+            button always appeared, and only after tapping did it fall back to
+            "This is already the gentlest challenge of its kind", a line that
+            answers a question nobody asked if it's the first thing shown.
+            Gating the whole row on `easierState === "available"` means it
+            only ever appears when there is a real offer behind it.
 
             EXPOSURE-SOURCED ONLY. This screen is shared with COGNITIVE
             REAL_LIFE_CHALLENGE activities (e.g. "5-4-3-2-1 Grounding") — see
@@ -432,35 +472,23 @@ const RealLifeChallenge = () => {
             packActivityNavigation.ts, which routes that type here too. A
             grounding or breathing technique has no graded ladder to step down;
             `getEasierExposureVariant` only exists for the exposure hierarchy,
-            so `handleTryEasier` read `exposurePractice?.id`, found nothing on a
-            cognitive-sourced activity, and returned on its first line — a
-            button that looked identical to the working one but silently did
-            nothing on every tap. Gating the whole row on `exposurePractice`
-            being present is the honest fix: no ladder exists here, so no rung
-            is offered.
+            so the check on a cognitive-sourced activity has no `sourceId` and
+            `easierState` stays "none" — same as the exposure hierarchy's own
+            gentlest rung, and correctly silent either way.
           */}
-          {practiceActivityState?.exposurePractice ? (
+          {easierState === "available" ? (
             <View style={styles.pacingRow}>
               <Text variant="bodySm" color="tertiary" center>
                 Go at your own pace. Starting smaller is a real choice, not a
                 step backwards.
               </Text>
-              {easierState === "none" ? (
-                <Text variant="label" color="tertiary" center>
-                  This is already the gentlest challenge of its kind.
-                </Text>
-              ) : (
-                <Button
-                  label={
-                    easierState === "loading"
-                      ? "Finding something easier…"
-                      : "Try something easier"
-                  }
-                  variant="secondary"
-                  disabled={easierState === "loading"}
-                  onPress={handleTryEasier}
-                />
-              )}
+              {/* Already fetched by the check above, so this is an instant
+                  swap — nothing to load once the button is visible at all. */}
+              <Button
+                label="Try something easier"
+                variant="secondary"
+                onPress={handleTryEasier}
+              />
             </View>
           ) : null}
         </Page>

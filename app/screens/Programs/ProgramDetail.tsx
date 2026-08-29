@@ -11,6 +11,8 @@ import { selectOffer } from "../../util/packs/offers";
 import { isModuleOfferable } from "../../util/packs/dayLock";
 import { packErrorMessage } from "../../util/packs/packErrors";
 import { PackBrochure, PackProgress } from "../../api/packs/types";
+import { getPackMastery } from "../../api/mastery";
+import { ProgramMastery } from "../../api/mastery/types";
 import {
   purchaseCatalogItem,
   pollWalletUntil,
@@ -126,6 +128,15 @@ const ProgramDetailScreen = () => {
    */
   const [progress, setProgress] = useState<PackProgress | null>(null);
   /**
+   * What the quizzes say about this program. Null while unknown, and its own
+   * `program` field is null until the user has answered anything.
+   *
+   * Deliberately not folded into `progress`: a failed mastery request must
+   * never cost somebody the day list or the way in. This one is allowed to be
+   * silently absent, which is why it has no error state.
+   */
+  const [mastery, setMastery] = useState<ProgramMastery | null>(null);
+  /**
    * The progress call FAILED, as opposed to not having answered yet. Without
    * this the two look identical (`progress` is null either way) and the screen
    * used to offer an "Open" button in both — a button with no `moduleId`, which
@@ -210,6 +221,14 @@ const ProgramDetailScreen = () => {
           // A failure here is recorded, not swallowed: the owned screen shows a
           // retry rather than an "Open" button with no day to open.
           void fetchProgress(match.packId);
+          // Mastery is loaded here too, not only on refocus, or the figure
+          // would be missing on the first view of the screen and appear on the
+          // second. Its failure IS swallowed: it is one chip, and a program
+          // page that refuses to render because a score did not load would be
+          // a poor trade.
+          getPackMastery(match.packId)
+            .then((m) => !cancelled && setMastery(m))
+            .catch(() => undefined);
         }
       } catch (error) {
         console.error("[ProgramDetail] Failed to load offer:", error);
@@ -251,6 +270,12 @@ const ProgramDetailScreen = () => {
   const refreshProgress = useCallback(() => {
     if (!offer?.packId) return;
     void fetchProgress(offer.packId);
+    // Answering a quiz changes this, and a quiz is answered inside a day, so it
+    // refreshes on the same trigger as progress. A failure is swallowed: this
+    // is a line of text, and losing it must not take the screen with it.
+    getPackMastery(offer.packId)
+      .then(setMastery)
+      .catch(() => setMastery(null));
   }, [offer?.packId, fetchProgress]);
 
   // The same refresh with a spinner on it, for the explicit retry button.
@@ -730,6 +755,29 @@ const ProgramDetailScreen = () => {
                 <Icon name={icons.checklist} size={size.iconInline} color={colors.text.secondary} />
                 <Text variant="label" color="secondary">
                   {moduleCount} sessions
+                </Text>
+              </View>
+            ) : null}
+            {/*
+              What the quizzes say, and ONLY once there are enough of them to
+              mean anything. One answered question would put "100%" on the
+              screen after a lucky guess, which is worse than saying nothing.
+
+              Deliberately a quiet chip next to "7 days", not a headline. This
+              measures whether the teaching stuck, which is a small part of what
+              the program is for; the week is judged by whether the user told
+              somebody, and that is not scored anywhere.
+            */}
+            {mastery?.program && mastery.program.totalAttempts >= 3 ? (
+              <View style={styles.metaChip}>
+                <Icon
+                  name={icons.checklist}
+                  size={size.iconInline}
+                  color={colors.text.secondary}
+                />
+                <Text variant="label" color="secondary">
+                  {mastery.program.correctCount} of{" "}
+                  {mastery.program.totalAttempts} right
                 </Text>
               </View>
             ) : null}

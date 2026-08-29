@@ -33,7 +33,13 @@ export const typography = {
    * which is why both stages hand-rolled their own cut rather than use it. They
    * landed 4px and 0.2 of tracking apart; this is Community's, the better one.
    */
-  poster: { fontFamily: fonts.bold, fontSize: 34, lineHeight: 34, letterSpacing: -1.1 },
+  /**
+   * lineHeight is 40, not 34. At lineHeight === fontSize Android clips every
+   * descender — the "y" in "next to you." on the Buddy stage was cut in half on
+   * a real device (iOS lets the glyph overhang, so it only shows on Android).
+   * 40 is the smallest leading that clears Inter Bold's descender at 34pt.
+   */
+  poster: { fontFamily: fonts.bold, fontSize: 34, lineHeight: 40, letterSpacing: -1.1 },
   h1: { fontFamily: fonts.bold, fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
   h2: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 28, letterSpacing: -0.2 },
   h3: { fontFamily: fonts.semibold, fontWeight: "600", fontSize: 18, lineHeight: 24 },

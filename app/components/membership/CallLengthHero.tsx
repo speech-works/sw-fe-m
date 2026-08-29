@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import {
   Text,
@@ -57,6 +58,84 @@ import { CALL_LENGTH_FIGURE } from "../../services/membershipOffer";
 /** Arrow travel, in points. Small on purpose: it reads as a nudge, not a swipe. */
 const ARROW_TRAVEL = 10;
 
+/** Track height, and the gap between a track and the labels above it. */
+const TRACK_H = 34;
+const LABEL_GAP = 6;
+
+const FREE_LABEL = "Free";
+const MEMBER_LABEL = "Member";
+
+/**
+ * How much of the member bar the free bar covers.
+ *
+ * DERIVED from the same two numbers the figure variant prints, so the drawing
+ * and the claim cannot disagree — a hardcoded 0.3 here would survive a change
+ * to `CALL_LENGTH_FIGURE` and quietly start lying about the ratio. The fallback
+ * only fires if those ever stop being numbers.
+ */
+const FREE_SHARE = (() => {
+  const share = Number(CALL_LENGTH_FIGURE.from) / Number(CALL_LENGTH_FIGURE.to);
+  return Number.isFinite(share) && share > 0 && share < 1 ? share : 0.3;
+})();
+
+interface TrackProps {
+  label: string;
+  value: string;
+  /** Share of the full width this bar's fill occupies. */
+  fraction: number;
+  fill: string;
+  ink: string;
+  progress: SharedValue<number>;
+  reduced: boolean;
+}
+
+/**
+ * One labelled bar.
+ *
+ * ── WHY THE FILL IS SCALED AND NOT WIDENED ─────────────────────────────────
+ * The fill's WIDTH is layout and stays fixed at its share; the reveal is a
+ * `scaleX` off its own measured width, so it runs on the UI thread with
+ * everything else on this screen. Animating the width instead would put a
+ * layout pass on every frame of the wipe, on a screen that is usually still
+ * waiting for `GET /users/me/offers`.
+ *
+ * `translateX` cancels the centre origin so the bar grows from its left edge.
+ * Without it a scaled bar creeps out from the middle in both directions, which
+ * reads as a thing being revealed rather than a thing filling up.
+ */
+const Track: React.FC<TrackProps> = ({
+  label, value, fraction, fill, ink, progress, reduced,
+}) => {
+  const { colors } = useTheme();
+  const [fillW, setFillW] = useState(0);
+
+  const fillStyle = useAnimatedStyle(() => {
+    // 0.02, never 0. Nothing in the world appears from nothing, and a bar that
+    // starts at zero width pops into being instead of starting to fill.
+    const s = reduced ? 1 : 0.02 + progress.value * 0.98;
+    return { transform: [{ translateX: -(fillW * (1 - s)) / 2 }, { scaleX: s }] };
+  });
+
+  return (
+    <View style={styles.track}>
+      <View style={styles.trackHead}>
+        <Text variant="eyebrow" color={ink}>{label}</Text>
+        <Text variant="title" color={ink}>{value}</Text>
+      </View>
+      <View style={[styles.rail, { backgroundColor: withAlpha(colors.text.primary, 0.07) }]}>
+        <Animated.View
+          onLayout={(e) => setFillW(e.nativeEvent.layout.width)}
+          style={[
+            styles.fill,
+            { width: `${fraction * 100}%`, backgroundColor: fill },
+            fillStyle,
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
+
 export interface CallLengthHeroProps {
   /**
    * Draw the gold frame around the figure. True on a surface that needs the
@@ -67,11 +146,27 @@ export interface CallLengthHeroProps {
   framed?: boolean;
   /** Left-align instead of centring. Right whenever the page is left-aligned. */
   align?: "center" | "left";
+  /**
+   * How the fact is drawn.
+   *
+   * `figure` is the 3 → 10 pair: compact, and right where the figure is one
+   * object among others (the upsell sheet).
+   *
+   * `bars` says the SAME fact as two proportional tracks. It exists because
+   * "3 → 10" asks the reader to do the division themselves, and a page whose
+   * whole job is that one comparison should just show it: three minutes is a
+   * third of the bar, and you can see that it is before you have read either
+   * number. It is also the variant that can absorb height, which is what the
+   * paywall's first page needs — the pair sits at 54pt on every phone and left
+   * a 17 Pro Max hollow underneath it.
+   */
+  variant?: "figure" | "bars";
 }
 
 export const CallLengthHero: React.FC<CallLengthHeroProps> = ({
   framed = true,
   align = "center",
+  variant = "figure",
 }) => {
   const { colors } = useTheme();
   const { reduced } = useMotion();
@@ -114,6 +209,37 @@ export const CallLengthHero: React.FC<CallLengthHeroProps> = ({
     opacity: to.value,
     transform: [{ scale: 0.94 + to.value * 0.06 }],
   }));
+
+  if (variant === "bars") {
+    return (
+      <View style={styles.bars}>
+        <Track
+          label={FREE_LABEL}
+          value={`${CALL_LENGTH_FIGURE.from} min`}
+          fraction={FREE_SHARE}
+          // NOT `surface.control`. The "before" bar should be quieter than the
+          // gold one, not invisible: on the canvas that token sat about 1.2:1
+          // against its own rail, so the thing whose SHORTNESS is the argument
+          // could barely be found. This clears the 3:1 that a meaningful
+          // non-text shape owes the reader (WCAG 1.4.11) and is still plainly
+          // the lesser of the two.
+          fill={withAlpha(colors.text.primary, 0.28)}
+          ink={colors.text.tertiary}
+          progress={from}
+          reduced={reduced}
+        />
+        <Track
+          label={MEMBER_LABEL}
+          value={`${CALL_LENGTH_FIGURE.to} min`}
+          fraction={1}
+          fill={colors.premium.gold}
+          ink={colors.premium.gold}
+          progress={to}
+          reduced={reduced}
+        />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -174,4 +300,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
+  bars: { gap: spacing.lg },
+  track: { gap: LABEL_GAP },
+  trackHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  // `overflow: hidden` is what keeps the scaled fill inside its rail at every
+  // point of the wipe, including the frame where it is 2% wide and offset.
+  rail: { height: TRACK_H, borderRadius: radius.md, overflow: "hidden" },
+  fill: { height: "100%", borderRadius: radius.md },
 });

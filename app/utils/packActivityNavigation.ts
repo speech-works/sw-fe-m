@@ -18,6 +18,23 @@ export interface PackContext {
 /**
  * Navigates to the appropriate practice screen for a pack module activity.
  * Maps PracticeActivity → specific screen based on contentType and practice type.
+ *
+ * EVERY CALL BELOW USES `push`, NOT `navigate` — and that is load-bearing.
+ * These screen names (RealLifeChallenge, Breathing, SCBriefing, ...) are
+ * shared across every day of every program, so the same name is revisited
+ * constantly. `navigate()` to a route already sitting somewhere in the stack's
+ * history does not open a new screen: it jumps BACK to that old instance,
+ * silently popping everything above it — including the PackModule the user
+ * was just on. The next "Start Practice" tap would land on a stale screen
+ * from a previous day, and Back from there would exit past the current
+ * module entirely. `push` always adds a fresh instance on top, so `goBack()`
+ * lands exactly one step back — on the module screen the activity was
+ * launched from — every time.
+ *
+ * The one exception is `MirrorWorkPrep`: it lives in a different, nested
+ * navigator (DailyPracticeStack → CognitivePracticeStack) rather than
+ * directly in this one, so `push` — which only pushes within the CURRENT
+ * stack — cannot reach it. It keeps `navigate`'s cross-tree resolution.
  */
 export const navigateToPackActivity = (
   navigation: any,
@@ -58,23 +75,24 @@ const navigateToCognitive = (
 
   switch (cognitivePractice.type) {
     case CognitivePracticeType.GUIDED_BREATHING:
-      nav.navigate("Breathing", {
+      nav.push("Breathing", {
         practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case CognitivePracticeType.GUIDED_MEDITATION:
-      nav.navigate("Meditation", {
+      nav.push("Meditation", {
         practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case CognitivePracticeType.REFRAMING_THOUGHTS:
-      nav.navigate("Reframe", { practiceActivity: activity, packContext: ctx });
+      nav.push("Reframe", { practiceActivity: activity, packContext: ctx });
       break;
     case CognitivePracticeType.MIRROR_WORK:
       // Pack already created+started the activity (alreadyStarted), so PrepScreen
       // reuses it via the double-start guard rather than creating a new one.
+      // Stays `navigate` — see the note above `navigateToPackActivity`.
       nav.navigate("MirrorWorkPrep", {
         practiceData: { cognitivePractice },
         practiceActivity: activity,
@@ -82,7 +100,7 @@ const navigateToCognitive = (
       });
       break;
     case CognitivePracticeType.REAL_LIFE_CHALLENGE:
-      nav.navigate("RealLifeChallenge", {
+      nav.push("RealLifeChallenge", {
         practiceActivity: activity,
         packContext: ctx,
       });
@@ -106,21 +124,21 @@ const navigateToExposure = (
 
   switch (exposurePractice.type) {
     case ExposurePracticeType.SOCIAL_CHALLENGE_SIMULATION:
-      nav.navigate("SCBriefing", {
+      nav.push("SCBriefing", {
         sc: exposurePractice,
         practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case ExposurePracticeType.INTERVIEW_SIMULATION:
-      nav.navigate("InterviewBriefing", {
+      nav.push("InterviewBriefing", {
         interview: exposurePractice,
         practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case ExposurePracticeType.PHONE_CALL_SIMULATION:
-      nav.navigate("PhoneCall", {
+      nav.push("PhoneCall", {
         practiceActivity: activity,
         packContext: ctx,
       });
@@ -130,7 +148,7 @@ const navigateToExposure = (
     // challenges — the split is a backend classification (keeps the graded
     // -exposure ladder clean), not a different UI.
     case ExposurePracticeType.TECHNIQUE_DRILL:
-      nav.navigate("RealLifeChallenge", {
+      nav.push("RealLifeChallenge", {
         practiceActivity: activity,
         packContext: ctx,
       });
@@ -154,7 +172,7 @@ const navigateToFun = (
 
   switch (funPractice.type) {
     case FunPracticeType.TONGUE_TWISTER:
-      nav.navigate("TongueTwister", {
+      nav.push("TongueTwister", {
         practiceActivity: activity,
         packContext: ctx,
       });
@@ -165,7 +183,7 @@ const navigateToFun = (
         console.warn("No rolePlayData for FunPractice ROLE_PLAY");
         return;
       }
-      nav.navigate("RoleplayPackBriefing", {
+      nav.push("RoleplayPackBriefing", {
         id: funPractice.id,
         title: funPractice.name,
         description: funPractice.description,
@@ -175,7 +193,7 @@ const navigateToFun = (
       });
       break;
     case FunPracticeType.CHARACTER_VOICE:
-      nav.navigate("CVExercise", {
+      nav.push("CVExercise", {
         practiceActivity: activity,
         packContext: ctx,
       });
@@ -199,13 +217,13 @@ const navigateToReading = (
 
   switch (readingPractice.type) {
     case ReadingPracticeType.POEM:
-      nav.navigate("Poem", { practiceActivity: activity, packContext: ctx });
+      nav.push("Poem", { practiceActivity: activity, packContext: ctx });
       break;
     case ReadingPracticeType.STORY:
-      nav.navigate("Story", { practiceActivity: activity, packContext: ctx });
+      nav.push("Story", { practiceActivity: activity, packContext: ctx });
       break;
     case ReadingPracticeType.QUOTE:
-      nav.navigate("Quote", { practiceActivity: activity, packContext: ctx });
+      nav.push("Quote", { practiceActivity: activity, packContext: ctx });
       break;
     default:
       console.warn("Unknown reading practice type:", readingPractice.type);

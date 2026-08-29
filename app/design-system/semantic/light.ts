@@ -180,15 +180,22 @@ export const lightColors: SemanticColors = {
   // (brand orange), not the blue it used to claim. Kept in sync across schemes.
   gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.orange[400], gold: p.warning.base },
   premium: {
-    // Scheme-INVARIANT on purpose: the premium tier is gold-on-slate in both
+    // Scheme-INVARIANT on purpose: the premium tier is gold-on-obsidian in both
     // schemes (same reason `UpsellModal` reaches for `elevationDark`).
-    slate: p.premium.slate,
-    slateMid: p.premium.slateMid,
+    ground: p.premium.ground,
+    groundMid: p.premium.groundMid,
     gold: p.premium.gold,
     goldDeep: p.premium.goldDeep,
     goldTint: p.premium.goldTint,
     goldBorder: p.premium.goldBorder,
     onGold: p.premium.onGold,
+    // Ink FOR the ground, and invariant like the ground it sits on. Without this
+    // a caller reaches for `text.primary`, which is white on ink and near-black
+    // on paper — so a premium surface built once renders correctly in one
+    // scheme and as dark-on-obsidian in the other. The ground does not change with
+    // the scheme, so neither may its ink.
+    onGround: p.white,
+    onGroundMuted: p.ink.textSecondary,
     orbCyan: p.premium.cyan,
     orbPurple: p.premium.purple,
   },

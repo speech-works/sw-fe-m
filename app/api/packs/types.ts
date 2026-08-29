@@ -25,12 +25,21 @@ export enum ContentBlockType {
   VIDEO = "VIDEO",
   FORM = "FORM",
   ACTIVITY = "ACTIVITY",
+  QUIZ = "QUIZ",
 }
+
+/**
+ * What job a TEXT block does inside its day.
+ *
+ * Mirrors TextBlockRole in sw-be-2/src/models/ModuleContentBlock.ts. A block
+ * with no role counts as teaching, which is every block written before the
+ * paid day standard existed.
+ */
+export type TextBlockRole = "bridge_in" | "teach" | "bridge_out";
 
 export type TextBlockContent = {
   markdown: string;
-  titleOverride?: string;
-  descriptionOverride?: string;
+  role?: TextBlockRole;
 };
 
 export type VideoBlockContent = {
@@ -39,10 +48,63 @@ export type VideoBlockContent = {
   videoUrl?: string; // Hydrated by backend
   durationSeconds?: number;
   thumbnailUrl?: string;
-  titleOverride?: string;
-  descriptionOverride?: string;
-  isLocked?: boolean; // Hydrated by backend based on user premium status
 };
+
+/**
+ * A short quiz inside a program day.
+ *
+ * Mirrors QuizBlockContent in sw-be-2/src/models/ModuleContentBlock.ts.
+ *
+ * `questions` arrives already narrowed. A recall block names a pool of three to
+ * five on the server and exactly ONE of them is sent, because a question
+ * payload carries the correct option and every explanation, so shipping the
+ * pool would hand the user the answers to the next three days. `questionKeys`
+ * comes back empty for the same reason: it is authoring data.
+ */
+export type QuizBlockMode = "recall" | "check";
+
+export interface QuizOption {
+  text: string;
+  value: string | number;
+  explanation?: string;
+  isCorrect?: boolean;
+}
+
+export interface QuizQuestionInBlock {
+  /** The database id. This is what POST /quiz/submit expects. */
+  id: string;
+  text: string;
+  options: QuizOption[];
+}
+
+export type QuizBlockContent = {
+  mode: QuizBlockMode;
+  questionKeys: string[];
+  questions?: QuizQuestionInBlock[];
+  /**
+   * Whether this user has already answered it, on this run of the program.
+   * Decided on the server from the answer history rather than on the phone, so
+   * a reinstall does not make somebody sit the same quiz twice.
+   */
+  completed?: boolean;
+};
+
+/**
+ * NO titleOverride, descriptionOverride OR isLocked ON EITHER OF THE ABOVE.
+ *
+ * All three were declared here and none of them has ever been sent. The server
+ * carries titleOverride and descriptionOverride on FORM and ACTIVITY blocks
+ * only, where they name the card the user taps, and it writes isLocked nowhere
+ * at all.
+ *
+ * isLocked is the one worth explaining, because it looked like a paywall. The
+ * gate is at the endpoint: getModuleWithBlocks calls assertOwned and throws
+ * before it returns a single block, so somebody who has not bought the pack
+ * never receives content to lock. There is no in-block locked state to render,
+ * which is why nothing ever set the flag. VideoPlayer keeps its own isLocked
+ * prop, which the library tutorial page uses for its fifteen second glimpse;
+ * that path is real and unaffected.
+ */
 
 
 
@@ -108,7 +170,8 @@ export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
   | FormBlockContent
-  | ReferenceBlockContent;
+  | ReferenceBlockContent
+  | QuizBlockContent;
 
 export interface ModuleContentBlock {
   id: string;

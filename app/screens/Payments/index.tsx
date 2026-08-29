@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOffers, type MembershipOffer } from "../../api";
 import {
   purchaseProductById,
@@ -29,10 +29,14 @@ import {
   size,
   Text as DSText,
   Icon,
+  IconButton,
+  icons,
   Sheet,
+  space,
   useTheme,
   useNavBarInset,
   makeStyles,
+  ForceDark,
   spacing,
   radius,
   withAlpha,
@@ -63,11 +67,18 @@ export enum PAYMENT_PLAN_TYPE {
 const LEGAL_HIT_SLOP = { top: 10, bottom: 10, left: 8, right: 8 };
 
 
-const SubscribeScreen = () => {
+const SubscribeScreenBody = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const styles = useStyles();
   const navBarInset = useNavBarInset();
+  // Read directly rather than through `SafeAreaView`. The old layout wrapped
+  // everything in one and ALSO carried a bare `marginTop: 64` on the card — and
+  // the 64 was doing all the work: the inset resolved to 0 here, so the moment
+  // the margin was replaced by a real header the close control sat on top of
+  // the clock. Padding the header explicitly is the version that cannot be
+  // wrong by coincidence.
+  const insets = useSafeAreaInsets();
   // Height of the pinned footer, so the scroll view can clear it exactly.
   // Starts at a sane guess so the first frame is never wrong by a whole screen.
   const [footerHeight, setFooterHeight] = useState(220);
@@ -242,10 +253,36 @@ const SubscribeScreen = () => {
   return (
     <View style={styles.mainContainer}>
       <Animated.View style={[{ flex: 1 }, animatedSheetStyle]}>
-        <SafeAreaView
-          style={styles.screenView}
-          edges={["top", "left", "right"]}
-        >
+        <View style={styles.safe}>
+          {/* ── THE CLOSE CONTROL, WHERE EVERY OTHER SHEET PUTS IT ────────
+              On the BACKDROP above the card, not inside it. That is the app's
+              sheet contract — see `Sheet`'s `right` prop and the canonical
+              call in `TagPickerSheet` — and this screen was the one surface
+              breaking it, with an X floating over its own first page.
+
+              The geometry is copied from `Sheet`'s header rather than re-
+              derived: a 44pt row on the 16pt screen gutter with a 16pt gap
+              down to the card. Two of those numbers used to live here as a
+              bare `marginTop: 64` on the card below, which was the right
+              distance by coincidence and had nothing in it.
+
+              It also hands 64pt back to the pages. `PaywallPager` was holding
+              that much clear at the top of every page purely so the headline
+              would not run under this button. */}
+          <View
+            style={[
+              styles.sheetHeader,
+              { paddingTop: Math.max(insets.top, spacing.md) },
+            ]}
+          >
+            <IconButton
+              name={icons.close}
+              onPress={() => navigation.goBack()}
+              accessibilityLabel="Close"
+            />
+          </View>
+
+          <View style={styles.screenView}>
           {/* ── THE OFFER ─────────────────────────────────────────────────
               Three pages and one room. `PaywallPager` owns the ground, the
               atmosphere, the close control and the pages; this screen keeps
@@ -261,7 +298,6 @@ const SubscribeScreen = () => {
               in one file with the offer they describe. */}
           <PaywallPager
             dockHeight={footerHeight}
-            onClose={() => navigation.goBack()}
             monthlyLabel={monthlyLabel}
             annualPerMonthLabel={annualPerMonthLabel}
             annualLabel={annualLabel}
@@ -429,7 +465,8 @@ const SubscribeScreen = () => {
               </View>
             }
           />
-        </SafeAreaView>
+          </View>
+        </View>
       </Animated.View>
 
       <Sheet
@@ -477,20 +514,77 @@ const SubscribeScreen = () => {
   );
 };
 
+/**
+ * ===========================================================================
+ * THE PAYWALL IS A DARK ROOM, IN BOTH SCHEMES
+ * ---------------------------------------------------------------------------
+ * `ForceDark` wraps the whole screen, so every token the subtree reads (the
+ * backdrop, the sheet, all three pager grounds, the benefit cards, the bars,
+ * the plan block and the legal type) resolves to its DARK value regardless of
+ * the reader's scheme.
+ *
+ * ── WHY THIS IS A FIX AND NOT A PREFERENCE ─────────────────────────────────
+ * Pages two and three were already painted on grounds that never change with
+ * the scheme: one hardcoded literal, and `premium.ground`, which is invariant
+ * by design because the tier is gold-on-obsidian in both. Their text, though,
+ * asked for `text.primary` and `text.tertiary`, which DO change, and on paper
+ * those are a warm near-black. A light-scheme reader got the poster at 1.1:1
+ * against the ground and the plan block at 3.1:1. Not "a bit washed out":
+ * gone.
+ *
+ * The alternative was to thread an invariant ink family through
+ * `MarkedHeadline`, `BenefitRows`, `CallLengthHero`, `PlanPills` and the dock,
+ * five components that have no other reason to know about the scheme, and to
+ * leave the same trap armed for the sixth thing somebody adds here. The
+ * wrapper says the true thing once instead: this screen is dark by design.
+ *
+ * ── THE BOUNDARY HAS TO BE OUTSIDE THE COMPONENT ───────────────────────────
+ * `SubscribeScreenBody` reads the theme through `useTheme` and `makeStyles`,
+ * both of which resolve from context. Wrapping from inside the component would
+ * put the provider BELOW those calls and the screen's own styles would keep
+ * the reader's real scheme while its children flipped, which is the same class
+ * of half-applied theme this is meant to end. Hence the two components.
+ *
+ * `ForceDark`'s own note says it is for surfaces that are dark BY DESIGN and
+ * not a migration escape hatch. This qualifies on the first count: the pager
+ * interpolates three invariant grounds and the tier it sells is invariant too.
+ * ===========================================================================
+ */
+const SubscribeScreen = () => (
+  <ForceDark>
+    <SubscribeScreenBody />
+  </ForceDark>
+);
+
 export default SubscribeScreen;
 
 
 const useStyles = makeStyles((c) => ({
+  // `background.sunken`, which is what `Sheet` paints its backdrop with. It was
+  // `overlay.scrim` — indistinguishable here, because nothing is rendered
+  // behind this screen for a scrim to darken, and wrong the moment somebody
+  // makes this a transparent presentation.
   mainContainer: {
     flex: 1,
-    backgroundColor: c.overlay.scrim,
+    backgroundColor: c.background.sunken,
   },
+  safe: { flex: 1 },
+  // Copied from `Sheet`'s own header, not re-derived from tokens.
+  sheetHeader: {
+    minHeight: size.backBtn,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: space.screenX,
+    paddingBottom: space.groupGap,
+  },
+  // The card. `marginTop: 64` is gone — the header above is the gap now, and it
+  // has a control in it.
   screenView: {
     flex: 1,
     backgroundColor: c.background.canvas,
     borderTopLeftRadius: radius.pill,
     borderTopRightRadius: radius.pill,
-    marginTop: 64,
     overflow: "hidden",
   },
   scrollContent: {

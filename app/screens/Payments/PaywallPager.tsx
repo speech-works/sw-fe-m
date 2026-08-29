@@ -16,7 +16,6 @@ import {
   Text,
   typography,
   Icon,
-  IconButton,
   icons,
   size,
   spacing,
@@ -26,7 +25,11 @@ import {
   withAlpha,
 } from "../../design-system";
 import { MarkedHeadline, type MarkShape } from "../../components/membership/MarkedHeadline";
-import { BenefitRows } from "../../components/membership/BenefitRows";
+import {
+  BenefitRows,
+  benefitRowsHeight,
+  type BenefitRowsDensity,
+} from "../../components/membership/BenefitRows";
 import { CallLengthHero } from "../../components/membership/CallLengthHero";
 import { PlanPills } from "../../components/membership/PlanPills";
 import { PROGRAMS_NOTE } from "../../services/membershipOffer";
@@ -55,14 +58,49 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
  * five properties, all on the UI thread, so it holds 60fps while the offers
  * request is still in flight.
  *
- * The journey is deliberate: warm ink while the case is being made, a cooler
- * ink while the list is read, and MEMBERSHIP'S OWN SLATE at the moment money
- * is asked for, so the buy step arrives already wearing the tier's identity.
+ * The journey is deliberate: warm ink while the case is being made, a
+ * graphite while the list is read, and MEMBERSHIP'S OWN OBSIDIAN at the moment
+ * money is asked for, so the buy step arrives already wearing the tier's
+ * identity.
+ *
+ * ── AND THE ROOM STAYS DARK IN BOTH SCHEMES ────────────────────────────────
+ * All three grounds above are scheme-invariant, and the screen is wrapped in
+ * `ForceDark` at its root (see `Payments/index.tsx`) so every token this
+ * subtree reads resolves to its dark value.
+ *
+ * That wrapper is not a convenience, it is the fix for a shipped bug. Pages
+ * two and three were ALREADY painted on invariant dark grounds while their
+ * headline and body asked for `text.primary` and `text.tertiary`, which are a
+ * warm near-black on paper. A light-scheme reader got the poster at 1.1:1 and
+ * the plan block at 3.1:1, which is to say they got neither.
+ *
+ * Fixing it one component at a time would have meant threading an ink family
+ * through `MarkedHeadline`, `BenefitRows`, `CallLengthHero`, `PlanPills` and
+ * the dock, and leaving the same trap set for the next thing added here. A
+ * paywall is a dark room by design, which is exactly what `ForceDark` is for.
  *
  * ── WHY THE BUY BUTTON NEVER CHANGES COLOUR ────────────────────────────────
  * It stays premium gold on all three pages while the page accent shifts
  * around it. The thing being bought is the constant, and a control that keeps
  * its colour is findable without looking for it.
+ *
+ * ── THE LEDGE IS NOT ONE HEIGHT FOR THREE PAGES ────────────────────────────
+ * It used to be. One `drop` was computed, anchored on the tallest page, and
+ * the other two centred whatever was left over underneath a curve that did not
+ * belong to them. That is what left a 17 Pro Max with a small island of
+ * content floating in a large empty band: the air was INSIDE the composition,
+ * between the poster and the body, where it reads as a mistake.
+ *
+ * Now each page reports how tall its own body is and the curve DESCENDS until
+ * that body sits on the dock. The slack all ends up ABOVE the curve, in the
+ * wash, and the poster centres in it — which is the one zone on this screen
+ * that is supposed to be large, because it is a colour field holding a
+ * headline rather than a gap between two things.
+ *
+ * The three drops are interpolated off the same live scroll offset as the
+ * colours, so the curve travels while you swipe. The layout is authored ONCE
+ * at drop zero and moved by transforms only; nothing here animates a layout
+ * property. See `drops`/`lifts` below.
  *
  * ── THE SWIPE CUE IS NOT A BUTTON ──────────────────────────────────────────
  * Three things carry it: a 3pt rim at the right edge painted in the NEXT
@@ -81,7 +119,6 @@ export interface PaywallPagerProps {
   dock: React.ReactNode;
   /** Measured dock height, so the pages know where their floor is. */
   dockHeight: number;
-  onClose: () => void;
   monthlyLabel: string;
   annualPerMonthLabel: string;
   annualLabel: string;
@@ -109,7 +146,6 @@ interface PageSkin {
 export const PaywallPager: React.FC<PaywallPagerProps> = ({
   dock,
   dockHeight,
-  onClose,
   monthlyLabel,
   annualPerMonthLabel,
   annualLabel,
@@ -128,17 +164,27 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
   const [cueGone, setCueGone] = useState(false);
   const [dockH, setDockH] = useState(dockHeight);
 
-  /* Every colour below is a real token bar the two middle-page grounds, which
-     are the one derived pair: a cool ink sitting between the warm canvas and
-     the premium slate, so the journey reads as one movement rather than two
-     unrelated jumps.
+  /* ── THE JOURNEY IS A DEEPENING, NOT TWO JUMPS ─────────────────────────────
+     It used to run warm canvas, cool ink, then a navy slate: two hue changes
+     in opposite directions, with the gold accent having to work over both. Now
+     it runs warm ink, graphite, obsidian. One family, three depths, and the
+     page that asks for money is the darkest and the warmest of them, so the
+     gold on it is the most luminous thing on the whole screen.
 
-     `wash` is A LIGHTER SHADE OF THE SAME GROUND, never the accent. It was the
-     accent at 22-26%, which is fine on page one (orange over warm ink) and
-     wrong on page three: gold is a yellow, slate is a navy, and a warm tint
-     over a cool ground makes olive. The upper zone now reads as raised rather
-     than coloured, and the accent stays where it earns its keep — the eyebrow,
-     the mark, the figure, the segments and the rim. */
+     Dropping the navy is what let the wash stop being a compromise. The old
+     note here explained at length that the wash could not be the accent,
+     because gold is a yellow and slate is a navy and a warm tint over a cool
+     ground makes olive. On obsidian a gold-cast wash is simply a deeper gold,
+     which is why page three's `groundMid` is a bronze rather than a grey.
+
+     `wash` is still A LIGHTER SHADE OF THE SAME GROUND, never the accent: the
+     upper zone reads as raised rather than coloured, and the accent stays where
+     it earns its keep, in the eyebrow, the mark, the figure, the segments and
+     the rim.
+
+     Only page two's pair is a literal. Page one is the app's own canvas and
+     page three is the tier's, and both should follow their tokens; the middle
+     page belongs to neither and exists to get you from one to the other. */
   const SKINS: PageSkin[] = [
     {
       bg: colors.background.canvas,
@@ -152,9 +198,9 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
       shape: "ellipse",
     },
     {
-      bg: "#15161C",
+      bg: "#16171A",
       accent: colors.accent.info,
-      wash: "#20222C",
+      wash: "#232529",
       eyebrow: "What you get",
       line1: "Three things,",
       // WAS "all of them yours". A program somebody buys IS theirs forever;
@@ -166,9 +212,9 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
       shape: "underline",
     },
     {
-      bg: colors.premium.slate,
+      bg: colors.premium.ground,
       accent: colors.premium.gold,
-      wash: colors.premium.slateMid,
+      wash: colors.premium.groundMid,
       eyebrow: "Your plan",
       line1: "Two ways",
       line2Lead: "to keep ",
@@ -185,11 +231,76 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
      figure ran into the swipe cue. The headline is always two lines, so the
      ledge belongs just under it and the body just under the ledge. */
   const short = height < 700;
-  const HEAD_TOP = short ? 44 : 64;
+  /* 44 on a short screen until the close control left the card. Part of what
+     that number was buying was clearance for a 44pt button in the top right of
+     every page; the button is on the backdrop now (see the screen's sheet
+     header), so the poster can start higher. It matters only on an SE, where
+     the band is about 150pt and gets no drop to grow into — the sheet header
+     costs that screen ~16pt and this hands most of it back. On a tall phone the
+     drop decides where the poster sits anyway, so 64 stands. */
+  const BASE_TOP = short ? 32 : 64;
   // eyebrow + gap + two poster lines
   const HEAD_H = typography.eyebrow.lineHeight + spacing.md + typography.poster.lineHeight * 2;
-  const LEDGE_TOP = HEAD_TOP + HEAD_H + spacing.sm;
+  const density: BenefitRowsDensity = short ? "compact" : "roomy";
+
+  /* THE RESTING GEOMETRY — the layout as authored, before anything moves.
+     Identical on all three pages, and the only geometry the style sheet ever
+     sees. Everything that differs per page is a transform. */
+  const LEDGE_TOP = BASE_TOP + HEAD_H + spacing.sm;
   const BODY_TOP = LEDGE_TOP + LEDGE_H - spacing.lg;
+
+  /* THE FLOOR, measured rather than derived.
+     `height - dockH` was close but never right: it is the WINDOW, and this
+     component does not own the window — the screen puts a sheet header above
+     it. Being wrong in this direction is the expensive one, because it inflates
+     every drop below and pushes content under the dock, where it is simply
+     gone. So the pager asks its own root how tall it is, and until it knows,
+     every drop is zero and the pages sit exactly where they used to. */
+  const [rootH, setRootH] = useState(0);
+  const PAGE_H = rootH > 0 ? rootH - dockH : 0;
+  const MAX_DROP = Math.round(PAGE_H * DROP_MAX);
+
+  /* WHAT EACH PAGE'S BODY ACTUALLY MEASURES.
+     Measured, not derived, and this is a deliberate departure from the rest of
+     this file. A derived height has to predict how a paragraph wraps, which
+     depends on the width, the locale and the reader's text size — and being
+     wrong by one line here does not misplace the text by a line, it misplaces
+     the CURVE by a line on a page that is mostly curve. `benefitRowsHeight`
+     stands in for page two until the first layout lands, because it is exact
+     and page two is the tallest, so the one page that could overshoot never
+     starts from a guess of zero. */
+  const [bodyH, setBodyH] = useState<number[]>([0, 0, 0]);
+  const measureBody = useCallback((i: number, h: number) => {
+    setBodyH((prev) =>
+      Math.abs(prev[i] - h) < 1 ? prev : prev.map((v, n) => (n === i ? h : v)),
+    );
+  }, []);
+
+  /* How far each page's curve descends, and how far its poster follows.
+     Clamped at both ends: never negative, never past DROP_MAX. A body that
+     measures taller than the band simply gets no drop, which is the old
+     top-anchored layout — the safe failure, not a hidden one. */
+  const drops = bodyH.map((measured, i) => {
+    const contentH = measured > 0 ? measured : i === 1 ? benefitRowsHeight(density) : 0;
+    if (short || PAGE_H <= 0 || contentH <= 0) return 0;
+    // `spacing.lg` short of the floor, not flush against it. The dock's first
+    // element is the swipe cue, which carries a bottom margin and no top one,
+    // so a drop computed to the exact floor lands a bar or a plan row directly
+    // on that caption.
+    return Math.max(0, Math.min(PAGE_H - BODY_TOP - contentH - spacing.lg, MAX_DROP));
+  });
+
+  /* The poster centres in the field it now owns: the card's top edge down to
+     the middle of the curve's sweep. Half the drop would be close enough on a
+     16 Pro and visibly top-heavy on a Max, because the field grows from a base
+     that is not zero. Clamped so the headline can never climb above its own
+     top padding, nor come within `spacing.sm` of the curve. */
+  const lifts = drops.map((drop) => {
+    if (drop <= 0) return 0;
+    const field = LEDGE_TOP + drop + LEDGE_H / 2;
+    const centred = Math.round((field - HEAD_H) / 2) - BASE_TOP;
+    return Math.max(0, Math.min(centred, drop - spacing.sm));
+  });
 
   const onSettle = useCallback((i: number) => {
     setPage(i);
@@ -229,6 +340,40 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
      visible seam the instant the background starts moving. */
   const ledgeProps = useAnimatedProps(() => ({
     fill: interpolateColor(scrollX.value, inputRange, SKINS.map((s) => s.bg)),
+  }));
+
+  /* ── THE THREE SHIFTS ──────────────────────────────────────────────────
+     One number per page, interpolated off the same offset as every colour on
+     this screen, and applied as `translateY` only. `drops` moves the curve and
+     the body it sits on; `lifts` moves the poster.
+
+     They are separate because they are different distances: the body travels
+     the full drop so it lands on the dock, the poster travels roughly half so
+     it stays centred in the field that just grew above it. Locking the poster
+     to the same value as the curve is what an earlier draft did, and it dragged
+     the headline down into the curve on the pages with the biggest drop.
+
+     They are interpolated rather than set per page ON PURPOSE. Per-page static
+     padding is cheaper and looks identical when settled — and wrong mid-drag,
+     because the curve is ONE element spanning all three pages while the poster
+     is three. Page one's headline would sit still while the curve rose past it
+     toward page two's height, and on a long drag the curve cuts through it. */
+  const ledgeShift = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(scrollX.value, inputRange, drops, Extrapolation.CLAMP) },
+    ],
+  }));
+
+  const headShift = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(scrollX.value, inputRange, lifts, Extrapolation.CLAMP) },
+    ],
+  }));
+
+  const bodyShift = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(scrollX.value, inputRange, drops, Extrapolation.CLAMP) },
+    ],
   }));
 
   /* The rim shows the NEXT page's accent and fades as you arrive at it, so it
@@ -277,7 +422,13 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
   };
 
   return (
-    <Animated.View style={[styles.root, groundStyle]}>
+    <Animated.View
+      style={[styles.root, groundStyle]}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (Math.abs(h - rootH) > 1) setRootH(h);
+      }}
+    >
       {/* ── atmosphere ───────────────────────────────────────────────────
           A flat tint above the ledge, and the ledge is the boundary.
 
@@ -296,35 +447,43 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
           So the tint does not fade at all. It ends at the curve, and the curve
           is filled with the LIVE ground — one animated value, no second colour
           to keep in sync, and closer to the reference besides. */}
-      <Animated.View
-        style={[styles.wash, { height: LEDGE_TOP + LEDGE_H }, washStyle]}
-        pointerEvents="none"
-      />
+      {/* THE WASH AND THE CURVE ARE ONE OBJECT NOW.
 
-      <Svg
-        style={[styles.ledge, { top: LEDGE_TOP }]}
-        width="100%"
-        height={LEDGE_H}
-        viewBox="0 0 390 72"
-        preserveAspectRatio="none"
+          They were two absolutely-positioned siblings, which was correct while
+          the curve sat at one height forever. It does not any more: the whole
+          assembly slides down by the live drop, and a separately-positioned
+          wash would have to animate its HEIGHT to keep its bottom edge on the
+          curve — a layout property, on every frame of a drag.
+
+          So the group is over-tall by exactly MAX_DROP and hangs off the top of
+          the card. Sliding it down extends the wash from the top edge for free,
+          because the extra is already drawn up there, and the curve is pinned
+          to the group's BOTTOM so it travels without anything being kept in
+          sync by hand. */}
+      <Animated.View
         pointerEvents="none"
+        style={[
+          styles.ledgeGroup,
+          { top: -MAX_DROP, height: MAX_DROP + LEDGE_TOP + LEDGE_H },
+          ledgeShift,
+        ]}
       >
-        <AnimatedPath
-          d="M0 4 C 96 54, 214 -8, 390 34 L390 72 L0 72 Z"
-          animatedProps={ledgeProps}
-        />
-      </Svg>
+        <Animated.View style={[StyleSheet.absoluteFill, washStyle]} />
+        <Svg
+          style={styles.ledge}
+          width="100%"
+          height={LEDGE_H}
+          viewBox="0 0 390 72"
+          preserveAspectRatio="none"
+        >
+          <AnimatedPath
+            d="M0 4 C 96 54, 214 -8, 390 34 L390 72 L0 72 Z"
+            animatedProps={ledgeProps}
+          />
+        </Svg>
+      </Animated.View>
 
       <Animated.View style={[styles.rim, rimStyle]} pointerEvents="none" />
-
-      {/* ── the app's own close control ─────────────────────────────────── */}
-      <View style={styles.topBar}>
-        <IconButton
-          name={icons.close}
-          onPress={onClose}
-          accessibilityLabel="Close"
-        />
-      </View>
 
       {/* ── the pages ───────────────────────────────────────────────────── */}
       <Animated.ScrollView
@@ -337,12 +496,13 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
         contentContainerStyle={{ width: width * SKINS.length }}
       >
         {SKINS.map((skin, i) => (
-          <View key={i} style={[styles.page, { width, paddingTop: HEAD_TOP }]}>
-            <Text variant="eyebrow" style={{ color: skin.accent }}>
-              {skin.eyebrow}
-            </Text>
+          <View key={i} style={[styles.page, { width, paddingTop: BASE_TOP }]}>
+            <Animated.View style={headShift}>
+              <Text variant="eyebrow" style={{ color: skin.accent }}>
+                {skin.eyebrow}
+              </Text>
 
-            <View style={styles.headline}>
+              <View style={styles.headline}>
               <MarkedHeadline
                 line1={skin.line1}
                 line2Lead={skin.line2Lead}
@@ -356,59 +516,80 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                 // the reader arrives.
                 playKey={page === i ? `${i}-on` : `${i}-off`}
               />
-            </View>
+              </View>
+            </Animated.View>
 
-            {/* On a tall phone the body is top-anchored under the ledge and
-                leaves a 450pt void above the dock, because `flex: 1` grows the
-                container and not the space above the content. Centring the
-                content in the band it actually has closes that gap without
-                moving the headline, which stays pinned to the ledge.
+            {/* TOP-ANCHORED, and no longer centred on tall phones.
 
-                A short phone keeps flex-start: there is no slack to
-                distribute, and centring would only risk pushing the last row
-                under the dock. */}
-            <View
-              style={[
-                styles.body,
-                {
-                  marginTop: BODY_TOP - HEAD_TOP - HEAD_H,
-                  justifyContent: short ? "flex-start" : "center",
-                  // Pull the block up off the dock so it reads as content with
-                  // room under it, not as a second dock.
-                  paddingBottom: short ? 0 : spacing["4xl"],
-                },
-              ]}
+                Centring was the old answer to a band that was too big: split
+                the leftover evenly above and below so at least the island sat
+                in the middle of it. There is no leftover to split now — the
+                curve came down to meet this block, so the block starts where
+                the curve leaves off and ends on the dock. Centring here would
+                only re-introduce the gap, in halves.
+
+                `flex: 1` still runs it to the dock so nothing below can be
+                pushed off; the inner wrapper is what actually reports the
+                content's own height back up. */}
+            <Animated.View
+              style={[styles.body, { marginTop: BODY_TOP - BASE_TOP - HEAD_H }, bodyShift]}
             >
+              {/* The measured block. It exists only to have a height that is
+                  the CONTENT's, not the band's — `styles.body` above is
+                  `flex: 1` and would report the whole band every time. */}
+              <View onLayout={(e) => measureBody(i, e.nativeEvent.layout.height)}>
               {i === 0 ? (
                 <>
                   <Text variant="body" color="secondary" style={styles.lead}>
                     Your free weekly call stops at three minutes. Usually right
                     when it starts to matter.
                   </Text>
+                  {/* THE SE KEEPS THE PAIR.
+                      Two labelled tracks are 140pt against the figure's 54, and
+                      a 667pt screen has about 168pt of band in total — the bars
+                      would put the member track under the dock. `short` gets no
+                      drop either, so there is no height coming to rescue it.
+                      The taller phones, which are the ones that had a hole to
+                      fill, get the version that fills it. */}
                   <View style={styles.figure}>
-                    <CallLengthHero framed={false} align="left" />
+                    {short ? (
+                      <CallLengthHero framed={false} align="left" />
+                    ) : (
+                      <CallLengthHero variant="bars" />
+                    )}
                   </View>
                 </>
               ) : null}
 
-              {i === 1 ? <BenefitRows animate compact={short} /> : null}
+              {/* Densities, not a magic size: `benefitRowsHeight(density)`
+                  above seeds this page's drop off this exact same value, until
+                  the first layout replaces the seed with what it really is. */}
+              {i === 1 ? (
+                <BenefitRows
+                  animate
+                  compact={density === "compact"}
+                  roomy={density === "roomy"}
+                />
+              ) : null}
 
               {i === 2 ? (
                 <>
+                  {/* Compact only where there is no height to spare — see the
+                      figure above. Roomy is 186pt, compact is 118. */}
                   {priceKnown ? (
-                    <PlanPills>
-                      <PlanPills.Pill
+                    <PlanPills compact={short}>
+                      <PlanPills.Card
+                        compact={short}
                         title="Monthly"
                         price={monthlyLabel}
-                        surface={skin.wash}
                         selected={plan === "monthly"}
                         onPress={onPickMonthly}
                         disabled={disabled}
                       />
-                      <PlanPills.Pill
+                      <PlanPills.Card
+                        compact={short}
                         title="Yearly"
                         price={annualPerMonthLabel}
-                        surface={skin.wash}
                         priceSuffix="/mo"
                         // "billed once" said the opposite of the renewal
                         // disclosure four lines below it, which reads "Renews
@@ -435,7 +616,8 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                   </Text>
                 </>
               ) : null}
-            </View>
+              </View>
+            </Animated.View>
           </View>
         ))}
       </Animated.ScrollView>
@@ -451,18 +633,27 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
             positioned over the pages, which put "Swipe to see what is included"
             straight through the 3 to 10 figure on a short screen. Anything that
             floats over the content will eventually land on some of it. */}
-        {cueGone ? null : (
-          <Animated.View style={[styles.cue, cueStyle]} pointerEvents="none">
-            <Text variant="caption" color="tertiary">
-              {CUE_TEXT}
-            </Text>
-            <Icon
-              name={icons.chevronRight}
-              size={size.iconXs}
-              color={withAlpha(colors.text.tertiary, 0.7)}
-            />
-          </Animated.View>
-        )}
+        {/* Mounted for the whole life of the sheet, and only FADED once it has
+            been answered. It used to be `cueGone ? null : …`, which unmounted
+            it the moment the reader reached page two and took its 28pt out of
+            the dock. The dock re-measured, `setDockH` fired, and the segment
+            bar plus every page's floor jumped up by that much: the visible
+            hitch on the first swipe. The opacity animation never played
+            either, because the node was gone before it could run.
+
+            The reserved 28pt is the price of a stable floor. Do not swap this
+            back for a conditional, and do not animate its HEIGHT instead: a
+            collapsing height is the same reflow, just slower. */}
+        <Animated.View style={[styles.cue, cueStyle]} pointerEvents="none">
+          <Text variant="caption" color="tertiary">
+            {CUE_TEXT}
+          </Text>
+          <Icon
+            name={icons.chevronRight}
+            size={size.iconXs}
+            color={withAlpha(colors.text.tertiary, 0.7)}
+          />
+        </Animated.View>
         <View style={styles.segs}>
           {SKINS.map((_, i) => (
             <Segment key={i} index={i} />
@@ -479,10 +670,23 @@ export default PaywallPager;
 /** The curve's own height. Where it SITS is derived per screen — see LEDGE_TOP. */
 const LEDGE_H = 72;
 
+/**
+ * Ceiling on the poster's drop, as a share of the page. The derived half-the-
+ * leftover is the right answer on every phone that exists today, but it is
+ * arithmetic on a number the dock reports, and a dock that ever measures very
+ * short would walk the curve into the middle of the screen. This stops that.
+ */
+const DROP_MAX = 0.22;
+
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: "hidden" },
-  wash: { position: "absolute", left: 0, right: 0, top: 0 },
-  ledge: { position: "absolute", left: -2, right: -2, zIndex: 1 },
+  // Hangs off the top of the card by MAX_DROP so sliding it down extends the
+  // wash rather than resizing it. `top`/`height` are set at the call site,
+  // where MAX_DROP is known.
+  ledgeGroup: { position: "absolute", left: 0, right: 0, zIndex: 1 },
+  // Pinned to the group's bottom edge, so it travels with the wash it ends.
+  // The 2pt bleed hides the antialiased seam at the screen edges.
+  ledge: { position: "absolute", left: -2, right: -2, bottom: 0, height: LEDGE_H },
   rim: {
     position: "absolute",
     right: 0,
@@ -492,12 +696,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 3,
     borderBottomLeftRadius: 3,
     zIndex: 6,
-  },
-  topBar: {
-    zIndex: 7,
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    alignItems: "flex-end",
   },
   pager: { position: "absolute", left: 0, right: 0, top: 0, zIndex: 3 },
   page: { paddingHorizontal: spacing["2xl"], height: "100%" },

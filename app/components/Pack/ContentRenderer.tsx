@@ -17,6 +17,7 @@ import {
     ContentBlockType,
     FormBlockContent,
     ModuleContentBlock,
+    QuizBlockContent,
     ReferenceBlockContent,
     TextBlockContent,
     VideoBlockContent,
@@ -38,6 +39,8 @@ import {
     radius,
 } from "../../design-system";
 import { SimpleMarkdown } from "./SimpleMarkdown";
+import QuizRunner from "../Quiz/QuizRunner";
+import { submitQuizAnswer } from "../../api/quiz";
 
 import { useActivityStore } from "../../stores/activity";
 import { useUserStore } from "../../stores/user";
@@ -59,6 +62,8 @@ interface ContentRendererProps {
   blockIndex?: number;
   onActivityCreated?: (blockId: string, activityId: string) => void;
   onFormCompleted?: (blockId: string) => void;
+  /** Fired when every question in a QUIZ block has been answered. */
+  onQuizCompleted?: (blockId: string) => void;
 }
 
 /**
@@ -122,6 +127,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   isCompleted,
   blockIndex,
   onActivityCreated,
+  onQuizCompleted,
 }) => {
   const navigation = useNavigation();
   const { colors } = useTheme();
@@ -152,16 +158,24 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       );
       return (
         <View style={styles.mediaContainer}>
+          {/*
+            No isLocked or onPressUnlock. Both were passed for years and neither
+            ever did anything: the server writes isLocked nowhere, so the prop
+            was always undefined and the unlock path unreachable. It is not a
+            gap in the paywall. getModuleWithBlocks refuses a pack the user has
+            not bought before it returns any block at all, so a video that
+            reaches this renderer is one they own.
+
+            The title is fixed for the same reason: VideoBlockContent has no
+            titleOverride on the server, so this read undefined every time and
+            fell through to the same string.
+          */}
           <VideoPlayer
             uri={videoUri}
             poster={videoContent.thumbnailUrl}
-            title={block.content.titleOverride || "Video Lesson"}
+            title="Video Lesson"
             style={{ width: "100%" }}
             autoPlay={true}
-            isLocked={videoContent.isLocked}
-            onPressUnlock={() =>
-              (navigation as any).navigate("PremiumModal")
-            }
           />
         </View>
       );
@@ -416,6 +430,38 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             </View>
           </View>
         </TactileTouchableOpacity>
+      );
+    }
+
+    case ContentBlockType.QUIZ: {
+      const quiz = block.content as QuizBlockContent;
+      const questions = quiz.questions ?? [];
+
+      if (questions.length === 0) {
+        // The server sends no questions when it could not resolve the block's
+        // keys. Saying nothing is better than an empty card the user cannot
+        // get past, and the day's other blocks still work.
+        return null;
+      }
+
+      // Unlike FORM and ACTIVITY, which push a screen and come back, this one
+      // renders where it stands. A recall question is two taps and pushing a
+      // screen for it would cost more than the question does.
+      return (
+        <QuizRunner
+          questions={questions}
+          eyebrow={quiz.mode === "recall" ? "FROM YESTERDAY" : "CHECK"}
+          // Explain each answer as it is given. Every option carries an
+          // explanation and a wrong answer costs nothing here, so there is no
+          // reason to make somebody wait until the end to find out.
+          revealExplanation
+          onAnswer={async ({ question, selectedIndex }) => {
+            // blockId, and nothing more. The server reads the pack, the day and
+            // whether this asks about today or yesterday off the block itself.
+            await submitQuizAnswer(question.id, [selectedIndex], block.id);
+          }}
+          onFinished={() => onQuizCompleted?.(block.id)}
+        />
       );
     }
 

@@ -1,11 +1,19 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  Path,
+  RadialGradient,
+  Rect,
+  Stop,
+} from "react-native-svg";
 import PressableScale from "../../../../components/PressableScale";
 import { getReachSummary } from "../../../../api/programGoals";
 import { ReachSummary } from "../../../../api/programGoals/types";
 import {
+  Gradient,
   Text,
   accentEdge,
   mix,
@@ -159,6 +167,33 @@ const ReachRow: React.FC<{
       )
     : mix(cardBg, colors.text.primary, 0.13);
 
+  /**
+   * THE NEXT SLOT GETS THE SAME TREATMENT DONE ONES DO — SOLID FILL, ON-INK
+   * GLYPH — because that pairing is the one thing on this row that already
+   * reads at 18-26px. A stroke on a tint of the card's own colour is two
+   * midtones fighting for the same value, and no amount of centering the
+   * path fixes that: it needed contrast, not precision. Borrows the card's
+   * own hue (warm here) rather than inventing a third colour for the row.
+   */
+  const nextFill = lit
+    ? glow === "warm"
+      ? colors.action.primary
+      : colors.accent.success
+    : mix(cardBg, colors.text.primary, 0.35);
+  const nextOn = lit
+    ? glow === "warm"
+      ? colors.action.onPrimary
+      : colors.accentOn.success
+    : colors.text.secondary;
+
+  /**
+   * WHAT COLOUR IS SITTING AT SLOT i. The render below already answers this
+   * three times over; the connectors need the same answer for the slot on
+   * either side of them, so it is written down once instead of a fourth time.
+   */
+  const slotColor = (i: number) =>
+    i < dots.done ? colors.accent.success : i === 0 ? nextFill : quiet;
+
   return (
     <PressableScale
       scaleTo={0.98}
@@ -228,7 +263,11 @@ const ReachRow: React.FC<{
                   return (
                     <React.Fragment key={i}>
                       {i > 0 ? (
-                        <View style={[styles.bar, { backgroundColor: quiet }]} />
+                        <Bar
+                          left={slotColor(i - 1)}
+                          mid={quiet}
+                          right={slotColor(i)}
+                        />
                       ) : null}
                       {done ? (
                         <View
@@ -243,6 +282,20 @@ const ReachRow: React.FC<{
                           ]}
                         >
                           <Tick color={colors.accentOn.success} />
+                        </View>
+                      ) : i === 0 ? (
+                        <View
+                          style={[
+                            styles.bead,
+                            { backgroundColor: nextFill },
+                            lit
+                              ? glow === "warm"
+                                ? primaryEdge(colors, true)
+                                : accentEdge(colors, "success")
+                              : null,
+                          ]}
+                        >
+                          <QuestionMark color={nextOn} />
                         </View>
                       ) : (
                         <View
@@ -291,16 +344,86 @@ const ReachRow: React.FC<{
  * against the bead. A hairline tick in a solid disc reads as a mistake.
  */
 const Tick: React.FC<{ color: string }> = ({ color }) => (
-  <Svg width={14} height={14} viewBox="0 0 24 24">
+  <Svg width={15} height={15} viewBox="0 0 24 24">
     <Path
       d="M5 12.5 L10 17.5 L19 7.5"
       stroke={color}
-      strokeWidth={3.2}
+      strokeWidth={3.6}
       strokeLinecap="round"
       strokeLinejoin="round"
       fill="none"
     />
   </Svg>
+);
+
+/**
+ * THE FIRST EMPTY SLOT, MARKED AS UNKNOWN RATHER THAN JUST EMPTY.
+ *
+ * Every other undone knob is a blank, "not yet". The first one is drawn the
+ * same size and the same tint, just with a "?" traced into it, because it is
+ * the one somebody is about to tap into next.
+ *
+ * IT WAS TRACED TOO FINE. At 13px in a 24 viewBox a 3.2 stroke lands at 1.7pt
+ * of actual ink, which is THINNER than the tick it sits beside, on a glyph
+ * with twice the detail: a hook, a stem and a dot, all of it hairline inside a
+ * 26pt disc. It read as a smudge rather than a mark.
+ *
+ * So it is drawn bigger and heavier: 16px with a 3.6 stroke is 2.4pt of ink,
+ * and the glyph now fills about 12 of the bead's 26 points instead of 7. The
+ * arc keeps a 3.4-unit counter at that weight, which is what stops a bolder
+ * "?" turning into a blob. The tick moved to the same 2.4pt in step, because
+ * two glyphs in identical beads at different weights is the kind of mismatch
+ * nobody names and everybody feels.
+ */
+const QuestionMark: React.FC<{ color: string }> = ({ color }) => (
+  <Svg width={16} height={16} viewBox="0 0 24 24">
+    <Path
+      d="M8.6 8.7a3.5 3.5 0 1 1 3.9 3.5v1.2"
+      stroke={color}
+      strokeWidth={3.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <Circle cx="12.5" cy="18.7" r="2" fill={color} />
+  </Svg>
+);
+
+/**
+ * THE CONNECTOR, WHICH HAS TO LEAVE THE BEAD WITHOUT A SEAM.
+ *
+ * It was a flat rectangle of `quiet`, and against a solid bead that is a step
+ * from a saturated fill to a 22% tint of the card across zero distance. The
+ * eye reads a hard value step at a butt joint as a CUT: the bar looked
+ * chopped off the bead rather than growing out of it.
+ *
+ * Nothing about the colours was wrong, only the edge. So the bar starts at
+ * whatever is on its left, settles into `quiet` by 42%, holds it across the
+ * middle, and picks up whatever is on its right at the end. Between two quiet
+ * knobs every stop is the same colour and this is a no-op, which is why it can
+ * be used for every connector instead of special-casing the lit one.
+ *
+ * THE RAMP IS SHORT ON PURPOSE. A blend spread over the full 34pt would fix
+ * the seam and cost the row its shape: the connector would become a fade, and
+ * a fading bar between beads reads as a progress bar running out. Settling in
+ * the first 14pt kills the cut and leaves the middle flat, so the row is still
+ * a strung object with a plain string.
+ *
+ * The Meter's fill deliberately does NOT get this. There the edge is the
+ * number: softening it would mean blurring the value it is reporting.
+ */
+const Bar: React.FC<{ left: string; mid: string; right: string }> = ({
+  left,
+  mid,
+  right,
+}) => (
+  <Gradient
+    colors={[left, mid, mid, right] as const}
+    locations={[0, 0.42, 0.58, 1] as const}
+    start={{ x: 0, y: 0.5 }}
+    end={{ x: 1, y: 0.5 }}
+    style={styles.bar}
+  />
 );
 
 /**
