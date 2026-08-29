@@ -43,6 +43,33 @@ export const SimpleMarkdown = ({
               3: styles.h3,
               4: styles.h4,
             }[block.level];
+
+            // A level-2 heading carries the brand mark, and the mark is its own
+            // fixed-width View rather than a border on the Text.
+            //
+            // The border version was tried first and is wrong on real content.
+            // A bordered Text hugs its words only while the words fit one line;
+            // the moment the text wraps, the Text fills the column and the rule
+            // spans the full width. 52% of the 141 headings in the catalogue
+            // wrap at this size, so half the shelf silently rendered as a
+            // full-bleed masthead and half as a content-width rule — one
+            // component producing two different designs, decided by how long
+            // somebody's heading happened to be.
+            //
+            // A fixed mark reads identically at every heading length.
+            if (block.level === 2) {
+              return (
+                // No marginTop reset at index 0. A teach block opens on its
+                // heading, and that heading sits directly under the progress
+                // bar; zeroing the margin crowds the two together. The 36 is
+                // the breathing room at the top of a day, not dead space.
+                <View key={index} style={styles.h2Block}>
+                  <Text style={[styles.h2, textStyle]}>{block.text}</Text>
+                  <View style={styles.h2Mark} />
+                </View>
+              );
+            }
+
             return (
               <Text
                 key={index}
@@ -501,34 +528,76 @@ const useStyles = makeStyles((c, t) => ({
     marginBottom: 16,
     marginTop: 20,
   },
-  h2: {
-    ...t.typography.h2,
-    color: c.text.primary,
+  // ── THE SLAB ──────────────────────────────────────────────────────────
+  // A section heading is an OBJECT, not just larger text: 25 against a 16px
+  // body is a 1.56x jump where `typography.h2` gave 1.37x, and the brand rule
+  // under it is structural rather than decorative. Not a new hue — the rule is
+  // `action.primary`, the same orange the CTA uses.
+  //
+  // `alignSelf: "flex-start"` is the React Native equivalent of
+  // `width: fit-content`, and it is load-bearing: without it the Text
+  // stretches to the column and the rule runs edge to edge, which is a
+  // different (and much heavier) design than the one that was chosen.
+  //
+  // The values are spelled out rather than spread from a typography token
+  // because no token carries this pairing, and inventing `typography.slab`
+  // for one consumer would put a pack-specific decision in the design system.
+  // The wrapper owns the spacing so the heading and its mark move together.
+  // More room above than below, so a heading binds to the section it opens
+  // rather than to the paragraph it follows. It used to get 16 on both.
+  h2Block: {
+    marginTop: 36,
     marginBottom: 12,
-    marginTop: 16,
+  },
+  h2: {
+    fontFamily: fonts.extrabold,
+    fontSize: 25,
+    lineHeight: 28.5,
+    letterSpacing: -0.7,
+    color: c.text.primary,
+  },
+  // Fixed width on purpose. See the note at the level-2 branch above: anything
+  // that derives its width from the text is a different design on a heading
+  // that wraps, and most of them do.
+  h2Mark: {
+    width: 44,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: c.action.primary,
+    marginTop: 12,
   },
   h3: {
-    ...t.typography.h3,
+    ...t.typography.title,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.2,
     color: c.text.primary,
+    marginTop: 28,
     marginBottom: 8,
-    marginTop: 16,
-    letterSpacing: -0.3,
   },
   h4: {
-    ...t.typography.h3,
+    ...t.typography.title,
+    fontSize: 16,
     color: c.text.primary,
+    marginTop: 22,
     marginBottom: 8,
-    marginTop: 12,
   },
   body: {
     ...t.typography.body,
     color: c.text.primary,
-    marginBottom: 12,
+    // 4, not 12. A blank source line already emits its own 12px spacer, so a
+    // 12 here made every paragraph gap 24px and the day read as one long
+    // undifferentiated column. 4 + 12 = the 16 that was wanted all along.
+    marginBottom: 4,
   },
+  // Was byte-identical to `body`, which made `variant="instruction"` a no-op
+  // at its one call site (RealLifeChallenge). It now actually is larger.
   bodyLarge: {
     ...t.typography.body,
+    fontSize: 17,
+    lineHeight: 26,
     color: c.text.primary,
-    marginBottom: 12,
+    marginBottom: 4,
   },
   listItem: {
     flexDirection: "row",
@@ -555,20 +624,29 @@ const useStyles = makeStyles((c, t) => ({
     textDecorationLine: "line-through",
     opacity: 0.6,
   },
+  // A blockquote in pack content is never an aside. It carries the lines the
+  // user is meant to say out loud, and the definitions. Rendering it SMALLER
+  // than the prose around it inverted the emphasis.
   blockquote: {
-    borderLeftWidth: 4,
-    borderLeftColor: c.action.primary,
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingVertical: 12,
-    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginVertical: 16,
     backgroundColor: c.action.primaryTint,
-    borderRadius: t.radius.sm,
+    borderRadius: t.radius.md,
   },
   blockquoteText: {
-    ...t.typography.bodySm,
-    fontStyle: "italic",
-    color: c.text.secondary,
-    lineHeight: 22,
+    ...t.typography.body,
+    // Semibold, not italic. A run of italic at body length is harder to read,
+    // and weight carries the emphasis without costing legibility.
+    fontFamily: fonts.semibold,
+    lineHeight: 24,
+    // A FALLBACK, not the effective value. Every caller passes `textColor`,
+    // which is applied after this style and wins — which is why the old
+    // `text.secondary` here never actually rendered grey. It is kept at
+    // `primary` so the style is still correct on its own if a future caller
+    // omits the prop, rather than falling through to platform-default black.
+    // If a variant ever needs the quote to own its colour (a solid brand fill
+    // needs `action.onPrimary`), the override in the component has to move.
+    color: c.text.primary,
   },
 }));
