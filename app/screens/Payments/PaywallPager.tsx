@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import Animated, {
   interpolate,
@@ -231,16 +231,12 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
      figure ran into the swipe cue. The headline is always two lines, so the
      ledge belongs just under it and the body just under the ledge. */
   const short = height < 700;
-  /* 44 on a short screen until the close control left the card. Part of what
-     that number was buying was clearance for a 44pt button in the top right of
-     every page; the button is on the backdrop now (see the screen's sheet
-     header), so the poster can start higher. It matters only on an SE, where
-     the band is about 150pt and gets no drop to grow into — the sheet header
-     costs that screen ~16pt and this hands most of it back. On a tall phone the
-     drop decides where the poster sits anyway, so 64 stands. */
-  const BASE_TOP = short ? 32 : 64;
+  /* Top clearance for the poster inside the card. Clearance for the poster
+     so it sits comfortably under the sheet header. 32pt on SE, 44pt on tall phones. */
+  const BASE_TOP = short ? 32 : 44;
   // eyebrow + gap + two poster lines
   const HEAD_H = typography.eyebrow.lineHeight + spacing.md + typography.poster.lineHeight * 2;
+  // Retain the rich, full-size roomy density on standard and tall phones
   const density: BenefitRowsDensity = short ? "compact" : "roomy";
 
   /* THE RESTING GEOMETRY — the layout as authored, before anything moves.
@@ -534,83 +530,85 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
             <Animated.View
               style={[styles.body, { marginTop: BODY_TOP - BASE_TOP - HEAD_H }, bodyShift]}
             >
-              {/* The measured block. It exists only to have a height that is
-                  the CONTENT's, not the band's — `styles.body` above is
-                  `flex: 1` and would report the whole band every time. */}
-              <View onLayout={(e) => measureBody(i, e.nativeEvent.layout.height)}>
-              {i === 0 ? (
-                <>
-                  <Text variant="body" color="secondary" style={styles.lead}>
-                    Your free weekly call stops at three minutes. Usually right
-                    when it starts to matter.
-                  </Text>
-                  {/* THE SE KEEPS THE PAIR.
-                      Two labelled tracks are 140pt against the figure's 54, and
-                      a 667pt screen has about 168pt of band in total — the bars
-                      would put the member track under the dock. `short` gets no
-                      drop either, so there is no height coming to rescue it.
-                      The taller phones, which are the ones that had a hole to
-                      fill, get the version that fills it. */}
-                  <View style={styles.figure}>
-                    {short ? (
-                      <CallLengthHero framed={false} align="left" />
-                    ) : (
-                      <CallLengthHero variant="bars" />
-                    )}
-                  </View>
-                </>
-              ) : null}
-
-              {/* Densities, not a magic size: `benefitRowsHeight(density)`
-                  above seeds this page's drop off this exact same value, until
-                  the first layout replaces the seed with what it really is. */}
               {i === 1 ? (
-                <BenefitRows
-                  animate
-                  compact={density === "compact"}
-                  roomy={density === "roomy"}
-                />
-              ) : null}
-
-              {i === 2 ? (
-                <>
-                  {/* Compact only where there is no height to spare — see the
-                      figure above. Roomy is 186pt, compact is 118. */}
-                  {priceKnown ? (
-                    <PlanPills compact={short}>
-                      <PlanPills.Card
-                        compact={short}
-                        title="Monthly"
-                        price={monthlyLabel}
-                        priceSuffix="/mo"
-                        selected={plan === "monthly"}
-                        onPress={onPickMonthly}
-                        disabled={disabled}
-                      />
-                      <PlanPills.Card
-                        compact={short}
-                        title="Yearly"
-                        price={annualLabel}
-                        priceSuffix="/yr"
-                        // Apple Guideline 3.1.2(c): The total billed amount must be the
-                        // primary headline figure. The calculated per-month breakdown
-                        // is subordinate in size/position as a footnote.
-                        footnote={priceKnown ? `${annualPerMonthLabel}/mo` : undefined}
-                        tag={
-                          annualSavingsPct > 0 ? `SAVE ${annualSavingsPct}%` : undefined
-                        }
-                        selected={plan === "annual"}
-                        onPress={onPickAnnual}
-                        disabled={disabled}
-                      />
-                    </PlanPills>
+                <ScrollView
+                  style={styles.midScroll}
+                  contentContainerStyle={styles.midScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
+                  bounces
+                >
+                  <BenefitRows
+                    animate
+                    compact={density === "compact"}
+                    roomy={density === "roomy"}
+                  />
+                </ScrollView>
+              ) : (
+                <View onLayout={(e) => measureBody(i, e.nativeEvent.layout.height)}>
+                  {i === 0 ? (
+                    <>
+                      <Text variant="body" color="secondary" style={styles.lead}>
+                        Your free weekly call stops at three minutes. Usually right
+                        when it starts to matter.
+                      </Text>
+                      {/* THE SE KEEPS THE PAIR.
+                          Two labelled tracks are 140pt against the figure's 54, and
+                          a 667pt screen has about 168pt of band in total — the bars
+                          would put the member track under the dock. `short` gets no
+                          drop either, so there is no height coming to rescue it.
+                          The taller phones, which are the ones that had a hole to
+                          fill, get the version that fills it. */}
+                      <View style={styles.figure}>
+                        {short ? (
+                          <CallLengthHero framed={false} align="left" />
+                        ) : (
+                          <CallLengthHero variant="bars" />
+                        )}
+                      </View>
+                    </>
                   ) : null}
-                  <Text variant="caption" color="tertiary" style={styles.aside}>
-                    {PROGRAMS_NOTE} A program you buy stays yours either way.
-                  </Text>
-                </>
-              ) : null}
-              </View>
+
+                  {i === 2 ? (
+                    <>
+                      {/* Compact only where there is no height to spare — see the
+                          figure above. Roomy is 186pt, compact is 118. */}
+                      {priceKnown ? (
+                        <PlanPills compact={short}>
+                          <PlanPills.Card
+                            compact={short}
+                            title="Monthly"
+                            price={monthlyLabel}
+                            priceSuffix="/mo"
+                            selected={plan === "monthly"}
+                            onPress={onPickMonthly}
+                            disabled={disabled}
+                          />
+                          <PlanPills.Card
+                            compact={short}
+                            title="Yearly"
+                            price={annualLabel}
+                            priceSuffix="/yr"
+                            // Apple Guideline 3.1.2(c): The total billed amount must be the
+                            // primary headline figure. The calculated per-month breakdown
+                            // is subordinate in size/position as a footnote.
+                            footnote={priceKnown ? `${annualPerMonthLabel}/mo` : undefined}
+                            tag={
+                              annualSavingsPct > 0 ? `SAVE ${annualSavingsPct}%` : undefined
+                            }
+                            selected={plan === "annual"}
+                            onPress={onPickAnnual}
+                            disabled={disabled}
+                          />
+                        </PlanPills>
+                      ) : null}
+                      <Text variant="caption" color="tertiary" style={styles.aside}>
+                        {PROGRAMS_NOTE} A program you buy stays yours either way.
+                      </Text>
+                    </>
+                  ) : null}
+                </View>
+              )}
             </Animated.View>
           </View>
         ))}
@@ -714,4 +712,6 @@ const styles = StyleSheet.create({
   },
   seg: { height: 3, flex: 1, borderRadius: 2, overflow: "hidden" },
   segFill: { height: "100%", borderRadius: 2 },
+  midScroll: { flex: 1 },
+  midScrollContent: { paddingBottom: spacing["2xl"] },
 });
