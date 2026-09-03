@@ -584,7 +584,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                           {/* ── MONTHLY CARD ──────────────────────────────────
                               Free user:    interactive, no tag, no footnote
                               Monthly member: locked, CURRENT PLAN, renewal date
-                              Annual member:  locked, no tag, "Switch in App Store" */}
+                              Annual member:  locked, no interaction */}
                           <PlanPills.Card
                             compact={short}
                             title="Monthly"
@@ -598,9 +598,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                             footnote={
                               memberPlan === "monthly" && renewalDateText
                                 ? `Renews ${renewalDateText}`
-                                : memberPlan === "annual"
-                                  ? "Switch in App Store"
-                                  : undefined
+                                : undefined
                             }
                             tag={
                               memberPlan === "monthly"
@@ -612,7 +610,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                           />
                           {/* ── YEARLY CARD ───────────────────────────────────
                               Free user:    interactive, SAVE X%, per-month footnote
-                              Monthly member: locked, SAVE X%, per-month footnote
+                              Monthly member: INTERACTIVE (upgrade path), SAVE X%
                               Annual member:  locked, CURRENT PLAN, renewal date */}
                           <PlanPills.Card
                             compact={short}
@@ -639,7 +637,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                                 : plan === "annual"
                             }
                             onPress={onPickAnnual}
-                            disabled={disabled || !!memberPlan}
+                            disabled={disabled || memberPlan === "annual"}
                           />
                         </PlanPills>
                       ) : null}

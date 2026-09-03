@@ -272,6 +272,65 @@ const SubscribeScreenBody = () => {
     }
   };
 
+  /**
+   * Monthly→Annual upgrade. Apple handles this natively: the annual subscription
+   * starts immediately, and Apple prorates/refunds the unused monthly days.
+   * RevenueCat sends a PRODUCT_CHANGE webhook which our backend already handles.
+   */
+  const handleUpgradeToAnnual = async () => {
+    if (!membership) return;
+    if (!purchasesAvailable()) {
+      setShowTestModeModal(true);
+      return;
+    }
+
+    const productId = membership.annualProductId;
+    const payProps = {
+      planId: productId,
+      catalogKey: "membership",
+      plan: "annual",
+      upgradeFrom: "monthly",
+    };
+    track(ANALYTICS_EVENTS.PAYMENT_STARTED, payProps);
+
+    setLoading(true);
+    try {
+      const outcome = await purchaseProductById(productId);
+      if (outcome.status === "purchased") {
+        track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
+        const wallet = await pollWalletUntil((w) =>
+          w.entitlements.includes("membership"),
+        );
+        if (wallet) {
+          showSuccessBottomSheet("Upgraded!", "You're now on the annual plan.");
+          navigation.goBack();
+        } else {
+          showErrorBottomSheet(
+            "Almost there",
+            "Your upgrade went through but is still being confirmed. It should appear shortly.",
+          );
+        }
+      } else {
+        track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          ...payProps,
+          reason: outcome.status === "error" ? outcome.message : outcome.status,
+        });
+        if (outcome.status === "error") {
+          showErrorBottomSheet("Upgrade didn't complete", outcome.message);
+        }
+      }
+    } catch (error) {
+      console.error("[Payments] Upgrade failed:", error);
+      track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "exception" });
+      showErrorBottomSheet(
+        "Upgrade didn't complete",
+        "Nothing has been charged. Please try again in a moment.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.mainContainer}>
       <Animated.View style={[{ flex: 1 }, animatedSheetStyle]}>
@@ -351,19 +410,31 @@ const SubscribeScreenBody = () => {
                 can't sell says so instead of showing a button. */}
             {purchasesAvailable() ? (
               <>
+                {/* ── PRIMARY CTA ─────────────────────────────────────────
+                    Free:    "Start membership · ₹X/yr"  → handlePayment
+                    Monthly: "Upgrade to Annual · ₹X/yr" → handleUpgradeToAnnual
+                    Annual:  "Manage Subscription"        → manageSubscriptions */}
                 <TouchableOpacity
                   style={[
                     styles.upgradeBtnWrapper,
                     (!isAutoRenewingMember && (loading || !membership)) && { opacity: 0.7 },
                   ]}
                   activeOpacity={0.85}
-                  onPress={isAutoRenewingMember ? manageSubscriptions : handlePayment}
+                  onPress={
+                    memberPlan === "annual"
+                      ? manageSubscriptions
+                      : memberPlan === "monthly"
+                        ? handleUpgradeToAnnual
+                        : handlePayment
+                  }
                   disabled={!isAutoRenewingMember && (loading || !membership)}
                   accessibilityRole="button"
                   accessibilityLabel={
-                    isAutoRenewingMember
+                    memberPlan === "annual"
                       ? "Manage Speechworks subscription"
-                      : "Start Speechworks membership"
+                      : memberPlan === "monthly"
+                        ? "Upgrade to annual plan"
+                        : "Start Speechworks membership"
                   }
                 >
                   <LinearGradient
@@ -379,13 +450,17 @@ const SubscribeScreenBody = () => {
                         variant="title"
                         style={styles.upgradeBtnText}
                       >
-                        {isAutoRenewingMember
+                        {memberPlan === "annual"
                           ? "Manage Subscription"
-                          : !priceKnown
-                            ? "Pricing unavailable"
-                            : paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                              ? `Start membership · ${annualLabel}/yr`
-                              : `Start membership · ${monthlyLabel}/mo`}
+                          : memberPlan === "monthly"
+                            ? priceKnown
+                              ? `Upgrade to Annual · ${annualLabel}/yr`
+                              : "Upgrade to Annual"
+                            : !priceKnown
+                              ? "Pricing unavailable"
+                              : paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                                ? `Start membership · ${annualLabel}/yr`
+                                : `Start membership · ${monthlyLabel}/mo`}
                       </DSText>
                     )}
                     <LinearGradient
@@ -394,6 +469,23 @@ const SubscribeScreenBody = () => {
                     />
                   </LinearGradient>
                 </TouchableOpacity>
+
+                {/* ── SECONDARY CTA (monthly members only) ────────────────
+                    A text link to manage/cancel the current monthly plan. */}
+                {memberPlan === "monthly" ? (
+                  <TouchableOpacity
+                    onPress={manageSubscriptions}
+                    activeOpacity={0.7}
+                    style={styles.secondaryCta}
+                    accessibilityRole="button"
+                    accessibilityLabel="Manage current monthly plan"
+                  >
+                    <DSText variant="label" color="tertiary">
+                      Manage current plan
+                    </DSText>
+                  </TouchableOpacity>
+                ) : null}
+
                 <View style={styles.guaranteeRow}>
                   <Icon
                     name={isAutoRenewingMember ? "check-circle" : "shield"}
@@ -405,9 +497,11 @@ const SubscribeScreenBody = () => {
                     color={isAutoRenewingMember ? "primary" : "tertiary"}
                     style={styles.guaranteeText}
                   >
-                    {isAutoRenewingMember
+                    {memberPlan === "annual"
                       ? "You already have an active subscription"
-                      : "Secure payment. Cancel anytime."}
+                      : memberPlan === "monthly"
+                        ? "Active monthly plan — upgrade anytime"
+                        : "Secure payment. Cancel anytime."}
                   </DSText>
                 </View>
 
@@ -702,6 +796,12 @@ const useStyles = makeStyles((c) => ({
     borderRadius: radius.chip,
     overflow: "hidden",
     marginBottom: spacing.lg,
+  },
+  secondaryCta: {
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.sm,
   },
   upgradeBtn: {
     paddingVertical: spacing.xl,
