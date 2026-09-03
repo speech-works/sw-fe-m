@@ -45,7 +45,7 @@ import {
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useUserStore } from "../../stores/user";
-import { isMember } from "../../util/functions/membership";
+import { isMember, membershipEndsAt } from "../../util/functions/membership";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import { useRestorePurchases } from "../../hooks/useRestorePurchases";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -77,6 +77,16 @@ const SubscribeScreenBody = () => {
   const navBarInset = useNavBarInset();
   const user = useUserStore((s) => s.user);
   const isAutoRenewingMember = isMember(user) && user?.membership?.willRenew !== false;
+  const isCurrentMember = isMember(user);
+  const memberPlan = user?.membership?.plan ?? (isAutoRenewingMember ? "annual" : null);
+  const endsAt = membershipEndsAt(user);
+  const renewalDateText = endsAt
+    ? endsAt.toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
   // Read directly rather than through `SafeAreaView`. The old layout wrapped
   // everything in one and ALSO carried a bare `marginTop: 64` on the card — and
   // the 64 was doing all the work: the inset resolved to 0 here, so the moment
@@ -88,7 +98,9 @@ const SubscribeScreenBody = () => {
   // Starts at a sane guess so the first frame is never wrong by a whole screen.
   const [footerHeight, setFooterHeight] = useState(220);
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
-    PAYMENT_PLAN_TYPE.ANNUALLY,
+    memberPlan === "monthly"
+      ? PAYMENT_PLAN_TYPE.MONTHLY
+      : PAYMENT_PLAN_TYPE.ANNUALLY,
   );
   const [loading, setLoading] = useState(false);
   const [membership, setMembership] = useState<MembershipOffer | null>(null);
@@ -312,6 +324,9 @@ const SubscribeScreenBody = () => {
             onPickAnnual={() => setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY)}
             priceKnown={priceKnown}
             disabled={loading}
+            isMember={isCurrentMember}
+            memberPlan={memberPlan}
+            renewalDateText={renewalDateText}
             dock={
               /* The SafeAreaView above deliberately omits the bottom edge, so
                  under edge-to-edge this would sit under the nav bar with the
@@ -402,7 +417,9 @@ const SubscribeScreenBody = () => {
                     center
                     style={styles.renewalDisclosure}
                   >
-                    Tap above to view, change, or cancel your active subscription in App Store settings.
+                    {renewalDateText
+                      ? `Billed through your app store account. Renews automatically on ${renewalDateText} unless cancelled in store settings at least 24 hours before.`
+                      : "Tap above to view, change, or cancel your active subscription in App Store settings."}
                   </DSText>
                 ) : priceKnown ? (
                   <DSText

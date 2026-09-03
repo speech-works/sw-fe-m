@@ -129,6 +129,9 @@ export interface PaywallPagerProps {
   /** Hides the plan tiles when no real price is known (Guideline 3.1.2). */
   priceKnown: boolean;
   disabled?: boolean;
+  isMember?: boolean;
+  memberPlan?: "annual" | "monthly" | null;
+  renewalDateText?: string | null;
 }
 
 interface PageSkin {
@@ -155,6 +158,9 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
   onPickAnnual,
   priceKnown,
   disabled,
+  isMember = false,
+  memberPlan = null,
+  renewalDateText = null,
 }) => {
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();
@@ -581,6 +587,18 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                             price={monthlyLabel}
                             priceSuffix="/mo"
                             selected={plan === "monthly"}
+                            footnote={
+                              isMember && memberPlan === "monthly" && renewalDateText
+                                ? `Renews ${renewalDateText}`
+                                : isMember
+                                  ? "Switch in App Store"
+                                  : undefined
+                            }
+                            tag={
+                              isMember && memberPlan === "monthly"
+                                ? "CURRENT PLAN"
+                                : undefined
+                            }
                             onPress={onPickMonthly}
                             disabled={disabled}
                           />
@@ -592,9 +610,19 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                             // Apple Guideline 3.1.2(c): The total billed amount must be the
                             // primary headline figure. The calculated per-month breakdown
                             // is subordinate in size/position as a footnote.
-                            footnote={priceKnown ? `${annualPerMonthLabel}/mo` : undefined}
+                            footnote={
+                              isMember && memberPlan === "annual" && renewalDateText
+                                ? `Renews ${renewalDateText}`
+                                : priceKnown
+                                  ? `${annualPerMonthLabel}/mo`
+                                  : undefined
+                            }
                             tag={
-                              annualSavingsPct > 0 ? `SAVE ${annualSavingsPct}%` : undefined
+                              isMember && memberPlan === "annual"
+                                ? "CURRENT PLAN"
+                                : annualSavingsPct > 0
+                                  ? `SAVE ${annualSavingsPct}%`
+                                  : undefined
                             }
                             selected={plan === "annual"}
                             onPress={onPickAnnual}

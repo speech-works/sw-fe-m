@@ -38,7 +38,6 @@ import { MembershipRow } from "../../components/membership/MembershipRow";
 import FullProfile from "./components/FullProfile";
 import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
-import MembershipDetailSheet from "./components/MembershipDetailSheet";
 import NotificationPermissionRow from "./components/NotificationPermissionRow";
 import {
   useNotificationPermissionStore,
@@ -65,7 +64,6 @@ const Settings = () => {
   // Null until the wallet is known: no badge beats a wrong badge.
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [showMembershipSheet, setShowMembershipSheet] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [profileMode, setProfileMode] = useState<"view" | "edit">("view");
   // Set when a save succeeds: the success confirmation is itself a native Modal,
@@ -335,13 +333,7 @@ const Settings = () => {
                 radius and the list's row geometry, so it still lines up. */}
             <MembershipRow
               isMember={isMember}
-              onPress={() => {
-                if (isMember) {
-                  setShowMembershipSheet(true);
-                } else {
-                  navigation.navigate("PremiumModal");
-                }
-              }}
+              onPress={() => navigation.navigate("PremiumModal")}
             />
           </Reanimated.View>
         ) : null}
@@ -478,12 +470,6 @@ const Settings = () => {
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={deleteAccount}
-      />
-
-      <MembershipDetailSheet
-        visible={showMembershipSheet}
-        onClose={() => setShowMembershipSheet(false)}
-        onUpgradePromo={() => navigation.navigate("PremiumModal")}
       />
     </>
   );
