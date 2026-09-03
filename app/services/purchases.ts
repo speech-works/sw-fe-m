@@ -27,7 +27,7 @@
 // attaching them to an offering would, which buys us nothing. RevenueCat's own
 // message says as much: "If you don't want to use the offerings system, you can
 // safely ignore this message."
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import Purchases, {
   PRODUCT_CATEGORY,
   PURCHASES_ERROR_CODE,
@@ -777,3 +777,29 @@ export async function recheckWalletUntil(
   }
   return pollWalletUntil(predicate, options);
 }
+
+/**
+ * Opens the native subscription management surface (StoreKit sheet on iOS,
+ * or direct browser fallback to App Store / Google Play account subscriptions).
+ *
+ * App Store Guideline 3.1.2 expects auto-renewing subscriptions to provide
+ * a functional way to manage or cancel subscriptions.
+ */
+export async function manageSubscriptions(): Promise<void> {
+  try {
+    if (Platform.OS === "ios" && purchasesAvailable()) {
+      await Purchases.showManageSubscriptions();
+      return;
+    }
+  } catch (err) {
+    console.warn("[purchases] showManageSubscriptions failed, falling back to URL:", err);
+  }
+  const url =
+    Platform.OS === "ios"
+      ? "https://apps.apple.com/account/subscriptions"
+      : "https://play.google.com/store/account/subscriptions";
+  await Linking.openURL(url).catch((e) =>
+    console.error("[purchases] Could not open store subscriptions URL:", e),
+  );
+}
+

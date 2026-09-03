@@ -20,6 +20,7 @@ import {
   purchaseProductById,
   pollWalletUntil,
   purchasesAvailable,
+  manageSubscriptions,
 } from "../../services/purchases";
 import {
   showSuccessBottomSheet,
@@ -43,6 +44,8 @@ import {
 } from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { useUserStore } from "../../stores/user";
+import { isMember } from "../../util/functions/membership";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import { useRestorePurchases } from "../../hooks/useRestorePurchases";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -72,6 +75,8 @@ const SubscribeScreenBody = () => {
   const { colors } = useTheme();
   const styles = useStyles();
   const navBarInset = useNavBarInset();
+  const user = useUserStore((s) => s.user);
+  const isAutoRenewingMember = isMember(user) && user?.membership?.willRenew !== false;
   // Read directly rather than through `SafeAreaView`. The old layout wrapped
   // everything in one and ALSO carried a bare `marginTop: 64` on the card — and
   // the 64 was doing all the work: the inset resolved to 0 here, so the moment
@@ -329,13 +334,17 @@ const SubscribeScreenBody = () => {
                 <TouchableOpacity
                   style={[
                     styles.upgradeBtnWrapper,
-                    (loading || !membership) && { opacity: 0.7 },
+                    (!isAutoRenewingMember && (loading || !membership)) && { opacity: 0.7 },
                   ]}
                   activeOpacity={0.85}
-                  onPress={handlePayment}
-                  disabled={loading || !membership}
+                  onPress={isAutoRenewingMember ? manageSubscriptions : handlePayment}
+                  disabled={!isAutoRenewingMember && (loading || !membership)}
                   accessibilityRole="button"
-                  accessibilityLabel="Start Speechworks membership"
+                  accessibilityLabel={
+                    isAutoRenewingMember
+                      ? "Manage Speechworks subscription"
+                      : "Start Speechworks membership"
+                  }
                 >
                   <LinearGradient
                     colors={[colors.premium.gold, colors.premium.goldDeep]}
@@ -350,17 +359,13 @@ const SubscribeScreenBody = () => {
                         variant="title"
                         style={styles.upgradeBtnText}
                       >
-                        {!priceKnown
-                          ? "Pricing unavailable"
-                          : paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                            // "Membership", not "Premium". The eyebrow above
-                            // says MEMBERSHIP, the entitlement is called
-                            // membership, the day-28 sheet says "Keep my
-                            // access" — this button was the last place still
-                            // calling it Premium, and a product with two names
-                            // on one screen reads as two products.
-                            ? `Start membership · ${annualLabel}/yr`
-                            : `Start membership · ${monthlyLabel}/mo`}
+                        {isAutoRenewingMember
+                          ? "Manage Subscription"
+                          : !priceKnown
+                            ? "Pricing unavailable"
+                            : paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                              ? `Start membership · ${annualLabel}/yr`
+                              : `Start membership · ${monthlyLabel}/mo`}
                       </DSText>
                     )}
                     <LinearGradient
@@ -371,35 +376,35 @@ const SubscribeScreenBody = () => {
                 </TouchableOpacity>
                 <View style={styles.guaranteeRow}>
                   <Icon
-                    name="shield"
+                    name={isAutoRenewingMember ? "check-circle" : "shield"}
                     size={size.iconInline}
-                    color={colors.text.tertiary}
+                    color={isAutoRenewingMember ? colors.premium.gold : colors.text.tertiary}
                   />
-                  {/* A subscription can be cancelled anytime via the store, so
-                      this is both accurate and store-compliant. We deliberately
-                      do NOT promise a "no questions asked refund": refunds are
-                      adjudicated by Apple/Google, not us, and advertising refund
-                      terms the platform controls is a store-review risk. */}
                   <DSText
                     variant="caption"
-                    color="tertiary"
+                    color={isAutoRenewingMember ? "primary" : "tertiary"}
                     style={styles.guaranteeText}
                   >
-                    Secure payment. Cancel anytime.
+                    {isAutoRenewingMember
+                      ? "You already have an active subscription"
+                      : "Secure payment. Cancel anytime."}
                   </DSText>
                 </View>
 
                 {/* App Store Guideline 3.1.2 requires all of this ON the
                     purchase surface, in the binary: what renews, when it
                     renews, and functional links to the Terms of Use and the
-                    Privacy Policy. Title / length / price are already on the
-                    plan cards above; the renewal mechanics were missing
-                    entirely, and neither link existed anywhere but the
-                    sign-in screen. */}
-                {/* Only with a real price. The renewal terms and the amount are
-                    one disclosure, not two, so a placeholder here would be a
-                    subscription sold without its price. See `priceKnown`. */}
-                {priceKnown && (
+                    Privacy Policy. */}
+                {isAutoRenewingMember ? (
+                  <DSText
+                    variant="caption"
+                    color="tertiary"
+                    center
+                    style={styles.renewalDisclosure}
+                  >
+                    Tap above to view, change, or cancel your active subscription in App Store settings.
+                  </DSText>
+                ) : priceKnown ? (
                   <DSText
                     variant="caption"
                     color="tertiary"
@@ -410,7 +415,7 @@ const SubscribeScreenBody = () => {
                       ? `${annualLabel} per year. Renews automatically unless cancelled 24 hours before the period ends.`
                       : `${monthlyLabel} per month. Renews automatically unless cancelled 24 hours before the period ends.`}
                   </DSText>
-                )}
+                ) : null}
 
                 <View style={styles.legalRow}>
                   <TouchableOpacity

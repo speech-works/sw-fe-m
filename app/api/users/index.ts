@@ -60,6 +60,11 @@ export interface User {
      * unannounced, and is the only case worth saying anything about.
      */
     willRenew?: boolean;
+    /**
+     * Active plan tier ("annual" | "monthly") for store subscriptions, or null
+     * for complimentary/promo access or non-members.
+     */
+    plan?: "annual" | "monthly" | null;
   };
   level?: number;
   currentStamina?: number;
