@@ -540,7 +540,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                           : undefined
                       }
                       onPress={onPickMonthly}
-                      disabled={disabled || !!memberPlan}
+                      disabled={true}
                     />
                     <PlanPills.Card
                       compact={short}
@@ -563,7 +563,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                       }
                       selected={memberPlan === "annual"}
                       onPress={onPickAnnual}
-                      disabled={disabled || memberPlan === "annual"}
+                      disabled={true}
                     />
                   </PlanPills>
                 ) : null}

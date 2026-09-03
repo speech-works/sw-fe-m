@@ -480,7 +480,11 @@ const SubscribeScreenBody = () => {
                     accessibilityRole="button"
                     accessibilityLabel="Manage current monthly plan"
                   >
-                    <DSText variant="label" color="tertiary">
+                    <DSText
+                      variant="label"
+                      color="tertiary"
+                      style={styles.managePlanLink}
+                    >
                       Manage current plan
                     </DSText>
                   </TouchableOpacity>
@@ -802,6 +806,9 @@ const useStyles = makeStyles((c) => ({
     paddingVertical: spacing.sm,
     marginTop: -spacing.sm,
     marginBottom: spacing.sm,
+  },
+  managePlanLink: {
+    textDecorationLine: "underline",
   },
   upgradeBtn: {
     paddingVertical: spacing.xl,
