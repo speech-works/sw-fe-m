@@ -529,25 +529,19 @@ const UpsellModal = () => {
         <View style={styles.benefitsSection}>
           <BenefitRows leadId={heroBenefit.id} long />
 
-          {/* ── PRICE ───────────────────────────────────────────────────────
-              Shown as a per-month figure with the billed total right beside it.
-              The small number is the one people compare, and putting the real
-              charge next to it is what keeps that honest rather than a trick.
-
-              Hidden entirely when no price is known: the offers call failing is
-              ordinary, and a subscription offered with no price attached is
-              what Guideline 3.1.2 forbids. An em dash where a price should be
-              also just looks broken. */}
+          {/* ── PRICE (GUIDELINE 3.1.2(c)) ─────────────────────────────────
+              The billed total is primary (priceMain, H2) and the per-month
+              calculation is subordinate (priceSub, caption). */}
           {price.priceKnown && (
             <View style={styles.priceLine}>
               <Text style={[styles.priceMain, { color: onGround }]}>
-                {price.annualPerMonthLabel}
+                {price.annualLabel}
                 <Text style={[styles.priceUnit, { color: withAlpha(onGround, 0.5) }]}>
-                  {" "}a month
+                  {" "}a year
                 </Text>
               </Text>
               <Text style={[styles.priceSub, { color: withAlpha(onGround, 0.45) }]}>
-                Billed yearly at {price.annualLabel}. Monthly is {price.monthlyLabel}.
+                Just {price.annualPerMonthLabel}/month · Monthly is {price.monthlyLabel}.
               </Text>
             </View>
           )}

@@ -65,11 +65,10 @@ import {
  * much chrome you put around it. The saving is a badge again, which is the
  * right weight for a number that qualifies an option rather than being one.
  *
- * ── THE PER-MONTH FIGURE IS THE HEADLINE, THE REAL CHARGE IS UNDER IT ──────
- * Yearly leads with its per-month equivalent because that is the number people
- * compare. That framing is only honest if the amount actually charged is right
- * there too, in the same currency, which is what `footnote` is. One without
- * the other is the trick; both together is the comparison.
+ * ── THE BILLED AMOUNT IS THE HEADLINE (APP STORE GUIDELINE 3.1.2(c)) ────────
+ * The total billed amount must be the primary headline figure on the card.
+ * Calculated per-month equivalents may only be shown in subordinate size/position
+ * (in `footnote`), per Apple App Store review requirements.
  *
  * ── THE MOTION ─────────────────────────────────────────────────────────────
  * Selection animates COLOUR AND OPACITY ONLY, 200ms: the fill, the border, the

@@ -582,6 +582,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                         compact={short}
                         title="Monthly"
                         price={monthlyLabel}
+                        priceSuffix="/mo"
                         selected={plan === "monthly"}
                         onPress={onPickMonthly}
                         disabled={disabled}
@@ -589,19 +590,12 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                       <PlanPills.Card
                         compact={short}
                         title="Yearly"
-                        price={annualPerMonthLabel}
-                        priceSuffix="/mo"
-                        // "billed once" said the opposite of the renewal
-                        // disclosure four lines below it, which reads "Renews
-                        // automatically unless cancelled". The annual plan is
-                        // an auto-renewing subscription; telling a buyer they
-                        // pay once is the expectation mismatch that produces a
-                        // refund request and a one-star review.
-                        //
-                        // Compared against `priceKnown` rather than the em-dash
-                        // sentinel, which lives in another file: if that glyph
-                        // ever changes this silently rendered "— a year".
-                        footnote={priceKnown ? `${annualLabel} a year` : undefined}
+                        price={annualLabel}
+                        priceSuffix="/yr"
+                        // Apple Guideline 3.1.2(c): The total billed amount must be the
+                        // primary headline figure. The calculated per-month breakdown
+                        // is subordinate in size/position as a footnote.
+                        footnote={priceKnown ? `${annualPerMonthLabel}/mo` : undefined}
                         tag={
                           annualSavingsPct > 0 ? `SAVE ${annualSavingsPct}%` : undefined
                         }
