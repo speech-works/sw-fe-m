@@ -586,7 +586,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                             title="Monthly"
                             price={monthlyLabel}
                             priceSuffix="/mo"
-                            selected={plan === "monthly"}
+                            selected={isMember ? memberPlan === "monthly" : plan === "monthly"}
                             footnote={
                               isMember && memberPlan === "monthly" && renewalDateText
                                 ? `Renews ${renewalDateText}`
@@ -600,7 +600,7 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                                 : undefined
                             }
                             onPress={onPickMonthly}
-                            disabled={disabled}
+                            disabled={disabled || isMember}
                           />
                           <PlanPills.Card
                             compact={short}
@@ -624,9 +624,9 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                                   ? `SAVE ${annualSavingsPct}%`
                                   : undefined
                             }
-                            selected={plan === "annual"}
+                            selected={isMember ? memberPlan === "annual" : plan === "annual"}
                             onPress={onPickAnnual}
-                            disabled={disabled}
+                            disabled={disabled || isMember}
                           />
                         </PlanPills>
                       ) : null}

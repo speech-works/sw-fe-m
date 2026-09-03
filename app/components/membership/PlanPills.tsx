@@ -190,9 +190,9 @@ const PlanCard: React.FC<PlanCardProps> = ({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
       disabled={disabled}
-      accessibilityRole="radio"
+      accessibilityRole={disabled ? undefined : "radio"}
       accessibilityState={{ selected, disabled: !!disabled }}
       accessibilityLabel={`${title}, ${price}${priceSuffix ?? ""}${footnote ? `, ${footnote}` : ""}${tag ? `, ${tag}` : ""}`}
     >
@@ -200,7 +200,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
         // The press scale lives on the frame so the corner badge and the glow
         // travel with the card. Scaling only the card left the badge pinned to
         // a corner the card had just moved away from.
-        <Animated.View style={[styles.frame, pressed && !reduced && styles.pressed]}>
+        <Animated.View
+          style={[
+            styles.frame,
+            pressed && !disabled && !reduced && styles.pressed,
+          ]}
+        >
           {/* The lift. A sibling BEHIND the card rather than a shadow on it:
               `castShadow` compiles to a `boxShadow` string, which Reanimated
               cannot interpolate, and a view that both casts a shadow and clips
