@@ -78,7 +78,9 @@ const SubscribeScreenBody = () => {
   const user = useUserStore((s) => s.user);
   const isAutoRenewingMember = isMember(user) && user?.membership?.willRenew !== false;
   const isCurrentMember = isMember(user);
-  const memberPlan = user?.membership?.plan ?? (isAutoRenewingMember ? "annual" : null);
+  // Trust the server. `plan` is "annual" | "monthly" | null. null means either
+  // not a member, or a complimentary/pack_bonus membership with no store product.
+  const memberPlan: "annual" | "monthly" | null = user?.membership?.plan ?? null;
   const endsAt = membershipEndsAt(user);
   const renewalDateText = endsAt
     ? endsAt.toLocaleDateString(undefined, {
@@ -97,6 +99,9 @@ const SubscribeScreenBody = () => {
   // Height of the pinned footer, so the scroll view can clear it exactly.
   // Starts at a sane guess so the first frame is never wrong by a whole screen.
   const [footerHeight, setFooterHeight] = useState(220);
+  // Default selection: if the user already owns monthly, pre-select monthly so
+  // the card highlights match their active plan. Otherwise default to annual
+  // (best value, the one we recommend).
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     memberPlan === "monthly"
       ? PAYMENT_PLAN_TYPE.MONTHLY

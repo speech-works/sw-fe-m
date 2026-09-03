@@ -581,52 +581,65 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                           figure above. Roomy is 186pt, compact is 118. */}
                       {priceKnown ? (
                         <PlanPills compact={short}>
+                          {/* ── MONTHLY CARD ──────────────────────────────────
+                              Free user:    interactive, no tag, no footnote
+                              Monthly member: locked, CURRENT PLAN, renewal date
+                              Annual member:  locked, no tag, "Switch in App Store" */}
                           <PlanPills.Card
                             compact={short}
                             title="Monthly"
                             price={monthlyLabel}
                             priceSuffix="/mo"
-                            selected={isMember ? memberPlan === "monthly" : plan === "monthly"}
+                            selected={
+                              isMember
+                                ? memberPlan === "monthly"
+                                : plan === "monthly"
+                            }
                             footnote={
-                              isMember && memberPlan === "monthly" && renewalDateText
+                              memberPlan === "monthly" && renewalDateText
                                 ? `Renews ${renewalDateText}`
-                                : isMember
+                                : memberPlan === "annual"
                                   ? "Switch in App Store"
                                   : undefined
                             }
                             tag={
-                              isMember && memberPlan === "monthly"
+                              memberPlan === "monthly"
                                 ? "CURRENT PLAN"
                                 : undefined
                             }
                             onPress={onPickMonthly}
-                            disabled={disabled || isMember}
+                            disabled={disabled || !!memberPlan}
                           />
+                          {/* ── YEARLY CARD ───────────────────────────────────
+                              Free user:    interactive, SAVE X%, per-month footnote
+                              Monthly member: locked, SAVE X%, per-month footnote
+                              Annual member:  locked, CURRENT PLAN, renewal date */}
                           <PlanPills.Card
                             compact={short}
                             title="Yearly"
                             price={annualLabel}
                             priceSuffix="/yr"
-                            // Apple Guideline 3.1.2(c): The total billed amount must be the
-                            // primary headline figure. The calculated per-month breakdown
-                            // is subordinate in size/position as a footnote.
                             footnote={
-                              isMember && memberPlan === "annual" && renewalDateText
+                              memberPlan === "annual" && renewalDateText
                                 ? `Renews ${renewalDateText}`
                                 : priceKnown
                                   ? `${annualPerMonthLabel}/mo`
                                   : undefined
                             }
                             tag={
-                              isMember && memberPlan === "annual"
+                              memberPlan === "annual"
                                 ? "CURRENT PLAN"
                                 : annualSavingsPct > 0
                                   ? `SAVE ${annualSavingsPct}%`
                                   : undefined
                             }
-                            selected={isMember ? memberPlan === "annual" : plan === "annual"}
+                            selected={
+                              isMember
+                                ? memberPlan === "annual"
+                                : plan === "annual"
+                            }
                             onPress={onPickAnnual}
-                            disabled={disabled || isMember}
+                            disabled={disabled || !!memberPlan}
                           />
                         </PlanPills>
                       ) : null}
