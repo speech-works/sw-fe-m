@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import Animated, {
@@ -165,10 +165,18 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();
 
-  const scrollX = useSharedValue(0);
-  const [page, setPage] = useState(0);
-  const [cueGone, setCueGone] = useState(false);
+  const scrollX = useSharedValue(isMember ? width * 2 : 0);
+  const [page, setPage] = useState(isMember ? 2 : 0);
+  const [cueGone, setCueGone] = useState(isMember);
   const [dockH, setDockH] = useState(dockHeight);
+
+  useEffect(() => {
+    if (isMember) {
+      scrollX.value = width * 2;
+      setPage(2);
+      setCueGone(true);
+    }
+  }, [isMember, width, scrollX]);
 
   /* ── THE JOURNEY IS A DEEPENING, NOT TWO JUMPS ─────────────────────────────
      It used to run warm canvas, cool ink, then a navy slate: two hue changes
@@ -488,170 +496,196 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
       <Animated.View style={[styles.rim, rimStyle]} pointerEvents="none" />
 
       {/* ── the pages ───────────────────────────────────────────────────── */}
-      <Animated.ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handler}
-        scrollEventThrottle={16}
-        style={[styles.pager, { bottom: dockH }]}
-        contentContainerStyle={{ width: width * SKINS.length }}
-      >
-        {SKINS.map((skin, i) => (
-          <View key={i} style={[styles.page, { width, paddingTop: BASE_TOP }]}>
+      {isMember ? (
+        <View style={[styles.pager, { bottom: dockH }]}>
+          <View style={[styles.page, { width, paddingTop: BASE_TOP }]}>
             <Animated.View style={headShift}>
-              <Text variant="eyebrow" style={{ color: skin.accent }}>
-                {skin.eyebrow}
+              <Text variant="eyebrow" style={{ color: SKINS[2].accent }}>
+                {SKINS[2].eyebrow}
               </Text>
 
               <View style={styles.headline}>
-              <MarkedHeadline
-                line1={skin.line1}
-                line2Lead={skin.line2Lead}
-                marked={skin.marked}
-                tail={skin.tail}
-                shape={skin.shape}
-                accent={skin.accent}
-                // Only the ACTIVE page replays. Keying every page off the same
-                // value would draw all three marks at once behind the scenes,
-                // and the two off-screen ones would already be finished when
-                // the reader arrives.
-                playKey={page === i ? `${i}-on` : `${i}-off`}
-              />
+                <MarkedHeadline
+                  line1={SKINS[2].line1}
+                  line2Lead={SKINS[2].line2Lead}
+                  marked={SKINS[2].marked}
+                  tail={SKINS[2].tail}
+                  shape={SKINS[2].shape}
+                  accent={SKINS[2].accent}
+                  playKey="member-plan"
+                />
               </View>
             </Animated.View>
 
-            {/* TOP-ANCHORED, and no longer centred on tall phones.
-
-                Centring was the old answer to a band that was too big: split
-                the leftover evenly above and below so at least the island sat
-                in the middle of it. There is no leftover to split now — the
-                curve came down to meet this block, so the block starts where
-                the curve leaves off and ends on the dock. Centring here would
-                only re-introduce the gap, in halves.
-
-                `flex: 1` still runs it to the dock so nothing below can be
-                pushed off; the inner wrapper is what actually reports the
-                content's own height back up. */}
             <Animated.View
               style={[styles.body, { marginTop: BODY_TOP - BASE_TOP - HEAD_H }, bodyShift]}
             >
-              {i === 1 ? (
-                <ScrollView
-                  style={styles.midScroll}
-                  contentContainerStyle={styles.midScrollContent}
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled
-                  bounces
-                >
-                  <BenefitRows
-                    animate
-                    compact={density === "compact"}
-                    roomy={density === "roomy"}
-                  />
-                </ScrollView>
-              ) : (
-                <View onLayout={(e) => measureBody(i, e.nativeEvent.layout.height)}>
-                  {i === 0 ? (
-                    <>
-                      <Text variant="body" color="secondary" style={styles.lead}>
-                        Your free weekly call stops at three minutes. Usually right
-                        when it starts to matter.
-                      </Text>
-                      {/* THE SE KEEPS THE PAIR.
-                          Two labelled tracks are 140pt against the figure's 54, and
-                          a 667pt screen has about 168pt of band in total — the bars
-                          would put the member track under the dock. `short` gets no
-                          drop either, so there is no height coming to rescue it.
-                          The taller phones, which are the ones that had a hole to
-                          fill, get the version that fills it. */}
-                      <View style={styles.figure}>
-                        {short ? (
-                          <CallLengthHero framed={false} align="left" />
-                        ) : (
-                          <CallLengthHero variant="bars" />
-                        )}
-                      </View>
-                    </>
-                  ) : null}
-
-                  {i === 2 ? (
-                    <>
-                      {/* Compact only where there is no height to spare — see the
-                          figure above. Roomy is 186pt, compact is 118. */}
-                      {priceKnown ? (
-                        <PlanPills compact={short}>
-                          {/* ── MONTHLY CARD ──────────────────────────────────
-                              Free user:    interactive, no tag, no footnote
-                              Monthly member: locked, CURRENT PLAN, renewal date
-                              Annual member:  locked, no interaction */}
-                          <PlanPills.Card
-                            compact={short}
-                            title="Monthly"
-                            price={monthlyLabel}
-                            priceSuffix="/mo"
-                            selected={
-                              isMember
-                                ? memberPlan === "monthly"
-                                : plan === "monthly"
-                            }
-                            footnote={
-                              memberPlan === "monthly" && renewalDateText
-                                ? `Renews ${renewalDateText}`
-                                : undefined
-                            }
-                            tag={
-                              memberPlan === "monthly"
-                                ? "CURRENT PLAN"
-                                : undefined
-                            }
-                            onPress={onPickMonthly}
-                            disabled={disabled || !!memberPlan}
-                          />
-                          {/* ── YEARLY CARD ───────────────────────────────────
-                              Free user:    interactive, SAVE X%, per-month footnote
-                              Monthly member: INTERACTIVE (upgrade path), SAVE X%
-                              Annual member:  locked, CURRENT PLAN, renewal date */}
-                          <PlanPills.Card
-                            compact={short}
-                            title="Yearly"
-                            price={annualLabel}
-                            priceSuffix="/yr"
-                            footnote={
-                              memberPlan === "annual" && renewalDateText
-                                ? `Renews ${renewalDateText}`
-                                : priceKnown
-                                  ? `${annualPerMonthLabel}/mo`
-                                  : undefined
-                            }
-                            tag={
-                              memberPlan === "annual"
-                                ? "CURRENT PLAN"
-                                : annualSavingsPct > 0
-                                  ? `SAVE ${annualSavingsPct}%`
-                                  : undefined
-                            }
-                            selected={
-                              isMember
-                                ? memberPlan === "annual"
-                                : plan === "annual"
-                            }
-                            onPress={onPickAnnual}
-                            disabled={disabled || memberPlan === "annual"}
-                          />
-                        </PlanPills>
-                      ) : null}
-                      <Text variant="caption" color="tertiary" style={styles.aside}>
-                        {PROGRAMS_NOTE} A program you buy stays yours either way.
-                      </Text>
-                    </>
-                  ) : null}
-                </View>
-              )}
+              <View onLayout={(e) => measureBody(2, e.nativeEvent.layout.height)}>
+                {priceKnown ? (
+                  <PlanPills compact={short}>
+                    <PlanPills.Card
+                      compact={short}
+                      title="Monthly"
+                      price={monthlyLabel}
+                      priceSuffix="/mo"
+                      selected={memberPlan === "monthly"}
+                      footnote={
+                        memberPlan === "monthly" && renewalDateText
+                          ? `Renews ${renewalDateText}`
+                          : undefined
+                      }
+                      tag={
+                        memberPlan === "monthly"
+                          ? "CURRENT PLAN"
+                          : undefined
+                      }
+                      onPress={onPickMonthly}
+                      disabled={disabled || !!memberPlan}
+                    />
+                    <PlanPills.Card
+                      compact={short}
+                      title="Yearly"
+                      price={annualLabel}
+                      priceSuffix="/yr"
+                      footnote={
+                        memberPlan === "annual" && renewalDateText
+                          ? `Renews ${renewalDateText}`
+                          : priceKnown
+                            ? `${annualPerMonthLabel}/mo`
+                            : undefined
+                      }
+                      tag={
+                        memberPlan === "annual"
+                          ? "CURRENT PLAN"
+                          : annualSavingsPct > 0
+                            ? `SAVE ${annualSavingsPct}%`
+                            : undefined
+                      }
+                      selected={memberPlan === "annual"}
+                      onPress={onPickAnnual}
+                      disabled={disabled || memberPlan === "annual"}
+                    />
+                  </PlanPills>
+                ) : null}
+                <Text variant="caption" color="tertiary" style={styles.aside}>
+                  {PROGRAMS_NOTE} A program you buy stays yours either way.
+                </Text>
+              </View>
             </Animated.View>
           </View>
-        ))}
-      </Animated.ScrollView>
+        </View>
+      ) : (
+        <Animated.ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handler}
+          scrollEventThrottle={16}
+          style={[styles.pager, { bottom: dockH }]}
+          contentContainerStyle={{ width: width * SKINS.length }}
+        >
+          {SKINS.map((skin, i) => (
+            <View key={i} style={[styles.page, { width, paddingTop: BASE_TOP }]}>
+              <Animated.View style={headShift}>
+                <Text variant="eyebrow" style={{ color: skin.accent }}>
+                  {skin.eyebrow}
+                </Text>
+
+                <View style={styles.headline}>
+                <MarkedHeadline
+                  line1={skin.line1}
+                  line2Lead={skin.line2Lead}
+                  marked={skin.marked}
+                  tail={skin.tail}
+                  shape={skin.shape}
+                  accent={skin.accent}
+                  // Only the ACTIVE page replays. Keying every page off the same
+                  // value would draw all three marks at once behind the scenes,
+                  // and the two off-screen ones would already be finished when
+                  // the reader arrives.
+                  playKey={page === i ? `${i}-on` : `${i}-off`}
+                />
+                </View>
+              </Animated.View>
+
+              {/* TOP-ANCHORED, and no longer centred on tall phones. */}
+              <Animated.View
+                style={[styles.body, { marginTop: BODY_TOP - BASE_TOP - HEAD_H }, bodyShift]}
+              >
+                {i === 1 ? (
+                  <ScrollView
+                    style={styles.midScroll}
+                    contentContainerStyle={styles.midScrollContent}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled
+                    bounces
+                  >
+                    <BenefitRows
+                      animate
+                      compact={density === "compact"}
+                      roomy={density === "roomy"}
+                    />
+                  </ScrollView>
+                ) : (
+                  <View onLayout={(e) => measureBody(i, e.nativeEvent.layout.height)}>
+                    {i === 0 ? (
+                      <>
+                        <Text variant="body" color="secondary" style={styles.lead}>
+                          Your free weekly call stops at three minutes. Usually right
+                          when it starts to matter.
+                        </Text>
+                        <View style={styles.figure}>
+                          {short ? (
+                            <CallLengthHero framed={false} align="left" />
+                          ) : (
+                            <CallLengthHero variant="bars" />
+                          )}
+                        </View>
+                      </>
+                    ) : null}
+
+                    {i === 2 ? (
+                      <>
+                        {priceKnown ? (
+                          <PlanPills compact={short}>
+                            <PlanPills.Card
+                              compact={short}
+                              title="Monthly"
+                              price={monthlyLabel}
+                              priceSuffix="/mo"
+                              selected={plan === "monthly"}
+                              onPress={onPickMonthly}
+                              disabled={disabled}
+                            />
+                            <PlanPills.Card
+                              compact={short}
+                              title="Yearly"
+                              price={annualLabel}
+                              priceSuffix="/yr"
+                              footnote={priceKnown ? `${annualPerMonthLabel}/mo` : undefined}
+                              tag={
+                                annualSavingsPct > 0
+                                  ? `SAVE ${annualSavingsPct}%`
+                                  : undefined
+                              }
+                              selected={plan === "annual"}
+                              onPress={onPickAnnual}
+                              disabled={disabled}
+                            />
+                          </PlanPills>
+                        ) : null}
+                        <Text variant="caption" color="tertiary" style={styles.aside}>
+                          {PROGRAMS_NOTE} A program you buy stays yours either way.
+                        </Text>
+                      </>
+                    ) : null}
+                  </View>
+                )}
+              </Animated.View>
+            </View>
+          ))}
+        </Animated.ScrollView>
+      )}
 
       <Animated.View
         style={[styles.dock, groundStyle]}
@@ -660,36 +694,25 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
           if (Math.abs(h - dockH) > 1) setDockH(h);
         }}
       >
-        {/* The cue lives INSIDE the dock, above the segments. It was absolutely
-            positioned over the pages, which put "Swipe to see what is included"
-            straight through the 3 to 10 figure on a short screen. Anything that
-            floats over the content will eventually land on some of it. */}
-        {/* Mounted for the whole life of the sheet, and only FADED once it has
-            been answered. It used to be `cueGone ? null : …`, which unmounted
-            it the moment the reader reached page two and took its 28pt out of
-            the dock. The dock re-measured, `setDockH` fired, and the segment
-            bar plus every page's floor jumped up by that much: the visible
-            hitch on the first swipe. The opacity animation never played
-            either, because the node was gone before it could run.
-
-            The reserved 28pt is the price of a stable floor. Do not swap this
-            back for a conditional, and do not animate its HEIGHT instead: a
-            collapsing height is the same reflow, just slower. */}
-        <Animated.View style={[styles.cue, cueStyle]} pointerEvents="none">
-          <Text variant="caption" color="tertiary">
-            {CUE_TEXT}
-          </Text>
-          <Icon
-            name={icons.chevronRight}
-            size={size.iconXs}
-            color={withAlpha(colors.text.tertiary, 0.7)}
-          />
-        </Animated.View>
-        <View style={styles.segs}>
-          {SKINS.map((_, i) => (
-            <Segment key={i} index={i} />
-          ))}
-        </View>
+        {!isMember ? (
+          <>
+            <Animated.View style={[styles.cue, cueStyle]} pointerEvents="none">
+              <Text variant="caption" color="tertiary">
+                {CUE_TEXT}
+              </Text>
+              <Icon
+                name={icons.chevronRight}
+                size={size.iconXs}
+                color={withAlpha(colors.text.tertiary, 0.7)}
+              />
+            </Animated.View>
+            <View style={styles.segs}>
+              {SKINS.map((_, i) => (
+                <Segment key={i} index={i} />
+              ))}
+            </View>
+          </>
+        ) : null}
         {dock}
       </Animated.View>
     </Animated.View>
