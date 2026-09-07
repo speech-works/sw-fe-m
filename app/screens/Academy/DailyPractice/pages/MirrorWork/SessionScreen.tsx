@@ -265,7 +265,15 @@ export const SessionScreen: React.FC = () => {
         device={device}
         isActive={isCameraActive}
         frameProcessor={frameProcessor}
-        pixelFormat="yuv"
+        // Platform-split, and it has to stay that way. MediaPipe's iOS
+        // MPImage(pixelBuffer:) accepts kCVPixelFormatType_32BGRA and nothing
+        // else, which is what VisionCamera's "rgb" asks the camera for; "yuv"
+        // makes every frame throw inside the plugin and return null. Android is
+        // the mirror image: "yuv" gives the YUV_420_888 three-plane image that
+        // ExpoFaceLandmarkerPlugin.kt converts by hand, and "rgb" would hand it
+        // a single-plane RGBA_8888 image that its planes[1]/planes[2] reads
+        // cannot survive.
+        pixelFormat={Platform.OS === 'ios' ? 'rgb' : 'yuv'}
       />
 
       {/* Face positioning guide — shown during pre-calibration AND calibration.

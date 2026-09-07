@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import MediaPipeTasksVision
+import VisionCamera
 import CoreImage
 import UIKit
 
@@ -20,12 +21,37 @@ struct LandmarkPoint: Codable {
 
 public class ExpoFaceLandmarkerModule: Module {
 
+  // The VisionCamera frame processor plugin is registered HERE, not by the
+  // VISION_EXPORT_SWIFT_FRAME_PROCESSOR macro in
+  // ExpoFaceLandmarkerFrameProcessorPlugin.mm.
+  //
+  // For a Swift plugin that macro expands to an EMPTY Objective-C category plus an
+  // __attribute__((constructor)). An empty category emits nothing, so that object
+  // file ends up defining no Objective-C class and no category, and it exports no
+  // symbol anyone references. `-ObjC` only rescues static-library members that
+  // define a class or a category, so the linker dropped the member from the app
+  // binary entirely: the constructor never ran, "detectFacesFromFrame" was never
+  // in the registry, and initFrameProcessorPlugin() returned undefined. That is
+  // the "Mirror Work isn't available on this device" screen.
+  //
+  // Registering from this file is safe because Expo's generated
+  // ExpoModulesProvider names ExpoFaceLandmarkerModule, which forces this object
+  // to be linked, and referencing the plugin class here drags its object in too.
+  // Same approach as the Android module's companion init block.
+  private static let registerFrameProcessorPlugin: Void = {
+    FrameProcessorPluginRegistry.addFrameProcessorPlugin("detectFacesFromFrame") { proxy, options in
+      ExpoFaceLandmarkerFrameProcessorPlugin(proxy: proxy, options: options)
+    }
+  }()
+
   private var faceLandmarker: FaceLandmarker?
 
   public func definition() -> ModuleDefinition {
     Name("ExpoFaceLandmarker")
 
     OnCreate {
+      // Runs exactly once, before the JS bundle calls initFrameProcessorPlugin().
+      _ = ExpoFaceLandmarkerModule.registerFrameProcessorPlugin
       self.setupFaceLandmarker()
     }
 
