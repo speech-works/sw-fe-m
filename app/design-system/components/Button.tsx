@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Platform, StyleProp, ViewStyle } from "react-native";
+import { ActivityIndicator, StyleProp, ViewStyle } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
 import { radius, hitTarget } from "../primitives/scale";
@@ -137,20 +137,28 @@ export const Button: React.FC<ButtonProps> = ({
               Shrinking makes the row share width properly; minWidth guards the
               usual flexbox min-content floor.
 
-              adjustsFontSizeToFit is iOS-ONLY on purpose. RN Android maps it to
-              TextView auto-size, which locks its shrink factor to whatever the
-              first measurement said. When that measurement was taken against the
-              fallback font, the real glyphs draw wider than the box and — being
-              centred — get sliced at BOTH ends ("Let's start" -> "et's star"),
-              which is far worse than an honest ellipsis. Android now shrinks by
-              flex and ellipsizes as a last resort. iOS behaviour is unchanged. */}
+              There is deliberately NO adjustsFontSizeToFit here, on either
+              platform. It used to be set on iOS only, because RN Android maps it
+              to TextView auto-size, which locks its shrink factor to whatever the
+              first measurement said; against the fallback font the real glyphs
+              then drew wider than the box and, being centred, got sliced at BOTH
+              ends ("Let's start" -> "et's star").
+
+              iOS turned out to have the same class of defect through a different
+              path. When two Buttons sit in one container with DIFFERENT labels,
+              the second label renders at roughly 40% size and minimumFontScale
+              (0.7) does not hold it. Verified on a device-sized simulator, one
+              variable at a time: untouched -> tiny; this prop off -> correct;
+              prop on but both labels made identical -> both correct. The Dialog
+              cancel button was the visible victim ("Try again" beside "Get
+              help"), and 16 dialogs pass their own cancel label.
+
+              Both platforms now shrink by flex and ellipsize as a last resort. */}
           <Text
             variant="title"
             color={fg}
             center
             numberOfLines={1}
-            adjustsFontSizeToFit={Platform.OS === "ios"}
-            minimumFontScale={0.7}
             style={{ flexShrink: 1, minWidth: 0 }}
           >
             {label}
