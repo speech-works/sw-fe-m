@@ -47,6 +47,8 @@ export const darkColors: SemanticColors = {
     primaryEdge: "transparent", // the fill is 8.24:1 on the ink canvas already
     onPrimary: p.orange.on,
     secondary: p.ink.row,
+    // = surface.elevated, so the fill alone draws NOTHING on a dialog. 3.58:1.
+    secondaryEdge: p.whiteA(0.4),
     onSecondary: p.white,
     disabledBg: p.ink.card,
     disabledText: p.ink.textDisabled,

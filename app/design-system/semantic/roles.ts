@@ -107,6 +107,21 @@ export type SemanticColors = {
     primaryEdge: string;
     onPrimary: string;
     secondary: string;
+    /**
+     * The secondary button's boundary, and it is NOT optional on either scheme.
+     *
+     * `action.secondary` is `surface.elevated` on ink: both resolve to
+     * `ink.row` (#2E2A24), so a secondary button on a Dialog or any elevated
+     * sheet sat at 1.00:1 against the thing behind it and was literally
+     * invisible. Paper was quietly wrong too, at 1.40:1 (`paper.control` on
+     * `paper.row`), which is under the 3:1 WCAG 1.4.11 asks of a control
+     * boundary. Unlike `primaryEdge` there is no scheme that can spend
+     * "transparent" here, because neither fill ever earns it.
+     *
+     * Both cuts clear 3:1 on every surface a button lands on, elevated, card
+     * and canvas alike (ink 3.58/4.03/4.66, paper 3.59/3.56/3.25).
+     */
+    secondaryEdge: string;
     onSecondary: string;
     disabledBg: string;
     disabledText: string;

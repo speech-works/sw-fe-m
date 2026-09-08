@@ -74,6 +74,9 @@ export const lightColors: SemanticColors = {
     primaryEdge: p.orange.edgeLight, // 3.13:1 on the canvas — the CTA gets a boundary
     onPrimary: p.orange.on,
     secondary: p.paper.control,
+    // 1.40:1 on paper.row unaided — under the 3:1 bar, just less obviously
+    // than ink. The warm-ink cut lands at 3.59:1.
+    secondaryEdge: p.inkA(0.45),
     onSecondary: p.paper.textPrimary,
     disabledBg: p.paper.sunken,
     disabledText: p.paper.textDisabled,

@@ -82,6 +82,10 @@ export const Button: React.FC<ButtonProps> = ({
   } else if (variant === "secondary") {
     bg = colors.action.secondary;
     fg = colors.action.onSecondary;
+    // Always, on both schemes. See the note on action.secondaryEdge: this fill
+    // is the SAME hex as surface.elevated on ink, so without the edge a
+    // secondary button on a Dialog draws nothing at all.
+    borderColor = colors.action.secondaryEdge;
   } else if (variant === "ghost") {
     bg = "transparent";
     fg = onColor ?? colors.action.primary;
