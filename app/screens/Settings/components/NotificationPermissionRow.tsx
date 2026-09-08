@@ -156,5 +156,3 @@ export const NotificationPermissionRow: React.FC<{
     </View>
   );
 };
-
-export default NotificationPermissionRow;

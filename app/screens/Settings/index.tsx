@@ -38,7 +38,7 @@ import { MembershipRow } from "../../components/membership/MembershipRow";
 import FullProfile from "./components/FullProfile";
 import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
-import NotificationPermissionRow from "./components/NotificationPermissionRow";
+import { NotificationPermissionRow } from "./components/NotificationPermissionRow";
 import {
   useNotificationPermissionStore,
   selectShowNotificationRow,
