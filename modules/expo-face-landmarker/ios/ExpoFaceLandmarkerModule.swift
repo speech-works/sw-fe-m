@@ -21,23 +21,26 @@ struct LandmarkPoint: Codable {
 
 public class ExpoFaceLandmarkerModule: Module {
 
-  // The VisionCamera frame processor plugin is registered HERE, not by the
-  // VISION_EXPORT_SWIFT_FRAME_PROCESSOR macro in
-  // ExpoFaceLandmarkerFrameProcessorPlugin.mm.
+  // This is the ONLY place the VisionCamera frame processor plugin is registered.
+  // Do not reintroduce VISION_EXPORT_SWIFT_FRAME_PROCESSOR alongside it.
   //
-  // For a Swift plugin that macro expands to an EMPTY Objective-C category plus an
-  // __attribute__((constructor)). An empty category emits nothing, so that object
-  // file ends up defining no Objective-C class and no category, and it exports no
-  // symbol anyone references. `-ObjC` only rescues static-library members that
-  // define a class or a category, so the linker dropped the member from the app
-  // binary entirely: the constructor never ran, "detectFacesFromFrame" was never
-  // in the registry, and initFrameProcessorPlugin() returned undefined. That is
-  // the "Mirror Work isn't available on this device" screen.
+  // That macro used to live in ExpoFaceLandmarkerFrameProcessorPlugin.mm and it
+  // never worked. For a Swift plugin it expands to an EMPTY Objective-C category
+  // plus an __attribute__((constructor)). An empty category emits nothing, so the
+  // object file defined no class and no category and exported no symbol anyone
+  // referenced. `-ObjC` only rescues static-library members that define a class or
+  // a category, so the linker dropped it: the constructor never ran, and
+  // initFrameProcessorPlugin() returned undefined. That was the
+  // "Mirror Work isn't available on this device" screen on every iPhone.
   //
-  // Registering from this file is safe because Expo's generated
-  // ExpoModulesProvider names ExpoFaceLandmarkerModule, which forces this object
-  // to be linked, and referencing the plugin class here drags its object in too.
-  // Same approach as the Android module's companion init block.
+  // Keeping both is not a safe fallback either. addFrameProcessorPlugin asserts on
+  // a duplicate name, so a toolchain that did keep the macro's object would abort
+  // the app at startup instead of working.
+  //
+  // Registering from this file works because Expo's generated ExpoModulesProvider
+  // names ExpoFaceLandmarkerModule, which forces this object to be linked, and
+  // referencing the plugin class here drags its object in too. Same approach as
+  // the Android module's companion init block.
   private static let registerFrameProcessorPlugin: Void = {
     FrameProcessorPluginRegistry.addFrameProcessorPlugin("detectFacesFromFrame") { proxy, options in
       ExpoFaceLandmarkerFrameProcessorPlugin(proxy: proxy, options: options)
