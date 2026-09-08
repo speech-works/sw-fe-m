@@ -2,7 +2,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Application from "expo-application";
 import * as SecureStore from "expo-secure-store";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 import Reanimated, {
   cancelAnimation,
   useAnimatedStyle,

@@ -1,5 +1,4 @@
 import { Platform, Linking } from "react-native";
-import Purchases from "react-native-purchases";
 import { manageSubscriptions } from "../purchases";
 
 const mockShowManageSubscriptions = jest.fn();
