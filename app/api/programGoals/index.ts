@@ -66,6 +66,23 @@ export const updateProgramGoal = async (
   return response.data;
 };
 
+/**
+ * The user's own order, changed mid-program from a GOALS block.
+ *
+ * `orderedIds` must be exactly this user's open goals for the pack; the server
+ * sets rank 1..n in that order and answers 400 otherwise.
+ */
+export const reorderProgramGoals = async (
+  packId: string,
+  orderedIds: string[],
+): Promise<ProgramGoal[]> => {
+  const response = await axiosClient.patch(
+    `/program-goals/${packId}/order`,
+    { orderedIds },
+  );
+  return response.data;
+};
+
 /** Every goal this user has ever set, grouped by program run. This is Reach. */
 export const getAllProgramGoals = async (): Promise<GoalBlock[]> => {
   const response = await axiosClient.get("/program-goals");

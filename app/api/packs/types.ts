@@ -26,6 +26,8 @@ export enum ContentBlockType {
   FORM = "FORM",
   ACTIVITY = "ACTIVITY",
   QUIZ = "QUIZ",
+  GOALS = "GOALS",
+  WEEK_REVIEW = "WEEK_REVIEW",
 }
 
 /**
@@ -166,12 +168,84 @@ export type ReferenceBlockContent = {
   configuration?: any;
 };
 
+// --- Goals Block (hydrated per user by backend) ---
+
+/**
+ * The list the user named at intake, shown inside a day.
+ *
+ * Mirrors GoalsBlockContent in sw-be-2/src/models/ModuleContentBlock.ts. The
+ * server fills `goals` from ProgramGoalService.forPack for THIS user at pack
+ * read time. An empty array means they named nothing, which is not an error.
+ */
+export interface GoalsBlockGoal {
+  id: string;
+  text: string;
+  rank: number;
+  /** "FULL" | "PARTIAL" | "NONE", or null when unreported. */
+  report: string | null;
+  reportStyle: "did_it" | "still_true" | "came_true";
+}
+
+export type GoalsBlockContent = {
+  prompt?: string;
+  /** Default false. True = the user can move items up and down. */
+  allowReorder?: boolean;
+  /** Default false. True = the user can tap the report answer on each row. */
+  allowReport?: boolean;
+  /** Hydrated by backend. */
+  goals?: GoalsBlockGoal[];
+};
+
+// --- Week Review Block (hydrated per user by backend, read only) ---
+
+/**
+ * What the user wrote across the week, pulled from their form responses.
+ *
+ * Mirrors WeekReviewBlockContent in sw-be-2/src/models/ModuleContentBlock.ts.
+ * Read only: it never writes and is never scored.
+ */
+export interface WeekReviewEntry {
+  formKey: string;
+  fieldId: string;
+  label: string;
+  value: string;
+}
+
+export interface WeekReviewDay {
+  dayIndex: number;
+  title: string;
+  entries: WeekReviewEntry[];
+}
+
+export interface WeekReviewWillingness {
+  first: number | null;
+  latest: number | null;
+  firstDay: number | null;
+  latestDay: number | null;
+}
+
+export type WeekReviewBlockContent = {
+  /** Default "Your week". */
+  title?: string;
+  intro?: string;
+  formKeys: string[];
+  fieldIds?: string[];
+  /** Default 3. */
+  maxPerDay?: number;
+  /** Hydrated by backend. Days with no entries are omitted. */
+  days?: WeekReviewDay[];
+  /** Hydrated by backend, only when PROGRAM_WILLINGNESS is in formKeys. */
+  willingness?: WeekReviewWillingness;
+};
+
 export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
   | FormBlockContent
   | ReferenceBlockContent
-  | QuizBlockContent;
+  | QuizBlockContent
+  | GoalsBlockContent
+  | WeekReviewBlockContent;
 
 export interface ModuleContentBlock {
   id: string;

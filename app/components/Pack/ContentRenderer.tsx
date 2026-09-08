@@ -16,12 +16,16 @@ import {
 import {
     ContentBlockType,
     FormBlockContent,
+    GoalsBlockContent,
     ModuleContentBlock,
+    WeekReviewBlockContent,
     QuizBlockContent,
     ReferenceBlockContent,
     TextBlockContent,
     VideoBlockContent,
 } from "../../api/packs/types";
+import { GoalsBlock } from "./blocks/GoalsBlock";
+import { WeekReviewBlock } from "./blocks/WeekReviewBlock";
 import {
   size,
     Text,
@@ -462,6 +466,23 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           }}
           onFinished={() => onQuizCompleted?.(block.id)}
         />
+      );
+    }
+
+    // Both of these count as complete once rendered, the same as TEXT. They
+    // ask nothing the day has to wait for, so neither reports a completion.
+    case ContentBlockType.GOALS: {
+      return (
+        <GoalsBlock
+          content={block.content as GoalsBlockContent}
+          packId={packId}
+        />
+      );
+    }
+
+    case ContentBlockType.WEEK_REVIEW: {
+      return (
+        <WeekReviewBlock content={block.content as WeekReviewBlockContent} />
       );
     }
 
