@@ -4,6 +4,7 @@ import {
   PackModule,
   PackProgress,
   PackRecommendation,
+  ProgramEvidenceSummary,
 } from "./types";
 
 export const getRecommendedPack = async (): Promise<PackRecommendation> => {
@@ -115,6 +116,28 @@ export const getModule = async (
     const response = await axiosClient.get(
       `/packs/${packId}/modules/${moduleId}`
     );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * GET /packs/{catalogKey}/evidence — every claim a program's teaching rests
+ * on, with its source, its limit in plain words, and the date somebody last
+ * read the paper.
+ *
+ * Takes the CATALOG KEY ("art_of_disclosure"), not the pack id, because this
+ * is about the program as a published thing rather than about one row.
+ *
+ * It is what makes "updates are free" checkable: the dates come from the data,
+ * so nothing has to be written into copy and go stale.
+ */
+export const getProgramEvidence = async (
+  catalogKey: string
+): Promise<ProgramEvidenceSummary> => {
+  try {
+    const response = await axiosClient.get(`/packs/${catalogKey}/evidence`);
     return response.data;
   } catch (error) {
     throw error;
