@@ -48,7 +48,13 @@ import {
   type StorePrice,
 } from "../../services/priceDisplay";
 import { OfferItem } from "../../api";
-import { PackBrochure } from "../../api/packs/types";
+import { getProgramEvidence } from "../../api/packs";
+import {
+  PackBrochure,
+  type ProgramEvidenceSummary,
+} from "../../api/packs/types";
+import EvidenceCard from "./EvidenceCard";
+import ProgramEvidence from "./ProgramEvidence";
 
 /**
  * The pre-purchase sales experience for one program — an immersive, swipeable
@@ -125,6 +131,28 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   // success/error sheet never stacks over ours — the iOS two-modal freeze.
   const [sheetOpen, setSheetOpen] = useState(false);
   const confirmRef = useRef(false);
+
+  // ── The research behind this program, for the buyer who wants to check ──
+  //
+  // Summary only, and only to decide whether the card may appear at all: the
+  // count and the "we show you the shaky one too" promise both come off this
+  // payload and neither may be hardcoded. The full list loads inside the sheet
+  // when it opens, so an undecided buyer never pays for a request they did not
+  // ask for. A failure is silent: no card, and the sale is unaffected.
+  const catalogKey = brochure?.catalogKey ?? offer.key;
+  const [evidence, setEvidence] = useState<ProgramEvidenceSummary | null>(null);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void getProgramEvidence(catalogKey)
+      .then((s) => {
+        if (live) setEvidence(s);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [catalogKey]);
 
   const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollX.value = e.contentOffset.x;
@@ -215,6 +243,23 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
           title={dayCount ? `Your ${dayCount} days` : "Your plan"}
           modules={modules}
           bottomPad={bottomPad}
+          // Under the last day, which is where a reader who has just read the
+          // whole arc is asking whether any of it is real. Never on the hook:
+          // that page is the promise, and a source list argues with it.
+          footer={
+            evidence ? (
+              <EvidenceCard
+                claimCount={evidence.claimCount}
+                hasThinClaim={evidence.claims.some(
+                  (c) =>
+                    c.strength === "WEAK" ||
+                    c.strength === "CONTESTED" ||
+                    c.strength === "ABSENT",
+                )}
+                onPress={() => setEvidenceOpen(true)}
+              />
+            ) : null
+          }
         />,
       );
     }
@@ -233,6 +278,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
     bonusEligible,
     bottomPad,
     priceNote,
+    evidence,
   ]);
 
   return (
@@ -365,6 +411,22 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         savingLabel={savingLabel}
         note={priceNote}
       />
+
+      {/* The research, on demand. A separate native modal from the purchase
+          sheet and never open at the same time: the card that opens this one
+          lives on a pager page, which is behind that sheet whenever it shows. */}
+      <Sheet
+        visible={evidenceOpen && !sheetOpen}
+        onClose={() => setEvidenceOpen(false)}
+        title="What this rests on"
+      >
+        <ProgramEvidence
+          embedded
+          catalogKey={catalogKey}
+          programTitle={title}
+          onBack={() => setEvidenceOpen(false)}
+        />
+      </Sheet>
     </View>
   );
 };
@@ -698,9 +760,17 @@ interface PlanPageProps {
   title: string;
   modules: PackBrochure["modules"];
   bottomPad: number;
+  /** Rendered under the last day, inside the same scroll. Optional. */
+  footer?: React.ReactNode;
 }
 
-const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }) => {
+const PlanPage: React.FC<PlanPageProps> = ({
+  topPad,
+  title,
+  modules,
+  bottomPad,
+  footer,
+}) => {
   const { colors } = useTheme();
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
@@ -772,6 +842,7 @@ const PlanPage: React.FC<PlanPageProps> = ({ topPad, title, modules, bottomPad }
             </View>
           );
         })}
+        {footer ? <View style={styles.planFooter}>{footer}</View> : null}
       </Animated.ScrollView>
         {/* Top dissolve — the mirror of the buy-dock fade. A tall canvas gradient
             whose opacity ramps in with scroll, so the list melts into the canvas
@@ -944,6 +1015,20 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
           ) : null}
           <Text variant="bodySm" color="secondary">
             One payment. Yours to keep. No subscription.
+          </Text>
+          {/* The free-updates promise, at the only moment it changes a
+              decision, and the same one Udemy makes: buy the course once, get
+              every later version of it.
+
+              It reads as a fact about the price rather than a promise about
+              us, because the proof is one tap away in the evidence sheet,
+              where every claim carries the date somebody last read its study.
+
+              Do not remove this line. It is the app-side half of
+              THIS_PROGRAM_WILL_CHANGE in the backend seed, which makes the
+              same promise to people who have already bought. */}
+          <Text variant="bodySm" color="secondary">
+            Every future update included, at no extra cost.
           </Text>
         </View>
 
@@ -1157,6 +1242,9 @@ const styles = StyleSheet.create({
     marginTop: space.titleSub,
   },
   // ── Plan / timeline ──
+  planFooter: {
+    marginTop: spacing.lg,
+  },
   planScrollWrap: {
     flex: 1,
     marginTop: space.groupGap,

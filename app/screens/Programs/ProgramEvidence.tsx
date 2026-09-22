@@ -24,8 +24,9 @@ import { toSafeExternalUrl } from "../../util/functions/url";
 /**
  * Everything a program's teaching rests on, in one place.
  *
- * Reached from `EvidenceCard` on the program page, never from inside a day.
- * That siting is the whole design and the reasoning lives in EvidenceCard.
+ * Reached from `EvidenceCard` in the pre-purchase sales flow, never from
+ * inside a day. That siting is the whole design and the reasoning lives in
+ * EvidenceCard.
  *
  * ── TWO RULES A FUTURE EDIT MUST NOT BREAK ────────────────────────────────
  *
@@ -49,6 +50,43 @@ type Props = {
   /** Shown under the page title, so the reader knows which program this is. */
   programTitle?: string;
   onBack: () => void;
+  /**
+   * Render the list alone, with no `Page` chrome around it.
+   *
+   * The sales flow shows this inside a `Sheet`, which supplies its own title
+   * and its own close control. A `Page` in there would stack two headers and
+   * two back affordances on one screen. `onBack` is then unused and the sheet
+   * owns dismissal.
+   */
+  embedded?: boolean;
+};
+
+/**
+ * The strength word a reader sees, instead of the one the registry stores.
+ *
+ * The stored values are the clinical grades a reviewer needs (STRONG,
+ * MODERATE, WEAK, CONTESTED, ABSENT) and every one of them fails in front of a
+ * buyer. Shouted capitals read as a warning label. "CONTESTED" and "ABSENT"
+ * are terms of art that sound like a verdict on the program rather than a
+ * description of a literature. And a reader who has to decode a word has
+ * already stopped reading.
+ *
+ * These replacements say the same thing in words nobody has to learn.
+ * "Untested" is deliberately the bluntest: the card that opens this screen
+ * promises to show the shaky one, and a softened word here would break that
+ * promise at the moment it is being kept.
+ *
+ * NONE OF THESE MAY BECOME A CLAIM ABOUT THE PROGRAM. They describe the
+ * evidence behind one sentence, never what the program will do for anybody.
+ * PROGRAM_STRATEGY.md 8.2 also bans "proven", which is why the strongest word
+ * available here is "tested".
+ */
+const STRENGTH_LABEL: Record<ProgramEvidenceEntry["strength"], string> = {
+  STRONG: "Well tested",
+  MODERATE: "One solid study",
+  WEAK: "Thin evidence",
+  CONTESTED: "Studies disagree",
+  ABSENT: "Untested",
 };
 
 /** "2026-09-21" → "21 September 2026". Returns null for an absent or odd date. */
@@ -68,6 +106,7 @@ export default function ProgramEvidence({
   catalogKey,
   programTitle,
   onBack,
+  embedded = false,
 }: Props) {
   const { colors } = useTheme();
   const [summary, setSummary] = useState<ProgramEvidenceSummary | null>(null);
@@ -119,44 +158,72 @@ export default function ProgramEvidence({
     if (safe) void Linking.openURL(safe).catch(() => undefined);
   };
 
+  /**
+   * The page chrome, or nothing at all when a sheet is already providing it.
+   * Kept as one wrapper so every state (loading, failed, loaded) is framed the
+   * same way and a future state cannot forget the `embedded` case.
+   */
+  const Frame = ({
+    description,
+    children,
+  }: {
+    description?: string;
+    children: React.ReactNode;
+  }) =>
+    embedded ? (
+      <>{children}</>
+    ) : (
+      <Page
+        title="What the research actually says"
+        description={description}
+        onBack={onBack}
+      >
+        {children}
+      </Page>
+    );
+
   if (loading) {
     return (
-      <Page title="What this rests on" onBack={onBack}>
+      <Frame>
         <View style={styles.centered}>
           <Spinner label="Loading…" />
         </View>
-      </Page>
+      </Frame>
     );
   }
 
   if (failed || !summary) {
     return (
-      <Page title="What this rests on" onBack={onBack}>
+      <Frame>
         <ErrorState
           title="Couldn't load the research"
           message="Check your connection and try again."
           onRetry={load}
         />
-      </Page>
+      </Frame>
     );
   }
 
   const checked = readableDate(summary.lastCheckedAt);
 
   return (
-    <Page
-      title="What this rests on"
-      description={programTitle ?? summary.title}
-      onBack={onBack}
-    >
+    <Frame description={programTitle ?? summary.title}>
       <View style={styles.body}>
         {checked ? (
           <Surface bordered rounded="card" padded={spacing.lg}>
-            <Text variant="label">Last checked {checked}</Text>
+            {/* The Udemy promise, in the place that proves it. The date above
+                is our "Last updated": it is a real field on every claim, so a
+                program that has not been re-read cannot pretend it has.
+
+                WHAT THIS MAY NOT SAY YET. "Our experts keep improving it" is
+                the line we want and cannot publish. reviewSignoff.service.ts
+                withholds "reviewed by a licensed professional" until an SLP
+                signs a specific version, and none has signed any. Add it here
+                the day the first sign-off lands, not before. */}
+            <Text variant="label">Checked {checked}</Text>
             <Text variant="bodySm" color="secondary" style={styles.headerBody}>
-              Every claim below was read back to the paper it came from. When a
-              study stops supporting what a day says, the day changes and you
-              get the new version at no cost.
+              When new research comes out, we update the days it changes. Those
+              updates are free.
             </Text>
           </Surface>
         ) : null}
@@ -171,7 +238,7 @@ export default function ProgramEvidence({
                 onPress={() => setOpenKey(open ? null : key)}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: open }}
-                accessibilityLabel={`${claim.strength}. ${claim.plainCount}`}
+                accessibilityLabel={`${STRENGTH_LABEL[claim.strength]}. ${claim.plainCount}`}
                 accessibilityHint={
                   open ? "Collapses this source" : "Opens this source in full"
                 }
@@ -185,7 +252,7 @@ export default function ProgramEvidence({
                       importantForAccessibility="no-hide-descendants"
                     >
                       <Text variant="caption" style={{ color: tone.fg }}>
-                        {claim.strength}
+                        {STRENGTH_LABEL[claim.strength]}
                       </Text>
                     </View>
                     <Text
@@ -212,10 +279,10 @@ export default function ProgramEvidence({
                     { borderTopColor: colors.border.hairline },
                   ]}
                 >
-                  <Detail label="Who" value={claim.population} />
-                  <Detail label="How" value={claim.design} />
+                  <Detail label="Who was studied" value={claim.population} />
+                  <Detail label="How they studied it" value={claim.design} />
                   <Detail
-                    label="What it does not show"
+                    label="What this does not tell you"
                     value={claim.theLimitInPlainWords}
                     emphasis
                   />
@@ -233,7 +300,7 @@ export default function ProgramEvidence({
 
                   {readableDate(claim.lastCheckedAt) ? (
                     <Text variant="caption" color="tertiary">
-                      Paper last read {readableDate(claim.lastCheckedAt)}
+                      We read this one on {readableDate(claim.lastCheckedAt)}
                     </Text>
                   ) : null}
                 </View>
@@ -242,7 +309,7 @@ export default function ProgramEvidence({
           );
         })}
       </View>
-    </Page>
+    </Frame>
   );
 }
 
