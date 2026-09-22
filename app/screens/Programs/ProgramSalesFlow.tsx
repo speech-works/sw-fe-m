@@ -418,7 +418,9 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
       <Sheet
         visible={evidenceOpen && !sheetOpen}
         onClose={() => setEvidenceOpen(false)}
-        title="What this rests on"
+        // Must match the title ProgramEvidence gives its own Page. The sheet
+        // draws this one, so an edit there alone changes nothing here.
+        title="What the research actually says"
       >
         <ProgramEvidence
           embedded
