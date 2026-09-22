@@ -1,5 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Linking, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  StyleSheet,
+  View,
+} from "react-native";
 import { getProgramEvidence } from "../../api/packs";
 import type {
   ProgramEvidenceEntry,
@@ -7,6 +13,7 @@ import type {
 } from "../../api/packs/types";
 import PressableScale from "../../components/PressableScale";
 import {
+  duration,
   ErrorState,
   Icon,
   icons,
@@ -16,17 +23,15 @@ import {
   Spinner,
   Surface,
   Text,
-  TextLink,
   useTheme,
 } from "../../design-system";
-import { toSafeExternalUrl } from "../../util/functions/url";
 
 /**
  * Everything a program's teaching rests on, in one place.
  *
- * Reached from `EvidenceCard` in the pre-purchase sales flow, never from
+ * Reached from `EvidenceNode` in the pre-purchase sales flow, never from
  * inside a day. That siting is the whole design and the reasoning lives in
- * EvidenceCard.
+ * EvidenceNode.
  *
  * ── TWO RULES A FUTURE EDIT MUST NOT BREAK ────────────────────────────────
  *
@@ -41,7 +46,40 @@ import { toSafeExternalUrl } from "../../util/functions/url";
  *    order the program uses them. Hiding a thin claim behind the strong ones
  *    would undo the reason the card promises to show it.
  *
- * The strength label is the only place colour carries meaning here.
+ * 3. NEVER RENDER A GRADE. FOUNDER DECISION 2026-09-22: do not downplay the
+ *    content. This screen used to turn `strength` into a label ("Thin
+ *    evidence", "One solid study") with a coloured bar and a legend. A grade
+ *    on a source read as a verdict on the program, and one label per grade
+ *    misdescribed what it covered: a review of eighteen studies showed as
+ *    "One solid study". `whatItIs` says what each source is, in its own
+ *    words, and that is the strongest true thing the screen can say.
+ *    `strength` stays on the wire for the console and is never rendered.
+ *
+ * ── SHAPE ─────────────────────────────────────────────────────────────────
+ *
+ * Two levels, not one list of expanding cards. The first is a short list a
+ * buyer can scan in a few seconds: what the source is, the claim, chevron.
+ * Tapping a row swaps in a page for that one source: the count, the
+ * plain-language limit and the full citation, and nothing else.
+ *
+ * ── TWO DECISIONS THE PAGE MUST KEEP (founder, 2026-09-22) ───────────────
+ *
+ * NO OUTBOUND LINKS. Fourteen of the nineteen sources land on a paywall or a
+ * bare abstract. The people who tap are the most engaged buyers, and the app
+ * lost them to Safari for nothing. The citation is plain text. `sourceUrl`
+ * stays on the wire for the clinical console and is never rendered here.
+ *
+ * TWO BLOCKS PER ROW, NOT FIVE. The limit and the citation. "Who was
+ * studied", "How they studied it" and the per-claim date already live in the
+ * generated reviewer sheet and the console; on a phone they dwarfed the claim
+ * they backed. `population`, `design` and the per-claim `lastCheckedAt` are
+ * on the wire and deliberately unused. The whole-program date stays.
+ *
+ * The detail is state inside this component rather than a navigator route so
+ * it works identically inside the sales flow's `Sheet` and on its own `Page`.
+ * The page draws no back control of its own: on a `Page` the header arrow
+ * does it, and in a `Sheet` the host puts one in the sheet header (`selected`
+ * and `onSelectedChange` below).
  */
 
 type Props = {
@@ -59,34 +97,18 @@ type Props = {
    * owns dismissal.
    */
   embedded?: boolean;
-};
-
-/**
- * The strength word a reader sees, instead of the one the registry stores.
- *
- * The stored values are the clinical grades a reviewer needs (STRONG,
- * MODERATE, WEAK, CONTESTED, ABSENT) and every one of them fails in front of a
- * buyer. Shouted capitals read as a warning label. "CONTESTED" and "ABSENT"
- * are terms of art that sound like a verdict on the program rather than a
- * description of a literature. And a reader who has to decode a word has
- * already stopped reading.
- *
- * These replacements say the same thing in words nobody has to learn.
- * "Untested" is deliberately the bluntest: the card that opens this screen
- * promises to show the shaky one, and a softened word here would break that
- * promise at the moment it is being kept.
- *
- * NONE OF THESE MAY BECOME A CLAIM ABOUT THE PROGRAM. They describe the
- * evidence behind one sentence, never what the program will do for anybody.
- * PROGRAM_STRATEGY.md 8.2 also bans "proven", which is why the strongest word
- * available here is "tested".
- */
-const STRENGTH_LABEL: Record<ProgramEvidenceEntry["strength"], string> = {
-  STRONG: "Well tested",
-  MODERATE: "One solid study",
-  WEAK: "Thin evidence",
-  CONTESTED: "Studies disagree",
-  ABSENT: "Untested",
+  /**
+   * Which source page is showing, when the host owns that choice.
+   *
+   * Inside a `Sheet` the way back to the list has to be the sheet's own
+   * header button, beside close, the way every other stepped sheet in the app
+   * does it (see the reminder sheet). The header belongs to the host, so the
+   * host holds the selection and this screen reports changes through
+   * `onSelectedChange`. Left undefined, the screen keeps the selection itself
+   * and its `Page` back arrow returns to the list.
+   */
+  selected?: number | null;
+  onSelectedChange?: (index: number | null) => void;
 };
 
 const MONTHS = [
@@ -146,12 +168,21 @@ export default function ProgramEvidence({
   programTitle,
   onBack,
   embedded = false,
+  selected: selectedProp,
+  onSelectedChange,
 }: Props) {
   const { colors } = useTheme();
   const [summary, setSummary] = useState<ProgramEvidenceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  /** Index of the claim whose page is showing, or null for the list. */
+  const [selectedOwn, setSelectedOwn] = useState<number | null>(null);
+  const controlled = selectedProp !== undefined;
+  const selected = controlled ? selectedProp : selectedOwn;
+  const setSelected = (index: number | null) => {
+    if (!controlled) setSelectedOwn(index);
+    onSelectedChange?.(index);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,34 +199,6 @@ export default function ProgramEvidence({
   useEffect(() => {
     void load();
   }, [load]);
-
-  /**
-   * The strength label's colours.
-   *
-   * CONTESTED and ABSENT are warned, not failed: both are honest states a
-   * claim is allowed to be in, and this product ships days that rest on them
-   * deliberately. Red is kept for ABSENT alone, where nobody has measured the
-   * thing at all.
-   */
-  const toneFor = (strength: ProgramEvidenceEntry["strength"]) => {
-    switch (strength) {
-      case "STRONG":
-        return { bg: colors.accent.success, fg: colors.accentText.success };
-      case "CONTESTED":
-        return { bg: colors.accent.warning, fg: colors.accentText.warning };
-      case "ABSENT":
-        return { bg: colors.accent.danger, fg: colors.accentText.danger };
-      default:
-        return { bg: colors.surface.control, fg: colors.text.secondary };
-    }
-  };
-
-  const openSource = (url?: string) => {
-    const safe = toSafeExternalUrl(url);
-    // No sheet on failure: a missing link is not the reader's problem to
-    // solve, and every row is readable without one.
-    if (safe) void Linking.openURL(safe).catch(() => undefined);
-  };
 
   /**
    * The page chrome, or nothing at all when a sheet is already providing it.
@@ -215,7 +218,7 @@ export default function ProgramEvidence({
       <Page
         title="What the research actually says"
         description={description}
-        onBack={onBack}
+        onBack={selected === null ? onBack : () => setSelected(null)}
       >
         {children}
       </Page>
@@ -244,122 +247,198 @@ export default function ProgramEvidence({
   }
 
   const checked = readableDate(summary.lastCheckedAt);
+  const claims = summary.claims;
+  const current = selected === null ? null : claims[selected];
+
+  if (current) {
+    return (
+      <Frame description={programTitle ?? summary.title}>
+        <SourcePage claim={current} />
+      </Frame>
+    );
+  }
 
   return (
     <Frame description={programTitle ?? summary.title}>
       <View style={styles.body}>
-        {summary.claims.length > 0 ? (
-          <Surface bordered rounded="card" padded={spacing.lg}>
-            {/* The Udemy promise, in the place that proves it. The date above
-                is our "Last updated": it is a real field on every claim, so a
-                program that has not been re-read cannot pretend it has.
-
-                THE PROMISE IS NOT GATED ON THE DATE. It used to be, and on a
-                simulator the whole card disappeared: a payload with no
-                lastCheckedAt took the free-updates line down with it, which is
-                the one line here a buyer is owed. The date is the proof and it
-                is shown when there is one; the promise is the point and it is
-                shown whenever there are claims at all.
-
-                WHAT THIS MAY NOT SAY YET. "Our experts keep improving it" is
-                the line we want and cannot publish. reviewSignoff.service.ts
-                withholds "reviewed by a licensed professional" until an SLP
-                signs a specific version, and none has signed any. Add it here
-                the day the first sign-off lands, not before. */}
-            {checked ? <Text variant="label">Checked {checked}</Text> : null}
-            <Text variant="bodySm" color="secondary" style={styles.headerBody}>
-              When new research comes out, we update the days it changes. Those
-              updates are free.
+        {claims.length > 0 ? (
+          <View style={styles.intro}>
+            <Text variant="bodySm" color="secondary">
+              {claims.length === 1
+                ? "One source. Tap it to see what it found, and where it stops."
+                : `${COUNT_WORD[claims.length] ?? claims.length} sources. Tap one to see what it found, and where it stops.`}
             </Text>
-          </Surface>
+
+            {/* The founder's line, approved 2026-09-22, last sentence set on
+                2026-09-23. The sheet counts studies and nothing else, so a
+                day built on clinical practice or teaching order reads as
+                unsupported, and two programs carry no studies at all,
+                honestly. This is what stops a buyer reading a small number as
+                nothing. It sits here rather than under the date because the
+                date moved to the foot, and a sentence that says "below"
+                cannot sit at the bottom. */}
+            <Text variant="bodySm" color="secondary">
+              Some of these days come from studies. Others come from how this
+              is taught. The studies are below.
+            </Text>
+          </View>
         ) : null}
 
-        {summary.claims.map((claim, index) => {
-          const key = `${claim.source}-${index}`;
-          const open = openKey === key;
-          const tone = toneFor(claim.strength);
-          return (
-            <Surface key={key} bordered rounded="card">
+        <Surface rounded="card">
+          {claims.map((claim, index) => {
+            const last = index === claims.length - 1;
+            return (
               <PressableScale
-                onPress={() => setOpenKey(open ? null : key)}
+                key={`${claim.source}-${index}`}
+                onPress={() => setSelected(index)}
                 accessibilityRole="button"
-                accessibilityState={{ expanded: open }}
-                accessibilityLabel={`${STRENGTH_LABEL[claim.strength]}. ${claim.plainCount}`}
-                accessibilityHint={
-                  open ? "Collapses this source" : "Opens this source in full"
-                }
+                accessibilityLabel={`${claim.whatItIs}. ${claim.claim}`}
+                accessibilityHint="Opens this source in full"
               >
-                <View style={styles.rowInner}>
-                  <View style={styles.rowTop}>
-                    <View
-                      style={[styles.pill, { backgroundColor: tone.bg }]}
-                      // The word is in the row's accessibilityLabel already.
-                      accessibilityElementsHidden
-                      importantForAccessibility="no-hide-descendants"
-                    >
-                      <Text variant="caption" style={{ color: tone.fg }}>
-                        {STRENGTH_LABEL[claim.strength]}
-                      </Text>
-                    </View>
-                    <Text
-                      variant="bodySm"
-                      color="secondary"
-                      style={styles.count}
-                    >
-                      {claim.plainCount}
-                    </Text>
-                    <Icon
-                      name={open ? icons.chevronUp : icons.chevronDown}
-                      size={size.iconInline}
-                      color={colors.text.tertiary}
-                    />
-                  </View>
-                  <Text variant="body">{claim.claim}</Text>
-                </View>
-              </PressableScale>
-
-              {open ? (
                 <View
                   style={[
-                    styles.detail,
-                    { borderTopColor: colors.border.hairline },
+                    styles.row,
+                    !last && {
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border.hairline,
+                    },
                   ]}
                 >
-                  <Detail label="Who was studied" value={claim.population} />
-                  <Detail label="How they studied it" value={claim.design} />
-                  <Detail
-                    label="What this does not tell you"
-                    value={claim.theLimitInPlainWords}
-                    emphasis
+                  <View style={styles.rowText}>
+                    {/* What the source is, in its own words, never a grade.
+                        Sentence case: capitals read as a warning label. */}
+                    <Text variant="caption" color="tertiary">
+                      {claim.whatItIs}
+                    </Text>
+                    <Text variant="title">{claim.claim}</Text>
+                  </View>
+                  <Icon
+                    name={icons.chevronRight}
+                    size={size.iconInline}
+                    color={colors.text.disabled}
                   />
-
-                  {claim.sourceUrl ? (
-                    <TextLink
-                      label={claim.source}
-                      onPress={() => openSource(claim.sourceUrl)}
-                    />
-                  ) : (
-                    <Text variant="caption" color="tertiary">
-                      {claim.source}
-                    </Text>
-                  )}
-
-                  {readableDate(claim.lastCheckedAt) ? (
-                    <Text variant="caption" color="tertiary">
-                      We read this one on {readableDate(claim.lastCheckedAt)}
-                    </Text>
-                  ) : null}
                 </View>
-              ) : null}
-            </Surface>
-          );
-        })}
+              </PressableScale>
+            );
+          })}
+        </Surface>
+
+        {/* The Udemy promise, in the place that proves it. The date is our
+            "Last updated": a real field on every claim, so a program that has
+            not been re-read cannot pretend it has.
+
+            THE PROMISE IS NOT GATED ON THE DATE. It used to be, and on a
+            simulator the whole line disappeared: a payload with no
+            lastCheckedAt took the free-updates line down with it, which is
+            the one line here a buyer is owed. The date is the proof and it
+            is shown whenever there is one; the promise is shown whenever
+            there are claims at all.
+
+            WHAT THIS MAY NOT SAY YET. "Our experts keep improving it" is the
+            line we want and cannot publish. reviewSignoff.service.ts
+            withholds "reviewed by a licensed professional" until an SLP
+            signs a specific version, and none has signed any. Add it here
+            the day the first sign-off lands, not before. */}
+        {claims.length > 0 ? (
+          <Text variant="caption" color="tertiary" center style={styles.foot}>
+            {checked ? `Checked ${checked}. ` : ""}
+            When new research changes a day, we update it. Those updates are
+            free.
+          </Text>
+        ) : null}
       </View>
     </Frame>
   );
 }
 
-function Detail({
+/** "Five sources", not "5 sources": the counts here are small and read aloud. */
+const COUNT_WORD: Record<number, string> = {
+  2: "Two",
+  3: "Three",
+  4: "Four",
+  5: "Five",
+  6: "Six",
+  7: "Seven",
+  8: "Eight",
+  9: "Nine",
+};
+
+/**
+ * One source: the count, the limit, the citation.
+ *
+ * Slides in from the right, the way a pushed screen would, so the reader
+ * keeps the sense that the list is still behind it. Under reduced motion it
+ * only fades. Plain `Animated` rather than Reanimated so the screen stays
+ * testable under jest without a native mock.
+ */
+function SourcePage({ claim }: { claim: ProgramEvidenceEntry }) {
+  const progress = useRef(new Animated.Value(0)).current;
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((on) => {
+        if (live) setReduced(on);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    progress.setValue(0);
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: duration.reveal,
+      easing: Easing.bezier(0.23, 1, 0.32, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [claim, progress]);
+
+  const translateX = reduced
+    ? 0
+    : progress.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
+
+  return (
+    <Animated.View
+      style={[styles.page, { opacity: progress, transform: [{ translateX }] }]}
+    >
+      <View style={styles.pageHead}>
+        <Text variant="caption" color="tertiary">
+          {claim.whatItIs}
+        </Text>
+        <Text variant="h2">{claim.claim}</Text>
+        <Text variant="body" color="secondary">
+          {claim.plainCount}
+        </Text>
+      </View>
+
+      {/* The limit gets the only boxed treatment on the page. It is the line
+          the card that opened this screen promised, and the one a seller
+          would be tempted to bury. */}
+      <Surface rounded="md" padded={spacing.lg}>
+        <Section
+          label="What this does not tell you"
+          value={claim.theLimitInPlainWords}
+          emphasis
+        />
+      </Surface>
+
+      <Surface rounded="card" padded={spacing.lg} style={styles.source}>
+        <Text variant="caption" color="tertiary">
+          SOURCE
+        </Text>
+        <Text variant="bodySm" color="secondary">
+          {claim.source}
+        </Text>
+      </Surface>
+    </Animated.View>
+  );
+}
+
+function Section({
   label,
   value,
   emphasis,
@@ -369,11 +448,11 @@ function Detail({
   emphasis?: boolean;
 }) {
   return (
-    <View style={styles.detailRow}>
+    <View style={styles.section}>
       <Text variant="caption" color="tertiary">
-        {label}
+        {label.toUpperCase()}
       </Text>
-      <Text variant="bodySm" color={emphasis ? "primary" : "secondary"}>
+      <Text variant="body" color={emphasis ? "primary" : "secondary"}>
         {value}
       </Text>
     </View>
@@ -382,20 +461,19 @@ function Detail({
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  body: { gap: spacing.md, paddingBottom: spacing.xl },
-  headerBody: { marginTop: spacing.xs },
-  rowInner: { padding: spacing.lg, gap: spacing.sm },
-  rowTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  pill: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  count: { flex: 1 },
-  detail: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    padding: spacing.lg,
+  body: { gap: spacing.lg, paddingBottom: spacing.xl },
+  intro: { gap: spacing.sm },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
-  detailRow: { gap: spacing.xs },
+  rowText: { flex: 1, gap: spacing.xs },
+  foot: { marginTop: spacing.xs },
+  page: { gap: spacing.lg, paddingBottom: spacing.xl },
+  pageHead: { gap: spacing.sm },
+  section: { gap: spacing.xs },
+  source: { gap: spacing.sm },
 });

@@ -53,7 +53,7 @@ import {
   PackBrochure,
   type ProgramEvidenceSummary,
 } from "../../api/packs/types";
-import EvidenceCard from "./EvidenceCard";
+import EvidenceNode from "./EvidenceNode";
 import ProgramEvidence from "./ProgramEvidence";
 
 /**
@@ -142,6 +142,13 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   const catalogKey = brochure?.catalogKey ?? offer.key;
   const [evidence, setEvidence] = useState<ProgramEvidenceSummary | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  // Which source page the research sheet is on. Held here because the way
+  // back to the list is the sheet's own header button, and the header is ours.
+  const [evidenceSelected, setEvidenceSelected] = useState<number | null>(null);
+  const closeEvidence = () => {
+    setEvidenceOpen(false);
+    setEvidenceSelected(null);
+  };
   useEffect(() => {
     let live = true;
     void getProgramEvidence(catalogKey)
@@ -243,19 +250,14 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
           title={dayCount ? `Your ${dayCount} days` : "Your plan"}
           modules={modules}
           bottomPad={bottomPad}
-          // Under the last day, which is where a reader who has just read the
-          // whole arc is asking whether any of it is real. Never on the hook:
-          // that page is the promise, and a source list argues with it.
+          // The last stop on the rail, after the last day, which is where a
+          // reader who has just read the whole arc is asking whether any of
+          // it is real. Never on the hook: that page is the promise, and a
+          // source list argues with it.
           footer={
-            evidence ? (
-              <EvidenceCard
+            evidence && evidence.claimCount > 0 ? (
+              <EvidenceNode
                 claimCount={evidence.claimCount}
-                hasThinClaim={evidence.claims.some(
-                  (c) =>
-                    c.strength === "WEAK" ||
-                    c.strength === "CONTESTED" ||
-                    c.strength === "ABSENT",
-                )}
                 onPress={() => setEvidenceOpen(true)}
               />
             ) : null
@@ -417,16 +419,36 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
           lives on a pager page, which is behind that sheet whenever it shows. */}
       <Sheet
         visible={evidenceOpen && !sheetOpen}
-        onClose={() => setEvidenceOpen(false)}
-        // Must match the title ProgramEvidence gives its own Page. The sheet
-        // draws this one, so an edit there alone changes nothing here.
-        title="What the research actually says"
+        onClose={closeEvidence}
+        // The short form of the title ProgramEvidence gives its own Page.
+        // This header shares its row with a back and a close button, and the
+        // full line wrapped under them.
+        title="The research"
+        // Back sits beside close while a source page is open, the same pair
+        // the reminder sheet shows on its second step. The page itself draws
+        // no back control: the sheet header is where the app keeps them.
+        right={
+          evidenceSelected !== null ? (
+            <>
+              <IconButton
+                name={icons.back}
+                onPress={() => setEvidenceSelected(null)}
+                accessibilityLabel="Back to all sources"
+              />
+              <IconButton name={icons.close} onPress={closeEvidence} accessibilityLabel="Close" />
+            </>
+          ) : (
+            <IconButton name={icons.close} onPress={closeEvidence} accessibilityLabel="Close" />
+          )
+        }
       >
         <ProgramEvidence
           embedded
           catalogKey={catalogKey}
           programTitle={title}
-          onBack={() => setEvidenceOpen(false)}
+          onBack={closeEvidence}
+          selected={evidenceSelected}
+          onSelectedChange={setEvidenceSelected}
         />
       </Sheet>
     </View>
@@ -762,7 +784,11 @@ interface PlanPageProps {
   title: string;
   modules: PackBrochure["modules"];
   bottomPad: number;
-  /** Rendered under the last day, inside the same scroll. Optional. */
+  /**
+   * One more stop on the rail after the last day, marked with a dashed "?"
+   * in place of a number. The rail is drawn here so it lines up with the days
+   * by construction; the footer supplies only the row's text. Optional.
+   */
   footer?: React.ReactNode;
 }
 
@@ -827,7 +853,7 @@ const PlanPage: React.FC<PlanPageProps> = ({
                     {n}
                   </Text>
                 </View>
-                {!last ? (
+                {!last || footer ? (
                   <View style={[styles.line, { backgroundColor: colors.border.default }]} />
                 ) : null}
               </View>
@@ -844,7 +870,18 @@ const PlanPage: React.FC<PlanPageProps> = ({
             </View>
           );
         })}
-        {footer ? <View style={styles.planFooter}>{footer}</View> : null}
+        {footer ? (
+          <View style={styles.dayRow}>
+            <View style={styles.rail}>
+              <View style={[styles.node, styles.askNode, { borderColor: colors.border.strong }]}>
+                <Text variant="caption" color="tertiary">
+                  ?
+                </Text>
+              </View>
+            </View>
+            <View style={styles.dayBody}>{footer}</View>
+          </View>
+        ) : null}
       </Animated.ScrollView>
         {/* Top dissolve — the mirror of the buy-dock fade. A tall canvas gradient
             whose opacity ramps in with scroll, so the list melts into the canvas
@@ -1244,9 +1281,6 @@ const styles = StyleSheet.create({
     marginTop: space.titleSub,
   },
   // ── Plan / timeline ──
-  planFooter: {
-    marginTop: spacing.lg,
-  },
   planScrollWrap: {
     flex: 1,
     marginTop: space.groupGap,
@@ -1281,6 +1315,13 @@ const styles = StyleSheet.create({
     width: 2,
     flex: 1,
     marginVertical: 2,
+  },
+  // The question's marker: an outline where the days are filled, dashed so
+  // it reads as "not a day" at a glance.
+  askNode: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderStyle: "dashed",
   },
   dayBody: {
     flex: 1,

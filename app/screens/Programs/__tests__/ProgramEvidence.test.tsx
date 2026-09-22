@@ -48,19 +48,26 @@ jest.mock("../../../design-system", () => {
       ]),
     Surface: passthrough("Surface"),
     Text: ({ children }: any) => React.createElement(RN.Text, null, children),
-    TextLink: ({ label }: any) => React.createElement(RN.Text, null, label),
     Icon: () => null,
     Spinner: () => null,
     ErrorState: ({ title }: any) => React.createElement(RN.Text, null, title),
-    icons: { chevronUp: "chevronUp", chevronDown: "chevronDown" },
+    icons: {
+      chevronRight: "chevronRight",
+    },
     size: { iconInline: 16 },
-    spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 },
+    spacing: { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+    duration: { reveal: 240 },
     useTheme: () => ({
       colors: {
         accent: { success: "#0f0", warning: "#fa0", danger: "#f00" },
         accentText: { success: "#030", warning: "#530", danger: "#300" },
-        surface: { control: "#eee" },
-        text: { secondary: "#666", tertiary: "#999" },
+        surface: { control: "#eee", track: "#ccc" },
+        text: {
+          secondary: "#666",
+          tertiary: "#999",
+          disabled: "#aaa",
+          link: "#f80",
+        },
         border: { hairline: "#ddd" },
       },
     }),
@@ -93,6 +100,7 @@ const SUMMARY = {
     {
       claim: "Where the line sits has been studied twice, and they disagree.",
       plainCount: "Two studies. Neither settles it.",
+      whatItIs: "Two small studies, 90 and 137 raters",
       source: "Healey, E. C., et al. (2007). J Fluency Disord, 32, 51-69.",
       sourceUrl: "https://pubmed.ncbi.nlm.nih.gov/17275902/",
       strength: "CONTESTED" as const,
@@ -105,6 +113,7 @@ const SUMMARY = {
     {
       claim: "Telling people usually improves how they rate you.",
       plainCount: "Fifteen of eighteen studies.",
+      whatItIs: "Review of 18 studies",
       source: "Coalson, G. A., et al. (2026). J Fluency Disord, 88, 106200.",
       strength: "STRONG" as const,
       population: "Mixed.",
@@ -134,7 +143,9 @@ async function renderScreen(embedded = false) {
 }
 
 /**
- * Opens the row whose accessibility label contains `text`.
+ * Opens the page for the row whose accessibility label contains `text`.
+ * Rows are labelled with the strength word and the claim; the count only
+ * appears once the page is open.
  *
  * Finding by label rather than by index: react-test-renderer's findAll
  * matches BOTH a component and the host element it renders, so an index walks
@@ -157,9 +168,130 @@ describe("ProgramEvidence", () => {
   it("shows the reader's version of the limit once a row is open", async () => {
     const tree = await renderScreen();
     await TestRenderer.act(async () => {
-      pressRow(tree, "Two studies. Neither settles it.");
+      pressRow(
+        tree,
+        "Where the line sits has been studied twice, and they disagree.",
+      );
     });
-    expect(flatten(tree.toJSON())).toContain(READER_SAFE);
+    const open = flatten(tree.toJSON());
+    expect(open).toContain(READER_SAFE);
+    // The count and the citation live on the page, not in the list.
+    expect(open).toContain("Two studies. Neither settles it.");
+    expect(open).toContain("Healey");
+  });
+
+  it("keeps the count and the citation off the list", async () => {
+    const rendered = flatten((await renderScreen()).toJSON());
+    expect(rendered).toContain(
+      "Where the line sits has been studied twice, and they disagree.",
+    );
+    expect(rendered).not.toContain("Two studies. Neither settles it.");
+    expect(rendered).not.toContain("Healey");
+  });
+
+  /**
+   * Inside the sales sheet the way back to the list is the sheet's header
+   * button, which the host draws. So the host owns the selection: the screen
+   * reports a tap through `onSelectedChange` and shows whatever `selected`
+   * says. A screen that kept its own copy would ignore the header button.
+   */
+  it("lets the host own the selection when embedded", async () => {
+    const onSelectedChange = jest.fn();
+    let tree: any;
+    const render = (selected: number | null) =>
+      React.createElement(ProgramEvidence, {
+        catalogKey: "art_of_disclosure",
+        onBack: () => undefined,
+        embedded: true,
+        selected,
+        onSelectedChange,
+      });
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(render(null));
+    });
+    await TestRenderer.act(async () => {
+      pressRow(
+        tree,
+        "Where the line sits has been studied twice, and they disagree.",
+      );
+    });
+    expect(onSelectedChange).toHaveBeenCalledWith(0);
+    // The host has not moved yet, so the list is still showing.
+    expect(flatten(tree.toJSON())).toContain(
+      "Telling people usually improves how they rate you.",
+    );
+
+    await TestRenderer.act(async () => {
+      tree.update(render(0));
+    });
+    const page = flatten(tree.toJSON());
+    expect(page).toContain(READER_SAFE);
+    expect(page).not.toContain(
+      "Telling people usually improves how they rate you.",
+    );
+    // No back control of its own: the sheet header carries it.
+    expect(page).not.toContain("All sources");
+
+    await TestRenderer.act(async () => {
+      tree.update(render(null));
+    });
+    expect(flatten(tree.toJSON())).toContain(
+      "Telling people usually improves how they rate you.",
+    );
+  });
+
+  /**
+   * FOUNDER DECISION, 2026-09-22: no outbound links. Fourteen of the nineteen
+   * sources land on a paywall or a bare abstract, and the people who tap are
+   * the most engaged buyers. The citation is plain text; the URL is on the
+   * wire for the console and must never reach the tree.
+   */
+  it("never links out: the citation is plain text and the URL is not rendered", async () => {
+    const tree = await renderScreen();
+    await TestRenderer.act(async () => {
+      pressRow(
+        tree,
+        "Where the line sits has been studied twice, and they disagree.",
+      );
+    });
+    const open = flatten(tree.toJSON());
+    expect(open).toContain("Healey");
+    expect(open).not.toContain("Open on");
+    expect(open).not.toContain("Open the source");
+    expect(open).not.toContain("pubmed.ncbi.nlm.nih.gov");
+  });
+
+  /**
+   * FOUNDER DECISION, 2026-09-22: two blocks per row, not five. The page is
+   * the count, the limit and the citation. Who was studied, how they studied
+   * it and the per-claim date live in the reviewer sheet and the console.
+   * The whole-program date stays, because it is the receipt for the free
+   * updates promise.
+   */
+  it("keeps the page to the count, the limit and the citation", async () => {
+    const tree = await renderScreen();
+    await TestRenderer.act(async () => {
+      pressRow(
+        tree,
+        "Where the line sits has been studied twice, and they disagree.",
+      );
+    });
+    const open = flatten(tree.toJSON());
+    expect(open).toContain("Two studies. Neither settles it.");
+    expect(open).toContain(READER_SAFE);
+    expect(open).toContain("Healey");
+    expect(open).not.toContain("90 listeners rating a recording.");
+    expect(open).not.toContain("Two experiments.");
+    expect(open).not.toContain("Who was studied");
+    expect(open).not.toContain("How they studied it");
+    expect(open).not.toContain("We read this one on");
+  });
+
+  it("keeps the whole-program date and says not every day rests on a study", async () => {
+    const rendered = flatten((await renderScreen()).toJSON());
+    expect(rendered).toContain("Checked 21 September 2026");
+    expect(rendered).toContain("Some of these days come from studies.");
+    expect(rendered).toContain("The studies are below.");
   });
 
   it("never renders the reviewer's version, open or closed", async () => {
@@ -170,7 +302,10 @@ describe("ProgramEvidence", () => {
 
     // Open, which is where a wrong field reference would surface.
     await TestRenderer.act(async () => {
-      pressRow(tree, "Two studies. Neither settles it.");
+      pressRow(
+        tree,
+        "Where the line sits has been studied twice, and they disagree.",
+      );
     });
     const open = flatten(tree.toJSON());
     expect(open).not.toContain(REVIEWER_ONLY);
@@ -182,17 +317,23 @@ describe("ProgramEvidence", () => {
   it("keeps the server's order, so a thin claim is not buried", async () => {
     const tree = await renderScreen();
     const rendered = flatten(tree.toJSON());
-    expect(rendered.indexOf("Two studies. Neither settles it.")).toBeLessThan(
-      rendered.indexOf("Fifteen of eighteen studies."),
+    expect(
+      rendered.indexOf(
+        "Where the line sits has been studied twice, and they disagree.",
+      ),
+    ).toBeLessThan(
+      rendered.indexOf("Telling people usually improves how they rate you."),
     );
   });
 
   it("renders a claim with no source link without throwing", async () => {
     const tree = await renderScreen();
     await TestRenderer.act(async () => {
-      pressRow(tree, "Fifteen of eighteen studies.");
+      pressRow(tree, "Telling people usually improves how they rate you.");
     });
-    expect(flatten(tree.toJSON())).toContain("Coalson");
+    const open = flatten(tree.toJSON());
+    expect(open).toContain("Coalson");
+    expect(open).not.toContain("Open on");
   });
 
   /**
@@ -208,23 +349,46 @@ describe("ProgramEvidence", () => {
 
     const bare = flatten((await renderScreen(true)).toJSON());
     expect(bare).not.toContain("What the research actually says");
-    expect(bare).toContain("Two studies. Neither settles it.");
-    expect(bare).toContain("Fifteen of eighteen studies.");
+    expect(bare).toContain(
+      "Where the line sits has been studied twice, and they disagree.",
+    );
+    expect(bare).toContain(
+      "Telling people usually improves how they rate you.",
+    );
   });
 
   /**
-   * The registry's grades are written for a clinical reviewer. On a buyer's
-   * screen, shouted capitals read as a warning label and "CONTESTED" reads as
-   * a verdict on the program. Rendering `claim.strength` straight is a one
-   * character mistake to make and invisible in a diff, so it is asserted.
+   * FOUNDER DECISION, 2026-09-22: do not downplay the content. The line above
+   * each claim says what the source is, in the registry's own words for it.
+   * No grade reaches the screen: not the registry's ("CONTESTED"), and not the
+   * labels this screen used to make from them ("Thin evidence"). A grade on a
+   * source read as a verdict on the program. Rendering `claim.strength` is a
+   * one-character mistake to make and invisible in a diff, so it is asserted.
    */
-  it("shows the plain strength word, never the registry's grade", async () => {
+  it("describes each source and renders no grade, in either vocabulary", async () => {
     const rendered = flatten(await renderScreen().then((t) => t.toJSON()));
-    expect(rendered).toContain("Studies disagree");
-    expect(rendered).toContain("Well tested");
+    expect(rendered).toContain("Two small studies, 90 and 137 raters");
+    expect(rendered).toContain("Review of 18 studies");
     for (const grade of ["CONTESTED", "STRONG", "MODERATE", "WEAK", "ABSENT"]) {
       expect(rendered).not.toContain(grade);
     }
+    for (const label of [
+      "Studies disagree",
+      "Well tested",
+      "One solid study",
+      "Thin evidence",
+      "Untested",
+      "shaky",
+    ]) {
+      expect(rendered).not.toContain(label);
+    }
+  });
+
+  it("opens with what the sources found, not with a warning", async () => {
+    const rendered = flatten((await renderScreen()).toJSON());
+    expect(rendered).toContain(
+      "Two sources. Tap one to see what it found, and where it stops.",
+    );
   });
 
   it("offers a retry instead of a blank screen when the call fails", async () => {

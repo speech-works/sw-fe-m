@@ -4,10 +4,8 @@ import PressableScale from "../../components/PressableScale";
 import {
   Icon,
   icons,
-  radius,
   size,
   spacing,
-  Surface,
   Text,
   useTheme,
 } from "../../design-system";
@@ -30,39 +28,37 @@ import {
  *
  * The honesty is already in the teaching copy, where it is free and needs no
  * tap: "338 listeners rated ten things", "no trial with a comparison group
- * behind it", "measured on students rather than on daters". This card is proof
- * for the minority who want to check, sited where nobody is mid-task.
+ * behind it", "measured on students rather than on daters". This is proof for
+ * the minority who want to check, sited where nobody is mid-task.
+ *
+ * WHY A NODE AND NOT A CARD. It used to be a bordered card under the timeline:
+ * an icon, a label, a chevron, a second box competing with the buy button.
+ * Now it is the last stop on the arc's own rail, drawn by `PlanPage` with a
+ * dashed marker in place of a day number. The question comes after day 7 the
+ * way it comes to a reader: once they have seen the whole plan. This file is
+ * only the row's text; the rail belongs to the page.
  *
  * THE WORDING IS DELIBERATE. It is the question the reader is already asking,
- * printed back at them, rather than a claim about how rigorous we are. And it
- * names the weakest source before a sceptic can find it, which is the part no
- * competitor can copy without doing the work.
+ * printed back at them, then what the program rests on, as a count.
+ *
+ * FOUNDER DECISION 2026-09-22: do not downplay the content. This line used to
+ * add "including the shaky one" whenever any source was graded weak. That
+ * named the weakest source before a buyer had read a word, and a grade on a
+ * source read as a verdict on the program. The sheet now describes each
+ * source in its own words; this node states the count and nothing else.
  */
-export default function EvidenceCard({
+export default function EvidenceNode({
   claimCount,
-  hasThinClaim,
   onPress,
 }: {
   /** From ProgramEvidenceSummary.claimCount. Never hardcode it: it differs per program. */
   claimCount: number;
-  /**
-   * True when any claim is WEAK, CONTESTED or ABSENT.
-   *
-   * Derive it from the summary rather than assuming: most programs have one,
-   * but a program whose claims are all STRONG must not offer to show a weak
-   * one, and the sentence changes when it does not have one.
-   */
-  hasThinClaim: boolean;
   onPress: () => void;
 }) {
   const { colors } = useTheme();
 
-  if (claimCount === 0) return null;
-
-  const studies = claimCount === 1 ? "One study" : `${claimCount} studies`;
-  const body = hasThinClaim
-    ? `${studies}. We show you the shaky one too.`
-    : `${studies} behind this program. Read them yourself.`;
+  const studies = claimCount === 1 ? "one study" : `${claimCount} studies`;
+  const body = `Rests on ${studies}.`;
 
   return (
     <PressableScale
@@ -71,44 +67,34 @@ export default function EvidenceCard({
       accessibilityLabel={`Is this based on anything? ${body}`}
       accessibilityHint="Opens the research behind this program"
     >
-      <Surface bordered rounded="card" padded={spacing.lg}>
-        <View style={styles.row}>
-          <Icon
-            name={icons.checklist}
-            size={size.iconInline}
-            color={colors.text.secondary}
-          />
-          <View style={styles.copy}>
-            <Text variant="label">Is this based on anything?</Text>
-            <Text variant="bodySm" color="secondary" style={styles.body}>
-              {body}
-            </Text>
-          </View>
-          <Icon
-            name={icons.chevronRight}
-            size={size.iconInline}
-            color={colors.text.tertiary}
-          />
-        </View>
-      </Surface>
+      <Text variant="title" color="primary">
+        Is this based on anything?
+      </Text>
+      <Text variant="bodySm" color="secondary" style={styles.body}>
+        {body}
+      </Text>
+      <View style={styles.link}>
+        <Text variant="label" color="link">
+          Read them
+        </Text>
+        <Icon
+          name={icons.chevronRight}
+          size={size.iconSm}
+          color={colors.text.link}
+        />
+      </View>
     </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.md,
-  },
-  copy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
   body: {
-    // The card grows to fit. A clipped honesty line is worse than a tall card.
-    flexShrink: 1,
+    marginTop: spacing.xs,
+  },
+  link: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xxs,
+    marginTop: spacing.sm,
   },
 });
-
-export const EVIDENCE_CARD_RADIUS = radius.card;

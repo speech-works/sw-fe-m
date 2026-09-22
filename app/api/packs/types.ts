@@ -479,6 +479,13 @@ export interface ProgramEvidenceEntry {
    * inflated the way an adjective can.
    */
   plainCount: string;
+  /**
+   * What the source is, in a few words: "Review of 18 studies", "An essay",
+   * "Randomised trial of 32 adults who stutter". This is the line above the
+   * claim on the evidence sheet. It describes and never grades: `strength` is
+   * for the console and the tests and is not rendered in the app.
+   */
+  whatItIs: string;
   /** Authors, year, title, journal. */
   source: string;
   /** PubMed or PMC, usually. Absent on the handful with no stable link. */
