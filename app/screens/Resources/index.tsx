@@ -149,7 +149,7 @@ const Resources = () => {
 
       <View>
         <Text variant="h3" style={styles.sectionLabel}>
-          Stuttering community & support
+          Support organizations
         </Text>
         <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
           {SUPPORT.map(renderRow)}

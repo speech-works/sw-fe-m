@@ -1,7 +1,7 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { TabDock, TabDockItem, icons, type IconName, haptics } from "../design-system";
-import { ROUTE_NAMES } from "../constants/routes";
+import { ROUTE_NAMES, STACK_ROOT_ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 import { useInboxStore } from "../stores/inbox";
 import { useCommunityDock } from "../stores/communityDock";
@@ -228,9 +228,12 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
 
     if (!event.defaultPrevented) {
       let rootScreen: string | undefined;
-      if (route.name === ROUTE_NAMES.SETTINGS) rootScreen = "Settings";
-      if (route.name === ROUTE_NAMES.HOME) rootScreen = "Home";
-      if (route.name === ROUTE_NAMES.EXPLORE) rootScreen = "Explore";
+      if (route.name === ROUTE_NAMES.SETTINGS)
+        rootScreen = STACK_ROOT_ROUTE_NAMES.SETTINGS;
+      if (route.name === ROUTE_NAMES.HOME)
+        rootScreen = STACK_ROOT_ROUTE_NAMES.HOME;
+      if (route.name === ROUTE_NAMES.EXPLORE)
+        rootScreen = STACK_ROOT_ROUTE_NAMES.EXPLORE;
 
       if (rootScreen) {
         navigation.navigate(route.name, { screen: rootScreen });

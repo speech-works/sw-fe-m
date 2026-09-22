@@ -24,7 +24,7 @@ import {
 const FEATURE_OPTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: "content", label: "More Content", icon: "book-open" },
   { id: "stats", label: "Advanced Stats", icon: "bar-chart-2" },
-  { id: "community", label: "Community", icon: "users" },
+  { id: "community", label: "Buddy Features", icon: "users" },
   { id: "offline", label: "Offline Mode", icon: "cloud-off" },
   { id: "ui", label: "UI Themes", icon: "layout" },
 ];

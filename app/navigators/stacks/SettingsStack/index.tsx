@@ -17,13 +17,14 @@ import BlockedPeople from "../../../screens/Settings/pages/BlockedPeople";
 import Discoverability from "../../../screens/Settings/pages/Discoverability";
 import PaymentStackNavigator from "../PaymentStack";
 import { SettingsStackParamList } from "./types";
+import { STACK_ROOT_ROUTE_NAMES } from "../../../constants/routes";
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
 export default function SettingsStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Settings" component={Settings} />
+      <Stack.Screen name={STACK_ROOT_ROUTE_NAMES.SETTINGS} component={Settings} />
       <Stack.Screen name="ProgressDetail" component={ProgressDetail} />
       <Stack.Screen name="Preferences" component={Preferences} />
       <Stack.Screen name="Privacy" component={Privacy} />

@@ -542,10 +542,10 @@ const Community = () => {
    */
   const pairedMessage =
     heldAtPairing > 0
-      ? `Share your journey, support each other, and grow together. ${
+      ? `Practice sticks when someone's in it with you. ${
           heldAtPairing === 1 ? "One other person is" : `${heldAtPairing} other people are`
         } still waiting; they can see you're paired, and they'll expire on their own.`
-      : "Share your journey, support each other, and grow together.";
+      : "Practice sticks when someone's in it with you.";
   const [blockConfirmVisible, setBlockConfirmVisible] = useState(false);
   const [blockReasonVisible, setBlockReasonVisible] = useState(false);
   const isPaired = link?.status === "active";

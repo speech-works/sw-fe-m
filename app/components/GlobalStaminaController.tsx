@@ -1,20 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { isTabRootRoute } from "../constants/routes";
 import { navigationRef } from "../util/functions/navigation";
 import { useStaminaNotificationStore } from "../stores/staminaNotification";
 import { useUserStore } from "../stores/user";
 import LowStaminaModal from "./LowStaminaModal";
-
-/**
- * Safe screens: tab-root routes that indicate the user has exited an activity.
- * Activity screens live under ExploreStack / PhoneCall / PackModule, etc.
- * When the user lands on any of these, we know it's safe to surface a modal.
- */
-const SAFE_SCREENS = new Set([
-  "Home",
-  "Explore",
-  "Settings",
-  "Community",
-]);
 
 /**
  * GlobalStaminaController
@@ -55,8 +44,14 @@ const GlobalStaminaController: React.FC = () => {
       const currentRoute = navigationRef.getCurrentRoute();
       if (!currentRoute) return;
 
+      // Safe = a tab root, meaning the user has exited any activity (those
+      // live deeper, under ExploreStack / PhoneCall / PackModule, etc.).
+      // isTabRootRoute owns the list; it is derived from the navigators, so
+      // it cannot go stale the way the literals here had (the Community tab
+      // reports "COMMUNITY", and the old set spelled it "Community", so a
+      // queued modal never surfaced on the buddy tab).
       const routeName = currentRoute.name;
-      if (!SAFE_SCREENS.has(routeName)) return;
+      if (!isTabRootRoute(routeName)) return;
 
       const user = useUserStore.getState().user;
 

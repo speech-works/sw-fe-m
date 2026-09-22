@@ -373,7 +373,16 @@ export const Sheet: React.FC<SheetProps> = ({
         <Animated.View style={{ flexShrink: 1, transform: [{ translateY }] }}>
           {hasHeader ? (
             <View style={styles.header}>
-              {title ? <Text variant="h2">{title}</Text> : <View style={{ flex: 1 }} />}
+              {/* The title yields to the actions, never the other way round: a
+                  long title with two buttons beside it used to push the close
+                  button off the right edge of the screen. */}
+              {title ? (
+                <Text variant="h2" style={styles.title}>
+                  {title}
+                </Text>
+              ) : (
+                <View style={{ flex: 1 }} />
+              )}
               {right ? <View style={styles.actions}>{right}</View> : null}
             </View>
           ) : null}
@@ -432,6 +441,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.screenX,
     paddingBottom: space.groupGap,
   },
+  title: { flex: 1, flexShrink: 1 },
   actions: {
     flexDirection: "row",
     alignItems: "center",

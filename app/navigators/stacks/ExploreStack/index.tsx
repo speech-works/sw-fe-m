@@ -31,13 +31,14 @@ import DPStackNavigator from "./DailyPracticeStack";
 import LibStackNavigator from "./LibraryStack";
 import MoodCheckStackNavigator from "./MoodCheckStack";
 import { ExploreStackParamList } from "./types";
+import { STACK_ROOT_ROUTE_NAMES } from "../../../constants/routes";
 
 const Stack = createNativeStackNavigator<ExploreStackParamList>();
 
 export default function ExploreStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Explore" component={Explore} />
+      <Stack.Screen name={STACK_ROOT_ROUTE_NAMES.EXPLORE} component={Explore} />
       <Stack.Screen name="DailyPracticeStack" component={DPStackNavigator} />
       <Stack.Screen name="LibraryStack" component={LibStackNavigator} />
       <Stack.Screen name="ProgressDetail" component={ProgressDetail} />

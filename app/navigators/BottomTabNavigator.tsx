@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import React from "react"; // Rebuild trigger
 
-import { ROUTE_NAMES } from "../constants/routes";
+import { ROUTE_NAMES, STACK_ROOT_ROUTE_NAMES } from "../constants/routes";
 import Community from "../screens/Community";
 import ExploreStackNavigator from "./stacks/ExploreStack";
 import SettingsStackNavigator from "./stacks/SettingsStack";
@@ -36,7 +36,7 @@ const BottomTabNavigator = () => {
         component={HomeStackNavigator}
         options={({ route }) => ({
           tabBarLabel: "Home",
-          tabBarStyle: getTabBarVisibility(route, "Home"),
+          tabBarStyle: getTabBarVisibility(route, STACK_ROOT_ROUTE_NAMES.HOME),
         })}
       />
 
@@ -45,7 +45,7 @@ const BottomTabNavigator = () => {
         component={ExploreStackNavigator}
         options={({ route }) => ({
           tabBarLabel: "Explore",
-          tabBarStyle: getTabBarVisibility(route, "Explore"),
+          tabBarStyle: getTabBarVisibility(route, STACK_ROOT_ROUTE_NAMES.EXPLORE),
         })}
       />
       <Tab.Screen
@@ -58,7 +58,7 @@ const BottomTabNavigator = () => {
         component={SettingsStackNavigator}
         options={({ route }) => ({
           tabBarLabel: "Settings",
-          tabBarStyle: getTabBarVisibility(route, "Settings"),
+          tabBarStyle: getTabBarVisibility(route, STACK_ROOT_ROUTE_NAMES.SETTINGS),
         })}
       />
       {/* <Tab.Screen name={ROUTE_NAMES.THERAPY} component={Logout} /> */}
