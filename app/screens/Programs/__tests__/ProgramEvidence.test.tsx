@@ -35,10 +35,15 @@ jest.mock("../../../design-system", () => {
   // out to an import at the top of the file.
   const React = require("react");
   const RN = require("react-native");
-  const passthrough =
-    (name: string) =>
-    ({ children, ...rest }: any) =>
+  // Named, because the lint gate (react/display-name) refuses an anonymous
+  // component even in a mock, and it has been failing CI on main since the
+  // morning of 2026-09-22.
+  const passthrough = (name: string) => {
+    const Passthrough = ({ children, ...rest }: any) =>
       React.createElement(RN.View, { testID: name, ...rest }, children);
+    Passthrough.displayName = name;
+    return Passthrough;
+  };
   return {
     Page: ({ title, description, children }: any) =>
       React.createElement(RN.View, null, [
@@ -80,8 +85,10 @@ jest.mock("../../../components/PressableScale", () => {
   // Forwards every prop, so the accessibility labels the screen sets are
   // visible to the test. Finding a row by its label is both how the test
   // stays readable and how it checks those labels exist at all.
-  return ({ children, ...rest }: any) =>
+  const PressableScale = ({ children, ...rest }: any) =>
     React.createElement(RN.Pressable, rest, children);
+  PressableScale.displayName = "PressableScale";
+  return PressableScale;
 });
 
 const REVIEWER_ONLY =
