@@ -204,12 +204,27 @@ describe("ProgramEvidence", () => {
    */
   it("drops the page chrome when embedded, and keeps the claims", async () => {
     const framed = flatten((await renderScreen(false)).toJSON());
-    expect(framed).toContain("What this rests on");
+    expect(framed).toContain("What the research actually says");
 
     const bare = flatten((await renderScreen(true)).toJSON());
-    expect(bare).not.toContain("What this rests on");
+    expect(bare).not.toContain("What the research actually says");
     expect(bare).toContain("Two studies. Neither settles it.");
     expect(bare).toContain("Fifteen of eighteen studies.");
+  });
+
+  /**
+   * The registry's grades are written for a clinical reviewer. On a buyer's
+   * screen, shouted capitals read as a warning label and "CONTESTED" reads as
+   * a verdict on the program. Rendering `claim.strength` straight is a one
+   * character mistake to make and invisible in a diff, so it is asserted.
+   */
+  it("shows the plain strength word, never the registry's grade", async () => {
+    const rendered = flatten(await renderScreen().then((t) => t.toJSON()));
+    expect(rendered).toContain("Studies disagree");
+    expect(rendered).toContain("Well tested");
+    for (const grade of ["CONTESTED", "STRONG", "MODERATE", "WEAK", "ABSENT"]) {
+      expect(rendered).not.toContain(grade);
+    }
   });
 
   it("offers a retry instead of a blank screen when the call fails", async () => {

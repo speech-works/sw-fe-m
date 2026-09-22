@@ -61,6 +61,34 @@ type Props = {
   embedded?: boolean;
 };
 
+/**
+ * The strength word a reader sees, instead of the one the registry stores.
+ *
+ * The stored values are the clinical grades a reviewer needs (STRONG,
+ * MODERATE, WEAK, CONTESTED, ABSENT) and every one of them fails in front of a
+ * buyer. Shouted capitals read as a warning label. "CONTESTED" and "ABSENT"
+ * are terms of art that sound like a verdict on the program rather than a
+ * description of a literature. And a reader who has to decode a word has
+ * already stopped reading.
+ *
+ * These replacements say the same thing in words nobody has to learn.
+ * "Untested" is deliberately the bluntest: the card that opens this screen
+ * promises to show the shaky one, and a softened word here would break that
+ * promise at the moment it is being kept.
+ *
+ * NONE OF THESE MAY BECOME A CLAIM ABOUT THE PROGRAM. They describe the
+ * evidence behind one sentence, never what the program will do for anybody.
+ * PROGRAM_STRATEGY.md 8.2 also bans "proven", which is why the strongest word
+ * available here is "tested".
+ */
+const STRENGTH_LABEL: Record<ProgramEvidenceEntry["strength"], string> = {
+  STRONG: "Well tested",
+  MODERATE: "One solid study",
+  WEAK: "Thin evidence",
+  CONTESTED: "Studies disagree",
+  ABSENT: "Untested",
+};
+
 /** "2026-09-21" → "21 September 2026". Returns null for an absent or odd date. */
 function readableDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -145,7 +173,11 @@ export default function ProgramEvidence({
     embedded ? (
       <>{children}</>
     ) : (
-      <Page title="What this rests on" description={description} onBack={onBack}>
+      <Page
+        title="What the research actually says"
+        description={description}
+        onBack={onBack}
+      >
         {children}
       </Page>
     );
@@ -179,11 +211,11 @@ export default function ProgramEvidence({
       <View style={styles.body}>
         {checked ? (
           <Surface bordered rounded="card" padded={spacing.lg}>
-            <Text variant="label">Last checked {checked}</Text>
+            <Text variant="label">Checked {checked}</Text>
             <Text variant="bodySm" color="secondary" style={styles.headerBody}>
-              Every claim below was read back to the paper it came from. When a
-              study stops supporting what a day says, the day changes and you
-              get the new version at no cost.
+              We read every study below, not just the summary. When one stops
+              backing what we teach, we change what we teach. The update is
+              free.
             </Text>
           </Surface>
         ) : null}
@@ -198,7 +230,7 @@ export default function ProgramEvidence({
                 onPress={() => setOpenKey(open ? null : key)}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: open }}
-                accessibilityLabel={`${claim.strength}. ${claim.plainCount}`}
+                accessibilityLabel={`${STRENGTH_LABEL[claim.strength]}. ${claim.plainCount}`}
                 accessibilityHint={
                   open ? "Collapses this source" : "Opens this source in full"
                 }
@@ -212,7 +244,7 @@ export default function ProgramEvidence({
                       importantForAccessibility="no-hide-descendants"
                     >
                       <Text variant="caption" style={{ color: tone.fg }}>
-                        {claim.strength}
+                        {STRENGTH_LABEL[claim.strength]}
                       </Text>
                     </View>
                     <Text
@@ -239,10 +271,10 @@ export default function ProgramEvidence({
                     { borderTopColor: colors.border.hairline },
                   ]}
                 >
-                  <Detail label="Who" value={claim.population} />
-                  <Detail label="How" value={claim.design} />
+                  <Detail label="Who was studied" value={claim.population} />
+                  <Detail label="How they studied it" value={claim.design} />
                   <Detail
-                    label="What it does not show"
+                    label="What this does not tell you"
                     value={claim.theLimitInPlainWords}
                     emphasis
                   />
@@ -260,7 +292,7 @@ export default function ProgramEvidence({
 
                   {readableDate(claim.lastCheckedAt) ? (
                     <Text variant="caption" color="tertiary">
-                      Paper last read {readableDate(claim.lastCheckedAt)}
+                      We read this one on {readableDate(claim.lastCheckedAt)}
                     </Text>
                   ) : null}
                 </View>
