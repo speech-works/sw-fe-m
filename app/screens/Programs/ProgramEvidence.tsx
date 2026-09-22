@@ -24,8 +24,9 @@ import { toSafeExternalUrl } from "../../util/functions/url";
 /**
  * Everything a program's teaching rests on, in one place.
  *
- * Reached from `EvidenceCard` on the program page, never from inside a day.
- * That siting is the whole design and the reasoning lives in EvidenceCard.
+ * Reached from `EvidenceCard` in the pre-purchase sales flow, never from
+ * inside a day. That siting is the whole design and the reasoning lives in
+ * EvidenceCard.
  *
  * ── TWO RULES A FUTURE EDIT MUST NOT BREAK ────────────────────────────────
  *
@@ -49,6 +50,15 @@ type Props = {
   /** Shown under the page title, so the reader knows which program this is. */
   programTitle?: string;
   onBack: () => void;
+  /**
+   * Render the list alone, with no `Page` chrome around it.
+   *
+   * The sales flow shows this inside a `Sheet`, which supplies its own title
+   * and its own close control. A `Page` in there would stack two headers and
+   * two back affordances on one screen. `onBack` is then unused and the sheet
+   * owns dismissal.
+   */
+  embedded?: boolean;
 };
 
 /** "2026-09-21" → "21 September 2026". Returns null for an absent or odd date. */
@@ -68,6 +78,7 @@ export default function ProgramEvidence({
   catalogKey,
   programTitle,
   onBack,
+  embedded = false,
 }: Props) {
   const { colors } = useTheme();
   const [summary, setSummary] = useState<ProgramEvidenceSummary | null>(null);
@@ -119,36 +130,52 @@ export default function ProgramEvidence({
     if (safe) void Linking.openURL(safe).catch(() => undefined);
   };
 
+  /**
+   * The page chrome, or nothing at all when a sheet is already providing it.
+   * Kept as one wrapper so every state (loading, failed, loaded) is framed the
+   * same way and a future state cannot forget the `embedded` case.
+   */
+  const Frame = ({
+    description,
+    children,
+  }: {
+    description?: string;
+    children: React.ReactNode;
+  }) =>
+    embedded ? (
+      <>{children}</>
+    ) : (
+      <Page title="What this rests on" description={description} onBack={onBack}>
+        {children}
+      </Page>
+    );
+
   if (loading) {
     return (
-      <Page title="What this rests on" onBack={onBack}>
+      <Frame>
         <View style={styles.centered}>
           <Spinner label="Loading…" />
         </View>
-      </Page>
+      </Frame>
     );
   }
 
   if (failed || !summary) {
     return (
-      <Page title="What this rests on" onBack={onBack}>
+      <Frame>
         <ErrorState
           title="Couldn't load the research"
           message="Check your connection and try again."
           onRetry={load}
         />
-      </Page>
+      </Frame>
     );
   }
 
   const checked = readableDate(summary.lastCheckedAt);
 
   return (
-    <Page
-      title="What this rests on"
-      description={programTitle ?? summary.title}
-      onBack={onBack}
-    >
+    <Frame description={programTitle ?? summary.title}>
       <View style={styles.body}>
         {checked ? (
           <Surface bordered rounded="card" padded={spacing.lg}>
@@ -242,7 +269,7 @@ export default function ProgramEvidence({
           );
         })}
       </View>
-    </Page>
+    </Frame>
   );
 }
 

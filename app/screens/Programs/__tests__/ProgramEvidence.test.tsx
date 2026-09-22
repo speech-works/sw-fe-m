@@ -118,7 +118,7 @@ const SUMMARY = {
 
 const flatten = (tree: any): string => JSON.stringify(tree);
 
-async function renderScreen() {
+async function renderScreen(embedded = false) {
   let tree: any;
   await TestRenderer.act(async () => {
     tree = TestRenderer.create(
@@ -126,6 +126,7 @@ async function renderScreen() {
         catalogKey: "art_of_disclosure",
         programTitle: "The Art of Disclosure",
         onBack: () => undefined,
+        embedded,
       }),
     );
   });
@@ -192,6 +193,23 @@ describe("ProgramEvidence", () => {
       pressRow(tree, "Fifteen of eighteen studies.");
     });
     expect(flatten(tree.toJSON())).toContain("Coalson");
+  });
+
+  /**
+   * The sales flow renders this inside a Sheet that already draws the title
+   * and the close control. Drawing Page as well would stack two headers and
+   * two ways out on one surface, and the second one would not dismiss the
+   * sheet. The claims must still be there: an `embedded` that rendered nothing
+   * would pass a title check and ship an empty sheet.
+   */
+  it("drops the page chrome when embedded, and keeps the claims", async () => {
+    const framed = flatten((await renderScreen(false)).toJSON());
+    expect(framed).toContain("What this rests on");
+
+    const bare = flatten((await renderScreen(true)).toJSON());
+    expect(bare).not.toContain("What this rests on");
+    expect(bare).toContain("Two studies. Neither settles it.");
+    expect(bare).toContain("Fifteen of eighteen studies.");
   });
 
   it("offers a retry instead of a blank screen when the call fails", async () => {

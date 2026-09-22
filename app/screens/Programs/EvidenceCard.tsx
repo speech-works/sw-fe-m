@@ -13,7 +13,12 @@ import {
 } from "../../design-system";
 
 /**
- * The one link out to a program's research, on the program page.
+ * The one link out to a program's research, in the pre-purchase sales flow.
+ *
+ * WHY BEFORE THE PURCHASE AND NOT AFTER. A buyer weighing ₹999 is the only
+ * reader who has a use for this. Somebody who already owns the program has the
+ * honesty in front of them every day, inside the teaching. Sited after the
+ * sale, the screen answers a question nobody is still asking.
  *
  * WHY IT IS HERE AND NOT INSIDE A DAY. The obvious place for a source is next
  * to the claim it supports, and that was the first design. Three of this
