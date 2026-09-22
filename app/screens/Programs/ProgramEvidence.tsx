@@ -89,17 +89,56 @@ const STRENGTH_LABEL: Record<ProgramEvidenceEntry["strength"], string> = {
   ABSENT: "Untested",
 };
 
-/** "2026-09-21" → "21 September 2026". Returns null for an absent or odd date. */
-function readableDate(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(`${iso}T00:00:00Z`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/**
+ * "2026-09-21" → "21 September 2026". Returns null for an absent or odd value.
+ *
+ * TAKES A `Date` AS WELL AS A STRING, BECAUSE THAT IS WHAT ARRIVES. The types
+ * say `string`, the server sends `"2026-09-21"`, and neither is what this
+ * function is handed: `axiosClient.ts` runs `reviveDatesInObject` over every
+ * response body, so any date-shaped string anywhere in any payload is a `Date`
+ * by the time a screen sees it. Nothing in the types records that.
+ *
+ * It cost a real bug. The first version did `new Date(iso + "T00:00:00Z")` on
+ * a value that was already a Date, got `Invalid Date`, and returned null. The
+ * screen then rendered perfectly except that the "Checked" line and every per
+ * claim date were silently gone, which is the worst shape a bug can take: the
+ * evidence still looks complete while the date that makes the free updates
+ * promise checkable has quietly disappeared.
+ *
+ * LOCAL GETTERS, NOT UTC ONES. The reviver builds these from a bare
+ * `YYYY-MM-DD`, which lands on local midnight, so in Asia/Kolkata the instant
+ * is 18:30Z the day before. Reading UTC parts would print the 20th for a date
+ * the registry records as the 21st. Local parts give the calendar day back.
+ */
+function readableDate(value: string | Date | null | undefined): string | null {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    const month = MONTHS[value.getMonth()];
+    return month ? `${value.getDate()} ${month} ${value.getFullYear()}` : null;
+  }
+
+  // Plain string, if the reviver ever stops running or misses this field.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!m) return null;
+  const month = MONTHS[Number(m[2]) - 1];
+  return month ? `${Number(m[3])} ${month} ${m[1]}` : null;
 }
 
 export default function ProgramEvidence({
@@ -209,18 +248,25 @@ export default function ProgramEvidence({
   return (
     <Frame description={programTitle ?? summary.title}>
       <View style={styles.body}>
-        {checked ? (
+        {summary.claims.length > 0 ? (
           <Surface bordered rounded="card" padded={spacing.lg}>
             {/* The Udemy promise, in the place that proves it. The date above
                 is our "Last updated": it is a real field on every claim, so a
                 program that has not been re-read cannot pretend it has.
+
+                THE PROMISE IS NOT GATED ON THE DATE. It used to be, and on a
+                simulator the whole card disappeared: a payload with no
+                lastCheckedAt took the free-updates line down with it, which is
+                the one line here a buyer is owed. The date is the proof and it
+                is shown when there is one; the promise is the point and it is
+                shown whenever there are claims at all.
 
                 WHAT THIS MAY NOT SAY YET. "Our experts keep improving it" is
                 the line we want and cannot publish. reviewSignoff.service.ts
                 withholds "reviewed by a licensed professional" until an SLP
                 signs a specific version, and none has signed any. Add it here
                 the day the first sign-off lands, not before. */}
-            <Text variant="label">Checked {checked}</Text>
+            {checked ? <Text variant="label">Checked {checked}</Text> : null}
             <Text variant="bodySm" color="secondary" style={styles.headerBody}>
               When new research comes out, we update the days it changes. Those
               updates are free.
