@@ -461,3 +461,58 @@ export interface PackBrochure {
   moduleCount: number;
   modules: PackBrochureModule[];
 }
+
+/**
+ * One claim a program's teaching rests on.
+ *
+ * Mirrors ProgramEvidenceEntry in
+ * sw-be-2/src/seed/pack/evidence/ProgramEvidence.ts. The rows in the database
+ * hold only keys; the backend resolves them when it serves a day or this
+ * endpoint, so a wrong citation is fixed by a deploy and never by a reseed.
+ */
+export interface ProgramEvidenceEntry {
+  /** The finding, stated as narrowly as the paper supports. */
+  claim: string;
+  /**
+   * The count a screen says out loud: "24 of 30 people", "no trial behind it".
+   * Use this rather than paraphrasing `claim` — a count cannot be quietly
+   * inflated the way an adjective can.
+   */
+  plainCount: string;
+  /** Authors, year, title, journal. */
+  source: string;
+  /** PubMed or PMC, usually. Absent on the handful with no stable link. */
+  sourceUrl?: string;
+  strength: "STRONG" | "MODERATE" | "WEAK" | "CONTESTED" | "ABSENT";
+  /** Who was actually studied. Often the most useful line on the screen. */
+  population: string;
+  /** Trial, survey, review, essay. */
+  design: string;
+  /**
+   * The limit, written for a CLINICAL REVIEWER. It shouts, names effect sizes,
+   * and records what this product got wrong and when.
+   *
+   * NEVER RENDER THIS IN THE APP. It contains lines like "READ THIS BEFORE
+   * WRITING ANY TIMING COPY". Show `theLimitInPlainWords` instead. The field
+   * is on the wire because one payload serves the app and the review console.
+   */
+  whatItDoesNotShow: string;
+  /** The same limit in plain words. This is the one a screen may print. */
+  theLimitInPlainWords: string;
+  /** ISO date a person last read the primary source. */
+  lastCheckedAt: string;
+}
+
+/** What a program rests on, and when anybody last checked it. */
+export interface ProgramEvidenceSummary {
+  catalogKey: string;
+  title: string;
+  /** Most recent date any claim was read back to its paper. Null if none. */
+  lastCheckedAt: string | null;
+  /** Oldest. A wide gap means part of the program is overdue a re-read. */
+  oldestCheckedAt: string | null;
+  claimCount: number;
+  /** Claims with real evidence on both sides. Never state these as settled. */
+  contestedCount: number;
+  claims: ProgramEvidenceEntry[];
+}
