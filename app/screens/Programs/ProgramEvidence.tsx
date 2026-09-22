@@ -211,11 +211,19 @@ export default function ProgramEvidence({
       <View style={styles.body}>
         {checked ? (
           <Surface bordered rounded="card" padded={spacing.lg}>
+            {/* The Udemy promise, in the place that proves it. The date above
+                is our "Last updated": it is a real field on every claim, so a
+                program that has not been re-read cannot pretend it has.
+
+                WHAT THIS MAY NOT SAY YET. "Our experts keep improving it" is
+                the line we want and cannot publish. reviewSignoff.service.ts
+                withholds "reviewed by a licensed professional" until an SLP
+                signs a specific version, and none has signed any. Add it here
+                the day the first sign-off lands, not before. */}
             <Text variant="label">Checked {checked}</Text>
             <Text variant="bodySm" color="secondary" style={styles.headerBody}>
-              We read every study below, not just the summary. When one stops
-              backing what we teach, we change what we teach. The update is
-              free.
+              When new research comes out, we update the days it changes. Those
+              updates are free.
             </Text>
           </Surface>
         ) : null}

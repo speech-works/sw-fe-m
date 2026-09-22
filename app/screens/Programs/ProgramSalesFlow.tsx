@@ -1017,14 +1017,18 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
             One payment. Yours to keep. No subscription.
           </Text>
           {/* The free-updates promise, at the only moment it changes a
-              decision. Deliberately not a slogan: the claim is checkable, in
-              the evidence sheet one tap away, where every source carries the
-              date a person last read it. Do not remove this line — it is the
-              app-side half of THIS_PROGRAM_WILL_CHANGE in the backend seed,
-              which makes the same promise to people who already bought. */}
+              decision, and the same one Udemy makes: buy the course once, get
+              every later version of it.
+
+              It reads as a fact about the price rather than a promise about
+              us, because the proof is one tap away in the evidence sheet,
+              where every claim carries the date somebody last read its study.
+
+              Do not remove this line. It is the app-side half of
+              THIS_PROGRAM_WILL_CHANGE in the backend seed, which makes the
+              same promise to people who have already bought. */}
           <Text variant="bodySm" color="secondary">
-            When the research changes, the program changes. You get the newer
-            version at no cost.
+            Every future update included, at no extra cost.
           </Text>
         </View>
 
