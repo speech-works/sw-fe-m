@@ -497,6 +497,11 @@ module.exports = {
           cameraPermissionText:
             "Speechworks uses your camera for on-device awareness exercises, and to attach a photo to a support request. No video is recorded or sent.",
           enableCodeScanner: false,
+          // Explicitly disabled so CLLocationManager / location APIs are not
+          // compiled in or requested. VisionCamera includes location tagging for
+          // photos by default, which triggers Apple ITMS-90683 (missing
+          // NSLocationWhenInUseUsageDescription). Speechworks does not use location.
+          enableLocation: false,
         },
       ],
       [

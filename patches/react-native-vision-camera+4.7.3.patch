@@ -1,0 +1,77 @@
+diff --git a/node_modules/react-native-vision-camera/VisionCamera.podspec b/node_modules/react-native-vision-camera/VisionCamera.podspec
+index 5d611cf..3c0ee7f 100644
+--- a/node_modules/react-native-vision-camera/VisionCamera.podspec
++++ b/node_modules/react-native-vision-camera/VisionCamera.podspec
+@@ -8,7 +8,7 @@ Pod::UI.puts "[VisionCamera] If you enjoy using VisionCamera, please consider sp
+ enableLocation = true
+ if defined?($VCEnableLocation)
+   Pod::UI.puts "[VisionCamera] $VCEnableLocation is set to #{$VCEnableLocation}!"
+-  enableLocation = $VCEnableLocation
++  enableLocation = $VCEnableLocation == true || $VCEnableLocation == 'true'
+ else
+   Pod::UI.puts "[VisionCamera] $VCEnableLocation is not set, enabling CLLocation APIs by default..."
+ end
+diff --git a/node_modules/react-native-vision-camera/ios/Core/Extensions/CLLocationManager+requestAccess.swift b/node_modules/react-native-vision-camera/ios/Core/Extensions/CLLocationManager+requestAccess.swift
+index b678fe8..f55aa2a 100644
+--- a/node_modules/react-native-vision-camera/ios/Core/Extensions/CLLocationManager+requestAccess.swift
++++ b/node_modules/react-native-vision-camera/ios/Core/Extensions/CLLocationManager+requestAccess.swift
+@@ -8,6 +8,7 @@
+ import CoreLocation
+ import Foundation
+ 
++#if VISION_CAMERA_ENABLE_LOCATION
+ extension CLLocationManager {
+   enum AccessType {
+     case whenInUse
+@@ -56,3 +57,4 @@ extension CLLocationManager {
+     }
+   }
+ }
++#endif
+diff --git a/node_modules/react-native-vision-camera/ios/Core/LocationProvider.swift b/node_modules/react-native-vision-camera/ios/Core/LocationProvider.swift
+index e84fb9b..d71bb13 100644
+--- a/node_modules/react-native-vision-camera/ios/Core/LocationProvider.swift
++++ b/node_modules/react-native-vision-camera/ios/Core/LocationProvider.swift
+@@ -9,17 +9,23 @@ import CoreLocation
+ import Foundation
+ 
+ class LocationProvider {
++  #if VISION_CAMERA_ENABLE_LOCATION
+   private let locationManager = CLLocationManager()
++  #endif
+ 
+   init() {
++    #if VISION_CAMERA_ENABLE_LOCATION
+     locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+     locationManager.startUpdatingLocation()
+     locationManager.startUpdatingHeading()
++    #endif
+   }
+ 
+   deinit {
++    #if VISION_CAMERA_ENABLE_LOCATION
+     locationManager.stopUpdatingLocation()
+     locationManager.stopUpdatingHeading()
++    #endif
+   }
+ 
+   private var authorizationStatus: CLAuthorizationStatus {
+@@ -44,10 +50,18 @@ class LocationProvider {
+   }
+ 
+   var location: CLLocation? {
++    #if VISION_CAMERA_ENABLE_LOCATION
+     return locationManager.location
++    #else
++    return nil
++    #endif
+   }
+ 
+   var heading: CLHeading? {
++    #if VISION_CAMERA_ENABLE_LOCATION
+     return locationManager.heading
++    #else
++    return nil
++    #endif
+   }
+ }
