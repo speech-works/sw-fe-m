@@ -34,6 +34,7 @@ import * as Localization from "expo-localization";
 
 
 import { API_BASE_URL } from "../api/constants";
+import type { CrisisResource } from "../api/crisis";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { size, typography, Icon, icons, fonts, makeStyles, useTheme, withAlpha, radius, spacing, castShadow, noShadow } from "../design-system";
 import { callerGlyph } from "../util/callerGlyph";
@@ -46,18 +47,12 @@ type CallExitPayload = {
   shouldComplete: boolean;
 };
 
-// Mirrors CrisisResource in sw-be-2/src/config/CrisisResources.ts — the
-// backend resolves this by country and sends it over the `crisis_resources`
-// WS event when a crisis phrase is detected mid-call (see index.ts's crisis
-// interception block). `phone` may be empty and `url` is optional — the
-// DEFAULT (unknown-country) resource has no phone, only a url.
-type CrisisResource = {
-  countryCode: string;
-  helplineName: string;
-  phone: string;
-  description: string;
-  url?: string;
-};
+// CrisisResource (imported from api/crisis, shared with the Resources screen
+// and the buddy sheets) mirrors sw-be-2/src/config/CrisisResources.ts. The
+// backend resolves it by country with the same getCrisisResource lookup as
+// GET /crisis-resources and sends it over the `crisis_resources` WS event
+// when a crisis phrase is detected mid-call. `phone` may be empty and `url`
+// is optional: the DEFAULT (unknown-country) resource has no phone, only a url.
 
 type CallEndAcknowledgementPayload = {
   reason: string | null;
@@ -3518,7 +3513,7 @@ const CallingWidget: React.FC<Props> = ({
                   }}
                 >
                   <Text style={styles.promptButtonTextPri}>
-                    Call {crisisResource.phone}
+                    Call {crisisResource.phoneDisplay || crisisResource.phone}
                   </Text>
                 </TouchableOpacity>
               ) : crisisResource?.url ? (
@@ -3531,6 +3526,23 @@ const CallingWidget: React.FC<Props> = ({
                   }}
                 >
                   <Text style={styles.promptButtonTextPri}>Get help</Text>
+                </TouchableOpacity>
+              ) : null}
+              {/* The helpline is someone to talk to; the emergency number is
+                  for immediate danger. Shown whenever the server knows it. */}
+              {crisisResource?.emergencyNumber ? (
+                <TouchableOpacity
+                  style={styles.promptButtonSecondary}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    Linking.openURL(
+                      `tel:${crisisResource.emergencyNumber}`,
+                    ).catch(() => {});
+                  }}
+                >
+                  <Text style={styles.promptButtonTextPri}>
+                    In danger now? Call {crisisResource.emergencyNumber}
+                  </Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity

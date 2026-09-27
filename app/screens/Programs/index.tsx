@@ -51,6 +51,7 @@ import {
 import PressableScale from "../../components/PressableScale";
 import ScreenView from "../../components/ScreenView";
 import RecHeroCard, { CTA_ICON } from "../../components/Dashboard/RecHeroCard";
+import CrisisSupportCard from "../../components/CrisisSupportCard";
 import {
   programEyebrow,
   programShelfLabel,
@@ -1018,6 +1019,12 @@ const ProgramsScreen = () => {
         blue: it is not a product, and it must not read as one more thing to
         buy. Nothing else in the shop is lime.
       */}
+      {/* In crisis the backend ranks nothing and sends a helpline; it takes
+          the hero slot so the top of the shop is support, not a product. */}
+      {offers?.crisisSupport ? (
+        <CrisisSupportCard resource={offers.crisisSupport} />
+      ) : null}
+
       {!hasSignal ? (
         <RecHeroCard
           accentKey="lime"

@@ -57,8 +57,10 @@ export default function EvidenceNode({
 }) {
   const { colors } = useTheme();
 
-  const studies = claimCount === 1 ? "one study" : `${claimCount} studies`;
-  const body = `Rests on ${studies}.`;
+  // "Sources", not "studies": the count includes books and an essay as well
+  // as papers, and "rests on" claimed more support than the list gives.
+  const sources = claimCount === 1 ? "one source" : `${claimCount} sources`;
+  const body = `Draws on ${sources}.`;
 
   return (
     <PressableScale

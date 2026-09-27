@@ -10,6 +10,7 @@ import { size, useTheme, primaryEdge, spacing, radius, borderWidth, fonts, Sheet
 import { Signal, SupportNoteId, sendSupport } from "../../api/threads";
 import { SUPPORT_NOTES } from "../../constants/supportNotes";
 import { handleLinkPress } from "../../util/functions/externalLinks";
+import { useCrisisResource, crisisActionLabel, crisisActionUrl } from "../../api/crisis";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
@@ -37,7 +38,8 @@ const GuideLine = ({ icon, text }: { icon: IconName; text: string }) => {
 /**
  * "Reach out" — how a buddy responds to a friend's *sensitive* (crisis-flagged) moment.
  * Replaces the thin one-tap empathy chip with an actual response: a warm canned note (which
- * pushes the struggling person), a 988 hand-off, and a compact "how to support a friend in
+ * pushes the struggling person), a helpline hand-off (localised server-side to THEIR
+ * country), and a compact "how to support a friend in
  * crisis" guide + a lifeline for the responder. Canned only — nothing to moderate.
  */
 const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySupportSheetProps) => {
@@ -52,6 +54,9 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
   const [lifelineSent, setLifelineSent] = useState(false);
   const [sendingLifeline, setSendingLifeline] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  // The RESPONDER's own helpline, by their country. What the friend receives
+  // is localised to the friend's country by the server (signals.service).
+  const crisisResource = useCrisisResource();
 
   // One send at a time — disables every note + the lifeline while any request is in flight.
   const busy = !!sendingNote || sendingLifeline;
@@ -106,9 +111,12 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
     });
   };
 
-  const self988 = () => {
-    track(ANALYTICS_EVENTS.BUDDY_SUPPORT_SELF_RESOURCE_TAPPED, { resource: "988" });
-    handleLinkPress("tel:988");
+  const selfHelpline = () => {
+    track(ANALYTICS_EVENTS.BUDDY_SUPPORT_SELF_RESOURCE_TAPPED, {
+      resource: "helpline",
+      countryCode: crisisResource.countryCode,
+    });
+    handleLinkPress(crisisActionUrl(crisisResource));
   };
 
   const openResources = () => {
@@ -180,7 +188,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
               ? "Sharing…"
               : lifelineSent
                 ? `Lifeline shared with ${name}`
-                : `Share the 988 lifeline with ${name}`}
+                : `Share a helpline with ${name}`}
           </Text>
         </PressableScale>
 
@@ -200,9 +208,9 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
             <GuideLine icon={icons.heart} text="Take it seriously. Don't minimise or rush to reassure." />
             <GuideLine icon={icons.professionalHelp} text="Gently encourage talking to a professional, together if it helps." />
             <GuideLine icon={icons.danger} text={`If ${name} may be in immediate danger, call your local emergency number.`} />
-            <PressableScale style={[styles.selfHelpRow, { backgroundColor: colors.surface.control }]} haptic={false} scaleTo={0.98} onPress={self988}>
+            <PressableScale style={[styles.selfHelpRow, { backgroundColor: colors.surface.control }]} haptic={false} scaleTo={0.98} onPress={selfHelpline}>
               <Icon name={icons.call} size={size.iconInline} color={colors.text.accent} />
-              <Text variant="caption" color="accent" style={[styles.flex1, styles.bold]}>This is heavy for you too. 988 is there for you</Text>
+              <Text variant="caption" color="accent" style={[styles.flex1, styles.bold]}>{`This is heavy for you too. ${crisisActionLabel(crisisResource)} to talk to someone yourself.`}</Text>
             </PressableScale>
           </View>
         ) : null}

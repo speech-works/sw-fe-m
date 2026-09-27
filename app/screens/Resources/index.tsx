@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { handleLinkPress } from "../../util/functions/externalLinks";
-import { getCrisisResource, CrisisResource } from "../../api/crisis";
+import {
+  getCrisisResource,
+  CrisisResource,
+  NEUTRAL_CRISIS_RESOURCE,
+} from "../../api/crisis";
 import {
   size,
   useTheme,
@@ -72,34 +76,37 @@ const SUPPORT: ResourceItem[] = [
   },
 ];
 
-// US-only. Used ONLY as a fallback if the country-aware GET /crisis-resources
-// fetch fails — most of this screen's audience is India-first, where these
-// numbers don't work at all (see getCrisisResource / CrisisResources.ts on
-// the backend, which resolves Tele-MANAS for IN).
-const FALLBACK_CRISIS: ResourceItem[] = [
-  {
-    label: "988 Crisis Helpline",
-    desc: "Call or text 988. Free and confidential, 24/7.",
-    icon: "phone-call",
-    action: "tel:988",
-  },
-  {
-    label: "Crisis Text Line",
-    desc: "Text HOME to 741741 to reach a trained counselor.",
-    icon: "message-circle",
-    action: "sms:741741",
-  },
-];
+// Used ONLY if the country-aware GET /crisis-resources fetch fails. Country
+// neutral on purpose: this used to be the US 988 and 741741 numbers, shown to
+// everyone whose fetch failed, and neither connects outside the US.
+const emergencyItem = (): ResourceItem => ({
+  label: "In immediate danger?",
+  desc: "Call your local emergency number.",
+  icon: "phone-call",
+});
 
-function toResourceItem(resource: CrisisResource): ResourceItem {
-  return {
+function toResourceItems(resource: CrisisResource): ResourceItem[] {
+  const helpline: ResourceItem = {
     label: resource.helplineName,
     desc: resource.description,
     icon: "phone-call",
     action: resource.phone ? `tel:${resource.phone}` : undefined,
     url: resource.phone ? undefined : resource.url,
   };
+  // The emergency number gets its own tappable row when we know it; when we
+  // don't (the neutral resource), a plain line says to use the local one.
+  const emergency: ResourceItem = resource.emergencyNumber
+    ? {
+        label: `Emergency: ${resource.emergencyNumber}`,
+        desc: "If you or someone else is in immediate danger.",
+        icon: "phone-call",
+        action: `tel:${resource.emergencyNumber}`,
+      }
+    : emergencyItem();
+  return [helpline, emergency];
 }
+
+const FALLBACK_CRISIS: ResourceItem[] = toResourceItems(NEUTRAL_CRISIS_RESOURCE);
 
 const Resources = () => {
   const navigation = useNavigation<any>();
@@ -110,10 +117,14 @@ const Resources = () => {
     let cancelled = false;
     getCrisisResource()
       .then((resource) => {
-        if (!cancelled) setCrisisItems([toResourceItem(resource)]);
+        // Same guard as useCrisisResource: a row with no name is worse than
+        // the neutral fallback, so keep that instead.
+        if (!cancelled && resource?.helplineName) {
+          setCrisisItems(toResourceItems(resource));
+        }
       })
       .catch(() => {
-        // Fetch failed — keep the hardcoded fallback so this section is
+        // Fetch failed — keep the country-neutral fallback so this section is
         // never empty. Logged, not surfaced: this screen must never look
         // broken to someone who's struggling.
         console.warn("[Resources] Failed to fetch country-aware crisis resource; using fallback.");
@@ -128,17 +139,26 @@ const Resources = () => {
     else if (item.action) Linking.openURL(item.action).catch(() => undefined);
   };
 
-  const renderRow = (item: ResourceItem, index: number, arr: ResourceItem[]) => (
-    <ListItem
-      key={item.label}
-      leftIcon={item.icon}
-      label={item.label}
-      sublabel={item.desc}
-      right={<Icon name="external-link" size={size.iconSm} color={colors.text.tertiary} />}
-      divider={index < arr.length - 1}
-      onPress={() => open(item)}
-    />
-  );
+  const renderRow = (item: ResourceItem, index: number, arr: ResourceItem[]) => {
+    // A plain instruction row ("call your local emergency number") has
+    // nowhere to go, so it gets no chevron and no press.
+    const tappable = !!(item.url || item.action);
+    return (
+      <ListItem
+        key={item.label}
+        leftIcon={item.icon}
+        label={item.label}
+        sublabel={item.desc}
+        right={
+          tappable ? (
+            <Icon name="external-link" size={size.iconSm} color={colors.text.tertiary} />
+          ) : undefined
+        }
+        divider={index < arr.length - 1}
+        onPress={tappable ? () => open(item) : undefined}
+      />
+    );
+  };
 
   return (
     <Page title="Stuttering support" onBack={() => navigation.goBack()}>

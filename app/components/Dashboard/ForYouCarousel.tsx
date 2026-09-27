@@ -40,6 +40,7 @@ import {
   useStorePrices,
 } from "../../hooks/useStorePrices";
 import RecHeroCard from "./RecHeroCard";
+import CrisisSupportCard from "../CrisisSupportCard";
 import {
   Carousel,
   Icon,
@@ -516,7 +517,8 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
    * hole it was written to prevent opens up, and the person who has bought
    * everything and done all of it gets a blank space on Home.
    */
-  if (!hasProgram && active.allComplete) {
+  // A user in crisis gets the support card below, even with everything done.
+  if (!hasProgram && active.allComplete && !offers?.crisisSupport) {
     return (
       <View ref={shelfRef} onLayout={measureShelf} style={style}>
         <AllCompleteSlide />
@@ -544,6 +546,9 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
         />
       </View>
     );
+  } else if (!hasProgram && offers?.crisisSupport) {
+    // In crisis: support in the slot, never a program to buy.
+    inner = <CrisisSupportCard resource={offers.crisisSupport} />;
   } else if (!hasProgram && selection.mode === "browse") {
     // No second error card even when the fetch failed. No eyebrow claim, no
     // badge — we have nothing to back one.

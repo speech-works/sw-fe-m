@@ -7,7 +7,7 @@ import type { IconName } from "../design-system/components/Icon";
  * "Share a moment" catalog — a COMPACT, BROAD set of states (deliberately general, not specific
  * events, so the list stays short and never bloats). NSA-aligned: frames the *experience*, never
  * fluency, non-pathologising. The two `sensitive` struggles trigger the "Reach out" support flow
- * + a gentle 988 prompt. Struggle gradients are soft/cool (non-alarming); win gradients are warm.
+ * + a gentle helpline prompt (country-aware). Struggle gradients are soft/cool (non-alarming); win gradients are warm.
  * This is a FIXED, safety-reviewed vocabulary → it lives in app config, not the DB.
  */
 export interface MomentMessage {

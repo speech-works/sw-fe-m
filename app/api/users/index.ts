@@ -3,6 +3,7 @@ import { XPLog } from "../userXP/types";
 import { ToolNudgeDirective } from "../tools/types";
 import { ToolType } from "../tools/types";
 import { AvatarManifest } from "../../types/avatar";
+import type { CrisisResource } from "../crisis";
 
 export interface User {
   id: string;
@@ -12,6 +13,11 @@ export interface User {
   profilePictureUrl?: string;
   dob?: Date;
   phoneNumber?: string;
+  /**
+   * ISO 3166-1 alpha-2, from the device region (syncDeviceCountry). Picks the
+   * crisis helpline server-side.
+   */
+  countryCode?: string | null;
 
   links?: {
     social: {
@@ -381,6 +387,12 @@ export interface Offers {
    * but haven't finished onboarding. `"full"` = clinical baseline exists too.
    */
   signalLevel: "none" | "intent" | "full";
+  /**
+   * Set only when the assessment marks this user in crisis. The items then
+   * carry no match and arrive in catalogue order: sell nothing, and show this
+   * helpline where a recommendation would have gone.
+   */
+  crisisSupport?: CrisisResource | null;
   /**
    * Whether the first-purchase bonus membership month would really be granted.
    * False for a repeat buyer, or anyone who has ever held a membership. Gate
