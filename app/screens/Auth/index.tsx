@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { PRIVACY_POLICY_URL, SUPPORT_URL } from "./constants";
+import { PRIVACY_POLICY_URL, SUPPORT_URL, TERMS_OF_USE_URL } from "./constants";
 
 import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
@@ -540,6 +540,14 @@ const LoginScreen = () => {
           <Animated.View entering={motion.stagger(staggerBase + 1 + providers.length)}>
             <Text variant="caption" color="tertiary" center>
               By continuing, you agree to our{" "}
+              <Text
+                variant="caption"
+                color="link"
+                onPress={() => handleLinkPress(TERMS_OF_USE_URL)}
+              >
+                Terms
+              </Text>
+              {" "}and{" "}
               <Text
                 variant="caption"
                 color="link"
