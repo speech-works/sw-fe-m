@@ -11,6 +11,10 @@ import { EVENT_NAMES } from "../events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
 import { identifyUser } from "../../util/analytics/postHog";
 import { loginPurchasesUser } from "../../services/purchases";
+import {
+  resetDeviceCountrySync,
+  syncDeviceCountry,
+} from "../../util/functions/deviceCountry";
 
 interface UserState {
   /** The current user object, or null if not loaded/logged in */
@@ -180,6 +184,16 @@ export const useUserStore = create<UserState>()(
           // userId so purchase webhooks carry the right app_user_id. Never
           // blocks user hydration on a purchases-SDK hiccup.
           void loginPurchasesUser(user.id);
+          // Once per session: the device region becomes User.countryCode,
+          // which picks the crisis helpline. Best-effort, never blocks.
+          void syncDeviceCountry(user).then((countryCode) => {
+            if (!countryCode) return;
+            set((state) =>
+              state.user?.id === user.id
+                ? { user: { ...state.user, countryCode } }
+                : state,
+            );
+          });
         } catch (error) {
           console.error("UserStore fetchUser error:", error);
         } finally {
@@ -189,6 +203,7 @@ export const useUserStore = create<UserState>()(
       },
 
       clearUser: () => {
+        resetDeviceCountrySync();
         set({ user: null });
       },
     }),

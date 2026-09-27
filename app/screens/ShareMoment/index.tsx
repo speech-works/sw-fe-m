@@ -30,6 +30,11 @@ import {
 import { createMomentSignal, MomentId, MomentValence } from "../../api/threads";
 import { getMoment, momentsByValence } from "../../constants/momentMessages";
 import { handleLinkPress } from "../../util/functions/externalLinks";
+import {
+  useCrisisResource,
+  crisisActionLabel,
+  crisisActionUrl,
+} from "../../api/crisis";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
@@ -48,6 +53,9 @@ const ShareMomentScreen = () => {
   const onCreated = route.params?.onCreated;
 
   const buddyFirstName = buddyName.split(" ")[0];
+  // The helpline for THIS user's country (988 in the US, Samaritans in the UK
+  // and Ireland, and so on), or the country-neutral route until it loads.
+  const crisisResource = useCrisisResource();
 
   const [selected, setSelected] = useState<MomentId | null>(null); // chip highlight
   const [sheetMomentId, setSheetMomentId] = useState<MomentId | null>(null); // sheet content (persists through close anim)
@@ -128,9 +136,12 @@ const ShareMomentScreen = () => {
     navigation.goBack();
   };
 
-  const call988 = () => {
-    track(ANALYTICS_EVENTS.MOMENT_CRISIS_RESOURCE_TAPPED, { resource: "988" });
-    handleLinkPress("tel:988");
+  const callHelpline = () => {
+    track(ANALYTICS_EVENTS.MOMENT_CRISIS_RESOURCE_TAPPED, {
+      resource: "helpline",
+      countryCode: crisisResource.countryCode,
+    });
+    handleLinkPress(crisisActionUrl(crisisResource));
   };
 
   const openResources = () => {
@@ -177,9 +188,9 @@ const ShareMomentScreen = () => {
     const isStruggle = sheetMoment.valence === "struggle";
 
     // Sensitive struggle → a two-step CARE-GATE so the sheet is never a wall of buttons:
-    //   Step 1 (support): 988 is the one loud island; sharing is a quiet "when you're ready" link.
-    //   Step 2 (share):   one Share island, with 988 re-anchored one tap away + a way back.
-    // 988 stays an ENCLOSED button (never a mere link) on BOTH steps — crisis access stays obvious.
+    //   Step 1 (support): the helpline is the one loud island; sharing is a quiet "when you're ready" link.
+    //   Step 2 (share):   one Share island, with the helpline re-anchored one tap away + a way back.
+    // The helpline stays an ENCLOSED button (never a mere link) on BOTH steps — crisis access stays obvious.
     if (sheetMoment.sensitive) {
       if (sensitiveStep === "support") {
         return (
@@ -192,9 +203,9 @@ const ShareMomentScreen = () => {
               Support is here. Free and confidential, 24/7.
             </Text>
 
-            {/* Care actions only: 988 the single solid island, resources an outline pill. */}
+            {/* Care actions only: the helpline the single solid island, resources an outline pill. */}
             <View style={[styles.actionGroup, styles.actionGroupTop]}>
-              <Button label="Call or text 988" variant="secondary" leftIcon="phone" onPress={call988} />
+              <Button label={crisisActionLabel(crisisResource)} variant="secondary" leftIcon="phone" onPress={callHelpline} />
               <Button label="More resources" variant="outline" size="md" onColor={onFill} onPress={openResources} />
             </View>
 
@@ -217,10 +228,10 @@ const ShareMomentScreen = () => {
             Sharing this lets {buddyFirstName} be there for you too.
           </Text>
 
-          {/* One Share island; 988 stays a tap away as a still-here outline. */}
+          {/* One Share island; the helpline stays a tap away as a still-here outline. */}
           <View style={[styles.actionGroup, styles.actionGroupTop]}>
             <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
-            <Button label="Still here. Call or text 988" variant="outline" size="md" leftIcon="phone" onColor={onFill} onPress={call988} />
+            <Button label={`Still here. ${crisisActionLabel(crisisResource)}`} variant="outline" size="md" leftIcon="phone" onColor={onFill} onPress={callHelpline} />
           </View>
 
           <TextLink label="← Back to support" color={onFill} onPress={() => setSensitiveStep("support")} />

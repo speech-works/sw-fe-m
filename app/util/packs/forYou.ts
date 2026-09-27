@@ -69,6 +69,12 @@ export function selectForYou(
   // a detail page that cannot load.
   const eligible = all.filter((i) => !i.owned && isOpenable(i));
 
+  // In crisis the backend badges nothing and sends a helpline instead. No
+  // "For you" shelf at all: the caller shows the support card in its place.
+  // Checked FIRST: `hidden` renders nothing, so a user in crisis who owns
+  // every pack would otherwise lose the support card too.
+  if (offers.crisisSupport) return browse();
+
   // THEY OWN EVERYTHING. Nothing to SELL, which is all this function decides.
   //
   // It used to say "the sibling card is already saying today's work is done".

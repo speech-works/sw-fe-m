@@ -153,14 +153,14 @@ export const ANALYTICS_EVENTS = {
     MOMENT_SHARED: 'moment_shared',                           // props: { momentId, valence, sensitive }
     MOMENT_CANCELLED: 'moment_cancelled',                     // props: { hadSelection }
     MOMENT_CRISIS_PROMPT_SHOWN: 'moment_crisis_prompt_shown', // props: { momentId }
-    MOMENT_CRISIS_RESOURCE_TAPPED: 'moment_crisis_resource_tapped', // props: { resource: '988' | 'text_line' | 'resources' }
+    MOMENT_CRISIS_RESOURCE_TAPPED: 'moment_crisis_resource_tapped', // props: { resource: 'helpline' | 'resources', countryCode? } ('988' before 2026-09)
 
     // ── Buddy crisis support (responding to a sensitive "Share a moment") ──
     BUDDY_SUPPORT_OPENED: 'buddy_support_opened',             // props: { postId }
     BUDDY_SUPPORT_NOTE_SENT: 'buddy_support_note_sent',       // props: { noteId }
     BUDDY_SUPPORT_LIFELINE_SENT: 'buddy_support_lifeline_sent',
     BUDDY_SUPPORT_GUIDE_VIEWED: 'buddy_support_guide_viewed',
-    BUDDY_SUPPORT_SELF_RESOURCE_TAPPED: 'buddy_support_self_resource_tapped', // props: { resource: '988' | 'resources' }
+    BUDDY_SUPPORT_SELF_RESOURCE_TAPPED: 'buddy_support_self_resource_tapped', // props: { resource: 'helpline' | 'resources', countryCode? } ('988' before 2026-09)
 
     // ── Moderation (App Store Guideline 1.2) ──
     // Volume here is a safety signal, not a growth one: a rising report rate on

@@ -143,7 +143,7 @@ export async function deleteSignal(signalId: string): Promise<void> {
 }
 
 // ── Crisis support (sensitive moments only) ──────────────────────────────────
-/** Respond to a buddy's sensitive moment: a warm canned note, or a 988 lifeline hand-off.
+/** Respond to a buddy's sensitive moment: a warm canned note, or a helpline hand-off (localised to the recipient's country server-side).
  *  The server records it and sends a PRIORITY push to the author. */
 export async function sendSupport({ signalId, ...body }: SendSupportInput): Promise<void> {
   try {

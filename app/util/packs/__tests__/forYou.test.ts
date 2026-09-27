@@ -47,6 +47,43 @@ describe("selectForYou", () => {
     expect(result.highlightFirst).toBe(false);
   });
 
+  it("in crisis, shows no shelf at all, whatever the items say", () => {
+    // The backend sends crisisSupport and no badges when the assessment marks
+    // someone in crisis. Home must not sell; the caller shows the helpline.
+    const items = [offer("panic_button", { match: { level: "top", reason: "x" } })];
+    const result = selectForYou(
+      offers(items, {
+        signalLevel: "full",
+        crisisSupport: {
+          countryCode: "GB",
+          helplineName: "Samaritans",
+          phone: "116123",
+          description: "Call 116 123, free from any phone, 24/7.",
+        },
+      }),
+    );
+    expect(result.mode).toBe("browse");
+    expect(result.items).toEqual([]);
+  });
+
+  it("in crisis, still hands the caller the support slot when they own everything", () => {
+    // `hidden` renders nothing, so the crisis check must run before it or a
+    // user in crisis who owns every pack loses the helpline card as well.
+    const items = [offer("a", { owned: true }), offer("b", { owned: true })];
+    const result = selectForYou(
+      offers(items, {
+        crisisSupport: {
+          countryCode: "GB",
+          helplineName: "Samaritans",
+          phone: "116123",
+          description: "Call 116 123, free from any phone, 24/7.",
+        },
+      }),
+    );
+    expect(result.mode).toBe("browse");
+    expect(result.items).toEqual([]);
+  });
+
   it("drops packs they already own — Home sells, it does not re-sell", () => {
     const items = [offer("owned_one", { owned: true }), offer("word_swap")];
     expect(selectForYou(offers(items)).items.map((i) => i.key)).toEqual(["word_swap"]);
