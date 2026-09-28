@@ -53,6 +53,7 @@ import {
   classifyPackError,
   packErrorMessage,
 } from "../../util/packs/packErrors";
+import { formCardText } from "../../util/packs/formBlock";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 import { VideoPlayer } from "../VideoPlayer";
@@ -355,7 +356,10 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
     case ContentBlockType.FORM: {
       const formContent = block.content as FormBlockContent;
       const config = formContent?.configuration;
-      const formTitle = formContent?.titleOverride || config?.title || "Reflection";
+      // The day's own text for this step first, as the ACTIVITY card does.
+      // See util/packs/formBlock for why `config.description` alone showed
+      // nothing.
+      const { title: formTitle, body: formBody } = formCardText(formContent);
 
       const handleStartForm = () => {
         if (!packId || !moduleId) {
@@ -372,6 +376,11 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           packId,
           moduleId,
           blockId: block.id,
+          titleOverride: formContent.titleOverride,
+          // Only a flag. The form screen fetches the answers when it opens,
+          // because this day payload was loaded before the user left for the
+          // activity and is not refetched on the way back.
+          hasRecall: !!formContent.recallFrom,
           // Reflection flow accent — keeps the form's inner controls in sync
           // with the purple reflection card that opened it.
           accentKey: "purple",
@@ -384,10 +393,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       if (isCompleted) {
         return (
           <CompletedCard title={formTitle} onRetry={handleStartForm}>
-            {config?.description ? (
-              <Text variant="body" color="secondary">
-                {config.description}
-              </Text>
+            {formBody ? (
+              <SimpleMarkdown content={formBody} textColor={colors.text.secondary} />
             ) : null}
           </CompletedCard>
         );
@@ -417,11 +424,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 <Text variant="h2" color={ink}>
                   {formTitle}
                 </Text>
-                {config?.description ? (
-                  <Text variant="body" color={ink}>
-                    {config.description}
-                  </Text>
-                ) : null}
+                {formBody ? <SimpleMarkdown content={formBody} textColor={ink} /> : null}
               </View>
 
               {/* Action = solid dark island (matches home hero CTAs). */}

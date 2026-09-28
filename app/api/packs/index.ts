@@ -1,5 +1,7 @@
 import axiosClient from "../axiosClient";
 import {
+  FormRecall,
+  FormRecallItem,
   PackBrochure,
   PackModule,
   PackProgress,
@@ -119,6 +121,41 @@ export const getModule = async (
     return response.data;
   } catch (error) {
     throw error;
+  }
+};
+
+/**
+ * GET /packs/{packId}/modules/{moduleId}/blocks/{blockId}/recall — the user's
+ * own earlier answers for a form step that shows them (BTT day 5's "after"
+ * form shows the saved prediction and the first number).
+ *
+ * NEVER THROWS. The panel is extra: a server that predates the endpoint
+ * (404), a network error or an odd body all come back as "nothing to show",
+ * and the form works exactly as it did before.
+ */
+export const getFormRecall = async (
+  packId: string,
+  moduleId: string,
+  blockId: string
+): Promise<FormRecall> => {
+  const empty: FormRecall = { items: [], savedAt: null };
+  try {
+    const response = await axiosClient.get(
+      `/packs/${packId}/modules/${moduleId}/blocks/${blockId}/recall`
+    );
+    const items = response.data?.items;
+    if (!Array.isArray(items)) return empty;
+    const clean = items.filter(
+      (i: any): i is FormRecallItem =>
+        typeof i?.label === "string" &&
+        typeof i?.value === "string" &&
+        i.value.trim() !== ""
+    );
+    return clean.length
+      ? { items: clean, savedAt: response.data?.savedAt ?? null }
+      : empty;
+  } catch {
+    return empty;
   }
 };
 

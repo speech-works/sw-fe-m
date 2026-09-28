@@ -50,6 +50,9 @@ export type ExploreStackParamList = {
     packId: string;
     moduleId: string;
     blockId: string;
+    titleOverride?: string;
+    hasRecall?: boolean;
+    accentKey?: "lime" | "purple" | "success" | "warning" | "danger" | "info";
   };
   Breathing: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" | "FIRST_CALL" } | undefined;
   Meditation: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
