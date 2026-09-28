@@ -11,22 +11,15 @@ export const COMPANY_SLOGAN = "Change the Conversation";
  */
 export const PRIVACY_POLICY_URL = "https://speechworks.app/privacy/";
 /**
- * Terms of Use, linked from the paywall.
+ * Terms of Use, linked from the auth screen and the paywall.
  *
  * App Store Guideline 3.1.2 requires a functional Terms of Use link in the
- * BINARY for any auto-renewing subscription — not just in App Store Connect.
- * speechworks.app/terms does not exist yet (the marketing site ships /privacy
- * and /account/delete only), and a 404 here is a rejection, so this points at
- * Apple's standard Licensed Application EULA. That is the documented fallback
- * and App Store Connect already applies the same document to the listing by
- * default, so the two agree.
- *
- * Swap this for https://speechworks.app/terms/ once that page exists — and at
- * the same time restore the auth screen's "Terms & Privacy Policy" label,
- * which was cut back to "Privacy Policy" for exactly this reason.
+ * BINARY for any auto-renewing subscription, not just in App Store Connect.
+ * The Speechworks terms add to Apple's standard EULA and Google Play's terms,
+ * and link to both, so one URL serves both platforms. Verify it still answers
+ * before any store submission; nothing in the build fails if it stops.
  */
-export const TERMS_OF_USE_URL =
-  "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+export const TERMS_OF_USE_URL = "https://speechworks.app/terms/";
 /**
  * The one support channel, used everywhere.
  *
