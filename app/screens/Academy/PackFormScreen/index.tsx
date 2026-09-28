@@ -1,13 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { submitFormResponse } from "../../../api";
+import { getFormRecall } from "../../../api/packs";
 import {
   FormConfiguration,
   FormField,
   FormFieldType,
+  FormRecallItem,
 } from "../../../api/packs/types";
 import PressableScale from "../../../components/PressableScale";
 import {
@@ -25,6 +27,7 @@ import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
 } from "../../../util/functions/bottomSheet";
+import { formScreenHeader } from "../../../util/packs/formBlock";
 
 /** Keys of `colors.accent` / `accentOn` — the flow's fill + its AA-correct ink. */
 type AccentKey = "lime" | "purple" | "success" | "warning" | "danger" | "info";
@@ -37,6 +40,10 @@ type PackFormRouteProp = RouteProp<
       packId: string;
       moduleId: string;
       blockId: string;
+      /** The step's name from the day, the one on the card that opened this. */
+      titleOverride?: string;
+      /** The step shows the user's earlier answers above the fields. */
+      hasRecall?: boolean;
       /** Flow accent, inherited from the card that opened this form. Reflection = purple. */
       accentKey?: AccentKey;
     };
@@ -285,6 +292,25 @@ const PackFormScreen = () => {
 
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
+  const header = formScreenHeader(configuration, route.params.titleOverride);
+
+  // EARLIER ANSWERS, FETCHED HERE. This screen mounts fresh every time the
+  // card is tapped, so the answers are read when the form opens rather than
+  // taken from the day payload, which was loaded before the user went off to
+  // the activity and is not reloaded on the way back. Any failure leaves the
+  // panel empty and the form as it always was.
+  const hasRecall = !!route.params.hasRecall;
+  const [recall, setRecall] = useState<FormRecallItem[]>([]);
+  useEffect(() => {
+    if (!hasRecall || !packId || !moduleId || !blockId) return;
+    let live = true;
+    getFormRecall(packId, moduleId, blockId).then((r) => {
+      if (live) setRecall(r.items);
+    });
+    return () => {
+      live = false;
+    };
+  }, [hasRecall, packId, moduleId, blockId]);
 
   const updateAnswer = (fieldId: string, value: any) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
@@ -366,7 +392,8 @@ const PackFormScreen = () => {
   return (
     <>
       <Page
-        title={configuration.title || "Reflection"}
+        title={header.title}
+        description={header.description || undefined}
         onBack={() => navigation.goBack()}
         keyboardAvoiding
         footer={
@@ -381,10 +408,30 @@ const PackFormScreen = () => {
           />
         }
       >
-        {configuration?.description ? (
-          <Text variant="body" color="secondary" style={styles.description}>
-            {configuration.description}
-          </Text>
+        {recall.length > 0 ? (
+          <Surface level="default" rounded="card" padded={spacing.xl}>
+            <View
+              style={styles.recall}
+              accessible
+              accessibilityLabel={`Saved earlier. ${recall
+                .map((r) => `${r.label}: ${r.value}`)
+                .join(". ")}`}
+            >
+              <Text variant="eyebrow" color="tertiary">
+                SAVED EARLIER
+              </Text>
+              {recall.map((item, i) => (
+                <View key={`${item.label}-${i}`} style={styles.recallItem}>
+                  <Text variant="bodySm" color="secondary">
+                    {item.label}
+                  </Text>
+                  <Text variant="body" color="primary">
+                    {item.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </Surface>
         ) : null}
 
         {(configuration?.fields || []).map((field) => (
@@ -423,9 +470,11 @@ export default PackFormScreen;
 // ─────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  description: {
-    lineHeight: 22,
-    paddingHorizontal: spacing.xs,
+  recall: {
+    gap: spacing.md,
+  },
+  recallItem: {
+    gap: spacing.xxs,
   },
   fieldHeader: {
     flexDirection: "row",

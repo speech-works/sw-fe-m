@@ -151,7 +151,29 @@ export type FormBlockContent = {
   refId: string;
   formId: string; // UUID — use this for POST /forms/:formId/submit
   titleOverride?: string;
+  /**
+   * The day's own words for this step, written by the program for the CARD
+   * on the day screen. Several say "shown above" about the block above the
+   * card, so they are not repeated on the form screen.
+   */
+  descriptionOverride?: string;
+  /**
+   * Present when the form shows the user's earlier answers above its fields.
+   * The app only checks that it is there: the answers themselves are fetched
+   * by the form screen (getFormRecall), because this payload can be older
+   * than the answer.
+   */
+  recallFrom?: { formKey: string };
   configuration: FormConfiguration;
+};
+
+/** One earlier answer, as the server printed it. */
+export type FormRecallItem = { label: string; value: string };
+
+/** GET /packs/:packId/modules/:moduleId/blocks/:blockId/recall */
+export type FormRecall = {
+  items: FormRecallItem[];
+  savedAt: string | null;
 };
 
 // --- Reference Block (for ACTIVITY / SIMULATION) ---
