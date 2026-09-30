@@ -178,6 +178,21 @@ const PhoneCall = () => {
    * widget and killed the call — after a credit had been spent on it.
    */
   const [callLive, setCallLive] = useState(false);
+
+  /**
+   * HAS THIS SCREEN EVER DIALLED?
+   *
+   * A pack starts its activity before this screen opens, and that start
+   * reserves the call credit. Somebody who then leaves without dialling (back,
+   * no headphones, declined consent) was shown "Save this practice?": Save
+   * marked the day done with no call, Discard kept the credit. Until the first
+   * dial, leaving is free and refunds the credit; after it, the save sheet
+   * behaves as before. Unlike `callLive` this never flips back, so the gap
+   * between a limit-reached hang-up and its acknowledgement stays guarded.
+   */
+  const [hasDialled, setHasDialled] = useState(false);
+  const hasDialledRef = useRef(false);
+  const isDoneRef = useRef(false);
   const reduceMotion = useReducedMotion();
   const liveT = useSharedValue(0);
 
@@ -255,6 +270,10 @@ const PhoneCall = () => {
       // Only a start that produced an id is a call — a null here means the
       // widget never dialled, and the picker must stay available.
       setCallLive(startedId !== null);
+      if (startedId !== null) {
+        hasDialledRef.current = true;
+        setHasDialled(true);
+      }
       return startedId;
     } catch (error) {
       setCallLive(false);
@@ -404,13 +423,33 @@ const PhoneCall = () => {
     fetchScenarios();
   }, []);
 
+  // Leaving before the first dial: hand back the credit the pack reserved and
+  // let the navigation through (see hasDialled). Read via refs because the
+  // listener outlives the render that registered it.
+  isDoneRef.current = isDone;
+  const abortRef = useRef(abortCurrentActivity);
+  abortRef.current = abortCurrentActivity;
+  useEffect(() => {
+    return navigation.addListener("beforeRemove", () => {
+      if (
+        hasDialledRef.current ||
+        isDoneRef.current ||
+        !currentActivityIdRef.current
+      ) {
+        return;
+      }
+      void abortRef.current(true);
+    });
+  }, [navigation]);
+
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
   // During a live call, "Save & Finish" completes directly (which flips isDone
   // and unmounts CallingWidget, ending the call) — we deliberately do NOT open
   // the vitals modal over a live call. Discard navigates away (no refund).
+  // Only once a call has been dialled: before that there is nothing to save.
   const { exitSheet } = useConfirmOnExit({
     navigation,
-    activityId: currentActivityId,
+    activityId: hasDialled ? currentActivityId : null,
     isCompleted: isDone,
     onSave: () => {
       markActivityComplete();
