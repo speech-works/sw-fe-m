@@ -76,6 +76,7 @@ export interface FillerSound {
   setPositionAsync(ms: number): Promise<unknown>;
   unloadAsync(): Promise<unknown>;
   setOnPlaybackStatusUpdate(cb: ((status: any) => void) | null): void;
+  setVolumeAsync?(volume: number): Promise<unknown>;
 }
 
 export type FillerEndReason = "finished" | "user_speech" | "stopped" | "reply_timeout";
@@ -98,6 +99,7 @@ export class FillerPlayer {
   private previous: number | null = null;
   private waiters: (() => void)[] = [];
   private replyWaitStartedAt: number | null = null;
+  private volume = 1;
 
   constructor(
     private readonly load: (uri: string) => Promise<FillerSound>,
@@ -137,6 +139,15 @@ export class FillerPlayer {
     this.sounds = loaded;
   }
 
+  /** The voice's playback volume (the `fillers` event); used from the next filler on. */
+  setVolume(volume: number): void {
+    this.volume = volume;
+  }
+
+  getVolume(): number {
+    return this.volume;
+  }
+
   /** Plays a filler (not the one played last). Returns its index, or null. */
   async play(random: () => number = Math.random): Promise<number | null> {
     if (this.current) return null;
@@ -154,6 +165,7 @@ export class FillerPlayer {
     });
     try {
       await sound.setPositionAsync(0);
+      await sound.setVolumeAsync?.(this.volume);
       await sound.playAsync();
     } catch {
       if (this.current?.sound === sound) this.finish("stopped");

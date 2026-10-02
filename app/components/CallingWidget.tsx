@@ -51,6 +51,7 @@ import {
   parseHandoverMessage,
   shouldAckHandover,
 } from "../util/audio/handoverPlayer";
+import { voiceVolumeOrDefault, volumeCorrection } from "../util/audio/voiceVolume";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
@@ -667,6 +668,9 @@ const CallingWidget: React.FC<Props> = ({
   // The handover line ("Sorry, I have a bad line...") in the OLD voice when
   // the server switches voice: app/util/audio/handoverPlayer.ts. Own sounds.
   const handoverPlayerRef = useRef<HandoverPlayer | null>(null);
+  // Playback volume of the reply's voice (app/util/audio/voiceVolume.ts):
+  // from play_stream, corrected by a `fillers` event after a failover.
+  const replyVolumeRef = useRef(1);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -2357,9 +2361,18 @@ const CallingWidget: React.FC<Props> = ({
         const urls: string[] = Array.isArray(data.urls)
           ? data.urls.filter((u: unknown): u is string => typeof u === "string")
           : [];
-        void getFillerPlayer()
+        const fillerPlayer = getFillerPlayer();
+        fillerPlayer.setVolume(voiceVolumeOrDefault(data.volume));
+        void fillerPlayer
           .setUrls(urls.map(normalizePlayableStreamUrl))
           .catch((e) => console.warn("[Filler] preload failed:", e));
+        // The voice that really speaks may not be the one play_stream
+        // expected (the provider failed over): correct the reply's volume.
+        const correctedVolume = volumeCorrection(replyVolumeRef.current, data.volume);
+        if (correctedVolume !== null) {
+          replyVolumeRef.current = correctedVolume;
+          void soundRef.current?.setVolumeAsync(correctedVolume).catch(() => {});
+        }
         // This voice's handover line, ready in case its provider fails later.
         if (typeof data.handoverUrl === "string" && data.handoverUrl) {
           void getHandoverPlayer().preload(normalizePlayableStreamUrl(data.handoverUrl));
@@ -2432,6 +2445,7 @@ const CallingWidget: React.FC<Props> = ({
         currentPlaybackDurationMsRef.current = null;
         currentPlaybackStartedAtMsRef.current = null;
         playbackStartedAckSentRef.current = false;
+        replyVolumeRef.current = voiceVolumeOrDefault(data.volume);
         const urlToPlay = normalizePlayableStreamUrl(rawUrl);
         if (urlToPlay !== rawUrl) {
           callDebugLog(
@@ -2478,7 +2492,11 @@ const CallingWidget: React.FC<Props> = ({
 
             await newSound.loadAsync(
               { uri: urlToPlay },
-              { shouldPlay: false, progressUpdateIntervalMillis: 200 },
+              {
+                shouldPlay: false,
+                progressUpdateIntervalMillis: 200,
+                volume: replyVolumeRef.current,
+              },
             );
             // Never two sounds at once: no new filler from here on, and a
             // filler that already started plays to its end (or is stopped
@@ -2516,7 +2534,7 @@ const CallingWidget: React.FC<Props> = ({
                 if (!status.isPlaying && !hasStartedPlaying.current) {
                   try {
                     hasStartedPlaying.current = true;
-                    await newSound.setVolumeAsync(1.0);
+                    await newSound.setVolumeAsync(replyVolumeRef.current);
                     if ((newSound as any).setIsMutedAsync) {
                       try {
                         await (newSound as any).setIsMutedAsync(false);
@@ -2584,7 +2602,7 @@ const CallingWidget: React.FC<Props> = ({
                   !hasStartedPlaying.current
                 ) {
                   hasStartedPlaying.current = true;
-                  await newSound.setVolumeAsync(1.0);
+                  await newSound.setVolumeAsync(replyVolumeRef.current);
                   const playbackStatus = await newSound.playAsync();
                   await acknowledgePlaybackStarted(
                     playbackStatus && playbackStatus.isLoaded

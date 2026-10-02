@@ -84,6 +84,10 @@ class FakeSound implements FillerSound {
     this.stopped++;
   }
   async setPositionAsync() {}
+  volume: number | null = null;
+  async setVolumeAsync(v: number) {
+    this.volume = v;
+  }
   async unloadAsync() {
     this.unloaded++;
   }
@@ -124,6 +128,17 @@ describe("FillerPlayer", () => {
     expect(i).toBe(0);
     expect(sounds[0].played).toBe(1);
     expect(player.isPlaying()).toBe(true);
+  });
+
+  it("plays fillers at the voice's volume (1 until the server sends one)", async () => {
+    const { player, sounds } = setup();
+    await player.setUrls(URLS);
+    const a = await player.play(() => 0);
+    expect(sounds[a!].volume).toBe(1);
+    sounds[a!].finish();
+    player.setVolume(0.46);
+    const b = await player.play(() => 0);
+    expect(sounds[b!].volume).toBe(0.46);
   });
 
   it("does not play the same filler twice in a row", async () => {

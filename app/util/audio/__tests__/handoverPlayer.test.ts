@@ -23,6 +23,10 @@ class FakeSound implements HandoverSound, FillerSound {
     this.stopped++;
   }
   async setPositionAsync() {}
+  volume: number | null = null;
+  async setVolumeAsync(v: number) {
+    this.volume = v;
+  }
   async unloadAsync() {
     this.unloaded++;
   }
@@ -64,7 +68,9 @@ describe("parseHandoverMessage", () => {
       jobId: "j",
       url: "u",
       durationMs: 3360,
+      volume: 1,
     });
+    expect(parseHandoverMessage({ jobId: "j", url: "u", durationMs: 3360, volume: 0.46 })?.volume).toBe(0.46);
     expect(parseHandoverMessage({ jobId: "j", url: "u", durationMs: "x" })?.durationMs).toBeNull();
     expect(parseHandoverMessage({ jobId: "j", url: "u", durationMs: -1 })?.durationMs).toBeNull();
     expect(parseHandoverMessage({ url: "u" })).toBeNull();
@@ -169,6 +175,20 @@ describe("HandoverPlayer", () => {
     expect(ended).toEqual([{ jobId: "j2", reason: "finished", waitedMs: 3200, played: true }]);
     expect(player.isActive()).toBe(false);
     expect(sounds[0].unloaded).toBe(1);
+  });
+
+  it("plays the clip at the OLD voice's volume; 1 when the server sent none", async () => {
+    const { player, sounds } = setup();
+    const done = player.play({ ...MSG, volume: 0.46 });
+    await flush();
+    expect(sounds[0].volume).toBe(0.46);
+    sounds[0].finish();
+    await done;
+    const again = player.play({ ...MSG, jobId: "j3" });
+    await flush();
+    expect(sounds[1].volume).toBe(1);
+    sounds[1].finish();
+    await again;
   });
 
   it("loads the clip when it was not preloaded", async () => {

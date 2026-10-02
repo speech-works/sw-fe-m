@@ -20,7 +20,10 @@
  *   released and the server's barge-in logic decides), on stop_playback,
  *   call_ended and hang-up (no ack: the server already dropped the line).
  * - Its own sounds: never the reply's sound, never playback_started/complete.
+ * - Played at the OLD voice's volume (`volume` on the event, voiceVolume.ts).
  */
+
+import { voiceVolumeOrDefault } from "./voiceVolume";
 
 /** Longest the reply waits for a handover clip before cutting it. */
 export const HANDOVER_REPLY_WAIT_MAX_MS = 6000;
@@ -33,6 +36,8 @@ export interface HandoverMessage {
   jobId: string;
   url: string;
   durationMs: number | null;
+  /** Playback volume of the OLD voice (voiceVolume.ts); missing = 1. */
+  volume?: number;
 }
 
 /** The `handover` WebSocket event, or null when it is malformed. */
@@ -42,7 +47,7 @@ export function parseHandoverMessage(data: unknown): HandoverMessage | null {
   if (typeof d.jobId !== "string" || !d.jobId || typeof d.url !== "string" || !d.url) return null;
   const durationMs =
     typeof d.durationMs === "number" && Number.isFinite(d.durationMs) && d.durationMs > 0 ? d.durationMs : null;
-  return { jobId: d.jobId, url: d.url, durationMs };
+  return { jobId: d.jobId, url: d.url, durationMs, volume: voiceVolumeOrDefault(d.volume) };
 }
 
 export type HandoverArrival = "play" | "late" | "stale" | "duplicate" | "inactive";
@@ -92,6 +97,7 @@ export interface HandoverSound {
   setPositionAsync(ms: number): Promise<unknown>;
   unloadAsync(): Promise<unknown>;
   setOnPlaybackStatusUpdate(cb: ((status: any) => void) | null): void;
+  setVolumeAsync?(volume: number): Promise<unknown>;
 }
 
 export interface HandoverEnded {
@@ -216,6 +222,7 @@ export class HandoverPlayer {
     }, (msg.durationMs ?? HANDOVER_DEFAULT_DURATION_MS) + HANDOVER_PLAY_GRACE_MS);
     try {
       await sound.setPositionAsync(0);
+      await sound.setVolumeAsync?.(msg.volume ?? 1);
       if (this.active !== active) return ended;
       await sound.playAsync();
       active.played = true;
