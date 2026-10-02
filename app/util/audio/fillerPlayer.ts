@@ -41,11 +41,13 @@ export interface FillerGateInput {
   userSpokeSinceTurnEnd: boolean;
   fillerCount: number;
   stopping: boolean;
+  /** A handover line is pending or playing (handoverPlayer.ts): it has priority. */
+  handoverActive?: boolean;
 }
 
 /** True when a filler may start now. */
 export function shouldStartFiller(i: FillerGateInput): boolean {
-  if (i.stopping || i.fillerCount <= 0) return false;
+  if (i.stopping || i.fillerCount <= 0 || i.handoverActive) return false;
   if (i.turnEndedAt === null) return false;
   if (i.playbackState !== "user_listening" && i.playbackState !== "agent_preparing") return false;
   if (i.replyStarting || i.playedThisWait || i.userSpokeSinceTurnEnd) return false;

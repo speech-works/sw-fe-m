@@ -44,6 +44,13 @@ import {
   FillerPlayer,
   shouldStartFiller,
 } from "../util/audio/fillerPlayer";
+import {
+  HANDOVER_REPLY_WAIT_MAX_MS,
+  HandoverPlayer,
+  decideHandoverArrival,
+  parseHandoverMessage,
+  shouldAckHandover,
+} from "../util/audio/handoverPlayer";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
@@ -657,6 +664,9 @@ const CallingWidget: React.FC<Props> = ({
   const fillerUserSpokeRef = useRef(false);
   const fillerReplyStartingRef = useRef(false);
   const fillerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The handover line ("Sorry, I have a bad line...") in the OLD voice when
+  // the server switches voice: app/util/audio/handoverPlayer.ts. Own sounds.
+  const handoverPlayerRef = useRef<HandoverPlayer | null>(null);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -746,6 +756,27 @@ const CallingWidget: React.FC<Props> = ({
     return fillerPlayerRef.current;
   };
 
+  const getHandoverPlayer = () => {
+    if (!handoverPlayerRef.current) {
+      handoverPlayerRef.current = new HandoverPlayer(
+        async (uri) => {
+          const sound = new Audio.Sound();
+          await sound.loadAsync({ uri }, { shouldPlay: false });
+          return sound;
+        },
+        ({ jobId, reason, waitedMs, played }) => {
+          // Releases the held reply on the server. Not sent when the server
+          // stopped the line itself (stop_playback, call end).
+          if (shouldAckHandover(reason) && ws.current?.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify({ type: "handover_complete", jobId, reason }));
+          }
+          sendClientTrace("handover_played", { jobId, waitedMs, reason, source: played ? "played" : "not_played" });
+        },
+      );
+    }
+    return handoverPlayerRef.current;
+  };
+
   /** The caller's turn ended (user_text isFinal): a filler may play after a short delay. */
   const startFillerWait = () => {
     clearTimerRef(fillerTimerRef);
@@ -767,6 +798,7 @@ const CallingWidget: React.FC<Props> = ({
           userSpokeSinceTurnEnd: fillerUserSpokeRef.current,
           fillerCount: player.count,
           stopping: isStopping.current,
+          handoverActive: !!handoverPlayerRef.current?.isActive(),
         })
       ) {
         return;
@@ -929,7 +961,9 @@ const CallingWidget: React.FC<Props> = ({
     source: "web" | "native",
   ) => {
     const fillerWatching =
-      fillerTurnEndedAtRef.current !== null || !!fillerPlayerRef.current?.isPlaying();
+      fillerTurnEndedAtRef.current !== null ||
+      !!fillerPlayerRef.current?.isPlaying() ||
+      !!handoverPlayerRef.current?.isActive();
     if (callPlaybackStateRef.current !== "user_listening" && !fillerWatching) {
       return;
     }
@@ -937,8 +971,11 @@ const CallingWidget: React.FC<Props> = ({
     const rms = calculatePcmRms(buffer);
     if (fillerWatching && rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
       // The caller is speaking again: no filler now, and a playing one stops.
+      // A playing handover line stops too (and is acked, so the held reply is
+      // released; the server's barge-in logic decides what happens to it).
       fillerUserSpokeRef.current = true;
       fillerPlayerRef.current?.stop("user_speech");
+      handoverPlayerRef.current?.stop("user_speech");
     }
     if (callPlaybackStateRef.current !== "user_listening") {
       return;
@@ -1336,6 +1373,9 @@ const CallingWidget: React.FC<Props> = ({
     const fillerPlayer = fillerPlayerRef.current;
     fillerPlayerRef.current = null;
     void fillerPlayer?.dispose();
+    const handoverPlayer = handoverPlayerRef.current;
+    handoverPlayerRef.current = null;
+    void handoverPlayer?.dispose();
 
     // 2. Clean up expo-av PLAYBACK Sound Object (using soundRef)
     const soundToUnload = soundRef.current; // Get from ref
@@ -1774,7 +1814,8 @@ const CallingWidget: React.FC<Props> = ({
           if (
             callPlaybackStateRef.current === "user_listening" ||
             fillerTurnEndedAtRef.current !== null ||
-            fillerPlayerRef.current?.isPlaying()
+            fillerPlayerRef.current?.isPlaying() ||
+            handoverPlayerRef.current?.isActive()
           ) {
             try {
               const pcmBuffer = getPcmArrayBufferFromChunk(chunkBase64);
@@ -1964,6 +2005,9 @@ const CallingWidget: React.FC<Props> = ({
           clientTimezone: timezone,
           authToken,
           takeYourTime,
+          // Tells the server this app plays filler clips and the handover
+          // line; without it the server never holds a reply for a handover.
+          clientFeatures: { fillers: true, handover: true },
         }),
       );
 
@@ -2113,6 +2157,7 @@ const CallingWidget: React.FC<Props> = ({
     isStopping.current = true;
     endFillerWait();
     fillerPlayerRef.current?.stop();
+    handoverPlayerRef.current?.stop();
     clearCallSafetyTimeouts();
     clearMissedSpeechCue();
     clearTimerRef(postPlaybackReadyTimeoutRef);
@@ -2315,6 +2360,44 @@ const CallingWidget: React.FC<Props> = ({
         void getFillerPlayer()
           .setUrls(urls.map(normalizePlayableStreamUrl))
           .catch((e) => console.warn("[Filler] preload failed:", e));
+        // This voice's handover line, ready in case its provider fails later.
+        if (typeof data.handoverUrl === "string" && data.handoverUrl) {
+          void getHandoverPlayer().preload(normalizePlayableStreamUrl(data.handoverUrl));
+        }
+        break;
+      }
+
+      case "handover": {
+        // The voice changes on the next line: the OLD voice says its
+        // handover line first. The server holds the line until we ack.
+        const msg = parseHandoverMessage(data);
+        if (!msg) break;
+        const player = getHandoverPlayer();
+        const arrival = decideHandoverArrival({
+          jobId: msg.jobId,
+          currentJobId: currentPlaybackJobIdRef.current,
+          replyAudioStarted: hasStartedPlaying.current || playbackStartedAckSentRef.current,
+          alreadyHandled: player.wasHandled(msg.jobId),
+          callActive: !isStopping.current && audioState.current === "STARTED",
+        });
+        if (arrival !== "play") {
+          // Ignored and not acked: the server's hold timeout covers it.
+          player.markHandled(msg.jobId);
+          if (arrival === "late") sendClientTrace("handover_late", { jobId: msg.jobId });
+          break;
+        }
+        // The reply is held for up to 5 s more: restart the 12 s audio-start
+        // timeout so the call is never ended during the hold.
+        scheduleAudioStartTimeout(playSeq.current);
+        // A filler that has not started yet never will for this reply.
+        clearTimerRef(fillerTimerRef);
+        void player.play(
+          { ...msg, url: normalizePlayableStreamUrl(msg.url) },
+          () =>
+            fillerPlayerRef.current?.isPlaying()
+              ? fillerPlayerRef.current.waitUntilIdle(FILLER_FINISH_TIMEOUT_MS)
+              : Promise.resolve(),
+        );
         break;
       }
 
@@ -2404,6 +2487,10 @@ const CallingWidget: React.FC<Props> = ({
             clearTimerRef(fillerTimerRef);
             if (fillerPlayerRef.current?.isPlaying()) {
               await fillerPlayerRef.current.waitUntilIdle(FILLER_FINISH_TIMEOUT_MS);
+            }
+            // Same for the handover line: the new voice starts after it.
+            if (handoverPlayerRef.current?.isActive()) {
+              await handoverPlayerRef.current.waitUntilIdle(HANDOVER_REPLY_WAIT_MAX_MS);
             }
             if (
               mySeq !== playSeq.current ||
@@ -2532,6 +2619,7 @@ const CallingWidget: React.FC<Props> = ({
       case "stop_playback": {
         endFillerWait();
         fillerPlayerRef.current?.stop();
+        handoverPlayerRef.current?.stop();
         syncCallPlaybackState("interrupting");
         const soundToStop = soundRef.current;
         soundRef.current = null;
@@ -2612,6 +2700,7 @@ const CallingWidget: React.FC<Props> = ({
         clearCallSafetyTimeouts();
         endFillerWait();
         fillerPlayerRef.current?.stop();
+        handoverPlayerRef.current?.stop();
         if (data.message) {
           setStatus(data.message);
         }
