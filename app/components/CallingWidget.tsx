@@ -52,6 +52,11 @@ import {
   shouldAckHandover,
 } from "../util/audio/handoverPlayer";
 import { voiceVolumeOrDefault, volumeCorrection } from "../util/audio/voiceVolume";
+import {
+  ECHO_WARNING_TEXT,
+  ECHO_WARNING_VISIBLE_MS,
+  shouldShowEchoWarning,
+} from "../util/echoWarning";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
@@ -546,6 +551,12 @@ const CallingWidget: React.FC<Props> = ({
   );
   const [toggleHint, setToggleHint] = useState<string | null>(null);
   const toggleHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // "Lower your volume a bit." when the server says the mic hears the call.
+  const [echoWarningVisible, setEchoWarningVisible] = useState(false);
+  const echoWarningShownRef = useRef(false);
+  const echoWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const takeYourTimePulse = useRef(new Animated.Value(1)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
   // --- ⬆️ END take-your-time state ⬆️ ---
@@ -1308,6 +1319,8 @@ const CallingWidget: React.FC<Props> = ({
     callId.current += 1; // Increment call ID to invalidate handlers
     isStopping.current = true; // Set stopping flag
     clearCallSafetyTimeouts();
+    clearTimerRef(echoWarningTimerRef);
+    setEchoWarningVisible(false);
     resetThinkingTelemetry();
     clearMissedSpeechCue(true);
     clearTimerRef(postPlaybackReadyTimeoutRef);
@@ -2001,6 +2014,7 @@ const CallingWidget: React.FC<Props> = ({
         SECURE_KEYS_NAME.SW_APP_JWT_KEY,
       );
 
+      echoWarningShownRef.current = false;
       ws.current?.send(
         JSON.stringify({
           type: "join",
@@ -2011,7 +2025,9 @@ const CallingWidget: React.FC<Props> = ({
           takeYourTime,
           // Tells the server this app plays filler clips and the handover
           // line; without it the server never holds a reply for a handover.
-          clientFeatures: { fillers: true, handover: true },
+          // `echoWarning`: shows "Lower your volume a bit." on an
+          // `echo_warning` message.
+          clientFeatures: { fillers: true, handover: true, echoWarning: true },
         }),
       );
 
@@ -2353,6 +2369,20 @@ const CallingWidget: React.FC<Props> = ({
         // "Take your time" mode, only after "I'm done"): a filler may follow.
         if (data.isFinal === true) {
           startFillerWait();
+        }
+        break;
+
+      case "echo_warning":
+        // The mic keeps hearing the call. A calm line of text, once per call.
+        if (shouldShowEchoWarning(echoWarningShownRef.current)) {
+          echoWarningShownRef.current = true;
+          setEchoWarningVisible(true);
+          clearTimerRef(echoWarningTimerRef);
+          echoWarningTimerRef.current = setTimeout(() => {
+            echoWarningTimerRef.current = null;
+            setEchoWarningVisible(false);
+          }, ECHO_WARNING_VISIBLE_MS);
+          sendClientTrace("echo_warning_shown", {});
         }
         break;
 
@@ -3349,6 +3379,11 @@ const CallingWidget: React.FC<Props> = ({
           ) : (
             <View style={styles.statusSpacer} />
           )}
+          {isCalling && echoWarningVisible ? (
+            <Text style={[styles.toggleHintText, styles.echoWarningText]}>
+              {ECHO_WARNING_TEXT}
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -3957,6 +3992,9 @@ const useStyles = makeStyles((c) => ({
     fontWeight: "500",
     letterSpacing: 0.2,
     textTransform: "none",
+  },
+  echoWarningText: {
+    marginTop: spacing.sm,
   },
   toggleHintText: {
     color: c.text.secondary,
