@@ -38,6 +38,12 @@ import type { CrisisResource } from "../api/crisis";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { size, typography, Icon, icons, fonts, makeStyles, useTheme, withAlpha, radius, spacing, castShadow, noShadow } from "../design-system";
 import { callerGlyph } from "../util/callerGlyph";
+import {
+  FILLER_FINISH_TIMEOUT_MS,
+  FILLER_START_DELAY_MS,
+  FillerPlayer,
+  shouldStartFiller,
+} from "../util/audio/fillerPlayer";
 import { isHeadsetConnected } from "../util/functions/headset";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
@@ -643,6 +649,14 @@ const CallingWidget: React.FC<Props> = ({
   const thinkingVisibleAtRef = useRef<number | null>(null);
   const lastLocalSpeechAtRef = useRef(0);
   const lastPlaybackCompletedAtRef = useRef<number | null>(null);
+  // Filler clips ("Mm-hm.") while a reply is prepared: app/util/audio/fillerPlayer.ts.
+  // Their own sounds; never soundRef/playSeq, never playback_started/complete.
+  const fillerPlayerRef = useRef<FillerPlayer | null>(null);
+  const fillerTurnEndedAtRef = useRef<number | null>(null);
+  const fillerPlayedThisWaitRef = useRef(false);
+  const fillerUserSpokeRef = useRef(false);
+  const fillerReplyStartingRef = useRef(false);
+  const fillerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -715,6 +729,57 @@ const CallingWidget: React.FC<Props> = ({
         ...details,
       }),
     );
+  };
+
+  const getFillerPlayer = () => {
+    if (!fillerPlayerRef.current) {
+      fillerPlayerRef.current = new FillerPlayer(
+        async (uri) => {
+          const sound = new Audio.Sound();
+          await sound.loadAsync({ uri }, { shouldPlay: false });
+          return sound;
+        },
+        ({ fillerIndex, waitedMs, reason }) =>
+          sendClientTrace("filler_played", { fillerIndex, waitedMs, source: reason }),
+      );
+    }
+    return fillerPlayerRef.current;
+  };
+
+  /** The caller's turn ended (user_text isFinal): a filler may play after a short delay. */
+  const startFillerWait = () => {
+    clearTimerRef(fillerTimerRef);
+    fillerTurnEndedAtRef.current = Date.now();
+    fillerPlayedThisWaitRef.current = false;
+    fillerUserSpokeRef.current = false;
+    fillerReplyStartingRef.current = false;
+    fillerTimerRef.current = setTimeout(() => {
+      fillerTimerRef.current = null;
+      const player = fillerPlayerRef.current;
+      if (
+        !player ||
+        !shouldStartFiller({
+          now: Date.now(),
+          turnEndedAt: fillerTurnEndedAtRef.current,
+          playbackState: callPlaybackStateRef.current,
+          replyStarting: fillerReplyStartingRef.current || hasStartedPlaying.current,
+          playedThisWait: fillerPlayedThisWaitRef.current,
+          userSpokeSinceTurnEnd: fillerUserSpokeRef.current,
+          fillerCount: player.count,
+          stopping: isStopping.current,
+        })
+      ) {
+        return;
+      }
+      fillerPlayedThisWaitRef.current = true;
+      void player.play();
+    }, FILLER_START_DELAY_MS);
+  };
+
+  /** No filler may start until the caller's next turn ends. */
+  const endFillerWait = () => {
+    clearTimerRef(fillerTimerRef);
+    fillerTurnEndedAtRef.current = null;
   };
 
   const clearMissedSpeechCue = (resetCount = false) => {
@@ -863,11 +928,22 @@ const CallingWidget: React.FC<Props> = ({
     buffer: ArrayBuffer,
     source: "web" | "native",
   ) => {
-    if (callPlaybackStateRef.current !== "user_listening") {
+    const fillerWatching =
+      fillerTurnEndedAtRef.current !== null || !!fillerPlayerRef.current?.isPlaying();
+    if (callPlaybackStateRef.current !== "user_listening" && !fillerWatching) {
       return;
     }
 
     const rms = calculatePcmRms(buffer);
+    if (fillerWatching && rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
+      // The caller is speaking again: no filler now, and a playing one stops.
+      fillerUserSpokeRef.current = true;
+      fillerPlayerRef.current?.stop("user_speech");
+    }
+    if (callPlaybackStateRef.current !== "user_listening") {
+      return;
+    }
+
     updateMicVisualLevel(rms);
     if (rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
       markLocalSpeechDetected(source);
@@ -1144,6 +1220,7 @@ const CallingWidget: React.FC<Props> = ({
     }
 
     playbackStartedAckSentRef.current = true;
+    endFillerWait();
     currentPlaybackStartedAtMsRef.current = Date.now();
     agentAudioStartedRef.current = true;
     clearAudioStartTimeout();
@@ -1253,6 +1330,12 @@ const CallingWidget: React.FC<Props> = ({
       }
       resamplerPortOnMessageHandler.current = null; // Clear web handler ref
     }
+
+    // Filler clips belong to the call that is ending.
+    endFillerWait();
+    const fillerPlayer = fillerPlayerRef.current;
+    fillerPlayerRef.current = null;
+    void fillerPlayer?.dispose();
 
     // 2. Clean up expo-av PLAYBACK Sound Object (using soundRef)
     const soundToUnload = soundRef.current; // Get from ref
@@ -1688,7 +1771,11 @@ const CallingWidget: React.FC<Props> = ({
         // --- MUTE CHECK ADDED HERE ---
         stream.addChunkListener((chunkBase64) => {
           if (isMutedRef.current) return; // <-- MUTE CHECK
-          if (callPlaybackStateRef.current === "user_listening") {
+          if (
+            callPlaybackStateRef.current === "user_listening" ||
+            fillerTurnEndedAtRef.current !== null ||
+            fillerPlayerRef.current?.isPlaying()
+          ) {
             try {
               const pcmBuffer = getPcmArrayBufferFromChunk(chunkBase64);
               if (pcmBuffer) {
@@ -2024,6 +2111,8 @@ const CallingWidget: React.FC<Props> = ({
     callDebugLog("[State] Setting state to STOPPING");
     audioState.current = "STOPPING";
     isStopping.current = true;
+    endFillerWait();
+    fillerPlayerRef.current?.stop();
     clearCallSafetyTimeouts();
     clearMissedSpeechCue();
     clearTimerRef(postPlaybackReadyTimeoutRef);
@@ -2211,7 +2300,23 @@ const CallingWidget: React.FC<Props> = ({
         // We still use this event as a reliable signal that the user spoke.
         markBackendSpeechProgress();
         dismissIdleWarning();
+        // A final transcript means the server ended the caller's turn (in
+        // "Take your time" mode, only after "I'm done"): a filler may follow.
+        if (data.isFinal === true) {
+          startFillerWait();
+        }
         break;
+
+      case "fillers": {
+        // Clips in the voice that is speaking; [] = this voice has none.
+        const urls: string[] = Array.isArray(data.urls)
+          ? data.urls.filter((u: unknown): u is string => typeof u === "string")
+          : [];
+        void getFillerPlayer()
+          .setUrls(urls.map(normalizePlayableStreamUrl))
+          .catch((e) => console.warn("[Filler] preload failed:", e));
+        break;
+      }
 
       case "play_stream": {
         callDebugLog("[WS] Received play_stream command.");
@@ -2292,6 +2397,14 @@ const CallingWidget: React.FC<Props> = ({
               { uri: urlToPlay },
               { shouldPlay: false, progressUpdateIntervalMillis: 200 },
             );
+            // Never two sounds at once: no new filler from here on, and a
+            // filler that already started plays to its end (or is stopped
+            // after FILLER_FINISH_TIMEOUT_MS) before the reply starts.
+            fillerReplyStartingRef.current = true;
+            clearTimerRef(fillerTimerRef);
+            if (fillerPlayerRef.current?.isPlaying()) {
+              await fillerPlayerRef.current.waitUntilIdle(FILLER_FINISH_TIMEOUT_MS);
+            }
             if (
               mySeq !== playSeq.current ||
               isStopping.current ||
@@ -2417,6 +2530,8 @@ const CallingWidget: React.FC<Props> = ({
 
       // (stop_playback case is unchanged)
       case "stop_playback": {
+        endFillerWait();
+        fillerPlayerRef.current?.stop();
         syncCallPlaybackState("interrupting");
         const soundToStop = soundRef.current;
         soundRef.current = null;
@@ -2495,6 +2610,8 @@ const CallingWidget: React.FC<Props> = ({
           `[Cost Control] call_ended received, reason: ${data.reason}`,
         );
         clearCallSafetyTimeouts();
+        endFillerWait();
+        fillerPlayerRef.current?.stop();
         if (data.message) {
           setStatus(data.message);
         }
