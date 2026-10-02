@@ -22,8 +22,13 @@
  * run without expo-av.
  */
 
-/** How long after the caller's turn ends before a filler may start. */
-export const FILLER_START_DELAY_MS = 700;
+/**
+ * How long after the caller's turn ends before a filler may start. A normal
+ * reply starts about 1.1 s after the turn ends; at 700 ms nearly every reply
+ * got a filler first (real-phone test). A filler is only for a reply that is
+ * really late.
+ */
+export const FILLER_START_DELAY_MS = 1800;
 /** The longest the reply waits for a filler to finish before cutting it. */
 export const FILLER_FINISH_TIMEOUT_MS = 1500;
 

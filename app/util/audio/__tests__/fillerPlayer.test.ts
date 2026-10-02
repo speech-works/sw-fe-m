@@ -26,6 +26,13 @@ describe("shouldStartFiller", () => {
     expect(shouldStartFiller({ ...base, playbackState: "agent_preparing" })).toBe(true);
   });
 
+  it("plays only for a really late reply: never in the first 1.8 s (a normal reply takes about 1.1 s)", () => {
+    expect(FILLER_START_DELAY_MS).toBe(1800);
+    expect(shouldStartFiller({ ...base, now: base.turnEndedAt! + 1100 })).toBe(false);
+    expect(shouldStartFiller({ ...base, now: base.turnEndedAt! + 1799 })).toBe(false);
+    expect(shouldStartFiller({ ...base, now: base.turnEndedAt! + 1800 })).toBe(true);
+  });
+
   it("waits for the delay", () => {
     expect(shouldStartFiller({ ...base, now: base.turnEndedAt! + FILLER_START_DELAY_MS - 1 })).toBe(false);
   });
