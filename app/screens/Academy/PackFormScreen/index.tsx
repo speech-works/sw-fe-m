@@ -126,7 +126,17 @@ const SliderField: React.FC<FieldProps> = ({
   const { colors } = useTheme();
   const min = field.min ?? 0;
   const max = field.max ?? 100;
-  const current = value ?? Math.round((min + max) / 2);
+  // THE THUMB STARTS IN THE MIDDLE; THE ANSWER DOES NOT.
+  //
+  // This used to print the midpoint as though it were the answer while the
+  // form held nothing, so a required slider showed "5" beside a dead Complete
+  // button, and nobody could answer 5 without dragging away and back. The
+  // midpoint is not pre-filled either: a silent 5 for everyone who never moved
+  // it would poison the day-one vs last-day comparison. Until they touch it,
+  // the number reads "Drag to set", and a touch that lands where the thumb
+  // already sits (onSlidingComplete) or a tap on the track (tapToSeek) counts.
+  const answered = value !== undefined && value !== null;
+  const current = answered ? value : Math.round((min + max) / 2);
 
   return (
     <View style={fieldStyles.sliderContainer}>
@@ -137,6 +147,8 @@ const SliderField: React.FC<FieldProps> = ({
         step={1}
         value={current}
         onValueChange={onChange}
+        onSlidingComplete={onChange}
+        tapToSeek
         minimumTrackTintColor={accent}
         maximumTrackTintColor={colors.surface.track}
         thumbTintColor={accent}
@@ -145,8 +157,11 @@ const SliderField: React.FC<FieldProps> = ({
         <Text variant="caption" color="tertiary">
           {field.minLabel || String(min)}
         </Text>
-        <Text variant="title" color="primary">
-          {current}
+        <Text
+          variant={answered ? "title" : "caption"}
+          color={answered ? "primary" : "tertiary"}
+        >
+          {answered ? current : "Drag to set"}
         </Text>
         <Text variant="caption" color="tertiary">
           {field.maxLabel || String(max)}

@@ -10,11 +10,13 @@ import {
   spacing,
   useMotion,
 } from "../../design-system";
-import { isHeadsetConnected } from "../../util/functions/headset";
+import { CALL_GATE_COPY } from "../../util/functions/callGate";
+import { useCallGate } from "../../util/functions/useCallGate";
 
 /**
  * ============================================================================
- * THE HEADPHONE GATE
+ * THE HEADPHONE GATE (and, since the volume gate, the volume step too: same
+ * screen, the copy and buttons change; never a second modal.)
  * ----------------------------------------------------------------------------
  * Calls only work on headphones today. This is a real limitation of ours, so it
  * is worded as one: we are still improving it, and until we have, the call
@@ -59,22 +61,9 @@ interface Props {
 const HeadphoneGate: React.FC<Props> = ({ callerName, onReady, onDefer }) => {
   const styles = useStyles();
   const motion = useMotion();
-  const [checking, setChecking] = useState(false);
-  const [missed, setMissed] = useState(false);
   const [stageHeight, setStageHeight] = useState(0);
-
-  const check = async () => {
-    setChecking(true);
-    try {
-      if (await isHeadsetConnected()) {
-        onReady();
-        return;
-      }
-      setMissed(true);
-    } finally {
-      setChecking(false);
-    }
-  };
+  // Headphones first, then volume, in this one screen (see useCallGate).
+  const { step, stillLoud, busy, lowerForMe, iLowered } = useCallGate(onReady);
 
   return (
     <View style={styles.root}>
@@ -112,7 +101,9 @@ const HeadphoneGate: React.FC<Props> = ({ callerName, onReady, onDefer }) => {
           <Animated.View entering={motion.stagger(2)}>
             {/* Ours to fix, said as ours. Never "your setup won't work". */}
             <Text variant="h3" color="secondary">
-              Calls need headphones for now. We&apos;re still working on that.
+              {step === "need_lower_volume"
+                ? CALL_GATE_COPY.volume
+                : CALL_GATE_COPY.headset}
             </Text>
           </Animated.View>
 
@@ -122,10 +113,10 @@ const HeadphoneGate: React.FC<Props> = ({ callerName, onReady, onDefer }) => {
               cheapest way to feel unreliable, and this screen is asking them to
               trust us with their voice. */}
           <View style={styles.hintSlot}>
-            {missed ? (
+            {step === "need_lower_volume" && stillLoud ? (
               <Animated.View entering={FadeIn.duration(duration.base)}>
                 <Text variant="caption" color="tertiary">
-                  Still not seeing them. Try again?
+                  {CALL_GATE_COPY.stillLoud}
                 </Text>
               </Animated.View>
             ) : null}
@@ -135,11 +126,21 @@ const HeadphoneGate: React.FC<Props> = ({ callerName, onReady, onDefer }) => {
 
       <View style={styles.footer}>
         <Animated.View entering={motion.stagger(3)}>
-          <Button
-            label={checking ? "Checking…" : "I've got them on"}
-            disabled={checking}
-            onPress={check}
-          />
+          {step === "need_lower_volume" ? (
+            <View style={styles.buttons}>
+              <Button
+                label={CALL_GATE_COPY.lowerForMe}
+                disabled={busy}
+                onPress={lowerForMe}
+              />
+              <Button
+                label={CALL_GATE_COPY.iLowered}
+                variant="secondary"
+                disabled={busy}
+                onPress={iLowered}
+              />
+            </View>
+          ) : null}
         </Animated.View>
 
         {/* The one way out. */}
@@ -194,6 +195,9 @@ const useStyles = () =>
     footer: {
       paddingHorizontal: space.screenX,
       paddingBottom: spacing.md,
+    },
+    buttons: {
+      gap: space.inlineGap,
     },
     deferRow: {
       paddingTop: spacing["2xl"],

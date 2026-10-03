@@ -38,7 +38,28 @@ import type { CrisisResource } from "../api/crisis";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { size, typography, Icon, icons, fonts, makeStyles, useTheme, withAlpha, radius, spacing, castShadow, noShadow } from "../design-system";
 import { callerGlyph } from "../util/callerGlyph";
+import {
+  FILLER_FINISH_TIMEOUT_MS,
+  FILLER_START_DELAY_MS,
+  FillerPlayer,
+  shouldStartFiller,
+} from "../util/audio/fillerPlayer";
+import {
+  HANDOVER_REPLY_WAIT_MAX_MS,
+  HandoverPlayer,
+  decideHandoverArrival,
+  parseHandoverMessage,
+  shouldAckHandover,
+} from "../util/audio/handoverPlayer";
+import { voiceVolumeOrDefault, volumeCorrection } from "../util/audio/voiceVolume";
+import {
+  ECHO_WARNING_TEXT,
+  ECHO_WARNING_VISIBLE_MS,
+  shouldShowEchoWarning,
+} from "../util/echoWarning";
 import { isHeadsetConnected } from "../util/functions/headset";
+import { evaluateCallGate, useCallGate } from "../util/functions/useCallGate";
+import { CALL_GATE_COPY } from "../util/functions/callGate";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
 
@@ -473,7 +494,10 @@ const CallingWidget: React.FC<Props> = ({
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false,
   );
+  // The one pre-call screen: headphones, then volume (useCallGate).
   const [showHeadsetPrompt, setShowHeadsetPrompt] = useState(false);
+  // Set when that screen finishes, so the restarted `startCall` does not ask again.
+  const callGatePassedRef = useRef(false);
 
   // --- NEW UI STATE ---
   const [isMuted, setIsMuted] = useState(false);
@@ -532,6 +556,12 @@ const CallingWidget: React.FC<Props> = ({
   );
   const [toggleHint, setToggleHint] = useState<string | null>(null);
   const toggleHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // "Turn your volume down a little." when the server says the mic hears the call.
+  const [echoWarningVisible, setEchoWarningVisible] = useState(false);
+  const echoWarningShownRef = useRef(false);
+  const echoWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const takeYourTimePulse = useRef(new Animated.Value(1)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
   // --- ⬆️ END take-your-time state ⬆️ ---
@@ -643,6 +673,20 @@ const CallingWidget: React.FC<Props> = ({
   const thinkingVisibleAtRef = useRef<number | null>(null);
   const lastLocalSpeechAtRef = useRef(0);
   const lastPlaybackCompletedAtRef = useRef<number | null>(null);
+  // Filler clips ("Mm-hm.") while a reply is prepared: app/util/audio/fillerPlayer.ts.
+  // Their own sounds; never soundRef/playSeq, never playback_started/complete.
+  const fillerPlayerRef = useRef<FillerPlayer | null>(null);
+  const fillerTurnEndedAtRef = useRef<number | null>(null);
+  const fillerPlayedThisWaitRef = useRef(false);
+  const fillerUserSpokeRef = useRef(false);
+  const fillerReplyStartingRef = useRef(false);
+  const fillerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The handover line ("Sorry, I have a bad line...") in the OLD voice when
+  // the server switches voice: app/util/audio/handoverPlayer.ts. Own sounds.
+  const handoverPlayerRef = useRef<HandoverPlayer | null>(null);
+  // Playback volume of the reply's voice (app/util/audio/voiceVolume.ts):
+  // from play_stream, corrected by a `fillers` event after a failover.
+  const replyVolumeRef = useRef(1);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -715,6 +759,79 @@ const CallingWidget: React.FC<Props> = ({
         ...details,
       }),
     );
+  };
+
+  const getFillerPlayer = () => {
+    if (!fillerPlayerRef.current) {
+      fillerPlayerRef.current = new FillerPlayer(
+        async (uri) => {
+          const sound = new Audio.Sound();
+          await sound.loadAsync({ uri }, { shouldPlay: false });
+          return sound;
+        },
+        ({ fillerIndex, waitedMs, reason }) =>
+          sendClientTrace("filler_played", { fillerIndex, waitedMs, source: reason }),
+      );
+    }
+    return fillerPlayerRef.current;
+  };
+
+  const getHandoverPlayer = () => {
+    if (!handoverPlayerRef.current) {
+      handoverPlayerRef.current = new HandoverPlayer(
+        async (uri) => {
+          const sound = new Audio.Sound();
+          await sound.loadAsync({ uri }, { shouldPlay: false });
+          return sound;
+        },
+        ({ jobId, reason, waitedMs, played }) => {
+          // Releases the held reply on the server. Not sent when the server
+          // stopped the line itself (stop_playback, call end).
+          if (shouldAckHandover(reason) && ws.current?.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify({ type: "handover_complete", jobId, reason }));
+          }
+          sendClientTrace("handover_played", { jobId, waitedMs, reason, source: played ? "played" : "not_played" });
+        },
+      );
+    }
+    return handoverPlayerRef.current;
+  };
+
+  /** The caller's turn ended (user_text isFinal): a filler may play after a short delay. */
+  const startFillerWait = () => {
+    clearTimerRef(fillerTimerRef);
+    fillerTurnEndedAtRef.current = Date.now();
+    fillerPlayedThisWaitRef.current = false;
+    fillerUserSpokeRef.current = false;
+    fillerReplyStartingRef.current = false;
+    fillerTimerRef.current = setTimeout(() => {
+      fillerTimerRef.current = null;
+      const player = fillerPlayerRef.current;
+      if (
+        !player ||
+        !shouldStartFiller({
+          now: Date.now(),
+          turnEndedAt: fillerTurnEndedAtRef.current,
+          playbackState: callPlaybackStateRef.current,
+          replyStarting: fillerReplyStartingRef.current || hasStartedPlaying.current,
+          playedThisWait: fillerPlayedThisWaitRef.current,
+          userSpokeSinceTurnEnd: fillerUserSpokeRef.current,
+          fillerCount: player.count,
+          stopping: isStopping.current,
+          handoverActive: !!handoverPlayerRef.current?.isActive(),
+        })
+      ) {
+        return;
+      }
+      fillerPlayedThisWaitRef.current = true;
+      void player.play();
+    }, FILLER_START_DELAY_MS);
+  };
+
+  /** No filler may start until the caller's next turn ends. */
+  const endFillerWait = () => {
+    clearTimerRef(fillerTimerRef);
+    fillerTurnEndedAtRef.current = null;
   };
 
   const clearMissedSpeechCue = (resetCount = false) => {
@@ -863,11 +980,27 @@ const CallingWidget: React.FC<Props> = ({
     buffer: ArrayBuffer,
     source: "web" | "native",
   ) => {
-    if (callPlaybackStateRef.current !== "user_listening") {
+    const fillerWatching =
+      fillerTurnEndedAtRef.current !== null ||
+      !!fillerPlayerRef.current?.isPlaying() ||
+      !!handoverPlayerRef.current?.isActive();
+    if (callPlaybackStateRef.current !== "user_listening" && !fillerWatching) {
       return;
     }
 
     const rms = calculatePcmRms(buffer);
+    if (fillerWatching && rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
+      // The caller is speaking again: no filler now, and a playing one stops.
+      // A playing handover line stops too (and is acked, so the held reply is
+      // released; the server's barge-in logic decides what happens to it).
+      fillerUserSpokeRef.current = true;
+      fillerPlayerRef.current?.stop("user_speech");
+      handoverPlayerRef.current?.stop("user_speech");
+    }
+    if (callPlaybackStateRef.current !== "user_listening") {
+      return;
+    }
+
     updateMicVisualLevel(rms);
     if (rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
       markLocalSpeechDetected(source);
@@ -1144,6 +1277,7 @@ const CallingWidget: React.FC<Props> = ({
     }
 
     playbackStartedAckSentRef.current = true;
+    endFillerWait();
     currentPlaybackStartedAtMsRef.current = Date.now();
     agentAudioStartedRef.current = true;
     clearAudioStartTimeout();
@@ -1190,6 +1324,8 @@ const CallingWidget: React.FC<Props> = ({
     callId.current += 1; // Increment call ID to invalidate handlers
     isStopping.current = true; // Set stopping flag
     clearCallSafetyTimeouts();
+    clearTimerRef(echoWarningTimerRef);
+    setEchoWarningVisible(false);
     resetThinkingTelemetry();
     clearMissedSpeechCue(true);
     clearTimerRef(postPlaybackReadyTimeoutRef);
@@ -1253,6 +1389,15 @@ const CallingWidget: React.FC<Props> = ({
       }
       resamplerPortOnMessageHandler.current = null; // Clear web handler ref
     }
+
+    // Filler clips belong to the call that is ending.
+    endFillerWait();
+    const fillerPlayer = fillerPlayerRef.current;
+    fillerPlayerRef.current = null;
+    void fillerPlayer?.dispose();
+    const handoverPlayer = handoverPlayerRef.current;
+    handoverPlayerRef.current = null;
+    void handoverPlayer?.dispose();
 
     // 2. Clean up expo-av PLAYBACK Sound Object (using soundRef)
     const soundToUnload = soundRef.current; // Get from ref
@@ -1688,7 +1833,12 @@ const CallingWidget: React.FC<Props> = ({
         // --- MUTE CHECK ADDED HERE ---
         stream.addChunkListener((chunkBase64) => {
           if (isMutedRef.current) return; // <-- MUTE CHECK
-          if (callPlaybackStateRef.current === "user_listening") {
+          if (
+            callPlaybackStateRef.current === "user_listening" ||
+            fillerTurnEndedAtRef.current !== null ||
+            fillerPlayerRef.current?.isPlaying() ||
+            handoverPlayerRef.current?.isActive()
+          ) {
             try {
               const pcmBuffer = getPcmArrayBufferFromChunk(chunkBase64);
               if (pcmBuffer) {
@@ -1737,14 +1887,31 @@ const CallingWidget: React.FC<Props> = ({
     }
 
     if (Platform.OS !== "web") {
-      // Check headset before allowing the call to begin.
-      const connected = await updateHeadsetStatus(true);
-      if (!connected) {
-        callDebugLog(
-          "[Headset] No headset connected — blocking AI call start.",
-        );
-        setStatus("PLEASE CONNECT YOUR HEADPHONES");
-        return;
+      if (callGatePassedRef.current) {
+        callGatePassedRef.current = false;
+      } else if (autoStart) {
+        // The screen that answered the call already ran the gate. Only catch
+        // a headset unplugged in between.
+        const connected = await updateHeadsetStatus(false);
+        if (!connected) {
+          callDebugLog(
+            "[Headset] No headset connected — blocking AI call start.",
+          );
+          setStatus("PLEASE CONNECT YOUR HEADPHONES");
+          setShowHeadsetPrompt(true);
+          return;
+        }
+      } else {
+        // Headphones first, then volume, in one screen shown at most once.
+        const gate = await evaluateCallGate();
+        if (gate !== "ok") {
+          callDebugLog(`[CallGate] ${gate} — showing the pre-call screen.`);
+          if (gate === "need_headset") {
+            setStatus("PLEASE CONNECT YOUR HEADPHONES");
+          }
+          setShowHeadsetPrompt(true);
+          return;
+        }
       }
     }
 
@@ -1869,6 +2036,7 @@ const CallingWidget: React.FC<Props> = ({
         SECURE_KEYS_NAME.SW_APP_JWT_KEY,
       );
 
+      echoWarningShownRef.current = false;
       ws.current?.send(
         JSON.stringify({
           type: "join",
@@ -1877,6 +2045,11 @@ const CallingWidget: React.FC<Props> = ({
           clientTimezone: timezone,
           authToken,
           takeYourTime,
+          // Tells the server this app plays filler clips and the handover
+          // line; without it the server never holds a reply for a handover.
+          // `echoWarning`: shows "Turn your volume down a little." on an
+          // `echo_warning` message.
+          clientFeatures: { fillers: true, handover: true, echoWarning: true },
         }),
       );
 
@@ -2024,6 +2197,9 @@ const CallingWidget: React.FC<Props> = ({
     callDebugLog("[State] Setting state to STOPPING");
     audioState.current = "STOPPING";
     isStopping.current = true;
+    endFillerWait();
+    fillerPlayerRef.current?.stop();
+    handoverPlayerRef.current?.stop();
     clearCallSafetyTimeouts();
     clearMissedSpeechCue();
     clearTimerRef(postPlaybackReadyTimeoutRef);
@@ -2211,7 +2387,84 @@ const CallingWidget: React.FC<Props> = ({
         // We still use this event as a reliable signal that the user spoke.
         markBackendSpeechProgress();
         dismissIdleWarning();
+        // A final transcript means the server ended the caller's turn (in
+        // "Take your time" mode, only after "I'm done"): a filler may follow.
+        if (data.isFinal === true) {
+          startFillerWait();
+        }
         break;
+
+      case "echo_warning":
+        // The mic keeps hearing the call. A calm line of text, once per call.
+        if (shouldShowEchoWarning(echoWarningShownRef.current)) {
+          echoWarningShownRef.current = true;
+          setEchoWarningVisible(true);
+          clearTimerRef(echoWarningTimerRef);
+          echoWarningTimerRef.current = setTimeout(() => {
+            echoWarningTimerRef.current = null;
+            setEchoWarningVisible(false);
+          }, ECHO_WARNING_VISIBLE_MS);
+          sendClientTrace("echo_warning_shown", {});
+        }
+        break;
+
+      case "fillers": {
+        // Clips in the voice that is speaking; [] = this voice has none.
+        const urls: string[] = Array.isArray(data.urls)
+          ? data.urls.filter((u: unknown): u is string => typeof u === "string")
+          : [];
+        const fillerPlayer = getFillerPlayer();
+        fillerPlayer.setVolume(voiceVolumeOrDefault(data.volume));
+        void fillerPlayer
+          .setUrls(urls.map(normalizePlayableStreamUrl))
+          .catch((e) => console.warn("[Filler] preload failed:", e));
+        // The voice that really speaks may not be the one play_stream
+        // expected (the provider failed over): correct the reply's volume.
+        const correctedVolume = volumeCorrection(replyVolumeRef.current, data.volume);
+        if (correctedVolume !== null) {
+          replyVolumeRef.current = correctedVolume;
+          void soundRef.current?.setVolumeAsync(correctedVolume).catch(() => {});
+        }
+        // This voice's handover line, ready in case its provider fails later.
+        if (typeof data.handoverUrl === "string" && data.handoverUrl) {
+          void getHandoverPlayer().preload(normalizePlayableStreamUrl(data.handoverUrl));
+        }
+        break;
+      }
+
+      case "handover": {
+        // The voice changes on the next line: the OLD voice says its
+        // handover line first. The server holds the line until we ack.
+        const msg = parseHandoverMessage(data);
+        if (!msg) break;
+        const player = getHandoverPlayer();
+        const arrival = decideHandoverArrival({
+          jobId: msg.jobId,
+          currentJobId: currentPlaybackJobIdRef.current,
+          replyAudioStarted: hasStartedPlaying.current || playbackStartedAckSentRef.current,
+          alreadyHandled: player.wasHandled(msg.jobId),
+          callActive: !isStopping.current && audioState.current === "STARTED",
+        });
+        if (arrival !== "play") {
+          // Ignored and not acked: the server's hold timeout covers it.
+          player.markHandled(msg.jobId);
+          if (arrival === "late") sendClientTrace("handover_late", { jobId: msg.jobId });
+          break;
+        }
+        // The reply is held for up to 5 s more: restart the 12 s audio-start
+        // timeout so the call is never ended during the hold.
+        scheduleAudioStartTimeout(playSeq.current);
+        // A filler that has not started yet never will for this reply.
+        clearTimerRef(fillerTimerRef);
+        void player.play(
+          { ...msg, url: normalizePlayableStreamUrl(msg.url) },
+          () =>
+            fillerPlayerRef.current?.isPlaying()
+              ? fillerPlayerRef.current.waitUntilIdle(FILLER_FINISH_TIMEOUT_MS)
+              : Promise.resolve(),
+        );
+        break;
+      }
 
       case "play_stream": {
         callDebugLog("[WS] Received play_stream command.");
@@ -2244,6 +2497,7 @@ const CallingWidget: React.FC<Props> = ({
         currentPlaybackDurationMsRef.current = null;
         currentPlaybackStartedAtMsRef.current = null;
         playbackStartedAckSentRef.current = false;
+        replyVolumeRef.current = voiceVolumeOrDefault(data.volume);
         const urlToPlay = normalizePlayableStreamUrl(rawUrl);
         if (urlToPlay !== rawUrl) {
           callDebugLog(
@@ -2290,8 +2544,24 @@ const CallingWidget: React.FC<Props> = ({
 
             await newSound.loadAsync(
               { uri: urlToPlay },
-              { shouldPlay: false, progressUpdateIntervalMillis: 200 },
+              {
+                shouldPlay: false,
+                progressUpdateIntervalMillis: 200,
+                volume: replyVolumeRef.current,
+              },
             );
+            // Never two sounds at once: no new filler from here on, and a
+            // filler that already started plays to its end (or is stopped
+            // after FILLER_FINISH_TIMEOUT_MS) before the reply starts.
+            fillerReplyStartingRef.current = true;
+            clearTimerRef(fillerTimerRef);
+            if (fillerPlayerRef.current?.isPlaying()) {
+              await fillerPlayerRef.current.waitUntilIdle(FILLER_FINISH_TIMEOUT_MS);
+            }
+            // Same for the handover line: the new voice starts after it.
+            if (handoverPlayerRef.current?.isActive()) {
+              await handoverPlayerRef.current.waitUntilIdle(HANDOVER_REPLY_WAIT_MAX_MS);
+            }
             if (
               mySeq !== playSeq.current ||
               isStopping.current ||
@@ -2316,7 +2586,7 @@ const CallingWidget: React.FC<Props> = ({
                 if (!status.isPlaying && !hasStartedPlaying.current) {
                   try {
                     hasStartedPlaying.current = true;
-                    await newSound.setVolumeAsync(1.0);
+                    await newSound.setVolumeAsync(replyVolumeRef.current);
                     if ((newSound as any).setIsMutedAsync) {
                       try {
                         await (newSound as any).setIsMutedAsync(false);
@@ -2384,7 +2654,7 @@ const CallingWidget: React.FC<Props> = ({
                   !hasStartedPlaying.current
                 ) {
                   hasStartedPlaying.current = true;
-                  await newSound.setVolumeAsync(1.0);
+                  await newSound.setVolumeAsync(replyVolumeRef.current);
                   const playbackStatus = await newSound.playAsync();
                   await acknowledgePlaybackStarted(
                     playbackStatus && playbackStatus.isLoaded
@@ -2417,6 +2687,9 @@ const CallingWidget: React.FC<Props> = ({
 
       // (stop_playback case is unchanged)
       case "stop_playback": {
+        endFillerWait();
+        fillerPlayerRef.current?.stop();
+        handoverPlayerRef.current?.stop();
         syncCallPlaybackState("interrupting");
         const soundToStop = soundRef.current;
         soundRef.current = null;
@@ -2495,6 +2768,9 @@ const CallingWidget: React.FC<Props> = ({
           `[Cost Control] call_ended received, reason: ${data.reason}`,
         );
         clearCallSafetyTimeouts();
+        endFillerWait();
+        fillerPlayerRef.current?.stop();
+        handoverPlayerRef.current?.stop();
         if (data.message) {
           setStatus(data.message);
         }
@@ -3125,6 +3401,11 @@ const CallingWidget: React.FC<Props> = ({
           ) : (
             <View style={styles.statusSpacer} />
           )}
+          {isCalling && echoWarningVisible ? (
+            <Text style={[styles.toggleHintText, styles.echoWarningText]}>
+              {ECHO_WARNING_TEXT}
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -3139,39 +3420,19 @@ const CallingWidget: React.FC<Props> = ({
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
-            <Icon
-              name={icons.headphones}
-              size={40}
-              color={colors.text.accent}
-              style={{ marginBottom: 16 }}
+            <CallGatePanel
+              styles={styles}
+              onReady={() => {
+                callGatePassedRef.current = true;
+                setShowHeadsetPrompt(false);
+                void updateHeadsetStatus(false);
+                void startCall();
+              }}
+              onGoBack={() => {
+                setShowHeadsetPrompt(false);
+                navigation.goBack();
+              }}
             />
-            <Text style={styles.promptTitle}>Headphones Required</Text>
-            <Text style={styles.promptText}>
-              Please connect your headphones before starting the call.
-            </Text>
-
-            <View style={styles.promptButtonRow}>
-              <TouchableOpacity
-                style={styles.promptButtonPrimary}
-                onPress={async () => {
-                  const connected = await updateHeadsetStatus(true);
-                  if (connected) {
-                    setShowHeadsetPrompt(false);
-                  }
-                }}
-              >
-                <Text style={styles.promptButtonTextPri}>Check Again</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.promptButtonSecondary}
-                onPress={() => {
-                  setShowHeadsetPrompt(false);
-                  navigation.goBack();
-                }}
-              >
-                <Text style={styles.promptButtonTextSec}>Go Back</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -3734,6 +3995,9 @@ const useStyles = makeStyles((c) => ({
     letterSpacing: 0.2,
     textTransform: "none",
   },
+  echoWarningText: {
+    marginTop: spacing.sm,
+  },
   toggleHintText: {
     color: c.text.secondary,
     fontSize: 14,
@@ -3959,5 +4223,62 @@ const useStyles = makeStyles((c) => ({
     fontWeight: "600",
   },
 }));
+
+/** Body of the pre-call modal. Same hook as the first-call screen. */
+const CallGatePanel: React.FC<{
+  styles: ReturnType<typeof useStyles>;
+  onReady: () => void;
+  onGoBack: () => void;
+}> = ({ styles, onReady, onGoBack }) => {
+  const { colors } = useTheme();
+  const { step, stillLoud, busy, lowerForMe, iLowered } = useCallGate(onReady);
+  const volumeStep = step === "need_lower_volume";
+  return (
+    <>
+      <Icon
+        name={icons.headphones}
+        size={40}
+        color={colors.text.accent}
+        style={{ marginBottom: 16 }}
+      />
+      <Text style={styles.promptText}>
+        {volumeStep ? CALL_GATE_COPY.volume : CALL_GATE_COPY.headset}
+      </Text>
+      <View style={styles.promptButtonRow}>
+        {volumeStep ? (
+          <>
+            <TouchableOpacity
+              style={[
+                styles.promptButtonPrimary,
+                busy && styles.promptButtonDisabled,
+              ]}
+              disabled={busy}
+              onPress={lowerForMe}
+            >
+              <Text style={styles.promptButtonTextPri}>
+                {CALL_GATE_COPY.lowerForMe}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.promptButtonSecondary}
+              disabled={busy}
+              onPress={iLowered}
+            >
+              <Text style={styles.promptButtonTextSec}>
+                {CALL_GATE_COPY.iLowered}
+              </Text>
+            </TouchableOpacity>
+            {stillLoud ? (
+              <Text style={styles.promptText}>{CALL_GATE_COPY.stillLoud}</Text>
+            ) : null}
+          </>
+        ) : null}
+        <TouchableOpacity style={styles.promptButtonSecondary} onPress={onGoBack}>
+          <Text style={styles.promptButtonTextSec}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+};
 
 export default CallingWidget;

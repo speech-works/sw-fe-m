@@ -172,6 +172,13 @@ const PhoneCallReport: React.FC<Props> = ({
         return;
       } catch (e) {
         const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+        // 404: this server has no report route at all, so there is nothing to
+        // retry. Treat it like a 204 and go to the done screen, not the error
+        // card (main shipped without the route and every call ended there).
+        if (status === 404) {
+          onContinueRef.current();
+          return;
+        }
         if (status === 400) {
           if (attempt < MAX_ATTEMPTS) {
             await new Promise((r) => setTimeout(r, 1500));
