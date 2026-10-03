@@ -58,6 +58,8 @@ import {
   shouldShowEchoWarning,
 } from "../util/echoWarning";
 import { isHeadsetConnected } from "../util/functions/headset";
+import { evaluateCallGate, useCallGate } from "../util/functions/useCallGate";
+import { CALL_GATE_COPY } from "../util/functions/callGate";
 import { useRegisterNativeModal } from "../stores/nativeModal";
 import { useCallHintsStore } from "../stores/callHints";
 
@@ -492,7 +494,10 @@ const CallingWidget: React.FC<Props> = ({
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false,
   );
+  // The one pre-call screen: headphones, then volume (useCallGate).
   const [showHeadsetPrompt, setShowHeadsetPrompt] = useState(false);
+  // Set when that screen finishes, so the restarted `startCall` does not ask again.
+  const callGatePassedRef = useRef(false);
 
   // --- NEW UI STATE ---
   const [isMuted, setIsMuted] = useState(false);
@@ -551,7 +556,7 @@ const CallingWidget: React.FC<Props> = ({
   );
   const [toggleHint, setToggleHint] = useState<string | null>(null);
   const toggleHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // "Lower your volume a bit." when the server says the mic hears the call.
+  // "Turn your volume down a little." when the server says the mic hears the call.
   const [echoWarningVisible, setEchoWarningVisible] = useState(false);
   const echoWarningShownRef = useRef(false);
   const echoWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -1882,14 +1887,31 @@ const CallingWidget: React.FC<Props> = ({
     }
 
     if (Platform.OS !== "web") {
-      // Check headset before allowing the call to begin.
-      const connected = await updateHeadsetStatus(true);
-      if (!connected) {
-        callDebugLog(
-          "[Headset] No headset connected — blocking AI call start.",
-        );
-        setStatus("PLEASE CONNECT YOUR HEADPHONES");
-        return;
+      if (callGatePassedRef.current) {
+        callGatePassedRef.current = false;
+      } else if (autoStart) {
+        // The screen that answered the call already ran the gate. Only catch
+        // a headset unplugged in between.
+        const connected = await updateHeadsetStatus(false);
+        if (!connected) {
+          callDebugLog(
+            "[Headset] No headset connected — blocking AI call start.",
+          );
+          setStatus("PLEASE CONNECT YOUR HEADPHONES");
+          setShowHeadsetPrompt(true);
+          return;
+        }
+      } else {
+        // Headphones first, then volume, in one screen shown at most once.
+        const gate = await evaluateCallGate();
+        if (gate !== "ok") {
+          callDebugLog(`[CallGate] ${gate} — showing the pre-call screen.`);
+          if (gate === "need_headset") {
+            setStatus("PLEASE CONNECT YOUR HEADPHONES");
+          }
+          setShowHeadsetPrompt(true);
+          return;
+        }
       }
     }
 
@@ -2025,7 +2047,7 @@ const CallingWidget: React.FC<Props> = ({
           takeYourTime,
           // Tells the server this app plays filler clips and the handover
           // line; without it the server never holds a reply for a handover.
-          // `echoWarning`: shows "Lower your volume a bit." on an
+          // `echoWarning`: shows "Turn your volume down a little." on an
           // `echo_warning` message.
           clientFeatures: { fillers: true, handover: true, echoWarning: true },
         }),
@@ -3398,39 +3420,19 @@ const CallingWidget: React.FC<Props> = ({
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
-            <Icon
-              name={icons.headphones}
-              size={40}
-              color={colors.text.accent}
-              style={{ marginBottom: 16 }}
+            <CallGatePanel
+              styles={styles}
+              onReady={() => {
+                callGatePassedRef.current = true;
+                setShowHeadsetPrompt(false);
+                void updateHeadsetStatus(false);
+                void startCall();
+              }}
+              onGoBack={() => {
+                setShowHeadsetPrompt(false);
+                navigation.goBack();
+              }}
             />
-            <Text style={styles.promptTitle}>Headphones Required</Text>
-            <Text style={styles.promptText}>
-              Please connect your headphones before starting the call.
-            </Text>
-
-            <View style={styles.promptButtonRow}>
-              <TouchableOpacity
-                style={styles.promptButtonPrimary}
-                onPress={async () => {
-                  const connected = await updateHeadsetStatus(true);
-                  if (connected) {
-                    setShowHeadsetPrompt(false);
-                  }
-                }}
-              >
-                <Text style={styles.promptButtonTextPri}>Check Again</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.promptButtonSecondary}
-                onPress={() => {
-                  setShowHeadsetPrompt(false);
-                  navigation.goBack();
-                }}
-              >
-                <Text style={styles.promptButtonTextSec}>Go Back</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -4221,5 +4223,62 @@ const useStyles = makeStyles((c) => ({
     fontWeight: "600",
   },
 }));
+
+/** Body of the pre-call modal. Same hook as the first-call screen. */
+const CallGatePanel: React.FC<{
+  styles: ReturnType<typeof useStyles>;
+  onReady: () => void;
+  onGoBack: () => void;
+}> = ({ styles, onReady, onGoBack }) => {
+  const { colors } = useTheme();
+  const { step, stillLoud, busy, lowerForMe, iLowered } = useCallGate(onReady);
+  const volumeStep = step === "need_lower_volume";
+  return (
+    <>
+      <Icon
+        name={icons.headphones}
+        size={40}
+        color={colors.text.accent}
+        style={{ marginBottom: 16 }}
+      />
+      <Text style={styles.promptText}>
+        {volumeStep ? CALL_GATE_COPY.volume : CALL_GATE_COPY.headset}
+      </Text>
+      <View style={styles.promptButtonRow}>
+        {volumeStep ? (
+          <>
+            <TouchableOpacity
+              style={[
+                styles.promptButtonPrimary,
+                busy && styles.promptButtonDisabled,
+              ]}
+              disabled={busy}
+              onPress={lowerForMe}
+            >
+              <Text style={styles.promptButtonTextPri}>
+                {CALL_GATE_COPY.lowerForMe}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.promptButtonSecondary}
+              disabled={busy}
+              onPress={iLowered}
+            >
+              <Text style={styles.promptButtonTextSec}>
+                {CALL_GATE_COPY.iLowered}
+              </Text>
+            </TouchableOpacity>
+            {stillLoud ? (
+              <Text style={styles.promptText}>{CALL_GATE_COPY.stillLoud}</Text>
+            ) : null}
+          </>
+        ) : null}
+        <TouchableOpacity style={styles.promptButtonSecondary} onPress={onGoBack}>
+          <Text style={styles.promptButtonTextSec}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+};
 
 export default CallingWidget;

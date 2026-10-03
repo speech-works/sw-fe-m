@@ -7,7 +7,7 @@ import {
 
 describe("echo warning", () => {
   it("uses the founder's wording", () => {
-    expect(ECHO_WARNING_TEXT).toBe("Lower your volume a bit.");
+    expect(ECHO_WARNING_TEXT).toBe("Turn your volume down a little.");
   });
 
   it("shows once per call", () => {

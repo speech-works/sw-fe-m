@@ -3,7 +3,7 @@
  * the call. The call screen shows a calm line of text for a few seconds, once
  * per call. No sound, no vibration, no modal.
  */
-export const ECHO_WARNING_TEXT = "Lower your volume a bit.";
+export const ECHO_WARNING_TEXT = "Turn your volume down a little.";
 export const ECHO_WARNING_VISIBLE_MS = 8000;
 
 /** Pure: should this echo_warning message show the banner? Once per call. */
