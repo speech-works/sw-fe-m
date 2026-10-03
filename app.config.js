@@ -60,7 +60,7 @@ module.exports = {
   expo: {
     name: "Speechworks",
     slug: "sw-fe-m",
-    version: "1.0.2",
+    version: "1.0.3",
     sdkVersion: "53.0.0",
     // Over-the-air updates (EAS Update): lets us ship JS-only fixes without a
     // Play Store rebuild + review. `runtimeVersion` uses the "appVersion"
@@ -68,6 +68,9 @@ module.exports = {
     // bump `version` and do a full rebuild whenever native code/deps change.
     updates: {
       url: "https://u.expo.dev/da01d434-2a75-41bb-b7cc-19fd2f720aa5",
+      // First open after install waits up to 5 s for the newest update, so a
+      // new user does not start on the version baked into the store file.
+      fallbackToCacheTimeout: 5000,
     },
     runtimeVersion: {
       policy: "appVersion",
