@@ -28,6 +28,7 @@ import {
   showSuccessBottomSheet,
 } from "../../../util/functions/bottomSheet";
 import { formScreenHeader } from "../../../util/packs/formBlock";
+import { textFieldProblem, wordCount } from "../../../util/packs/textLimits";
 
 /** Keys of `colors.accent` / `accentOn` — the flow's fill + its AA-correct ink. */
 type AccentKey = "lime" | "purple" | "success" | "warning" | "danger" | "info";
@@ -211,27 +212,61 @@ const BooleanToggleField: React.FC<FieldProps> = ({
   );
 };
 
-/** TEXT_INPUT — multiline text area */
+/** TEXT_INPUT — a text area, or one line. Shows its limit and stops typing at it. */
 const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   const { colors } = useTheme();
+  const text: string = value || "";
+  const words = wordCount(text);
+
+  const handleChange = (next: string) => {
+    // Hard stop: a paste or a keystroke that would pass the word limit is not taken.
+    if (field.maxWords !== undefined && wordCount(next) > field.maxWords) return;
+    onChange(next);
+  };
+
+  const counter = (() => {
+    if (field.minWords !== undefined || field.maxWords !== undefined) {
+      const lo = field.minWords ?? 0;
+      const hi = field.maxWords;
+      return `${words} words${hi !== undefined ? ` · ${lo > 0 ? `${lo} to ${hi}` : `up to ${hi}`}` : ""}`;
+    }
+    if (field.maxLength !== undefined) return `${text.length} / ${field.maxLength}`;
+    return null;
+  })();
+  const tooShort =
+    field.minWords !== undefined && words > 0 && words < field.minWords;
+
   return (
-    <TextInput
-      style={[
-        fieldStyles.textInput,
-        {
-          backgroundColor: colors.input.bg,
-          borderColor: colors.input.border,
-          color: colors.text.primary,
-        },
-      ]}
-      value={value || ""}
-      onChangeText={onChange}
-      placeholder={field.placeholder || "Type your response..."}
-      placeholderTextColor={colors.input.placeholder}
-      multiline
-      numberOfLines={4}
-      textAlignVertical="top"
-    />
+    <View>
+      <TextInput
+        style={[
+          fieldStyles.textInput,
+          field.singleLine ? fieldStyles.textInputSingle : null,
+          {
+            backgroundColor: colors.input.bg,
+            borderColor: colors.input.border,
+            color: colors.text.primary,
+          },
+        ]}
+        value={text}
+        onChangeText={handleChange}
+        placeholder={field.placeholder || "Type your response..."}
+        placeholderTextColor={colors.input.placeholder}
+        maxLength={field.maxLength}
+        {...(field.singleLine
+          ? { multiline: false }
+          : { multiline: true, numberOfLines: 4, textAlignVertical: "top" as const })}
+      />
+      {counter ? (
+        <Text
+          variant="caption"
+          color={tooShort ? colors.accent.danger : "tertiary"}
+          style={fieldStyles.counter}
+        >
+          {counter}
+        </Text>
+      ) : null}
+    </View>
   );
 };
 
@@ -350,6 +385,14 @@ const PackFormScreen = () => {
       return;
     }
 
+    const problem = (configuration?.fields || [])
+      .map((f) => textFieldProblem(f, answers[f.id]))
+      .find((p) => p !== null);
+    if (problem) {
+      showErrorBottomSheet("Check your answer", problem);
+      return;
+    }
+
     try {
       setSubmitting(true);
       await submitFormResponse(formId, answers, { packId, moduleId });
@@ -367,9 +410,13 @@ const PackFormScreen = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error("Form submission failed:", error);
+      // The server explains a refused answer in plain words (a limit on length or words).
+      const reason: unknown = error?.response?.data?.error;
       showErrorBottomSheet(
         "Submission Failed",
-        "Something went wrong. Please try again.",
+        typeof reason === "string" && reason
+          ? reason
+          : "Something went wrong. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -470,6 +517,15 @@ const PackFormScreen = () => {
                 </View>
               )}
             </View>
+            {field.description ? (
+              <Text
+                variant="bodySm"
+                color="secondary"
+                style={styles.fieldDescription}
+              >
+                {field.description}
+              </Text>
+            ) : null}
             {renderField(field)}
           </Surface>
         ))}
@@ -497,6 +553,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: spacing.lg,
     gap: spacing.sm,
+  },
+  fieldDescription: {
+    marginTop: -spacing.sm,
+    marginBottom: spacing.lg,
   },
   fieldLabel: {
     flex: 1,
@@ -557,6 +617,14 @@ const fieldStyles = StyleSheet.create({
   },
 
   // TEXT_INPUT
+  textInputSingle: {
+    minHeight: 48,
+    paddingVertical: spacing.md,
+  },
+  counter: {
+    marginTop: spacing.xs,
+    textAlign: "right",
+  },
   textInput: {
     borderRadius: radius.input,
     borderWidth: 1,

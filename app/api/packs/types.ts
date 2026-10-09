@@ -134,8 +134,18 @@ export interface FormField {
   // SLIDER
   min?: number;
   max?: number;
+  // Shown under the label
+  description?: string;
   // TEXT_INPUT
   placeholder?: string;
+  /** One line instead of a text area. */
+  singleLine?: boolean;
+  /** Typing stops at this many characters. */
+  maxLength?: number;
+  /** When the field is filled, it needs at least this many words. */
+  minWords?: number;
+  /** Typing stops at this many words. */
+  maxWords?: number;
   // MULTIPLE_CHOICE
   options?: string[];
 }
