@@ -1,6 +1,7 @@
 // FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import * as FileSystem from "expo-file-system";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, TextInput } from "react-native";
 import {
   getCognitivePracticeById,
@@ -38,6 +39,7 @@ import DonePractice from "../../components/DonePractice";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
 import IRLConfirmationModal from "../../../../../components/IRLConfirmationModal";
 import { recordGrowthPointDecline } from "../../../../../api/growthPoints";
+import SmartRecorder from "../ReadingPractice/StoryPractice/components/SmartRecorder";
 
 enum ChallengeStep {
   INSTRUCTION = 0,
@@ -198,6 +200,22 @@ const RealLifeChallenge = () => {
   const [reflectionText, setReflectionText] = useState("");
   const [showIRLModal, setShowIRLModal] = useState(false);
 
+  // The recording of a drill that records (day 5 of Interview Ready). It stays
+  // on the phone and is deleted the moment the user leaves the step: on Done,
+  // on discard, on going back, and on leaving the screen. Never uploaded.
+  const [recordingUri, setRecordingUri] = useState<string | undefined>();
+  const recordingUriRef = useRef<string | undefined>(undefined);
+  const keepRecording = (uri?: string) => {
+    recordingUriRef.current = uri;
+    setRecordingUri(uri);
+  };
+  const deleteRecordingFile = () => {
+    const uri = recordingUriRef.current;
+    keepRecording(undefined);
+    if (uri) void FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+  };
+  useEffect(() => deleteRecordingFile, []);
+
   // One derivation, shared by the id, the type and the title — see
   // util/practice/activityContent.ts for what went wrong when these were three
   // separate inline reads of the route param. Always the LIVE activity.
@@ -261,6 +279,9 @@ const RealLifeChallenge = () => {
     );
   }
 
+  const recordingConfig =
+    "recording" in challengeData ? challengeData.recording : undefined;
+
   // Derive completion prompt based on data type
   const completionPrompt =
     "completionCriteria" in challengeData
@@ -297,6 +318,13 @@ const RealLifeChallenge = () => {
   };
 
   const handleInstructionsComplete = () => {
+    // Someone who just recorded the answer in the app has already done it, so
+    // the "have you tried this in real life" question has nothing to ask.
+    if (recordingConfig && recordingUri) {
+      deleteRecordingFile();
+      setCurrentStep(ChallengeStep.REFLECTION);
+      return;
+    }
     setShowIRLModal(true);
   };
 
@@ -348,6 +376,7 @@ const RealLifeChallenge = () => {
     if (from === "MOOD_CHECK") {
       (navigation as any).navigate("Root", { screen: "HOME" });
     } else if (currentStep === ChallengeStep.INSTRUCTION) {
+      deleteRecordingFile();
       navigation.goBack();
     } else {
       setCurrentStep(currentStep - 1);
@@ -424,6 +453,29 @@ const RealLifeChallenge = () => {
               textColor={colors.text.secondary}
             />
           </Surface>
+
+          {recordingConfig ? (
+            <View style={styles.recorderBlock}>
+              <Text variant="body" color="primary" center>
+                You have up to {recordingConfig.maxSeconds} seconds.
+              </Text>
+              <SmartRecorder
+                prevRecordingUri={recordingUri}
+                onRecorded={keepRecording}
+                onDiscard={deleteRecordingFile}
+                onSubmit={handleInstructionsComplete}
+                confirmShortAudio={false}
+                hideSeparator
+                maxSeconds={recordingConfig.maxSeconds}
+              />
+              <Text variant="bodySm" color="tertiary" center>
+                This recording stays on your phone.
+              </Text>
+              <Text variant="bodySm" color="tertiary" center>
+                Prefer not to record? Say your answer out loud, then tap Log My Experience.
+              </Text>
+            </View>
+          ) : null}
 
           {/* Pro tip — a soft orange-tint island. */}
           <Surface
@@ -583,6 +635,9 @@ const RealLifeChallenge = () => {
 };
 
 const styles = StyleSheet.create({
+  recorderBlock: {
+    gap: spacing.md,
+  },
   pacingRow: {
     gap: spacing.md,
     marginTop: spacing.xl,

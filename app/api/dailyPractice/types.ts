@@ -249,6 +249,11 @@ export interface ExposureRealLifeData {
   encouragement: string;
   completionCriteria: string;
   completionPlaceholder: string;
+  /**
+   * When present the drill records the answer inside the app (voice only, kept
+   * on the phone, never uploaded) and stops it after `maxSeconds`.
+   */
+  recording?: { maxSeconds: number };
 }
 
 export enum CognitiveRealLifeCategory {

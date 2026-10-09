@@ -54,6 +54,11 @@ interface Props {
    * strands the user on a turn they can't leave.
    */
   confirmShortAudio?: boolean;
+  /**
+   * Stop the take by itself after this many seconds, as if the user had pressed
+   * stop, so nothing is lost. Absent means no limit (reading practice, chat).
+   */
+  maxSeconds?: number;
   accentColor?: string;
   onAccentColor?: string;
 }
@@ -68,6 +73,7 @@ const SmartRecorder: React.FC<Props> = ({
   suspended = false,
   hideSeparator = false,
   confirmShortAudio = true,
+  maxSeconds,
   accentColor,
   onAccentColor,
 }) => {
@@ -188,6 +194,14 @@ const SmartRecorder: React.FC<Props> = ({
       onRecorded(uri);
     }
   };
+
+  // The limit: stop exactly as the stop button does, so the take goes to review.
+  useEffect(() => {
+    if (maxSeconds && isRecording && recordingDuration >= maxSeconds * 1000) {
+      void handleStopRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingDuration, isRecording, maxSeconds]);
 
   const handlePlay = () => {
     if (prevRecordingUri) startPlayback(prevRecordingUri);
