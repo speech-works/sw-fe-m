@@ -371,6 +371,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             packId,
             blockIndex,
             alreadyStarted: true, // Tell the activity screen to skip its own start call
+            writePrompt: content.completionPromptOverride,
+            writePlaceholder: content.completionPlaceholderOverride,
           });
         } catch (error: any) {
           console.error("Failed to start activity:", error);

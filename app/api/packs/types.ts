@@ -210,6 +210,9 @@ export type ReferenceBlockContent = {
    * person kept the last time they finished this step on this day.
    */
   savedReframe?: { thought: string; reply: string };
+  /** The day's own writing prompt and example for this step, if it sets one. */
+  completionPromptOverride?: string;
+  completionPlaceholderOverride?: string;
 
   // Hydrated fields (injected by backend service, may be present in API response)
   activityType?: string;

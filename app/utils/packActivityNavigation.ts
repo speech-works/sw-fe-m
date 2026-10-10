@@ -13,6 +13,9 @@ export interface PackContext {
   blockIndex?: number;
   /** If true, the activity was already started (stamina checked) by ContentRenderer. Skip the start call. */
   alreadyStarted?: boolean;
+  /** The day's own writing prompt and example for the step, if it sets one. */
+  writePrompt?: string;
+  writePlaceholder?: string;
 }
 
 type BlockActivityListener = (blockId: string, activityId: string) => void;

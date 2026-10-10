@@ -706,12 +706,19 @@ const Reframe = () => {
               <Text variant="bodySm" color="tertiary" center>
                 Or write your own:
               </Text>
+              {/* In a program, the day's own question for this step. */}
+              {packContext?.writePrompt ? (
+                <Text variant="bodySm" color="secondary" center>
+                  {packContext.writePrompt}
+                </Text>
+              ) : null}
               <TextArea
                 value={writtenReframe}
                 onChangeText={setWrittenReframe}
                 placeholder={
                   packContext?.packId
-                    ? "Your reply to this thought, in your own words"
+                    ? packContext.writePlaceholder ||
+                      "Your reply to this thought, in your own words"
                     : "I can handle this by..."
                 }
                 maxLength={packContext?.packId ? 500 : undefined}
