@@ -38,7 +38,10 @@ interface GoalsBlockProps {
   packId?: string;
 }
 
-const EMPTY_COPY = "You did not name any when you started. That is fine.";
+// Shown alone, without the block's prompt: every prompt assumes a list
+// ("The three parts you named on day one…"), so it would contradict this.
+const EMPTY_COPY =
+  "This list is empty because you did not add anything to it when you started. That is fine.";
 
 const byRank = (goals: GoalsBlockGoal[]) =>
   [...goals].sort((a, b) => a.rank - b.rank);
@@ -120,7 +123,7 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
 
   return (
     <View style={styles.block}>
-      {content.prompt ? (
+      {content.prompt && goals.length > 0 ? (
         <Text variant="body" color="primary">
           {content.prompt}
         </Text>
