@@ -41,6 +41,7 @@ import {
   Text,
   Icon,
   IconButton,
+  Button,
   icons,
   Sheet,
   useTheme,
@@ -56,6 +57,7 @@ import {
   showSuccessBottomSheet,
 } from "../../../../../../util/functions/bottomSheet";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
+import { notifyPackBlockActivityReplaced } from "../../../../../../utils/packActivityNavigation";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
 import {
@@ -120,6 +122,8 @@ const PhoneCall = () => {
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
   const { packContext, practiceActivity, from } = (route.params as any) || {};
+  /** Opened from a program day. The call there is fixed to the day's scenario. */
+  const inProgram = !!packContext?.packId;
 
   const [scenarioData, setScenarioData] = useState<PhoneCallScenario[]>([]); // Placeholder for scenario data
   // State for the currently selected scenario, initialized with activity data if coming from a pack
@@ -192,6 +196,33 @@ const PhoneCall = () => {
    */
   const [hasDialled, setHasDialled] = useState(false);
   const hasDialledRef = useRef(false);
+
+  /**
+   * PROGRAM CALLS: DID THIS CALL REALLY CONNECT?
+   *
+   * `hasDialled` flips when the activity starts, before the socket opens. A
+   * program call that never connected must not offer "Save & Finish" on the
+   * way out, because that ticks the day for a call that never happened. So in
+   * a program the save sheet and the refund-on-leave wait for the socket.
+   * Reset when the next call starts, set when it opens.
+   */
+  const [hasConnected, setHasConnected] = useState(false);
+  const hasConnectedRef = useRef(false);
+
+  /**
+   * PROGRAM CALLS: IS THE PACK'S ACTIVITY USED UP?
+   *
+   * The pack starts one activity before this screen opens. Once a call on it
+   * has ended (aborted, completed, or refused by the server) it is no longer
+   * ONGOING, and every redial that reused its id was refused: "Call
+   * unavailable", for good. After that, a redial starts a fresh activity for
+   * the same scenario with the same packContext.
+   */
+  const [packActivitySpent, setPackActivitySpent] = useState(false);
+
+  /** The save after a finished call failed. Shows a message with a retry. */
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [isRetryingSave, setIsRetryingSave] = useState(false);
   const isDoneRef = useRef(false);
   const reduceMotion = useReducedMotion();
   const liveT = useSharedValue(0);
@@ -212,7 +243,11 @@ const PhoneCall = () => {
     transform: reduceMotion ? [] : [{ translateY: liveT.value * 4 }],
   }));
 
-  const openScenarioPicker = () => setIsModalVisible(true);
+  // A program day fixes the scenario, so nothing may open the picker there.
+  const openScenarioPicker = () => {
+    if (inProgram) return;
+    setIsModalVisible(true);
+  };
 
   /**
    * BACK MUST CLOSE AN OPEN SHEET, NOT NAVIGATE PAST IT.
@@ -246,8 +281,12 @@ const PhoneCall = () => {
     contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
     contentId: selectedScenario?.id,
     contentTitle: selectedScenario?.name,
-    initialActivity: practiceActivity,
-    packContext,
+    // Once the pack's activity is used up, start fresh (see packActivitySpent).
+    initialActivity: packActivitySpent ? undefined : practiceActivity,
+    packContext:
+      packActivitySpent && packContext
+        ? { ...packContext, alreadyStarted: false }
+        : packContext,
     currentActivityId,
     setActivityId: setTrackedActivityId,
     navigation,
@@ -273,6 +312,17 @@ const PhoneCall = () => {
       if (startedId !== null) {
         hasDialledRef.current = true;
         setHasDialled(true);
+        hasConnectedRef.current = false;
+        setHasConnected(false);
+        // A fresh activity for the day: the program screen must track this
+        // one for the block, or finishing it would not tick the day.
+        if (
+          inProgram &&
+          packContext?.blockId &&
+          startedId !== practiceActivity?.id
+        ) {
+          notifyPackBlockActivityReplaced(packContext.blockId, startedId);
+        }
       }
       return startedId;
     } catch (error) {
@@ -284,6 +334,17 @@ const PhoneCall = () => {
       ) {
         setShowExhaustionSheet(true);
         return null;
+      }
+      // The server refused this activity (it is no longer ONGOING, say).
+      // Retrying the same id cannot work, so the next press starts fresh.
+      if (
+        inProgram &&
+        axios.isAxiosError(error) &&
+        error.response &&
+        error.response.status >= 400 &&
+        error.response.status < 500
+      ) {
+        setPackActivitySpent(true);
       }
       console.error("[PhoneCall] Failed to start activity", error);
       showErrorBottomSheet(
@@ -314,6 +375,7 @@ const PhoneCall = () => {
       });
       useUserStore.getState().fetchUser();
 
+      setSaveFailed(false);
       // Capture the id for the post-call report before we clear it below.
       setReportActivityId(activityId);
       // Clear the local activity ID state so starting another call creates a new one
@@ -370,6 +432,12 @@ const PhoneCall = () => {
       return;
     }
 
+    // Program drop: the activity stays as it is until the user picks
+    // "Try again" or "Finish" (handleDroppedChoice).
+    if (reason === "dropped") {
+      return;
+    }
+
     if (!currentActivityIdRef.current && !currentActivityId) return;
 
     if (shouldComplete) {
@@ -380,6 +448,23 @@ const PhoneCall = () => {
     await abortCurrentActivity(
       reason === "technical_difficulty" || reason === null,
     );
+    if (inProgram) setPackActivitySpent(true);
+  };
+
+  /** Program drop: the user's answer to "The call dropped." */
+  const handleDroppedChoice = async (choice: "retry" | "finish") => {
+    if (choice === "finish") {
+      // Throwing keeps the message up with its buttons, so the user can
+      // press Finish again (CallingWidget shows that the save failed).
+      const didComplete = await markActivityComplete();
+      if (!didComplete) {
+        throw new Error("Failed to complete phone call activity");
+      }
+      return;
+    }
+    // Same rule as any other unfinished end with no server reason.
+    await abortCurrentActivity(true);
+    setPackActivitySpent(true);
   };
 
   const handleCallEndAcknowledged = async ({
@@ -397,8 +482,20 @@ const PhoneCall = () => {
     }
   };
 
+  // Never leave the user on an idle screen when the save fails: the
+  // message below the call offers the retry.
   const finishActivity = async () => {
-    await markActivityComplete();
+    const didComplete = await markActivityComplete();
+    if (!didComplete) setSaveFailed(true);
+  };
+
+  const retrySave = async () => {
+    setIsRetryingSave(true);
+    try {
+      await finishActivity();
+    } finally {
+      setIsRetryingSave(false);
+    }
   };
 
   useEffect(() => {
@@ -432,7 +529,8 @@ const PhoneCall = () => {
   useEffect(() => {
     return navigation.addListener("beforeRemove", () => {
       if (
-        hasDialledRef.current ||
+        // A program call that never connected is not a call (hasConnected).
+        (packContext?.packId ? hasConnectedRef.current : hasDialledRef.current) ||
         isDoneRef.current ||
         !currentActivityIdRef.current
       ) {
@@ -440,7 +538,7 @@ const PhoneCall = () => {
       }
       void abortRef.current(true);
     });
-  }, [navigation]);
+  }, [navigation, packContext?.packId]);
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
   // During a live call, "Save & Finish" completes directly (which flips isDone
@@ -449,10 +547,12 @@ const PhoneCall = () => {
   // Only once a call has been dialled: before that there is nothing to save.
   const { exitSheet } = useConfirmOnExit({
     navigation,
-    activityId: hasDialled ? currentActivityId : null,
+    activityId: (inProgram ? hasConnected : hasDialled)
+      ? currentActivityId
+      : null,
     isCompleted: isDone,
     onSave: () => {
-      markActivityComplete();
+      void finishActivity();
     },
     accentColor,
     family: "Exposure",
@@ -474,6 +574,7 @@ const PhoneCall = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="AI conversation"
+        inProgram={inProgram}
         accentColor={accentColor}
         onAccentColor={onAccentColor}
         onDone={
@@ -552,8 +653,28 @@ const PhoneCall = () => {
             onCallStart={handleCallStart}
             onCallEnd={handleCallEnd}
             onCallEndAcknowledged={handleCallEndAcknowledged}
+            inProgram={inProgram}
+            onCallConnected={() => {
+              hasConnectedRef.current = true;
+              setHasConnected(true);
+            }}
+            onDroppedChoice={handleDroppedChoice}
           />
         </View>
+
+        {saveFailed ? (
+          <View style={styles.saveFailed}>
+            <Text variant="bodySm" color="secondary" center>
+              We could not save this call.
+            </Text>
+            <Button
+              variant="secondary"
+              label={isRetryingSave ? "Saving..." : "Try again"}
+              disabled={isRetryingSave}
+              onPress={() => void retrySave()}
+            />
+          </View>
+        ) : null}
 
         {/*
           THE SCENARIO PULL-TAB.
@@ -566,6 +687,9 @@ const PhoneCall = () => {
           It never unmounts. During a call it stops being a control and becomes
           a plain label — the chevron fades, the name stays — so the scenario is
           still readable mid-call and nothing in the layout moves either way.
+
+          A program day fixes its scenario, so there the tab is not shown at
+          all. The dock stays for its bottom inset.
         */}
         <View
           style={[
@@ -575,6 +699,7 @@ const PhoneCall = () => {
             { paddingBottom: Math.max(insets.bottom, spacing.md) },
           ]}
         >
+          {inProgram ? null : (
           <PressableScale
             onPress={openScenarioPicker}
             disabled={callLive}
@@ -619,10 +744,11 @@ const PhoneCall = () => {
               />
             </Animated.View>
           </PressableScale>
+          )}
         </View>
       </View>
 
-      <Sheet visible={isModalVisible} onClose={closeModal}>
+      <Sheet visible={isModalVisible && !inProgram} onClose={closeModal}>
         <View style={styles.modalTitleContainer}>
           <Text variant="h2" center>
             Practice Scenarios
@@ -756,6 +882,12 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     position: "relative",
+  },
+  saveFailed: {
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
   },
 
   // --- Scenario pull-tab (bottom edge) ---

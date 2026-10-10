@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { elevationDark } from "../../design-system/elevation";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View } from "react-native";
 import {
     createPracticeActivityFromPack,
@@ -48,7 +48,11 @@ import { submitQuizAnswer } from "../../api/quiz";
 
 import { useActivityStore } from "../../stores/activity";
 import { useUserStore } from "../../stores/user";
-import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import {
+  showErrorBottomSheet,
+  showSuccessBottomSheet,
+} from "../../util/functions/bottomSheet";
+import ExhaustionSheet from "../ExhaustionSheet";
 import {
   classifyPackError,
   packErrorMessage,
@@ -138,6 +142,14 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   const { colors } = useTheme();
   const styles = useStyles();
   const [loading, setLoading] = useState(false);
+  /**
+   * Out of calls when a day's call block is started: the same top-up sheet
+   * the call screen opens, not the generic "Can't start this yet" dialog,
+   * which offered no way forward.
+   */
+  const [showExhaustionSheet, setShowExhaustionSheet] = useState(false);
+  /** A purchase landed. Confirm it once the sheet has gone. */
+  const purchaseLandedRef = useRef(false);
 
   switch (block.type) {
     case ContentBlockType.TEXT: {
@@ -236,9 +248,13 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             throw new Error("User not authenticated");
           }
           console.log(">> Pack: Starting activity (stamina check)", activity.id);
+          // The generic dialog is suppressed so NO_CREDITS can open the
+          // top-up sheet instead; every other refusal is still answered in
+          // the catch below, and INSUFFICIENT_STAMINA still opens its upsell.
           const startedActivity = await startPracticeActivity({
             id: activity.id,
             userId,
+            suppressErrorModal: true,
           });
           console.log("<< Pack: Activity started successfully (stamina OK)", startedActivity.id);
 
@@ -272,6 +288,11 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             console.error("Error data:", error.response.data);
           }
 
+          if (error?.response?.data?.errorCode === "NO_CREDITS") {
+            setShowExhaustionSheet(true);
+            return;
+          }
+
           // Classification and copy live in util/packs/packErrors so the same
           // decision cannot drift between this screen and PackModule — and so
           // it can be tested without rendering a React Native tree.
@@ -290,9 +311,30 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         // it clinical implies treatment we don't provide.
         "Use your techniques in this practice challenge.";
 
+      const exhaustionSheet = (
+        <ExhaustionSheet
+          visible={showExhaustionSheet}
+          onClose={() => setShowExhaustionSheet(false)}
+          onResolved={() => {
+            // Close only; confirm from onDismissed (see the PhoneCall screen).
+            purchaseLandedRef.current = true;
+            setShowExhaustionSheet(false);
+          }}
+          onDismissed={() => {
+            if (!purchaseLandedRef.current) return;
+            purchaseLandedRef.current = false;
+            showSuccessBottomSheet(
+              "You're all set",
+              "Tap the practice again to start the call.",
+            );
+          }}
+        />
+      );
+
       // Done → calm success card; active → solid action.primary CTA hero.
       if (isCompleted) {
         return (
+          <>
           <CompletedCard
             title={content.titleOverride || "Practice Activity"}
             onRetry={handleStartActivity}
@@ -302,12 +344,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
               textColor={colors.text.secondary}
             />
           </CompletedCard>
+          {exhaustionSheet}
+          </>
         );
       }
 
       const ink = colors.action.onPrimary;
 
       return (
+        <>
         <TactileTouchableOpacity
           style={styles.card}
           onPress={handleStartActivity}
@@ -350,6 +395,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             </View>
           </View>
         </TactileTouchableOpacity>
+        {exhaustionSheet}
+        </>
       );
     }
 

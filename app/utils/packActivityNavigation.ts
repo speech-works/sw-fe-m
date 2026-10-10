@@ -15,6 +15,32 @@ export interface PackContext {
   alreadyStarted?: boolean;
 }
 
+type BlockActivityListener = (blockId: string, activityId: string) => void;
+const blockActivityListeners = new Set<BlockActivityListener>();
+
+/**
+ * A practice screen started a NEW activity for a pack block (a program call
+ * redialled after its first activity ended). The module screen maps each
+ * block to one activity id to know when the block is done, so it has to hear
+ * about the new id, the same way ContentRenderer's `onActivityCreated` tells
+ * it about the first one. Returns the unsubscribe.
+ */
+export const onPackBlockActivityReplaced = (
+  listener: BlockActivityListener,
+): (() => void) => {
+  blockActivityListeners.add(listener);
+  return () => {
+    blockActivityListeners.delete(listener);
+  };
+};
+
+export const notifyPackBlockActivityReplaced = (
+  blockId: string,
+  activityId: string,
+): void => {
+  blockActivityListeners.forEach((listener) => listener(blockId, activityId));
+};
+
 /**
  * Navigates to the appropriate practice screen for a pack module activity.
  * Maps PracticeActivity → specific screen based on contentType and practice type.

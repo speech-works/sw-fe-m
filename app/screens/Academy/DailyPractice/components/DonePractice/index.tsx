@@ -42,6 +42,12 @@ interface DonePracticeProps {
   contentType?: PracticeActivityContentType;
   accentColor?: string;
   onAccentColor?: string;
+  /**
+   * Finished inside a program day. The day is not over, so nothing here may
+   * lead out of it: no buddy invite (it opens Community) and no membership
+   * offer. "Done" still returns to the day through `onDone`.
+   */
+  inProgram?: boolean;
 }
 
 const DonePractice = ({
@@ -53,6 +59,7 @@ const DonePractice = ({
   contentType,
   accentColor,
   onAccentColor,
+  inProgram = false,
 }: DonePracticeProps) => {
   const { colors } = useTheme();
   const navBarInset = useNavBarInset();
@@ -269,7 +276,7 @@ const DonePractice = ({
           )}
 
           {/* 1b. Invite buddy — top, hidden when already paired or aborted */}
-          {!isAborted && !hasBuddy && from !== "MOOD_CHECK" && (
+          {!isAborted && !hasBuddy && from !== "MOOD_CHECK" && !inProgram && (
             <Button
               variant="secondary"
               label="Invite a Practice Buddy"
@@ -375,7 +382,7 @@ const DonePractice = ({
 
           It also waits for the level-up takeover. Two things asking for
           attention at once is how both get dismissed. */}
-      {!isAborted && !showTakeover && (
+      {!isAborted && !showTakeover && !inProgram && (
         <View style={[styles.membershipDock, { bottom: navBarInset + 16 }]}>
           <MembershipDock />
         </View>

@@ -67,6 +67,11 @@ import {
   recordGrowthPointDecline,
   DeclineReason,
 } from "../../../api/growthPoints";
+import {
+  ExposurePracticeType,
+  PracticeActivityContentType,
+} from "../../../api";
+import { onPackBlockActivityReplaced } from "../../../utils/packActivityNavigation";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -213,6 +218,16 @@ const PackModuleScreen = () => {
 
     setShowSkipConfirmation(false);
     // Defer so the sheet's close animation doesn't collide with navigation.
+    setTimeout(() => proceedToNext(), 350);
+  };
+
+  /**
+   * "I said it out loud instead": they did the speaking, just not through the
+   * AI call. That is not a decline, so nothing goes to the Growth Point record
+   * or the avoidance tally. It only moves on, like the other answers.
+   */
+  const skipSaidOutLoud = () => {
+    setShowSkipConfirmation(false);
     setTimeout(() => proceedToNext(), 350);
   };
 
@@ -753,6 +768,13 @@ const PackModuleScreen = () => {
     [],
   );
 
+  // A program call that redialled on a fresh activity reports the new id
+  // here, so finishing that call still ticks its block.
+  useEffect(
+    () => onPackBlockActivityReplaced(handleActivityCreated),
+    [handleActivityCreated],
+  );
+
   // Callback for when a form is completed (called by ContentRenderer)
   const handleFormCompleted = useCallback((blockId: string) => {
     console.log("Form completed for block:", blockId);
@@ -1204,6 +1226,34 @@ const PackModuleScreen = () => {
   }
 
   const blocks = module?.blocks || [];
+
+  /**
+   * Is the current block an AI phone call? The same test the navigation uses
+   * (`exposurePractice.type === PHONE_CALL_SIMULATION`), on the activity this
+   * block started. Before the block has been opened there is no activity, so
+   * it falls back to the hydrated block: the server copies the row's
+   * `phoneCallData` into `configuration`, and only a phone call has an
+   * `agentName` there.
+   */
+  const currentBlockIsPhoneCall = (() => {
+    const block = blocks[currentBlockIndex];
+    if (block?.type !== ContentBlockType.ACTIVITY) return false;
+    const ref = block.content as ReferenceBlockContent;
+    if (ref.activityType !== PracticeActivityContentType.EXPOSURE_PRACTICE) {
+      return false;
+    }
+    const activityId = blockToActivityMap.get(block.id);
+    const activity = activityId
+      ? activities.find((a) => a.id === activityId)
+      : undefined;
+    if (activity?.exposurePractice) {
+      return (
+        activity.exposurePractice.type ===
+        ExposurePracticeType.PHONE_CALL_SIMULATION
+      );
+    }
+    return typeof ref.configuration?.agentName === "string";
+  })();
   const currentBlock = blocks[currentBlockIndex];
   const isLastBlock = currentBlockIndex >= blocks.length - 1;
   const isFirstBlock = currentBlockIndex === 0;
@@ -1391,8 +1441,17 @@ const PackModuleScreen = () => {
             penalises us for our own gap.
           */}
           <View style={styles.skipModalActions}>
+            {/* A call they made in person, or said aloud, is the practice
+                done another way. Not a decline: see skipSaidOutLoud. */}
+            {currentBlockIsPhoneCall ? (
+              <Button
+                label="I said it out loud instead"
+                onPress={skipSaidOutLoud}
+              />
+            ) : null}
             <Button
               label="Too big a jump right now"
+              variant={currentBlockIsPhoneCall ? "secondary" : undefined}
               onPress={() => recordSkip(DeclineReason.MOTIVATION)}
             />
             <Button

@@ -117,8 +117,27 @@ type Props = {
    * here rather than trusted away.
    */
   autoStart?: boolean;
+  /**
+   * The call belongs to a program day (the screen was opened with a
+   * `packContext`). Changes only what a program needs: the call can be
+   * cancelled while it connects, a dropped line asks what to do instead of
+   * counting as done, and the time-limit message does not send them away
+   * until tomorrow. Library calls leave this off and behave as before.
+   */
+  inProgram?: boolean;
+  /** Fires once the call socket is open: the call really connected. */
+  onCallConnected?: () => void;
+  /**
+   * Program calls only: the line dropped after the agent spoke and the user
+   * chose "Try again" (start a fresh call) or "Finish" (count it as done).
+   * Throw to keep the dropped message on screen, e.g. when the save failed.
+   */
+  onDroppedChoice?: (choice: "retry" | "finish") => void | Promise<void>;
 };
 const DEFAULT_SAMPLE_RATE = 24000;
+
+/** What the user sees when the microphone permission is refused. */
+const MIC_DENIED_TEXT = "Speechworks needs the microphone for this call.";
 
 /** The container's bottom padding — shared so the floating suggestions panel
  *  and the dock can never disagree about where the bottom of the screen is.
@@ -479,6 +498,9 @@ const CallingWidget: React.FC<Props> = ({
   ringtoneUri,
   scenarioIcon,
   autoStart = false,
+  inProgram = false,
+  onCallConnected,
+  onDroppedChoice,
 }) => {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -530,6 +552,13 @@ const CallingWidget: React.FC<Props> = ({
   const [maxCallDurationMs, setMaxCallDurationMs] = useState<number | null>(null);
   const [, setIsAgentAudioPlaying] = useState(false);
   const [isCallEndAckInProgress, setIsCallEndAckInProgress] = useState(false);
+  /** The last press on the call-ended message failed (the save did not land). */
+  const [callEndAckFailed, setCallEndAckFailed] = useState(false);
+  /** Between the call press and the socket opening ("Calling…", "Connecting…"). */
+  const [isConnecting, setIsConnecting] = useState(false);
+  /** The microphone permission was refused. Cleared on the next attempt. */
+  const [micDenied, setMicDenied] = useState(false);
+  const micDeniedRef = useRef(false);
   // --- ⬇️ Take-your-time mode + presence heartbeat (Phase D — SPEECHWORKS-
   // STRATEGY.md §6.2/CALL-INTEGRITY-PLAN.md workstream A). The backend has
   // fully supported both since before this UI existed (obj.takeYourTime at
@@ -630,6 +659,29 @@ const CallingWidget: React.FC<Props> = ({
 
   const isStopping = useRef(false);
   const callId = useRef(0);
+  /**
+   * A start is running. Set in the same tick as the press, before any await:
+   * `audioState` only leaves IDLE after the call gate's await, so a double tap
+   * used to pass the IDLE check twice and open two sockets.
+   */
+  const startInFlightRef = useRef(false);
+  /** The user pressed hang-up. Anything else that ends a live call is a drop. */
+  const userEndedRef = useRef(false);
+  /** The user cancelled while the call was still connecting. */
+  const cancelRequestedRef = useRef(false);
+  /** The latest `onCallStart`. A redial queued behind a closing Modal must
+   *  not call the one from the render before the screen moved on. */
+  const onCallStartRef = useRef(onCallStart);
+  onCallStartRef.current = onCallStart;
+  /**
+   * Work that must wait until one of this widget's native Modals has fully
+   * gone: navigating or presenting another Modal while one is still on screen
+   * strands it over everything and freezes touch (see app/stores/nativeModal).
+   * iOS reports the moment through `onDismiss`; Android has no such callback
+   * and removes its Modal when `visible` turns false, so an effect runs it.
+   */
+  const afterHeadsetModalRef = useRef<(() => void) | null>(null);
+  const afterEndModalRef = useRef<(() => void) | null>(null);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const playLock = useRef<boolean>(false);
@@ -1796,7 +1848,11 @@ const CallingWidget: React.FC<Props> = ({
 
         const { granted } = await Audio.requestPermissionsAsync();
         if (!granted) {
-          setStatus("Microphone permission denied.");
+          // Flagged so the generic "Mic setup failed" in startCall cannot
+          // replace this with something nobody can act on.
+          micDeniedRef.current = true;
+          setMicDenied(true);
+          setStatus(MIC_DENIED_TEXT);
           console.error("Mic permission denied");
           return false;
         }
@@ -1871,8 +1927,39 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  // --- ⬇️ MODIFIED: `startCall` headset check ⬇️ ---
+  // One start at a time. The flag is set before the first await so a second
+  // tap in the same moment is turned away (see startInFlightRef).
   const startCall = async () => {
+    if (startInFlightRef.current) {
+      console.warn("[State] Ignoring startCall, a start is already running");
+      return;
+    }
+    startInFlightRef.current = true;
+    try {
+      await startCallUnguarded();
+    } finally {
+      startInFlightRef.current = false;
+    }
+  };
+
+  /**
+   * Program calls: hang up while the call is still connecting. Before the
+   * activity has started there is nothing to undo, so startCall stops at its
+   * next step. After it has started, endCall closes the socket and reports a
+   * call with no reason and no agent audio, which the screen aborts with a
+   * refund: nothing is charged.
+   */
+  const cancelConnecting = () => {
+    cancelRequestedRef.current = true;
+    setIsConnecting(false);
+    stopRingTone();
+    if (audioState.current === "STARTED") {
+      void endCall();
+    }
+  };
+
+  // --- ⬇️ MODIFIED: `startCall` headset check ⬇️ ---
+  const startCallUnguarded = async () => {
     if (audioState.current !== "IDLE") {
       console.warn(
         `[State] Ignoring startCall, state is ${audioState.current}`,
@@ -1917,6 +2004,11 @@ const CallingWidget: React.FC<Props> = ({
 
     callDebugLog("[State] Setting state to STARTING");
     audioState.current = "STARTING";
+    setIsConnecting(true);
+    userEndedRef.current = false;
+    cancelRequestedRef.current = false;
+    micDeniedRef.current = false;
+    setMicDenied(false);
 
     callId.current += 1;
     isStopping.current = false;
@@ -1935,6 +2027,7 @@ const CallingWidget: React.FC<Props> = ({
     setIdleCountdown(null);
     setCallEndReason(null);
     setIsCallEndAckInProgress(false);
+    setCallEndAckFailed(false);
     callEndReasonRef.current = null;
     callReadyRef.current = false;
     agentAudioStartedRef.current = false;
@@ -1974,6 +2067,7 @@ const CallingWidget: React.FC<Props> = ({
       console.error("Failed to set audio mode for call:", e);
       setStatus("Audio setup failed.");
       audioState.current = "IDLE";
+      setIsConnecting(false);
       return;
     }
 
@@ -1985,12 +2079,16 @@ const CallingWidget: React.FC<Props> = ({
     setStatus("Calling..."); // Update UI
 
     const captureStarted = await startAudioCapture();
-    if (!captureStarted) {
-      console.error(
-        "[startCall] startAudioCapture FAILED. Aborting call start.",
-      );
-      setStatus("Mic setup failed"); // Update UI
+    if (!captureStarted || cancelRequestedRef.current) {
+      if (!captureStarted) {
+        console.error(
+          "[startCall] startAudioCapture FAILED. Aborting call start.",
+        );
+        // A refused permission has already said what to do about it.
+        if (!micDeniedRef.current) setStatus("Mic setup failed"); // Update UI
+      }
       audioState.current = "IDLE";
+      setIsConnecting(false);
       await cleanupAudio();
       return;
     }
@@ -1999,7 +2097,21 @@ const CallingWidget: React.FC<Props> = ({
     audioState.current = "STARTED";
 
     setStatus("Starting activity...");
-    const startedId = await onCallStart?.();
+    const startedId = await onCallStartRef.current?.();
+
+    if (cancelRequestedRef.current) {
+      // Cancelled while the activity was starting. endCall has already torn
+      // the call down, but it ran before the screen knew this id, so report
+      // the end again: the screen aborts the activity with a refund.
+      if (startedId) {
+        void Promise.resolve(
+          onCallEnd?.({ reason: null, shouldComplete: false }),
+        ).catch((error) => {
+          console.warn("Error handling cancelled call:", error);
+        });
+      }
+      return;
+    }
 
     if (!startedId) {
       console.error(
@@ -2007,6 +2119,7 @@ const CallingWidget: React.FC<Props> = ({
       );
       setStatus("Failed to start activity");
       audioState.current = "IDLE";
+      setIsConnecting(false);
       await cleanupAudio();
       return;
     }
@@ -2022,6 +2135,8 @@ const CallingWidget: React.FC<Props> = ({
       scheduleCallReadyTimeout();
       syncCallPlaybackState("connecting", "Connected to AI");
       setIsCalling(true);
+      setIsConnecting(false);
+      onCallConnected?.();
       // onCallStart?.(); // REMOVED: Activity is started before WS connection
 
       // --- NEW: Start Timer ---
@@ -2222,7 +2337,24 @@ const CallingWidget: React.FC<Props> = ({
 
     stopRingTone();
     setIsCalling(false);
-    const endReason = callEndReasonRef.current;
+    setIsConnecting(false);
+    let endReason = callEndReasonRef.current;
+    // A PROGRAM CALL THAT DROPPED. No reason from the server, no hang-up, no
+    // cancel, still mounted, and the agent had spoken: the line went, the
+    // user did not end it. In the library this still counts as done (below).
+    // In a program it asks instead, so a day is never ticked by a dead line.
+    if (
+      inProgram &&
+      endReason === null &&
+      !userEndedRef.current &&
+      !cancelRequestedRef.current &&
+      agentAudioStartedRef.current &&
+      componentMountedRef.current
+    ) {
+      endReason = "dropped";
+      callEndReasonRef.current = endReason;
+      setCallEndReason(endReason);
+    }
     if (
       currentPlaybackJobIdRef.current &&
       (playLock.current || soundRef.current || playbackStartedAckSentRef.current)
@@ -2240,6 +2372,8 @@ const CallingWidget: React.FC<Props> = ({
       (agentAudioStartedRef.current &&
         endReason !== "technical_difficulty" &&
         endReason !== "idle_timeout" &&
+        // Program drop: the user chooses (see `onDroppedChoice`).
+        endReason !== "dropped" &&
         // A crisis-ended call is never "completed" — showing the effort/
         // accuracy rating modal right after a self-harm disclosure would be
         // tone-deaf, and the backend already refunds this call's credit
@@ -3171,12 +3305,79 @@ const CallingWidget: React.FC<Props> = ({
     missedSpeechCueVisible && missedSpeechCueCount >= 2
       ? "Could you say that again?"
       : "";
+  // Program calls show the connecting state, because the call button is the
+  // way to cancel it there and the user must see what they would cancel.
+  const showConnecting = inProgram && isConnecting;
   // Pre-call, the toggle's answer borrows this slot for a couple of seconds.
   // Borrowing rather than adding is the point: the line is already here, and
   // already reserving its height, so nothing appears and nothing shifts.
   const visibleStatus = isCalling
     ? userFallbackText || status
-    : toggleHint || "Ready to Connect";
+    : showConnecting
+      ? status
+      : micDenied
+        ? MIC_DENIED_TEXT
+        : toggleHint || "Ready to Connect";
+
+  const callEndModalVisible =
+    callEndReason !== null && !isCalling && crisisResource === null;
+
+  /** Runs the queued step once, whichever signal arrives first. */
+  const flushAfterModal = (
+    ref: React.MutableRefObject<(() => void) | null>,
+  ) => {
+    const fn = ref.current;
+    ref.current = null;
+    fn?.();
+  };
+  /**
+   * Queue `fn` for after a Modal closes. On iOS `onDismiss` runs it; the timer
+   * is only a floor in case that event never comes, so the user is never left
+   * on a screen that ignores the press.
+   */
+  const queueAfterModal = (
+    ref: React.MutableRefObject<(() => void) | null>,
+    fn: () => void,
+  ) => {
+    ref.current = fn;
+    if (Platform.OS === "ios") {
+      setTimeout(() => flushAfterModal(ref), 700);
+    }
+  };
+  useEffect(() => {
+    if (Platform.OS !== "ios" && !showHeadsetPrompt) {
+      flushAfterModal(afterHeadsetModalRef);
+    }
+  }, [showHeadsetPrompt]);
+  useEffect(() => {
+    if (Platform.OS !== "ios" && !callEndModalVisible) {
+      flushAfterModal(afterEndModalRef);
+    }
+  }, [callEndModalVisible]);
+
+  /** Program drop: "Try again" or "Finish" on the dropped message. */
+  const handleDroppedChoice = async (choice: "retry" | "finish") => {
+    setIsCallEndAckInProgress(true);
+    setCallEndAckFailed(false);
+    try {
+      await onDroppedChoice?.(choice);
+      if (componentMountedRef.current) {
+        // Dial again only once this message has gone (see afterEndModalRef).
+        if (choice === "retry") {
+          queueAfterModal(afterEndModalRef, () => void startCall());
+        }
+        setCallEndReason(null);
+        callEndReasonRef.current = null;
+      }
+    } catch (error) {
+      console.warn("Error handling dropped call:", error);
+      if (componentMountedRef.current) setCallEndAckFailed(true);
+    } finally {
+      if (componentMountedRef.current) {
+        setIsCallEndAckInProgress(false);
+      }
+    }
+  };
   const suggestionBadgeCount = Math.min(suggestedResponses.length, 9);
   const suggestionBadgeScale = suggestionBadgePulse.interpolate({
     inputRange: [0, 1],
@@ -3394,6 +3595,9 @@ const CallingWidget: React.FC<Props> = ({
                 // not a state. Also drops the uppercase + 3pt tracking, which
                 // is what keeps the sentence on one line.
                 Boolean(toggleHint) && !isCalling && styles.toggleHintText,
+                // A sentence to act on, so the same quieter register.
+                micDenied && !isCalling && !showConnecting &&
+                  styles.toggleHintText,
               ]}
             >
               {visibleStatus}
@@ -3401,6 +3605,17 @@ const CallingWidget: React.FC<Props> = ({
           ) : (
             <View style={styles.statusSpacer} />
           )}
+          {micDenied && !isCalling && !showConnecting ? (
+            <TouchableOpacity
+              style={styles.settingsLink}
+              accessibilityRole="button"
+              onPress={() => {
+                Linking.openSettings().catch(() => {});
+              }}
+            >
+              <Text style={styles.settingsLinkText}>Open Settings</Text>
+            </TouchableOpacity>
+          ) : null}
           {isCalling && echoWarningVisible ? (
             <Text style={[styles.toggleHintText, styles.echoWarningText]}>
               {ECHO_WARNING_TEXT}
@@ -3417,6 +3632,10 @@ const CallingWidget: React.FC<Props> = ({
         transparent={true}
         animationType="fade"
         statusBarTranslucent={true} // Covers status bar on Android
+        // Android back closes the prompt and stays on this screen; a second
+        // back leaves, as everywhere else on it.
+        onRequestClose={() => setShowHeadsetPrompt(false)}
+        onDismiss={() => flushAfterModal(afterHeadsetModalRef)}
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
@@ -3429,8 +3648,12 @@ const CallingWidget: React.FC<Props> = ({
                 void startCall();
               }}
               onGoBack={() => {
+                // Close first, leave once the Modal has gone. Navigating in
+                // the same tick left it presented over the previous screen.
+                queueAfterModal(afterHeadsetModalRef, () => {
+                  if (navigation.canGoBack()) navigation.goBack();
+                });
                 setShowHeadsetPrompt(false);
-                navigation.goBack();
               }}
             />
           </View>
@@ -3511,16 +3734,39 @@ const CallingWidget: React.FC<Props> = ({
           <TouchableOpacity
             style={[
               styles.mainCallButtonModern,
-              isCalling ? styles.endCallButton : styles.startCallButton,
+              isCalling || showConnecting
+                ? styles.endCallButton
+                : styles.startCallButton,
               isCalling && styles.activeCallButtonGlow, // Added glow when active
             ]}
             activeOpacity={0.8}
-            onPress={() => (isCalling ? endCall() : startCall())}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isCalling
+                ? "End call"
+                : showConnecting
+                  ? "Cancel call"
+                  : "Start call"
+            }
+            onPress={() => {
+              if (isCalling) {
+                userEndedRef.current = true;
+                void endCall();
+              } else if (showConnecting) {
+                cancelConnecting();
+              } else {
+                void startCall();
+              }
+            }}
           >
             <Icon
-              name={isCalling ? "phone-off" : "phone-call"}
+              name={isCalling || showConnecting ? "phone-off" : "phone-call"}
               size={size.iconXl}
-              color={isCalling ? colors.accentOn.danger : colors.accentOn.success}
+              color={
+                isCalling || showConnecting
+                  ? colors.accentOn.danger
+                  : colors.accentOn.success
+              }
             />
           </TouchableOpacity>
         </Animated.View>
@@ -3658,10 +3904,11 @@ const CallingWidget: React.FC<Props> = ({
           shows first; closing it (sets crisisResource=null) then reveals this
           supportive "You matter" end screen. */}
       <Modal
-        visible={callEndReason !== null && !isCalling && crisisResource === null}
+        visible={callEndModalVisible}
         transparent={true}
         animationType="fade"
         statusBarTranslucent={true}
+        onDismiss={() => flushAfterModal(afterEndModalRef)}
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
@@ -3682,7 +3929,9 @@ const CallingWidget: React.FC<Props> = ({
               style={{ marginBottom: spacing.lg }}
             />
             <Text style={styles.promptTitle}>
-              {callEndReason === "limit_reached"
+              {callEndReason === "dropped"
+                ? "The call dropped."
+                : callEndReason === "limit_reached"
                 ? "Great practice!"
                 : callEndReason === "crisis"
                   ? "You matter"
@@ -3693,8 +3942,14 @@ const CallingWidget: React.FC<Props> = ({
                   : "Call ended"}
             </Text>
             <Text style={styles.promptText}>
-              {callEndReason === "limit_reached"
-                ? "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
+              {callEndReason === "dropped"
+                ? "The connection stopped. You can call again, or finish this practice now."
+                : callEndReason === "limit_reached"
+                ? inProgram
+                  // A program day goes on after its call; "come back
+                  // tomorrow" sent people away with the day half done.
+                  ? "That is the time for this call. Your day continues after it."
+                  : "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
                 : callEndReason === "crisis"
                   ? "We've paused the call and shared a support resource with you. Please reach out to someone you trust, or use the resource above."
                 : callEndReason === "technical_difficulty"
@@ -3703,6 +3958,41 @@ const CallingWidget: React.FC<Props> = ({
                   ? "You've successfully ended the conversation. Great job practicing today!"
                   : "The call was ended due to inactivity. You can start a new session anytime."}
             </Text>
+            {/* The save behind this button failed. Said here, because this
+                message is still on screen and the press is the retry. */}
+            {callEndAckFailed ? (
+              <Text style={[styles.promptText, styles.promptErrorText]}>
+                We could not save this call. Try again.
+              </Text>
+            ) : null}
+            {callEndReason === "dropped" ? (
+              <View style={styles.promptButtonRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.promptButtonPrimary,
+                    isCallEndAckInProgress && styles.promptButtonDisabled,
+                  ]}
+                  disabled={isCallEndAckInProgress}
+                  accessibilityRole="button"
+                  onPress={() => void handleDroppedChoice("retry")}
+                >
+                  <Text style={styles.promptButtonTextPri}>Try again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.promptButtonSecondary,
+                    isCallEndAckInProgress && styles.promptButtonDisabled,
+                  ]}
+                  disabled={isCallEndAckInProgress}
+                  accessibilityRole="button"
+                  onPress={() => void handleDroppedChoice("finish")}
+                >
+                  <Text style={styles.promptButtonTextSec}>
+                    {isCallEndAckInProgress ? "Saving..." : "Finish"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
             <View style={styles.promptButtonRow}>
               <TouchableOpacity
                 style={[
@@ -3713,6 +4003,7 @@ const CallingWidget: React.FC<Props> = ({
                 onPress={async () => {
                   const reason = callEndReason;
                   setIsCallEndAckInProgress(true);
+                  setCallEndAckFailed(false);
                   try {
                     await onCallEndAcknowledged?.({ reason });
                     if (componentMountedRef.current) {
@@ -3721,6 +4012,7 @@ const CallingWidget: React.FC<Props> = ({
                     }
                   } catch (error) {
                     console.warn("Error acknowledging call end:", error);
+                    if (componentMountedRef.current) setCallEndAckFailed(true);
                   } finally {
                     if (componentMountedRef.current) {
                       setIsCallEndAckInProgress(false);
@@ -3731,12 +4023,15 @@ const CallingWidget: React.FC<Props> = ({
                 <Text style={styles.promptButtonTextPri}>
                   {isCallEndAckInProgress
                     ? "Completing..."
-                    : callEndReason === "limit_reached"
-                      ? "Done"
-                      : "Got it"}
+                    : callEndAckFailed
+                      ? "Try again"
+                      : callEndReason === "limit_reached"
+                        ? "Done"
+                        : "Got it"}
                 </Text>
               </TouchableOpacity>
             </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -4009,6 +4304,17 @@ const useStyles = makeStyles((c) => ({
   statusSpacer: {
     height: 24,
   },
+  settingsLink: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  settingsLinkText: {
+    color: c.text.accent,
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+    fontWeight: "600",
+  },
 
   // Headphone Indicator - Sleek Pill
   headphoneIndicator: {
@@ -4208,6 +4514,10 @@ const useStyles = makeStyles((c) => ({
   },
   promptButtonDisabled: {
     opacity: 0.72,
+  },
+  promptErrorText: {
+    color: c.feedback.dangerText,
+    marginTop: -spacing.sm,
   },
   promptButtonTextPri: {
     color: c.action.onPrimary,
