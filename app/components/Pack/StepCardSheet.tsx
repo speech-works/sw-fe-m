@@ -117,7 +117,6 @@ export const CopyTextButton: React.FC<{ label: string; text: string }> = ({ labe
   return (
     <Button
       variant="secondary"
-      fullWidth={false}
       leftIcon={copied ? icons.success : icons.copy}
       label={copied ? "Copied" : label}
       onPress={async () => {

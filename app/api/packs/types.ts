@@ -42,6 +42,8 @@ export type TextBlockRole = "bridge_in" | "teach" | "bridge_out";
 export type TextBlockContent = {
   markdown: string;
   role?: TextBlockRole;
+  /** A text the reader is told to send to somebody; a Copy button follows the text. */
+  copy?: { label: string; text: string };
 };
 
 export type VideoBlockContent = {
@@ -203,8 +205,6 @@ export type ReferenceBlockContent = {
   descriptionOverride?: string;
   /** Short card plus the full text by section. Absent on older content. */
   card?: StepCard;
-  /** A text to hand to somebody else; the card shows a Copy button for it. */
-  copy?: { label: string; text: string };
 
   // Hydrated fields (injected by backend service, may be present in API response)
   activityType?: string;

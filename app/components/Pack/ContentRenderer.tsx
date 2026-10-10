@@ -159,10 +159,29 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       return (
         <View style={styles.textBlock}>
           {/* Reading copy sits directly on the dark canvas — light-on-dark. */}
-          <SimpleMarkdown
-            content={textContent.markdown}
-            textColor={colors.text.primary}
-          />
+          {/* `{{copyButton}}` on its own line marks where the Copy button goes,
+              right under the sentence that tells the reader to send the text.
+              With no marker the button follows the text. */}
+          {(() => {
+            const parts = textContent.markdown.split(/\n*\{\{copyButton\}\}\n*/);
+            const copy = textContent.copy;
+            const button = copy ? (
+              <CopyTextButton label={copy.label} text={copy.text} />
+            ) : null;
+            return (
+              <>
+                {parts.map((part, i) => (
+                  <React.Fragment key={i}>
+                    {part.trim() ? (
+                      <SimpleMarkdown content={part} textColor={colors.text.primary} />
+                    ) : null}
+                    {i < parts.length - 1 ? button : null}
+                  </React.Fragment>
+                ))}
+                {parts.length === 1 ? button : null}
+              </>
+            );
+          })()}
         </View>
       );
     }
@@ -369,9 +388,6 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 underline
               />
             ) : null}
-            {content.copy ? (
-              <CopyTextButton label={content.copy.label} text={content.copy.text} />
-            ) : null}
           </CompletedCard>
           {stepSheet}
           {exhaustionSheet}
@@ -434,9 +450,6 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                     <StepHint key={i} kind={h.kind} text={h.text} color={ink} />
                   ))}
                 </View>
-              ) : null}
-              {content.copy ? (
-                <CopyTextButton label={content.copy.label} text={content.copy.text} />
               ) : null}
               {hasMore ? (
                 <TextLink
@@ -605,6 +618,7 @@ const useStyles = makeStyles((c) => ({
   textBlock: {
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.xs,
+    gap: spacing.lg,
   },
   mediaContainer: {
     marginBottom: spacing.xl,
