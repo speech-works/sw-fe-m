@@ -70,8 +70,13 @@ export const useActivityStore = create<PracticeActivityState>()(
 
       isActivityCompleted: (activityId) => {
         const activity = get().activities.find((a) => a.id === activityId);
-        // An activity is considered completed if its 'completedAt' property is not null or undefined.
-        const isCompleted = activity ? !!activity.completedAt : false;
+        // Completed means it was finished. The server also stamps
+        // `completedAt` when it ABORTS an activity (a declined consent, a
+        // call left before it connected, a refund), so the status decides:
+        // an aborted call must never tick a program step.
+        const isCompleted = activity
+          ? !!activity.completedAt && activity.status !== "ABORTED"
+          : false;
         console.log(
           `Checking if activity ${activityId} is completed (based on completedAt): ${isCompleted}`,
         );

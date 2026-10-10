@@ -48,6 +48,13 @@ export interface PageProps {
   refreshControl?: React.ReactElement<RefreshControlProps>;
   /** Pinned bottom action (e.g. a primary Button). */
   footer?: React.ReactNode;
+  /**
+   * The footer takes its own strip at the bottom instead of floating over the
+   * content. Use it when the content has buttons of its own near the bottom:
+   * a floating footer covers them until the user scrolls, and a tap meant for
+   * the content lands on the footer.
+   */
+  footerDocked?: boolean;
   /** Full-bleed layer rendered BEHIND the body (above the opaque canvas) — for an
    * ambient background (e.g. a weather/flame effect). Non-interactive. */
   background?: React.ReactNode;
@@ -82,6 +89,7 @@ export const Page: React.FC<PageProps> = ({
   hero,
   refreshControl,
   footer,
+  footerDocked = false,
   background,
   keyboardAvoiding,
   scroll = true,
@@ -129,7 +137,11 @@ export const Page: React.FC<PageProps> = ({
   // the clearance has to follow it or the last row sits under the dock.
   const tabPad = tabBarSafe ? size.tabBarSafe + navBarInset : 0;
   const bottomPad =
-    (footer ? footerH + space.sectionGap : insets.bottom + space.screenX) + tabPad;
+    (footer && !footerDocked
+      ? footerH + space.sectionGap
+      : footer
+        ? space.sectionGap
+        : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
 
   // What the dock COVERS, which is less than the clearance we reserve for it.
@@ -259,6 +271,20 @@ export const Page: React.FC<PageProps> = ({
         backgroundColor="transparent"
       />
       {body}
+      {footer && footerDocked ? (
+        <View
+          style={{
+            paddingHorizontal: space.screenX,
+            paddingTop: space.rowGap,
+            paddingBottom: Math.max(insets.bottom + space.rowGap, spacing["3xl"]) + keyboardInset,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.border.default,
+            backgroundColor: colors.background.canvas,
+          }}
+        >
+          {footer}
+        </View>
+      ) : null}
       {/* Opaque status-bar cap — hides scrolled content behind the system clock/
        * battery instead of letting the title collide with them. */}
       {insets.top > 0 ? (
@@ -284,7 +310,7 @@ export const Page: React.FC<PageProps> = ({
           {background}
         </View>
       ) : null}
-      {footer ? (
+      {footer && !footerDocked ? (
         <View
           pointerEvents="box-none"
           // This footer sits OUTSIDE the KeyboardAvoidingView above (which only

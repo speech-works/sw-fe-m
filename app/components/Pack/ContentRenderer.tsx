@@ -53,6 +53,7 @@ import {
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
 import ExhaustionSheet from "../ExhaustionSheet";
+import { StepCardSheet, StepHint, fallbackCard } from "./StepCardSheet";
 import {
   classifyPackError,
   packErrorMessage,
@@ -148,6 +149,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
    * which offered no way forward.
    */
   const [showExhaustionSheet, setShowExhaustionSheet] = useState(false);
+  const [showStepSheet, setShowStepSheet] = useState(false);
   /** A purchase landed. Confirm it once the sheet has gone. */
   const purchaseLandedRef = useRef(false);
 
@@ -311,6 +313,25 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         // it clinical implies treatment we don't provide.
         "Use your techniques in this practice challenge.";
 
+      // The card shows the task line and at most two hints; the rest of the
+      // description is one tap away (StepCardSheet). Content without a
+      // `card` falls back to its first sentence when it is long.
+      const stepCard = content.card;
+      const fallback = stepCard ? null : fallbackCard(activityDescription);
+      const cardLine = stepCard ? stepCard.line : fallback!.line;
+      const hasMore = stepCard ? true : fallback!.hasMore;
+      const stepTitle = content.titleOverride || "Practice Activity";
+      const stepSheet = hasMore ? (
+        <StepCardSheet
+          visible={showStepSheet}
+          title={stepTitle}
+          sections={stepCard ? stepCard.sections : [{ text: activityDescription }]}
+          actionLabel={isCompleted ? "Do it again" : "Start practice"}
+          onClose={() => setShowStepSheet(false)}
+          onAction={handleStartActivity}
+        />
+      ) : null;
+
       const exhaustionSheet = (
         <ExhaustionSheet
           inProgram
@@ -337,14 +358,19 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         return (
           <>
           <CompletedCard
-            title={content.titleOverride || "Practice Activity"}
+            title={stepTitle}
             onRetry={handleStartActivity}
           >
-            <SimpleMarkdown
-              content={activityDescription}
-              textColor={colors.text.secondary}
-            />
+            <SimpleMarkdown content={cardLine} textColor={colors.text.secondary} />
+            {hasMore ? (
+              <TextLink
+                label="More about this step"
+                onPress={() => setShowStepSheet(true)}
+                underline
+              />
+            ) : null}
           </CompletedCard>
+          {stepSheet}
           {exhaustionSheet}
           </>
         );
@@ -354,12 +380,10 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       return (
         <>
-        <TactileTouchableOpacity
-          style={styles.card}
-          onPress={handleStartActivity}
-          disabled={loading}
-          activeOpacity={0.9}
-        >
+        {/* The card is a plain surface. Only the title, the task line and
+            the Start button start the step, so the hints and "More about
+            this step" below are their own taps and never start a call. */}
+        <View style={styles.card}>
           <View style={[styles.cardFill, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
             {/* Decorative bubbles — subtle ink wash on the bright fill. */}
             <View
@@ -372,30 +396,54 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             />
 
             <View style={styles.cardContent}>
-              {/* Title and Description — no eyebrow (matches home card language). */}
-              <View style={styles.textContainer}>
-                <Text variant="h2" color={ink}>
-                  {content.titleOverride || "Practice Activity"}
-                </Text>
-                <SimpleMarkdown content={activityDescription} textColor={ink} />
-              </View>
+              <TactileTouchableOpacity
+                onPress={handleStartActivity}
+                disabled={loading}
+                activeOpacity={0.9}
+                style={{ gap: space.groupGap, alignItems: "flex-start", alignSelf: "stretch" }}
+              >
+                {/* Title and Description — no eyebrow (matches home card language). */}
+                <View style={styles.textContainer}>
+                  <Text variant="h2" color={ink}>
+                    {stepTitle}
+                  </Text>
+                  <SimpleMarkdown content={cardLine} textColor={ink} />
+                </View>
 
-              {/* Action = solid dark island (matches home hero CTAs). */}
-              <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
-                {loading ? (
-                  <Spinner size="small" color={colors.action.onSecondary} />
-                ) : (
-                  <>
-                    <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
-                    <Text variant="title" color={colors.action.onSecondary}>
-                      Start Practice
-                    </Text>
-                  </>
-                )}
-              </View>
+                {/* Action = solid dark island (matches home hero CTAs). */}
+                <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
+                  {loading ? (
+                    <Spinner size="small" color={colors.action.onSecondary} />
+                  ) : (
+                    <>
+                      <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
+                      <Text variant="title" color={colors.action.onSecondary}>
+                        Start Practice
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </TactileTouchableOpacity>
+
+              {stepCard?.hints.length ? (
+                <View style={{ gap: spacing.sm, alignSelf: "stretch" }}>
+                  {stepCard.hints.map((h, i) => (
+                    <StepHint key={i} kind={h.kind} text={h.text} color={ink} />
+                  ))}
+                </View>
+              ) : null}
+              {hasMore ? (
+                <TextLink
+                  label="More about this step"
+                  onPress={() => setShowStepSheet(true)}
+                  color={ink}
+                  underline
+                />
+              ) : null}
             </View>
           </View>
-        </TactileTouchableOpacity>
+        </View>
+        {stepSheet}
         {exhaustionSheet}
         </>
       );

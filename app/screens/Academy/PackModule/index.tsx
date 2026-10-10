@@ -1328,6 +1328,7 @@ const PackModuleScreen = () => {
       description={progressLabel}
       onBack={() => navigation.goBack()}
       keyboardAvoiding
+      footerDocked
       footer={
         <View style={styles.footerRow}>
           {!isFirstBlock ? (

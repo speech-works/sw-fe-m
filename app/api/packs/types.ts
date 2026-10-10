@@ -188,10 +188,21 @@ export type FormRecall = {
 
 // --- Reference Block (for ACTIVITY / SIMULATION) ---
 
+export type StepCardKind = "do" | "before" | "why" | "ifNot";
+
+/** The short card and its "More about this step" sheet. See StepCardSheet. */
+export type StepCard = {
+  line: string;
+  hints: { kind: "before" | "ifNot"; text: string }[];
+  sections: { kind: StepCardKind; text: string }[];
+};
+
 export type ReferenceBlockContent = {
   refId: string; // References PracticeActivity or Simulation ID
   titleOverride?: string;
   descriptionOverride?: string;
+  /** Short card plus the full text by section. Absent on older content. */
+  card?: StepCard;
 
   // Hydrated fields (injected by backend service, may be present in API response)
   activityType?: string;
