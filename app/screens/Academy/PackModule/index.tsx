@@ -23,6 +23,7 @@ import {
 import { getProgramGoals } from "../../../api/programGoals";
 import { ProgramGoal } from "../../../api/programGoals/types";
 import { DailyLog } from "../../Programs/DailyLog";
+import { takeGoalsAskOutcome } from "../../Programs/GoalsAsk/outcome";
 import {
   doneBlocksKey,
   mergeBlockCompletion,
@@ -369,43 +370,89 @@ const PackModuleScreen = () => {
    * navigate straight to PackModule. A check in each of them is a check
    * somebody forgets to add to the seventh one. Every road passes through here.
    *
-   * ONCE PER VISIT. `offeredRef` is why backing out of the ask does not bounce
-   * you straight back into it. Leaving is allowed: somebody who opened the app
-   * to do one module and met a form has to be able to say no. The server still
-   * says `needsAsk`, so it is offered again next time they open the program.
+   * THE LIST IS REQUIRED (founder decision, 2026-10-10). Later days are built
+   * on it, so backing out of the ask leaves the program instead of opening the
+   * day. The server says `needsAsk` on every day until there is a list, so it
+   * is asked again the next time they open the program.
    *
-   * NEVER BLOCKS. If this request fails the module opens exactly as before. A
-   * question about goals must not stand between a person and their practice.
+   * THE DAY WAITS FOR THE CHECK. The spinner stays up until the check is
+   * done, so nobody can start a step and then be asked in the middle of it.
+   * If the check fails, the day does not open: the person sees an error and
+   * is taken back. No exceptions, so a day never runs without its list.
+   *
+   * ONCE PER VISIT. `offeredRef` stops a loop: when focus comes back from the
+   * ask, the ask's own outcome decides (see GoalsAsk/outcome.ts), not another
+   * request.
    */
   const offeredRef = useRef(false);
+  const refetchAfterGoalsRef = useRef(false);
+  const [gateReady, setGateReady] = useState(false);
   useFocusEffect(
     useCallback(() => {
-      if (offeredRef.current) return;
+      const leave = () => {
+        // The home fallback can keep this screen mounted. Coming back to it
+        // must run the check again, not open the day unchecked.
+        offeredRef.current = false;
+        if (navigation.canGoBack()) navigation.goBack();
+        else navigateToHomeFallback();
+      };
+      if (offeredRef.current) {
+        const outcome = takeGoalsAskOutcome(packId);
+        if (outcome === "left") {
+          leave();
+          return;
+        }
+        if (outcome === "saved") {
+          // The day was fetched before the list existed, and the server fills
+          // the list into the day's text when it builds it. Without a refetch,
+          // a person who names their list on day 7 reads day 7's "you did not
+          // name any" section straight after naming them.
+          refetchAfterGoalsRef.current = true;
+          setRetryToken((token) => token + 1);
+        }
+        setGateReady(true);
+        return;
+      }
+      offeredRef.current = true;
       let alive = true;
+      let settled = false;
       getProgramGoals(packId)
         .then((state) => {
           if (!alive) return;
+          settled = true;
           // The report comes first. It is only ever owed once the work is
           // finished, so the two can never both be true, but if a bug ever made
           // them both true, asking for goals from somebody who already has some
           // is the worse mistake.
           if (state.needsReport) {
-            offeredRef.current = true;
             navigation.navigate("ProgramGoalsReport", { packId });
             return;
           }
           if (state.needsAsk) {
-            offeredRef.current = true;
             navigation.navigate("ProgramGoalsAsk", { packId });
+            return;
           }
+          setGateReady(true);
         })
-        .catch(() => {
-          /* The module opens regardless. */
+        .catch((err) => {
+          if (!alive) return;
+          settled = true;
+          // Not owned: the module loader already sends them to buy it. A
+          // second message and a second navigation would fight it.
+          if (classifyPackError(err) === "NOT_OWNED") return;
+          showErrorBottomSheet(
+            "Could not open this day",
+            "Check your connection and try again.",
+          );
+          leave();
         });
       return () => {
         alive = false;
+        // Focus left before the answer came back (a notification tap, say).
+        // The answer is dropped, so the check must run again on return.
+        if (!settled) offeredRef.current = false;
       };
-    }, [packId, navigation]),
+    }, [packId, navigation, navigateToHomeFallback]),
   );
 
   // The arc position. Deliberately its own effect and its own failure path:
@@ -510,6 +557,7 @@ const PackModuleScreen = () => {
         void runStartModule(targetModuleId);
 
         if (
+          !refetchAfterGoalsRef.current &&
           initialModule &&
           initialModule.blocks &&
           initialModule.blocks.length > 0
@@ -1001,7 +1049,7 @@ const PackModuleScreen = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !gateReady) {
     return (
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
         <SchemeStatusBar />

@@ -1,6 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { BackHandler, View } from "react-native";
 import {
   getProgramGoals,
   setProgramGoals,
@@ -26,6 +26,7 @@ import { ASK_COPY } from "./copy";
 import { StepConfirm } from "./StepConfirm";
 import { StepName } from "./StepName";
 import { StepOrder } from "./StepOrder";
+import { setGoalsAskOutcome } from "./outcome";
 
 /**
  * ===========================================================================
@@ -45,11 +46,12 @@ import { StepOrder } from "./StepOrder";
  * step would leave a half-set of goals behind for anybody who backed out, and
  * a half-set is worse than none: the program would gate on it.
  *
- * ── IT IS NOT A TRAP ───────────────────────────────────────────────────────
- * Back works at every step, and leaving means the program is not started. The
- * ask returns the next time they open it, because the server still says
- * `needsAsk`. A soft gate, not a locked door: somebody who opened the app to
- * do one module and got a form must be able to leave.
+ * ── REQUIRED, BUT NOT A TRAP ───────────────────────────────────────────────
+ * The list is required (founder decision, 2026-10-10): later days are built on
+ * it. Back still works at every step, and backing out of step 1 leaves the
+ * program rather than opening the day; PackModule does that, reading
+ * `outcome.ts`. The ask returns every time they open the program until there
+ * is a list. If the question cannot load, the day does not open either.
  * ===========================================================================
  */
 const GoalsAskScreen = () => {
@@ -66,6 +68,9 @@ const GoalsAskScreen = () => {
 
   useEffect(() => {
     let alive = true;
+    // Until something better is known, closing this screen is backing out.
+    setGoalsAskOutcome(packId, "left");
+
     getProgramGoals(packId)
       .then((state) => {
         if (!alive) return;
@@ -97,6 +102,18 @@ const GoalsAskScreen = () => {
     else setStep((s) => (s - 1) as 0 | 1);
   }, [step, navigation]);
 
+  // Android's back button steps back through the ask like the on-screen
+  // arrow. Without this it closed the screen from any step, which now means
+  // leaving the program and losing what they typed.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (step === 0) return false;
+      back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [step, back]);
+
   const save = useCallback(async () => {
     if (!harness) return;
     setSaving(true);
@@ -115,6 +132,7 @@ const GoalsAskScreen = () => {
         questionVersion: harness.version,
         count: order.length,
       });
+      setGoalsAskOutcome(packId, "saved");
       navigation.goBack();
     } catch (err: any) {
       // The server holds the real rules (how many, no blanks, not after a

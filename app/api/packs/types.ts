@@ -220,7 +220,8 @@ export type ReferenceBlockContent = {
  *
  * Mirrors GoalsBlockContent in sw-be-2/src/models/ModuleContentBlock.ts. The
  * server fills `goals` from ProgramGoalService.forPack for THIS user at pack
- * read time. An empty array means they named nothing, which is not an error.
+ * read time. The list is required before any day opens (2026-10-10), so it
+ * is empty only for a program that asks nothing.
  */
 export interface GoalsBlockGoal {
   id: string;
