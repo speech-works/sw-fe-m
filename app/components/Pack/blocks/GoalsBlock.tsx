@@ -15,6 +15,7 @@ import {
   size,
   space,
   spacing,
+  useTheme,
 } from "../../../design-system";
 import {
   REPORT_LABELS,
@@ -27,8 +28,8 @@ import {
  * Plain rows: a rank number, the goal in their own words, and the answer they
  * have given so far, if any. Nothing here is scored or praised; the row shows
  * what they said and lets them change it. Reordering and reporting both write
- * to the server and update the list on the phone at once, reverting only if
- * the request fails.
+ * to the server and update the list on the phone at once. If the request
+ * fails, the list moves back and one line under it says so.
  *
  * Counts as complete the moment it renders, the same as a TEXT block.
  */
@@ -51,6 +52,10 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
     byRank(content.goals ?? []),
   );
   const [busy, setBusy] = useState(false);
+  // Set when a save fails and the list has moved back. Cleared by the next
+  // save that works, so the line never outlives the problem.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const { colors } = useTheme();
 
   // A re-hydrated block (the day reloaded) wins over whatever is held here.
   useEffect(() => {
@@ -77,8 +82,12 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
         packId,
         reranked.map((g) => g.id),
       );
+      setSaveError(null);
     } catch {
       setGoals(previous);
+      setSaveError(
+        "Could not save the new order. Check your connection and try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -98,8 +107,12 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
     setBusy(true);
     try {
       await updateProgramGoal(goal.id, nextReport);
+      setSaveError(null);
     } catch {
       setGoals(previous);
+      setSaveError(
+        "Could not save your answer. Check your connection and try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -184,6 +197,16 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
           })}
         </View>
       )}
+
+      {saveError ? (
+        <Text
+          variant="bodySm"
+          color={colors.feedback.dangerText}
+          accessibilityRole="alert"
+        >
+          {saveError}
+        </Text>
+      ) : null}
     </View>
   );
 };
