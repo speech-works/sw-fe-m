@@ -3322,6 +3322,14 @@ const CallingWidget: React.FC<Props> = ({
   const callEndModalVisible =
     callEndReason !== null && !isCalling && crisisResource === null;
 
+  // The message box fades out after its reason is cleared ("Try again" after
+  // a drop clears it at once). Without this it showed the default text, "ended
+  // due to inactivity", for the length of the fade. The box keeps the last
+  // reason it was opened with.
+  const lastEndReasonRef = useRef(callEndReason);
+  if (callEndReason !== null) lastEndReasonRef.current = callEndReason;
+  const shownEndReason = callEndReason ?? lastEndReasonRef.current;
+
   /** Runs the queued step once, whichever signal arrives first. */
   const flushAfterModal = (
     ref: React.MutableRefObject<(() => void) | null>,
@@ -3914,13 +3922,13 @@ const CallingWidget: React.FC<Props> = ({
           <View style={styles.promptGlassBox}>
             <FAIcon
               name={
-                callEndReason === "limit_reached"
+                shownEndReason === "limit_reached"
                   ? "trophy"
-                  : callEndReason === "crisis"
+                  : shownEndReason === "crisis"
                     ? "heart"
-                    : callEndReason === "technical_difficulty"
+                    : shownEndReason === "technical_difficulty"
                     ? "exclamation-triangle"
-                    : callEndReason === "user_ended"
+                    : shownEndReason === "user_ended"
                       ? "check-circle"
                     : "phone-slash"
               }
@@ -3929,32 +3937,32 @@ const CallingWidget: React.FC<Props> = ({
               style={{ marginBottom: spacing.lg }}
             />
             <Text style={styles.promptTitle}>
-              {callEndReason === "dropped"
+              {shownEndReason === "dropped"
                 ? "The call dropped."
-                : callEndReason === "limit_reached"
+                : shownEndReason === "limit_reached"
                 ? "Great practice!"
-                : callEndReason === "crisis"
+                : shownEndReason === "crisis"
                   ? "You matter"
-                : callEndReason === "technical_difficulty"
+                : shownEndReason === "technical_difficulty"
                   ? "Call unavailable"
-                : callEndReason === "user_ended"
+                : shownEndReason === "user_ended"
                   ? "Call ended"
                   : "Call ended"}
             </Text>
             <Text style={styles.promptText}>
-              {callEndReason === "dropped"
+              {shownEndReason === "dropped"
                 ? "The connection stopped. You can call again, or finish this practice now."
-                : callEndReason === "limit_reached"
+                : shownEndReason === "limit_reached"
                 ? inProgram
                   // A program day goes on after its call; "come back
                   // tomorrow" sent people away with the day half done.
                   ? "That is the time for this call. Your day continues after it."
                   : "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
-                : callEndReason === "crisis"
+                : shownEndReason === "crisis"
                   ? "We've paused the call and shared a support resource with you. Please reach out to someone you trust, or use the resource above."
-                : callEndReason === "technical_difficulty"
+                : shownEndReason === "technical_difficulty"
                   ? "We hit a technical problem and ended the call. This attempt will not count as completed."
-                : callEndReason === "user_ended"
+                : shownEndReason === "user_ended"
                   ? "You've successfully ended the conversation. Great job practicing today!"
                   : "The call was ended due to inactivity. You can start a new session anytime."}
             </Text>
@@ -3965,7 +3973,7 @@ const CallingWidget: React.FC<Props> = ({
                 We could not save this call. Try again.
               </Text>
             ) : null}
-            {callEndReason === "dropped" ? (
+            {shownEndReason === "dropped" ? (
               <View style={styles.promptButtonRow}>
                 <TouchableOpacity
                   style={[
@@ -4025,7 +4033,7 @@ const CallingWidget: React.FC<Props> = ({
                     ? "Completing..."
                     : callEndAckFailed
                       ? "Try again"
-                      : callEndReason === "limit_reached"
+                      : shownEndReason === "limit_reached"
                         ? "Done"
                         : "Got it"}
                 </Text>

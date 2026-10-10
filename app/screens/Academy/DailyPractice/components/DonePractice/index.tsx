@@ -1,4 +1,4 @@
-import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation, useRoute } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import Animated, {
@@ -59,11 +59,16 @@ const DonePractice = ({
   contentType,
   accentColor,
   onAccentColor,
-  inProgram = false,
+  inProgram: inProgramProp = false,
 }: DonePracticeProps) => {
   const { colors } = useTheme();
   const navBarInset = useNavBarInset();
   const navigation = useNavigation<any>();
+  // Inside a program the finish screen only leads back to the day. Every
+  // practice screen opened from a program day carries packContext in its
+  // route, so this covers screens that do not pass the prop as well.
+  const route = useRoute<any>();
+  const inProgram = inProgramProp || !!route.params?.packContext?.packId;
   /** Whether this screen is the one the user is looking at. The takeover is
    *  gated on it so a celebration can NEVER surface over another screen — the
    *  pack `onDone` fallback (`navigate("PackModule")`) leaves DonePractice
@@ -290,8 +295,9 @@ const DonePractice = ({
             />
           )}
 
-          {/* 2. Set Reminder — middle */}
-          {from !== "MOOD_CHECK" && (
+          {/* 2. Set Reminder — middle. Not inside a program: the program
+              already sets the days, and the reminder flow leads away from it. */}
+          {from !== "MOOD_CHECK" && !inProgram && (
             <Reminder
               suggestedCategory={mapPracticeToCategory(practiceName)}
               renderTrigger={(onOpen) => (

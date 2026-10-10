@@ -29,6 +29,9 @@ interface ExhaustionSheetProps {
    *  own native modal — a toast, a prompt — must wait for this, or it stacks on
    *  a sheet that is still on screen and freezes touches app-wide. */
   onDismissed?: () => void;
+  /** Opened from a program day. The free weekly call does not run program
+   *  calls, so the sheet must not offer it as the way out. */
+  inProgram?: boolean;
 }
 
 /**
@@ -42,6 +45,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   onClose,
   onResolved,
   onDismissed,
+  inProgram = false,
 }) => {
   const { colors } = useTheme();
   const [offers, setOffers] = useState<Offers | null>(null);
@@ -274,8 +278,9 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
                   week" is right for some people and wrong for others; naming the
                   shape is true for everyone. */}
               <Text variant="body" color="secondary">
-                You get one free call a week. Top up if you&apos;d rather not wait
-                for the next one.
+                {inProgram
+                  ? "Program calls use a call credit, and you have none left. Top up to make this call, or skip it for today."
+                  : "You get one free call a week. Top up if you'd rather not wait for the next one."}
               </Text>
             </View>
 

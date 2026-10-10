@@ -313,6 +313,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       const exhaustionSheet = (
         <ExhaustionSheet
+          inProgram
           visible={showExhaustionSheet}
           onClose={() => setShowExhaustionSheet(false)}
           onResolved={() => {

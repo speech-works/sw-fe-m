@@ -826,6 +826,7 @@ const PhoneCall = () => {
       />
 
       <ExhaustionSheet
+        inProgram={inProgram}
         visible={showExhaustionSheet}
         onClose={() => setShowExhaustionSheet(false)}
         onResolved={() => {
