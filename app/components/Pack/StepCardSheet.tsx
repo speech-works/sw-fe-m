@@ -107,26 +107,55 @@ export function fallbackCard(description: string): { line: string; hasMore: bool
  * Copies a ready-made text (the buddy's five questions) so the reader can
  * paste it into any message app. The label says "Copied" for two seconds.
  */
-export const CopyTextButton: React.FC<{ label: string; text: string }> = ({ label, text }) => {
+export const CopyTextButton: React.FC<{
+  label: string;
+  text: string;
+  /** Indent so the button lines up with the list-item text above it. */
+  indent?: number;
+}> = ({ label, text, indent = 0 }) => {
   const [copied, setCopied] = React.useState(false);
+  // The first width is kept, so "Copied" does not shrink the button and move
+  // the text beside it.
+  const [width, setWidth] = React.useState<number | undefined>();
   React.useEffect(() => {
     if (!copied) return;
     const t = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(t);
   }, [copied]);
+  // An action inside reading copy, not the screen's main action: small, as
+  // wide as its label, left-aligned with the text. The full-width large
+  // button belongs to the footer only.
   return (
-    <Button
-      variant="secondary"
-      leftIcon={copied ? icons.success : icons.copy}
-      label={copied ? "Copied" : label}
-      onPress={async () => {
-        try {
-          await Clipboard.setStringAsync(text);
-          setCopied(true);
-        } catch {
-          /* Clipboard unavailable: the questions are also in the task text. */
-        }
+    <View
+      // Under a list item, cancel the item's own 8 bottom margin so the
+      // button sits as close to its step as to the next one (the line height
+      // of the text above adds a few points the margin alone does not).
+      style={{
+        marginLeft: indent,
+        marginTop: indent ? -spacing.md : 0,
+        alignSelf: "flex-start",
       }}
-    />
+      onLayout={(e) => {
+        if (width === undefined) setWidth(e.nativeEvent.layout.width);
+      }}
+    >
+      <Button
+        variant="secondary"
+        size="sm"
+        fullWidth={false}
+        leftIcon={copied ? icons.success : icons.copy}
+        label={copied ? "Copied" : label}
+        accessibilityLabel={copied ? "Copied" : label}
+        style={width !== undefined ? { minWidth: width } : undefined}
+        onPress={async () => {
+          try {
+            await Clipboard.setStringAsync(text);
+            setCopied(true);
+          } catch {
+            /* Clipboard unavailable: the questions are also in the task text. */
+          }
+        }}
+      />
+    </View>
   );
 };

@@ -42,7 +42,7 @@ import {
     space,
     radius,
 } from "../../design-system";
-import { SimpleMarkdown } from "./SimpleMarkdown";
+import { LIST_TEXT_INDENT, SimpleMarkdown } from "./SimpleMarkdown";
 import QuizRunner from "../Quiz/QuizRunner";
 import { submitQuizAnswer } from "../../api/quiz";
 
@@ -165,9 +165,20 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           {(() => {
             const parts = textContent.markdown.split(/\n*\{\{copyButton\}\}\n*/);
             const copy = textContent.copy;
-            const button = copy ? (
-              <CopyTextButton label={copy.label} text={copy.text} />
-            ) : null;
+            // Under a list item the button lines up with that item's text, so
+            // it reads as part of the step that tells the reader to copy.
+            const button = (before: string) => {
+              if (!copy) return null;
+              const lastLine = before.trimEnd().split("\n").pop() ?? "";
+              const inList = /^\s*(\d+\.|[-*])\s/.test(lastLine);
+              return (
+                <CopyTextButton
+                  label={copy.label}
+                  text={copy.text}
+                  indent={inList ? LIST_TEXT_INDENT : 0}
+                />
+              );
+            };
             return (
               <>
                 {parts.map((part, i) => (
@@ -175,10 +186,10 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                     {part.trim() ? (
                       <SimpleMarkdown content={part} textColor={colors.text.primary} />
                     ) : null}
-                    {i < parts.length - 1 ? button : null}
+                    {i < parts.length - 1 ? button(part) : null}
                   </React.Fragment>
                 ))}
-                {parts.length === 1 ? button : null}
+                {parts.length === 1 ? button(parts[0]) : null}
               </>
             );
           })()}

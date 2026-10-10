@@ -5,6 +5,10 @@ import { fonts, makeStyles, useTheme } from "../../design-system";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { toSafeExternalUrl } from "../../util/functions/url";
 
+/** Where list-item text starts: the marker column (20) plus its gap (8).
+ *  Anything placed under a list item (the Copy button) lines up with this. */
+export const LIST_TEXT_INDENT = 28;
+
 export const SimpleMarkdown = ({
   content,
   textColor,
@@ -33,8 +37,15 @@ export const SimpleMarkdown = ({
     <View style={styles.container}>
       {blocks.map((block, index) => {
         switch (block.kind) {
-          case "blank":
+          case "blank": {
+            // A subheading (### and ####) owns the space around it: 28 above,
+            // 8 below. A blank line's 12 on top of that put 48 above and 20
+            // below, so the heading floated between two paragraphs instead of
+            // sitting with the one it names.
+            const isSub = (b?: Block) => b?.kind === "header" && b.level >= 3;
+            if (isSub(blocks[index - 1]) || isSub(blocks[index + 1])) return null;
             return <View key={index} style={{ height: 12 }} />;
+          }
 
           case "header": {
             const headerStyle = {
@@ -612,7 +623,7 @@ const useStyles = makeStyles((c, t) => ({
   bullet: {
     ...t.typography.body,
     color: c.text.secondary,
-    marginRight: 8,
+    marginRight: LIST_TEXT_INDENT - 20,
     width: 20,
     textAlign: "center",
   },
