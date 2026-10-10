@@ -130,6 +130,42 @@ const CompletedCard: React.FC<{
   );
 };
 
+/**
+ * The thought and the reply a person kept from a Reframe step. Always shown as
+ * the pair: a short reply on its own ("They may only be listening") does not
+ * say what it answers.
+ */
+const SavedReframe: React.FC<{ thought: string; reply: string }> = ({
+  thought,
+  reply,
+}) => {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={{
+        alignSelf: "stretch",
+        gap: spacing.xs,
+        padding: spacing.md,
+        borderRadius: radius.card,
+        backgroundColor: colors.surface.elevated,
+      }}
+    >
+      <Text variant="label" color="tertiary">
+        When you think
+      </Text>
+      <Text variant="body" color="secondary">
+        "{thought}"
+      </Text>
+      <Text variant="label" color="tertiary" style={{ marginTop: spacing.sm }}>
+        Your reply
+      </Text>
+      <Text variant="body" color="primary">
+        "{reply}"
+      </Text>
+    </View>
+  );
+};
+
 export const ContentRenderer: React.FC<ContentRendererProps> = ({
   block,
   packId,
@@ -141,6 +177,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 }) => {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const storeActivities = useActivityStore((s) => s.activities);
   const styles = useStyles();
   const [loading, setLoading] = useState(false);
   /**
@@ -233,6 +270,28 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
     case ContentBlockType.ACTIVITY: {
       const content = block.content as ReferenceBlockContent;
+      // The reply kept from a Reframe step. The copy on this phone wins, since
+      // it is there the moment they come back; the server's copy covers a
+      // reload or another device.
+      const savedReframe = (() => {
+        const mine = storeActivities
+          .filter(
+            (a) =>
+              a.status === "COMPLETED" &&
+              a.reframeCompletionData &&
+              a.packId === packId &&
+              a.moduleId === moduleId &&
+              a.cognitivePractice?.id === content.refId,
+          )
+          .sort(
+            (x, y) =>
+              new Date(y.completedAt ?? 0).getTime() -
+              new Date(x.completedAt ?? 0).getTime(),
+          )[0]?.reframeCompletionData;
+        return mine
+          ? { thought: mine.thought, reply: mine.reply }
+          : content.savedReframe;
+      })();
 
       const handleStartActivity = async () => {
         console.log("Full Content Block:", JSON.stringify(content, null, 2));
@@ -392,6 +451,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             onRetry={handleStartActivity}
           >
             <SimpleMarkdown content={cardLine} textColor={colors.text.secondary} />
+            {savedReframe ? <SavedReframe {...savedReframe} /> : null}
             {hasMore ? (
               <TextLink
                 label="More about this step"

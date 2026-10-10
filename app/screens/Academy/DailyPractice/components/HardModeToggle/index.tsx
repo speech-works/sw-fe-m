@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import PressableScale from "../../../../../components/PressableScale";
 import {
   size,
@@ -34,6 +34,9 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
   const { colors } = useTheme();
   const [showGate, setShowGate] = React.useState(false);
   const navigation = useNavigation<any>();
+  // In a program the gate explains and stays put: "Go to Settings" would
+  // take the person out of the program mid-step.
+  const inProgram = !!(useRoute().params as any)?.packContext?.packId;
   const accentColor = accent ? colors.accent[accent] : colors.action.primary;
   const onAccentColor = accent ? colors.accentOn[accent] : colors.action.onPrimary;
   const accentTint = accent ? colors.accentTint[accent] : colors.action.primaryTint;
@@ -84,12 +87,17 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
         visible={showGate}
         onClose={() => setShowGate(false)}
         title="Action required"
-        message="Add feared sounds in Settings to use Focus Mode."
-        confirmLabel="Go to Settings"
+        message={
+          inProgram
+            ? "Focus Mode needs your feared sounds. You can add them in Settings after this program step."
+            : "Add feared sounds in Settings to use Focus Mode."
+        }
+        confirmLabel={inProgram ? "OK" : "Go to Settings"}
         accentColor={accentColor}
         onAccentColor={onAccentColor}
         onConfirm={() => {
           setShowGate(false);
+          if (inProgram) return;
           navigation.navigate("Root", {
             screen: "SETTINGS",
             params: { screen: "FearedSounds" },

@@ -213,11 +213,21 @@ const Reframe = () => {
         currentActivityId,
         userId,
       });
+      // In a program, what they keep: their own words if they wrote any, else
+      // the version they picked. Always sent with the thought it answers.
+      // Outside a program nothing extra is sent.
+      const written = writtenReframe.trim();
+      const thought = currentScenario?.negativeThought?.trim();
+      const reply = written || selectedReframe?.trim() || "";
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
+        reframe:
+          packContext?.packId && thought && reply
+            ? { thought, reply, source: written ? "written" : "picked" }
+            : undefined,
       });
 
       console.log("Reframe Activity COMPLETED:", completedActivity);
@@ -262,6 +272,17 @@ const Reframe = () => {
   // Fetch all reframe scenarios once on mount
   useEffect(() => {
     const fetchScenarios = async () => {
+      // In a program the step's own series is the only one on offer. It comes
+      // with the activity, so it is used even if the catalogue list would not
+      // include it, and the series switcher has nothing else to show. The
+      // shuffle button then moves only between this series' thoughts.
+      const own = packContext?.packId ? practiceActivity?.cognitivePractice : undefined;
+      if (own?.reframingThoughtsData?.scenarios?.length) {
+        setAllSeries([own]);
+        setScenarios(own.reframingThoughtsData.scenarios);
+        setCognitivePracticeId(own.id);
+        return;
+      }
       const rs = await getCognitivePracticeByType(
         CognitivePracticeType.REFRAMING_THOUGHTS,
       );
@@ -278,7 +299,12 @@ const Reframe = () => {
       // rs[0] used to be the whole logic. Harmless with one row; with nine it
       // silently opens whichever the endpoint sorts first, which is the
       // SHORTEST series for a non-owner.
-      const recommendedId = (route.params as any)?.id;
+      // A program step names its own series on the activity it created. That
+      // wins: the day was written about that series, and opening the default
+      // one showed thoughts the day never set.
+      const recommendedId =
+        (packContext?.packId ? practiceActivity?.cognitivePractice?.id : undefined) ??
+        (route.params as any)?.id;
       const targetScenario =
         (recommendedId && rs.find((s) => s.id === recommendedId)) ||
         rs.find((s) => s.id === DEFAULT_REFRAME_SERIES_ID) ||
@@ -448,7 +474,9 @@ const Reframe = () => {
             count={selectedSeries?.reframingThoughtsData?.scenarios?.length}
             accentTextColor={colors.feedback.infoText}
             onPress={
-              allSeries.length > 1 ? () => setShowLibrary(true) : undefined
+              allSeries.length > 1 && !packContext?.packId
+                ? () => setShowLibrary(true)
+                : undefined
             }
           />
         </Page>
@@ -681,7 +709,12 @@ const Reframe = () => {
               <TextArea
                 value={writtenReframe}
                 onChangeText={setWrittenReframe}
-                placeholder="I can handle this by..."
+                placeholder={
+                  packContext?.packId
+                    ? "Your reply to this thought, in your own words"
+                    : "I can handle this by..."
+                }
+                maxLength={packContext?.packId ? 500 : undefined}
                 numberOfLines={3}
                 inputStyle={[styles.textAreaInput, { color: colors.text.primary }]}
                 containerStyle={{

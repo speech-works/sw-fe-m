@@ -1,3 +1,4 @@
+import { returnToProgramDay } from "../../../../../util/packs/returnToProgramDay";
 import { useIsFocused, useNavigation, useRoute } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
@@ -261,7 +262,7 @@ const DonePractice = ({
         {/* Actions */}
         <View style={styles.actionContainer}>
           {/* 1a. Share this session as a post — shown when paired */}
-          {!isAborted && hasBuddy && !!activityId && from !== "MOOD_CHECK" && !hasShared && (
+          {!isAborted && hasBuddy && !!activityId && from !== "MOOD_CHECK" && !hasShared && !inProgram && (
             <Button
               variant="secondary"
               label="Share this session"
@@ -344,14 +345,22 @@ const DonePractice = ({
                 }
               />
             </>
-          ) : onDone ? (
+          ) : onDone || inProgram ? (
+            // In a program there is no "Explore More": finishing a step goes
+            // back to the day. A caller that forgot onDone still lands there.
             <Button
               variant="primary"
               label="Done"
               rightIcon={icons.success}
               accentColor={primaryFill}
               onAccentColor={primaryInk}
-              onPress={() => leaveScreen(onDone)}
+              onPress={() =>
+                leaveScreen(
+                  onDone ??
+                    (() =>
+                      returnToProgramDay(navigation, route.params?.packContext)),
+                )
+              }
             />
           ) : (
             <Button
@@ -404,7 +413,9 @@ const DonePractice = ({
         stageTitle={celebration.stageTitle}
         manifest={user?.avatarManifest}
         onClose={dismissTakeover}
-        onTryOn={openStudio}
+        // Opening the avatar studio leaves the program. In a program the
+        // takeover only offers "Keep going".
+        onTryOn={inProgram ? undefined : openStudio}
       />
     </ScreenView>
   );

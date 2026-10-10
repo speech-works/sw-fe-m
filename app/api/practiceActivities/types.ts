@@ -43,6 +43,20 @@ export interface PracticeActivity {
    * registry deliberately omits.
    */
   axesMoved?: string[];
+  packId?: string | null;
+  moduleId?: string | null;
+  /** Reframe only: the thought and the reply the person kept. */
+  reframeCompletionData?: ReframeCompletionPayload | null;
+}
+
+/**
+ * What a person keeps from a Reframe practice. Always the pair: a reply shown
+ * later without the thought it answers makes little sense.
+ */
+export interface ReframeCompletionPayload {
+  thought: string;
+  reply: string;
+  source: "picked" | "written";
 }
 
 /*

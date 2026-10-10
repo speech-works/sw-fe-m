@@ -7,6 +7,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { returnToProgramDay } from '../../../../../util/packs/returnToProgramDay';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -238,7 +239,19 @@ export const SummaryScreen: React.FC = () => {
   });
 
   if (isDone) {
-    return <DonePractice practiceName="Mirror Work" />;
+    // In a program, Done goes back to the day, past Prep, Session and
+    // Reflection, instead of offering Explore.
+    return (
+      <DonePractice
+        practiceName="Mirror Work"
+        inProgram={!!packContext?.packId}
+        onDone={
+          packContext?.packId
+            ? () => returnToProgramDay(navigation, packContext)
+            : undefined
+        }
+      />
+    );
   }
 
   const formatDuration = (s: number) => {

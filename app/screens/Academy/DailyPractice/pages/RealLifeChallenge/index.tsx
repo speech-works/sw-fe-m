@@ -528,7 +528,10 @@ const RealLifeChallenge = () => {
             `easierState` stays "none" — same as the exposure hierarchy's own
             gentlest rung, and correctly silent either way.
           */}
-          {easierState === "available" ? (
+          {/* Not in a program: the swap replaces the day's own step with a
+              different challenge, which takes the person off the program and
+              leaves the step unrecorded. */}
+          {easierState === "available" && !packContext?.packId ? (
             <View style={styles.pacingRow}>
               <Text variant="bodySm" color="tertiary" center>
                 Go at your own pace. Starting smaller is a real choice, not a

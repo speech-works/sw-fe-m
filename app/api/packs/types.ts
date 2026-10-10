@@ -205,6 +205,11 @@ export type ReferenceBlockContent = {
   descriptionOverride?: string;
   /** Short card plus the full text by section. Absent on older content. */
   card?: StepCard;
+  /**
+   * Reframe steps only, filled by the server: the thought and the reply this
+   * person kept the last time they finished this step on this day.
+   */
+  savedReframe?: { thought: string; reply: string };
 
   // Hydrated fields (injected by backend service, may be present in API response)
   activityType?: string;

@@ -1,6 +1,10 @@
 import axios from "axios";
 import axiosClient from "../axiosClient";
-import { PracticeActivity, PracticeActivityContentType } from "./types";
+import {
+  PracticeActivity,
+  PracticeActivityContentType,
+  ReframeCompletionPayload,
+} from "./types";
 import { ToolType } from "../tools/types";
 import type { MirrorWorkComparison } from "../../screens/Academy/DailyPractice/pages/MirrorWork/util/mirrorReflection/types";
 
@@ -170,9 +174,12 @@ export async function completePracticeActivity({
   packId,
   moduleId,
   toolsUsed,
+  reframe,
 }: UpdateActivityReq & {
   /** Fluency tools actually activated during this activity (DAF/Chorus/...). */
   toolsUsed?: ToolType[];
+  /** Reframe only: the thought and the reply the person kept. */
+  reframe?: ReframeCompletionPayload;
 }): Promise<PracticeActivity> {
   try {
     // Snapshot pre-completion XP/level so DonePractice can diff a fresh
@@ -187,6 +194,7 @@ export async function completePracticeActivity({
     if (packId) requestBody.packId = packId;
     if (moduleId) requestBody.moduleId = moduleId;
     if (toolsUsed && toolsUsed.length > 0) requestBody.toolsUsed = toolsUsed;
+    if (reframe) requestBody.reframe = reframe;
 
     console.log(">> API: Completing Practice Activity", { id, requestBody });
     const response = await axiosClient.post(
