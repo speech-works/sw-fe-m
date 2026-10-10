@@ -203,6 +203,8 @@ export type ReferenceBlockContent = {
   descriptionOverride?: string;
   /** Short card plus the full text by section. Absent on older content. */
   card?: StepCard;
+  /** A text to hand to somebody else; the card shows a Copy button for it. */
+  copy?: { label: string; text: string };
 
   // Hydrated fields (injected by backend service, may be present in API response)
   activityType?: string;

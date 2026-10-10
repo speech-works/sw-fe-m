@@ -1,4 +1,5 @@
 import React from "react";
+import * as Clipboard from "expo-clipboard";
 import { View } from "react-native";
 import { Button, Icon, IconButton, Sheet, Text, icons, space, spacing, useTheme } from "../../design-system";
 import type { StepCard, StepCardKind } from "../../api/packs/types";
@@ -101,3 +102,32 @@ export function fallbackCard(description: string): { line: string; hasMore: bool
   const first = description.match(/^[\s\S]+?[.?!](\s|$)/)?.[0]?.trim() ?? description;
   return { line: first, hasMore: first.length < description.trim().length };
 }
+
+/**
+ * Copies a ready-made text (the buddy's five questions) so the reader can
+ * paste it into any message app. The label says "Copied" for two seconds.
+ */
+export const CopyTextButton: React.FC<{ label: string; text: string }> = ({ label, text }) => {
+  const [copied, setCopied] = React.useState(false);
+  React.useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(t);
+  }, [copied]);
+  return (
+    <Button
+      variant="secondary"
+      fullWidth={false}
+      leftIcon={copied ? icons.success : icons.copy}
+      label={copied ? "Copied" : label}
+      onPress={async () => {
+        try {
+          await Clipboard.setStringAsync(text);
+          setCopied(true);
+        } catch {
+          /* Clipboard unavailable: the questions are also in the task text. */
+        }
+      }}
+    />
+  );
+};

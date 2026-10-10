@@ -53,7 +53,7 @@ import {
   showSuccessBottomSheet,
 } from "../../util/functions/bottomSheet";
 import ExhaustionSheet from "../ExhaustionSheet";
-import { StepCardSheet, StepHint, fallbackCard } from "./StepCardSheet";
+import { CopyTextButton, StepCardSheet, StepHint, fallbackCard } from "./StepCardSheet";
 import {
   classifyPackError,
   packErrorMessage,
@@ -369,6 +369,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 underline
               />
             ) : null}
+            {content.copy ? (
+              <CopyTextButton label={content.copy.label} text={content.copy.text} />
+            ) : null}
           </CompletedCard>
           {stepSheet}
           {exhaustionSheet}
@@ -431,6 +434,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                     <StepHint key={i} kind={h.kind} text={h.text} color={ink} />
                   ))}
                 </View>
+              ) : null}
+              {content.copy ? (
+                <CopyTextButton label={content.copy.label} text={content.copy.text} />
               ) : null}
               {hasMore ? (
                 <TextLink
