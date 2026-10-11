@@ -9,7 +9,7 @@
  * so every single-asterisk run in the seed content ("let those parts *touch*")
  * rendered with visible stars.
  */
-import { tokenizeInline } from "../SimpleMarkdown";
+import { groupBlocks, tokenizeInline } from "../SimpleMarkdown";
 
 describe("tokenizeInline", () => {
   it("italicises a single-asterisk run", () => {
@@ -207,5 +207,24 @@ describe("tokenizeInline", () => {
         { type: "text", text: " and on" },
       ]);
     });
+  });
+});
+
+describe("groupBlocks", () => {
+  const kinds = (md: string) => groupBlocks(md.split("\n")).map((b) => b.kind);
+
+  it("ends a list at a blank line, so the next sentence is its own paragraph", () => {
+    const blocks = groupBlocks("1. One\n2. Two\n3. Three\n\nYou can see all three.".split("\n"));
+    expect(blocks.map((b) => b.kind)).toEqual(["list", "list", "list", "blank", "paragraph"]);
+    expect(blocks[2]).toEqual({ kind: "list", marker: "3.", text: "Three" });
+  });
+
+  it("keeps an indented paragraph inside its list item", () => {
+    const blocks = groupBlocks("- Item\n\n  More about the item.".split("\n"));
+    expect(blocks).toEqual([{ kind: "list", marker: "•", text: "Item More about the item." }]);
+  });
+
+  it("joins a wrapped list item that has no blank line", () => {
+    expect(kinds("- Item that\nwraps")).toEqual(["list"]);
   });
 });

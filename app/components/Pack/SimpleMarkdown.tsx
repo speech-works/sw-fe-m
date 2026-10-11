@@ -166,7 +166,7 @@ export const SimpleMarkdown = ({
   );
 };
 
-type Block =
+export type Block =
   | { kind: "blank" }
   | { kind: "header"; level: 1 | 2 | 3 | 4; text: string }
   | { kind: "blockquote"; text: string }
@@ -203,7 +203,7 @@ function startsNewBlock(trimmed: string): boolean {
  * list item swallows any immediately-following unmarked lines as its own
  * continuation — is what lets those render as a single element again.
  */
-function groupBlocks(lines: string[]): Block[] {
+export function groupBlocks(lines: string[]): Block[] {
   const blocks: Block[] = [];
   let i = 0;
 
@@ -266,17 +266,17 @@ function groupBlocks(lines: string[]): Block[] {
       const parts = [orderedMatch ? orderedMatch[2] : bulletMatch![1]];
       i++;
       // Lazy continuation: unmarked lines right after a list item are that
-      // item's own wrapped text. A blank line inside that run is swallowed
-      // as an internal paragraph break rather than ending the item — it only
-      // really ends the item when the blank is followed by nothing else, or
-      // by the start of the next block (a new list entry, a header, a quote).
-      // Without this, a stray blank line mid-explanation knocks the rest of
-      // the item's own text out to the left margin as an unindented paragraph.
+      // item's own wrapped text. A blank line ends the item, as in standard
+      // markdown, unless the line after it is indented: only an indented
+      // line continues the item as a second paragraph. Swallowing every
+      // paragraph after a blank line put the sentence that follows a list
+      // inside its last item (36 places in the programs, 2026-10-11).
       while (i < lines.length) {
         const next = lines[i].trim();
         if (next === "") {
-          const after = lines[i + 1]?.trim() ?? "";
-          if (after === "" || isBlockMarker(after)) break;
+          const afterRaw = lines[i + 1] ?? "";
+          const after = afterRaw.trim();
+          if (after === "" || isBlockMarker(after) || !/^\s/.test(afterRaw)) break;
           i++;
           continue;
         }
