@@ -306,6 +306,8 @@ const RealLifeChallenge = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
+        // Saved with the completed step. Empty text is not sent.
+        completionNotes: reflectionText,
       });
 
       updateActivity(currentActivityId, {
@@ -325,6 +327,13 @@ const RealLifeChallenge = () => {
       setCurrentStep(ChallengeStep.REFLECTION);
       return;
     }
+    // In a program the day already says what to do and when, so the "have you
+    // tried this yet?" sheet only stands between the person and the box.
+    // Explore keeps the sheet.
+    if (packContext?.packId) {
+      setCurrentStep(ChallengeStep.REFLECTION);
+      return;
+    }
     setShowIRLModal(true);
   };
 
@@ -334,15 +343,10 @@ const RealLifeChallenge = () => {
   };
 
   /**
-   * NOTHING READS `reflectionText`. It is bound to the input and it is never
-   * sent: there is no field for it on the completion call, and no column for it
-   * on `practice_activities`. The label said "Saving reflection" above a
-   * console.log, which is the only place it ever went.
-   *
-   * That is why the button no longer waits for it. Storing it properly needs a
-   * column and a change to the completion payload, which is a separate piece of
-   * work; until then the box is somewhere to think, and saying so is more
-   * honest than demanding text and dropping it.
+   * `reflectionText` is sent with the completion call (`completionNotes`) and
+   * stored on the person's own activity row (`practice_activities.
+   * completion_notes`). The box is still optional: the button never waits for
+   * it, and empty text is simply not sent.
    */
   const handleReflectionComplete = async () => {
     void finishActivity();
@@ -387,7 +391,7 @@ const RealLifeChallenge = () => {
 
   const renderSummaryScreen = () => (
     <DonePractice
-      practiceName="real-life challenge"
+      practiceName={packContext?.packId ? "practice" : "real-life challenge"}
       activityId={currentActivityId ?? undefined}
       contentType={
         practiceActivityState?.cognitivePractice
@@ -477,19 +481,14 @@ const RealLifeChallenge = () => {
             </View>
           ) : null}
 
-          {/* Pro tip — a soft orange-tint island. */}
+          {/* The encouragement line — a soft orange-tint island. No "PRO TIP"
+              label: the line is the day's own words, not a tip from us. */}
           <Surface
             level="default"
             rounded="card"
             padded={spacing.xl}
             style={{ backgroundColor: colors.action.primaryTint }}
           >
-            <View style={styles.cardLabelRow}>
-              <Icon name={icons.tip} size={size.iconInline} color={colors.text.link} />
-              <Text variant="eyebrow" color="link">
-                PRO TIP
-              </Text>
-            </View>
             <Text variant="body" color="secondary" style={styles.tipText}>
               {challengeData.encouragement}
             </Text>
@@ -574,8 +573,8 @@ const RealLifeChallenge = () => {
    * writing tasks, back to back, at the end of a two-week program, for people
    * whose presenting problem is avoidance.
    *
-   * The text was never sent anywhere either, so the gate protected no data. See
-   * the note on `handleReflectionComplete`.
+   * The text is now saved with the step when there is any. See the note on
+   * `handleReflectionComplete`.
    */
   return (
     <>
@@ -605,7 +604,7 @@ const RealLifeChallenge = () => {
           {/* Said out loud. Removing the gate is not enough on its own: a lone
               text box above a button reads as required whether it is or not. */}
           <Text variant="bodySm" color="secondary">
-            Optional. You can finish without it.
+            Optional. What you write is saved with this step.
           </Text>
         </View>
 
@@ -620,6 +619,7 @@ const RealLifeChallenge = () => {
             placeholder={challengeData.completionPlaceholder || "How did it go?"}
             placeholderTextColor={colors.input.placeholder}
             multiline
+            maxLength={5000}
             textAlignVertical="top"
             style={[styles.textAreaInput, { color: colors.text.primary }]}
           />

@@ -3,8 +3,12 @@ import {
   GoalReportStyle,
 } from "../../../api/programGoals/types";
 
+/** The three answers every style has. */
+type CoreReport = Exclude<GoalReport, "NO_NEED">;
+
 /**
- * The three answers, in the words each program uses.
+ * The three answers, in the words each program uses, and the fourth ("No
+ * need") where the program offers it.
  *
  * ── WHY THIS IS IN THE APP AND NOT THE SEED ────────────────────────────────
  * These are not per-program copy. They are the three faces of one stored value,
@@ -18,13 +22,25 @@ import {
  */
 export const REPORT_LABELS: Record<
   GoalReportStyle,
-  Record<GoalReport, string>
+  Record<CoreReport, string> & { NO_NEED?: string }
 > = {
-  /** Eight programs. The plain case: did you do the thing you named? */
+  /** The plain case: did you do the thing you named? */
   did_it: {
     FULL: "Did it",
     PARTIAL: "Something smaller",
     NONE: "Not yet",
+  },
+
+  /**
+   * Art of Disclosure and Hard Conversations (A6, 2026-10-12). Both say that
+   * deciding somebody does not need to know, or that a call is not needed, is
+   * a finished answer. "No need" closes the goal, so Home does not ask again.
+   */
+  did_it_no_need: {
+    FULL: "Did it",
+    PARTIAL: "Something smaller",
+    NONE: "Not yet",
+    NO_NEED: "No need",
   },
 
   /**
@@ -52,4 +68,14 @@ export const REPORT_LABELS: Record<
 };
 
 /** Left to right, easiest claim last. The order never changes. */
-export const REPORT_ORDER: GoalReport[] = ["FULL", "PARTIAL", "NONE"];
+export const REPORT_ORDER: CoreReport[] = ["FULL", "PARTIAL", "NONE"];
+
+/** The answers a goal of this style can get, in order. "No need" goes last. */
+export function reportOptions(style: GoalReportStyle): GoalReport[] {
+  return REPORT_LABELS[style]?.NO_NEED ? [...REPORT_ORDER, "NO_NEED"] : REPORT_ORDER;
+}
+
+/** The label for one answer, or "" when this style has no such answer. */
+export function reportLabel(style: GoalReportStyle, report: GoalReport): string {
+  return REPORT_LABELS[style]?.[report] ?? "";
+}

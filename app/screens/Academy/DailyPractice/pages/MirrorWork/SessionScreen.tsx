@@ -45,6 +45,8 @@ export const SessionScreen: React.FC = () => {
   ];
   const practiceActivityId: string | undefined = route.params?.practiceActivityId;
   const packContext = route.params?.packContext;
+  // A program day's own question for the writing screen; passed straight on.
+  const dayCopy = route.params?.dayCopy;
 
   const device = useCameraDevice('front');
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -113,8 +115,9 @@ export const SessionScreen: React.FC = () => {
       practiceActivityId,
       weightTableVersion: session.weightTableVersion,
       packContext,
+      dayCopy,
     });
-  }, [elapsedSeconds, session, speech, navigation, practiceActivityId, packContext]);
+  }, [elapsedSeconds, session, speech, navigation, practiceActivityId, packContext, dayCopy]);
 
   const handleEndSession = useCallback(() => setShowEndPrompt(true), []);
 
@@ -355,7 +358,7 @@ export const SessionScreen: React.FC = () => {
                   </View>
                   <Text style={styles.preCalibTitle}>Ready to begin?</Text>
                   <Text style={styles.preCalibBody}>
-                    Relax your face, look at the camera, and we'll spend 15 seconds learning your baseline.
+                    Look at the camera. We spend 15 seconds learning what your face looks like at rest.
                   </Text>
                 </View>
               </BlurView>

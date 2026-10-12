@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { updateProgramGoal } from "../../../../api/programGoals";
 import { ProgramGoal } from "../../../../api/programGoals/types";
 import { FurthestMoment } from "../../../Programs/FurthestMoment";
+import { REPORT_LABELS } from "../../../Programs/GoalsReport/labels";
 import {
   Button,
   Card,
@@ -60,6 +61,11 @@ export const isDismissedToday = async (goalId: string): Promise<boolean> =>
  * changes. There is no follow-up question, no reason picker and no count of
  * dismissals: being asked why you have not done something is the pressure this
  * whole feature is built to avoid.
+ *
+ * "NO NEED" CLOSES IT. Art of Disclosure and Hard Conversations offer a fourth
+ * answer (A6, 2026-10-12): somebody does not need to know, or the call is not
+ * needed. That is a finished answer, so it is saved and the card never asks
+ * about this goal again.
  * ===========================================================================
  */
 export function WaitingGoalCard({
@@ -105,6 +111,24 @@ export function WaitingGoalCard({
     }
   }, [goal.id, onDone]);
 
+  const noNeed = useCallback(async () => {
+    haptics.light();
+    setSaving(true);
+    try {
+      await updateProgramGoal(goal.id, "NO_NEED");
+      track(ANALYTICS_EVENTS.WAITING_GOAL_ANSWERED, {
+        answer: "no_need",
+        isFurthest: false,
+      });
+      setGone(true);
+      onDone();
+    } catch {
+      /* Left on screen, as with "Did it". */
+    } finally {
+      setSaving(false);
+    }
+  }, [goal.id, onDone]);
+
   const notYet = useCallback(async () => {
     haptics.light();
     track(ANALYTICS_EVENTS.WAITING_GOAL_ANSWERED, {
@@ -141,6 +165,14 @@ export function WaitingGoalCard({
             onPress={didIt}
           />
           <Button label="Still not yet" variant="ghost" onPress={notYet} />
+          {REPORT_LABELS[goal.reportStyle]?.NO_NEED ? (
+            <Button
+              label={REPORT_LABELS[goal.reportStyle].NO_NEED!}
+              variant="ghost"
+              disabled={saving}
+              onPress={noNeed}
+            />
+          ) : null}
         </View>
       </Card>
 

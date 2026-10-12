@@ -2,6 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { WeekReviewBlockContent } from "../../../api/packs/types";
 import { Text, makeStyles, space, spacing } from "../../../design-system";
+import { SavedReframes } from "../SavedReframes";
 
 /**
  * What the user wrote across the week, shown on the last day so the keepsake
@@ -40,7 +41,9 @@ export const WeekReviewBlock: React.FC<WeekReviewBlockProps> = ({ content }) => 
     typeof content.maxPerDay === "number" && content.maxPerDay > 0
       ? content.maxPerDay
       : DEFAULT_MAX_PER_DAY;
-  const days = (content.days ?? []).filter((d) => d.entries.length > 0);
+  const days = (content.days ?? []).filter(
+    (d) => d.entries.length > 0 || (d.reframes?.length ?? 0) > 0,
+  );
   const willingness = willingnessLine(content.willingness);
 
   return (
@@ -88,6 +91,8 @@ export const WeekReviewBlock: React.FC<WeekReviewBlockProps> = ({ content }) => 
                       </Text>
                     </View>
                   ))}
+                  {/* Every thought and reply saved on that day's thought step. */}
+                  <SavedReframes pairs={day.reframes ?? []} />
                 </View>
               </View>
             ))}

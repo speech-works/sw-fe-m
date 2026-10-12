@@ -28,6 +28,20 @@ export interface MirrorWorkData {
   focusAreas: MirrorBehaviorSignal[];
 }
 
+/**
+ * A program day's own words for the mirror screens. Set only when the step
+ * was opened from a program day; Explore passes nothing and keeps the
+ * screens' standard wording. The server has already applied the day's
+ * overrides to the activity's practice row (applyProgramDayCopy), so these
+ * are read from it.
+ */
+export interface MirrorWorkDayCopy {
+  /** The day's question for the writing screen. */
+  completionPrompt?: string;
+  /** The day's example answer, shown in the empty box. */
+  completionPlaceholder?: string;
+}
+
 export interface DetectedSignalCounts {
   [key: string]: {
     eventCount: number;

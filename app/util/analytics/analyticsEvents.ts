@@ -58,9 +58,9 @@ export const ANALYTICS_EVENTS = {
     // NOTE `full` is NOT a win on a prediction program. There it means the
     // feared thing happened. Always split by `answerType` before reading it.
     PROGRAM_GOALS_SET: 'program_goals_set',         // props: { packId, answerType, questionVersion, count }
-    PROGRAM_GOALS_REPORTED: 'program_goals_reported', // props: { packId, answerType, questionVersion, total, full, partial, none, packClosed }
+    PROGRAM_GOALS_REPORTED: 'program_goals_reported', // props: { packId, answerType, questionVersion, total, full, partial, none, noNeed, packClosed }
     REACH_ROW_TAPPED: 'reach_row_tapped',           // props: { total, done, waiting, state }
-    WAITING_GOAL_ANSWERED: 'waiting_goal_answered', // props: { answer, isFurthest }
+    WAITING_GOAL_ANSWERED: 'waiting_goal_answered', // props: { answer: did_it | not_yet | no_need, isFurthest }
     // A goal closed one at a time, away from the end-of-program report. Without
     // it, every act reported DURING a program is invisible and the only number
     // we have is the day-8 report, which undercounts by everything somebody did

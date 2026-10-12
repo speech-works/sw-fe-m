@@ -4,6 +4,7 @@ import {
   PracticeActivity,
   PracticeActivityContentType,
   ReframeCompletionPayload,
+  ReframeReply,
 } from "./types";
 import { ToolType } from "../tools/types";
 import type { MirrorWorkComparison } from "../../screens/Academy/DailyPractice/pages/MirrorWork/util/mirrorReflection/types";
@@ -175,11 +176,17 @@ export async function completePracticeActivity({
   moduleId,
   toolsUsed,
   reframe,
+  reframes,
+  completionNotes,
 }: UpdateActivityReq & {
   /** Fluency tools actually activated during this activity (DAF/Chorus/...). */
   toolsUsed?: ToolType[];
   /** Reframe only: the thought and the reply the person kept. */
   reframe?: ReframeCompletionPayload;
+  /** Program thought step only: every thought and reply saved, in order. */
+  reframes?: ReframeReply[];
+  /** Drills only: what the person wrote in the box. Saved with the step. */
+  completionNotes?: string;
 }): Promise<PracticeActivity> {
   try {
     // Snapshot pre-completion XP/level so DonePractice can diff a fresh
@@ -195,8 +202,17 @@ export async function completePracticeActivity({
     if (moduleId) requestBody.moduleId = moduleId;
     if (toolsUsed && toolsUsed.length > 0) requestBody.toolsUsed = toolsUsed;
     if (reframe) requestBody.reframe = reframe;
+    if (reframes && reframes.length > 0) requestBody.reframes = reframes;
+    const notes = completionNotes?.trim();
+    if (notes) requestBody.completionNotes = notes;
 
-    console.log(">> API: Completing Practice Activity", { id, requestBody });
+    // The note is the person's own writing: log that it was sent, not what it says.
+    console.log(">> API: Completing Practice Activity", {
+      id,
+      requestBody: requestBody.completionNotes
+        ? { ...requestBody, completionNotes: "[note]" }
+        : requestBody,
+    });
     const response = await axiosClient.post(
       `/practice-activities/${id}/complete`,
       requestBody,

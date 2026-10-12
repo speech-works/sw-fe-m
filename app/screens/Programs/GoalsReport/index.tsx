@@ -33,7 +33,7 @@ import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import { GoalRow } from "./GoalRow";
 import { prefillAnswers } from "./prefill";
-import { REPORT_LABELS } from "./labels";
+import { reportLabel } from "./labels";
 
 /**
  * ===========================================================================
@@ -132,6 +132,7 @@ const GoalsReportScreen = () => {
         full: goals.filter((g) => answers[g.id] === "FULL").length,
         partial: goals.filter((g) => answers[g.id] === "PARTIAL").length,
         none: goals.filter((g) => answers[g.id] === "NONE").length,
+        noNeed: goals.filter((g) => answers[g.id] === "NO_NEED").length,
         packClosed: result.packClosed,
       });
       setGoals(result.goals);
@@ -178,9 +179,7 @@ const GoalsReportScreen = () => {
                   which read as a footnote rather than as the answer to the
                   line beside it. */}
               <Text variant="bodySm" color="secondary">
-                {goal.report
-                  ? REPORT_LABELS[goal.reportStyle][goal.report]
-                  : ""}
+                {goal.report ? reportLabel(goal.reportStyle, goal.report) : ""}
               </Text>
             </View>
           ))}

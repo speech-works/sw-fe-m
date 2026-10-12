@@ -3,6 +3,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ExploreStackParamList } from "../../types";
 import { MoodType } from "../../../../../api/moodCheck/types";
 import { PackContext } from "../../../../../utils/packActivityNavigation";
+import { MirrorWorkDayCopy } from "../../../../../screens/Academy/DailyPractice/pages/MirrorWork/types";
 
 export type CDPStackParamList = {
   CognitivePractice: undefined;
@@ -37,9 +38,9 @@ export type CDPStackParamList = {
     | { practiceData?: any; packContext?: PackContext; practiceActivity?: any }
     | undefined;
   MirrorWorkSession:
-    | { prompts: any; practiceActivityId?: string; packContext?: PackContext }
+    | { prompts: any; practiceActivityId?: string; packContext?: PackContext; dayCopy?: MirrorWorkDayCopy }
     | undefined;
-  MirrorWorkReflection: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; practiceActivityId?: string; weightTableVersion?: number; packContext?: PackContext } | undefined;
+  MirrorWorkReflection: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; practiceActivityId?: string; weightTableVersion?: number; packContext?: PackContext; dayCopy?: MirrorWorkDayCopy } | undefined;
   MirrorWorkSummary: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; reflectionText: string; practiceActivityId?: string; weightTableVersion?: number; packContext?: PackContext } | undefined;
 };
 export type CDPStackNavigationProp<T extends keyof CDPStackParamList> =

@@ -21,8 +21,15 @@ export const ReflectionScreen: React.FC = () => {
 
   const {
     scores, promptsAttempted, nudgeMode, sessionDurationSeconds,
-    signalCounts, practiceActivityId, weightTableVersion, packContext,
+    signalCounts, practiceActivityId, weightTableVersion, packContext, dayCopy,
   } = route.params || {};
+
+  // In a program the day asks its own question, so it replaces the standard
+  // heading, and the standard line under it (which asks a different
+  // question) is left out. Explore is unchanged.
+  const dayQuestion: string | undefined = dayCopy?.completionPrompt?.trim() || undefined;
+  const dayPlaceholder: string | undefined =
+    dayCopy?.completionPlaceholder?.trim() || undefined;
 
   const [reflectionText, setReflectionText] = useState('');
 
@@ -80,15 +87,21 @@ export const ReflectionScreen: React.FC = () => {
             <Icon name="pencil-outline" size={size.iconLg} color={colors.text.accent} />
           </View>
 
-          <Text style={styles.title}>What did you notice?</Text>
-          <Text style={styles.subtitle}>
-            Noticing a pattern is the first step to having a choice about it. Write down anything that surprised you.
-          </Text>
+          {dayQuestion ? (
+            <Text style={[styles.title, styles.dayQuestion]}>{dayQuestion}</Text>
+          ) : (
+            <>
+              <Text style={styles.title}>What did you notice?</Text>
+              <Text style={styles.subtitle}>
+                Noticing a pattern is the first step to having a choice about it. Write down anything that surprised you.
+              </Text>
+            </>
+          )}
 
           <TextInput
             style={styles.textInput}
             multiline
-            placeholder="I didn't realize my jaw was doing that…"
+            placeholder={dayPlaceholder || "I didn't realize my jaw was doing that…"}
             placeholderTextColor={colors.text.tertiary}
             value={reflectionText}
             onChangeText={setReflectionText}
@@ -166,6 +179,14 @@ const useStyles = makeStyles((c) => ({
     letterSpacing: -0.7,
     lineHeight: 38,
     marginBottom: 12,
+  },
+  // The day's question is a full sentence, so it is set smaller than the
+  // three-word standard heading and carries the heading's bottom space.
+  dayQuestion: {
+    fontSize: 24,
+    lineHeight: 31,
+    letterSpacing: -0.4,
+    marginBottom: 28,
   },
   subtitle: {
     fontSize: 16,

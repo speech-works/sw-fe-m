@@ -16,6 +16,9 @@ export interface PackContext {
   /** The day's own writing prompt and example for the step, if it sets one. */
   writePrompt?: string;
   writePlaceholder?: string;
+  /** The day's own instructions and encouragement for the step, if it sets them. */
+  instructions?: string;
+  encouragement?: string;
 }
 
 type BlockActivityListener = (blockId: string, activityId: string) => void;
@@ -116,7 +119,9 @@ const navigateToCognitive = (
       });
       break;
     case CognitivePracticeType.REFRAMING_THOUGHTS:
-      nav.push("Reframe", { practiceActivity: activity, packContext: ctx });
+      // A program day opens its own thought screen. The Explore Reframe
+      // screen ("Reframe") is never opened from a program.
+      nav.push("ProgramThought", { practiceActivity: activity, packContext: ctx });
       break;
     case CognitivePracticeType.MIRROR_WORK:
       // Pack already created+started the activity (alreadyStarted), so PrepScreen

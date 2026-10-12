@@ -3,6 +3,7 @@ import React from "react";
 import Breathing from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
 import Meditation from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
+import ProgramThought from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/ProgramThought";
 import RealLifeChallenge from "../../../screens/Academy/DailyPractice/pages/RealLifeChallenge";
 import InterviewBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Briefing";
 import InterviewChat from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Chat";
@@ -73,6 +74,12 @@ export default function ExploreStackNavigator() {
       <Stack.Screen
         name="Reframe"
         component={Reframe}
+        options={{ gestureEnabled: false }}
+      />
+      {/* A program day's Reframe step. See ProgramThought. */}
+      <Stack.Screen
+        name="ProgramThought"
+        component={ProgramThought}
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen

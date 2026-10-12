@@ -228,3 +228,36 @@ describe("groupBlocks", () => {
     expect(kinds("- Item that\nwraps")).toEqual(["list"]);
   });
 });
+
+describe("groupBlocks: divider", () => {
+  const kinds = (md: string) => groupBlocks(md.split("\n")).map((b) => b.kind);
+
+  it("reads a line that is exactly --- as a divider", () => {
+    expect(kinds("Before.\n\n---\n\nAfter.")).toEqual([
+      "paragraph",
+      "blank",
+      "divider",
+      "blank",
+      "paragraph",
+    ]);
+  });
+
+  it("does not let a paragraph or list item swallow the divider", () => {
+    expect(kinds("Some text\n---\nMore text")).toEqual([
+      "paragraph",
+      "divider",
+      "paragraph",
+    ]);
+    expect(kinds("- Item\n---")).toEqual(["list", "divider"]);
+  });
+
+  it("ignores spaces around the dashes", () => {
+    expect(kinds("  ---  ")).toEqual(["divider"]);
+  });
+
+  it("keeps other dash runs as text", () => {
+    expect(kinds("----")).toEqual(["paragraph"]);
+    expect(kinds("--")).toEqual(["paragraph"]);
+    expect(kinds("--- and more")).toEqual(["paragraph"]);
+  });
+});

@@ -45,6 +45,25 @@ describe("resolveReachRow", () => {
     for (const s of others) expect(resolveReachRow(s)!.cta).toBeNull();
   });
 
+  it('never counts a "No need" goal as still on the list (A6)', () => {
+    // The server leaves No need goals out of `total`: two done and one No
+    // need is everything they set out to do, not two of three.
+    const s = resolveReachRow(
+      sum({ total: 2, noNeed: 1, done: 2, latestDone: goal("a") }),
+    )!;
+    expect(s.kind).toBe("all_done");
+    expect(s.dots).toEqual({ total: 2, done: 2 });
+  });
+
+  it('says nothing is waiting when every goal is "No need", and offers no explainer', () => {
+    const s = resolveReachRow(sum({ total: 0, noNeed: 3 }))!;
+    expect(s.kind).toBe("no_need");
+    expect(s.said).toBe("You decided none of these need doing");
+    expect(s.sub).toBe("Nothing on your list is waiting.");
+    expect(s.cta).toBeNull();
+    expect(s.glow).toBe("none");
+  });
+
   // ── THE LIGHT ───────────────────────────────────────────────────────────
   it("never lights up before something has been done", () => {
     const unlit = [

@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { fonts, makeStyles, useTheme } from "../../design-system";
+import { Divider, fonts, makeStyles, spacing, useTheme } from "../../design-system";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { toSafeExternalUrl } from "../../util/functions/url";
 
@@ -95,6 +95,15 @@ export const SimpleMarkdown = ({
             );
           }
 
+          case "divider":
+            // A line that is exactly `---`: a thin rule between two parts of
+            // a day. Drawn, never shown as three dashes.
+            return (
+              <View key={index} style={styles.divider} testID="markdown-divider">
+                <Divider />
+              </View>
+            );
+
           case "blockquote":
             return (
               <View key={index} style={styles.blockquote}>
@@ -168,15 +177,22 @@ export const SimpleMarkdown = ({
 
 export type Block =
   | { kind: "blank" }
+  | { kind: "divider" }
   | { kind: "header"; level: 1 | 2 | 3 | 4; text: string }
   | { kind: "blockquote"; text: string }
   | { kind: "checkbox"; checked: boolean; text: string }
   | { kind: "list"; marker: string; text: string }
   | { kind: "paragraph"; text: string };
 
+/** A line that is exactly `---` (after trimming) is a divider. */
+function isDivider(trimmed: string): boolean {
+  return trimmed === "---";
+}
+
 /** Does a trimmed line carry a marker that starts a genuinely new block? */
 function isBlockMarker(trimmed: string): boolean {
   return (
+    isDivider(trimmed) ||
     trimmed.startsWith("#") ||
     trimmed.startsWith("> ") ||
     trimmed.startsWith("- ") ||
@@ -212,6 +228,14 @@ export function groupBlocks(lines: string[]): Block[] {
 
     if (trimmed === "") {
       blocks.push({ kind: "blank" });
+      i++;
+      continue;
+    }
+
+    // Checked before lists: "---" is not a bullet, and a paragraph right
+    // above it stays a paragraph (no setext heading).
+    if (isDivider(trimmed)) {
+      blocks.push({ kind: "divider" });
       i++;
       continue;
     }
@@ -532,6 +556,9 @@ const renderInline = (
 const useStyles = makeStyles((c, t) => ({
   container: {
     width: "100%",
+  },
+  divider: {
+    marginVertical: spacing.lg,
   },
   h1: {
     ...t.typography.display,

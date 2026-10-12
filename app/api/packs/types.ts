@@ -1,3 +1,5 @@
+import type { GoalReportStyle } from "../programGoals/types";
+
 export enum PackCategory {
   STABILIZATION = "STABILIZATION",
   FOUNDATION = "FOUNDATION",
@@ -210,6 +212,15 @@ export type ReferenceBlockContent = {
    * person kept the last time they finished this step on this day.
    */
   savedReframe?: { thought: string; reply: string };
+  /**
+   * Reframe steps only, filled by the server: every thought and reply kept
+   * the last time this step was finished on this day, in the order saved.
+   * Absent on older servers; `savedReframe` is then the only pair.
+   */
+  savedReframes?: { thought: string; reply: string }[];
+  /** The day's own instructions and encouragement for this step, if it sets them. */
+  instructionsOverride?: string;
+  encouragementOverride?: string;
   /** The day's own writing prompt and example for this step, if it sets one. */
   completionPromptOverride?: string;
   completionPlaceholderOverride?: string;
@@ -235,9 +246,9 @@ export interface GoalsBlockGoal {
   id: string;
   text: string;
   rank: number;
-  /** "FULL" | "PARTIAL" | "NONE", or null when unreported. */
+  /** "FULL" | "PARTIAL" | "NONE" | "NO_NEED", or null when unreported. */
   report: string | null;
-  reportStyle: "did_it" | "still_true" | "came_true";
+  reportStyle: GoalReportStyle;
 }
 
 export type GoalsBlockContent = {
@@ -269,6 +280,8 @@ export interface WeekReviewDay {
   dayIndex: number;
   title: string;
   entries: WeekReviewEntry[];
+  /** The thoughts and replies saved on a thought step that day, in order. */
+  reframes?: { thought: string; reply: string }[];
 }
 
 export interface WeekReviewWillingness {

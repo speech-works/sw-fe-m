@@ -57,6 +57,8 @@ export type ExploreStackParamList = {
   Breathing: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" | "FIRST_CALL" } | undefined;
   Meditation: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
   Reframe: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
+  /** A program day's Reframe step only. */
+  ProgramThought: { practiceActivity?: any; packContext?: PackContext } | undefined;
   RealLifeChallenge:
     | { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" }
     | undefined;

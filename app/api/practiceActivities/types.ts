@@ -47,6 +47,8 @@ export interface PracticeActivity {
   moduleId?: string | null;
   /** Reframe only: the thought and the reply the person kept. */
   reframeCompletionData?: ReframeCompletionPayload | null;
+  /** Drills only: what the person wrote in the box before finishing. */
+  completionNotes?: string | null;
 }
 
 /**
@@ -54,6 +56,18 @@ export interface PracticeActivity {
  * later without the thought it answers makes little sense.
  */
 export interface ReframeCompletionPayload {
+  thought: string;
+  reply: string;
+  source: "picked" | "written";
+  /**
+   * Every pair kept in that completion, in the order saved. Set by servers
+   * that store several; the top-level pair is then the last of them.
+   */
+  replies?: ReframeReply[];
+}
+
+/** One thought and the reply kept for it. */
+export interface ReframeReply {
   thought: string;
   reply: string;
   source: "picked" | "written";

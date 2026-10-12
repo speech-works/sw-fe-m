@@ -6,8 +6,11 @@
  * never composes a question, a verb or a button label of its own.
  */
 
-/** What the user said happened to one goal. Labels come from `reportStyle`. */
-export type GoalReport = "FULL" | "PARTIAL" | "NONE";
+/**
+ * What the user said happened to one goal. Labels come from `reportStyle`.
+ * NO_NEED ("No need") is offered only by `did_it_no_need` and closes the goal.
+ */
+export type GoalReport = "FULL" | "PARTIAL" | "NONE" | "NO_NEED";
 
 /**
  * "deed" for the eight programs that ask what somebody will do.
@@ -15,8 +18,16 @@ export type GoalReport = "FULL" | "PARTIAL" | "NONE";
  */
 export type GoalAnswerType = "deed" | "prediction";
 
-/** Which three labels the report screen shows. See REPORT_LABELS. */
-export type GoalReportStyle = "did_it" | "still_true" | "came_true";
+/**
+ * Which labels the report screen shows. See REPORT_LABELS. `did_it_no_need`
+ * is `did_it` plus a fourth answer, "No need" (Art of Disclosure and Hard
+ * Conversations).
+ */
+export type GoalReportStyle =
+  | "did_it"
+  | "did_it_no_need"
+  | "still_true"
+  | "came_true";
 
 export interface GoalHarness {
   /** The question, exactly as written. Never edited on the device. */
@@ -74,8 +85,13 @@ export interface GoalBlock {
 
 /** Four counts and one sentence. The Home row, and nothing more. */
 export interface ReachSummary {
-  /** Every goal ever named, across programs and reruns. */
+  /** Every goal ever named, across programs and reruns, except "No need". */
   total: number;
+  /**
+   * Goals answered "No need": decided against, so closed and left out of
+   * `total`. Optional because older servers do not send it.
+   */
+  noNeed?: number;
   /**
    * Deeds they said they did. NEVER predictions: FULL on a prediction means the
    * feared thing happened, and that is not an achievement.

@@ -1,5 +1,10 @@
 import { ProgramGoal } from "../../../../api/programGoals/types";
-import { REPORT_LABELS, REPORT_ORDER } from "../labels";
+import {
+  REPORT_LABELS,
+  REPORT_ORDER,
+  reportLabel,
+  reportOptions,
+} from "../labels";
 import { prefillAnswers } from "../prefill";
 
 const goal = (over: Partial<ProgramGoal>): ProgramGoal => ({
@@ -51,6 +56,39 @@ describe("report labels", () => {
 
   it("puts the answers in a fixed order, easiest claim last", () => {
     expect(REPORT_ORDER).toEqual(["FULL", "PARTIAL", "NONE"]);
+  });
+});
+
+describe('the "No need" answer (A6)', () => {
+  it("is offered only by did_it_no_need, last, after the usual three", () => {
+    expect(reportOptions("did_it_no_need")).toEqual([
+      "FULL",
+      "PARTIAL",
+      "NONE",
+      "NO_NEED",
+    ]);
+    for (const style of ["did_it", "still_true", "came_true"] as const) {
+      expect(reportOptions(style)).toEqual(REPORT_ORDER);
+    }
+  });
+
+  it("reads No need, and keeps the did_it words for the other three", () => {
+    expect(reportLabel("did_it_no_need", "NO_NEED")).toBe("No need");
+    for (const answer of REPORT_ORDER) {
+      expect(REPORT_LABELS.did_it_no_need[answer]).toBe(REPORT_LABELS.did_it[answer]);
+    }
+  });
+
+  it("never prints a label a style does not have", () => {
+    expect(reportLabel("did_it", "NO_NEED")).toBe("");
+  });
+
+  it("keeps a No need answer given earlier", () => {
+    expect(
+      prefillAnswers([
+        goal({ id: "g1", reportStyle: "did_it_no_need", report: "NO_NEED" }),
+      ]),
+    ).toEqual({ g1: "NO_NEED" });
   });
 });
 

@@ -19,7 +19,8 @@ import {
 } from "../../../design-system";
 import {
   REPORT_LABELS,
-  REPORT_ORDER,
+  reportLabel as labelFor,
+  reportOptions,
 } from "../../../screens/Programs/GoalsReport/labels";
 
 /**
@@ -47,7 +48,10 @@ const byRank = (goals: GoalsBlockGoal[]) =>
   [...goals].sort((a, b) => a.rank - b.rank);
 
 const isReport = (value: string | null): value is GoalReport =>
-  value === "FULL" || value === "PARTIAL" || value === "NONE";
+  value === "FULL" ||
+  value === "PARTIAL" ||
+  value === "NONE" ||
+  value === "NO_NEED";
 
 export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
   const styles = useStyles();
@@ -138,7 +142,9 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
           {goals.map((goal, index) => {
             const labels = REPORT_LABELS[goal.reportStyle];
             const reportLabel =
-              labels && isReport(goal.report) ? labels[goal.report] : null;
+              labels && isReport(goal.report)
+                ? labelFor(goal.reportStyle, goal.report) || null
+                : null;
 
             return (
               <View key={goal.id} style={styles.row}>
@@ -152,10 +158,10 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
                     </Text>
                     {allowReport && labels ? (
                       <View style={styles.chips}>
-                        {REPORT_ORDER.map((answer) => (
+                        {reportOptions(goal.reportStyle).map((answer) => (
                           <Chip
                             key={answer}
-                            label={labels[answer]}
+                            label={labelFor(goal.reportStyle, answer)}
                             selected={goal.report === answer}
                             onPress={() => report(goal, answer)}
                           />

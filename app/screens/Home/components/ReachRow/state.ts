@@ -25,7 +25,8 @@ export interface ReachRowState {
     | "none_done"
     | "some_done"
     | "all_done"
-    | "predictions";
+    | "predictions"
+    | "no_need";
   eyebrow: string;
   /** The big line. Their sentence, except in the two states that have none. */
   said: string;
@@ -75,6 +76,20 @@ export function resolveReachRow(
   if (!summary) return null;
 
   const { total, done, waiting, predictions } = summary;
+
+  // 0 · Every goal answered "No need". They are left out of `total`, so
+  // without this the row would read as never set and offer the explainer.
+  if (total === 0 && (summary.noNeed ?? 0) > 0) {
+    return {
+      kind: "no_need",
+      eyebrow: "REACH",
+      said: "You decided none of these need doing",
+      sub: "Nothing on your list is waiting.",
+      glow: "none",
+      dots: { total: 0, done: 0 },
+      cta: null,
+    };
+  }
 
   // 1 · Never set one. The only state that explains instead of reporting, and
   // the only one with a button. No count: zero of zero is not worth printing.

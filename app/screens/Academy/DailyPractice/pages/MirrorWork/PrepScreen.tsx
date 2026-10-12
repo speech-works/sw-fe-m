@@ -13,7 +13,7 @@ import {
   space,
   radius,
 } from '../../../../../design-system';
-import { MirrorWorkData } from './types';
+import { MirrorWorkData, MirrorWorkDayCopy } from './types';
 import { selectSessionPrompts } from './util/promptSelection';
 import { loadSeenOpeners, recordSeenOpener } from './util/promptSelectionStorage';
 import { useMarkActivityStart } from '../../../../../hooks/useMarkActivityStart';
@@ -93,6 +93,32 @@ export const PrepScreen: React.FC = () => {
 
   const packContext = route.params?.packContext;
   const initialActivity = route.params?.practiceActivity;
+
+  // In a program, the day's own words. The activity came back from the
+  // server with the day's overrides already applied to its practice row, so
+  // the title, instructions and question here are the day's, not the
+  // library's. Explore (no packId) keeps this screen's standard wording.
+  //
+  // The tips and session questions are NOT taken from the row yet: its 180
+  // questions are waiting on a review (LIBRARY-ROWS-AUDIT L56), so the
+  // screens keep the set they show today.
+  const inProgram = !!packContext?.packId;
+  const dayPractice =
+    initialActivity?.cognitivePractice ?? practiceData?.cognitivePractice;
+  const dayTitle: string | undefined = inProgram ? dayPractice?.name : undefined;
+  const dayInstructions: string | undefined = inProgram
+    ? dayPractice?.instructions
+    : undefined;
+  const dayCopy: MirrorWorkDayCopy | undefined = inProgram
+    ? {
+        completionPrompt:
+          dayPractice?.completionPrompt || packContext?.writePrompt || undefined,
+        completionPlaceholder:
+          dayPractice?.completionPlaceholder ||
+          packContext?.writePlaceholder ||
+          undefined,
+      }
+    : undefined;
 
   // The MIRROR_WORK cognitive-practice content id — used ONLY as the activity's
   // contentId for create/start. The prep copy + prompts above stay unchanged.
@@ -176,6 +202,7 @@ export const PrepScreen: React.FC = () => {
         prompts: prompts.length ? prompts : mirrorWorkData.cognitivePrompts,
         practiceActivityId: activityId ?? undefined,
         packContext,
+        dayCopy,
       });
     } finally {
       // Re-enable after a beat so a failed navigation can be retried, while
@@ -186,9 +213,10 @@ export const PrepScreen: React.FC = () => {
 
   return (
     <Page
-      title={practiceData.name || 'Mirror Work'}
+      title={dayTitle || practiceData.name || 'Mirror Work'}
       onBack={() => navigation.goBack()}
       description={
+        dayInstructions ||
         practiceData.description ||
         'Speak to your camera and notice what your body does. No scores, no performance. Just observation.'
       }

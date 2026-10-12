@@ -3707,7 +3707,9 @@ const CallingWidget: React.FC<Props> = ({
         style={styles.controlsDock}
         onLayout={(e) => setDockHeight(e.nativeEvent.layout.height)}
       >
-        {/* Mute */}
+        {/* Mute. The two side slots share the width equally (flex: 1), so the
+            call button stays centred now that the right side carries a label. */}
+        <View style={styles.dockSideStart}>
         <TouchableOpacity
           style={[
             styles.glassControlBtn,
@@ -3728,6 +3730,7 @@ const CallingWidget: React.FC<Props> = ({
         >
           <Icon name={isMuted ? "mic-off" : "mic"} size={size.icon} color={colors.text.primary} />
         </TouchableOpacity>
+        </View>
 
         {/* End / Start Call - Main Button */}
         <Animated.View
@@ -3796,36 +3799,68 @@ const CallingWidget: React.FC<Props> = ({
           {!isCalling ? (
             /* Before the call — the only moment this is settable. */
             <TouchableOpacity
-              style={[
-                styles.glassControlBtn,
-                takeYourTime && styles.glassControlBtnActive,
-              ]}
+              style={styles.labelledControl}
               onPress={toggleTakeYourTime}
+              accessibilityRole="button"
+              accessibilityState={{ selected: takeYourTime }}
               accessibilityLabel="Take your time. Silence won't end the call"
             >
-              {/* Breathes until it has been pressed once, ever. This is the
-                  entire hint: no label, no dot, no coach-mark — the screen at
-                  rest is unchanged, and an icon that moves is enough to earn
-                  the one press that does the actual teaching. */}
-              <Animated.View style={{ opacity: takeYourTimePulse }}>
-                <Icon
-                  name={icons.soon}
-                  size={size.icon}
-                  color={
-                    takeYourTime ? colors.text.primary : colors.text.secondary
-                  }
-                />
-              </Animated.View>
+              <View
+                style={[
+                  styles.glassControlBtn,
+                  takeYourTime && styles.glassControlBtnActive,
+                ]}
+              >
+                {/* Breathes until it has been pressed once, ever. The label
+                    under it says what it is; a program's call day tells the
+                    person to tap "Take your time" by name, so an icon alone
+                    was not enough (A9, 2026-10-12). */}
+                <Animated.View style={{ opacity: takeYourTimePulse }}>
+                  <Icon
+                    name={icons.soon}
+                    size={size.icon}
+                    color={
+                      takeYourTime ? colors.text.primary : colors.text.secondary
+                    }
+                  />
+                </Animated.View>
+              </View>
+              <Text
+                style={[
+                  styles.controlLabel,
+                  takeYourTime && styles.controlLabelActive,
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.3}
+                importantForAccessibility="no"
+              >
+                Take your time
+              </Text>
             </TouchableOpacity>
           ) : takeYourTime ? (
             /* Mid-call in take-your-time: silence never ends a turn, so this is
                the ONLY way to hand the turn back. It outranks tips. */
             <TouchableOpacity
-              style={styles.glassControlBtn}
+              style={styles.labelledControl}
               onPress={sendEndOfTurn}
+              accessibilityRole="button"
               accessibilityLabel="I'm done. Hand the turn back"
             >
-              <Icon name={icons.success} size={size.icon} color={colors.text.primary} />
+              <View style={styles.glassControlBtn}>
+                <Icon name={icons.success} size={size.icon} color={colors.text.primary} />
+              </View>
+              {/* Named, like "Take your time": the call day tells the person
+                  to tap "I'm done". */}
+              <Text
+                style={[styles.controlLabel, styles.controlLabelActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.3}
+                importantForAccessibility="no"
+              >
+                I&apos;m done
+              </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -4385,15 +4420,40 @@ const useStyles = makeStyles((c) => ({
   // The right-hand slot. `relative` so the unread badge can anchor to whatever
   // control is currently in it; sized to one button so the dock stays balanced
   // against the mute button opposite.
+  // Both side slots take an equal share of the dock, so the call button stays
+  // centred whatever width the labelled control on the right needs.
+  dockSideStart: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
   dockSlot: {
     position: "relative",
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  // A control with a visible name under its icon. The pill is 80 tall (8 + 64
+  // + 8), and 44 + 2 + 16 fits inside it.
+  labelledControl: {
+    alignItems: "center",
+    maxWidth: "100%",
+  },
+  controlLabel: {
+    ...typography.caption,
+    marginTop: spacing.xxs,
+    color: c.text.secondary,
+    textAlign: "center",
+  },
+  controlLabelActive: {
+    color: c.text.primary,
   },
   controlsDock: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    width: "75%", // Sleeker, tighter width
-    maxWidth: 320,
+    // Wider than the old 75% / 320: the right slot now carries a label, and
+    // on a 320pt phone 75% left it about 70pt, too narrow for "Take your time".
+    width: "85%",
+    maxWidth: 340,
     backgroundColor: c.surface.material,
     borderRadius: radius.full, // Perfect pill shape
     paddingVertical: 8,

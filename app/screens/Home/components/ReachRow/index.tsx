@@ -133,7 +133,7 @@ const ReachRow: React.FC<{
   // Their own words get the bigger size. Ours — the empty state's explanation
   // and the prediction line — get the smaller one, because a sentence the app
   // wrote has not earned the same room as one they did.
-  const ours = kind === "empty" || kind === "predictions";
+  const ours = kind === "empty" || kind === "predictions" || kind === "no_need";
 
   /**
    * The string is a TINT OF THE SAME HUE, not a neutral grey.
