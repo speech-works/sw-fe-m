@@ -19,7 +19,7 @@ const config: ProsePracticeConfig = {
   screen: "SpeechPractice",
   accent: readingPracticeAccents.speech,
   title: "Speech Practice",
-  description: "Read aloud as if to a room. Projection, pace and pause.",
+  description: "Read aloud as if to a room.",
   category: "SPEECH",
   practiceName: "speech practice",
   tips: readingTips.speech,

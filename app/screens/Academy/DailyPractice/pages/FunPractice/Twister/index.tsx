@@ -518,7 +518,7 @@ const Twister = () => {
   // 1. Pre-Practice (Tips) View — DETAIL recipe on the dark canvas.
   if (!currentActivityId) {
     const tipsArray = twisters[currentIndex]?.tongueTwisterData?.hints || [
-      "Start slowly and focus on clarity.",
+      "Say it once to learn the words.",
       "Repeat the phrase faster each time.",
       "Exaggerate your mouth movements.",
     ];

@@ -518,9 +518,9 @@ const Breathing = () => {
   // three are the fallback for a record that has none. They used to be the only
   // tips shown, so the record's own guidance never reached anyone.
   const genericTips = [
-    "Take deep breaths before starting. Feel your diaphragm expand.",
-    "Maintain a relaxed facial posture. Release jaw tension.",
-    "It's okay to take your time. Focus on smooth transitions.",
+    "Sit comfortably.",
+    "Follow the count on the screen.",
+    "You can stop whenever you like.",
   ];
   const tips = selectedTechnique?.guidedBreathingData?.tips?.length
     ? selectedTechnique.guidedBreathingData.tips

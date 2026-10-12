@@ -88,20 +88,20 @@ const SLP_GROUPS = [
   },
   {
     id: "BREATHING",
-    title: "Breath & Flow Control",
+    title: "Airflow tools",
     subtitle: "Respiratory Technique",
     about:
-      "Breathing is the engine of speech. These tools help you control airflow and reduce muscular tension before you even start speaking.",
+      "Tools that change how air and voice start a word. Each one is a choice you test.",
     techniqueIds: [
       TECHNIQUES_ENUM.DIAPHRAGMATIC_BREATHING,
     ],
   },
   {
     id: "RELAXATION",
-    title: "Voice & Throat Relaxation",
+    title: "Voice starts",
     subtitle: "Voice & Laryngeal Control",
     about:
-      "Reduce physical tension in the vocal tract. A relaxed throat supports smoother speech production.",
+      "Different ways to start your voice. Test each one and keep what is worth it.",
     techniqueIds: [
       TECHNIQUES_ENUM.YAWN_SIGH_TECHNIQUE,
       TECHNIQUES_ENUM.GLOTTAL_FRY,

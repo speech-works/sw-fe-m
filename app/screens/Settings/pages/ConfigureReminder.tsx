@@ -39,7 +39,7 @@ const CATEGORY_LABELS: Record<ReminderCategory, string> = {
 
 const DEFAULT_REMINDER_TITLES: Record<ReminderCategory, string> = {
   DAILY_PRACTICE: "Time to practice",
-  BREATHING: "Breathe with us",
+  BREATHING: "A breathing break",
   READING: "Ready to read?",
   CHALLENGE: "Daily Challenge is ready",
   MOOD_CHECKIN: "How are you feeling?",

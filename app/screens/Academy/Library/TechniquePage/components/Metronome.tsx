@@ -187,8 +187,8 @@ const Metronome = ({
         </View>
 
         <Text variant="bodySm" color="secondary">
-          Set a steady beat for your reading, then press start when you're
-          ready.
+          Set a beat to read along to, then press start when you're ready.
+          It is one option to try.
         </Text>
       </View>
 

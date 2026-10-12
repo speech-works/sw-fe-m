@@ -63,7 +63,7 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, {
   },
   [MirrorBehaviorSignal.OPEN_MOUTH_HOLD]: {
     line1: 'Your mouth stayed open just now.',
-    line2: 'Relax your jaw and let the sound out naturally.',
+    line2: 'You do not need to change it.',
   },
   [MirrorBehaviorSignal.LIP_PURSING]: {
     line1: 'Your lips pursed together.',
@@ -71,7 +71,7 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, {
   },
   [MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE]: {
     line1: 'Your eyes blinked rapidly or closed hard.',
-    line2: 'A slow breath can help settle things.',
+    line2: 'You can just notice it.',
   },
   [MirrorBehaviorSignal.BROW_TENSION]: {
     line1: 'Your brow tightened.',
@@ -97,12 +97,12 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, {
   [MirrorBehaviorSignal.CHEEK_PUFFING]: {
     line1: 'You filled your cheeks with air.',
     line1Soft: 'You may have puffed your cheeks just now.',
-    line2: 'Let that air out gently before you start.',
+    line2: 'You do not need to change it.',
   },
   [MirrorBehaviorSignal.NOSTRIL_FLARE]: {
     line1: 'Your nose muscles tensed for a moment.',
     line1Soft: 'You may have some nose tension.',
-    line2: 'A soft breath in through the nose can release it.',
+    line2: 'You can just notice it.',
   },
   [MirrorBehaviorSignal.GAZE_AVERSION]: {
     line1: 'You looked away for a bit.',

@@ -26,7 +26,7 @@ const CATEGORY_META: Record<
   { label: string; icon: IconName; desc: string }
 > = {
   DAILY_PRACTICE: { label: "Daily Practice", icon: "target", desc: "Core exercises" },
-  BREATHING: { label: "Breathing", icon: "wind", desc: "Airflow rhythm" },
+  BREATHING: { label: "Breathing", icon: "wind", desc: "Breathing break" },
   READING: { label: "Reading", icon: "book-open", desc: "Read aloud" },
   CHALLENGE: { label: "Challenge", icon: "award", desc: "Daily goals" },
   MOOD_CHECKIN: { label: "Mood", icon: "smile", desc: "Daily feelings" },

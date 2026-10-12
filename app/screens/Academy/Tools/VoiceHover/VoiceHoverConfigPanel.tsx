@@ -97,7 +97,7 @@ export function VoiceHoverConfigPanel({
         <View style={styles.heroTextGroup}>
           <Text variant="bodySm" style={styles.heroText}>
             Set the pace and pause timing, then press start when you want the
-            reading support to begin.
+            reading support to begin. It is one tool to test.
           </Text>
           {/* The accent lives in one place (Settings) so it can't drift between
               the sheet and Preferences; point the user there to change it. */}

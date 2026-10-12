@@ -99,19 +99,19 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
     messages: [
       {
         title: "Take a breathing break",
-        body: "A couple of minutes to slow down and reset.",
+        body: "A couple of minutes for yourself.",
       },
       {
         title: "Breathe with intention",
-        body: "A few slow breaths, before something hard or just because.",
+        body: "A few minutes of breathing, if you would like them.",
       },
       {
         title: "A moment for yourself",
         body: "Step away from the noise. Your breathing practice is here.",
       },
       {
-        title: "Calm is a skill",
-        body: "Practice it like any other. A quick session can shift your whole day.",
+        title: "A short break",
+        body: "Your breathing practice takes a few minutes, whenever suits you.",
       },
       {
         title: "Settle in, breathe out",
