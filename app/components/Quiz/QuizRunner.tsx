@@ -1,4 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   size,
@@ -12,6 +19,7 @@ import {
   radius,
   borderWidth,
 } from "../../design-system";
+import { QuizFooterState, quizFooterAction } from "./quizFooter";
 
 /**
  * ============================================================================
@@ -35,6 +43,11 @@ import {
  * a user has just committed to an answer is the one moment they will actually
  * read it. Wrong answers cost nothing, so there is no reason to make anybody
  * wait to find out.
+ *
+ * THE HOST CAN OWN THE BUTTON. Pass `onFooterChange` and the card draws no
+ * button of its own: it reports what the button would do, and the host calls
+ * `press()` on the ref. A program day does this so Check sits in its bottom
+ * bar, always on screen, instead of under the options below the fold.
  *
  * NO SCROLL VIEW OF ITS OWN. Both hosts already scroll, and a scroll inside a
  * scroll is how a list becomes impossible to drag.
@@ -81,16 +94,32 @@ interface QuizRunnerProps {
 
   /** Footer label on the last question. */
   finishLabel?: string;
+
+  /**
+   * The host draws the button. Called whenever what it would do changes; the
+   * card then shows no button, and the host calls `press()` on the ref.
+   */
+  onFooterChange?: (state: QuizFooterState) => void;
 }
 
-export default function QuizRunner({
-  questions,
-  onAnswer,
-  onFinished,
-  revealExplanation = false,
-  eyebrow = "ASSESSMENT QUESTION",
-  finishLabel = "Submit Quiz",
-}: QuizRunnerProps) {
+/** For a host that draws the button itself (see `onFooterChange`). */
+export interface QuizRunnerHandle {
+  /** Does what the card's own button would: Check, or the next question. */
+  press: () => void;
+}
+
+const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRunner(
+  {
+    questions,
+    onAnswer,
+    onFinished,
+    revealExplanation = false,
+    eyebrow = "ASSESSMENT QUESTION",
+    finishLabel = "Submit Quiz",
+    onFooterChange,
+  },
+  ref,
+) {
   const { colors } = useTheme();
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number>();
@@ -104,6 +133,21 @@ export default function QuizRunner({
     () => (questions.length ? (index + 1) / questions.length : 0),
     [index, questions.length],
   );
+
+  const footerAction = quizFooterAction({
+    hasSelection: selected !== undefined,
+    revealed,
+    isLast,
+    revealExplanation,
+  });
+  useEffect(() => {
+    onFooterChange?.({ action: footerAction, busy });
+  }, [footerAction, busy, onFooterChange]);
+
+  // The host's button calls the latest press, not the one from the render the
+  // ref was first read in.
+  const pressRef = useRef<() => void>(() => {});
+  useImperativeHandle(ref, () => ({ press: () => pressRef.current() }), []);
 
   if (!question) return null;
 
@@ -161,6 +205,21 @@ export default function QuizRunner({
 
   const chosen = selected === undefined ? undefined : question.options[selected];
   const gotItRight = Boolean(chosen?.isCorrect);
+
+  const press = () => {
+    if (busy || selected === undefined) return;
+    if (revealExplanation && revealed) {
+      if (isLast) return;
+      advance({
+        question,
+        selectedIndex: selected,
+        isCorrect: gotItRight,
+      });
+      return;
+    }
+    void submit();
+  };
+  pressRef.current = press;
 
   const footerLabel = () => {
     if (busy) return "Saving...";
@@ -297,7 +356,7 @@ export default function QuizRunner({
             Next/Complete button is the way past it. A button here would
             either repeat that action under a different label or, in the case
             this replaced, invite a tap that only reset the answer on screen. */}
-        {revealExplanation && revealed && isLast ? null : (
+        {onFooterChange || (revealExplanation && revealed && isLast) ? null : (
           <View
             style={[styles.footer, { borderTopColor: colors.border.default }]}
           >
@@ -308,24 +367,16 @@ export default function QuizRunner({
               fullWidth={false}
               loading={busy}
               disabled={selected === undefined || busy}
-              onPress={() => {
-                if (revealExplanation && revealed) {
-                  advance({
-                    question,
-                    selectedIndex: selected as number,
-                    isCorrect: gotItRight,
-                  });
-                  return;
-                }
-                void submit();
-              }}
+              onPress={press}
             />
           </View>
         )}
       </Surface>
     </View>
   );
-}
+});
+
+export default QuizRunner;
 
 const styles = StyleSheet.create({
   root: { gap: spacing.xl },

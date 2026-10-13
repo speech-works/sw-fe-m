@@ -34,6 +34,11 @@ export const icons = {
   chevronRight: "chevron-right",
   chevronUp: "chevron-up",
   chevronDown: "chevron-down",
+  // Reorder a list item. Arrows, not chevrons: a chevron beside a row reads as
+  // "this opens", and the goals list was read as a set of dropdowns. Shares
+  // its glyph with `levelUp`, which never sits in the same place.
+  moveUp: "arrow-up",
+  moveDown: "arrow-down",
   close: "x",
   add: "plus",
   back: "arrow-left", // "go back" / previous

@@ -43,7 +43,8 @@ import {
     radius,
 } from "../../design-system";
 import { LIST_TEXT_INDENT, SimpleMarkdown } from "./SimpleMarkdown";
-import QuizRunner from "../Quiz/QuizRunner";
+import QuizRunner, { QuizRunnerHandle } from "../Quiz/QuizRunner";
+import type { QuizFooterState } from "../Quiz/quizFooter";
 import { submitQuizAnswer } from "../../api/quiz";
 
 import { useActivityStore } from "../../stores/activity";
@@ -58,7 +59,7 @@ import {
   classifyPackError,
   packErrorMessage,
 } from "../../util/packs/packErrors";
-import { formCardText } from "../../util/packs/formBlock";
+import { formCardText, formStartLabel } from "../../util/packs/formBlock";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { reframePairs, savedPairsFromBlock } from "../../util/packs/reframeReplies";
 import { SavedReframes } from "./SavedReframes";
@@ -76,6 +77,12 @@ interface ContentRendererProps {
   onFormCompleted?: (blockId: string) => void;
   /** Fired when every question in a QUIZ block has been answered. */
   onQuizCompleted?: (blockId: string) => void;
+  /**
+   * A QUIZ block's button lives in the host's bottom bar: the quiz reports
+   * what it would do here, and the host presses it through `quizRef`.
+   */
+  quizRef?: React.Ref<QuizRunnerHandle>;
+  onQuizFooterChange?: (state: QuizFooterState) => void;
 }
 
 /**
@@ -140,6 +147,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   blockIndex,
   onActivityCreated,
   onQuizCompleted,
+  quizRef,
+  onQuizFooterChange,
 }) => {
   const navigation = useNavigation();
   const { colors } = useTheme();
@@ -586,7 +595,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
               <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
                 <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
                 <Text variant="title" color={colors.action.onSecondary}>
-                  Start Reflection
+                  {formStartLabel(config?.formKey)}
                 </Text>
               </View>
             </View>
@@ -611,6 +620,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       // screen for it would cost more than the question does.
       return (
         <QuizRunner
+          ref={quizRef}
           questions={questions}
           eyebrow={quiz.mode === "recall" ? "FROM YESTERDAY" : "CHECK"}
           // Explain each answer as it is given. Every option carries an
@@ -623,6 +633,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             await submitQuizAnswer(question.id, [selectedIndex], block.id);
           }}
           onFinished={() => onQuizCompleted?.(block.id)}
+          // The day screen's bottom bar is the quiz's button, so Check is
+          // never below the fold. See util/packs/packFooter.
+          onFooterChange={onQuizFooterChange}
         />
       );
     }

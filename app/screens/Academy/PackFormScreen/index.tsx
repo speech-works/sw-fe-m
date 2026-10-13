@@ -27,7 +27,10 @@ import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
 } from "../../../util/functions/bottomSheet";
-import { formScreenHeader } from "../../../util/packs/formBlock";
+import {
+  formSavedMessage,
+  formScreenHeader,
+} from "../../../util/packs/formBlock";
 import { textFieldProblem, wordCount } from "../../../util/packs/textLimits";
 
 /** Keys of `colors.accent` / `accentOn` — the flow's fill + its AA-correct ink. */
@@ -403,10 +406,8 @@ const PackFormScreen = () => {
 
       // ONE OUTCOME, ALWAYS. A "breakthrough" modal used to pre-empt this —
       // see the note in `api/forms/types.ts` for why it is gone.
-      showSuccessBottomSheet(
-        "Reflection Saved",
-        "Your response has been recorded.",
-      );
+      const saved = formSavedMessage(configuration?.formKey);
+      showSuccessBottomSheet(saved.title, saved.body);
       navigation.goBack();
     } catch (error: any) {
       console.error("Form submission failed:", error);

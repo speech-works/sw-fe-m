@@ -73,6 +73,12 @@ import {
   PracticeActivityContentType,
 } from "../../../api";
 import { onPackBlockActivityReplaced } from "../../../utils/packActivityNavigation";
+import type { QuizRunnerHandle } from "../../../components/Quiz/QuizRunner";
+import {
+  NO_QUIZ_FOOTER,
+  QuizFooterState,
+} from "../../../components/Quiz/quizFooter";
+import { packFooterKind } from "../../../util/packs/packFooter";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -865,6 +871,18 @@ const PackModuleScreen = () => {
     });
   }, [packId, module?.id]);
 
+  /**
+   * The quiz on the current step, when there is one, and what its button would
+   * do. The bottom bar becomes that button (see util/packs/packFooter), so
+   * Check is never below the fold while the bar says "Skip".
+   */
+  const quizRef = useRef<QuizRunnerHandle>(null);
+  const [quizFooter, setQuizFooter] = useState<QuizFooterState>(NO_QUIZ_FOOTER);
+  // A new step starts with no quiz state. A quiz on it reports its own.
+  useEffect(() => {
+    setQuizFooter(NO_QUIZ_FOOTER);
+  }, [currentBlockIndex]);
+
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
   /** Handed to DailyLog so it does not refetch what handleComplete just read. */
@@ -1358,14 +1376,30 @@ const PackModuleScreen = () => {
     currentBlock?.id || "",
   );
 
+  // A quiz with an answer waiting takes the button over: "Check", then "Next"
+  // to the following question. See util/packs/packFooter.
+  const footerKind = packFooterKind({
+    quizAction: quizFooter.action,
+    quizBusy: quizFooter.busy,
+    isInteractive: isInteractiveBlock,
+    isCompleted: isCurrentBlockCompleted,
+    isLastBlock,
+  });
+  const isQuizButton = footerKind === "quizCheck" || footerKind === "quizNext";
+
   let primaryLabel = "Next";
   let primaryIcon: IconName = icons.play;
   let primaryVariant: "primary" | "secondary" = "primary";
-  if (isInteractiveBlock && !isCurrentBlockCompleted) {
+  if (footerKind === "quizCheck") {
+    primaryLabel = "Check";
+    primaryIcon = icons.success;
+  } else if (footerKind === "quizNext") {
+    primaryIcon = icons.chevronRight;
+  } else if (footerKind === "skip") {
     primaryLabel = "Skip";
     primaryIcon = icons.chevronRight;
     primaryVariant = "secondary";
-  } else if (isLastBlock) {
+  } else if (footerKind === "complete") {
     primaryLabel = "Complete";
     primaryIcon = icons.success;
   }
@@ -1396,8 +1430,12 @@ const PackModuleScreen = () => {
               label={primaryLabel}
               variant={primaryVariant}
               leftIcon={primaryIcon}
-              loading={isCompleting}
-              onPress={handleFooterAction}
+              loading={isQuizButton ? quizFooter.busy : isCompleting}
+              onPress={
+                isQuizButton
+                  ? () => quizRef.current?.press()
+                  : handleFooterAction
+              }
             />
           </View>
         </View>
@@ -1426,6 +1464,8 @@ const PackModuleScreen = () => {
           onActivityCreated={handleActivityCreated}
           onFormCompleted={handleFormCompleted}
           onQuizCompleted={handleQuizCompleted}
+          quizRef={quizRef}
+          onQuizFooterChange={setQuizFooter}
           blockIndex={currentBlockIndex}
         />
       )}

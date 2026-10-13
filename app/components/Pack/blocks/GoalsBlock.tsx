@@ -175,26 +175,28 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
                   </View>
                 </View>
 
+                {/* Two fixed slots, up over down, centred on the row. The
+                    missing direction keeps its slot so every row's buttons
+                    line up. Round bordered buttons with arrows, so they read
+                    as "move", not as a menu that opens. */}
                 {allowReorder ? (
                   <View style={styles.controls}>
                     {index > 0 ? (
                       <IconButton
-                        name={icons.chevronUp}
-                        variant="ghost"
-                        size={size.iconLg}
+                        name={icons.moveUp}
+                        variant="control"
                         onPress={() => move(index, -1)}
-                        accessibilityLabel="Move up"
+                        accessibilityLabel={`Move "${goal.text}" up`}
                       />
                     ) : (
                       <View style={styles.controlSpacer} />
                     )}
                     {index < goals.length - 1 ? (
                       <IconButton
-                        name={icons.chevronDown}
-                        variant="ghost"
-                        size={size.iconLg}
+                        name={icons.moveDown}
+                        variant="control"
                         onPress={() => move(index, 1)}
-                        accessibilityLabel="Move down"
+                        accessibilityLabel={`Move "${goal.text}" down`}
                       />
                     ) : (
                       <View style={styles.controlSpacer} />
@@ -231,9 +233,10 @@ const useStyles = makeStyles((c) => ({
   list: {
     gap: space.rowGap,
   },
+  // Centred, so the move buttons sit level with the goal they move.
   row: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: space.inlineGap,
     paddingBottom: space.rowGap,
     borderBottomWidth: 1,
@@ -258,12 +261,17 @@ const useStyles = makeStyles((c) => ({
     flexWrap: "wrap",
     gap: space.inlineGap,
   },
+  // IconButton's default diameter is the 44pt tap target; the design system
+  // has no smaller button size, and going under 44 would be harder to hit.
+  // Side by side, up then down: stacked, they made every row two buttons
+  // tall and left the goal text floating at the top.
   controls: {
     flexDirection: "row",
     alignItems: "center",
+    gap: space.inlineGap,
   },
   controlSpacer: {
-    width: size.iconLg,
-    height: size.iconLg,
+    width: size.backBtn,
+    height: size.backBtn,
   },
 }));

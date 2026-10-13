@@ -1,4 +1,10 @@
-import { formCardText, formScreenHeader } from "../formBlock";
+import {
+  formCardText,
+  formSavedMessage,
+  formScreenHeader,
+  formStartLabel,
+  GUESS_FORM_KEY,
+} from "../formBlock";
 import type { FormBlockContent, FormConfiguration } from "../../../api/packs/types";
 
 /**
@@ -68,5 +74,24 @@ describe("formScreenHeader", () => {
 
   it("falls back to Reflection with nothing to go on", () => {
     expect(formScreenHeader(undefined).title).toBe("Reflection");
+  });
+});
+
+describe("formStartLabel / formSavedMessage", () => {
+  it("words the guess step as a guess", () => {
+    expect(formStartLabel(GUESS_FORM_KEY)).toBe("Write your guess");
+    expect(formSavedMessage(GUESS_FORM_KEY)).toEqual({
+      title: "Guess saved",
+      body: "You will see it again after the step.",
+    });
+  });
+
+  it("leaves every other form as it was", () => {
+    expect(formStartLabel(config.formKey)).toBe("Start Reflection");
+    expect(formStartLabel(undefined)).toBe("Start Reflection");
+    expect(formSavedMessage(config.formKey)).toEqual({
+      title: "Reflection Saved",
+      body: "Your response has been recorded.",
+    });
   });
 });

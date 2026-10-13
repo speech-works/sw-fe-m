@@ -30,6 +30,7 @@ import { activityKindFromContentType } from "../../../../../util/functions/post"
 import { useUserStore } from "../../../../../stores/user";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
+import { donePracticeHeadline } from "./doneTitle";
 import { LevelUpTakeover } from "./LevelUpTakeover";
 import MembershipDock from "../../../../../components/MembershipDock";
 
@@ -96,6 +97,8 @@ const DonePractice = ({
   // Subtle entrance for the status disc — bouncy celebration when completed,
   // a gentler settle when the session was ended early. Reduced-motion aware.
   const discPop = useSuccessPop(true, { celebrate: !isAborted });
+  // "Step done" and no confetti inside a program; see doneTitle.ts.
+  const headline = donePracticeHeadline({ isAborted, inProgram });
   const { reduced } = useMotion();
 
   // Routine completions stay a plain warm screen (they happen many times a
@@ -190,9 +193,9 @@ const DonePractice = ({
       {/* Dark canvas (replaces the legacy light gradient background). */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: pageColor }]} />
 
-      {/* Confetti (Only if completed) — bright saturated hues read on the dark canvas.
+      {/* Confetti (only a completion outside a program) — bright saturated hues read on the dark canvas.
           Gated on reduced motion here: ConfettiAnimation does not self-gate. */}
-      {!isAborted && !reduced && <ConfettiAnimation />}
+      {headline.confetti && !reduced && <ConfettiAnimation />}
 
       {/* This screen reads no insets of its own and centres its content in the
           window. Under edge-to-edge the window grows by the nav bar, which would
@@ -227,7 +230,7 @@ const DonePractice = ({
         {/* Success / Encouraging Text */}
         <View style={styles.textContainer}>
           <Text variant="h1" color={foreground} center>
-            {isAborted ? "That's okay." : "Great Job!"}
+            {headline.title}
           </Text>
           {/* THE GENERIC LINE IS GONE ON SUCCESS, and that is the point of the
               chip below rather than a side effect of it. "You've completed your

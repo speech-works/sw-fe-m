@@ -167,12 +167,12 @@ const ProgramThought = () => {
         footerDocked
         footer={
           saved.length > 0 ? (
+            // The app's own primary button, as on every other practice
+            // screen. The blue accent stays on the exit sheet only.
             <Button
               label="Done"
               onPress={() => void finish(saved)}
               loading={finishing}
-              accentColor={accentColor}
-              onAccentColor={onAccentColor}
             />
           ) : undefined
         }
