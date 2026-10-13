@@ -166,6 +166,9 @@ export interface ReframingThoughtScenarioData {
 
 export interface ReframingThoughtsData {
   scenarios: ReframingThoughtScenarioData[];
+  /** Set by the server on a program day that brings its own thoughts: the
+   *  label over the example answers. Absent in Explore. */
+  examplesLabel?: string;
 }
 
 export interface CognitivePractice {

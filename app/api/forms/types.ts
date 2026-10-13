@@ -14,6 +14,11 @@ export interface FormContext {
   packId?: string;
   moduleId?: string;
   activityId?: string;
+  /**
+   * The FORM block the answer was given on. A day can ask the same form on
+   * two steps; this says which one. Older answers have none.
+   */
+  blockId?: string;
 }
 
 /**

@@ -2,6 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { WeekReviewBlockContent } from "../../../api/packs/types";
 import { Text, makeStyles, space, spacing } from "../../../design-system";
+import { groupWeekReviewEntries } from "../../../util/packs/weekReview";
 import { SavedReframes } from "../SavedReframes";
 
 /**
@@ -78,19 +79,32 @@ export const WeekReviewBlock: React.FC<WeekReviewBlockProps> = ({ content }) => 
                   {day.title}
                 </Text>
                 <View style={styles.entries}>
-                  {day.entries.slice(0, maxPerDay).map((entry) => (
-                    <View
-                      key={`${entry.formKey}:${entry.fieldId}`}
-                      style={styles.entry}
-                    >
-                      <Text variant="bodySm" color="secondary">
-                        {entry.label}
-                      </Text>
-                      <Text variant="body" color="primary">
-                        {entry.value}
-                      </Text>
-                    </View>
-                  ))}
+                  {/* A day that asked one form on two steps shows each
+                      step's title once, above its own lines. */}
+                  {groupWeekReviewEntries(day.entries, maxPerDay).map(
+                    (group, g) => (
+                      <View key={`${g}:${group.title ?? ""}`} style={styles.entries}>
+                        {group.title ? (
+                          <Text variant="label" color="primary">
+                            {group.title}
+                          </Text>
+                        ) : null}
+                        {group.entries.map((entry) => (
+                          <View
+                            key={`${entry.formKey}:${entry.fieldId}`}
+                            style={styles.entry}
+                          >
+                            <Text variant="bodySm" color="secondary">
+                              {entry.label}
+                            </Text>
+                            <Text variant="body" color="primary">
+                              {entry.value}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ),
+                  )}
                   {/* Every thought and reply saved on that day's thought step. */}
                   <SavedReframes pairs={day.reframes ?? []} />
                 </View>

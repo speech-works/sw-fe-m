@@ -11,7 +11,7 @@ import { FormContext, FormSubmitResponse, FormSubmitRequest } from "./types";
  *
  * @param formId - The UUID of the form to submit
  * @param answers - Key-value pairs of question answers
- * @param context - Optional context (packId, moduleId, activityId)
+ * @param context - Optional context (packId, moduleId, activityId, blockId)
  * @returns The saved form response
  */
 export async function submitFormResponse(

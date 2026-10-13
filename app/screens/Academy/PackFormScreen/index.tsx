@@ -398,7 +398,7 @@ const PackFormScreen = () => {
 
     try {
       setSubmitting(true);
-      await submitFormResponse(formId, answers, { packId, moduleId });
+      await submitFormResponse(formId, answers, { packId, moduleId, blockId });
 
       // Persist completion locally
       const storageKey = `pack-${packId}-module-${moduleId}-form-${blockId}`;

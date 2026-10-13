@@ -45,7 +45,8 @@ import type { PackContext } from "../../../../../../utils/packActivityNavigation
  *
  * Top to bottom: the day's instructions and encouragement, one thought from
  * the day's series with a "Next thought" button, the series' example answers
- * as plain text under "Ways people answer it" (no evidence cards, D2), then
+ * as plain text under "Ways people answer it" or the day's own label (no
+ * evidence cards, D2), then
  * a box for the person's own words, labelled with the day's prompt. "Save"
  * keeps what is in the box with the thought it answers and empties the box,
  * so somebody can answer several thoughts. An empty box cannot be saved, and
@@ -64,8 +65,6 @@ const ProgramThought = () => {
   };
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
-  const accentColor = colors.accent.info;
-  const onAccentColor = colors.accentOn.info;
   const { updateActivity } = useActivityStore();
 
   const series = practiceActivity?.cognitivePractice;
@@ -139,8 +138,6 @@ const ProgramThought = () => {
     onSave: () => void finish(addReply(saved, thought, text)),
     family: "Cognitive",
     packContext,
-    accentColor,
-    onAccentColor,
   });
 
   const onSave = () => {
@@ -155,6 +152,11 @@ const ProgramThought = () => {
     setIndex((i) => nextThoughtIndex(i, scenarios.length));
   };
 
+  // A day with its own list of thoughts sends its own label for the
+  // example answers. Every other day keeps the shared one.
+  const examplesLabel =
+    series?.reframingThoughtsData?.examplesLabel?.trim() || "Ways people answer it";
+
   const instructions = packContext?.instructions?.trim();
   const encouragement = packContext?.encouragement?.trim();
 
@@ -168,7 +170,7 @@ const ProgramThought = () => {
         footer={
           saved.length > 0 ? (
             // The app's own primary button, as on every other practice
-            // screen. The blue accent stays on the exit sheet only.
+            // screen. The exit sheet uses the default orange too.
             <Button
               label="Done"
               onPress={() => void finish(saved)}
@@ -205,7 +207,7 @@ const ProgramThought = () => {
             {examples.length > 0 ? (
               <View style={styles.section}>
                 <Text variant="label" color="tertiary">
-                  Ways people answer it
+                  {examplesLabel}
                 </Text>
                 {examples.map((line, i) => (
                   <Text key={`${index}:${i}`} variant="body" color="secondary">

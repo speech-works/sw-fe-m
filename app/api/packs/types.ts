@@ -274,6 +274,11 @@ export interface WeekReviewEntry {
   fieldId: string;
   label: string;
   value: string;
+  /**
+   * The step this line was logged on. Set only on a day that asked the same
+   * form more than once. Entries of one group are adjacent, in step order.
+   */
+  group?: string;
 }
 
 export interface WeekReviewDay {
