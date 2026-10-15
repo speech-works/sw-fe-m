@@ -4,8 +4,13 @@ import {
   formScreenHeader,
   formStartLabel,
   GUESS_FORM_KEY,
+  initialFormAnswers,
 } from "../formBlock";
-import type { FormBlockContent, FormConfiguration } from "../../../api/packs/types";
+import {
+  FormFieldType,
+  type FormBlockContent,
+  type FormConfiguration,
+} from "../../../api/packs/types";
 
 /**
  * The server sends a form's one-line description in `configuration.title` and
@@ -93,5 +98,42 @@ describe("formStartLabel / formSavedMessage", () => {
       title: "Reflection Saved",
       body: "Your response has been recorded.",
     });
+  });
+});
+
+describe("initialFormAnswers", () => {
+  const card: FormConfiguration = {
+    formKey: "activity.panic_card",
+    title: "Your Panic Card",
+    description: "",
+    fields: [
+      { id: "panic_card.body", type: FormFieldType.TEXT_INPUT, label: "Your body", defaultValue: "Walk to the window" },
+      { id: "panic_card.anchor", type: FormFieldType.TEXT_INPUT, label: "Your anchor", defaultValue: "Five things I can see" },
+      { id: "panic_card.line", type: FormFieldType.TEXT_INPUT, label: "Your line", defaultValue: "   " },
+      { id: "panic_card.when", type: FormFieldType.TEXT_INPUT, label: "When" },
+    ],
+  };
+
+  it("opens each text box with the earlier answer the server sent", () => {
+    expect(initialFormAnswers(card)).toEqual({
+      "panic_card.body": "Walk to the window",
+      "panic_card.anchor": "Five things I can see",
+    });
+  });
+
+  it("starts every other field empty, as before", () => {
+    const other: FormConfiguration = {
+      ...card,
+      fields: [
+        // Only a text box takes a starting answer. A slider would put a number
+        // in the person's mouth.
+        { id: "w", type: FormFieldType.SLIDER, label: "How willing", defaultValue: "5" },
+        { id: "c", type: FormFieldType.MULTIPLE_CHOICE, label: "Did you", options: ["Yes"], defaultValue: "Yes" },
+        { id: "t", type: FormFieldType.TEXT_INPUT, label: "Note" },
+      ],
+    };
+    expect(initialFormAnswers(other)).toEqual({});
+    expect(initialFormAnswers(config)).toEqual({});
+    expect(initialFormAnswers(undefined)).toEqual({});
   });
 });

@@ -17,6 +17,7 @@ import {
 } from "../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { deriveActivityContent } from "../../../../../util/practice/activityContent";
+import { skipsReflection } from "../../../../../util/practice/challengeReflection";
 import { ExploreStackParamList } from "../../../../../navigators/stacks/ExploreStack/types";
 import { useActivityStore } from "../../../../../stores/activity";
 import { useUserStore } from "../../../../../stores/user";
@@ -288,6 +289,15 @@ const RealLifeChallenge = () => {
       ? challengeData.completionCriteria
       : "Reflect on your experience and how it made you feel.";
 
+  // A program day that asks nothing after this step sets the question to an
+  // empty string. Then there is no reflection page: see skipsReflection.
+  const noReflection = skipsReflection(
+    packContext?.packId,
+    "completionCriteria" in challengeData
+      ? challengeData.completionCriteria
+      : undefined,
+  );
+
   // --- Handlers ---
 
   const markActivityComplete = async () => {
@@ -320,6 +330,12 @@ const RealLifeChallenge = () => {
   };
 
   const handleInstructionsComplete = () => {
+    // The day asks no question after this step, so the step is done here.
+    if (noReflection) {
+      deleteRecordingFile();
+      void finishActivity();
+      return;
+    }
     // Someone who just recorded the answer in the app has already done it, so
     // the "have you tried this in real life" question has nothing to ask.
     if (recordingConfig && recordingUri) {

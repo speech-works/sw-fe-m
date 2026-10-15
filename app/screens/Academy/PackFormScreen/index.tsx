@@ -27,9 +27,11 @@ import {
   showErrorBottomSheet,
   showSuccessBottomSheet,
 } from "../../../util/functions/bottomSheet";
+import { noteStepSaved } from "../../../util/packs/dayRefresh";
 import {
   formSavedMessage,
   formScreenHeader,
+  initialFormAnswers,
 } from "../../../util/packs/formBlock";
 import { textFieldProblem, wordCount } from "../../../util/packs/textLimits";
 
@@ -223,8 +225,14 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
 
   const handleChange = (next: string) => {
     // Hard stop: a paste or a keystroke that would pass the word limit is not taken.
-    if (field.maxWords !== undefined && wordCount(next) > field.maxWords) return;
-    onChange(next);
+    // A box can only start over the limit when it opened with an earlier
+    // answer (defaultValue), and then any edit that shortens it is taken, so
+    // the person can cut it down instead of being stuck.
+    const max = field.maxWords;
+    const shortensOverLimit = max !== undefined && words > max && next.length < text.length;
+    if (max === undefined || wordCount(next) <= max || shortensOverLimit) {
+      onChange(next);
+    }
   };
 
   const counter = (() => {
@@ -343,7 +351,11 @@ const PackFormScreen = () => {
   const accent = colors.accent[accentKey];
   const onAccent = colors.accentOn[accentKey];
 
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  // A text box opens with the person's earlier answer when the day asks for
+  // it (defaultValue). Everything else starts empty. See initialFormAnswers.
+  const [answers, setAnswers] = useState<Record<string, any>>(() =>
+    initialFormAnswers(configuration),
+  );
   const [submitting, setSubmitting] = useState(false);
   const header = formScreenHeader(configuration, route.params.titleOverride);
 
@@ -403,6 +415,9 @@ const PackFormScreen = () => {
       // Persist completion locally
       const storageKey = `pack-${packId}-module-${moduleId}-form-${blockId}`;
       await AsyncStorage.setItem(storageKey, "true");
+      // Tells the day screen this answer is new, so a later block built from
+      // answers (the week review) is fetched again. See util/packs/dayRefresh.
+      noteStepSaved(packId, moduleId, blockId);
 
       // ONE OUTCOME, ALWAYS. A "breakthrough" modal used to pre-empt this —
       // see the note in `api/forms/types.ts` for why it is gone.

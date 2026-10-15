@@ -1,6 +1,7 @@
-import type {
-  FormBlockContent,
-  FormConfiguration,
+import {
+  FormFieldType,
+  type FormBlockContent,
+  type FormConfiguration,
 } from "../../api/packs/types";
 
 /**
@@ -85,4 +86,29 @@ export function formSavedMessage(formKey: string | undefined): {
     title: "Reflection Saved",
     body: "Your response has been recorded.",
   };
+}
+
+/**
+ * The answers a form opens with. A text box the server sent a `defaultValue`
+ * for starts with that text: the person's own earlier answer, which the day
+ * asked to carry over (Panic Button day 7 builds the card from earlier days).
+ * They can change or clear it, and whatever is in the box is what is saved.
+ *
+ * Every other field starts empty, as before. A slider in particular is never
+ * given a starting number: see the note on SliderField.
+ */
+export function initialFormAnswers(
+  configuration: FormConfiguration | undefined,
+): Record<string, string> {
+  const answers: Record<string, string> = {};
+  for (const field of configuration?.fields ?? []) {
+    if (
+      field.type === FormFieldType.TEXT_INPUT &&
+      typeof field.defaultValue === "string" &&
+      field.defaultValue.trim()
+    ) {
+      answers[field.id] = field.defaultValue;
+    }
+  }
+  return answers;
 }

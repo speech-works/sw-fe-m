@@ -1,4 +1,4 @@
-import { groupWeekReviewEntries } from "../weekReview";
+import { groupWeekReviewEntries, willingnessLine } from "../weekReview";
 import type { WeekReviewEntry } from "../../../api/packs/types";
 
 const KEY = "activity.toolkit_trial_log";
@@ -49,5 +49,32 @@ describe("groupWeekReviewEntries", () => {
       { title: "Onset", entries: [line("a", "1", "Onset")] },
       { entries: [line("a", "2")] },
     ]);
+  });
+});
+
+describe("willingnessLine", () => {
+  it("shows the first number and today's when today's was saved on a later day", () => {
+    expect(willingnessLine({ first: 4, latest: 7, firstDay: 1, latestDay: 7 })).toBe(
+      "Willing, day 1: 4 out of 10. Today: 7 out of 10.",
+    );
+  });
+
+  it("never calls the day 1 number Today", () => {
+    // Only day 1 answered: the server sends the same answer as first and latest.
+    expect(willingnessLine({ first: 4, latest: 4, firstDay: 1, latestDay: 1 })).toBe(
+      "Willing, day 1: 4 out of 10.",
+    );
+    // Day 1 answered twice: still day 1.
+    expect(willingnessLine({ first: 4, latest: 6, firstDay: 1, latestDay: 1 })).toBe(
+      "Willing, day 1: 4 out of 10.",
+    );
+  });
+
+  it("claims nothing it cannot place on a day", () => {
+    expect(willingnessLine({ first: 4, latest: 7, firstDay: 1, latestDay: null })).toBe(
+      "Willing, day 1: 4 out of 10.",
+    );
+    expect(willingnessLine({ first: null, latest: null, firstDay: null, latestDay: null })).toBeNull();
+    expect(willingnessLine(undefined)).toBeNull();
   });
 });

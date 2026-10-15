@@ -17,6 +17,16 @@ interface PracticeActivityState {
   isActivityCompleted: (activityId: string) => boolean;
 }
 
+/**
+ * Completed means it was finished. The server also stamps `completedAt` when
+ * it ABORTS an activity (a declined consent, a call left before it
+ * connected, a refund), so the status decides: an aborted call must never
+ * tick a program step.
+ */
+export const isFinishedActivity = (
+  activity: Pick<PracticeActivity, "completedAt" | "status">,
+): boolean => !!activity.completedAt && activity.status !== "ABORTED";
+
 export const useActivityStore = create<PracticeActivityState>()(
   persist(
     (set, get) => ({
@@ -70,13 +80,7 @@ export const useActivityStore = create<PracticeActivityState>()(
 
       isActivityCompleted: (activityId) => {
         const activity = get().activities.find((a) => a.id === activityId);
-        // Completed means it was finished. The server also stamps
-        // `completedAt` when it ABORTS an activity (a declined consent, a
-        // call left before it connected, a refund), so the status decides:
-        // an aborted call must never tick a program step.
-        const isCompleted = activity
-          ? !!activity.completedAt && activity.status !== "ABORTED"
-          : false;
+        const isCompleted = activity ? isFinishedActivity(activity) : false;
         console.log(
           `Checking if activity ${activityId} is completed (based on completedAt): ${isCompleted}`,
         );

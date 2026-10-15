@@ -150,6 +150,11 @@ export interface FormField {
   minWords?: number;
   /** Typing stops at this many words. */
   maxWords?: number;
+  /**
+   * The text the box opens with: this person's own earlier answer, sent only
+   * when the day asks for it. They can keep, change or clear it.
+   */
+  defaultValue?: string;
   // MULTIPLE_CHOICE
   options?: string[];
 }
@@ -178,6 +183,13 @@ export type FormBlockContent = {
    * than the answer.
    */
   recallFrom?: { formKey: string };
+  /**
+   * The day's own settings per field, as seeded. The app reads one thing from
+   * it: whether a box opens with an earlier answer (`prefillFrom`), so the day
+   * is loaded again after a step above it is saved (util/packs/dayRefresh).
+   * The text itself arrives as `defaultValue` on the field.
+   */
+  fieldOverrides?: Record<string, { prefillFrom?: unknown }>;
   configuration: FormConfiguration;
 };
 

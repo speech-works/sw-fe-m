@@ -2,7 +2,10 @@ import React from "react";
 import { View } from "react-native";
 import { WeekReviewBlockContent } from "../../../api/packs/types";
 import { Text, makeStyles, space, spacing } from "../../../design-system";
-import { groupWeekReviewEntries } from "../../../util/packs/weekReview";
+import {
+  groupWeekReviewEntries,
+  willingnessLine,
+} from "../../../util/packs/weekReview";
 import { SavedReframes } from "../SavedReframes";
 
 /**
@@ -20,20 +23,6 @@ interface WeekReviewBlockProps {
 const DEFAULT_TITLE = "Your week";
 const DEFAULT_MAX_PER_DAY = 3;
 const EMPTY_COPY = "Nothing logged yet.";
-
-const willingnessLine = (
-  w: WeekReviewBlockContent["willingness"],
-): string | null => {
-  if (!w) return null;
-  const hasFirst = w.first !== null && w.first !== undefined;
-  const hasLatest = w.latest !== null && w.latest !== undefined;
-  const firstPart = hasFirst
-    ? `Willing, day ${w.firstDay ?? 1}: ${w.first} out of 10.`
-    : null;
-  const latestPart = hasLatest ? `Today: ${w.latest} out of 10.` : null;
-  if (firstPart && latestPart) return `${firstPart} ${latestPart}`;
-  return firstPart ?? latestPart;
-};
 
 export const WeekReviewBlock: React.FC<WeekReviewBlockProps> = ({ content }) => {
   const styles = useStyles();

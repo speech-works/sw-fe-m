@@ -39,7 +39,7 @@ import {
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
-import { useActivityStore } from "../../../stores/activity";
+import { isFinishedActivity, useActivityStore } from "../../../stores/activity";
 import {
   size,
   radius,
@@ -79,6 +79,12 @@ import {
   QuizFooterState,
 } from "../../../components/Quiz/quizFooter";
 import { packFooterKind } from "../../../util/packs/packFooter";
+import {
+  finishedSince,
+  needsDayRefetch,
+  sameBlockIndex,
+  takeSavedSteps,
+} from "../../../util/packs/dayRefresh";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -541,6 +547,34 @@ const PackModuleScreen = () => {
     [packId, navigation, navigateToHomeFallback],
   );
 
+  /**
+   * ── LATER BLOCKS BUILT FROM TODAY'S ANSWERS ───────────────────────────────
+   * The week review (and a form box that opens with an earlier answer) is
+   * built by the server from what this person saved, when the day loads. On
+   * Panic Button day 7 the willingness question sits one step above "Your
+   * week", so the review showed the day 1 number as the latest one.
+   *
+   * When focus comes back after a save, the day is fetched again, but only
+   * when such a block comes after the saved step. See util/packs/dayRefresh.
+   *
+   * `finishedAtLoadRef` is every activity the phone knew was finished when
+   * the content arrived, so only a step finished after that counts as new.
+   */
+  const finishedAtLoadRef = useRef<Set<string>>(new Set());
+  const markContentFresh = useCallback(
+    (moduleId: string) => {
+      finishedAtLoadRef.current = new Set(
+        useActivityStore
+          .getState()
+          .activities.filter(isFinishedActivity)
+          .map((a) => a.id),
+      );
+      // A save made before this content was fetched is already in it.
+      takeSavedSteps(packId, moduleId);
+    },
+    [packId],
+  );
+
   useEffect(() => {
     const initModule = async () => {
       try {
@@ -569,6 +603,7 @@ const PackModuleScreen = () => {
           initialModule.blocks.length > 0
         ) {
           setModule(initialModule);
+          markContentFresh(initialModule.id);
           setLoading(false);
           // Track session started — module loaded from nav params
           track(ANALYTICS_EVENTS.PRACTICE_SESSION_STARTED, {
@@ -658,6 +693,7 @@ const PackModuleScreen = () => {
 
         if (fullModule) {
           setModule(fullModule);
+          markContentFresh(fullModule.id);
           // Track session started — module loaded from API
           track(ANALYTICS_EVENTS.PRACTICE_SESSION_STARTED, {
             packId,
@@ -691,12 +727,52 @@ const PackModuleScreen = () => {
   }, [
     initialModule,
     initialModuleId,
+    markContentFresh,
     navigateToHomeFallback,
     navigation,
     packId,
     runStartModule,
     retryToken,
   ]);
+
+  // The module the screen shows now, for a fetch that answers later.
+  const moduleRef = useRef(module);
+  useEffect(() => {
+    moduleRef.current = module;
+  }, [module]);
+
+  // Back from a step: fetch the day again when a later block was built from
+  // answers that just changed. Quiet on purpose: no spinner, no second
+  // startModule, the person stays on the step they were on, and a failed
+  // fetch keeps the day as it is on screen.
+  useFocusEffect(
+    useCallback(() => {
+      if (!module?.blocks?.length) return;
+      const changed = [
+        ...takeSavedSteps(packId, module.id),
+        ...finishedSince(
+          module.blocks,
+          blockToActivityMap,
+          finishedAtLoadRef.current,
+          (id) => activities.some((a) => a.id === id && isFinishedActivity(a)),
+        ),
+      ];
+      if (!needsDayRefetch(module.blocks, changed)) return;
+
+      const before = module.blocks;
+      const moduleId = module.id;
+      markContentFresh(moduleId);
+      getModule(packId, moduleId)
+        .then((fresh) => {
+          if (!fresh?.blocks?.length || moduleRef.current?.id !== moduleId) return;
+          setModule(fresh);
+          setCurrentBlockIndex((index) => sameBlockIndex(before, fresh.blocks, index));
+        })
+        .catch((err) => {
+          console.warn("[PackModule] Could not fetch the day again after a save", err);
+        });
+    }, [module, packId, blockToActivityMap, activities, markContentFresh]),
+  );
 
   /**
    * Seed the completion latch before anything derives from it.

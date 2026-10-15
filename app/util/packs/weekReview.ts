@@ -1,4 +1,31 @@
-import type { WeekReviewEntry } from "../../api/packs/types";
+import type { WeekReviewEntry, WeekReviewWillingness } from "../../api/packs/types";
+
+/**
+ * The willingness line of the week review: the first number and today's.
+ *
+ * `firstDay` and `latestDay` are the program days the two numbers were saved
+ * on. The server reads each answer's day from the module it was given in. A
+ * number is "Today" only when it was saved on a later day than the first.
+ * Somebody who has answered only on day 1 used to read "Willing, day 1: 4 out
+ * of 10. Today: 4 out of 10." They now read the day 1 number alone.
+ */
+export function willingnessLine(
+  w: WeekReviewWillingness | undefined,
+): string | null {
+  if (!w) return null;
+  const hasFirst = w.first !== null && w.first !== undefined;
+  const hasLatest = w.latest !== null && w.latest !== undefined;
+  const later =
+    typeof w.latestDay === "number" &&
+    typeof w.firstDay === "number" &&
+    w.latestDay > w.firstDay;
+  const firstPart = hasFirst
+    ? `Willing, day ${w.firstDay ?? 1}: ${w.first} out of 10.`
+    : null;
+  const latestPart = hasLatest && later ? `Today: ${w.latest} out of 10.` : null;
+  if (firstPart && latestPart) return `${firstPart} ${latestPart}`;
+  return firstPart ?? latestPart;
+}
 
 export type WeekReviewGroup = {
   /** The step title, shown above the lines. Absent when the day has one group. */
