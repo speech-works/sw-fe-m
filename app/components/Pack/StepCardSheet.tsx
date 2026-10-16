@@ -18,7 +18,10 @@ import type { StepCard, StepCardKind } from "../../api/packs/types";
 const HEADINGS: Record<StepCardKind, string> = {
   do: "What you do",
   before: "Before you start",
-  why: "Why",
+  // "Good to know", not "Why": the section holds the rest of the task, which
+  // is often a tip ("You do not need to hurry") rather than a reason
+  // (founder, 2026-10-16).
+  why: "Good to know",
   ifNot: "If not today",
 };
 
