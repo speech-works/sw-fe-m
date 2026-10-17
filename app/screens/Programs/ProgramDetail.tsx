@@ -5,6 +5,7 @@ import {
 } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOffers, type OfferItem, type Wallet } from "../../api";
 import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
 import { selectOffer } from "../../util/packs/offers";
@@ -30,7 +31,18 @@ import {
   radius,
   Spinner,
   ErrorState,
+  IconButton,
+  space,
 } from "../../design-system";
+import {
+  CoverBackdrop,
+  STANDALONE_COVER_W,
+  StandaloneCover,
+} from "../../components/ProgramCoverArt";
+import {
+  programCoverFor,
+  type ProgramCover,
+} from "../../util/packs/programCover";
 import PressableScale from "../../components/PressableScale";
 import ProgramSalesFlow from "./ProgramSalesFlow";
 import NextDayCountdown from "./NextDayCountdown";
@@ -733,12 +745,31 @@ const ProgramDetailScreen = () => {
 
   // OWNED — a calm confirmation with the curriculum recap, no buy affordance.
   // Kept on the standard Page (the sales funnel is only for the buyable state).
+  //
+  // With a cover, the header is the sales page's: the whole cover on a blurred
+  // copy of the same picture, the length and the title under it. The page they
+  // bought from and the page they come back to then open on the same object.
   if (owned) {
+    const cover = programCoverFor(
+      catalogKey,
+      brochure?.coverImage ?? offer.coverImage,
+    );
     return (
       <Page
         title={brochure?.title ?? offer.title}
         description={brochure?.description}
         onBack={() => navigation.goBack()}
+        hero={
+          cover ? (
+            <OwnedCoverHeader
+              cover={cover}
+              eyebrow={dayCount ? `${dayCount}-day program` : null}
+              title={offer.title}
+              description={brochure?.description ?? null}
+              onBack={() => navigation.goBack()}
+            />
+          ) : undefined
+        }
       >
         {(dayCount || moduleCount > 0) && (
           <View style={styles.metaRow}>
@@ -1109,7 +1140,60 @@ const ProgramDetailScreen = () => {
 
 export default ProgramDetailScreen;
 
+/**
+ * The owned page's header when the program has a cover. `Page` renders a
+ * `hero` in place of its own title block, back bar included, so the back
+ * button is drawn here with the same geometry.
+ *
+ * The backdrop bleeds past the page gutter and up to the top of the scroll
+ * body, so it reads as the page's ground rather than as a box behind the cover.
+ */
+const OwnedCoverHeader: React.FC<{
+  cover: ProgramCover;
+  eyebrow: string | null;
+  title: string;
+  description: string | null;
+  onBack: () => void;
+}> = ({ cover, eyebrow, title, description, onBack }) => {
+  const insets = useSafeAreaInsets();
+  // `Page`'s own top padding, which the backdrop climbs back over.
+  const pageTop = insets.top + space.inlineGap;
+  const backdropH =
+    pageTop + size.backBtn + space.titleGap + (STANDALONE_COVER_W * 4) / 3 + 120;
+  return (
+    <View>
+      <CoverBackdrop
+        cover={cover}
+        height={backdropH}
+        style={{
+          top: -pageTop,
+          left: -space.screenX,
+          right: -space.screenX,
+        }}
+      />
+      <View style={styles.coverBackBar}>
+        <IconButton name="arrow-left" onPress={onBack} />
+      </View>
+      <View style={styles.coverWrap}>
+        <StandaloneCover cover={cover} eyebrow={eyebrow} title={title} />
+      </View>
+      {description ? (
+        <Text variant="body" color="secondary" center style={styles.coverDescription}>
+          {description}
+        </Text>
+      ) : null}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
+  coverBackBar: {
+    minHeight: size.backBtn,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  coverWrap: { marginTop: space.titleGap },
+  coverDescription: { marginTop: space.groupGap },
   centered: {
     paddingVertical: spacing["3xl"],
     alignItems: "center",

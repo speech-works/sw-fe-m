@@ -20,6 +20,8 @@ import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
 import { programEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
 import type { StorePrice } from "../../services/priceDisplay";
+import CoverSlide from "./CoverSlide";
+import { programCoverFor } from "../../util/packs/programCover";
 
 /**
  * One program in the Home carousel, in two tiers.
@@ -284,6 +286,95 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
   const support = reason ?? item.blurb ?? null;
   const supportColor = reason ? skin.reasonText : skin.blurbText;
 
+  /**
+   * ── WITH A COVER ──────────────────────────────────────────────────────────
+   * The cover carries the program; the tier difference moves to the frame. The
+   * top match keeps its own silhouette (`radius.sheet`, elevation) and gains
+   * the TOP MATCH chip the shop hero already uses, since the deep ramp that
+   * used to mark it would fight the picture. The shelf line, the title and the
+   * reason or blurb sit beside the cover; the price and the action share the
+   * strip below, on page colours like everything else.
+   *
+   * The top match's action is the scheme's own ink as a fill: white on ink,
+   * near-black on paper. A white pill on the paper strip would have no edge.
+   */
+  const cover = programCoverFor(item.key, item.coverImage);
+  if (cover) {
+    const ctaBg = highlight ? colors.text.primary : colors.surface.control;
+    const ctaInk = highlight ? colors.background.canvas : colors.text.primary;
+    return (
+      <PressableScale
+        scaleTo={0.98}
+        onPress={() => onPress(item)}
+        style={styles.press}
+      >
+        <CoverSlide
+          cover={cover}
+          radius={skin.radius}
+          border={highlight ? undefined : colors.border.default}
+          elevate={skin.elevate}
+          label={
+            <>
+              {highlight ? (
+                <View
+                  style={[
+                    styles.chip,
+                    styles.coverClaim,
+                    { backgroundColor: colors.action.onPrimary },
+                  ]}
+                >
+                  <Icon name={icons.star} size={12} color={colors.accent.lime} />
+                  <Text variant="eyebrow" color={colors.accent.lime}>
+                    TOP MATCH
+                  </Text>
+                </View>
+              ) : null}
+              <Text variant="eyebrow" color="secondary" numberOfLines={1}>
+                {programEyebrow(item)}
+              </Text>
+            </>
+          }
+          title={item.title}
+          note={
+            support ? (
+              <Text variant="caption" color="secondary" numberOfLines={2}>
+                {support}
+              </Text>
+            ) : null
+          }
+          detail={
+            <PriceTag
+              priceInr={item.priceInr}
+              anchorInr={item.anchorPriceInr}
+              priceUsd={item.priceUsd}
+              anchorUsd={item.anchorPriceUsd}
+              store={store}
+              storeAnchor={storeAnchor}
+              compact
+            />
+          }
+          action={
+            <View
+              style={[
+                styles.cta,
+                {
+                  backgroundColor: ctaBg,
+                  borderColor: colors.border.strong,
+                  borderWidth: highlight ? 0 : borderWidth.hairline,
+                },
+              ]}
+            >
+              <Icon name={icons.journey} size={CTA_ICON} color={ctaInk} />
+              <Text variant="title" color={ctaInk} numberOfLines={1}>
+                {CTA_LABEL}
+              </Text>
+            </View>
+          }
+        />
+      </PressableScale>
+    );
+  }
+
   return (
     // The badge is a SIBLING of the card, not a child: the card clips to its own
     // radius. It stays inside the Pressable so the corner is still part of the
@@ -490,4 +581,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
+  coverClaim: { alignSelf: "flex-start", marginBottom: spacing.xs + 2 },
 });

@@ -360,7 +360,9 @@ export interface Pack {
   id: string;
   title: string;
   description: string;
-  coverImage?: string;
+  /** Present on the paid programs; it is what their bundled cover is keyed by. */
+  catalogKey?: string | null;
+  coverImage?: string | null;
   /**
    * The program's mark, as a key into this app's icon registry — set by the
    * server so a new or renamed program does not need a release to get one.

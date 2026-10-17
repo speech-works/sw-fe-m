@@ -7,7 +7,15 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  // A shelf row scrolls sideways inside a page that also swipes sideways.
+  // gesture-handler's own ScrollView takes part in the same arbitration as
+  // the pager's pan, so a swipe on a row moves the row, and one anywhere else
+  // still changes tab. React Native's would fight the pan for it.
+  ScrollView as RowScroll,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -67,6 +75,15 @@ import { openOnboarding } from "../../util/functions/openOnboarding";
 import { ExploreStackNavigationProp } from "../../navigators/stacks/ExploreStack/types";
 import { useProgramsDock, type ProgramsView } from "../../stores/programsDock";
 import ProgramsDock from "./ProgramsDock";
+import {
+  CoverBook,
+  CoverTitle,
+  coverTitle,
+} from "../../components/ProgramCoverArt";
+import {
+  programCoverFor,
+  type ProgramCover,
+} from "../../util/packs/programCover";
 
 /**
  * THE SHOP — every program we sell, ranked for the person looking at it.
@@ -549,6 +566,258 @@ const ProgramsScreen = () => {
   };
 
   /**
+   * The matched hero, when the program has a cover.
+   *
+   * The ticket above is what a program WITHOUT a cover still gets. With one,
+   * the whole cover stands at the left and the claim, the shelf line, the title
+   * and the reason sit beside it on the card; the deal and the action follow in
+   * a strip underneath. Same three objects as the ticket (pitch, deal, action),
+   * with the pitch next to a picture instead of on orange.
+   */
+  const renderCoverHero = (item: OfferItem, cover: ProgramCover) => {
+    const perk = valueParts(item);
+    const store = storePrices[item.tierProductId];
+    const storeAnchor = storePriceFor(storePrices, item.anchorTierProductId);
+    const note = priceNoteFor(
+      item,
+      offers?.isFounderCohort ?? false,
+      store,
+      storeAnchor,
+    );
+    const onPrimary = colors.action.onPrimary;
+
+    return (
+      <PressableScale
+        key={item.key}
+        scaleTo={0.98}
+        onPress={() => openDetail(item, "programs_hero", 0)}
+        style={[styles.heroWrap, elevation.e2]}
+      >
+        <View
+          style={[
+            styles.coverHero,
+            { backgroundColor: colors.background.raised },
+          ]}
+        >
+          <View style={styles.coverHeroTop}>
+            <CoverBook cover={cover} width={HERO_COVER_W} radius={radius.md + 2} />
+            <View style={styles.coverHeroWords}>
+              <View
+                style={[
+                  styles.claimChip,
+                  styles.coverHeroClaim,
+                  { backgroundColor: onPrimary },
+                ]}
+              >
+                <Icon
+                  name={icons.star}
+                  size={size.iconInline}
+                  color={colors.accent.lime}
+                />
+                <Text variant="eyebrow" color={colors.accent.lime}>
+                  TOP MATCH
+                </Text>
+              </View>
+              <Text variant="eyebrow" color="secondary" numberOfLines={2}>
+                {programEyebrow(item)}
+              </Text>
+              <CoverTitle
+                title={item.title}
+                cut={coverTitle.hero}
+                numberOfLines={3}
+                style={styles.coverHeroTitle}
+              />
+              {item.match?.reason ? (
+                <Text
+                  variant="bodySm"
+                  color="secondary"
+                  style={styles.coverHeroReason}
+                >
+                  {item.match.reason}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.coverHeroDeal,
+              { borderTopColor: colors.border.hairline },
+            ]}
+          >
+            {item.owned ? null : (
+              <View style={styles.coverHeroPrice}>
+                <PriceTag
+                  priceInr={item.priceInr}
+                  anchorInr={item.anchorPriceInr}
+                  priceUsd={item.priceUsd}
+                  anchorUsd={item.anchorPriceUsd}
+                  store={store}
+                  storeAnchor={storeAnchor}
+                />
+                {note ? (
+                  <Text variant="caption" color="secondary">
+                    {note}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+            {perk && !item.owned ? (
+              <View style={styles.dealPerk}>
+                <Icon
+                  name={icons.gift}
+                  size={CTA_ICON}
+                  color={colors.text.secondary}
+                />
+                <Text
+                  variant="bodySm"
+                  color="secondary"
+                  numberOfLines={2}
+                  style={styles.dealPerkText}
+                >
+                  {capitalise(perk)}
+                </Text>
+              </View>
+            ) : null}
+            <View
+              style={[
+                styles.heroCta,
+                { backgroundColor: colors.action.primary },
+              ]}
+            >
+              <Icon name={icons.journey} size={CTA_ICON} color={onPrimary} />
+              <Text variant="title" color={onPrimary} numberOfLines={1}>
+                {item.owned ? "Open your program" : "See inside"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </PressableScale>
+    );
+  };
+
+  /**
+   * One program in a shelf row: the whole cover, then the title, the price and
+   * the length under it. What else comes with the shelf (the AI calls, the
+   * free month) is said once, in the row's heading, rather than on every tile.
+   */
+  const renderCoverTile = (
+    item: OfferItem,
+    cover: ProgramCover,
+    index: number,
+  ) => (
+    <PressableScale
+      key={item.key}
+      scaleTo={0.97}
+      onPress={() => openDetail(item, "programs_list", index)}
+      style={styles.tile}
+    >
+      <CoverBook cover={cover} width={ROW_TILE_W} radius={radius.md + 2} />
+      <CoverTitle
+        title={item.title}
+        cut={coverTitle.tile}
+        numberOfLines={2}
+        style={styles.tileTitle}
+      />
+      <View style={styles.tilePrice}>
+        <PriceTag
+          priceInr={item.priceInr}
+          anchorInr={item.anchorPriceInr}
+          priceUsd={item.priceUsd}
+          anchorUsd={item.anchorPriceUsd}
+          store={storePrices[item.tierProductId]}
+          storeAnchor={storePriceFor(storePrices, item.anchorTierProductId)}
+          compact
+        />
+      </View>
+      {item.arcDays ? (
+        <Text variant="caption" color="tertiary" numberOfLines={1}>
+          {`${item.arcDays} days`}
+        </Text>
+      ) : null}
+    </PressableScale>
+  );
+
+  /**
+   * What a shelf row's heading says about every program on it, or nothing.
+   * Only a fact that holds for the whole row, with the same gate the fact
+   * chips use for the free month, so it never promises a program something it
+   * does not include.
+   */
+  const shelfRowNote = (list: OfferItem[]): string | null => {
+    if (list.every((i) => i.creditGrantAmount > 0)) {
+      return "With AI practice calls";
+    }
+    if (
+      offers?.bonusMembershipEligible &&
+      list.every((i) => i.bonusMembershipDays > 0)
+    ) {
+      return "First month of membership free";
+    }
+    return null;
+  };
+
+  /**
+   * The sale list as one sideways row per shelf, in place of the shelf pills.
+   *
+   * GROUPED, AND STILL RANKED. The note on `shownItems` explains why a
+   * `groupByShelf` was once deleted: it threw this user's ranking away. These
+   * rows keep it twice over. Inside a row the programs stay in rank order, and
+   * the rows come in the order their best-ranked program does, so the shelf
+   * with the closest match is the one on top.
+   *
+   * A program without a cover keeps today's full-width card, under its row.
+   */
+  const renderShelfRows = (list: OfferItem[]) => {
+    const ranked = list.map((item, index) => ({
+      item,
+      index,
+      cover: programCoverFor(item.key, item.coverImage),
+    }));
+    const shelves = [...new Set(ranked.map((r) => r.item.shelf))];
+    return shelves.map((shelf) => {
+      const onShelf = ranked.filter((r) => r.item.shelf === shelf);
+      const covered = onShelf.flatMap((r) =>
+        r.cover ? [{ ...r, cover: r.cover }] : [],
+      );
+      const note = shelfRowNote(onShelf.map((r) => r.item));
+      return (
+        <View key={`shelf-${shelf}`} style={styles.shelfBlock}>
+          <View style={styles.shelfHead}>
+            <Text variant="title" color="primary">
+              {shelfLabel(shelf)}
+            </Text>
+            {note ? (
+              <Text
+                variant="caption"
+                color="tertiary"
+                numberOfLines={1}
+                style={styles.shelfNote}
+              >
+                {note}
+              </Text>
+            ) : null}
+          </View>
+          {covered.length ? (
+            <RowScroll
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              snapToInterval={ROW_TILE_W + spacing.md}
+              snapToAlignment="start"
+              style={styles.shelfRow}
+              contentContainerStyle={styles.shelfRowContent}
+            >
+              {covered.map((r) => renderCoverTile(r.item, r.cover, r.index))}
+            </RowScroll>
+          ) : null}
+          {onShelf.filter((r) => !r.cover).map((r) => renderCard(r.item, r.index))}
+        </View>
+      );
+    });
+  };
+
+  /**
    * A shop row, in the same language as the Home carousel slide it links from:
    * eyebrow → title → why → footer with the price beside a real CTA island. A
    * product should not change shape between the two screens that sell it.
@@ -752,6 +1021,9 @@ const ProgramsScreen = () => {
   const afterHero = heroItem
     ? items.filter((i) => i.key !== heroItem.key)
     : items;
+  const heroCover = heroItem
+    ? programCoverFor(heroItem.key, heroItem.coverImage)
+    : null;
 
   /**
    * ── WHAT THEY ALREADY BOUGHT COMES OUT OF THE SHOP ───────────────────────
@@ -786,6 +1058,11 @@ const ProgramsScreen = () => {
   // reordering the ones that remain.
   const shownItems =
     tier === "all" ? forSale : forSale.filter((i) => i.shelf === tier);
+
+  // With covers the list is one sideways row per shelf, which already says
+  // what the pills did, so the pills go. A catalogue with no cover art keeps
+  // the pills and today's cards.
+  const shelfRows = forSale.some((i) => programCoverFor(i.key, i.coverImage));
 
   // The number ON the Yours tab. Written from here rather than read by the
   // dock, because the offers request is the only place that knows it, and the
@@ -1039,7 +1316,11 @@ const ProgramsScreen = () => {
         />
       ) : null}
 
-      {heroItem ? renderHero(heroItem) : null}
+      {heroItem
+        ? heroCover
+          ? renderCoverHero(heroItem, heroCover)
+          : renderHero(heroItem)
+        : null}
 
       {/* Only when the hero sits above it. With no hero the list is the page,
           and a heading over it labels nothing. It reads "More programs" in
@@ -1057,7 +1338,7 @@ const ProgramsScreen = () => {
           tapped "Premium" would trade the one card most likely to convert for
           a tidier list. So the pills govern the list underneath them and
           nothing above. */}
-      {forSale.length > 1 ? (
+      {forSale.length > 1 && !shelfRows ? (
         <View style={styles.filterBar}>
           {TIER_FILTERS.map((f) => (
             <Chip
@@ -1071,7 +1352,9 @@ const ProgramsScreen = () => {
         </View>
       ) : null}
 
-      {shownItems.length ? (
+      {shelfRows ? (
+        renderShelfRows(forSale)
+      ) : shownItems.length ? (
         shownItems.map((item, index) => renderCard(item, index))
       ) : forSale.length ? (
         // A shelf filter emptied the list, not the catalogue.
@@ -1296,6 +1579,14 @@ const INK_MUTED = 0.72;
  * has ever used it, so offering a "Focused" pill would be offering a filter that
  * can only ever return nothing.
  */
+/** The cover beside the top match's words. */
+const HERO_COVER_W = 144;
+/**
+ * A cover in a shelf row: two and a bit to a phone's width, so the third one
+ * peeking in says the row goes on.
+ */
+const ROW_TILE_W = 148;
+
 type TierFilter = "all" | "regular" | "deep";
 
 // Labels come from `shelfLabel`, not literals — see its header. A pill and the
@@ -1521,4 +1812,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.xs,
   },
+  // ── the cover hero ──
+  coverHero: {
+    borderRadius: radius.card,
+    overflow: "hidden",
+  },
+  coverHeroTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: spacing.lg,
+    gap: spacing.md + 2,
+  },
+  coverHeroWords: { flex: 1, minWidth: 0 },
+  coverHeroClaim: { alignSelf: "flex-start", marginBottom: spacing.sm },
+  coverHeroTitle: { marginTop: spacing.xs },
+  coverHeroReason: { marginTop: spacing.sm },
+  coverHeroDeal: {
+    padding: spacing.lg,
+    gap: spacing.sm,
+    borderTopWidth: borderWidth.hairline,
+  },
+  coverHeroPrice: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  // ── the shelf rows ──
+  shelfBlock: { gap: space.rowGap },
+  shelfHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  shelfNote: { flexShrink: 1 },
+  // Out to the screen's edges, so a row runs off the side like the Home shelf
+  // instead of stopping at the gutter; the content puts the gutter back.
+  shelfRow: { marginHorizontal: -space.screenX },
+  shelfRowContent: {
+    paddingHorizontal: space.screenX,
+    gap: spacing.md,
+  },
+  tile: { width: ROW_TILE_W },
+  tileTitle: { marginTop: spacing.sm + 1 },
+  tilePrice: { marginTop: spacing.xs },
 });

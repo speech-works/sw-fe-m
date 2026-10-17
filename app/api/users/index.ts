@@ -337,6 +337,12 @@ export interface OfferItem {
   arcDays: number | null;
   /** One-line pitch, straight from the pack — never written in the app. */
   blurb: string | null;
+  /**
+   * A remote cover set in the console. Optional because an older backend does
+   * not send it, and secondary to the art this build ships: resolve it through
+   * `programCoverFor`, never by reading it directly.
+   */
+  coverImage?: string | null;
   /** AI practice calls bundled with the pack. 0 for most; 8–10 on premium. */
   creditGrantAmount: number;
   /**

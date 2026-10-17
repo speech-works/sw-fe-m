@@ -16,6 +16,8 @@ import {
 import type { ActiveProgram } from "./useActiveProgram";
 import { dayCloseLine } from "../../util/packs/dayLock";
 import { packIconFor } from "./packIcon";
+import CoverSlide from "./CoverSlide";
+import { programCoverFor } from "../../util/packs/programCover";
 
 /**
  * ===========================================================================
@@ -86,21 +88,124 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
     nextDayOpensAt: program.nextDayOpensAt,
   };
 
+  const a11yLabel =
+    `${program.title}, in progress. ` +
+    (dayLocked
+      ? `${dayCloseLine(dayCloseState)} `
+      : nextModule
+        ? `Next: ${nextModule.title}. `
+        : "") +
+    (totalModules ? `Module ${moduleOrder} of ${totalModules}. ` : "") +
+    "Opens it.";
+
+  const ctaLabel = program.isRefresher
+    ? "Start again"
+    : dayLocked
+      ? "Done for today"
+      : percentComplete > 0
+        ? "Continue"
+        : "Start";
+
+  /**
+   * ── WITH A COVER ──────────────────────────────────────────────────────────
+   * The same four facts, rearranged: the program, its status and what is next
+   * beside the cover, then one strip for how far in and the way in. The
+   * description goes, as the note above already argues for the plain card: the
+   * person reading this has bought the program, and the picture now says what
+   * it is about. The watermark goes too; the cover is the program's mark here.
+   */
+  const cover = programCoverFor(program.catalogKey, program.coverImage);
+  if (cover) {
+    const showBar = !program.isRefresher && totalModules > 0;
+    return (
+      <PressableScale
+        scaleTo={0.98}
+        onPress={() => onPress(program)}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel}
+        style={styles.press}
+      >
+        <CoverSlide
+          cover={cover}
+          radius={radius.card}
+          border={colors.border.default}
+          label={
+            <View style={[styles.coverChip, { backgroundColor: colors.action.primary }]}>
+              <Text variant="eyebrow" color={ink} numberOfLines={1}>
+                {program.isRefresher ? "YOU FINISHED THIS" : "IN PROGRESS"}
+              </Text>
+            </View>
+          }
+          title={program.title}
+          note={
+            program.isRefresher ? (
+              <Text variant="bodySm" color="secondary" numberOfLines={2}>
+                Start it again from day one.
+              </Text>
+            ) : nextModule ? (
+              <>
+                <Text variant="caption" color="tertiary">
+                  {dayLocked ? "TODAY" : "NEXT UP"}
+                </Text>
+                <Text variant="label" color="primary" numberOfLines={2} style={styles.coverNext}>
+                  {/* As on the plain card: never advertise a day that cannot
+                      be started. */}
+                  {dayLocked ? dayCloseLine(dayCloseState) : nextModule.title}
+                </Text>
+              </>
+            ) : null
+          }
+          detail={
+            showBar ? (
+              <>
+                <Text variant="caption" color="secondary" numberOfLines={1}>
+                  Module {moduleOrder} of {totalModules}
+                </Text>
+                <View
+                  style={[
+                    styles.bar,
+                    styles.coverBar,
+                    { backgroundColor: withAlpha(colors.text.primary, 0.14) },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.barFill,
+                      {
+                        backgroundColor: colors.action.primary,
+                        width: `${Math.round(
+                          Math.max(0, Math.min(1, percentComplete)) * 100,
+                        )}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </>
+            ) : null
+          }
+          action={
+            <View style={[styles.coverCta, { backgroundColor: colors.action.primary }]}>
+              <Icon
+                name={dayLocked ? icons.success : icons.play}
+                size={size.iconInline}
+                color={ink}
+              />
+              <Text variant="label" color={ink}>
+                {ctaLabel}
+              </Text>
+            </View>
+          }
+        />
+      </PressableScale>
+    );
+  }
+
   return (
     <PressableScale
       scaleTo={0.98}
       onPress={() => onPress(program)}
       accessibilityRole="button"
-      accessibilityLabel={
-        `${program.title}, in progress. ` +
-        (dayLocked
-          ? `${dayCloseLine(dayCloseState)} `
-          : nextModule
-            ? `Next: ${nextModule.title}. `
-            : "") +
-        (totalModules ? `Module ${moduleOrder} of ${totalModules}. ` : "") +
-        "Opens it."
-      }
+      accessibilityLabel={a11yLabel}
       style={styles.press}
     >
       <View
@@ -214,13 +319,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
             color={colors.action.primary}
           />
           <Text variant="label" style={{ color: colors.action.primary }}>
-            {program.isRefresher
-              ? "Start again"
-              : dayLocked
-                ? "Done for today"
-                : percentComplete > 0
-                  ? "Continue"
-                  : "Start"}
+            {ctaLabel}
           </Text>
         </View>
       </View>
@@ -271,5 +370,21 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
     marginTop: spacing.lg,
+  },
+  coverChip: {
+    alignSelf: "flex-start",
+    paddingHorizontal: space.inlineGap + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.chip,
+  },
+  coverBar: { marginTop: spacing.xs + 2 },
+  coverNext: { marginTop: spacing.xxs },
+  coverCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
   },
 });

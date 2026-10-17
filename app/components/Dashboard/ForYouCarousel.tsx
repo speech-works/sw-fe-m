@@ -30,6 +30,11 @@ import OfferSlide, {
 } from "./OfferSlide";
 import MoreProgramsTile from "./MoreProgramsTile";
 import InProgressSlide from "./InProgressSlide";
+import {
+  COVER_CTA_BOTTOM_FROM_CARD_TOP,
+  COVER_SLIDE_HEIGHT,
+} from "./CoverSlide";
+import { programCoverFor } from "../../util/packs/programCover";
 import AllCompleteSlide from "./AllCompleteSlide";
 import { useActiveProgram, type ActiveProgram } from "./useActiveProgram";
 import { restartPack } from "../../api/packs";
@@ -117,6 +122,17 @@ const SHELF_GEOMETRY: ShelfGeometry = {
   ctaBottomFromCardTop: CTA_BOTTOM_FROM_CARD_TOP,
 };
 
+/**
+ * The same, for a shelf whose slides carry covers. Same height as the plain
+ * slides; the action sits in the strip under the cover rather than at the
+ * plain card's bottom padding.
+ */
+const COVER_SHELF_GEOMETRY: ShelfGeometry = {
+  cardTopInSection: SHELF_GEOMETRY.cardTopInSection,
+  cardHeight: COVER_SLIDE_HEIGHT,
+  ctaBottomFromCardTop: COVER_CTA_BOTTOM_FROM_CARD_TOP,
+};
+
 /** Paging dots: `Carousel`'s own `marginTop: spacing.lg` plus their 8pt height. */
 const DOTS_BLOCK = spacing.lg + 8;
 
@@ -175,6 +191,14 @@ type Slide =
   | { kind: "inProgress"; program: ActiveProgram }
   | { kind: "allComplete" }
   | { kind: "more" };
+
+/** Whether a slide draws a cover, which decides where its action sits. */
+const slideHasCover = (slide: Slide): boolean =>
+  slide.kind === "offer"
+    ? !!programCoverFor(slide.item.key, slide.item.coverImage)
+    : slide.kind === "inProgress"
+      ? !!programCoverFor(slide.program.catalogKey, slide.program.coverImage)
+      : false;
 
 const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   const navigation = useNavigation<any>();
@@ -349,7 +373,12 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     const first = sel.items[0];
     // The section rect plus a known offset gives us the card's box, so we report
     // on the thing that sells rather than on the heading above it.
-    const seen = cardVisibility(rect, SHELF_GEOMETRY);
+    const seen = cardVisibility(
+      rect,
+      carouselSlidesRef.current.some(slideHasCover)
+        ? COVER_SHELF_GEOMETRY
+        : SHELF_GEOMETRY,
+    );
 
     track(ANALYTICS_EVENTS.FOR_YOU_SHELF_VIEWED, {
       surface: "home_for_you",

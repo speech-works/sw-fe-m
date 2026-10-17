@@ -54,6 +54,14 @@ import {
   type ProgramEvidenceSummary,
 } from "../../api/packs/types";
 import EvidenceNode from "./EvidenceNode";
+import {
+  CoverBackdrop,
+  StandaloneCover,
+} from "../../components/ProgramCoverArt";
+import {
+  programCoverFor,
+  type ProgramCover,
+} from "../../util/packs/programCover";
 import ProgramEvidence from "./ProgramEvidence";
 
 /**
@@ -177,6 +185,10 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   const modules = brochure?.modules ?? [];
   const title = brochure?.title ?? offer.title;
   const pitch = brochure?.description ?? offer.blurb ?? null;
+  const cover = programCoverFor(
+    catalogKey,
+    brochure?.coverImage ?? offer.coverImage,
+  );
 
   // TWO ids: what this pack charges, and the tier its struck "was" quotes. The
   // hook dedupes, so an offer that anchors against itself costs one lookup.
@@ -236,6 +248,8 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
         sessionCount={sessionCount}
         reduceMotion={reduceMotion}
         hintVisible={activeIndex === 0 && modules.length > 0}
+        cover={cover}
+        coverTitle={offer.title}
       />,
     );
 
@@ -281,6 +295,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
     bottomPad,
     priceNote,
     evidence,
+    cover,
   ]);
 
   return (
@@ -615,6 +630,12 @@ const Dot: React.FC<DotProps> = ({ index, scrollX, width, colors }) => {
 
 /* ─────────────────────────────── Page 1: Hook ─────────────────────────── */
 
+/**
+ * The cover on the sales page: smaller than the owned page's, because this
+ * page does not scroll and the price bar sits under it.
+ */
+const SALES_COVER_W = 184;
+
 interface HookPageProps {
   topPad: number;
   bottomPad: number;
@@ -626,6 +647,19 @@ interface HookPageProps {
   sessionCount: number;
   reduceMotion: boolean;
   hintVisible: boolean;
+  /**
+   * The program's cover. With one, the page opens on the whole cover, standing
+   * on a blurred copy of the same picture; the length, the title, the pitch
+   * and the numbers follow, centred under it. Without one, the page is the
+   * warm glow and drifting emblem it always was.
+   */
+  cover: ProgramCover | null;
+  /**
+   * The catalogue name Home and the shop print beside the same cover. Some
+   * pack titles carry a subtitle in brackets ("Bouncing Back (The Post-Block
+   * Reset)"), and the extra line pushed the numbers into the price bar.
+   */
+  coverTitle: string;
 }
 
 const HookPage: React.FC<HookPageProps> = ({
@@ -639,6 +673,8 @@ const HookPage: React.FC<HookPageProps> = ({
   sessionCount,
   reduceMotion,
   hintVisible,
+  cover,
+  coverTitle,
 }) => {
   const { colors } = useTheme();
   const glow = colors.action.primary;
@@ -671,6 +707,90 @@ const HookPage: React.FC<HookPageProps> = ({
       { rotate: `${-12 + drift.value * 5}deg` },
     ],
   }));
+
+  const hint = hintVisible ? (
+    <View style={styles.hint}>
+      <Text variant="label" color="tertiary">
+        Swipe to see your plan
+      </Text>
+      <Animated.View style={nudgeStyle}>
+        <Icon name={icons.chevronRight} size={size.iconSm} color={colors.text.tertiary} />
+      </Animated.View>
+    </View>
+  ) : null;
+
+  const matchPill = matchReason ? (
+    <Animated.View
+      entering={staggerEntering(3, reduceMotion)}
+      style={[
+        styles.matchPill,
+        {
+          backgroundColor: colors.surface.default,
+          borderColor: colors.border.default,
+        },
+      ]}
+    >
+      <Icon name={icons.roadmap} size={size.iconSm} color={colors.text.accent} />
+      <Text variant="bodySm" color="secondary" style={styles.flex1}>
+        {matchReason}
+      </Text>
+    </Animated.View>
+  ) : null;
+
+  if (cover) {
+    return (
+      <View style={styles.hookRoot}>
+        <CoverBackdrop cover={cover} height="76%" />
+        <View
+          style={[
+            styles.hookFill,
+            { paddingTop: topPad, paddingBottom: bottomPad },
+          ]}
+        >
+          <Animated.View entering={staggerEntering(0, reduceMotion)}>
+            <StandaloneCover
+              cover={cover}
+              eyebrow={eyebrow}
+              title={coverTitle}
+              width={SALES_COVER_W}
+            />
+          </Animated.View>
+          {pitch ? (
+            <Animated.View entering={staggerEntering(1, reduceMotion)}>
+              <Text
+                variant="body"
+                color="secondary"
+                center
+                style={styles.coverPitch}
+              >
+                {pitch}
+              </Text>
+            </Animated.View>
+          ) : null}
+
+          {matchPill}
+
+          {(dayCount || sessionCount > 0) && (
+            <Animated.View
+              entering={staggerEntering(2, reduceMotion)}
+              style={[styles.statsRow, styles.coverStats]}
+            >
+              {dayCount ? <Stat value={dayCount} label="days" centered /> : null}
+              {dayCount && sessionCount > 0 ? (
+                <View style={[styles.statRule, { backgroundColor: colors.border.strong }]} />
+              ) : null}
+              {sessionCount > 0 ? (
+                <Stat value={sessionCount} label="sessions" centered />
+              ) : null}
+            </Animated.View>
+          )}
+
+          <View style={styles.hookGap} />
+          {hint}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.hookRoot}>
@@ -713,23 +833,7 @@ const HookPage: React.FC<HookPageProps> = ({
           </Animated.View>
         ) : null}
 
-        {matchReason ? (
-          <Animated.View
-            entering={staggerEntering(3, reduceMotion)}
-            style={[
-              styles.matchPill,
-              {
-                backgroundColor: colors.surface.default,
-                borderColor: colors.border.default,
-              },
-            ]}
-          >
-            <Icon name={icons.roadmap} size={size.iconSm} color={colors.text.accent} />
-            <Text variant="bodySm" color="secondary" style={styles.flex1}>
-              {matchReason}
-            </Text>
-          </Animated.View>
-        ) : null}
+        {matchPill}
 
         {(dayCount || sessionCount > 0) && (
           <Animated.View
@@ -748,16 +852,7 @@ const HookPage: React.FC<HookPageProps> = ({
 
         <View style={styles.hookGap} />
 
-        {hintVisible ? (
-          <View style={styles.hint}>
-            <Text variant="label" color="tertiary">
-              Swipe to see your plan
-            </Text>
-            <Animated.View style={nudgeStyle}>
-              <Icon name={icons.chevronRight} size={size.iconSm} color={colors.text.tertiary} />
-            </Animated.View>
-          </View>
-        ) : null}
+        {hint}
       </View>
     </View>
   );
@@ -766,10 +861,12 @@ const HookPage: React.FC<HookPageProps> = ({
 interface StatProps {
   value: number;
   label: string;
+  /** Under a centred cover the pair centres too. */
+  centered?: boolean;
 }
 
-const Stat: React.FC<StatProps> = ({ value, label }) => (
-  <View style={styles.stat}>
+const Stat: React.FC<StatProps> = ({ value, label, centered }) => (
+  <View style={[styles.stat, centered && styles.statCentered]}>
     <AnimatedNumber value={value} variant="display" color="primary" />
     <Text variant="label" color="tertiary">
       {label}
@@ -1260,6 +1357,12 @@ const styles = StyleSheet.create({
   },
   stat: {
     alignItems: "flex-start",
+  },
+  statCentered: { alignItems: "center" },
+  coverPitch: { marginTop: space.groupGap },
+  coverStats: {
+    alignSelf: "center",
+    marginTop: space.groupGap,
   },
   statRule: {
     width: StyleSheet.hairlineWidth,

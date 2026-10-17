@@ -32,6 +32,10 @@ export interface ActiveProgram {
   isRefresher: boolean;
   /** The server's icon key for this program. Never indexed directly. */
   icon: string | null;
+  /** Which program this is in the catalogue, for its cover. */
+  catalogKey: string | null;
+  /** A remote cover for a program this build has no art for. */
+  coverImage: string | null;
   /** The day they are on, or the last one when everything is done. */
   nextModule: ModuleLike | null;
   moduleOrder: number;
@@ -207,6 +211,8 @@ export function useActiveProgram(): ActiveProgramState {
               description: rec.pack.description ?? null,
               isRefresher: refresher,
               icon: rec.pack.icon ?? null,
+              catalogKey: rec.pack.catalogKey ?? null,
+              coverImage: rec.pack.coverImage ?? null,
               nextModule,
               moduleOrder: nextModule ? nextModule.orderIndex : total,
               totalModules: total,
