@@ -2,7 +2,7 @@ import React from "react";
 import { Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Divider, fonts, makeStyles, spacing, useTheme } from "../../design-system";
-import { handleLinkPress } from "../../util/functions/externalLinks";
+import { openInAppBrowser } from "../../util/functions/externalLinks";
 import { toSafeExternalUrl } from "../../util/functions/url";
 
 /** Where list-item text starts: the marker column (20) plus its gap (8).
@@ -539,7 +539,7 @@ const renderInline = (
             color: linkColor,
             textDecorationLine: "underline",
           }}
-          onPress={() => handleLinkPress(safeHref)}
+          onPress={() => openInAppBrowser(safeHref)}
         >
           {token.text}
         </Text>
