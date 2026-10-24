@@ -33,7 +33,14 @@ export function StepConfirm({
   goals: string[];
 }) {
   const { colors } = useTheme();
-  const compose = (noun: string) => harness.verb.replace("{}", noun);
+  // Same as the server's composeGoal: "{} again" plus "call someone" reads
+  // "Call someone again". Only the first letter of the sentence is raised.
+  const compose = (noun: string) => {
+    const text = harness.verb.replace("{}", noun);
+    return harness.verb.startsWith("{} ")
+      ? text.charAt(0).toUpperCase() + text.slice(1)
+      : text;
+  };
 
   return (
     <View style={styles.root}>

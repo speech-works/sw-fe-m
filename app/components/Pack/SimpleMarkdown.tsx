@@ -642,10 +642,12 @@ const useStyles = makeStyles((c, t) => ({
     marginBottom: 8,
     paddingRight: 16,
   },
-  // flexShrink so a merged multi-line item wraps within the row instead of
-  // pushing past it — items can now carry a full continuation paragraph.
+  // flex: 1, not flexShrink: 1. A shrinking Text is measured at the row's
+  // full width and then squeezed, so iOS lays the lines out too wide and the
+  // end of the item is cut off at the right edge ("the hard parts and th",
+  // 2026-10-25). flex: 1 gives it the row's width minus the bullet up front.
   listText: {
-    flexShrink: 1,
+    flex: 1,
   },
   bullet: {
     ...t.typography.body,
