@@ -849,6 +849,12 @@ const ProgramsScreen = () => {
     const isDeep = item.shelf === "deep";
     const facts = factChips(item);
     const lines = inclusions(item);
+    // On "Your programs" the cover sits beside the words, the same rule as
+    // everywhere else: the art is drawn whole and nothing is set on it.
+    const ownedCover =
+      source === "programs_owned"
+        ? programCoverFor(item.key, item.coverImage)
+        : null;
 
     return (
       <PressableScale
@@ -862,150 +868,160 @@ const ProgramsScreen = () => {
           // one undivided field rather than as nine separate things to choose
           // between, which is exactly what this redesign is for.
           elevation.e1,
+          ownedCover ? styles.cardWithCover : null,
           {
             backgroundColor: colors.surface.default,
             borderColor: colors.border.default,
           },
         ]}
       >
-        {/* PREMIUM GETS A DIFFERENT CARD, not a louder one. The tier chip is
-            purple — the one accent the shop does not otherwise use, so it cannot
-            be confused with the orange hero or the lime TOP MATCH — and the
-            ticked list replaces the fact chips, because at this price the
-            question stops being "what is this" and becomes "what do I get".
-            Label text reads from `programShelfLabel`, not a literal here — see
-            its header for why "Deep work" was retired. */}
-        {isDeep ? (
-          <View
-            style={[
-              styles.tierChip,
-              { backgroundColor: colors.accent.purple },
-              accentEdge(colors, "purple"),
-            ]}
-          >
-            <Icon
-              name={icons.pro}
-              size={size.iconInline}
-              color={colors.accentOn.purple}
-            />
-            <Text variant="eyebrow" color={colors.accentOn.purple}>
-              {programShelfLabel(item)}
-            </Text>
-          </View>
+        {ownedCover ? (
+          <CoverBook
+            cover={ownedCover}
+            width={OWNED_COVER_W}
+            radius={radius.md}
+          />
         ) : null}
+        <View style={ownedCover ? styles.cardWithCoverBody : styles.cardBodyPlain}>
+          {/* PREMIUM GETS A DIFFERENT CARD, not a louder one. The tier chip is
+              purple — the one accent the shop does not otherwise use, so it cannot
+              be confused with the orange hero or the lime TOP MATCH — and the
+              ticked list replaces the fact chips, because at this price the
+              question stops being "what is this" and becomes "what do I get".
+              Label text reads from `programShelfLabel`, not a literal here — see
+              its header for why "Deep work" was retired. */}
+          {isDeep ? (
+            <View
+              style={[
+                styles.tierChip,
+                { backgroundColor: colors.accent.purple },
+                accentEdge(colors, "purple"),
+              ]}
+            >
+              <Icon
+                name={icons.pro}
+                size={size.iconInline}
+                color={colors.accentOn.purple}
+              />
+              <Text variant="eyebrow" color={colors.accentOn.purple}>
+                {programShelfLabel(item)}
+              </Text>
+            </View>
+          ) : null}
 
-        {/* ── the header: what it is, and what it costs ───────────────
-            One row, because a title and its price are one fact when you are
-            comparing nine of these. The price never shrinks — a half-shown
-            price is worse than none — so the title yields instead. */}
-        <View style={styles.cardHead}>
-          <Text variant="h3" color="primary" style={styles.cardTitle}>
-            {item.title}
-          </Text>
-          {item.owned ? (
-            /* ON THE YOURS SHELF, "OWNED" IS THE NAME OF THE SHELF.
-               Printing it on every card there says nothing the tab did not
-               already say, and it says it where the only useful thing a card
-               can offer is a way in. So the badge becomes the action. */
-            view === "yours" ? (
-              <View style={styles.ownedTag}>
-                <Text variant="title" color={colors.text.accent}>
-                  {item.packId && item.packId === activePackId
-                    ? "Resume"
-                    : "Open"}
-                </Text>
-                <Icon
-                  name={icons.chevronRight}
-                  size={size.iconSm}
-                  color={colors.text.accent}
-                />
-              </View>
+          {/* ── the header: what it is, and what it costs ───────────────
+              One row, because a title and its price are one fact when you are
+              comparing nine of these. The price never shrinks — a half-shown
+              price is worse than none — so the title yields instead. */}
+          <View style={styles.cardHead}>
+            <Text variant="h3" color="primary" style={styles.cardTitle}>
+              {item.title}
+            </Text>
+            {item.owned ? (
+              /* ON THE YOURS SHELF, "OWNED" IS THE NAME OF THE SHELF.
+                 Printing it on every card there says nothing the tab did not
+                 already say, and it says it where the only useful thing a card
+                 can offer is a way in. So the badge becomes the action. */
+              view === "yours" ? (
+                <View style={styles.ownedTag}>
+                  <Text variant="title" color={colors.text.accent}>
+                    {item.packId && item.packId === activePackId
+                      ? "Resume"
+                      : "Open"}
+                  </Text>
+                  <Icon
+                    name={icons.chevronRight}
+                    size={size.iconSm}
+                    color={colors.text.accent}
+                  />
+                </View>
+              ) : (
+                <View style={styles.ownedTag}>
+                  <Icon
+                    name={icons.success}
+                    size={size.iconSm}
+                    color={colors.feedback.successText}
+                  />
+                  <Text variant="title" color={colors.feedback.successText}>
+                    Owned
+                  </Text>
+                </View>
+              )
             ) : (
-              <View style={styles.ownedTag}>
-                <Icon
-                  name={icons.success}
-                  size={size.iconSm}
-                  color={colors.feedback.successText}
-                />
-                <Text variant="title" color={colors.feedback.successText}>
-                  Owned
-                </Text>
-              </View>
-            )
+              <PriceTag
+                priceInr={item.priceInr}
+                anchorInr={item.anchorPriceInr}
+                priceUsd={item.priceUsd}
+                anchorUsd={item.anchorPriceUsd}
+                store={storePrices[item.tierProductId]}
+                storeAnchor={storePriceFor(storePrices, item.anchorTierProductId)}
+                compact
+              />
+            )}
+          </View>
+
+          {/* THE BLURB IS GONE, AND THAT IS THE POINT. Every card used to carry a
+              marketing sentence AND this one, stacked at nearly the same weight —
+              two paragraphs a card, thirty-odd lines down the list, competing with
+              each other for the same job. This is the better line: it is the only
+              text on the card that could not be printed in a brochure. Rendered
+              only when the server sent a reason it can stand behind. */}
+          {reason ? (
+            <Text variant="bodySm" color="accent" numberOfLines={2}>
+              {reason}
+            </Text>
+          ) : null}
+
+          {isDeep ? (
+            /* THE TICKS ARE `accentText.success`, NOT LIME — deliberately. Lime on
+               a paper card measures about 1.8:1 and would disappear, but the real
+               reason is that lime is the TOP MATCH mark. Spending it on nine
+               inclusion bullets is how a signal stops meaning anything. Success
+               green says "included", which is what a tick means, and
+               `accentText.*` resolves per scheme so it is legible on both. */
+            <View
+              style={[styles.incl, { borderTopColor: colors.border.default }]}
+            >
+              {lines.map((line) => (
+                <View key={line} style={styles.inclLine}>
+                  <Icon
+                    name={icons.success}
+                    size={size.iconInline}
+                    color={colors.accentText.success}
+                  />
+                  <Text
+                    variant="bodySm"
+                    color="secondary"
+                    style={styles.inclText}
+                  >
+                    {line}
+                  </Text>
+                </View>
+              ))}
+            </View>
           ) : (
-            <PriceTag
-              priceInr={item.priceInr}
-              anchorInr={item.anchorPriceInr}
-              priceUsd={item.priceUsd}
-              anchorUsd={item.anchorPriceUsd}
-              store={storePrices[item.tierProductId]}
-              storeAnchor={storePriceFor(storePrices, item.anchorTierProductId)}
-              compact
-            />
+            /* The comparables. `surface.control` and not a low-alpha wash: a 6%
+               scrim reads at 1.10:1 against the paper card and the chips vanish,
+               which is the same near-white-on-cream failure the whole scheme is
+               prone to. `control` is the DS's answer to exactly this — 1.31:1 on
+               ink, 1.39:1 on paper — and its label clears AA on both. */
+            <View style={styles.facts}>
+              {facts.map((fact) => (
+                <View
+                  key={fact}
+                  style={[
+                    styles.fact,
+                    { backgroundColor: colors.surface.control },
+                  ]}
+                >
+                  <Text variant="caption" color="secondary">
+                    {fact}
+                  </Text>
+                </View>
+              ))}
+            </View>
           )}
         </View>
-
-        {/* THE BLURB IS GONE, AND THAT IS THE POINT. Every card used to carry a
-            marketing sentence AND this one, stacked at nearly the same weight —
-            two paragraphs a card, thirty-odd lines down the list, competing with
-            each other for the same job. This is the better line: it is the only
-            text on the card that could not be printed in a brochure. Rendered
-            only when the server sent a reason it can stand behind. */}
-        {reason ? (
-          <Text variant="bodySm" color="accent" numberOfLines={2}>
-            {reason}
-          </Text>
-        ) : null}
-
-        {isDeep ? (
-          /* THE TICKS ARE `accentText.success`, NOT LIME — deliberately. Lime on
-             a paper card measures about 1.8:1 and would disappear, but the real
-             reason is that lime is the TOP MATCH mark. Spending it on nine
-             inclusion bullets is how a signal stops meaning anything. Success
-             green says "included", which is what a tick means, and
-             `accentText.*` resolves per scheme so it is legible on both. */
-          <View
-            style={[styles.incl, { borderTopColor: colors.border.default }]}
-          >
-            {lines.map((line) => (
-              <View key={line} style={styles.inclLine}>
-                <Icon
-                  name={icons.success}
-                  size={size.iconInline}
-                  color={colors.accentText.success}
-                />
-                <Text
-                  variant="bodySm"
-                  color="secondary"
-                  style={styles.inclText}
-                >
-                  {line}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          /* The comparables. `surface.control` and not a low-alpha wash: a 6%
-             scrim reads at 1.10:1 against the paper card and the chips vanish,
-             which is the same near-white-on-cream failure the whole scheme is
-             prone to. `control` is the DS's answer to exactly this — 1.31:1 on
-             ink, 1.39:1 on paper — and its label clears AA on both. */
-          <View style={styles.facts}>
-            {facts.map((fact) => (
-              <View
-                key={fact}
-                style={[
-                  styles.fact,
-                  { backgroundColor: colors.surface.control },
-                ]}
-              >
-                <Text variant="caption" color="secondary">
-                  {fact}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
       </PressableScale>
     );
   };
@@ -1586,6 +1602,8 @@ const HERO_COVER_W = 144;
  * peeking in says the row goes on.
  */
 const ROW_TILE_W = 148;
+/** A cover beside an owned program's card on "Your programs". */
+const OWNED_COVER_W = 84;
 
 type TierFilter = "all" | "regular" | "deep";
 
@@ -1753,6 +1771,17 @@ const styles = StyleSheet.create({
     gap: space.rowGap,
     // No marginBottom — `Page` already puts `space.groupGap` between children,
     // and the old margin stacked on top of it for a 28px trench between cards.
+  },
+  cardWithCover: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  cardWithCoverBody: {
+    flex: 1,
+    gap: space.rowGap,
+  },
+  cardBodyPlain: {
+    gap: space.rowGap,
   },
   cardHead: {
     flexDirection: "row",
