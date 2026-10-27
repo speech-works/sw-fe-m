@@ -261,3 +261,30 @@ describe("groupBlocks: divider", () => {
     expect(kinds("--- and more")).toEqual(["paragraph"]);
   });
 });
+
+describe("groupBlocks story box", () => {
+  const source = [
+    "Before.",
+    ":::story",
+    "**Vidya** told him at lunch. [Read Vidya's story](https://stamma.org/node/1215)",
+    ":::takeaway",
+    "You can choose a different moment.",
+    ":::",
+    "After.",
+  ].join("\n");
+
+  it("reads the story and its takeaway as one block between the paragraphs", () => {
+    const blocks = groupBlocks(source.split("\n"));
+    expect(blocks.map((b) => b.kind)).toEqual(["paragraph", "story", "paragraph"]);
+    expect(blocks[1]).toEqual({
+      kind: "story",
+      story: "**Vidya** told him at lunch. [Read Vidya's story](https://stamma.org/node/1215)",
+      takeaway: "You can choose a different moment.",
+    });
+  });
+
+  it("allows a story with no takeaway", () => {
+    const blocks = groupBlocks([":::story", "Text.", ":::"]);
+    expect(blocks).toEqual([{ kind: "story", story: "Text.", takeaway: "" }]);
+  });
+});

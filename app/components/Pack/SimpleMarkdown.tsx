@@ -104,6 +104,25 @@ export const SimpleMarkdown = ({
               </View>
             );
 
+          case "story":
+            // A real person's story, then what it means for the reader here.
+            // Its own surface and label, so it never reads as a line to say
+            // out loud (that is what a blockquote is in pack content).
+            return (
+              <View key={index} style={styles.story} testID="markdown-story">
+                <Text style={styles.storyLabel}>A real story</Text>
+                <SimpleMarkdown content={block.story} textColor={textColor} />
+                {block.takeaway.trim() !== "" && (
+                  <View style={styles.storyTakeaway}>
+                    <Text style={styles.storyLabel}>What this means for you</Text>
+                    <Text style={[styles.storyTakeawayText, textStyle]}>
+                      {parseLinksAndBold(block.takeaway.trim().split(/\s*\n\s*/).join(" "), linkColor, textColor)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+
           case "blockquote":
             return (
               <View key={index} style={styles.blockquote}>
@@ -180,6 +199,7 @@ export type Block =
   | { kind: "divider" }
   | { kind: "header"; level: 1 | 2 | 3 | 4; text: string }
   | { kind: "blockquote"; text: string }
+  | { kind: "story"; story: string; takeaway: string }
   | { kind: "checkbox"; checked: boolean; text: string }
   | { kind: "list"; marker: string; text: string }
   | { kind: "paragraph"; text: string };
@@ -189,10 +209,26 @@ function isDivider(trimmed: string): boolean {
   return trimmed === "---";
 }
 
+/**
+ * A story box, written by the server as
+ *
+ *   :::story
+ *   **Name** did this. [Read Name's story on STAMMA](url)
+ *   :::takeaway
+ *   What it means at this point in the program.
+ *   :::
+ *
+ * The console's Markdown.tsx reads the same lines.
+ */
+const STORY_OPEN = ":::story";
+const STORY_TAKEAWAY = ":::takeaway";
+const STORY_CLOSE = ":::";
+
 /** Does a trimmed line carry a marker that starts a genuinely new block? */
 function isBlockMarker(trimmed: string): boolean {
   return (
     isDivider(trimmed) ||
+    trimmed.startsWith(":::") ||
     trimmed.startsWith("#") ||
     trimmed.startsWith("> ") ||
     trimmed.startsWith("- ") ||
@@ -229,6 +265,19 @@ export function groupBlocks(lines: string[]): Block[] {
     if (trimmed === "") {
       blocks.push({ kind: "blank" });
       i++;
+      continue;
+    }
+
+    if (trimmed === STORY_OPEN) {
+      const story: string[] = [];
+      const takeaway: string[] = [];
+      let into = story;
+      for (i++; i < lines.length && lines[i].trim() !== STORY_CLOSE; i++) {
+        if (lines[i].trim() === STORY_TAKEAWAY) into = takeaway;
+        else into.push(lines[i]);
+      }
+      i++; // the closing ":::"
+      blocks.push({ kind: "story", story: story.join("\n"), takeaway: takeaway.join("\n") });
       continue;
     }
 
@@ -673,6 +722,31 @@ const useStyles = makeStyles((c, t) => ({
     marginVertical: 16,
     backgroundColor: c.action.primaryTint,
     borderRadius: t.radius.md,
+  },
+  story: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginVertical: 16,
+    backgroundColor: c.surface.inset,
+    borderRadius: t.radius.md,
+  },
+  storyLabel: {
+    ...t.typography.caption,
+    color: c.text.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  storyTakeaway: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: c.border.hairline,
+  },
+  storyTakeawayText: {
+    ...t.typography.body,
+    fontFamily: fonts.semibold,
+    color: c.text.primary,
   },
   blockquoteText: {
     ...t.typography.body,
