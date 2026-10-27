@@ -12,6 +12,7 @@ import {
 } from "../../../design-system";
 import { GoalHarness } from "../../../api/programGoals/types";
 import { ASK_COPY, countWord } from "./copy";
+import { composeGoal } from "./compose";
 
 /**
  * STEP 3: what they just committed to, and what we will do with it.
@@ -33,14 +34,8 @@ export function StepConfirm({
   goals: string[];
 }) {
   const { colors } = useTheme();
-  // Same as the server's composeGoal: "{} again" plus "call someone" reads
-  // "Call someone again". Only the first letter of the sentence is raised.
-  const compose = (noun: string) => {
-    const text = harness.verb.replace("{}", noun);
-    return harness.verb.startsWith("{} ")
-      ? text.charAt(0).toUpperCase() + text.slice(1)
-      : text;
-  };
+  // Same as the server's composeGoal, so this screen and day 7 agree.
+  const compose = (noun: string) => composeGoal(harness.verb, noun);
 
   return (
     <View style={styles.root}>
