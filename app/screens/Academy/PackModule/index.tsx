@@ -86,6 +86,7 @@ import {
   sameBlockIndex,
   takeSavedSteps,
 } from "../../../util/packs/dayRefresh";
+import { dayStepKey, resumeStepIndex } from "../../../util/packs/dayStep";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -802,6 +803,41 @@ const PackModuleScreen = () => {
     };
   }, [packId, module?.id]);
 
+  /**
+   * Back to the step they left, so Continue on Home means continue. Kept on
+   * the phone by step id, because a day can change between visits. A route
+   * that names its step (coming back from an activity) wins. The screen waits
+   * on this so step 1 never flashes first.
+   */
+  const [stepReady, setStepReady] = useState(false);
+  const moduleId = module?.id;
+  useEffect(() => {
+    if (!moduleId) return;
+    if (initialBlockIndex !== undefined) {
+      setStepReady(true);
+      return;
+    }
+    let alive = true;
+    AsyncStorage.getItem(dayStepKey(packId, moduleId))
+      .catch(() => null)
+      .then((saved) => {
+        if (!alive) return;
+        setCurrentBlockIndex(resumeStepIndex(moduleRef.current?.blocks, saved));
+        setStepReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [packId, moduleId, initialBlockIndex]);
+
+  useEffect(() => {
+    const stepId = module?.blocks?.[currentBlockIndex]?.id;
+    if (!stepReady || !module?.id || !stepId) return;
+    void AsyncStorage.setItem(dayStepKey(packId, module.id), stepId).catch(() => {
+      /* Costs only the resume point: the day opens at step 1. */
+    });
+  }, [packId, module?.id, module?.blocks, currentBlockIndex, stepReady]);
+
   // Load persistent block-to-activity mapping on mount
   useEffect(() => {
     if (!module) return;
@@ -1005,6 +1041,8 @@ const PackModuleScreen = () => {
       // skipTally is null unless they answered the "why" question, and null is
       // the honest signal for "unknown" -- see completeModule.
       await completeModule(packId, module.id, skipTally);
+      // A finished day opens at step 1 again.
+      void AsyncStorage.removeItem(dayStepKey(packId, module.id)).catch(() => {});
 
       // Check for next module
       try {
@@ -1144,7 +1182,7 @@ const PackModuleScreen = () => {
     }
   };
 
-  if (loading || !gateReady) {
+  if (loading || !gateReady || (module && !stepReady)) {
     return (
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
         <SchemeStatusBar />
