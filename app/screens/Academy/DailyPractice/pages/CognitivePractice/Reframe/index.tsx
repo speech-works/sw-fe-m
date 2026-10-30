@@ -461,7 +461,7 @@ const Reframe = () => {
           onBack={onBackPress}
           footer={
             <Button
-              label="Start Exercise"
+              label="Start exercise"
               onPress={handleStart}
               accentColor={accentColor}
               onAccentColor={onAccentColor}
@@ -734,7 +734,7 @@ const Reframe = () => {
 
             {(selectedReframe || writtenReframe.length > 0) && (
               <Button
-                label="Submit Reframe"
+                label="Submit reframe"
                 onPress={() => void finishActivity()}
                 accentColor={accentColor}
                 onAccentColor={onAccentColor}

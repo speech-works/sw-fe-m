@@ -18,6 +18,7 @@ import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import NotificationPermissionPrompt from "../../components/NotificationPermissionPrompt";
 import { IdentityBlock } from "./components/IdentityBlock";
 import ReachRow from "./components/ReachRow";
+import { rowRepeatsPlanCard } from "./components/ReachRow/state";
 import {
   WaitingGoalCard,
   isDismissedToday,
@@ -122,27 +123,44 @@ const Home = () => {
   const [reach, setReach] = useState<ReachSummary | null>(null);
   const [waitingHidden, setWaitingHidden] = useState(true);
 
+  const reachRequest = useRef(0);
+  const loadReach = useCallback(async () => {
+    const request = ++reachRequest.current;
+    try {
+      const summary = await getReachSummary();
+      if (request !== reachRequest.current) return;
+      setReach(summary);
+      // "Still not yet" hides it for the rest of the day. Checked here so
+      // the card is never pushed and then withdrawn on the next frame.
+      const goal = summary.oldestWaiting;
+      const hidden = !goal || (await isDismissedToday(goal.id));
+      if (request === reachRequest.current) setWaitingHidden(hidden);
+    } catch {
+      /* Both surfaces are absent rather than broken. */
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      let alive = true;
-      void (async () => {
-        try {
-          const summary = await getReachSummary();
-          if (!alive) return;
-          setReach(summary);
-          // "Still not yet" hides it for the rest of the day. Checked here so
-          // the card is never pushed and then withdrawn on the next frame.
-          const goal = summary.oldestWaiting;
-          setWaitingHidden(!goal || (await isDismissedToday(goal.id)));
-        } catch {
-          /* Both surfaces are absent rather than broken. */
-        }
-      })();
+      void loadReach();
       return () => {
-        alive = false;
+        reachRequest.current += 1;
       };
-    }, []),
+    }, [loadReach]),
   );
+
+  // Answered. Without a fresh summary the row comes back under the old plan.
+  const onGoalDone = useCallback(() => {
+    setWaitingHidden(true);
+    void loadReach();
+  }, [loadReach]);
+
+  // A plan whose day has come sits above the shelf, on its own. The morning
+  // reminder opens Home, and the card that asks how it went must be the one
+  // they see, not one below the fold. A goal with no day stays in the rotation:
+  // "No rush" is not a thing to put first every morning.
+  const planDue =
+    reach?.oldestWaiting?.report === "PLANNED" && !waitingHidden;
 
   const cards: string[] = [];
   if (showOnboarding) cards.push("onboarding");
@@ -155,7 +173,7 @@ const Home = () => {
   // Before the mood check, after the call, for the same reason the call is:
   // this is a standing thing about their life, and the mood check is today's
   // business that comes back tomorrow.
-  if (reach?.oldestWaiting && !waitingHidden) cards.push("goal");
+  if (reach?.oldestWaiting && !waitingHidden && !planDue) cards.push("goal");
 
   if (showMoodCheck) cards.push("mood");
 
@@ -290,7 +308,7 @@ const Home = () => {
         <WaitingGoalCard
           key={`goal-${reach.oldestWaiting.id}`}
           goal={reach.oldestWaiting}
-          onDone={() => setWaitingHidden(true)}
+          onDone={onGoalDone}
         />
       );
     }
@@ -332,6 +350,15 @@ const Home = () => {
       >
         <IdentityBlock />
 
+        {planDue && reach?.oldestWaiting ? (
+          <WaitingGoalCard
+            key={`goal-${reach.oldestWaiting.id}`}
+            goal={reach.oldestWaiting}
+            onDone={onGoalDone}
+            standalone
+          />
+        ) : null}
+
         {/* ABOVE the carousel and outside it, deliberately. A standing fact
             about what somebody has done should not have to be swiped to, and
             should not sit in a rotation with today's business.
@@ -341,7 +368,9 @@ const Home = () => {
             Somebody who has never named a goal sees the carousel exactly where
             it was. Anybody else gets one short card of their own words before
             the app starts offering them things, which is the right order. */}
-        <ReachRow key={`reach-${refreshKey}`} summary={reach} />
+        {rowRepeatsPlanCard(reach, !waitingHidden) ? null : (
+          <ReachRow key={`reach-${refreshKey}`} summary={reach} />
+        )}
 
         {/* ── ONE ROW ABOUT PROGRAMS, NOT TWO ───────────────────────────────
             SmartRecommendationCard used to sit here, above the shelf, carrying

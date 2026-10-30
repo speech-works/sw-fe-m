@@ -668,7 +668,7 @@ const Meditation = () => {
           />
 
           <Button
-            label="Complete Session"
+            label="Complete session"
             variant="secondary"
             onPress={handleCompletePress}
             fullWidth={false}
@@ -690,14 +690,14 @@ const Meditation = () => {
             </Text>
             <View style={styles.skipModalActions}>
               <Button
-                label="End Session"
+                label="End session"
                 variant="primary"
                 onPress={confirmEarlyExit}
                 accentColor={accentColor}
                 onAccentColor={onAccentColor}
               />
               <Button
-                label="Continue Practice"
+                label="Continue practice"
                 variant="secondary"
                 onPress={() => setShowEarlyExitPrompt(false)}
               />
@@ -742,7 +742,7 @@ const Meditation = () => {
         }
         footer={
           <Button
-            label="Start Exercise"
+            label="Start exercise"
             onPress={handleStart}
             accentColor={accentColor}
             onAccentColor={onAccentColor}

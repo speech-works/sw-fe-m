@@ -29,6 +29,10 @@ describe("placeholderFor", () => {
 });
 
 describe("looksThin", () => {
+  it("never asks for more when the answer is meant to be one word", () => {
+    expect(looksThin(["Paris", "coffee", "seven"], "word")).toBe(false);
+  });
+
   it("says nothing while a slot is still empty", () => {
     // Correcting somebody mid-typing is the fastest way to lose them.
     expect(looksThin(["bank", "", ""], "call")).toBe(false);

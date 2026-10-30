@@ -27,13 +27,14 @@ export function placeholderFor(placeholder: string, index: number): string {
  * Whether to show the one soft line about saying more.
  *
  * A single word is a COMPLETE answer when the question asks for a person:
- * "Amma" is a whole answer and nudging there is rude. Everywhere else a single
+ * "Amma" is a whole answer and nudging there is rude. The same goes for Word
+ * Swap, which asks for single words. Everywhere else a single
  * word usually means they have not said which call, or when.
  *
  * Only once every slot is filled, so nobody is corrected mid-typing.
  */
 export function looksThin(values: string[], noun: string): boolean {
-  if (noun === "person") return false;
+  if (noun === "person" || noun === "word") return false;
   if (!values.every((v) => v.trim().length > 0)) return false;
   return values.some((v) => v.trim().split(/\s+/).length === 1);
 }

@@ -14,6 +14,7 @@ import {
   Button,
   Surface,
   ProgressBar,
+  usePageScroll,
   useTheme,
   spacing,
   radius,
@@ -100,6 +101,12 @@ interface QuizRunnerProps {
    * card then shows no button, and the host calls `press()` on the ref.
    */
   onFooterChange?: (state: QuizFooterState) => void;
+
+  /**
+   * Show "Question 1 of 2" alone. For a host with its own progress bar above,
+   * where a second bar costs the answers their room on a small phone.
+   */
+  countOnly?: boolean;
 }
 
 /** For a host that draws the button itself (see `onFooterChange`). */
@@ -117,10 +124,12 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
     eyebrow = "ASSESSMENT QUESTION",
     finishLabel = "Submit Quiz",
     onFooterChange,
+    countOnly = false,
   },
   ref,
 ) {
   const { colors } = useTheme();
+  const pageScroll = usePageScroll();
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number>();
   const [revealed, setRevealed] = useState(false);
@@ -234,11 +243,15 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
           <Text variant="bodySm" color="secondary">
             Question {index + 1} of {questions.length}
           </Text>
-          <Text variant="bodySm" color="primary">
-            {Math.round(progress * 100)}%
-          </Text>
+          {countOnly ? null : (
+            <Text variant="bodySm" color="primary">
+              {Math.round(progress * 100)}%
+            </Text>
+          )}
         </View>
-        <ProgressBar value={progress} color={colors.text.accent} height={8} />
+        {countOnly ? null : (
+          <ProgressBar value={progress} color={colors.text.accent} height={8} />
+        )}
       </View>
 
       <Surface level="default" rounded="card" bordered style={styles.card}>
@@ -335,6 +348,9 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
 
         {revealed && chosen?.explanation ? (
           <View
+            // The explanation is the point of the question, and it landed
+            // below the fold with only its top edge showing.
+            onLayout={() => pageScroll?.scrollToEnd()}
             style={[
               styles.explanation,
               {

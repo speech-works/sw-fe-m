@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  PixelRatio,
   View,
   FlatList,
   KeyboardAvoidingView,
@@ -37,6 +38,8 @@ export interface PageProps {
   title?: string;
   /** Optional secondary line under the title. */
   description?: string;
+  /** The small header, for a step in a flow. See PageHeader. */
+  compactHeader?: boolean;
   onBack?: () => void;
   /** Trailing slot in the back bar (e.g. an action IconButton). */
   right?: React.ReactNode;
@@ -84,6 +87,7 @@ const FOOTER_RESERVE = 96; // space kept clear at the bottom when a footer is pi
 export const Page: React.FC<PageProps> = ({
   title,
   description,
+  compactHeader,
   onBack,
   right,
   hero,
@@ -113,6 +117,7 @@ export const Page: React.FC<PageProps> = ({
   // is honest for the static one and simply unused by the list one today.
   const scrollY = useSharedValue(0);
   const hostRef = useRef<View>(null);
+  const scrollRef = useRef<any>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
 
   const onScroll = useAnimatedScrollHandler((e) => {
@@ -152,6 +157,7 @@ export const Page: React.FC<PageProps> = ({
       viewportTop: viewport.top,
       viewportHeight: viewport.height,
       occludedBottom,
+      scrollToEnd: () => scrollRef.current?.scrollToEnd({ animated: true }),
     }),
     [scrollY, viewport.top, viewport.height, occludedBottom],
   );
@@ -163,7 +169,13 @@ export const Page: React.FC<PageProps> = ({
   // One source of truth for the header — shared with custom-layout screens. A
   // custom `hero` (e.g. Home's screenTitle greeting) replaces the h1 header block.
   const titleBlock = hero ?? (
-    <PageHeader title={title ?? ""} description={description} onBack={onBack} right={right} />
+    <PageHeader
+      title={title ?? ""}
+      description={description}
+      onBack={onBack}
+      right={right}
+      compact={compactHeader}
+    />
   );
 
   let body: React.ReactNode;
@@ -198,8 +210,15 @@ export const Page: React.FC<PageProps> = ({
       // `keyboardShouldPersistTaps` and the content padding are untouched, and
       // CustomScrollView already runs this exact swap in this app.
       <Animated.ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        // Android only. It scrolls a focused box until the box touches the
+        // bottom edge, which cut the card around it in a straight line. With a
+        // fading edge it stops short of the edge and the card fades out.
+        fadingEdgeLength={
+          keyboardInset > 0 ? PixelRatio.getPixelSizeForLayoutSize(space.sectionGap) : 0
+        }
         refreshControl={refreshControl}
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -243,11 +262,24 @@ export const Page: React.FC<PageProps> = ({
       // built on Page. "height" is the Android equivalent of the iOS "padding"
       // behaviour and works off RN's keyboard events, which still fire
       // correctly (ReactRootView reads WindowInsets.Type.ime() on API 30+).
+      //
+      // The padding is for Android, where the floating footer rides up on the
+      // keyboard. Without it the footer sits over the bottom of the scroll
+      // area, so the box being typed in ended up behind the Save button.
+      // It is padding inside the KAV: a margin on the KAV is cancelled out,
+      // because the KAV then measures that much less overlap with the keyboard.
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {body}
+        <View
+          style={{
+            flex: 1,
+            paddingBottom: footer && !footerDocked && keyboardInset > 0 ? footerH : 0,
+          }}
+        >
+          {body}
+        </View>
       </KeyboardAvoidingView>
     );
   }

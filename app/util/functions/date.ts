@@ -66,6 +66,13 @@ const parseAnyDateString = (dateString: string): Date | string => {
   return dateString;
 };
 
+/**
+ * Keys that hold a calendar day ("2026-10-31"), not a moment. Turned into a
+ * Date they become UTC midnight, which is the day before anywhere west of
+ * UTC, and every reader of them compares or prints the string.
+ */
+const CALENDAR_DAY_KEYS = new Set(["plannedFor"]);
+
 export const reviveDatesInObject = (obj: any): any => {
   if (obj === null || typeof obj !== "object") {
     return obj;
@@ -80,7 +87,9 @@ export const reviveDatesInObject = (obj: any): any => {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
 
-      if (typeof value === "string") {
+      if (typeof value === "string" && CALENDAR_DAY_KEYS.has(key)) {
+        newObj[key] = value;
+      } else if (typeof value === "string") {
         const parsed = parseAnyDateString(value);
         if (parsed instanceof Date) {
           newObj[key] = parsed;

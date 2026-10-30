@@ -195,9 +195,11 @@ export function useConfirmOnExit({
 
   const handleDiscard = useCallback(() => {
     allowLeave.current = true;
-    // Pack- and mood-launched practices have an explicit cross-stack destination
-    // (PackModule / Home), so keep navigating there.
-    if (packContext?.packId || from === "MOOD_CHECK") {
+    // Mood-launched practices have an explicit cross-stack destination (Home).
+    // Pack-launched ones replay the back below when there is one: `navigate` in
+    // React Navigation 7 pushes a new day screen over the practice, so the next
+    // Back reopened the practice.
+    if (from === "MOOD_CHECK" || (packContext?.packId && !pendingActionRef.current)) {
       navigateToExit(navigation, { family, from, packContext });
       return;
     }

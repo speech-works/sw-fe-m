@@ -25,7 +25,7 @@ import {
 } from "../../../design-system";
 import {
   showErrorBottomSheet,
-  showSuccessBottomSheet,
+  showSavedBottomSheet,
 } from "../../../util/functions/bottomSheet";
 import { noteStepSaved } from "../../../util/packs/dayRefresh";
 import {
@@ -422,7 +422,7 @@ const PackFormScreen = () => {
       // ONE OUTCOME, ALWAYS. A "breakthrough" modal used to pre-empt this —
       // see the note in `api/forms/types.ts` for why it is gone.
       const saved = formSavedMessage(configuration?.formKey);
-      showSuccessBottomSheet(saved.title, saved.body);
+      showSavedBottomSheet(saved.title, saved.body);
       navigation.goBack();
     } catch (error: any) {
       console.error("Form submission failed:", error);
@@ -476,7 +476,7 @@ const PackFormScreen = () => {
         keyboardAvoiding
         footer={
           <Button
-            label="Complete"
+            label="Save"
             leftIcon="check"
             accentColor={accent}
             onAccentColor={onAccent}

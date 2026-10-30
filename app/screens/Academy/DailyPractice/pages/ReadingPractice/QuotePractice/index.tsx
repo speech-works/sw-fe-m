@@ -355,7 +355,7 @@ const QuotePractice = () => {
         }
         footer={
           <Button
-            label="Start Practice"
+            label="Start practice"
             onPress={() => runStart()}
             loading={isStarting || isLoading || !hasHydrated}
             disabled={isStarting || !hasHydrated || isLoading}

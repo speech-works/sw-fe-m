@@ -8,9 +8,12 @@
 
 /**
  * What the user said happened to one goal. Labels come from `reportStyle`.
- * NO_NEED ("No need") is offered only by `did_it_no_need` and closes the goal.
+ * NO_NEED ("No need") is offered by `did_it_no_need` and `did_it_planned`,
+ * and closes the goal. PLANNED ("Planned", with a day in `plannedFor`) is
+ * offered only by `did_it_planned` (The Art of Disclosure). It keeps the goal
+ * open; Home waits for that day, and the server sends a reminder on it.
  */
-export type GoalReport = "FULL" | "PARTIAL" | "NONE" | "NO_NEED";
+export type GoalReport = "FULL" | "PARTIAL" | "NONE" | "NO_NEED" | "PLANNED";
 
 /**
  * "deed" for the eight programs that ask what somebody will do.
@@ -26,6 +29,7 @@ export type GoalAnswerType = "deed" | "prediction";
 export type GoalReportStyle =
   | "did_it"
   | "did_it_no_need"
+  | "did_it_planned"
   | "still_true"
   | "came_true";
 
@@ -63,6 +67,11 @@ export interface ProgramGoal {
   closedAt: string | null;
   answerType: GoalAnswerType;
   reportStyle: GoalReportStyle;
+  /**
+   * The day picked with a PLANNED answer, "YYYY-MM-DD" on the user's own
+   * calendar. Null otherwise. Optional because older servers do not send it.
+   */
+  plannedFor?: string | null;
 }
 
 export interface ProgramGoalState {
@@ -110,6 +119,11 @@ export interface ReachSummary {
   latestDone: ProgramGoal | null;
   /** Shown instead when nothing is done yet, so the row is never empty. */
   oldestWaiting: ProgramGoal | null;
+  /**
+   * The nearest plan whose day has not come yet. `oldestWaiting` leaves these
+   * out until their day. Optional because older servers do not send it.
+   */
+  nextPlanned?: ProgramGoal | null;
   /**
    * The last fallback: a goal from a program still running.
    *

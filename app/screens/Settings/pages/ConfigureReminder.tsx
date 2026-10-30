@@ -256,7 +256,7 @@ export default function ConfigureReminder() {
         title={CATEGORY_LABELS[selectedCategory]}
         onBack={() => navigation.goBack()}
         keyboardAvoiding
-        footer={<Button label="Save Reminder" onPress={handleSave} />}
+        footer={<Button label="Save reminder" onPress={handleSave} />}
       >
         {/* One-time vs routine */}
         <TabDock

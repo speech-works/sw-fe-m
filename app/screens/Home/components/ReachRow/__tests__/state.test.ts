@@ -1,4 +1,4 @@
-import { MAX_DOTS, countWord, resolveReachRow } from "../state";
+import { MAX_DOTS, countWord, resolveReachRow, rowRepeatsPlanCard } from "../state";
 import type { ProgramGoal, ReachSummary } from "../../../../../api/programGoals/types";
 
 const goal = (text: string): ProgramGoal => ({
@@ -24,7 +24,46 @@ const sum = (over: Partial<ReachSummary>): ReachSummary => ({
   ...over,
 });
 
+const planned = (text: string, plannedFor: string): ProgramGoal => ({
+  ...goal(text),
+  report: "PLANNED",
+  reportStyle: "did_it_planned",
+  plannedFor,
+});
+
 describe("resolveReachRow", () => {
+  it("says today is the day when a plan's day has come", () => {
+    const s = resolveReachRow(
+      sum({ total: 3, waiting: 1, oldestWaiting: planned("Tell Priya", "2026-11-04") }),
+    )!;
+    expect(s.kind).toBe("planned");
+    expect(s.eyebrow).toBe("YOUR PLAN FOR TODAY");
+    expect(s.said).toBe("Tell Priya");
+  });
+
+  it("names the day of a plan still ahead, never an empty sentence", () => {
+    const s = resolveReachRow(
+      sum({ total: 3, waiting: 1, nextPlanned: planned("Tell Priya", "2026-11-04") }),
+    )!;
+    expect(s.kind).toBe("planned");
+    expect(s.eyebrow).toMatch(/^PLANNED FOR /);
+    expect(s.said).toBe("Tell Priya");
+    expect(s.sub).toBe("You get a reminder that morning.");
+  });
+
+  it("keeps the old row when the oldest waiting goal is not a plan", () => {
+    const s = resolveReachRow(
+      sum({
+        total: 3,
+        waiting: 2,
+        oldestWaiting: { ...goal("Tell Sam"), report: "NONE" },
+        nextPlanned: planned("Tell Priya", "2026-11-04"),
+      }),
+    )!;
+    expect(s.kind).toBe("none_done");
+    expect(s.said).toBe("Tell Sam");
+  });
+
   it("explains itself, and asks, only when nothing has ever been set", () => {
     const s = resolveReachRow(sum({}))!;
     expect(s.kind).toBe("empty");
@@ -213,5 +252,17 @@ describe("resolveReachRow", () => {
 
   it("renders nothing at all before the summary arrives", () => {
     expect(resolveReachRow(null)).toBeNull();
+  });
+
+  it("stands down only while the plan card is showing the same plan", () => {
+    const due = sum({ total: 3, waiting: 3, oldestWaiting: planned("Tell Sam", "2026-10-30") });
+    expect(rowRepeatsPlanCard(due, true)).toBe(true);
+    expect(rowRepeatsPlanCard(due, false)).toBe(false);
+
+    const later = sum({ total: 3, waiting: 1, nextPlanned: planned("Tell Sam", "2026-11-03") });
+    expect(rowRepeatsPlanCard(later, true)).toBe(false);
+
+    const someDone = sum({ ...due, done: 1, latestDone: goal("Tell Alex") });
+    expect(rowRepeatsPlanCard(someDone, true)).toBe(false);
   });
 });

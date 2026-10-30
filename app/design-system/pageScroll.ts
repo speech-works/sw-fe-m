@@ -26,6 +26,8 @@ export interface PageScrollState {
   viewportHeight: number;
   /** Points of the viewport's bottom edge hidden behind the floating tab dock. */
   occludedBottom: number;
+  /** Scrolls the page to its end, for content that just appeared below the fold. */
+  scrollToEnd: () => void;
 }
 
 export const PageScrollContext = createContext<PageScrollState | null>(null);

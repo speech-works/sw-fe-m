@@ -535,7 +535,7 @@ const Twister = () => {
         }
         footer={
           <Button
-            label={hasHydrated ? "Start Practice" : "Loading..."}
+            label={hasHydrated ? "Start practice" : "Loading..."}
             onPress={() => runStart()}
             loading={isStarting || !hasHydrated}
             disabled={isStarting || !hasHydrated}

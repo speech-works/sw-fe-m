@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -16,6 +16,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { cleanTitle } from "./cleanTitle";
 import PressableScale from "../../components/PressableScale";
 
 import {
@@ -102,18 +103,10 @@ const SHIMMER_GAP = 2400;
 const SHEEN_W = 84;
 
 /**
- * Normalise a session title for the timeline: strip a leading "Day 3:" /
- * "Module 3:" (the node owns the number) and any wrapping quotes, so a title
- * that quotes a question ("Tell me about yourself") reads as a heading like
- * every other day instead of being the odd one out. Display-only — the raw
- * server title is untouched everywhere else.
+ * Below this height the days/sessions row on the cover slides under the price.
+ * The cover line above it already says how many days.
  */
-const cleanTitle = (t: string) =>
-  t
-    .replace(/^(?:Day|Module|Session)\s*\d+\s*[:.\-–—]\s*/i, "")
-    .trim()
-    .replace(/^[“”"]+|[“”"]+$/g, "")
-    .trim();
+const COVER_STATS_MIN_HEIGHT = 720;
 
 const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   brochure,
@@ -676,6 +669,7 @@ const HookPage: React.FC<HookPageProps> = ({
   cover,
   coverTitle,
 }) => {
+  const { height: windowHeight } = useWindowDimensions();
   const { colors } = useTheme();
   const glow = colors.action.primary;
   const nudge = useSharedValue(0);
@@ -770,7 +764,7 @@ const HookPage: React.FC<HookPageProps> = ({
 
           {matchPill}
 
-          {(dayCount || sessionCount > 0) && (
+          {(dayCount || sessionCount > 0) && windowHeight >= COVER_STATS_MIN_HEIGHT && (
             <Animated.View
               entering={staggerEntering(2, reduceMotion)}
               style={[styles.statsRow, styles.coverStats]}

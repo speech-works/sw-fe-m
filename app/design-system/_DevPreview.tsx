@@ -386,7 +386,7 @@ export const DevPreview: React.FC = () => {
           iOS downloads natural voices in Settings. It only takes a minute.
         </Text>
         <View style={{ height: 16 }} />
-        <Button label="Open Settings" onPress={() => setSheetOpen(false)} />
+        <Button label="Open settings" onPress={() => setSheetOpen(false)} />
       </Sheet>
 
       <Dialog

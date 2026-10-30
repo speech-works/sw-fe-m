@@ -62,7 +62,7 @@ const Briefing = () => {
       onBack={() => navigation.goBack()}
       footer={
         <Button
-          label="Begin Challenge"
+          label="Begin challenge"
           accentColor={accentColor}
           onAccentColor={onAccentColor}
           onPress={async () => {

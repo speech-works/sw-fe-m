@@ -33,7 +33,8 @@ import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import { GoalRow } from "./GoalRow";
 import { prefillAnswers } from "./prefill";
-import { reportLabel } from "./labels";
+import { reportSummary } from "./labels";
+import { defaultPlannedDay } from "./PlannedDayPicker";
 
 /**
  * ===========================================================================
@@ -65,6 +66,8 @@ const GoalsReportScreen = () => {
   const [harness, setHarness] = useState<GoalHarness | null>(null);
   const [goals, setGoals] = useState<ProgramGoal[]>([]);
   const [answers, setAnswers] = useState<Record<string, GoalReport>>({});
+  /** The day under each "Planned" answer, by goal id. */
+  const [plannedDays, setPlannedDays] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [closed, setClosed] = useState(false);
@@ -83,6 +86,14 @@ const GoalsReportScreen = () => {
         // Somebody may have answered some of these already, through the card on
         // Home. Start from what the server holds rather than from blank.
         setAnswers(prefillAnswers(state.goals));
+        // A plan made earlier keeps its day; it is not reset to tomorrow.
+        setPlannedDays(
+          Object.fromEntries(
+            state.goals
+              .filter((g) => g.report === "PLANNED" && g.plannedFor)
+              .map((g) => [g.id, g.plannedFor as string]),
+          ),
+        );
       })
       .catch(() => {
         if (!alive) return;
@@ -121,7 +132,14 @@ const GoalsReportScreen = () => {
     try {
       const result = await reportProgramGoals(
         packId,
-        goals.map((g) => ({ goalId: g.id, report: answers[g.id] })),
+        goals.map((g) => ({
+          goalId: g.id,
+          report: answers[g.id],
+          plannedFor:
+            answers[g.id] === "PLANNED"
+              ? plannedDays[g.id] ?? defaultPlannedDay()
+              : null,
+        })),
       );
       haptics.medium();
       track(ANALYTICS_EVENTS.PROGRAM_GOALS_REPORTED, {
@@ -133,6 +151,7 @@ const GoalsReportScreen = () => {
         partial: goals.filter((g) => answers[g.id] === "PARTIAL").length,
         none: goals.filter((g) => answers[g.id] === "NONE").length,
         noNeed: goals.filter((g) => answers[g.id] === "NO_NEED").length,
+        planned: goals.filter((g) => answers[g.id] === "PLANNED").length,
         packClosed: result.packClosed,
       });
       setGoals(result.goals);
@@ -145,7 +164,7 @@ const GoalsReportScreen = () => {
     } finally {
       setSaving(false);
     }
-  }, [packId, goals, answers, harness]);
+  }, [packId, goals, answers, plannedDays, harness]);
 
   if (loading || !harness) {
     return (
@@ -179,7 +198,7 @@ const GoalsReportScreen = () => {
                   which read as a footnote rather than as the answer to the
                   line beside it. */}
               <Text variant="bodySm" color="secondary">
-                {goal.report ? reportLabel(goal.reportStyle, goal.report) : ""}
+                {reportSummary(goal)}
               </Text>
             </View>
           ))}
@@ -209,8 +228,17 @@ const GoalsReportScreen = () => {
             goal={goal}
             smallerExample={harness.smallerExample}
             selected={answers[goal.id] ?? null}
-            onSelect={(report) =>
-              setAnswers((prev) => ({ ...prev, [goal.id]: report }))
+            onSelect={(report) => {
+              setAnswers((prev) => ({ ...prev, [goal.id]: report }));
+              if (report === "PLANNED") {
+                setPlannedDays((prev) =>
+                  prev[goal.id] ? prev : { ...prev, [goal.id]: defaultPlannedDay() },
+                );
+              }
+            }}
+            plannedFor={plannedDays[goal.id]}
+            onPlannedFor={(day) =>
+              setPlannedDays((prev) => ({ ...prev, [goal.id]: day }))
             }
           />
         </View>

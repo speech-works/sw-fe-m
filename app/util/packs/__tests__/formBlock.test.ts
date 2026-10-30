@@ -59,6 +59,11 @@ describe("formCardText", () => {
 });
 
 describe("formScreenHeader", () => {
+  it("never repeats the title underneath, even with a full stop", () => {
+    const repeated = { ...config, title: "Your replies.", description: "" };
+    expect(formScreenHeader(repeated, "Your replies").description).toBe("");
+  });
+
   it("titles the screen with the card's name and puts the form's summary under it", () => {
     expect(formScreenHeader(config, "After: what happened, and how sure you are now")).toEqual({
       title: "After: what happened, and how sure you are now",
@@ -92,12 +97,20 @@ describe("formStartLabel / formSavedMessage", () => {
   });
 
   it("leaves every other form as it was", () => {
-    expect(formStartLabel(config.formKey)).toBe("Start Reflection");
-    expect(formStartLabel(undefined)).toBe("Start Reflection");
+    expect(formStartLabel(config.formKey)).toBe("Start writing");
+    expect(formStartLabel(undefined)).toBe("Start writing");
     expect(formSavedMessage(config.formKey)).toEqual({
-      title: "Reflection Saved",
-      body: "Your response has been recorded.",
+      title: "Saved",
+      body: "",
     });
+  });
+
+  it("says Answer when the form opens with a scale", () => {
+    const slider = { id: "a", type: FormFieldType.SLIDER, label: "How willing?" };
+    const text = { id: "b", type: FormFieldType.TEXT_INPUT, label: "Anything to add?" };
+    expect(formStartLabel(config.formKey, [slider, text])).toBe("Answer");
+    expect(formStartLabel(config.formKey, [text, slider])).toBe("Start writing");
+    expect(formStartLabel(GUESS_FORM_KEY, [slider])).toBe("Write your guess");
   });
 });
 

@@ -224,7 +224,7 @@ const SummaryPage = () => {
         onBack={goBack}
         footer={
           <Button
-            label={from === "MOOD_CHECK" ? "Back to Home" : "Back to Library"}
+            label={from === "MOOD_CHECK" ? "Back to home" : "Back to Library"}
             onPress={goBack}
           />
         }

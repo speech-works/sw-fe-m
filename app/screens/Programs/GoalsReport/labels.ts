@@ -1,10 +1,11 @@
 import {
   GoalReport,
   GoalReportStyle,
+  ProgramGoal,
 } from "../../../api/programGoals/types";
 
 /** The three answers every style has. */
-type CoreReport = Exclude<GoalReport, "NO_NEED">;
+type CoreReport = Exclude<GoalReport, "NO_NEED" | "PLANNED">;
 
 /**
  * The three answers, in the words each program uses, and the fourth ("No
@@ -22,7 +23,7 @@ type CoreReport = Exclude<GoalReport, "NO_NEED">;
  */
 export const REPORT_LABELS: Record<
   GoalReportStyle,
-  Record<CoreReport, string> & { NO_NEED?: string }
+  Record<CoreReport, string> & { NO_NEED?: string; PLANNED?: string }
 > = {
   /** The plain case: did you do the thing you named? */
   did_it: {
@@ -41,6 +42,19 @@ export const REPORT_LABELS: Record<
     PARTIAL: "Something smaller",
     NONE: "Not yet",
     NO_NEED: "No need",
+  },
+
+  /**
+   * The Art of Disclosure (2026-10-29). Day 7 asks the reader to pick a day for
+   * the people they have not told yet, so "Planned" comes with a date picker.
+   * The goal stays open; Home waits for that day and a reminder goes out on it.
+   */
+  did_it_planned: {
+    FULL: "Did it",
+    PARTIAL: "Something smaller",
+    NONE: "Not yet",
+    NO_NEED: "No need",
+    PLANNED: "Planned",
   },
 
   /**
@@ -72,7 +86,35 @@ export const REPORT_ORDER: CoreReport[] = ["FULL", "PARTIAL", "NONE"];
 
 /** The answers a goal of this style can get, in order. "No need" goes last. */
 export function reportOptions(style: GoalReportStyle): GoalReport[] {
-  return REPORT_LABELS[style]?.NO_NEED ? [...REPORT_ORDER, "NO_NEED"] : REPORT_ORDER;
+  const labels = REPORT_LABELS[style];
+  // "Planned" sits after "Something smaller": a day picked is more than
+  // "not yet", and less than done.
+  const core: GoalReport[] = labels?.PLANNED
+    ? ["FULL", "PARTIAL", "PLANNED", "NONE"]
+    : REPORT_ORDER;
+  return labels?.NO_NEED ? [...core, "NO_NEED"] : core;
+}
+
+/** "YYYY-MM-DD" as a short, local day: "Tue 4 Nov". Empty for anything else. */
+export function formatPlannedDay(day: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day ?? "");
+  if (!m) return "";
+  const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  // By hand: Hermes on iOS returned "" for toLocaleDateString with these
+  // options, so the row read "Planned for" with no day. The app is English.
+  return `${WEEKDAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]}`;
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** The answer as one line, with the day for a plan: "Planned for Tue 4 Nov". */
+export function reportSummary(goal: Pick<ProgramGoal, "reportStyle" | "report" | "plannedFor">): string {
+  if (!goal.report) return "";
+  if (goal.report === "PLANNED" && goal.plannedFor) {
+    return `Planned for ${formatPlannedDay(goal.plannedFor)}`;
+  }
+  return reportLabel(goal.reportStyle, goal.report);
 }
 
 /** The label for one answer, or "" when this style has no such answer. */

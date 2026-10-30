@@ -22,13 +22,10 @@ import { ExploreStackParamList } from "../../../../../navigators/stacks/ExploreS
 import { useActivityStore } from "../../../../../stores/activity";
 import { useUserStore } from "../../../../../stores/user";
 import {
-  size,
   Page,
   Surface,
   Text,
   Button,
-  Icon,
-  icons,
   useTheme,
   spacing,
   radius,
@@ -38,6 +35,7 @@ import { useMarkActivityStart } from "../../../../../hooks/useMarkActivityStart"
 import { useConfirmOnExit } from "../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../components/DonePractice";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
+import { sentencesOnOwnLines } from "../../../../../util/packs/sentencesOnOwnLines";
 import IRLConfirmationModal from "../../../../../components/IRLConfirmationModal";
 import { recordGrowthPointDecline } from "../../../../../api/growthPoints";
 import SmartRecorder from "../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -256,7 +254,11 @@ const RealLifeChallenge = () => {
   const { exitSheet } = useConfirmOnExit({
     navigation,
     activityId: currentActivityId,
-    isCompleted: currentStep === ChallengeStep.SUMMARY,
+    // On the briefing with nothing recorded there is nothing to save, so Back
+    // leaves without asking. Save & Finish there would mark an unread step done.
+    isCompleted:
+      currentStep === ChallengeStep.SUMMARY ||
+      (currentStep === ChallengeStep.INSTRUCTION && !recordingUri),
     onSave: () => void finishActivity(),
     family: "Explore",
     from,
@@ -268,7 +270,7 @@ const RealLifeChallenge = () => {
       <Page
         title="Real Life Challenge"
         onBack={() => navigation.goBack()}
-        footer={<Button label="Go Back" onPress={() => navigation.goBack()} />}
+        footer={<Button label="Go back" onPress={() => navigation.goBack()} />}
       >
         <Surface level="default" rounded="card" padded={spacing.xl}>
           <Text variant="body" color="secondary">
@@ -297,6 +299,11 @@ const RealLifeChallenge = () => {
       ? challengeData.completionCriteria
       : undefined,
   );
+
+  // A day with no question after this step logs nothing, so "Log My Experience"
+  // promised a box that never came (founder, 2026-10-30). Each of these days
+  // sets one task, and tapping this says it is done, so "Next" was wrong too.
+  const instructionsCta = noReflection ? "Done" : "Log My Experience";
 
   // --- Handlers ---
 
@@ -429,46 +436,35 @@ const RealLifeChallenge = () => {
       <>
         <Page
           title={title}
-          description="Here's what you need to do"
           onBack={handleBack}
           footer={
             <Button
-              label="Log My Experience"
+              label={instructionsCta}
               onPress={handleInstructionsComplete}
             />
           }
         >
-          <View style={styles.stepBadge}>
-            <View
-              style={[
-                styles.stepChip,
-                { backgroundColor: colors.action.primaryTint },
-              ]}
-            >
-              <Text variant="eyebrow" color="link">
-                STEP 1
-              </Text>
+          {/* One step on these days, so "Step 1" promised a second. */}
+          {noReflection ? null : (
+            <View style={styles.stepBadge}>
+              <View
+                style={[
+                  styles.stepChip,
+                  { backgroundColor: colors.action.primaryTint },
+                ]}
+              >
+                <Text variant="eyebrow" color="link">
+                  STEP 1
+                </Text>
+              </View>
             </View>
-            <Text variant="h2" color="primary">
-              The Challenge
-            </Text>
-          </View>
+          )}
 
           {/* Instructions card — the legacy markdown renders on a light reading
            *  sheet so the pack-authored copy stays legible on the dark canvas. */}
           <Surface level="default" rounded="card" padded={spacing.xl}>
-            <View style={styles.cardLabelRow}>
-              <Icon
-                name={icons.checklist}
-                size={size.iconInline}
-                color={colors.text.accent}
-              />
-              <Text variant="eyebrow" color="primary">
-                INSTRUCTIONS
-              </Text>
-            </View>
             <SimpleMarkdown
-              content={challengeData.instructions}
+              content={sentencesOnOwnLines(challengeData.instructions)}
               variant="instruction"
               textColor={colors.text.secondary}
             />
@@ -492,7 +488,7 @@ const RealLifeChallenge = () => {
                 This recording stays on your phone.
               </Text>
               <Text variant="bodySm" color="tertiary" center>
-                Prefer not to record? Say your answer out loud, then tap Log My Experience.
+                Prefer not to record? Say your answer out loud, then tap {instructionsCta}.
               </Text>
             </View>
           ) : null}
@@ -600,7 +596,10 @@ const RealLifeChallenge = () => {
         onBack={handleBack}
         keyboardAvoiding
         footer={
-          <Button label="Complete Challenge" onPress={handleReflectionComplete} />
+          <Button
+            label={packContext?.packId ? "Save and finish" : "Complete challenge"}
+            onPress={handleReflectionComplete}
+          />
         }
       >
         <View style={styles.reflectionHeader}>
@@ -672,12 +671,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.sm,
-  },
-  cardLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
   },
   tipText: {
     lineHeight: 22,

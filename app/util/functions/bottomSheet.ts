@@ -44,3 +44,12 @@ export const showSuccessBottomSheet = (
     dismissLabel,
   });
 };
+
+/** A success with nothing to decide: no button, and it closes by itself. */
+export const showSavedBottomSheet = (title: string, desc: string) => {
+  dispatchCustomEvent(EVENT_NAMES.SHOW_SUCCESS_MODAL, {
+    title,
+    message: desc,
+    autoClose: true,
+  });
+};

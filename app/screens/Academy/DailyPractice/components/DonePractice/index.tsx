@@ -20,6 +20,7 @@ import {
   onColor,
   withAlpha,
   useNavBarInset,
+  SchemeStatusBar,
 } from "../../../../../design-system";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
@@ -188,7 +189,11 @@ const DonePractice = ({
 
   return (
     <ScreenView style={styles.screen}>
-      <StatusBar barStyle={accentColor ? "dark-content" : "light-content"} backgroundColor={pageColor} />
+      {accentColor ? (
+        <StatusBar barStyle="dark-content" backgroundColor={pageColor} />
+      ) : (
+        <SchemeStatusBar />
+      )}
 
       {/* Dark canvas (replaces the legacy light gradient background). */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: pageColor }]} />
@@ -288,7 +293,7 @@ const DonePractice = ({
           {!isAborted && !hasBuddy && from !== "MOOD_CHECK" && !inProgram && (
             <Button
               variant="secondary"
-              label="Invite a Practice Buddy"
+              label="Invite a practice buddy"
               leftIcon={icons.addPerson}
               style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
               onPress={() =>
@@ -307,7 +312,7 @@ const DonePractice = ({
               renderTrigger={(onOpen) => (
                 <Button
                   variant="secondary"
-                  label="Set Reminder"
+                  label="Set reminder"
                   leftIcon={icons.reminder}
                   style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
                   onPress={onOpen}
@@ -321,7 +326,7 @@ const DonePractice = ({
             <>
               <Button
                 variant="secondary"
-                label="Explore More"
+                label="Explore more"
                 leftIcon={icons.explore}
                 style={accentColor ? { borderColor: controlBorder, backgroundColor: primaryFill } : undefined}
                 onPress={() =>
@@ -335,7 +340,7 @@ const DonePractice = ({
               />
               <Button
                 variant="primary"
-                label="Back to Home"
+                label="Back to home"
                 rightIcon={icons.home}
                 accentColor={primaryFill}
                 onAccentColor={primaryInk}
@@ -353,8 +358,8 @@ const DonePractice = ({
             // back to the day. A caller that forgot onDone still lands there.
             <Button
               variant="primary"
-              label="Done"
-              rightIcon={icons.success}
+              label={inProgram ? "Back to the day" : "Done"}
+              rightIcon={inProgram ? undefined : icons.success}
               accentColor={primaryFill}
               onAccentColor={primaryInk}
               onPress={() =>
@@ -368,7 +373,7 @@ const DonePractice = ({
           ) : (
             <Button
               variant="primary"
-              label="Explore More"
+              label="Explore more"
               rightIcon={icons.explore}
               accentColor={primaryFill}
               onAccentColor={primaryInk}

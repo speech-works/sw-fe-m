@@ -444,12 +444,12 @@ const Library = () => {
 
           <View style={styles.modalActions}>
             <Button
-              label="Watch Tutorial"
+              label="Watch tutorial"
               leftIcon="play"
               onPress={() => handleNavigate("TUTORIAL")}
             />
             <Button
-              label="Start Exercise"
+              label="Start exercise"
               variant="secondary"
               onPress={() => handleNavigate("EXERCISE")}
             />

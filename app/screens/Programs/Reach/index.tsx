@@ -157,7 +157,9 @@ const ReachScreen = () => {
         )
       ) : (
         <GestureDetector gesture={tabSwipe}>
-          <View>
+          {/* The gesture needs one child, so this View stands between Page and
+              the cards and takes Page's gap with it. It gives the gap back. */}
+          <View style={styles.list}>
             {blocks.length === 0 ? (
               <EmptyState
                 icon={icons.checklist}
@@ -194,6 +196,7 @@ const ReachScreen = () => {
 const styles = StyleSheet.create({
   centre: { paddingVertical: space.sectionGap },
   tabs: { marginBottom: spacing.lg },
+  list: { gap: space.groupGap },
   block: { gap: spacing.xs },
   question: { marginBottom: spacing.sm },
 });

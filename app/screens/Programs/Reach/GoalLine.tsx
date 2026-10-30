@@ -10,7 +10,7 @@ import {
   useTheme,
 } from "../../../design-system";
 import { ProgramGoal } from "../../../api/programGoals/types";
-import { reportLabel } from "../GoalsReport/labels";
+import { reportSummary } from "../GoalsReport/labels";
 
 /** The date a goal closed, in the shortest form that is still unambiguous. */
 const when = (iso: string | null): string | null => {
@@ -55,7 +55,7 @@ export function GoalLine({ goal }: { goal: ProgramGoal }) {
         </Text>
         {goal.report && (
           <Text variant="caption" color="tertiary">
-            {reportLabel(goal.reportStyle, goal.report)}
+            {reportSummary(goal)}
             {date ? ` · ${date}` : ""}
           </Text>
         )}

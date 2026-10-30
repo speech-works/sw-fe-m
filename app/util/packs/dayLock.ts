@@ -226,6 +226,16 @@ export function dayCloseLine(state: {
   return opensPhrase(state.nextDay, state.currentDay, state.nextDayOpensAt);
 }
 
+/**
+ * The heading when a day ends. It states the fact and praises nobody. It said
+ * "Module Completed! Great job taking time for your nervous system" in every
+ * program, including the ones about telling people you stutter.
+ */
+export function dayDoneTitle(moduleTitle: string | null | undefined): string {
+  const day = /^Day (\d+)\b/.exec(moduleTitle?.trim() ?? "");
+  return day ? `Day ${day[1]} done` : "Step done";
+}
+
 /** The subset of `ModuleProgress` this decision reads. */
 export interface NextModuleCandidate {
   moduleId: string;

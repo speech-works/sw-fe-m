@@ -19,6 +19,12 @@ export interface PageHeaderProps {
    * via its own scroll container.
    */
   standalone?: boolean;
+  /**
+   * The small header: title and subtitle beside the back button, on one row.
+   * For a screen the person is working through, where a large title on every
+   * step pushes the work off the fold. Words are never cut: a long title wraps.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -33,11 +39,25 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onBack,
   right,
   standalone,
+  compact,
 }) => {
   const insets = useSafeAreaInsets();
   const hasBar = !!(onBack || right);
 
-  const block = (
+  const block = compact ? (
+    <View style={compactRowStyle}>
+      {onBack ? <IconButton name="arrow-left" onPress={onBack} /> : null}
+      <View style={{ flex: 1 }}>
+        <Text variant="title">{title}</Text>
+        {description ? (
+          <Text variant="bodySm" color="secondary">
+            {description}
+          </Text>
+        ) : null}
+      </View>
+      {right ? right : null}
+    </View>
+  ) : (
     <View>
       {hasBar ? (
         <View style={backBarStyle}>
@@ -66,6 +86,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       {block}
     </View>
   );
+};
+
+const compactRowStyle: ViewStyle = {
+  minHeight: size.backBtn,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.md,
 };
 
 const backBarStyle: ViewStyle = {

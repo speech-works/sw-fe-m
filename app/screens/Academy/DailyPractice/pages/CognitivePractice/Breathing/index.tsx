@@ -428,7 +428,7 @@ const Breathing = () => {
             accessibilityLabel={mute ? "Unmute breathing sounds" : "Mute breathing sounds"}
           />
           <Button
-            label="End Session"
+            label="End session"
             variant="secondary"
             onPress={handleCompletePress}
             disabled={isLoading}
@@ -453,14 +453,14 @@ const Breathing = () => {
             </Text>
             <View style={styles.skipModalActions}>
               <Button
-                label="End Session"
+                label="End session"
                 variant="primary"
                 onPress={confirmEarlyExit}
                 accentColor={accentColor}
                 onAccentColor={onAccentColor}
               />
               <Button
-                label="Continue Practice"
+                label="Continue practice"
                 variant="secondary"
                 onPress={() => setShowEarlyExitPrompt(false)}
               />
@@ -538,7 +538,7 @@ const Breathing = () => {
         }
         footer={
           <Button
-            label="Start Exercise"
+            label="Start exercise"
             onPress={async () => {
               try {
                 await markActivityStart();

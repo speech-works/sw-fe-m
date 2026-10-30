@@ -1,4 +1,5 @@
 import { ProgramGoal, ReachSummary } from "../../../../api/programGoals/types";
+import { formatPlannedDay } from "../../../Programs/GoalsReport/labels";
 
 /**
  * How bright the row is, and whether it is lit at all.
@@ -23,6 +24,7 @@ export interface ReachRowState {
     | "empty"
     | "running"
     | "none_done"
+    | "planned"
     | "some_done"
     | "all_done"
     | "predictions"
@@ -54,6 +56,22 @@ export interface ReachRowState {
 export const MAX_DOTS = 6;
 
 const goalText = (g: ProgramGoal | null): string => g?.text ?? "";
+
+/**
+ * True when the row would only repeat the plan card below it. The card has the
+ * same words and the answer buttons, so the row stands down while the card is
+ * showing. Once the card is dismissed for the day, the row is back.
+ */
+export function rowRepeatsPlanCard(
+  summary: ReachSummary | null,
+  cardShowing: boolean,
+): boolean {
+  return (
+    cardShowing &&
+    summary?.oldestWaiting?.report === "PLANNED" &&
+    resolveReachRow(summary)?.kind === "planned"
+  );
+}
 
 /**
  * ===========================================================================
@@ -153,6 +171,32 @@ export function resolveReachRow(
   // The state that decides whether anybody trusts this feature. No glow, no
   // count, and the only sentence is permission. "Not yet" is a state, not a
   // debt, and the app has to behave as though it believes that.
+  //
+  // A plan is the exception: they picked a day, so the row says the day.
+  // `oldestWaiting` puts a plan whose day has come first, and leaves out plans
+  // still ahead, which `nextPlanned` carries instead.
+  const plan =
+    summary.oldestWaiting?.report === "PLANNED"
+      ? summary.oldestWaiting
+      : !summary.oldestWaiting
+        ? summary.nextPlanned ?? null
+        : null;
+  if (waiting > 0 && plan) {
+    const due = plan === summary.oldestWaiting;
+    return {
+      kind: "planned",
+      eyebrow: due
+        ? "YOUR PLAN FOR TODAY"
+        : `PLANNED FOR ${formatPlannedDay(plan.plannedFor).toUpperCase()}`,
+      said: goalText(plan),
+      sub: due ? "Today is the day you picked." : "You get a reminder that morning.",
+      glow: "none",
+      // No beads: an empty track under a plan reads as a score of zero.
+      dots: { total: 0, done: 0 },
+      cta: null,
+    };
+  }
+
   if (waiting > 0) {
     return {
       kind: "none_done",

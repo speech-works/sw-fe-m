@@ -377,7 +377,7 @@ const Chat = () => {
             </View>
 
             <Button
-              label="Start Practice"
+              label="Start practice"
               onPress={async () => {
                 setIsStarting(true);
                 try {

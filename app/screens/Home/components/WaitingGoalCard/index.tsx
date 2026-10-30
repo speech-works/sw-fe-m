@@ -4,14 +4,20 @@ import { StyleSheet, View } from "react-native";
 import { updateProgramGoal } from "../../../../api/programGoals";
 import { ProgramGoal } from "../../../../api/programGoals/types";
 import { FurthestMoment } from "../../../Programs/FurthestMoment";
-import { REPORT_LABELS } from "../../../Programs/GoalsReport/labels";
+import { REPORT_LABELS, formatPlannedDay } from "../../../Programs/GoalsReport/labels";
 import {
-  Button,
-  Card,
+  PlannedDayPicker,
+  defaultPlannedDay,
+} from "../../../Programs/GoalsReport/PlannedDayPicker";
+import PressableScale from "../../../../components/PressableScale";
+import {
   Text,
   haptics,
+  primaryEdge,
+  radius,
   space,
   spacing,
+  useTheme,
 } from "../../../../design-system";
 import { track } from "../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../util/analytics/analyticsEvents";
@@ -71,14 +77,25 @@ export const isDismissedToday = async (goalId: string): Promise<boolean> =>
 export function WaitingGoalCard({
   goal,
   onDone,
+  standalone,
 }: {
   goal: ProgramGoal;
   /** Lets Home drop the card from the rotation once it is answered. */
   onDone: () => void;
+  /**
+   * Outside the carousel there is no card beside it to match, so it takes only
+   * the height its words need and the buttons stay above the dock.
+   */
+  standalone?: boolean;
 }) {
+  const { colors, elevation } = useTheme();
   const [gone, setGone] = useState(false);
   const [moment, setMoment] = useState<{ xp: number } | null>(null);
   const [saving, setSaving] = useState(false);
+  /** "Pick another day" open, and the day being picked. */
+  const [replanDay, setReplanDay] = useState<string | null>(null);
+  const isPlan = goal.report === "PLANNED" && !!goal.plannedFor;
+  const canPlan = !!REPORT_LABELS[goal.reportStyle]?.PLANNED;
 
   const didIt = useCallback(async () => {
     haptics.light();
@@ -129,6 +146,27 @@ export function WaitingGoalCard({
     }
   }, [goal.id, onDone]);
 
+  // A new day for a plan. The server clears the sent reminder, so one goes out
+  // on the new day, and Home stays quiet until then.
+  const saveNewDay = useCallback(async () => {
+    if (!replanDay) return;
+    haptics.light();
+    setSaving(true);
+    try {
+      await updateProgramGoal(goal.id, "PLANNED", replanDay);
+      track(ANALYTICS_EVENTS.WAITING_GOAL_ANSWERED, {
+        answer: "planned",
+        isFurthest: false,
+      });
+      setGone(true);
+      onDone();
+    } catch {
+      /* Left on screen, as with "Did it". */
+    } finally {
+      setSaving(false);
+    }
+  }, [goal.id, onDone, replanDay]);
+
   const notYet = useCallback(async () => {
     haptics.light();
     track(ANALYTICS_EVENTS.WAITING_GOAL_ANSWERED, {
@@ -142,39 +180,97 @@ export function WaitingGoalCard({
 
   if (gone && !moment) return null;
 
+  // One pill, in the shape the call card next to it uses.
+  const pill = (
+    label: string,
+    onPress: () => void,
+    kind: "primary" | "quiet",
+  ) => (
+    <PressableScale
+      key={label}
+      onPress={onPress}
+      disabled={saving}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[
+        styles.pill,
+        kind === "primary"
+          ? [{ backgroundColor: colors.action.primary }, primaryEdge(colors)]
+          : {
+              backgroundColor: colors.surface.control,
+              borderColor: colors.border.strong,
+              borderWidth: StyleSheet.hairlineWidth,
+            },
+      ]}
+    >
+      <Text
+        variant="title"
+        color={kind === "primary" ? colors.action.onPrimary : colors.text.primary}
+      >
+        {label}
+      </Text>
+    </PressableScale>
+  );
+
+  const noNeedLabel = REPORT_LABELS[goal.reportStyle]?.NO_NEED;
+
   return (
     <>
-      <Card style={styles.card}>
-        <Text variant="eyebrow" color="tertiary">
-          STILL ON YOUR LIST
-        </Text>
-        {/* Their words, at the top, with nothing above them explaining what
-            they meant. They wrote it; they know. */}
-        <Text variant="h3" color="primary">
-          {goal.text}
-        </Text>
-        <Text variant="bodySm" color="secondary">
-          No rush. It is here whenever you want it.
-        </Text>
-
-        <View style={styles.actions}>
-          <Button
-            label="Did it"
-            variant="primary"
-            disabled={saving}
-            onPress={didIt}
-          />
-          <Button label="Still not yet" variant="ghost" onPress={notYet} />
-          {REPORT_LABELS[goal.reportStyle]?.NO_NEED ? (
-            <Button
-              label={REPORT_LABELS[goal.reportStyle].NO_NEED!}
-              variant="ghost"
-              disabled={saving}
-              onPress={noNeed}
-            />
-          ) : null}
+      {/* The same card as the quiet call card beside it in the carousel: one
+          height, one padding, words top-left, pills bottom-left. It was a
+          stack of full-width buttons, which no other Home card is (founder,
+          2026-10-30). */}
+      <View
+        style={[
+          styles.card,
+          standalone ? styles.standalone : null,
+          elevation.e1,
+          {
+            backgroundColor: colors.surface.default,
+            borderColor: colors.border.default,
+          },
+        ]}
+      >
+        <View>
+          <Text variant="eyebrow" color="tertiary" style={styles.eyebrow}>
+            {isPlan
+              ? goal.plannedFor === localDayKey()
+                ? "YOUR PLAN FOR TODAY"
+                : `PLANNED FOR ${formatPlannedDay(goal.plannedFor).toUpperCase()}`
+              : "STILL ON YOUR LIST"}
+          </Text>
+          {/* Their words, with nothing above them explaining what they meant.
+              They wrote it; they know. */}
+          <Text variant="h2" color="primary" style={styles.title} numberOfLines={2}>
+            {goal.text}
+          </Text>
+          <Text variant="body" color="secondary">
+            {replanDay
+              ? "Pick the day. You get a reminder that morning."
+              : isPlan
+                ? "How did it go?"
+                : "No rush. It is here whenever you want it."}
+          </Text>
         </View>
-      </Card>
+
+        {replanDay ? (
+          <View style={styles.pills}>
+            <PlannedDayPicker value={replanDay} onChange={setReplanDay} bare />
+            {pill("Save", saveNewDay, "primary")}
+          </View>
+        ) : (
+          <View style={styles.pills}>
+            {pill("Did it", didIt, "primary")}
+            {/* A plan already says when. "Another day" moves it, so a second
+                way to put it off would only add a button. */}
+            {canPlan
+              ? pill("Another day", () => setReplanDay(defaultPlannedDay()), "quiet")
+              : null}
+            {isPlan ? null : pill("Not yet", notYet, "quiet")}
+            {noNeedLabel ? pill(noNeedLabel, noNeed, "quiet") : null}
+          </View>
+        )}
+      </View>
 
       <FurthestMoment
         visible={!!moment}
@@ -190,7 +286,30 @@ export function WaitingGoalCard({
   );
 }
 
+// Geometry from FirstCallCard's quiet card, so the carousel reads as one set.
 const styles = StyleSheet.create({
-  card: { gap: spacing.sm },
-  actions: { gap: space.inlineGap, marginTop: spacing.sm },
+  card: {
+    minHeight: 260,
+    borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
+    justifyContent: "space-between",
+    gap: spacing.lg,
+  },
+  standalone: { minHeight: 0, paddingTop: spacing.xl, paddingBottom: spacing.xl },
+  eyebrow: { marginBottom: space.inlineGap },
+  title: { marginBottom: space.titleSub },
+  pills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  pill: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
 });

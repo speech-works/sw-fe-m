@@ -95,14 +95,14 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
       : nextModule
         ? `Next: ${nextModule.title}. `
         : "") +
-    (totalModules ? `Module ${moduleOrder} of ${totalModules}. ` : "") +
+    (totalModules ? `Day ${moduleOrder} of ${totalModules}. ` : "") +
     "Opens it.";
 
   const ctaLabel = program.isRefresher
     ? "Start again"
     : dayLocked
       ? "Done for today"
-      : percentComplete > 0
+      : percentComplete > 0 || program.dayStarted
         ? "Continue"
         : "Start";
 
@@ -159,7 +159,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
             showBar ? (
               <>
                 <Text variant="caption" color="secondary" numberOfLines={1}>
-                  Module {moduleOrder} of {totalModules}
+                  Day {moduleOrder} of {totalModules}
                 </Text>
                 <View
                   style={[
@@ -307,7 +307,7 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
               />
             </View>
             <Text variant="caption" color={ink} style={styles.meta}>
-              Module {moduleOrder} of {totalModules}
+              Day {moduleOrder} of {totalModules}
             </Text>
           </>
         ) : null}

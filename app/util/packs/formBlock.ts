@@ -2,6 +2,7 @@ import {
   FormFieldType,
   type FormBlockContent,
   type FormConfiguration,
+  type FormField,
 } from "../../api/packs/types";
 
 /**
@@ -47,10 +48,17 @@ export function formScreenHeader(
 ): { title: string; description: string } {
   const summary = configuration?.title?.trim() || "";
   const title = titleOverride?.trim() || summary || "Reflection";
+  // Compared without the full stop: "Your replies." under "Your replies" is
+  // the same words twice.
+  const same = (a: string, b: string) =>
+    a.replace(/[.!?]+$/, "").toLowerCase() === b.replace(/[.!?]+$/, "").toLowerCase();
+  const fallback = configuration?.description?.trim() || "";
   const description =
-    summary && summary !== title
+    summary && !same(summary, title)
       ? summary
-      : configuration?.description?.trim() || "";
+      : same(fallback, title)
+        ? ""
+        : fallback;
   return { title, description };
 }
 
@@ -61,11 +69,17 @@ export function formScreenHeader(
 export const GUESS_FORM_KEY = "activity.program_guess_before";
 
 /**
- * The button on a FORM card. Every form says "Start Reflection" except the
- * guess, which is not a reflection: nothing has happened yet to reflect on.
+ * The button on a FORM card. The guess names what it asks for. A form that
+ * opens with a scale or a choice says "Answer", since nothing is written
+ * first. Every other form says "Start writing".
  */
-export function formStartLabel(formKey: string | undefined): string {
-  return formKey === GUESS_FORM_KEY ? "Write your guess" : "Start Reflection";
+export function formStartLabel(
+  formKey: string | undefined,
+  fields?: FormField[],
+): string {
+  if (formKey === GUESS_FORM_KEY) return "Write your guess";
+  const first = fields?.[0]?.type;
+  return first && first !== FormFieldType.TEXT_INPUT ? "Answer" : "Start writing";
 }
 
 /**
@@ -83,8 +97,8 @@ export function formSavedMessage(formKey: string | undefined): {
     };
   }
   return {
-    title: "Reflection Saved",
-    body: "Your response has been recorded.",
+    title: "Saved",
+    body: "",
   };
 }
 

@@ -454,7 +454,7 @@ const ProsePracticeScreen = ({ config }: { config: ProsePracticeConfig }) => {
         }
         footer={
           <Button
-            label={isEmpty ? "Nothing to read yet" : "Start Practice"}
+            label={isEmpty ? "Nothing to read yet" : "Start practice"}
             onPress={() => runStart()}
             loading={isStarting || isLoading || !hasHydrated}
             disabled={isStarting || !hasHydrated || isLoading || isEmpty}

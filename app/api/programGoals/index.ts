@@ -41,7 +41,7 @@ export const setProgramGoals = async (
  */
 export const reportProgramGoals = async (
   packId: string,
-  reports: { goalId: string; report: GoalReport }[],
+  reports: { goalId: string; report: GoalReport; plannedFor?: string | null }[],
 ): Promise<{ goals: ProgramGoal[]; packClosed: boolean }> => {
   const response = await axiosClient.post(
     `/program-goals/pack/${packId}/report`,
@@ -59,9 +59,11 @@ export const reportProgramGoals = async (
 export const updateProgramGoal = async (
   goalId: string,
   report: GoalReport | null,
+  plannedFor: string | null = null,
 ): Promise<ProgramGoal & { isFurthest: boolean; xpAwarded: number }> => {
   const response = await axiosClient.patch(`/program-goals/${goalId}`, {
     report,
+    plannedFor,
   });
   return response.data;
 };

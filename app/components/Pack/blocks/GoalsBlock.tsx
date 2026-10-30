@@ -21,6 +21,7 @@ import {
   REPORT_LABELS,
   reportLabel as labelFor,
   reportOptions,
+  reportSummary,
 } from "../../../screens/Programs/GoalsReport/labels";
 
 /**
@@ -51,7 +52,8 @@ const isReport = (value: string | null): value is GoalReport =>
   value === "FULL" ||
   value === "PARTIAL" ||
   value === "NONE" ||
-  value === "NO_NEED";
+  value === "NO_NEED" ||
+  value === "PLANNED";
 
 export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
   const styles = useStyles();
@@ -143,7 +145,11 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
             const labels = REPORT_LABELS[goal.reportStyle];
             const reportLabel =
               labels && isReport(goal.report)
-                ? labelFor(goal.reportStyle, goal.report) || null
+                ? reportSummary({
+                    reportStyle: goal.reportStyle,
+                    report: goal.report,
+                    plannedFor: goal.plannedFor,
+                  }) || null
                 : null;
 
             return (
@@ -158,7 +164,12 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
                     </Text>
                     {allowReport && labels ? (
                       <View style={styles.chips}>
-                        {reportOptions(goal.reportStyle).map((answer) => (
+                        {/* "Planned" needs a day, which a one-tap chip cannot
+                            give. It is answered on the report screen and the
+                            Home card, both of which have the day picker. */}
+                        {reportOptions(goal.reportStyle)
+                          .filter((answer) => answer !== "PLANNED")
+                          .map((answer) => (
                           <Chip
                             key={answer}
                             label={labelFor(goal.reportStyle, answer)}

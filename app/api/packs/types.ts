@@ -258,9 +258,11 @@ export interface GoalsBlockGoal {
   id: string;
   text: string;
   rank: number;
-  /** "FULL" | "PARTIAL" | "NONE" | "NO_NEED", or null when unreported. */
+  /** "FULL" | "PARTIAL" | "NONE" | "NO_NEED" | "PLANNED", or null when unreported. */
   report: string | null;
   reportStyle: GoalReportStyle;
+  /** The day of a PLANNED answer ("YYYY-MM-DD"). Older servers omit it. */
+  plannedFor?: string | null;
 }
 
 export type GoalsBlockContent = {

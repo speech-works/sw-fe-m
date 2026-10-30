@@ -21,6 +21,8 @@ import {
  *  event store. Now a dark DS Sheet (valence accent disc + "Got it"). It is marked
  *  `exclusive`, so if it fires while another native Sheet/Modal is open it DEFERS
  *  until that closes (two stacked native Modals wedge touch handling on iOS). */
+const AUTO_CLOSE_MS = 1800;
+
 const OutcomeModal = () => {
   const { colors } = useTheme();
   const { events, clear } = useEventStore();
@@ -31,6 +33,7 @@ const OutcomeModal = () => {
   const [message, setMessage] = useState("");
   const [primaryAction, setPrimaryAction] = useState<BottomSheetAction | undefined>(undefined);
   const [dismissLabel, setDismissLabel] = useState("");
+  const [autoClose, setAutoClose] = useState(false);
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -60,11 +63,18 @@ const OutcomeModal = () => {
         setMessage(nextMessage);
         setPrimaryAction(event.detail?.primaryAction);
         setDismissLabel(event.detail?.dismissLabel || "");
+        setAutoClose(!!event.detail?.autoClose);
         setVisible(true);
         clear(event.name);
       }
     }
   }, [events, clear]);
+
+  useEffect(() => {
+    if (!visible || !autoClose) return;
+    const timer = setTimeout(() => setVisible(false), AUTO_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [visible, autoClose]);
 
   const success = type === "success";
   // Bright valence disc with the AA-correct dark glyph (same pattern as ShareMoment).
@@ -104,7 +114,7 @@ const OutcomeModal = () => {
                 onPress={() => setVisible(false)}
               />
             </>
-          ) : (
+          ) : autoClose ? null : (
             <Button label="Got it" variant="primary" onPress={() => setVisible(false)} />
           )}
         </View>

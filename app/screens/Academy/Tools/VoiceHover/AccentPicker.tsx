@@ -192,7 +192,7 @@ function IosVoiceGuideSheet({
       </View>
 
       <Button
-        label="Open Settings"
+        label="Open settings"
         variant="secondary"
         onPress={onOpenSettings}
         style={styles.modalPrimaryBtn}

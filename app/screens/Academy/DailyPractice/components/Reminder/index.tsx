@@ -593,7 +593,7 @@ const ReminderModal = ({
         <View style={styles.actionButtonsContainer}>
           <Button
             variant="primary"
-            label={isEditing ? "Update Reminder" : "Save Reminder"}
+            label={isEditing ? "Update reminder" : "Save reminder"}
             onPress={handleSaveReminder}
           />
         </View>
@@ -608,7 +608,7 @@ const ReminderModal = ({
         (renderTrigger ? (
           renderTrigger(handleOpen)
         ) : (
-          <Button label="Set Reminder" onPress={handleOpen} />
+          <Button label="Set reminder" onPress={handleOpen} />
         ))}
 
       <Sheet

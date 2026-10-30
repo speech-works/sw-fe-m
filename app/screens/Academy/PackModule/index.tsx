@@ -34,6 +34,7 @@ import { classifyPackError, packErrorMessage } from "../../../util/packs/packErr
 import {
   dayLockMessage,
   dayCloseLine,
+  dayDoneTitle,
   nextOpenModuleId,
 } from "../../../util/packs/dayLock";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
@@ -1298,16 +1299,7 @@ const PackModuleScreen = () => {
           </View>
 
           <Text variant="h1" color="primary" center>
-            Module Completed!
-          </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            center
-            style={styles.successSubtitle}
-          >
-            Great job taking time for your nervous system. You're making real
-            progress.
+            {dayDoneTitle(module?.title)}
           </Text>
 
           {/* WHY THE DAY CLOSES ITSELF HERE.
@@ -1351,7 +1343,7 @@ const PackModuleScreen = () => {
               />
             )}
             <Button
-              label="Back to Home"
+              label="Back to home"
               variant={nextModuleId ? "ghost" : "secondary"}
               // Same no-dead-ends rule as everywhere else on this screen: if
               // there is no stack to go back to, go Home rather than nowhere.
@@ -1434,11 +1426,11 @@ const PackModuleScreen = () => {
   // read is one character from being a crash and the fallback costs nothing.
   const moduleTitle =
     (module.title ?? "").replace(/^Module \d+:\s*/, "") || "Today's module";
-  // "Module 3 of 9" once we know the total; "Module 3" until then, which is
-  // exactly what it said before — so a slow or failed count costs nothing.
+  // "Day 3 of 9" once we know the total; "Day 3" until then, so a slow or
+  // failed count costs nothing. Every program's day number is its orderIndex.
   const modulePosition = arc
-    ? `Module ${module.orderIndex} of ${arc.total}`
-    : `Module ${module.orderIndex}`;
+    ? `Day ${module.orderIndex} of ${arc.total}`
+    : `Day ${module.orderIndex}`;
   const progressLabel =
     blocks.length === 0
       ? modulePosition
@@ -1476,7 +1468,7 @@ const PackModuleScreen = () => {
     primaryIcon = icons.chevronRight;
     primaryVariant = "secondary";
   } else if (footerKind === "complete") {
-    primaryLabel = "Complete";
+    primaryLabel = "Finish the day";
     primaryIcon = icons.success;
   }
 
@@ -1484,6 +1476,9 @@ const PackModuleScreen = () => {
     <Page
       title={moduleTitle}
       description={progressLabel}
+      // Step 1 names the day. From step 2 the person knows where they are, and
+      // the large heading kept the answers of a quiz off a small phone.
+      compactHeader={!isFirstBlock}
       onBack={() => navigation.goBack()}
       keyboardAvoiding
       footerDocked
@@ -1630,7 +1625,7 @@ const PackModuleScreen = () => {
               onPress={() => recordSkip(DeclineReason.OPPORTUNITY)}
             />
             <Button
-              label="Go Back"
+              label="Go back"
               variant="ghost"
               onPress={() => setShowSkipConfirmation(false)}
             />
@@ -1722,9 +1717,6 @@ const styles = StyleSheet.create({
   // margin while `DailyLog` carried a 24pt top margin, so the space between the
   // subtitle and the log was 64 — a hole big enough to read as a missing
   // element. The block below owns its own separation now.
-  successSubtitle: {
-    marginTop: spacing.sm,
-  },
   successActionContainer: {
     width: "100%",
     gap: spacing.md,

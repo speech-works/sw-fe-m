@@ -5,7 +5,7 @@ import { elevationDark } from "../../design-system/elevation";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import React, { useRef, useState } from "react";
-import { View } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import {
     createPracticeActivityFromPack,
     PracticeActivityContentType,
@@ -164,6 +164,20 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   const [showStepSheet, setShowStepSheet] = useState(false);
   /** A purchase landed. Confirm it once the sheet has gone. */
   const purchaseLandedRef = useRef(false);
+  /**
+   * Room for a video between the step header and the docked Next button, so
+   * the whole frame, captions included, shows without scrolling. 470 is that
+   * chrome on an iPhone 16 Pro with a two-line day title. Never below half
+   * the screen: on an iPhone SE the rule alone left a 124pt-wide video, and a
+   * short scroll is better than a lesson too small to read.
+   */
+  const { height: windowHeight } = useWindowDimensions();
+  // `windowHeight - 360` is the room between the heading and the buttons. It only
+  // takes over on small phones, where half the screen ran under the buttons.
+  const videoMaxHeight = Math.max(
+    Math.min(windowHeight * 0.5, windowHeight - 360),
+    windowHeight - 470,
+  );
 
   switch (block.type) {
     case ContentBlockType.TEXT: {
@@ -234,9 +248,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           <VideoPlayer
             uri={videoUri}
             poster={videoContent.thumbnailUrl}
-            title="Video Lesson"
-            style={{ width: "100%" }}
             autoPlay={true}
+            maxHeight={videoMaxHeight}
           />
         </View>
       );
@@ -486,7 +499,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                     <>
                       <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
                       <Text variant="title" color={colors.action.onSecondary}>
-                        Start Practice
+                        Start practice
                       </Text>
                     </>
                   )}
@@ -595,7 +608,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
               <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
                 <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
                 <Text variant="title" color={colors.action.onSecondary}>
-                  {formStartLabel(config?.formKey)}
+                  {formStartLabel(config?.formKey, config?.fields)}
                 </Text>
               </View>
             </View>
@@ -627,6 +640,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           // explanation and a wrong answer costs nothing here, so there is no
           // reason to make somebody wait until the end to find out.
           revealExplanation
+          // The day screen's bar above already shows the progress.
+          countOnly
           onAnswer={async ({ question, selectedIndex }) => {
             // blockId, and nothing more. The server reads the pack, the day and
             // whether this asks about today or yesterday off the block itself.
@@ -673,11 +688,10 @@ const useStyles = makeStyles((c) => ({
     paddingHorizontal: spacing.xs,
     gap: spacing.lg,
   },
+  // No fill: the player takes the video's own shape and may be narrower than
+  // the column, and a grey card beside it would read as a frame around nothing.
   mediaContainer: {
     marginBottom: spacing.xl,
-    borderRadius: radius.card,
-    overflow: "hidden",
-    backgroundColor: c.surface.control,
   },
   // Solid vivid hero card (active ACTIVITY / FORM) — matches the home hero cards.
   card: {

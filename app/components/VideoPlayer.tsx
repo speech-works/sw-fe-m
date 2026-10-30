@@ -91,6 +91,13 @@ interface VideoPlayerProps {
    * pass this from any host that keeps the player mounted off-screen.
    */
   isActive?: boolean;
+  /**
+   * The tallest the inline player may be, in points. A host with chrome above
+   * and below (a program step) passes the room it has, so the whole video,
+   * captions included, is on screen without scrolling. Defaults to 65% of the
+   * window.
+   */
+  maxHeight?: number;
 }
 
 const AUTO_HIDE_MS = 3000;
@@ -135,6 +142,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   hideControls = false,
   initialAspectRatio,
   isActive = true,
+  maxHeight,
 }) => {
   const isFocused = useIsFocused();
   const { colors } = useTheme();
@@ -579,20 +587,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     outputRange: [0, 1],
   });
 
-  // The video fills the width it is given and takes its height from the aspect
-  // ratio, capped so a tall video can't eat the screen. Deriving the height from
-  // `Dimensions` instead guessed a box as wide as the *screen*, so inside any
-  // gutter the box came out too tall and `cover` quietly cropped the sides.
-  // `aspectRatio` + `maxHeight` is a trap: when the cap bites, Yoga preserves the
-  // ratio by shrinking the box's WIDTH, so a portrait lesson ended up a narrow
-  // column with the card showing through beside it. Landscape videos never hit
-  // the cap, which is why Library looked fine. Measure the width we're given and
-  // set an explicit height instead — full width always, only the height capped.
-  const maxVideoHeight = Dimensions.get("window").height * 0.65;
+  // The box always has the video's own shape, so nothing is cropped and there
+  // are no black bars. It takes the full width it is given, unless that would
+  // be taller than `maxVideoHeight`; then it keeps the shape at that height and
+  // sits centred. Width is measured, not read from `Dimensions`, because inside
+  // a gutter the screen width made the box too tall.
+  //
+  // History: `cover` in a full-width box with a capped height cropped the sides
+  // and the burned-in captions. `contain` in the same box showed black bars.
+  // `aspectRatio` + `maxHeight` lets Yoga shrink the width on its own terms,
+  // so the width and height are set explicitly here instead.
+  const maxVideoHeight = maxHeight ?? Dimensions.get("window").height * 0.65;
+  const fitHeight = availableWidth
+    ? Math.min(availableWidth / videoAspectRatio, maxVideoHeight)
+    : 0;
+  // A tall video in a short space is narrow (about 230pt for a 9:16 lesson
+  // above a program step's Next button). The skip buttons then pushed speed
+  // and full screen out of the bar, so a narrow player drops them; double-tap
+  // still skips 10 seconds.
+  const compactControls =
+    !isFullScreen && !!availableWidth && fitHeight * videoAspectRatio < 300;
   const videoBoxStyle = availableWidth
     ? {
-        width: "100%" as const,
-        height: Math.min(availableWidth / videoAspectRatio, maxVideoHeight),
+        width: fitHeight * videoAspectRatio,
+        height: fitHeight,
+        alignSelf: "center" as const,
       }
     : { width: "100%" as const, aspectRatio: videoAspectRatio };
 
@@ -630,7 +649,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           type: uri?.includes(".m3u8") ? "m3u8" : undefined,
         }}
         style={[styles.video, { opacity: isVideoLoaded ? 1 : 0 }]}
-        resizeMode={isFullScreen ? "contain" : "cover"}
+        resizeMode="contain"
         paused={!isFocused ? true : paused}
         rate={playbackRate}
         volume={muted || isLocked ? 0 : 1.0}
@@ -638,7 +657,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         repeat={isLocked}
         ignoreSilentSwitch="ignore"
         playInBackground={false}
-        poster={poster ? { source: { uri: poster }, resizeMode: "cover" } : undefined}
+        poster={poster ? { source: { uri: poster }, resizeMode: "contain" } : undefined}
         progressUpdateInterval={100}
         onLoad={(meta) => {
           setDuration(meta.duration);
@@ -773,7 +792,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
 
       {/* Centered Play Button (when paused and controls visible) */}
-      {paused && isVideoLoaded && controlsVisible && !isLocked && (
+      {/* Not on a narrow player: the bar's own play button sits right under
+          it there, and the two overlapped. */}
+      {paused && isVideoLoaded && controlsVisible && !isLocked && !compactControls && (
         <View pointerEvents="none" style={styles.centerPlayButton}>
           <Icon name={icons.play} size={64} color="rgba(255,255,255,0.9)" />
         </View>
@@ -802,6 +823,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             )}
           </View>
         </Animated.View>
+      )}
+
+      {/* Full screen, always in reach. The control bar holds the same button,
+          but it hides while the video plays, so without this a person had to
+          know to tap the video first. */}
+      {!isLocked && !hideControls && !isFullScreen && !controlsVisible && isVideoLoaded && (
+        <TouchableOpacity
+          onPress={toggleFullScreen}
+          style={styles.persistentFullScreen}
+          hitSlop={iconHitSlop}
+          accessibilityLabel="Enter full screen"
+          accessibilityRole="button"
+        >
+          <Icon name={icons.expand} size={size.iconSm} color={ON_VIDEO} />
+        </TouchableOpacity>
       )}
 
       {/* Controls */}
@@ -927,6 +963,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
               <View style={styles.centerControls}>
                 {/* Back 10s */}
+                {compactControls ? null : (
                 <TouchableOpacity
                   onPress={() => handleSkipTap("left")}
                   style={styles.fixedActionButton}
@@ -936,6 +973,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 >
                   <Icon name={icons.rewind} size={size.icon} color="white" />
                 </TouchableOpacity>
+                )}
 
                 {/* Play/Pause */}
                 <TouchableOpacity 
@@ -952,6 +990,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 </TouchableOpacity>
 
                 {/* Fwd 10s */}
+                {compactControls ? null : (
                 <TouchableOpacity
                   onPress={() => handleSkipTap("right")}
                   style={styles.fixedActionButton}
@@ -961,6 +1000,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 >
                   <Icon name={icons.fastForward} size={size.icon} color="white" />
                 </TouchableOpacity>
+                )}
               </View>
 
               <View style={styles.bottomRightControls}>
@@ -1201,6 +1241,18 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 11,
     fontFamily: fonts.extrabold,
+  },
+  persistentFullScreen: {
+    position: "absolute",
+    right: 10,
+    bottom: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    zIndex: 6,
   },
   rightSideIcon: {
     width: 40,

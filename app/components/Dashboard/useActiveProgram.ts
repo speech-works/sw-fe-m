@@ -42,6 +42,8 @@ export interface ActiveProgram {
   totalModules: number;
   /** 0 to 1. Zero on a refresher, which starts the arc again. */
   percentComplete: number;
+  /** They have opened `nextModule` and not finished it. Day 1 counts as 0%. */
+  dayStarted: boolean;
   /**
    * `nextModule` is the next UNFINISHED day, which on an arc pack is regularly
    * a day that has not opened yet — you get there by finishing today. The card
@@ -217,6 +219,7 @@ export function useActiveProgram(): ActiveProgramState {
               moduleOrder: nextModule ? nextModule.orderIndex : total,
               totalModules: total,
               percentComplete,
+              dayStarted: !refresher && nextProgress?.status === "IN_PROGRESS",
               nextModuleLocked,
               nextModuleDay: nextProgress?.dayIndex ?? null,
               currentDay: progress?.currentDay ?? null,

@@ -565,7 +565,7 @@ const PoemPractice = () => {
         background={<FocusLamp focus={hardMode} />}
         footer={
           <Button
-            label="Start Practice"
+            label="Start practice"
             onPress={() => runStart()}
             loading={isStarting || isLoading}
             disabled={isStarting || isLoading}

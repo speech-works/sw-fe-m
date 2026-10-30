@@ -243,7 +243,7 @@ const CVExercise = () => {
         }
         footer={
           <Button
-            label="Start Practice"
+            label="Start practice"
             onPress={async () => {
               setIsStarting(true);
               try {

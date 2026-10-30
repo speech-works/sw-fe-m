@@ -124,9 +124,19 @@ export const SimpleMarkdown = ({
             );
 
           case "blockquote":
+            // A quote with bold in it is marking the part that matters (Art of
+            // Disclosure's core line inside each example). Semibold around a
+            // bold run barely shows the difference, so the rest drops to
+            // regular. A quote with no bold keeps its semibold weight.
             return (
               <View key={index} style={styles.blockquote}>
-                <Text style={[styles.blockquoteText, textStyle]}>
+                <Text
+                  style={[
+                    styles.blockquoteText,
+                    block.text.includes("**") && styles.blockquoteTextAroundBold,
+                    textStyle,
+                  ]}
+                >
                   {parseLinksAndBold(block.text, linkColor, textColor)}
                 </Text>
               </View>
@@ -762,5 +772,8 @@ const useStyles = makeStyles((c, t) => ({
     // If a variant ever needs the quote to own its colour (a solid brand fill
     // needs `action.onPrimary`), the override in the component has to move.
     color: c.text.primary,
+  },
+  blockquoteTextAroundBold: {
+    fontFamily: fonts.regular,
   },
 }));
