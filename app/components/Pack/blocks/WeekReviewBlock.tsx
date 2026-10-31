@@ -49,18 +49,20 @@ export const WeekReviewBlock: React.FC<WeekReviewBlockProps> = ({ content }) => 
         ) : null}
       </View>
 
+      {/* Above the logs, not inside them: the number stays when every log was
+          skipped, because the last day's lesson says it is here. */}
+      {willingness ? (
+        <Text variant="body" color="primary">
+          {willingness}
+        </Text>
+      ) : null}
+
       {days.length === 0 ? (
         <Text variant="body" color="secondary">
           {EMPTY_COPY}
         </Text>
       ) : (
         <>
-          {willingness ? (
-            <Text variant="body" color="primary">
-              {willingness}
-            </Text>
-          ) : null}
-
           <View style={styles.days}>
             {days.map((day) => (
               <View key={day.dayIndex} style={styles.day}>

@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Divider, fonts, makeStyles, spacing, useTheme } from "../../design-system";
 import { openInAppBrowser } from "../../util/functions/externalLinks";
 import { toSafeExternalUrl } from "../../util/functions/url";
+import { readableParagraphs } from "../../util/packs/readableParagraphs";
 
 /** Where list-item text starts: the marker column (20) plus its gap (8).
  *  Anything placed under a list item (the Copy button) lines up with this. */
@@ -380,7 +381,10 @@ export function groupBlocks(lines: string[]): Block[] {
       parts.push(lines[i].trim());
       i++;
     }
-    blocks.push({ kind: "paragraph", text: parts.join(" ") });
+    readableParagraphs(parts.join(" ")).forEach((text, index) => {
+      if (index > 0) blocks.push({ kind: "blank" });
+      blocks.push({ kind: "paragraph", text });
+    });
   }
 
   return blocks;

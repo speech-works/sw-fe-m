@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import { View } from "react-native";
 import { Button, Icon, IconButton, Sheet, Text, icons, space, spacing, useTheme } from "../../design-system";
 import type { StepCard, StepCardKind } from "../../api/packs/types";
+import { readableParagraphs } from "../../util/packs/readableParagraphs";
 
 /**
  * EVERY WORD OF A STEP, ONE TAP AWAY.
@@ -70,9 +71,11 @@ export const StepCardSheet: React.FC<{
                 {HEADINGS[s.kind]}
               </Text>
             ) : null}
-            <Text variant="body" color="primary">
-              {s.text}
-            </Text>
+            {s.text.split("\n\n").flatMap(readableParagraphs).map((part, j) => (
+              <Text key={j} variant="body" color="primary">
+                {part}
+              </Text>
+            ))}
           </View>
         ))}
       </View>

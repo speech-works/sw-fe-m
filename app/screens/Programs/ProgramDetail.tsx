@@ -589,7 +589,9 @@ const ProgramDetailScreen = () => {
         m.unlocked !== false,
     );
     if (open) {
-      const started = progress.modules.some((m) => m.status === "COMPLETED");
+      const started = progress.modules.some(
+        (m) => m.status === "COMPLETED" || m.status === "IN_PROGRESS",
+      );
       return {
         line: "You own this. It's unlocked.",
         cta: started ? "Continue" : "Start day one",
