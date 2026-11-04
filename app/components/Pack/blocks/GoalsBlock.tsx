@@ -7,7 +7,7 @@ import {
 } from "../../../api/programGoals";
 import { GoalReport } from "../../../api/programGoals/types";
 import {
-  Chip,
+  ChoiceList,
   IconButton,
   Text,
   icons,
@@ -164,19 +164,21 @@ export const GoalsBlock: React.FC<GoalsBlockProps> = ({ content, packId }) => {
                     </Text>
                     {allowReport && labels ? (
                       <View style={styles.chips}>
-                        {/* "Planned" needs a day, which a one-tap chip cannot
-                            give. It is answered on the report screen and the
-                            Home card, both of which have the day picker. */}
-                        {reportOptions(goal.reportStyle)
-                          .filter((answer) => answer !== "PLANNED")
-                          .map((answer) => (
-                          <Chip
-                            key={answer}
-                            label={labelFor(goal.reportStyle, answer)}
-                            selected={goal.report === answer}
-                            onPress={() => report(goal, answer)}
-                          />
-                        ))}
+                        {/* One answer per goal: round buttons, full rows, so
+                            no label is cut (founder, 2026-11-05). "Planned"
+                            needs a day; it is answered on the report screen
+                            and the Home card, which have the day picker. */}
+                        <ChoiceList
+                          options={reportOptions(goal.reportStyle)
+                            .filter((answer) => answer !== "PLANNED")
+                            .map((answer) => ({
+                              key: answer,
+                              label: labelFor(goal.reportStyle, answer),
+                            }))}
+                          selected={goal.report ? [goal.report] : []}
+                          onToggle={(answer) => report(goal, answer as GoalReport)}
+                          accessibilityPrefix={goal.text}
+                        />
                       </View>
                     ) : reportLabel ? (
                       <Text variant="bodySm" color="secondary">
@@ -268,9 +270,7 @@ const useStyles = makeStyles((c) => ({
     gap: space.inlineGap,
   },
   chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: space.inlineGap,
+    marginTop: space.inlineGap,
   },
   // IconButton's default diameter is the 44pt tap target; the design system
   // has no smaller button size, and going under 44 would be harder to hit.

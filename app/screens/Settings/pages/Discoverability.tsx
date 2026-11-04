@@ -8,14 +8,13 @@ import {
   radius,
   Page,
   Text,
-  Chip,
+  ChoiceList,
   Toggle,
   Button,
   Banner,
   Spinner,
   ErrorState,
 } from "../../../design-system";
-import PressableScale from "../../../components/PressableScale";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 import {
   getDiscoveryProfile,
@@ -134,13 +133,13 @@ const Discoverability = () => {
       <Text variant="bodySm" color="secondary">
         {hint}
       </Text>
-      <View style={styles.chipWrap}>
-        {ids.map((tag) => (
-          <PressableScale key={tag} onPress={() => toggleTag(tag)}>
-            <Chip label={TAG_LABELS[tag] ?? tag} selected={tags.includes(tag)} />
-          </PressableScale>
-        ))}
-      </View>
+      {/* Several allowed: tick boxes (founder, 2026-11-05). */}
+      <ChoiceList
+        multiple
+        options={ids.map((tag) => ({ key: tag, label: TAG_LABELS[tag] ?? tag }))}
+        selected={tags}
+        onToggle={toggleTag}
+      />
     </View>
   );
 
@@ -238,5 +237,4 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 4 },
   tagSection: { gap: spacing.sm },
   tagIntro: { marginBottom: spacing.xs },
-  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 });

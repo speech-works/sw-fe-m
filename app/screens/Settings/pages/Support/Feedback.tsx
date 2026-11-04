@@ -13,7 +13,7 @@ import {
   radius,
   Text,
   Button,
-  Chip,
+  ChoiceList,
   TextField,
   Toggle,
   Page,
@@ -89,17 +89,13 @@ const Feedback = () => {
             <Text variant="eyebrow" color="tertiary">
               WHAT DO YOU WANT TO SEE?
             </Text>
-            <View style={styles.chipsContainer}>
-              {FEATURE_OPTIONS.map((opt) => (
-                <Chip
-                  key={opt.id}
-                  label={opt.label}
-                  icon={opt.icon}
-                  selected={selectedFeatures.includes(opt.id)}
-                  onPress={() => toggleFeature(opt.id)}
-                />
-              ))}
-            </View>
+            {/* Several allowed: tick boxes (founder, 2026-11-05). */}
+            <ChoiceList
+              multiple
+              options={FEATURE_OPTIONS.map((o) => ({ key: o.id, label: o.label }))}
+              selected={selectedFeatures}
+              onToggle={toggleFeature}
+            />
           </View>
 
           {/* Frustrations */}
@@ -107,17 +103,13 @@ const Feedback = () => {
             <Text variant="eyebrow" color="tertiary">
               WHAT COULD BE BETTER?
             </Text>
-            <View style={styles.chipsContainer}>
-              {FRUSTRATION_OPTIONS.map((opt) => (
-                <Chip
-                  key={opt.id}
-                  label={opt.label}
-                  icon={opt.icon}
-                  selected={selectedFrustrations.includes(opt.id)}
-                  onPress={() => toggleFrustration(opt.id)}
-                />
-              ))}
-            </View>
+            {/* Several allowed: tick boxes (founder, 2026-11-05). */}
+            <ChoiceList
+              multiple
+              options={FRUSTRATION_OPTIONS.map((o) => ({ key: o.id, label: o.label }))}
+              selected={selectedFrustrations}
+              onToggle={toggleFrustration}
+            />
           </View>
 
           {/* Other Thoughts */}
@@ -216,11 +208,6 @@ export default Feedback;
 const styles = StyleSheet.create({
   section: {
     gap: spacing.md,
-  },
-  chipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
   },
   card: {
     borderRadius: radius.card,

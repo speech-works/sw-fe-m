@@ -6,15 +6,12 @@ import {
 } from "../../api/programGoals";
 import { ProgramGoal } from "../../api/programGoals/types";
 import { FurthestMoment } from "./FurthestMoment";
-import { restore } from "./dailyLogList";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import {
-  Chip,
-  Snackbar,
+  ChoiceList,
   Text,
   TextLink,
-  haptics,
   space,
   spacing,
 } from "../../design-system";
@@ -23,8 +20,8 @@ import {
  * ===========================================================================
  * THE DAILY LOG: one tap, on the day it happens
  * ---------------------------------------------------------------------------
- * The user's own goals, as chips, at the end of a day's work. Tapping one marks
- * it done. That is the whole feature.
+ * The user's own goals, as tick boxes, at the end of a day's work. Ticking one
+ * marks it done. That is the whole feature.
  *
  * ── NOTHING HANGS OFF IT ───────────────────────────────────────────────────
  * No XP, no streak, no unlock, no celebration. The moment a tap here is worth
@@ -33,15 +30,15 @@ import {
  * there is no "did you not do it?" prompt: we are not chasing anybody.
  *
  * ── NO SAVE BUTTON ─────────────────────────────────────────────────────────
- * One tap writes. A Save button on three chips is a second decision for no
+ * One tap writes. A Save button on three tick boxes is a second decision for no
  * reason, and the whole point is that logging costs nothing.
  *
  * ── WHY IT WRITES IMMEDIATELY AND UNDOES AFTERWARDS ────────────────────────
  * The obvious alternative is to hold the change for a few seconds and let Undo
  * cancel it before it is sent, which is what the buddy decline batch does. It
  * is wrong here: the button next to this one starts the next module, so the
- * screen is often gone within a second and the write would be lost. So the tap
- * writes, and Undo clears it. The server only allows clearing while the program
+ * screen is often gone within a second and the write would be lost. So the tick
+ * writes, and unticking clears it. The server only allows clearing while the program
  * is still open.
  * ===========================================================================
  */
@@ -64,10 +61,19 @@ export function DailyLog({
   // not a question any more.
   const stillOpen = (all: ProgramGoal[]) => all.filter((g) => !g.report);
 
-  const [open, setOpen] = useState<ProgramGoal[]>(() =>
+  // The list stays as it opened: ticking a goal leaves it on screen, ticked,
+  // so unticking is the undo (founder, 2026-11-05: tick boxes, since several
+  // can have happened).
+  const [shown, setShown] = useState<ProgramGoal[]>(() =>
     goals ? stillOpen(goals) : [],
   );
-  const [undoable, setUndoable] = useState<ProgramGoal | null>(null);
+  const [ticked, setTicked] = useState<string[]>([]);
+  /**
+   * A fear list (Breaking Thought Traps). Ticking says the fear came true,
+   * which is not a goal reached, and "Not yet" read as if the fear were still
+   * due (founder, B9, 2026-11-05).
+   */
+  const fearList = shown.some((g) => g.answerType === "prediction");
   const [dismissed, setDismissed] = useState(false);
   /**
    * The other place a single goal gets closed, so the other place the moment
@@ -84,7 +90,7 @@ export function DailyLog({
     getProgramGoals(packId)
       .then((state) => {
         if (!alive) return;
-        setOpen(stillOpen(state.goals));
+        setShown(stillOpen(state.goals));
       })
       .catch(() => {
         /* No log rather than an error. This is the smallest thing on screen. */
@@ -95,42 +101,32 @@ export function DailyLog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packId, goals]);
 
-  const mark = useCallback(async (goal: ProgramGoal) => {
-    haptics.light();
-    // Optimistic: the chip leaves on tap. A round trip before the chip moves
-    // makes a one-tap control feel broken on a slow connection.
-    setOpen((prev) => prev.filter((g) => g.id !== goal.id));
-    setUndoable(goal);
-    try {
-      const result = await updateProgramGoal(goal.id, "FULL");
-      track(ANALYTICS_EVENTS.PROGRAM_GOAL_CLOSED, {
-        surface: "daily_log",
-        isFurthest: result.isFurthest,
-        xpAwarded: result.xpAwarded,
-      });
-      if (result.isFurthest) setMoment({ goal, xp: result.xpAwarded });
-    } catch {
-      // Put it back. Nothing is more annoying than a thing you marked done
-      // that quietly did not save.
-      setOpen((prev) => restore(prev, goal));
-      setUndoable(null);
-    }
-  }, []);
-
-  const undo = useCallback(async () => {
-    const goal = undoable;
-    if (!goal) return;
-    haptics.light();
-    setUndoable(null);
-    setOpen((prev) => restore(prev, goal));
-    try {
-      await updateProgramGoal(goal.id, null);
-    } catch {
-      // The server refused, which means the program closed in between. Take
-      // the chip away again rather than showing something that is not true.
-      setOpen((prev) => prev.filter((g) => g.id !== goal.id));
-    }
-  }, [undoable]);
+  const toggle = useCallback(
+    async (goal: ProgramGoal) => {
+      const on = ticked.includes(goal.id);
+      // Optimistic: the tick moves on tap. A round trip first makes a one-tap
+      // control feel broken on a slow connection.
+      setTicked((prev) => (on ? prev.filter((id) => id !== goal.id) : [...prev, goal.id]));
+      try {
+        if (on) {
+          await updateProgramGoal(goal.id, null);
+          return;
+        }
+        const result = await updateProgramGoal(goal.id, "FULL");
+        track(ANALYTICS_EVENTS.PROGRAM_GOAL_CLOSED, {
+          surface: "daily_log",
+          isFurthest: result.isFurthest,
+          xpAwarded: result.xpAwarded,
+        });
+        if (result.isFurthest) setMoment({ goal, xp: result.xpAwarded });
+      } catch {
+        // Put the tick back as it was. A tick that quietly did not save is
+        // worse than none.
+        setTicked((prev) => (on ? [...prev, goal.id] : prev.filter((id) => id !== goal.id)));
+      }
+    },
+    [ticked],
+  );
 
   const takeover = (
     <FurthestMoment
@@ -141,50 +137,45 @@ export function DailyLog({
     />
   );
 
-  if (dismissed || open.length === 0) {
-    // The bar outlives the list: undoing the last chip must still be possible,
-    // and so must the moment for the chip that emptied it.
-    return undoable || moment ? (
-      <View style={styles.root}>
-        {undoable && (
-          <Snackbar message="Marked done" actionLabel="Undo" onAction={undo} />
-        )}
-        {takeover}
-      </View>
-    ) : null;
+  if (dismissed || shown.length === 0) {
+    return moment ? <View style={styles.root}>{takeover}</View> : null;
   }
 
   return (
     <View style={styles.root}>
       {/*
         `title`, not `label`. This is a QUESTION put to the user and the only
-        interactive thing on the screen below it; at 13pt it read as a caption
-        on the paragraph above and the chips looked like stray tags.
+        interactive thing on the screen below it.
       */}
       <Text variant="title" color="primary" center>
         Did any of these happen?
       </Text>
 
-      {/* Centred, because everything above it on this screen is centred. A
-          left-aligned block under a centred column reads as a rendering fault
-          rather than as a choice. */}
-      <View style={styles.chips}>
-        {open.map((goal) => (
-          <Chip key={goal.id} label={goal.text} onPress={() => mark(goal)} />
-        ))}
+      {/* Tick boxes: several can have happened. Full rows, so long goals wrap
+          instead of being cut. */}
+      <View style={styles.list}>
+        <ChoiceList
+          multiple
+          options={shown.map((g) => ({ key: g.id, label: g.text }))}
+          selected={ticked}
+          onToggle={(id) => {
+            const goal = shown.find((g) => g.id === id);
+            if (goal) void toggle(goal);
+          }}
+        />
       </View>
 
       {/*
-        NOT A FOURTH CHIP. "Not yet" is a way out, not a fourth thing that
-        might have happened, and drawn identically it read as one — the one
-        button on the screen that means the opposite of the others looked
-        exactly like them. A quiet text link says "leave" without competing.
+        A way out, not one more thing that might have happened, so a quiet text
+        link rather than a row. Only while nothing is ticked: "None of them"
+        under a ticked box would contradict it.
       */}
-      <TextLink label="Not yet" onPress={() => setDismissed(true)} />
-
-      {undoable && (
-        <Snackbar message="Marked done" actionLabel="Undo" onAction={undo} />
-      )}
+      {ticked.length === 0 ? (
+        <TextLink
+          label={fearList ? "None of them" : "Not yet"}
+          onPress={() => setDismissed(true)}
+        />
+      ) : null}
 
       {takeover}
     </View>
@@ -201,10 +192,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: spacing.sm,
+  list: {
+    alignSelf: "stretch",
   },
 });

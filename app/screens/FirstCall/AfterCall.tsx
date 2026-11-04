@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import {
   Button,
+  ChoiceList,
   Text,
-  haptics,
   makeStyles,
   space,
   spacing,
@@ -80,40 +80,15 @@ const AfterCall: React.FC<Props> = ({ callerName, onBreathe, onFinish }) => {
           {callerName} has hung up. How do you feel?
         </Text>
 
+        {/* One answer: round buttons, like every other question in the app
+            (founder, 2026-11-05). Purple, the colour of this flow. */}
         <View style={styles.choices}>
-          {CHOICES.map((c) => {
-            const active = picked === c.key;
-            return (
-              <Pressable
-                key={c.key}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => {
-                  haptics.selection();
-                  setPicked(c.key);
-                }}
-                style={({ pressed }) => [
-                  styles.choice,
-                  {
-                    backgroundColor: active
-                      ? colors.accentTint.purple
-                      : colors.surface.default,
-                    borderColor: active
-                      ? colors.accent.purple
-                      : colors.border.hairline,
-                  },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text variant="title" color="primary">
-                  {c.label}
-                </Text>
-                <Text variant="bodySm" color="secondary">
-                  {c.sub}
-                </Text>
-              </Pressable>
-            );
-          })}
+          <ChoiceList
+            options={CHOICES.map((c) => ({ key: c.key, label: c.label, hint: c.sub }))}
+            selected={picked ? [picked] : []}
+            onToggle={(key) => setPicked(key as AfterCallFeeling)}
+            accent={colors.accent.purple}
+          />
         </View>
       </View>
 

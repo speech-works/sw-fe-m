@@ -1143,7 +1143,9 @@ const OwnedCoverHeader: React.FC<{
         <StandaloneCover cover={cover} eyebrow={eyebrow} title={title} />
       </View>
       {description ? (
-        <Text variant="body" color="secondary" center style={styles.coverDescription}>
+        // Left-aligned (founder, 2026-11-05): a centred paragraph of four
+        // lines has ragged edges on both sides and is harder to read.
+        <Text variant="body" color="secondary" style={styles.coverDescription}>
           {description}
         </Text>
       ) : null}

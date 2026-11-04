@@ -13,7 +13,7 @@ import {
   space,
   Text,
   Button,
-  Chip,
+  ChoiceList,
   TextField,
   Page,
   Icon,
@@ -86,17 +86,14 @@ const ReportProblem = () => {
             <Text variant="eyebrow" color="tertiary">
               WHAT'S THE ISSUE?
             </Text>
-            <View style={styles.chipsContainer}>
-              {reportOptions.map((option) => (
-                <Chip
-                  key={option.id}
-                  label={option.label}
-                  icon={option.icon}
-                  selected={selectedIssue?.id === option.id}
-                  onPress={() => setSelectedIssue(option)}
-                />
-              ))}
-            </View>
+            {/* One answer: round buttons (founder, 2026-11-05). */}
+            <ChoiceList
+              options={reportOptions.map((o) => ({ key: o.id, label: o.label }))}
+              selected={selectedIssue ? [selectedIssue.id] : []}
+              onToggle={(id) =>
+                setSelectedIssue(reportOptions.find((o) => o.id === id) ?? null)
+              }
+            />
           </View>
 
           {/* Details */}
@@ -191,11 +188,6 @@ export default ReportProblem;
 const styles = StyleSheet.create({
   section: {
     gap: spacing.md,
-  },
-  chipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
   },
   successContainer: {
     flex: 1,

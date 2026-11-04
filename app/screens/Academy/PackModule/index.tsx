@@ -1049,6 +1049,7 @@ const PackModuleScreen = () => {
       // Check for next module
       // This module's own day, for the goal chips below.
       let thisDay: number | null = null;
+      let finishedOnLastDay = false;
       try {
         const result = await getPackProgress(packId);
 
@@ -1079,6 +1080,10 @@ const PackModuleScreen = () => {
         const finishedDay =
           result.modules.find((m) => m.moduleId === module.id)?.dayIndex ?? null;
         thisDay = finishedDay;
+        finishedOnLastDay =
+          finishedDay != null &&
+          finishedDay >=
+            Math.max(...result.modules.map((m) => m.dayIndex ?? 0));
         setDayClose(
           nextMod && nextMod.unlocked === false
             ? {
@@ -1123,7 +1128,15 @@ const PackModuleScreen = () => {
         // for one of these acts. On Art of Disclosure day 1 nobody has been
         // asked to tell anyone yet.
         const from = goalState.harness?.logFromDay;
-        setHideDailyLog(from != null && thisDay != null && thisDay < from);
+        // A fear list asks "It happened / Partly / It did not" in its own
+        // step on the last day, so the chips would ask the same thing twice
+        // (founder, B9, 2026-11-05).
+        const lastDay = finishedOnLastDay;
+        const fearList = goalState.harness?.answerType === "prediction";
+        setHideDailyLog(
+          (from != null && thisDay != null && thisDay < from) ||
+            (fearList && lastDay),
+        );
         if (goalState.needsReport) {
           navigation.replace("ProgramGoalsReport", { packId });
           return;

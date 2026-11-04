@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 
 import {
   Button,
-  Chip,
+  ChoiceList,
   IconButton,
   Sheet,
   Text,
@@ -14,7 +14,6 @@ import {
   spacing,
   useTheme,
 } from "../../design-system";
-import PressableScale from "../PressableScale";
 import {
   GOAL_TAGS,
   MAX_DISCOVERY_TAGS,
@@ -132,38 +131,18 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
       <Text variant="caption" color="tertiary" style={styles.qHint}>
         {hint}
       </Text>
-      <View style={styles.chips}>
-        {tags.map((tag) => {
-          const on = picked.includes(tag);
-          // AT THE CAP, THE REST GO QUIET.
-          //
-          // `toggle` already refused a fourth pick, but it refused it in
-          // silence: the chip stayed at full strength, took the press, and did
-          // nothing. That is a dead tap, and on a screen full of them the
-          // reasonable conclusion is that the picker is broken rather than
-          // full. Dimming says which, before the finger lands.
-          const locked = atCap && !on;
-          if (locked) {
-            return (
-              <View
-                key={tag}
-                style={styles.locked}
-                accessible
-                accessibilityRole="button"
-                accessibilityState={{ disabled: true, selected: false }}
-                accessibilityLabel={`${TAG_LABELS[tag] ?? tag}, remove one first`}
-              >
-                <Chip label={TAG_LABELS[tag] ?? tag} />
-              </View>
-            );
-          }
-          return (
-            <PressableScale key={tag} onPress={() => toggle(tag)}>
-              <Chip label={TAG_LABELS[tag] ?? tag} selected={on} />
-            </PressableScale>
-          );
-        })}
-      </View>
+      {/* Several allowed, up to the cap: tick boxes (founder, 2026-11-05).
+          At the cap the rest go quiet, so a fourth tap is never a dead tap. */}
+      <ChoiceList
+        multiple
+        options={tags.map((tag) => ({
+          key: tag,
+          label: TAG_LABELS[tag] ?? tag,
+          disabled: atCap && !picked.includes(tag),
+        }))}
+        selected={picked}
+        onToggle={toggle}
+      />
     </View>
   );
 
@@ -267,10 +246,6 @@ const styles = StyleSheet.create({
   listingText: { flex: 1, minWidth: 0, gap: space.titleSub },
   q: { gap: spacing.xxs },
   qHint: { marginBottom: space.inlineGap },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  // Dimmed rather than removed: the option is still real, and hiding it would
-  // make the list reflow every time you hit the cap.
-  locked: { opacity: 0.4 },
   // The count travels WITH the button. It is the line that explains the dimmed
   // chips, so it has to be visible at the moment the dimming happens.
   footer: { gap: space.rowGap },

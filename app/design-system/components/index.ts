@@ -66,6 +66,8 @@ export type { SliderProps } from "./Slider";
 export { Checkbox } from "./Checkbox";
 export type { CheckboxProps } from "./Checkbox";
 export { Radio, RadioGroup } from "./Radio";
+export { ChoiceList } from "./ChoiceList";
+export type { ChoiceListProps, ChoiceOption } from "./ChoiceList";
 export type { RadioProps, RadioGroupProps, RadioGroupOption } from "./Radio";
 
 // Overlays
