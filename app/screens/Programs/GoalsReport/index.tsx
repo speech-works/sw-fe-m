@@ -33,7 +33,7 @@ import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import { GoalRow } from "./GoalRow";
 import { prefillAnswers } from "./prefill";
-import { reportSummary } from "./labels";
+import { reportSummary, reportTitle } from "./labels";
 import { defaultPlannedDay } from "./PlannedDayPicker";
 
 /**
@@ -242,7 +242,7 @@ const GoalsReportScreen = () => {
 
   return (
     <Page
-      title={harness.reportPrompt}
+      title={reportTitle(harness.reportPrompt, shownGoals.length)}
       description="There is no wrong answer. This is the last step."
       onBack={() => navigation.goBack()}
       footer={

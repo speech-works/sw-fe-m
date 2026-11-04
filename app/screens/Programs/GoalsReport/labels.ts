@@ -121,3 +121,17 @@ export function reportSummary(goal: Pick<ProgramGoal, "reportStyle" | "report" |
 export function reportLabel(style: GoalReportStyle, report: GoalReport): string {
   return REPORT_LABELS[style]?.[report] ?? "";
 }
+
+/**
+ * The question over the report, in the singular when only one goal is shown.
+ * "You named these" over one person read wrong (AoD walkthrough, 2026-11-04).
+ * Every program's prompt is written for a list, so only its plural words move.
+ */
+export function reportTitle(prompt: string, shown: number): string {
+  if (shown !== 1) return prompt;
+  return prompt
+    .replace(/\bthese as things\b/, "this as a thing")
+    .replace(/\bnamed these\b/, "named this")
+    .replace(/\bWhere are they now\?/, "Where is it now?")
+    .replace(/\bDid they happen\?/, "Did it happen?");
+}
