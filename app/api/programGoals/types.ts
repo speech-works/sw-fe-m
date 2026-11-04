@@ -53,6 +53,8 @@ export interface GoalHarness {
   reportStyle: GoalReportStyle;
   answerType: GoalAnswerType;
   version: number;
+  /** The end-of-day "Did any of these happen?" chips show from this day on. */
+  logFromDay?: number;
 }
 
 export interface ProgramGoal {

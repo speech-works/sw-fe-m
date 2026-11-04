@@ -16,4 +16,11 @@ describe("composeGoal", () => {
     expect(composeGoal("Say {}", "say my name")).toBe("Say my name");
     expect(composeGoal("Say {}", "hi to strangers")).toBe("Say hi to strangers");
   });
+
+  it("lowers a small first word after the verb, and keeps names", () => {
+    expect(composeGoal("Tell {}", "My barber")).toBe("Tell my barber");
+    expect(composeGoal("Tell {}", "The new manager")).toBe("Tell the new manager");
+    expect(composeGoal("Tell {}", "Priya")).toBe("Tell Priya");
+    expect(composeGoal("{} again", "My call")).toBe("My call again");
+  });
 });

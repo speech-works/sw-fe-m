@@ -126,3 +126,19 @@ export function initialFormAnswers(
   }
   return answers;
 }
+
+/**
+ * A pick-list answer after tapping `option`: ticked if it was not, unticked if
+ * it was. Kept in the order of the options, so the saved list reads the same
+ * way as the screen.
+ */
+export function toggleTick(
+  value: unknown,
+  option: string,
+  options: string[],
+): string[] {
+  const ticked = new Set(Array.isArray(value) ? (value as string[]) : []);
+  if (ticked.has(option)) ticked.delete(option);
+  else ticked.add(option);
+  return options.filter((o) => ticked.has(o));
+}

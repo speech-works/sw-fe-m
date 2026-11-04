@@ -5,6 +5,7 @@ import {
   formStartLabel,
   GUESS_FORM_KEY,
   initialFormAnswers,
+  toggleTick,
 } from "../formBlock";
 import {
   FormFieldType,
@@ -148,5 +149,14 @@ describe("initialFormAnswers", () => {
     expect(initialFormAnswers(other)).toEqual({});
     expect(initialFormAnswers(config)).toEqual({});
     expect(initialFormAnswers(undefined)).toEqual({});
+  });
+});
+
+describe("toggleTick", () => {
+  const opts = ["A meeting", "A call", "A counter"];
+  it("ticks, unticks, and keeps the screen order", () => {
+    expect(toggleTick(undefined, "A counter", opts)).toEqual(["A counter"]);
+    expect(toggleTick(["A counter"], "A meeting", opts)).toEqual(["A meeting", "A counter"]);
+    expect(toggleTick(["A meeting", "A counter"], "A meeting", opts)).toEqual(["A counter"]);
   });
 });

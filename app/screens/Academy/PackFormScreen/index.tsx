@@ -32,6 +32,7 @@ import {
   formSavedMessage,
   formScreenHeader,
   initialFormAnswers,
+  toggleTick,
 } from "../../../util/packs/formBlock";
 import { textFieldProblem, wordCount } from "../../../util/packs/textLimits";
 
@@ -217,30 +218,21 @@ const BooleanToggleField: React.FC<FieldProps> = ({
   );
 };
 
-/** Tallest a text box grows to fit its example: 7 lines of 22 plus padding. */
-const MAX_EXAMPLE_BOX = 7 * 22 + 2 * spacing.lg;
-
 /** TEXT_INPUT — a text area, or one line. Shows its limit and stops typing at it. */
 const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   const { colors } = useTheme();
   const text: string = value || "";
   const words = wordCount(text);
-  // iOS draws the grey example of a multi-line box on one line, cut short,
-  // when it gets the example before it knows its own width. So the example is
-  // passed only after the first layout, and then it wraps.
-  const [laidOut, setLaidOut] = useState(false);
-  // A long example ran past the bottom of a 4-line box and its last words
-  // never showed ("...The person" with "answered." cut off). A hidden copy of
-  // the example is measured, and the box grows to fit it, up to 7 lines.
   const placeholder = field.placeholder || "Type your response...";
+  // A text area draws its grey example itself, on top of the empty box. The
+  // iPhone's own placeholder sized itself apart from our measure and cut the
+  // last line ("...say okay and serve" with "me." gone). The drawn example
+  // and the box now share one height: the box grows to the example's height
+  // plus one line, so the example always fits.
   const [exampleHeight, setExampleHeight] = useState(0);
   const boxMinHeight = field.singleLine
     ? undefined
-    : Math.min(
-        // One line of room under the example, so it never sits on the edge.
-        Math.max(120, exampleHeight > 0 ? exampleHeight + 22 : 0),
-        MAX_EXAMPLE_BOX,
-      );
+    : Math.max(120, exampleHeight > 0 ? exampleHeight + 22 : 0);
 
   const handleChange = (next: string) => {
     // Hard stop: a paste or a keystroke that would pass the word limit is not taken.
@@ -268,52 +260,51 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
 
   return (
     <View>
-      {!field.singleLine ? (
-        <RNText
-          // Plain RN Text, not the design-system one, which sets its own font
-          // size over ours. Same font, size, line height and padding as the
-          // box, so its height is the height the example needs. Never seen or
-          // read out.
-          style={[fieldStyles.textInput, fieldStyles.exampleMeasure]}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          onLayout={(e) => setExampleHeight(e.nativeEvent.layout.height)}
-        >
-          {placeholder}
-        </RNText>
-      ) : null}
-      <TextInput
-        style={[
-          fieldStyles.textInput,
-          field.singleLine ? fieldStyles.textInputSingle : null,
-          boxMinHeight ? { minHeight: boxMinHeight } : null,
-          {
-            backgroundColor: colors.input.bg,
-            borderColor: colors.input.border,
-            color: colors.text.primary,
-          },
-        ]}
-        value={text}
-        onChangeText={handleChange}
-        onLayout={laidOut ? undefined : () => setLaidOut(true)}
-        // iOS keeps the example at the size it was first drawn, so it waits for
-        // the box's final height, and the box is rebuilt (key) when that
-        // height arrives. This only happens before anyone types.
-        key={boxMinHeight ?? "single"}
-        placeholder={
-          laidOut && (field.singleLine || exampleHeight > 0)
-            ? placeholder
-            : undefined
-        }
-        placeholderTextColor={colors.input.placeholder}
-        maxLength={field.maxLength}
-        {...(field.singleLine
-          ? { multiline: false }
-          : // No numberOfLines: since RN 0.79 it also caps iOS at 4 lines, which
-            // cut long examples off mid-sentence. minHeight keeps the 4-line
-            // look, and the box grows with its example and with typing.
-            { multiline: true, textAlignVertical: "top" as const })}
-      />
+      <View>
+        <TextInput
+          style={[
+            fieldStyles.textInput,
+            field.singleLine ? fieldStyles.textInputSingle : null,
+            boxMinHeight ? { minHeight: boxMinHeight } : null,
+            {
+              backgroundColor: colors.input.bg,
+              borderColor: colors.input.border,
+              color: colors.text.primary,
+            },
+          ]}
+          value={text}
+          onChangeText={handleChange}
+          placeholder={field.singleLine ? placeholder : undefined}
+          placeholderTextColor={colors.input.placeholder}
+          // The drawn example is hidden from screen readers, so they read it here.
+          accessibilityHint={field.singleLine ? undefined : placeholder}
+          maxLength={field.maxLength}
+          {...(field.singleLine
+            ? { multiline: false }
+            : // No numberOfLines: since RN 0.79 it also caps iOS at 4 lines, which
+              // cut long examples off mid-sentence. minHeight keeps the 4-line
+              // look, and the box grows with its example and with typing.
+              { multiline: true, textAlignVertical: "top" as const })}
+        />
+        {!field.singleLine && text.length === 0 ? (
+          <RNText
+            // Plain RN Text, not the design-system one, which sets its own font
+            // size over ours. Same font, size, line height and padding as the
+            // box. Taps go through to the box under it.
+            pointerEvents="none"
+            style={[
+              fieldStyles.textInput,
+              fieldStyles.exampleOverlay,
+              { color: colors.input.placeholder },
+            ]}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            onLayout={(e) => setExampleHeight(e.nativeEvent.layout.height)}
+          >
+            {placeholder}
+          </RNText>
+        ) : null}
+      </View>
       {counter ? (
         <Text
           variant="caption"
@@ -327,18 +318,26 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   );
 };
 
-/** MULTIPLE_CHOICE — radio buttons */
+/**
+ * MULTIPLE_CHOICE: round buttons for one answer, square tick boxes when the
+ * field allows several ("Pick as many as you want").
+ */
 const MultipleChoiceField: React.FC<FieldProps> = ({
   field,
   value,
   onChange,
   accent,
+  onAccent,
 }) => {
   const { colors } = useTheme();
+  const options = field.options || [];
+  const many = field.multiple === true;
   return (
     <View style={fieldStyles.mcContainer}>
-      {(field.options || []).map((option, idx) => {
-        const isSelected = value === option;
+      {options.map((option, idx) => {
+        const isSelected = many
+          ? Array.isArray(value) && value.includes(option)
+          : value === option;
         return (
           <PressableScale
             key={idx}
@@ -349,23 +348,34 @@ const MultipleChoiceField: React.FC<FieldProps> = ({
                 borderColor: isSelected ? accent : colors.border.default,
               },
             ]}
-            onPress={() => onChange(option)}
+            accessibilityRole={many ? "checkbox" : "radio"}
+            accessibilityState={many ? { checked: isSelected } : { selected: isSelected }}
+            onPress={() =>
+              onChange(many ? toggleTick(value, option, options) : option)
+            }
           >
             <View
               style={[
                 fieldStyles.mcRadio,
+                many && fieldStyles.mcTick,
                 {
                   borderColor: isSelected ? accent : colors.border.strong,
                 },
+                many && isSelected && { backgroundColor: accent },
               ]}
             >
-              {isSelected && (
+              {isSelected && !many && (
                 <View
                   style={[
                     fieldStyles.mcRadioDot,
                     { backgroundColor: accent },
                   ]}
                 />
+              )}
+              {isSelected && many && (
+                <RNText style={[fieldStyles.mcTickMark, { color: onAccent }]}>
+                  ✓
+                </RNText>
               )}
             </View>
             <Text
@@ -433,6 +443,7 @@ const PackFormScreen = () => {
       .filter((f) => f.required)
       .every((f) => {
         const val = answers[f.id];
+        if (Array.isArray(val)) return val.length > 0;
         return val !== undefined && val !== null && val !== "";
       });
   }, [answers, configuration?.fields]);
@@ -696,18 +707,17 @@ const fieldStyles = StyleSheet.create({
     minHeight: 120,
     lineHeight: 22,
   },
-  // The hidden copy of the example used to size a text box. Out of the flow,
-  // full width, invisible, and no border so it does not add 2px.
-  // Inset 6 each side: iOS lays the input's text out about 5pt narrower than
-  // its padding (the text container's line fragment padding), so without this
-  // the copy wraps onto fewer lines than the real example and the box is short.
-  exampleMeasure: {
+  // The grey example drawn over an empty text area. Out of the flow, the
+  // box's width, the same padding and a clear border, so its first letter
+  // sits where the cursor is (checked on the iPhone simulator).
+  exampleOverlay: {
     position: "absolute",
-    left: 6,
-    right: 6,
-    opacity: 0,
-    borderWidth: 0,
+    top: 0,
+    left: 0,
+    right: 0,
     minHeight: 0,
+    borderColor: "transparent",
+    backgroundColor: "transparent",
   },
 
   // MULTIPLE_CHOICE
@@ -727,6 +737,14 @@ const fieldStyles = StyleSheet.create({
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
+  },
+  mcTick: {
+    borderRadius: radius.xs,
+  },
+  mcTickMark: {
+    fontSize: 14,
+    lineHeight: 16,
+    fontFamily: fonts.bold,
   },
   mcRadioDot: {
     width: 12,

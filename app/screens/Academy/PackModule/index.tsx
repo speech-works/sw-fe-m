@@ -1003,6 +1003,7 @@ const PackModuleScreen = () => {
   const [goalsAfterModule, setGoalsAfterModule] = useState<
     ProgramGoal[] | undefined
   >(undefined);
+  const [hideDailyLog, setHideDailyLog] = useState(false);
   const [nextModuleId, setNextModuleId] = useState<string | null>(null);
   /**
    * Set only when the module they just finished was the last OPEN one — i.e.
@@ -1046,6 +1047,8 @@ const PackModuleScreen = () => {
       void AsyncStorage.removeItem(dayStepKey(packId, module.id)).catch(() => {});
 
       // Check for next module
+      // This module's own day, for the goal chips below.
+      let thisDay: number | null = null;
       try {
         const result = await getPackProgress(packId);
 
@@ -1075,6 +1078,7 @@ const PackModuleScreen = () => {
         // clock, so none of its modules can come back `unlocked: false`.
         const finishedDay =
           result.modules.find((m) => m.moduleId === module.id)?.dayIndex ?? null;
+        thisDay = finishedDay;
         setDayClose(
           nextMod && nextMod.unlocked === false
             ? {
@@ -1115,6 +1119,11 @@ const PackModuleScreen = () => {
       try {
         const goalState = await getProgramGoals(packId);
         setGoalsAfterModule(goalState.goals);
+        // "Did any of these happen?" only from the day the program first asks
+        // for one of these acts. On Art of Disclosure day 1 nobody has been
+        // asked to tell anyone yet.
+        const from = goalState.harness?.logFromDay;
+        setHideDailyLog(from != null && thisDay != null && thisDay < from);
         if (goalState.needsReport) {
           navigation.replace("ProgramGoalsReport", { packId });
           return;
@@ -1362,7 +1371,9 @@ const PackModuleScreen = () => {
               at the START of a module would delay the thing they opened the
               app to do, and after the LAST module this screen is replaced by
               the report, so the two never collide. */}
-          <DailyLog packId={packId} goals={goalsAfterModule} />
+          {hideDailyLog ? null : (
+            <DailyLog packId={packId} goals={goalsAfterModule} />
+          )}
 
           {/*
             THE EXIT IS NOT ALWAYS A SECOND CHOICE. On a day-gated pack there

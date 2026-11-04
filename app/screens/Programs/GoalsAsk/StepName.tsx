@@ -82,10 +82,11 @@ export function StepName({
            * get wrapped in a verb, not sentences.
            *
            * A name is the exception: Art of Disclosure collects people, and
-           * "priya" would be worse than the capital ever was. The harness
-           * already says which kind of thing it is asking for.
+           * "priya" would be worse than the capital ever was. Only the first
+           * letter is raised: "words" turned "my new manager" into "My New
+           * Manager". composeGoal lowers "My" again after "Tell".
            */
-          autoCapitalize={harness.noun === "person" ? "words" : "none"}
+          autoCapitalize={harness.noun === "person" ? "sentences" : "none"}
           returnKeyType={i === values.length - 1 ? "done" : "next"}
           onSubmitEditing={() => refs.current[i + 1]?.focus()}
           maxLength={120}

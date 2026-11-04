@@ -157,6 +157,8 @@ export interface FormField {
   defaultValue?: string;
   // MULTIPLE_CHOICE
   options?: string[];
+  /** MULTIPLE_CHOICE: more than one option may be ticked. The answer is a list. */
+  multiple?: boolean;
 }
 
 export interface FormConfiguration {
