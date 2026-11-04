@@ -71,6 +71,16 @@ const GoalsReportScreen = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [closed, setClosed] = useState(false);
+  /**
+   * ── ASK ONLY WHAT IS STILL OPEN ────────────────────────────────────────────
+   * Some last days already ask this question inside the day (Word Swap day 7
+   * step 5), and Home's card can answer goals too. Asking again here made the
+   * reader answer the same five words twice. Goals that arrive with an answer
+   * are not shown again (the answer is still sent), and when every goal has
+   * one, the screen saves straight away and shows the summary.
+   */
+  const [answeredAtLoad, setAnsweredAtLoad] = useState<Set<string>>(new Set());
+  const [autoSubmit, setAutoSubmit] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -85,7 +95,10 @@ const GoalsReportScreen = () => {
         setGoals(state.goals);
         // Somebody may have answered some of these already, through the card on
         // Home. Start from what the server holds rather than from blank.
-        setAnswers(prefillAnswers(state.goals));
+        const prefilled = prefillAnswers(state.goals);
+        setAnswers(prefilled);
+        setAnsweredAtLoad(new Set(Object.keys(prefilled)));
+        setAutoSubmit(state.goals.every((g) => prefilled[g.id]));
         // A plan made earlier keeps its day; it is not reset to tomorrow.
         setPlannedDays(
           Object.fromEntries(
@@ -166,7 +179,27 @@ const GoalsReportScreen = () => {
     }
   }, [packId, goals, answers, plannedDays, harness]);
 
-  if (loading || !harness) {
+  // Every goal already answered: save once, with no second question.
+  useEffect(() => {
+    if (!autoSubmit || loading || !harness) return;
+    setAutoSubmit(false);
+    void submit();
+  }, [autoSubmit, loading, harness, submit]);
+
+  const openGoals = useMemo(
+    () => goals.filter((g) => !answeredAtLoad.has(g.id)),
+    [goals, answeredAtLoad],
+  );
+  // Nothing open but not closed either: the save just failed. Show every goal
+  // so the screen is not empty, and Finish retries.
+  const shownGoals = openGoals.length > 0 ? openGoals : goals;
+
+  if (
+    loading ||
+    !harness ||
+    autoSubmit ||
+    (saving && !closed && openGoals.length === 0)
+  ) {
     return (
       <Page title="" onBack={() => navigation.goBack()}>
         <View style={styles.centre}>
@@ -221,7 +254,7 @@ const GoalsReportScreen = () => {
         />
       }
     >
-      {goals.map((goal, i) => (
+      {shownGoals.map((goal, i) => (
         <View key={goal.id} style={styles.goal}>
           {i > 0 && <Divider />}
           <GoalRow

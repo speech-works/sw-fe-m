@@ -312,16 +312,25 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
                 ]}
               >
                 <View style={styles.ansRowContent}>
+                  {/* Once checked, a right pick turns its tick green, the same
+                      green as the border and the reason box. An orange tick on
+                      a green row read as two different answers. */}
                   <View
                     style={[
                       styles.radioOuter,
                       {
-                        borderColor: isSelected
-                          ? colors.action.primary
-                          : colors.border.strong,
-                        backgroundColor: isSelected
-                          ? colors.action.primary
-                          : "transparent",
+                        borderColor:
+                          isSelected && showAsCorrect
+                            ? colors.accent.success
+                            : isSelected
+                              ? colors.action.primary
+                              : colors.border.strong,
+                        backgroundColor:
+                          isSelected && showAsCorrect
+                            ? colors.accent.success
+                            : isSelected
+                              ? colors.action.primary
+                              : "transparent",
                       },
                     ]}
                   >
@@ -329,7 +338,11 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
                       <Icon
                         name="check"
                         size={size.iconXs}
-                        color={colors.action.onPrimary}
+                        color={
+                          showAsCorrect
+                            ? colors.accentOn.success
+                            : colors.action.onPrimary
+                        }
                       />
                     )}
                   </View>

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, Text as RNText, TextInput, View } from "react-native";
 import { submitFormResponse } from "../../../api";
 import { getFormRecall } from "../../../api/packs";
 import {
@@ -217,6 +217,9 @@ const BooleanToggleField: React.FC<FieldProps> = ({
   );
 };
 
+/** Tallest a text box grows to fit its example: 7 lines of 22 plus padding. */
+const MAX_EXAMPLE_BOX = 7 * 22 + 2 * spacing.lg;
+
 /** TEXT_INPUT — a text area, or one line. Shows its limit and stops typing at it. */
 const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   const { colors } = useTheme();
@@ -226,6 +229,18 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   // when it gets the example before it knows its own width. So the example is
   // passed only after the first layout, and then it wraps.
   const [laidOut, setLaidOut] = useState(false);
+  // A long example ran past the bottom of a 4-line box and its last words
+  // never showed ("...The person" with "answered." cut off). A hidden copy of
+  // the example is measured, and the box grows to fit it, up to 7 lines.
+  const placeholder = field.placeholder || "Type your response...";
+  const [exampleHeight, setExampleHeight] = useState(0);
+  const boxMinHeight = field.singleLine
+    ? undefined
+    : Math.min(
+        // One line of room under the example, so it never sits on the edge.
+        Math.max(120, exampleHeight > 0 ? exampleHeight + 22 : 0),
+        MAX_EXAMPLE_BOX,
+      );
 
   const handleChange = (next: string) => {
     // Hard stop: a paste or a keystroke that would pass the word limit is not taken.
@@ -253,10 +268,25 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
 
   return (
     <View>
+      {!field.singleLine ? (
+        <RNText
+          // Plain RN Text, not the design-system one, which sets its own font
+          // size over ours. Same font, size, line height and padding as the
+          // box, so its height is the height the example needs. Never seen or
+          // read out.
+          style={[fieldStyles.textInput, fieldStyles.exampleMeasure]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          onLayout={(e) => setExampleHeight(e.nativeEvent.layout.height)}
+        >
+          {placeholder}
+        </RNText>
+      ) : null}
       <TextInput
         style={[
           fieldStyles.textInput,
           field.singleLine ? fieldStyles.textInputSingle : null,
+          boxMinHeight ? { minHeight: boxMinHeight } : null,
           {
             backgroundColor: colors.input.bg,
             borderColor: colors.input.border,
@@ -266,12 +296,23 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
         value={text}
         onChangeText={handleChange}
         onLayout={laidOut ? undefined : () => setLaidOut(true)}
-        placeholder={laidOut ? field.placeholder || "Type your response..." : undefined}
+        // iOS keeps the example at the size it was first drawn, so it waits for
+        // the box's final height, and the box is rebuilt (key) when that
+        // height arrives. This only happens before anyone types.
+        key={boxMinHeight ?? "single"}
+        placeholder={
+          laidOut && (field.singleLine || exampleHeight > 0)
+            ? placeholder
+            : undefined
+        }
         placeholderTextColor={colors.input.placeholder}
         maxLength={field.maxLength}
         {...(field.singleLine
           ? { multiline: false }
-          : { multiline: true, numberOfLines: 4, textAlignVertical: "top" as const })}
+          : // No numberOfLines: since RN 0.79 it also caps iOS at 4 lines, which
+            // cut long examples off mid-sentence. minHeight keeps the 4-line
+            // look, and the box grows with its example and with typing.
+            { multiline: true, textAlignVertical: "top" as const })}
       />
       {counter ? (
         <Text
@@ -654,6 +695,19 @@ const fieldStyles = StyleSheet.create({
     fontSize: 15,
     minHeight: 120,
     lineHeight: 22,
+  },
+  // The hidden copy of the example used to size a text box. Out of the flow,
+  // full width, invisible, and no border so it does not add 2px.
+  // Inset 6 each side: iOS lays the input's text out about 5pt narrower than
+  // its padding (the text container's line fragment padding), so without this
+  // the copy wraps onto fewer lines than the real example and the box is short.
+  exampleMeasure: {
+    position: "absolute",
+    left: 6,
+    right: 6,
+    opacity: 0,
+    borderWidth: 0,
+    minHeight: 0,
   },
 
   // MULTIPLE_CHOICE

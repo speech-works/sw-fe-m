@@ -1,6 +1,6 @@
 /**
- * Whether a real-life challenge step finishes straight from "Log My
- * Experience", with no reflection page (step 2).
+ * Whether a real-life challenge step finishes straight from "Log my
+ * experience", with no reflection page (step 2).
  *
  * A program day says it asks nothing after a step by setting the step's
  * completion prompt to an empty string (`completionPromptOverride: ""` on the

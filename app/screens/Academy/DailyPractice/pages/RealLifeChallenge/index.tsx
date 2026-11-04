@@ -300,10 +300,10 @@ const RealLifeChallenge = () => {
       : undefined,
   );
 
-  // A day with no question after this step logs nothing, so "Log My Experience"
+  // A day with no question after this step logs nothing, so "Log my experience"
   // promised a box that never came (founder, 2026-10-30). Each of these days
   // sets one task, and tapping this says it is done, so "Next" was wrong too.
-  const instructionsCta = noReflection ? "Done" : "Log My Experience";
+  const instructionsCta = noReflection ? "Done" : "Log my experience";
 
   // --- Handlers ---
 
