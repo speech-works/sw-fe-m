@@ -913,8 +913,17 @@ const ProgramsScreen = () => {
               One row, because a title and its price are one fact when you are
               comparing nine of these. The price never shrinks — a half-shown
               price is worse than none — so the title yields instead. */}
-          <View style={styles.cardHead}>
-            <Text variant="h3" color="primary" style={styles.cardTitle}>
+          {/* On the Yours shelf the action goes under the title. Beside it,
+              "Resume" left too little width, and on an iPhone SE the title
+              broke inside a word: "Understandin / g Your Voice". */}
+          <View
+            style={[styles.cardHead, view === "yours" && styles.cardHeadStacked]}
+          >
+            <Text
+              variant="h3"
+              color="primary"
+              style={[styles.cardTitle, view === "yours" && styles.cardTitleStacked]}
+            >
               {item.title}
             </Text>
             {item.owned ? (
@@ -1795,6 +1804,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     flexShrink: 1,
+  },
+  cardHeadStacked: {
+    flexDirection: "column",
+    gap: spacing.xs,
+  },
+  cardTitleStacked: {
+    flex: 0,
   },
   // Edge-to-edge would need the row to escape `Page`'s gutter; these are few
   // enough to wrap instead of scroll, which keeps every option visible at once —

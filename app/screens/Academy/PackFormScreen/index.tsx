@@ -222,6 +222,10 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   const { colors } = useTheme();
   const text: string = value || "";
   const words = wordCount(text);
+  // iOS draws the grey example of a multi-line box on one line, cut short,
+  // when it gets the example before it knows its own width. So the example is
+  // passed only after the first layout, and then it wraps.
+  const [laidOut, setLaidOut] = useState(false);
 
   const handleChange = (next: string) => {
     // Hard stop: a paste or a keystroke that would pass the word limit is not taken.
@@ -261,7 +265,8 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
         ]}
         value={text}
         onChangeText={handleChange}
-        placeholder={field.placeholder || "Type your response..."}
+        onLayout={laidOut ? undefined : () => setLaidOut(true)}
+        placeholder={laidOut ? field.placeholder || "Type your response..." : undefined}
         placeholderTextColor={colors.input.placeholder}
         maxLength={field.maxLength}
         {...(field.singleLine

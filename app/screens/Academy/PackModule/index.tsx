@@ -1513,7 +1513,8 @@ const PackModuleScreen = () => {
     primaryIcon = icons.chevronRight;
     primaryVariant = "secondary";
   } else if (footerKind === "complete") {
-    primaryLabel = "Finish the day";
+    // "Finish the day" was cut to "Finish the..." on an iPhone SE.
+    primaryLabel = "Finish";
     primaryIcon = icons.success;
   }
 
