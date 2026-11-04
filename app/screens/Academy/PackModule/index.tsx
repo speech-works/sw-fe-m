@@ -19,6 +19,7 @@ import {
   PackModule,
   QuizBlockContent,
   ReferenceBlockContent,
+  TextBlockContent,
 } from "../../../api/packs/types";
 import { getProgramGoals } from "../../../api/programGoals";
 import { ProgramGoal } from "../../../api/programGoals/types";
@@ -1429,6 +1430,12 @@ const PackModuleScreen = () => {
   const currentBlock = blocks[currentBlockIndex];
   const isLastBlock = currentBlockIndex >= blocks.length - 1;
   const isFirstBlock = currentBlockIndex === 0;
+  // A step that is only reading has nothing to tap, so the page runs behind the
+  // buttons as it does on the practice screens. Every other step has controls
+  // of its own and keeps the docked footer (see Page `footerDocked`).
+  const isReadingOnly =
+    currentBlock?.type === ContentBlockType.TEXT &&
+    !(currentBlock.content as TextBlockContent).copy;
   const totalBlocks = blocks.length || 1;
 
   if (!module) {
@@ -1519,7 +1526,9 @@ const PackModuleScreen = () => {
       compactHeader={!isFirstBlock}
       onBack={() => navigation.goBack()}
       keyboardAvoiding
-      footerDocked
+      footerDocked={!isReadingOnly}
+      footerMelt={isReadingOnly}
+      scrollResetKey={currentBlockIndex}
       footer={
         <View style={styles.footerRow}>
           {!isFirstBlock ? (

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   PixelRatio,
   View,
@@ -23,6 +23,7 @@ import { PageScrollContext, PageScrollState } from "../pageScroll";
 import { spacing, space, size, zIndex } from "../primitives/scale";
 import { PageHeader } from "./PageHeader";
 import { Gradient } from "./Gradient";
+import { ProgressiveBlur } from "./ProgressiveBlur";
 
 /** FlatList body config — forwarded to a single FlatList that owns the page body. */
 export interface PageListConfig {
@@ -58,6 +59,18 @@ export interface PageProps {
    * the content lands on the footer.
    */
   footerDocked?: boolean;
+  /**
+   * Behind a floating footer, the page blurs more and more toward the bottom in
+   * place of the fade. There is no edge, and text passing behind a plain label
+   * turns soft enough that the label stays readable. A page that ends above the
+   * footer keeps the fade, or it would blur its own last line for no reason.
+   */
+  footerMelt?: boolean;
+  /**
+   * Back to the top when this changes, for one screen that shows a run of
+   * steps. A step that opened at the last step's offset started part way down.
+   */
+  scrollResetKey?: string | number;
   /** Full-bleed layer rendered BEHIND the body (above the opaque canvas) — for an
    * ambient background (e.g. a weather/flame effect). Non-interactive. */
   background?: React.ReactNode;
@@ -76,6 +89,7 @@ export interface PageProps {
 }
 
 const FOOTER_RESERVE = 96; // space kept clear at the bottom when a footer is pinned
+const DOCKED_FADE = space.sectionGap * 2; // height of the fade above a docked footer
 
 /**
  * The single product-screen scaffold. Owns the standard dark canvas, the
@@ -94,6 +108,8 @@ export const Page: React.FC<PageProps> = ({
   refreshControl,
   footer,
   footerDocked = false,
+  footerMelt = false,
+  scrollResetKey,
   background,
   keyboardAvoiding,
   scroll = true,
@@ -118,7 +134,12 @@ export const Page: React.FC<PageProps> = ({
   const scrollY = useSharedValue(0);
   const hostRef = useRef<View>(null);
   const scrollRef = useRef<any>(null);
+  useEffect(() => {
+    if (scrollResetKey === undefined) return;
+    scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+  }, [scrollResetKey]);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
+  const [contentEnd, setContentEnd] = useState(0);
 
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -143,11 +164,12 @@ export const Page: React.FC<PageProps> = ({
   const tabPad = tabBarSafe ? size.tabBarSafe + navBarInset : 0;
   const bottomPad =
     (footer && !footerDocked
-      ? footerH + space.sectionGap
+      ? footerH + (footerMelt ? space.sectionGap * 2 : space.sectionGap)
       : footer
-        ? space.sectionGap
+        ? DOCKED_FADE
         : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
+  const melting = footerMelt && contentEnd > viewport.height - footerH;
 
   // What the dock COVERS, which is less than the clearance we reserve for it.
   const occludedBottom = tabBarSafe ? size.dockOcclusion + navBarInset : 0;
@@ -231,7 +253,16 @@ export const Page: React.FC<PageProps> = ({
         }}
       >
         {titleBlock}
-        <View style={{ marginTop: space.titleGap, gap }}>{children}</View>
+        <View
+          style={{ marginTop: space.titleGap, gap }}
+          onLayout={
+            footerMelt
+              ? (e) => setContentEnd(e.nativeEvent.layout.y + e.nativeEvent.layout.height)
+              : undefined
+          }
+        >
+          {children}
+        </View>
       </Animated.ScrollView>
     );
   } else {
@@ -309,11 +340,23 @@ export const Page: React.FC<PageProps> = ({
             paddingHorizontal: space.screenX,
             paddingTop: space.rowGap,
             paddingBottom: Math.max(insets.bottom + space.rowGap, spacing["3xl"]) + keyboardInset,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: colors.border.default,
             backgroundColor: colors.background.canvas,
           }}
         >
+          {/* Bottom fade — content dissolves into the strip, so the page reads
+           * the same as under a floating footer, with no band across it. */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: -DOCKED_FADE,
+              height: DOCKED_FADE,
+            }}
+          >
+            <Gradient token="canvasFade" style={StyleSheet.absoluteFill} />
+          </View>
           {footer}
         </View>
       ) : null}
@@ -369,10 +412,14 @@ export const Page: React.FC<PageProps> = ({
               left: 0,
               right: 0,
               bottom: 0,
-              top: -space.sectionGap,
+              top: melting ? -space.sectionGap * 2 : -space.sectionGap,
             }}
           >
-            <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+            {melting ? (
+              <ProgressiveBlur />
+            ) : (
+              <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+            )}
           </View>
 
           <View

@@ -34,6 +34,9 @@ export const gradients = {
   // Surface fade — softens a section into the canvas.
   fade: { colors: [p.ink.panel, p.ink.canvas], ...vertical },
 
+  // Page content dissolving fully into the canvas, for a footer that sits on it.
+  canvasFade: { colors: ["rgba(20,19,17,0)", p.ink.canvas], ...vertical },
+
   // Scrims over imagery (keep text legible). Transparent end uses the matching
   // RGBA so iOS doesn't fade through black.
   scrimDown: { colors: ["rgba(20,19,17,0)", "rgba(10,9,7,0.88)"], ...vertical },
@@ -59,6 +62,7 @@ export const schemeGradients: Record<"dark" | "light", Partial<Record<GradientNa
   dark: {},
   light: {
     fade: { colors: [p.paper.panel, p.paper.canvas], ...vertical },
+    canvasFade: { colors: ["rgba(247,242,234,0)", p.paper.canvas], ...vertical },
     scrimDown: { colors: ["rgba(247,242,234,0)", "rgba(247,242,234,0.92)"], ...vertical },
     scrimUp: { colors: ["rgba(247,242,234,0.8)", "rgba(247,242,234,0)"], ...vertical },
     sheen: { colors: [p.whiteA(0.5), p.whiteA(0)], ...vertical },
