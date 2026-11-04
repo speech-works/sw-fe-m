@@ -913,38 +913,17 @@ const ProgramsScreen = () => {
               One row, because a title and its price are one fact when you are
               comparing nine of these. The price never shrinks — a half-shown
               price is worse than none — so the title yields instead. */}
-          {/* On the Yours shelf the action goes under the title. Beside it,
-              "Resume" left too little width, and on an iPhone SE the title
-              broke inside a word: "Understandin / g Your Voice". */}
-          <View
-            style={[styles.cardHead, view === "yours" && styles.cardHeadStacked]}
-          >
-            <Text
-              variant="h3"
-              color="primary"
-              style={[styles.cardTitle, view === "yours" && styles.cardTitleStacked]}
-            >
+          <View style={styles.cardHead}>
+            <Text variant="h3" color="primary" style={styles.cardTitle}>
               {item.title}
             </Text>
             {item.owned ? (
               /* ON THE YOURS SHELF, "OWNED" IS THE NAME OF THE SHELF.
                  Printing it on every card there says nothing the tab did not
                  already say, and it says it where the only useful thing a card
-                 can offer is a way in. So the badge becomes the action. */
-              view === "yours" ? (
-                <View style={styles.ownedTag}>
-                  <Text variant="title" color={colors.text.accent}>
-                    {item.packId && item.packId === activePackId
-                      ? "Resume"
-                      : "Open"}
-                  </Text>
-                  <Icon
-                    name={icons.chevronRight}
-                    size={size.iconSm}
-                    color={colors.text.accent}
-                  />
-                </View>
-              ) : (
+                 can offer is a way in. So the badge becomes the action, drawn
+                 at the foot of the card (yoursAction below), not here. */
+              view === "yours" ? null : (
                 <View style={styles.ownedTag}>
                   <Icon
                     name={icons.success}
@@ -1030,6 +1009,26 @@ const ProgramsScreen = () => {
               ))}
             </View>
           )}
+
+          {/* THE WAY IN COMES LAST. Title, then what it is, then what you can
+              do. Pinned to the foot of the card, so "Open" and "Resume" sit at
+              the same height on every card whether the title takes one line or
+              two. Beside the title, "Resume" also left too little width, and
+              on an iPhone SE the title broke inside a word. */}
+          {item.owned && view === "yours" ? (
+            <View style={[styles.ownedTag, styles.yoursAction]}>
+              <Text variant="title" color={colors.text.accent}>
+                {item.packId && item.packId === activePackId
+                  ? "Resume"
+                  : "Open"}
+              </Text>
+              <Icon
+                name={icons.chevronRight}
+                size={size.iconSm}
+                color={colors.text.accent}
+              />
+            </View>
+          ) : null}
         </View>
       </PressableScale>
     );
@@ -1781,9 +1780,12 @@ const styles = StyleSheet.create({
     // No marginBottom — `Page` already puts `space.groupGap` between children,
     // and the old margin stacked on top of it for a 28px trench between cards.
   },
+  // `stretch`, not `flex-start`: the text column takes the cover's height, so
+  // the Yours action can sit at its foot. The cover has a fixed size and is
+  // not stretched.
   cardWithCover: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "stretch",
   },
   cardWithCoverBody: {
     flex: 1,
@@ -1805,12 +1807,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
   },
-  cardHeadStacked: {
-    flexDirection: "column",
-    gap: spacing.xs,
-  },
-  cardTitleStacked: {
-    flex: 0,
+  // With the card stretched to the cover's height, `auto` pushes the action to
+  // the bottom edge, level with the foot of the cover.
+  yoursAction: {
+    marginTop: "auto",
   },
   // Edge-to-edge would need the row to escape `Page`'s gutter; these are few
   // enough to wrap instead of scroll, which keeps every option visible at once —
