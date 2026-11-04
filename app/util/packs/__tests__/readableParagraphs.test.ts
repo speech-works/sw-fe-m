@@ -26,6 +26,13 @@ describe("readableParagraphs", () => {
     expect(readableParagraphs(text)).toEqual([text]);
   });
 
+  it("keeps a very short sentence with the one before it", () => {
+    const text =
+      'Four lines, in your own words. Your notes from each day are in the step before, under "Your week". If you typed your two lists on day 1, the first box already shows them. If you wrote your answer on day 4, the third box already shows it. It is private. Only you can see it.';
+    const parts = readableParagraphs(text);
+    expect(parts[parts.length - 1]).toContain("It is private. Only you can see it.");
+  });
+
   it("leaves text with its own line breaks alone", () => {
     const text = `${long}\nA second line.`;
     expect(readableParagraphs(text)).toEqual([text]);

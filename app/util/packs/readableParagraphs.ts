@@ -6,6 +6,11 @@
 const ENOUGH = 180;
 const TOO_LONG = 420;
 const LEANS_BACK = /^(For example|For instance|Then|So|That|This|These|Those|It|They|He|She|But|Also|Either|To keep)\b/;
+/**
+ * A sentence this short never starts a paragraph of its own. "Only you can see
+ * it." after "It is private." read as a stray line at the foot of a card.
+ */
+const TOO_SHORT_ALONE = 40;
 
 export function readableParagraphs(text: string): string[] {
   if (text.length <= ENOUGH + 80 || text.includes("\n")) return [text];
@@ -16,7 +21,9 @@ export function readableParagraphs(text: string): string[] {
     const open = ((current.match(/["“”]/g) ?? []).length) % 2 === 1;
     const full =
       current.length >= TOO_LONG ||
-      (current.length >= ENOUGH && !LEANS_BACK.test(sentence));
+      (current.length >= ENOUGH &&
+        !LEANS_BACK.test(sentence) &&
+        sentence.length >= TOO_SHORT_ALONE);
     if (current && full && !open) {
       chunks.push(current);
       current = sentence;
