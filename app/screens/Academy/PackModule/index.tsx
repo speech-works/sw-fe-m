@@ -1154,8 +1154,11 @@ const PackModuleScreen = () => {
       currentBlock?.id || "",
     );
 
-    // Check if skipping a mandatory interactive block
-    if (isInteractiveBlock && !isBlockCompleted && module?.isMandatory) {
+    // Check if skipping a mandatory interactive block. Not for a quiz: its
+    // reasons ("Too big a jump right now") are for speaking tasks, and a
+    // skipped question is not a declined task (founder, B5, 2026-11-05).
+    const isQuiz = currentBlock?.type === ContentBlockType.QUIZ;
+    if (isInteractiveBlock && !isQuiz && !isBlockCompleted && module?.isMandatory) {
       setShowSkipConfirmation(true);
       return;
     }

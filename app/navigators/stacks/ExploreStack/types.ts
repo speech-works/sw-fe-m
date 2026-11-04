@@ -51,6 +51,7 @@ export type ExploreStackParamList = {
     moduleId: string;
     blockId: string;
     titleOverride?: string;
+    descriptionOverride?: string;
     hasRecall?: boolean;
     accentKey?: "lime" | "purple" | "success" | "warning" | "danger" | "info";
   };

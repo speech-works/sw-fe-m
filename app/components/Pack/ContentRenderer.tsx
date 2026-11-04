@@ -554,6 +554,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           moduleId,
           blockId: block.id,
           titleOverride: formContent.titleOverride,
+          descriptionOverride: formContent.descriptionOverride,
           // Only a flag. The form screen fetches the answers when it opens,
           // because this day payload was loaded before the user left for the
           // activity and is not refetched on the way back.

@@ -26,7 +26,7 @@ export const ASK_COPY = {
 
   order: {
     /** Under the order prompt. The last one needs no tap. */
-    help: "Tap them in the order you want.",
+    help: "Tap your answer first, then the others.",
     reset: "Start over",
   },
 

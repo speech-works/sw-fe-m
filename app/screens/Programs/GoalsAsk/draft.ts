@@ -20,7 +20,10 @@ export function placeholderFor(placeholder: string, index: number): string {
     .map((p) => p.trim())
     .filter(Boolean);
   if (examples.length === 0) return "";
-  return examples[index] ?? examples[examples.length - 1];
+  const example = examples[index] ?? examples[examples.length - 1];
+  // Every box starts with a capital. Only the first example in the seed had
+  // one, so the boxes read "Finish my sentence" then "think I'm nervous" (B1).
+  return example.charAt(0).toUpperCase() + example.slice(1);
 }
 
 /**

@@ -9,8 +9,12 @@ describe("placeholderFor", () => {
   const three = "the landlord, the dentist, Amma";
 
   it("gives each slot its own example", () => {
-    expect(placeholderFor(three, 0)).toBe("the landlord");
+    expect(placeholderFor(three, 0)).toBe("The landlord");
     expect(placeholderFor(three, 2)).toBe("Amma");
+  });
+
+  it("starts every box with a capital (B1)", () => {
+    expect(placeholderFor("Finish my sentence, think I'm nervous", 1)).toBe("Think I'm nervous");
   });
 
   it("repeats the last one when a program asks for more slots than examples", () => {

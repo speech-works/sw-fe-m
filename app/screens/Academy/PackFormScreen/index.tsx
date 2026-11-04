@@ -49,6 +49,8 @@ type PackFormRouteProp = RouteProp<
       blockId: string;
       /** The step's name from the day, the one on the card that opened this. */
       titleOverride?: string;
+      /** The step's own words from the day card. Shown under the title. */
+      descriptionOverride?: string;
       /** The step shows the user's earlier answers above the fields. */
       hasRecall?: boolean;
       /** Flow accent, inherited from the card that opened this form. Reflection = purple. */
@@ -413,7 +415,11 @@ const PackFormScreen = () => {
     initialFormAnswers(configuration),
   );
   const [submitting, setSubmitting] = useState(false);
-  const header = formScreenHeader(configuration, route.params.titleOverride);
+  const header = formScreenHeader(
+    configuration,
+    route.params.titleOverride,
+    route.params.descriptionOverride,
+  );
 
   // EARLIER ANSWERS, FETCHED HERE. This screen mounts fresh every time the
   // card is tapped, so the answers are read when the form opens rather than

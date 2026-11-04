@@ -45,7 +45,14 @@ export function formCardText(content: FormBlockContent | undefined): {
 export function formScreenHeader(
   configuration: FormConfiguration | undefined,
   titleOverride?: string,
+  descriptionOverride?: string,
 ): { title: string; description: string } {
+  // A step with its own words on the day card shows the same words here. The
+  // shared form's summary described boxes the day had renamed, for example
+  // "another possible reason" on a day whose last box asks for the times that
+  // went fine (founder, B12, 2026-11-05).
+  const own = descriptionOverride?.trim();
+  if (titleOverride?.trim() && own) return { title: titleOverride.trim(), description: own };
   const summary = configuration?.title?.trim() || "";
   const title = titleOverride?.trim() || summary || "Reflection";
   // Compared without the full stop: "Your replies." under "Your replies" is

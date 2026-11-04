@@ -22,7 +22,8 @@ interface WeekReviewBlockProps {
 
 const DEFAULT_TITLE = "Your week";
 const DEFAULT_MAX_PER_DAY = 3;
-const EMPTY_COPY = "Nothing logged yet.";
+const EMPTY_COPY =
+  "You did not save notes this week. That is fine. You can fill in the next step from memory.";
 
 export const WeekReviewBlock: React.FC<WeekReviewBlockProps> = ({ content }) => {
   const styles = useStyles();

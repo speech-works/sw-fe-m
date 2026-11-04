@@ -160,3 +160,20 @@ describe("toggleTick", () => {
     expect(toggleTick(["A meeting", "A counter"], "A meeting", opts)).toEqual(["A counter"]);
   });
 });
+
+describe("formScreenHeader with the step's own words (B12)", () => {
+  it("shows the day's description under the day's title", () => {
+    const config = { title: "One moment, what your mind said, which trap it was, and another possible reason." } as any;
+    expect(
+      formScreenHeader(config, "Your thought, and where it came from", "Write the moment, the thought, the trap, and the times that went fine."),
+    ).toEqual({
+      title: "Your thought, and where it came from",
+      description: "Write the moment, the thought, the trap, and the times that went fine.",
+    });
+  });
+
+  it("keeps the shared summary when the step has no words of its own", () => {
+    const config = { title: "Shared summary" } as any;
+    expect(formScreenHeader(config, "Day title").description).toBe("Shared summary");
+  });
+});
