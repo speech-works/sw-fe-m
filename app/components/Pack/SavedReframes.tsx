@@ -31,7 +31,7 @@ export const SavedReframes: React.FC<{ pairs: ReframePair[] }> = ({ pairs }) => 
             &quot;{p.thought}&quot;
           </Text>
           <Text variant="label" color="tertiary" style={{ marginTop: spacing.sm }}>
-            Your reply
+            What you wrote
           </Text>
           <Text variant="body" color="primary">
             &quot;{p.reply}&quot;

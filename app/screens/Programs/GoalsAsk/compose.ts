@@ -19,7 +19,11 @@ const GOAL_ACTION_WORDS = new Set([
  * letter ("My barber"), which is right on its own but wrong after a verb:
  * "Tell My barber". After a verb, these go back to lower case.
  */
-const LOWER_AFTER_VERB = new Set(["my", "the", "a", "an", "our", "his", "her", "their", "your"]);
+const LOWER_AFTER_VERB = new Set([
+  "my", "the", "a", "an", "our", "his", "her", "their", "your",
+  // Dating D2 (2026-11-05): "Say That I had a good time".
+  "that", "what", "how", "when", "why",
+]);
 
 export function composeGoal(verb: string, noun: string): string {
   const first = noun.trim().split(/\s+/)[0]?.toLowerCase() ?? "";

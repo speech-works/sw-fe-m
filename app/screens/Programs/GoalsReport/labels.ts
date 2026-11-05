@@ -67,7 +67,7 @@ export const REPORT_LABELS: Record<
   still_true: {
     FULL: "Said it",
     PARTIAL: "Got closer",
-    NONE: "Same as day 1",
+    NONE: "Same as before",
   },
 
   /**
