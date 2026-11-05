@@ -32,6 +32,7 @@ import {
   formSavedMessage,
   formScreenHeader,
   initialFormAnswers,
+  isFieldRequired,
   toggleTick,
 } from "../../../util/packs/formBlock";
 import { textFieldProblem, wordCount } from "../../../util/packs/textLimits";
@@ -445,8 +446,9 @@ const PackFormScreen = () => {
 
   // Check if all required fields have answers
   const allRequiredFilled = useMemo(() => {
-    return (configuration?.fields || [])
-      .filter((f) => f.required)
+    const fields = configuration?.fields || [];
+    return fields
+      .filter((f) => isFieldRequired(f, fields, answers))
       .every((f) => {
         const val = answers[f.id];
         if (Array.isArray(val)) return val.length > 0;
@@ -586,7 +588,7 @@ const PackFormScreen = () => {
               <Text variant="title" color="primary" style={styles.fieldLabel}>
                 {field.label}
               </Text>
-              {field.required && (
+              {isFieldRequired(field, configuration?.fields || [], answers) && (
                 <View
                   style={[styles.requiredBadge, { backgroundColor: accent }]}
                 >

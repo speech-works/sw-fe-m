@@ -149,3 +149,41 @@ export function toggleTick(
   else ticked.add(option);
   return options.filter((o) => ticked.has(o));
 }
+
+/**
+ * The answer that turns the rest of a log into optional boxes.
+ *
+ * Two logs open with "Did you do today's step?" and offer "Not today". The
+ * boxes after it ask what happened, so after "Not today" there is nothing to
+ * write, and a required box kept Save switched off (Panic Button walk P2,
+ * 2026-11-06). The server sends options as their labels, so the label is the
+ * value the screen holds.
+ */
+export const NOT_TODAY = "Not today";
+
+/** True when someone answered "Not today" to a one-answer question on this form. */
+export function saidNotToday(
+  fields: FormField[],
+  answers: Record<string, unknown>,
+): boolean {
+  return fields.some(
+    (f) =>
+      f.type === FormFieldType.MULTIPLE_CHOICE &&
+      f.multiple !== true &&
+      answers[f.id] === NOT_TODAY,
+  );
+}
+
+/**
+ * Whether a field must be filled before Save. After "Not today" only the
+ * question that holds that answer stays required.
+ */
+export function isFieldRequired(
+  field: FormField,
+  fields: FormField[],
+  answers: Record<string, unknown>,
+): boolean {
+  if (!field.required) return false;
+  if (!saidNotToday(fields, answers)) return true;
+  return answers[field.id] === NOT_TODAY;
+}
