@@ -36,3 +36,21 @@ describe("a program day's Reframe step", () => {
     expect(nav.push).not.toHaveBeenCalledWith("Reframe", expect.anything());
   });
 });
+
+describe("a program day's Mirror Work step", () => {
+  it("opens the mirror screen by its full path, so it works from a program day", () => {
+    const nav = { push: jest.fn(), navigate: jest.fn() };
+    const cognitivePractice = { id: "m1", type: "MIRROR_WORK" };
+    const activity = { id: "a2", contentType: "COGNITIVE_PRACTICE", cognitivePractice } as any;
+    const ctx = { packId: "p1", moduleId: "m1" };
+    navigateToPackActivity(nav, activity, ctx);
+    expect(nav.navigate).toHaveBeenCalledWith("DailyPracticeStack", {
+      screen: "CognitivePracticeStack",
+      params: {
+        screen: "MirrorWorkPrep",
+        params: { practiceData: { cognitivePractice }, practiceActivity: activity, packContext: ctx },
+      },
+    });
+    expect(nav.navigate).not.toHaveBeenCalledWith("MirrorWorkPrep", expect.anything());
+  });
+});

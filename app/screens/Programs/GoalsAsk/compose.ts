@@ -25,13 +25,26 @@ const LOWER_AFTER_VERB = new Set([
   "that", "what", "how", "when", "why",
 ]);
 
+/**
+ * Same rule as the server's startsWithLowerLead: a small lead word, or an
+ * -ing word followed by a lower-case word ("Saying my name on calls"), goes
+ * to lower case after a verb. Speech Toolkit walk S1, 2026-11-06.
+ */
+export function startsWithLowerLead(noun: string): boolean {
+  const words = noun.trim().split(/\s+/);
+  const first = words[0]?.toLowerCase() ?? "";
+  if (LOWER_AFTER_VERB.has(first)) return true;
+  const next = words[1] ?? "";
+  return first.length > 4 && first.endsWith("ing") && /^[a-z]/.test(next);
+}
+
 export function composeGoal(verb: string, noun: string): string {
   const first = noun.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
   if (!verb.startsWith("{}") && GOAL_ACTION_WORDS.has(first)) {
     const own = noun.trim();
     return own.charAt(0).toUpperCase() + own.slice(1);
   }
-  const inner = !verb.startsWith("{}") && LOWER_AFTER_VERB.has(first)
+  const inner = !verb.startsWith("{}") && startsWithLowerLead(noun)
     ? noun.charAt(0).toLowerCase() + noun.slice(1)
     : noun;
   const text = verb.replace("{}", inner);

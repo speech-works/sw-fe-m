@@ -23,4 +23,11 @@ describe("composeGoal", () => {
     expect(composeGoal("Tell {}", "Priya")).toBe("Tell Priya");
     expect(composeGoal("{} again", "My call")).toBe("My call again");
   });
+
+  it("lowers an -ing word that starts a phrase, and keeps a name's capital", () => {
+    expect(composeGoal("Get through {}", "Saying my name on calls")).toBe("Get through saying my name on calls");
+    expect(composeGoal("Get through {}", "Asking a question in class")).toBe("Get through asking a question in class");
+    expect(composeGoal("Tell {}", "Sterling")).toBe("Tell Sterling");
+    expect(composeGoal("Tell {}", "Sterling Smith")).toBe("Tell Sterling Smith");
+  });
 });

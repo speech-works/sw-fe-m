@@ -66,7 +66,12 @@ export const notifyPackBlockActivityReplaced = (
  * The one exception is `MirrorWorkPrep`: it lives in a different, nested
  * navigator (DailyPracticeStack → CognitivePracticeStack) rather than
  * directly in this one, so `push` — which only pushes within the CURRENT
- * stack — cannot reach it. It keeps `navigate`'s cross-tree resolution.
+ * stack — cannot reach it. A bare `navigate("MirrorWorkPrep")` cannot reach
+ * it either: React Navigation finds a nested screen by name only while its
+ * navigator is mounted, and from a program day it is not. It is opened by its
+ * full path instead, the same path the Home card uses (Speech Toolkit walk
+ * S2, 2026-11-06: day 1 "Start practice" did nothing and logged
+ * "not handled by any navigator").
  */
 export const navigateToPackActivity = (
   navigation: any,
@@ -126,11 +131,17 @@ const navigateToCognitive = (
     case CognitivePracticeType.MIRROR_WORK:
       // Pack already created+started the activity (alreadyStarted), so PrepScreen
       // reuses it via the double-start guard rather than creating a new one.
-      // Stays `navigate` — see the note above `navigateToPackActivity`.
-      nav.navigate("MirrorWorkPrep", {
-        practiceData: { cognitivePractice },
-        practiceActivity: activity,
-        packContext: ctx,
+      // Full path — see the note above `navigateToPackActivity`.
+      nav.navigate("DailyPracticeStack", {
+        screen: "CognitivePracticeStack",
+        params: {
+          screen: "MirrorWorkPrep",
+          params: {
+            practiceData: { cognitivePractice },
+            practiceActivity: activity,
+            packContext: ctx,
+          },
+        },
       });
       break;
     case CognitivePracticeType.REAL_LIFE_CHALLENGE:
