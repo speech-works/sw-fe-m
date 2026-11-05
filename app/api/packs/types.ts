@@ -238,6 +238,12 @@ export type ReferenceBlockContent = {
   /** The day's own writing prompt and example for this step, if it sets one. */
   completionPromptOverride?: string;
   completionPlaceholderOverride?: string;
+  /**
+   * ACTIVITY blocks. The start button's words on the step card, when the
+   * step is not a practice (Hard Conversations day 9 is the real call).
+   * Opt in; without it the button says "Start practice".
+   */
+  startLabel?: string;
 
   // Hydrated fields (injected by backend service, may be present in API response)
   activityType?: string;

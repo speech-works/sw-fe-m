@@ -401,12 +401,14 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       const cardLine = stepCard ? stepCard.line : fallback!.line;
       const hasMore = stepCard ? true : fallback!.hasMore;
       const stepTitle = content.titleOverride || "Practice Activity";
+      // A step that is not a practice (the real call) can name its own button.
+      const startLabel = content.startLabel?.trim() || "Start practice";
       const stepSheet = hasMore ? (
         <StepCardSheet
           visible={showStepSheet}
           title={stepTitle}
           sections={stepCard ? stepCard.sections : [{ text: activityDescription }]}
-          actionLabel={isCompleted ? "Do it again" : "Start practice"}
+          actionLabel={isCompleted ? "Do it again" : startLabel}
           onClose={() => setShowStepSheet(false)}
           onAction={handleStartActivity}
         />
@@ -499,7 +501,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                     <>
                       <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
                       <Text variant="title" color={colors.action.onSecondary}>
-                        Start practice
+                        {startLabel}
                       </Text>
                     </>
                   )}
