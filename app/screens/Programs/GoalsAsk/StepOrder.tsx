@@ -12,7 +12,7 @@ import {
   useTheme,
 } from "../../../design-system";
 import { ASK_COPY } from "./copy";
-import { pickNext } from "./draft";
+import { capitalFirst, pickNext } from "./draft";
 
 /**
  * STEP 2: the user puts their own answers in order.
@@ -114,7 +114,7 @@ export function StepOrder({
                       : colors.text.primary,
                   }}
                 >
-                  {answer}
+                  {capitalFirst(answer)}
                 </Text>
               </View>
             </PressableScale>

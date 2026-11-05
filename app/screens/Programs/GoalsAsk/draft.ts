@@ -23,7 +23,16 @@ export function placeholderFor(placeholder: string, index: number): string {
   const example = examples[index] ?? examples[examples.length - 1];
   // Every box starts with a capital. Only the first example in the seed had
   // one, so the boxes read "Finish my sentence" then "think I'm nervous" (B1).
-  return example.charAt(0).toUpperCase() + example.slice(1);
+  return capitalFirst(example);
+}
+
+/**
+ * The first letter as a capital, for display. A chip adds its cue as written
+ * ("speak in a meeting") and a typed answer keeps the person's own capital,
+ * so the order screen showed both side by side (Bouncing Back B1).
+ */
+export function capitalFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /**

@@ -25,6 +25,7 @@ import { getProgramGoals } from "../../../api/programGoals";
 import { ProgramGoal } from "../../../api/programGoals/types";
 import { DailyLog } from "../../Programs/DailyLog";
 import { takeGoalsAskOutcome } from "../../Programs/GoalsAsk/outcome";
+import { dayTitle } from "../../Programs/ProgramDetail";
 import {
   doneBlocksKey,
   mergeBlockCompletion,
@@ -1167,11 +1168,12 @@ const PackModuleScreen = () => {
       currentBlock?.id || "",
     );
 
-    // Check if skipping a mandatory interactive block. Not for a quiz: its
-    // reasons ("Too big a jump right now") are for speaking tasks, and a
-    // skipped question is not a declined task (founder, B5, 2026-11-05).
-    const isQuiz = currentBlock?.type === ContentBlockType.QUIZ;
-    if (isInteractiveBlock && !isQuiz && !isBlockCompleted && module?.isMandatory) {
+    // Ask why only when a practice step is skipped. The reasons ("Too big a
+    // jump right now") are for practice, and recordSkip counts nothing for a
+    // quiz or a form anyway, so for those the sheet only asked a question
+    // that went nowhere (founder, BTT B5 and Bouncing Back B9, 2026-11-05).
+    const isActivity = currentBlock?.type === ContentBlockType.ACTIVITY;
+    if (isInteractiveBlock && isActivity && !isBlockCompleted && module?.isMandatory) {
       setShowSkipConfirmation(true);
       return;
     }
@@ -1496,8 +1498,11 @@ const PackModuleScreen = () => {
   // Guarded: a module that arrives without a title must not crash the render.
   // The stub-object navigation that used to cause exactly that is gone, but the
   // read is one character from being a crash and the fallback costs nothing.
+  // The line under the title already says "Day 7 of 7", so the title drops
+  // its own "Day 7:" (founder, BB B16, 2026-11-05), the same as the day list.
   const moduleTitle =
-    (module.title ?? "").replace(/^Module \d+:\s*/, "") || "Today's module";
+    dayTitle((module.title ?? "").replace(/^Module \d+:\s*/, "")) ||
+    "Today's module";
   // "Day 3 of 9" once we know the total; "Day 3" until then, so a slow or
   // failed count costs nothing. Every program's day number is its orderIndex.
   const modulePosition = arc

@@ -70,8 +70,9 @@ import {
  * The day's title WITHOUT the day number it already carries.
  *
  * The seed writes titles as "Day 1: Stop the panic", which is right when the
- * title stands alone (Home's card, the module screen's own header). In a list
- * that already has a "Day 1" gutter it printed the number twice on every row.
+ * title stands alone (Home's card). In a list that already has a "Day 1"
+ * gutter it printed the number twice on every row, and the module screen's
+ * header has "Day 1 of 7" right under the title.
  *
  * Display only, and a no-op on anything that does not start that way, so a
  * pack whose titles are not numbered is untouched.

@@ -1,9 +1,4 @@
-import {
-  looksThin,
-  pickNext,
-  placeholderFor,
-  slotForCue,
-} from "../draft";
+import { capitalFirst, looksThin, pickNext, placeholderFor, slotForCue } from "../draft";
 
 describe("placeholderFor", () => {
   const three = "the landlord, the dentist, Amma";
@@ -101,5 +96,13 @@ describe("pickNext", () => {
     let order: number[] = [];
     for (const i of [2, 1]) order = pickNext(order, i, 3);
     expect(order).toEqual([2, 1, 0]);
+  });
+});
+
+describe("capitalFirst", () => {
+  it("capitalises a chip cue and leaves a typed capital alone (Bouncing Back B1)", () => {
+    expect(capitalFirst("speak in a meeting")).toBe("Speak in a meeting");
+    expect(capitalFirst("Call my sister")).toBe("Call my sister");
+    expect(capitalFirst("")).toBe("");
   });
 });
