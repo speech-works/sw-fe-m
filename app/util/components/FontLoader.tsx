@@ -4,8 +4,10 @@ import { View } from "react-native";
 
 import {
     Inter_400Regular,
+    Inter_400Regular_Italic,
     Inter_500Medium,
     Inter_600SemiBold,
+    Inter_600SemiBold_Italic,
     Inter_700Bold,
     Inter_800ExtraBold,
 } from "@expo-google-fonts/inter";
@@ -43,8 +45,10 @@ const FontLoader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Falling through on error keeps that graceful degradation.
   const [fontsLoaded, error] = useFonts({
     Inter_400Regular,
+    Inter_400Regular_Italic,
     Inter_500Medium,
     Inter_600SemiBold,
+    Inter_600SemiBold_Italic,
     Inter_700Bold,
     Inter_800ExtraBold,
   });

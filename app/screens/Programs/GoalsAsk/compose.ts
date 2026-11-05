@@ -9,7 +9,7 @@
  *   under "Say {}" reads "Ask her out", never "Say ask her out".
  */
 const GOAL_ACTION_WORDS = new Set([
-  "ask", "tell", "say", "call", "phone", "text", "message", "invite", "kiss", "hug", "hold",
+  "ask", "tell", "say", "call", "phone", "ring", "text", "message", "invite", "kiss", "hug", "hold",
   "talk", "speak", "introduce", "meet", "share", "admit", "order", "answer", "explain",
   "flirt", "propose", "compliment", "go",
 ]);

@@ -138,7 +138,12 @@ export const SimpleMarkdown = ({
                     textStyle,
                   ]}
                 >
-                  {parseLinksAndBold(block.text, linkColor, textColor)}
+                  {parseLinksAndBold(
+                    block.text,
+                    linkColor,
+                    textColor,
+                    block.text.includes("**") ? fonts.italic : fonts.semiboldItalic,
+                  )}
                 </Text>
               </View>
             );
@@ -533,9 +538,10 @@ const parseLinksAndBold = (
   text: string,
   linkColor: string,
   textColor?: string,
+  italicFamily: string = fonts.italic,
 ) => {
   const inheritedColor = textColor ? { color: textColor } : {};
-  return renderInline(tokenizeInline(text), linkColor, inheritedColor);
+  return renderInline(tokenizeInline(text), linkColor, inheritedColor, "", italicFamily);
 };
 
 /**
@@ -554,12 +560,13 @@ const renderInline = (
   linkColor: string,
   inheritedColor: { color?: string },
   keyPrefix = "",
+  italicFamily: string = fonts.italic,
 ): React.ReactNode[] =>
   tokens.map((token, i) => {
     const key = `${keyPrefix}${i}`;
     const body = (t: { text: string; children?: InlineToken[] }) =>
       t.children
-        ? renderInline(t.children, linkColor, inheritedColor, `${key}.`)
+        ? renderInline(t.children, linkColor, inheritedColor, `${key}.`, italicFamily)
         : t.text;
 
     if (token.type === "bold") {
@@ -570,12 +577,13 @@ const renderInline = (
       );
     }
     if (token.type === "italic") {
-      // Emphasis only — no family and no color of its own, so the run keeps the
-      // surrounding variant's family and whatever color role the parent line
-      // resolved (correct in both the dark and the light scheme). Matches the
-      // blockquote treatment already in this file.
+      // Inter is loaded as one family per face, so fontStyle alone draws the
+      // upright face on iOS. The italic run names the italic family: regular
+      // italic in body text, semibold italic inside a semibold quote (the
+      // caller picks). No colour of its own, so it keeps the parent's colour
+      // role in both schemes.
       return (
-        <Text key={key} style={[{ fontStyle: "italic" as const }, inheritedColor]}>
+        <Text key={key} style={[{ fontFamily: italicFamily, fontStyle: "italic" as const }, inheritedColor]}>
           {body(token)}
         </Text>
       );
