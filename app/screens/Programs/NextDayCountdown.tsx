@@ -65,9 +65,9 @@ interface Props {
  * The "come back later" state of an owned program.
  *
  * It replaced the line "That's today done. The next day opens tomorrow.",
- * which was wrong in two ways at once. The gate is 24 hours from when the day
- * was started, not a calendar boundary, so a day begun at 9pm opens the next
- * one at 9pm and not at midnight. And anybody reading that sentence after
+ * which was wrong in two ways at once. The day turns at 4am in the zone the
+ * program was started in (server, util/programDay.ts, 2026-11-06), not at
+ * midnight, so "tomorrow" was off by hours for anyone reading it late. And anybody reading that sentence after
  * midnight is already IN tomorrow, and is being told to wait for a day that,
  * as far as they can tell, has arrived.
  *

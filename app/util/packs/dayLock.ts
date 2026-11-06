@@ -95,9 +95,9 @@ function waitPhrase(opensAt: Date | string | null | undefined, now: number): str
  * "opens in 20 hours" / "opens in 3 days" / "opens later" — never a guess.
  *
  * It used to say "opens tomorrow" for the one-day case, and that was wrong in
- * two ways at once. The gate is 24 hours from when the day was started, not a
- * calendar boundary, so a day begun at 9pm opens the next one at 9pm rather
- * than at midnight. And anybody reading it after midnight is already IN
+ * two ways at once. The day turns at 4am in the zone the program was started
+ * in (server, util/programDay.ts, 2026-11-06), not at midnight, so "tomorrow"
+ * was off by hours for anyone reading it late at night. And anybody reading it after midnight is already IN
  * tomorrow, and is being told to wait for a day that has, as far as they can
  * tell, arrived. Both go away once the app says how LONG instead of when.
  *
