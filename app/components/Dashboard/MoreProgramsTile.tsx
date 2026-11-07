@@ -2,17 +2,21 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import PressableScale from "../PressableScale";
 import { SLIDE_CARD_HEIGHT } from "./OfferSlide";
+import { CTA_ICON } from "./RecHeroCard";
 import {
   borderWidth,
   Icon,
   icons,
   radius,
-  size,
   space,
   spacing,
   Text,
   useTheme,
 } from "../../design-system";
+import {
+  otherProgramsTitle,
+  type MoreTileVariant,
+} from "../../util/packs/forYouShelf";
 
 /**
  * The last slide of the For-you carousel: the way into the full catalogue.
@@ -57,10 +61,15 @@ export interface MoreProgramsTileProps {
    * "other". The same tile in that position has to say what it is actually a
    * door to.
    */
-  variant?: "more" | "all";
+  variant?: MoreTileVariant;
+  /** For `others`: how many other programs they own. */
+  count?: number;
 }
 
-const COPY = {
+const COPY: Record<
+  Exclude<MoreTileVariant, "others">,
+  { title: string; subtitle: string | null; cta: string; label: string }
+> = {
   more: {
     title: "More programs",
     subtitle: "Plans for the other situations",
@@ -73,14 +82,33 @@ const COPY = {
     cta: "Browse all",
     label: "Browse all programs",
   },
-} as const;
+  /** After the programs a new user sees with no answers to match on. */
+  seeAll: {
+    title: "All programs",
+    subtitle: "Guided plans, one situation each",
+    cta: "See all",
+    label: "See all programs",
+  },
+};
+
+/**
+ * For somebody who owns every program and is in one. Before this tile the
+ * shelf showed their one program and no way to the other nine.
+ */
+const othersCopy = (count: number) => ({
+  title: otherProgramsTitle(count),
+  subtitle: null,
+  cta: "See programs",
+  label: otherProgramsTitle(count),
+});
 
 const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
   onPress,
   variant = "more",
+  count = 0,
 }) => {
   const { colors, elevation } = useTheme();
-  const copy = COPY[variant];
+  const copy = variant === "others" ? othersCopy(count) : COPY[variant];
 
   return (
     <PressableScale
@@ -109,19 +137,15 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
             glyph in the tab bar, and the "All" filter on both Programs and
             Library, so on a content tile it reads as a place to navigate to
             rather than as the thing being offered. */}
-        <Icon
-          name={icons.journey}
-          size={size.icon}
-          color={colors.text.tertiary}
-        />
-
         <View style={styles.copy}>
           <Text variant="h3" color="primary" center>
             {copy.title}
           </Text>
-          <Text variant="bodySm" color="secondary" center>
-            {copy.subtitle}
-          </Text>
+          {copy.subtitle ? (
+            <Text variant="bodySm" color="secondary" center>
+              {copy.subtitle}
+            </Text>
+          ) : null}
         </View>
 
         {/* The standard slide's CTA recipe, to the point: same fill, same
@@ -136,14 +160,14 @@ const MoreProgramsTile: React.FC<MoreProgramsTileProps> = ({
             },
           ]}
         >
+          {/* Icon leads the label, as on every "See inside" and the owner
+              card: one button shape for "open programs" across Home
+              (founder, 2026-11-07). The glyph used to float above the title,
+              apart from the button. */}
+          <Icon name={icons.journey} size={CTA_ICON} color={colors.text.primary} />
           <Text variant="title" color="primary">
             {copy.cta}
           </Text>
-          <Icon
-            name={icons.chevronRight}
-            size={size.iconSm}
-            color={colors.text.primary}
-          />
         </View>
       </View>
     </PressableScale>

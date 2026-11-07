@@ -23,6 +23,12 @@ export const FOR_YOU_LIMIT = 3;
 export type ForYouMode =
   /** Show the ranked slides. */
   | "carousel"
+  /**
+   * No signal, so no claim, but real programs to show. Same server order, no
+   * match reasons and no highlight. The shelf heading says "Programs", never
+   * "For you": we have no answers to match on.
+   */
+  | "programs"
   /** Nothing we can claim a match for, but there IS something to browse. */
   | "browse"
   /** Genuinely nothing to sell — they own everything openable. Render nothing. */
@@ -94,16 +100,27 @@ export function selectForYou(
     return { mode: "hidden", items: [], highlightFirst: false, remaining: 0 };
   }
 
-  // `"none"` means the backend has nothing to go on and is sending no badges
-  // anywhere. A "For you" shelf with no basis is the one thing that would make
-  // Home read as an ad, so the caller shows the neutral browse card instead.
-  if (offers.signalLevel === "none") return browse();
-
   const items = eligible.slice(0, Math.max(0, limit));
 
-  // Signal exists but nothing survived the filters (empty catalogue, or every
-  // item unopenable). Browse rather than a blank.
+  // Nothing survived the filters (empty catalogue, or every item unopenable).
+  // Browse rather than a blank.
   if (items.length === 0) return browse();
+
+  // `"none"` means the backend has nothing to go on and is sending no badges
+  // anywhere. A "For you" shelf with no basis is the one thing that would make
+  // Home read as an ad. A new user used to get a single "Find your next
+  // program" card here, which showed no program at all. Now they see real
+  // programs in the server's order, with no claim: the match is dropped from
+  // each item (copies, so the order and the server's objects are untouched),
+  // nothing is highlighted, and the caller titles the shelf "Programs".
+  if (offers.signalLevel === "none") {
+    return {
+      mode: "programs",
+      items: items.map((i) => ({ ...i, match: null })),
+      highlightFirst: false,
+      remaining: Math.max(0, eligible.length - items.length),
+    };
+  }
 
   return {
     mode: "carousel",

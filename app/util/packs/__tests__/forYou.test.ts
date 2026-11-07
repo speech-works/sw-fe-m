@@ -37,14 +37,29 @@ describe("selectForYou", () => {
     ]);
   });
 
-  it("shows nothing at all when the backend has no signal", () => {
+  it("with no signal, shows real programs but makes no claim about them", () => {
     // The fabricated-claim guard: even with populated match objects, a
     // "For you" shelf built on no signal is an ad wearing a recommendation's
-    // clothes. Note the items below DO carry reasons — this must still be empty.
-    const items = [offer("word_swap", { match: { level: "top", reason: "You said…" } })];
+    // clothes. The items below DO carry reasons, and they must come back
+    // without them, in server order, with nothing highlighted.
+    const items = [
+      offer("word_swap", { match: { level: "top", reason: "You said…" } }),
+      offer("art_of_disclosure"),
+    ];
     const result = selectForYou(offers(items, { signalLevel: "none" }));
-    expect(result.items).toEqual([]);
+    expect(result.mode).toBe("programs");
+    expect(result.items.map((i) => i.key)).toEqual(["word_swap", "art_of_disclosure"]);
+    expect(result.items.every((i) => i.match === null)).toBe(true);
     expect(result.highlightFirst).toBe(false);
+    // The server's own objects are left alone.
+    expect(items[0].match?.reason).toBe("You said…");
+  });
+
+  it("with no signal, shows three and counts the rest", () => {
+    const items = Array.from({ length: 10 }, (_, i) => offer(`p${i}`));
+    const result = selectForYou(offers(items, { signalLevel: "none" }));
+    expect(result.items).toHaveLength(FOR_YOU_LIMIT);
+    expect(result.remaining).toBe(7);
   });
 
   it("in crisis, shows no shelf at all, whatever the items say", () => {
@@ -154,18 +169,24 @@ describe("selectForYou", () => {
 
   describe("mode — the single decision the render AND the analytics both read", () => {
     it("hides only when they own everything openable", () => {
-      // The one state where rendering nothing is right: the sibling card is
-      // already saying "today's work is done".
+      // Nothing to SELL. The shelf (forYouShelf.ts) still draws the owner's
+      // own card for this state; `hidden` only means "no offers".
       const items = [offer("a", { owned: true }), offer("b", { owned: true })];
       expect(selectForYou(offers(items)).mode).toBe("hidden");
     });
 
-    it("browses — not hides — when there is no signal yet", () => {
+    it("shows programs — not hides — when there is no signal yet", () => {
       // THE BUG THIS REPLACED. Returning nothing here left a blank space on
       // Home for a brand-new user, which is the one case guaranteed to hit it.
+      // It became a single browse card, and now real programs with no claim.
       const items = [offer("a"), offer("b")];
       const result = selectForYou(offers(items, { signalLevel: "none" }));
-      expect(result.mode).toBe("browse");
+      expect(result.mode).toBe("programs");
+    });
+
+    it("browses with no signal when nothing is openable", () => {
+      const items = [offer("ghost", { packId: null })];
+      expect(selectForYou(offers(items, { signalLevel: "none" })).mode).toBe("browse");
     });
 
     it("browses when the fetch failed outright", () => {
@@ -186,7 +207,7 @@ describe("selectForYou", () => {
       expect(selectForYou(offers([offer("a")])).mode).toBe("carousel");
     });
 
-    it("owning everything beats having no signal — they still see nothing", () => {
+    it("owning everything beats having no signal — still nothing to sell", () => {
       // Order matters: both conditions are true at once for someone who bought
       // everything before onboarding. Hiding is right; a browse card would be
       // a shop that won't take no for an answer.

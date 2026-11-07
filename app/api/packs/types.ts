@@ -430,6 +430,8 @@ export interface PackRecommendation {
   strategy?: "STABILIZE" | "CHALLENGE" | "MAINTAIN";
   matchScore?: number;
   isRefresher?: boolean;
+  /** Every pack they can open is completed (the pack returned is a refresher). */
+  allOwnedComplete?: boolean;
   /** Present only when `pack` is null. */
   state?: RecommendationEmptyState;
   /** Present only when `pack` is null and we have something honest to suggest. */

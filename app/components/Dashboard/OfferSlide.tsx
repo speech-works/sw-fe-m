@@ -17,7 +17,7 @@ import {
   borderWidth,
 } from "../../design-system";
 import { REC_HERO_ACCENT, CTA_ICON } from "./RecHeroCard";
-import { programEyebrow } from "../../util/packs/offers";
+import { offerSlideEyebrow } from "../../util/packs/offers";
 import type { OfferItem } from "../../api/users";
 import type { StorePrice } from "../../services/priceDisplay";
 import CoverSlide from "./CoverSlide";
@@ -89,6 +89,11 @@ export interface OfferSlideProps {
   storeAnchor?: StorePrice | null;
   /** The vivid treatment, reserved for a top match that earned a reason. */
   highlight?: boolean;
+  /**
+   * Replaces the program's own eyebrow line. Used for `YOUR NEXT PROGRAM`
+   * when the top offer leads a shelf for somebody who finished what they own.
+   */
+  eyebrow?: string;
   /** Revealed at the exact contact frame of the full-screen rubber die. */
   onPress: (item: OfferItem) => void;
 }
@@ -98,12 +103,14 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
   store,
   storeAnchor,
   highlight,
+  eyebrow,
   onPress,
 }) => {
   const { colors, elevation } = useTheme();
+  const eyebrowText = offerSlideEyebrow(item, eyebrow);
 
-  // Only ever rendered when the backend supplied one. `signalLevel: "none"`
-  // never reaches here — `selectForYou` returns nothing in that state.
+  // Only ever rendered when the backend supplied one. With `signalLevel:
+  // "none"` the backend sends no match, and `selectForYou` drops it anyway.
   const reason = item.match?.reason ?? null;
 
   const fill = colors.accent[REC_HERO_ACCENT];
@@ -330,7 +337,7 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
                 </View>
               ) : null}
               <Text variant="eyebrow" color="secondary" numberOfLines={1}>
-                {programEyebrow(item)}
+                {eyebrowText}
               </Text>
             </>
           }
@@ -434,7 +441,7 @@ const OfferSlide: React.FC<OfferSlideProps> = ({
           <View style={styles.metaRow}>
             <View style={[styles.chip, { backgroundColor: skin.chipBg }]}>
               <Text variant="label" color={skin.chipInk} numberOfLines={1}>
-                {programEyebrow(item)}
+                {eyebrowText}
               </Text>
             </View>
             <PriceTag

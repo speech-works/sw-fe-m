@@ -71,6 +71,26 @@ export interface User {
      * for complimentary/promo access or non-members.
      */
     plan?: "annual" | "monthly" | null;
+    /*
+     * The fields below are newer than the rest. An older server sends none of
+     * them, so every reader treats a missing field as "not known" and falls
+     * back to what the app did before. See util/functions/paywallView.ts.
+     */
+    /** Where the access comes from. Only "purchase" is a store subscription. */
+    source?: "purchase" | "pack_bonus" | "grant" | "unlimited" | null;
+    /** Which store bills the plan, when there is one. */
+    store?: "app_store" | "play_store" | "stripe" | "unknown" | null;
+    /** ISO instant the free days end, when they have free days. */
+    freeUntil?: string | null;
+    /** The store could not take the last renewal payment. */
+    billingIssue?: boolean;
+    /** What the paywall may offer, decided by the server. */
+    actions?: {
+      /** The plan cards that can be picked. */
+      pick: ("monthly" | "annual")[];
+      /** What the main button does. */
+      primary: "buy" | "upgrade" | "manage" | "none";
+    };
   };
   level?: number;
   currentStamina?: number;
@@ -343,6 +363,13 @@ export interface OfferItem {
    * `programCoverFor`, never by reading it directly.
    */
   coverImage?: string | null;
+  /**
+   * True for 30 days after the program launched, so somebody who owns the
+   * other programs notices a new one. The tier word on its card becomes "NEW"
+   * (`programShelfLabel`). Optional because an older backend does not send it;
+   * missing reads as not new. Display only: it never changes the order.
+   */
+  isNew?: boolean;
   /** AI practice calls bundled with the pack. 0 for most; 8–10 on premium. */
   creditGrantAmount: number;
   /**

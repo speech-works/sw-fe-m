@@ -50,11 +50,13 @@ jest.mock("../../constants/features", () => ({
 const mockGetWallet = jest.fn();
 const mockReconcileWallet = jest.fn();
 const mockCreatePurchaseIntent = jest.fn();
+const mockGetMyUser = jest.fn();
 
 jest.mock("../../api", () => ({
   getWallet: (...args: unknown[]) => mockGetWallet(...args),
   reconcileWallet: (...args: unknown[]) => mockReconcileWallet(...args),
   createPurchaseIntent: (...args: unknown[]) => mockCreatePurchaseIntent(...args),
+  getMyUser: (...args: unknown[]) => mockGetMyUser(...args),
 }));
 
 jest.mock("../../stores/user", () => ({
@@ -65,7 +67,12 @@ jest.mock("../../stores/user", () => ({
 
 import { readFileSync } from "fs";
 import { join } from "path";
-import { pollWalletUntil, recheckWalletUntil } from "../purchases";
+import {
+  pollMembershipUntil,
+  pollWalletUntil,
+  recheckWalletUntil,
+} from "../purchases";
+import { purchaseConfirmed } from "../../util/functions/paywallView";
 
 /** An axios-shaped rejection, which is what the api layer re-throws. */
 const httpError = (status: number, data?: unknown) =>
@@ -89,6 +96,7 @@ const FAST = { timeoutMs: 30, intervalMs: 1 };
 beforeEach(() => {
   mockGetWallet.mockReset();
   mockReconcileWallet.mockReset();
+  mockGetMyUser.mockReset();
   jest.spyOn(console, "error").mockImplementation(() => {});
   jest.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -213,6 +221,60 @@ describe("the automatic post-purchase check stays cheap", () => {
 
     expect(await pollWalletUntil(arrived, FAST)).toEqual(OWNED);
     expect(mockReconcileWallet).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ---------------------------------------------------------------------------
+ * A MEMBERSHIP PURCHASE WAITS FOR THE PLAN, NOT THE ENTITLEMENT
+ *
+ * Somebody on a pack's free days already holds the wallet's "membership"
+ * entitlement. The paywall used to wait for that entitlement after a purchase,
+ * so the wait passed on its first read and said "You're in" before the server
+ * had seen the purchase at all.
+ * ---------------------------------------------------------------------------
+ */
+describe("after a membership purchase, the wait reads the user's plan", () => {
+  const onFreeDays = {
+    id: "user-1",
+    membership: { active: true, until: "x", daysRemaining: 9, plan: null, source: "pack_bonus" },
+  };
+  const onAnnual = {
+    id: "user-1",
+    membership: { active: true, until: "y", daysRemaining: 365, plan: "annual", source: "purchase" },
+  };
+
+  it("keeps waiting through free days, and ends on the plan", async () => {
+    mockGetMyUser
+      .mockResolvedValueOnce(onFreeDays)
+      .mockResolvedValueOnce(onFreeDays)
+      .mockResolvedValue(onAnnual);
+
+    const user = await pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST);
+    expect(user).toEqual(onAnnual);
+    expect(mockGetMyUser.mock.calls.length).toBeGreaterThanOrEqual(3);
+    // Never the wallet: that is the read that ended the wait too early.
+    expect(mockGetWallet).not.toHaveBeenCalled();
+  });
+
+  it("returns null when the plan never arrives", async () => {
+    mockGetMyUser.mockResolvedValue(onFreeDays);
+    expect(
+      await pollMembershipUntil((m) => purchaseConfirmed(m, "monthly"), FAST),
+    ).toBeNull();
+  });
+
+  it("a failed read is not the end of the wait", async () => {
+    mockGetMyUser.mockRejectedValueOnce(httpError(500)).mockResolvedValue(onAnnual);
+    expect(
+      await pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST),
+    ).toEqual(onAnnual);
+  });
+
+  it("the paywall no longer waits on the wallet's membership entitlement", () => {
+    const src = prose("app/screens/Payments/index.tsx");
+    expect(src).not.toContain('entitlements.includes("membership")');
+    expect(src).toContain("pollMembershipUntil");
   });
 });
 

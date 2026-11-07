@@ -75,6 +75,14 @@ const SHELF_LABEL: Record<Shelf, string> = {
 };
 
 /**
+ * The tier word on a program the backend marks `isNew` (30 days from its
+ * launch date). It takes the tier word's place rather than adding a badge, so
+ * the eyebrow keeps one shape everywhere: "NEW · 14 DAYS". Home and the shop
+ * both read it through `programShelfLabel`, so they cannot disagree.
+ */
+const NEW_LABEL = "NEW";
+
+/**
  * The bare shelf word, for callers that have a `Shelf` and no `OfferItem` to
  * hand `programShelfLabel` — the filter pills, which label a TIER rather than
  * a product. Reads the same table, so a shelf can never be called one thing on
@@ -94,13 +102,21 @@ export function shelfLabel(shelf: Shelf): string {
  * a shelf value the app doesn't know yet would otherwise print "UNDEFINED".
  */
 export function programEyebrow(item: OfferItem): string {
-  const shelf = SHELF_LABEL[item.shelf] || "Program";
-  const label = item.arcDays ? `${shelf} · ${item.arcDays} days` : shelf;
-  return label.toUpperCase();
+  const word = programShelfLabel(item);
+  return item.arcDays ? `${word} · ${item.arcDays} DAYS` : word;
 }
 
 /**
- * Just the shelf word, ALL CAPS.
+ * The eyebrow a Home offer slide prints. A slide-level eyebrow ("TRY THIS
+ * NEXT", from the shelf) wins over the program's own, NEW included: it says
+ * why this slide is here, which matters more on that slide than newness.
+ */
+export function offerSlideEyebrow(item: OfferItem, eyebrow?: string): string {
+  return eyebrow ?? programEyebrow(item);
+}
+
+/**
+ * Just the shelf word, ALL CAPS, or "NEW" while the program is new.
  *
  * For surfaces that render the shelf and the length as two separate objects
  * rather than as one eyebrow line — Home's top match puts the shelf in a chip at
@@ -109,6 +125,7 @@ export function programEyebrow(item: OfferItem): string {
  * which is the entire reason that function exists.
  */
 export function programShelfLabel(item: OfferItem): string {
+  if (item.isNew) return NEW_LABEL;
   return (SHELF_LABEL[item.shelf] || "Program").toUpperCase();
 }
 

@@ -5,6 +5,7 @@ import {
   getPackProgress,
   getRecommendedPack,
 } from "../../api/packs";
+import { PackStatus } from "../../api/packs/types";
 import { isModuleOfferable } from "../../util/packs/dayLock";
 
 /** The shape both a pack's own modules and a brochure outline share. */
@@ -44,6 +45,13 @@ export interface ActiveProgram {
   percentComplete: number;
   /** They have opened `nextModule` and not finished it. Day 1 counts as 0%. */
   dayStarted: boolean;
+  /**
+   * Whether they have ever started this pack. The recommender ranks OWNED
+   * packs, so for somebody who owns programs and has started none it hands
+   * back its top pick with no progress at all. False only when the server says
+   * NOT_STARTED; null when we could not tell (no progress call).
+   */
+  packStarted: boolean | null;
   /**
    * `nextModule` is the next UNFINISHED day, which on an arc pack is regularly
    * a day that has not opened yet — you get there by finishing today. The card
@@ -206,7 +214,9 @@ export function useActiveProgram(): ActiveProgramState {
 
           setState({
             loading: false,
-            allComplete: false,
+            // The server still hands back a refresher when they have finished
+            // everything, so "all complete" can arrive WITH a program.
+            allComplete: !!rec.allOwnedComplete,
             program: {
               packId: rec.pack.id,
               title: rec.pack.title,
@@ -220,6 +230,9 @@ export function useActiveProgram(): ActiveProgramState {
               totalModules: total,
               percentComplete,
               dayStarted: !refresher && nextProgress?.status === "IN_PROGRESS",
+              packStarted: progress
+                ? progress.packStatus !== PackStatus.NOT_STARTED
+                : null,
               nextModuleLocked,
               nextModuleDay: nextProgress?.dayIndex ?? null,
               currentDay: progress?.currentDay ?? null,

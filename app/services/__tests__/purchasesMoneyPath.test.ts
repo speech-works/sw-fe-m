@@ -91,7 +91,9 @@ jest.mock("../../stores/user", () => ({
   },
 }));
 
+import { Linking } from "react-native";
 import {
+  openStoreSubscriptions,
   purchaseCatalogItem,
   purchaseProductById,
   restorePurchasesAndReconcile,
@@ -480,5 +482,29 @@ describe("restore reports what actually happened", () => {
     mockReconcileWallet.mockRejectedValue(httpError(500));
 
     await expect(restorePurchasesAndReconcile()).rejects.toThrow();
+  });
+});
+
+/**
+ * A plan bought on the other store cannot be managed, upgraded or bought again
+ * from this device. The paywall sends them to that store's own page instead,
+ * and must never charge here.
+ */
+describe("a plan on the other store", () => {
+  it("opens that store's subscription page and charges nothing", async () => {
+    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+    await openStoreSubscriptions("https://play.google.com/store/account/subscriptions");
+    expect(open).toHaveBeenCalledWith(
+      "https://play.google.com/store/account/subscriptions",
+    );
+    expect(mockPurchaseStoreProduct).not.toHaveBeenCalled();
+    expect(mockCreatePurchaseIntent).not.toHaveBeenCalled();
+  });
+
+  it("a store page that will not open is logged, not thrown", async () => {
+    jest.spyOn(Linking, "openURL").mockRejectedValue(new Error("no handler"));
+    await expect(
+      openStoreSubscriptions("https://apps.apple.com/account/subscriptions"),
+    ).resolves.toBeUndefined();
   });
 });

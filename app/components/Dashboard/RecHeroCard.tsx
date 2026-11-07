@@ -46,6 +46,24 @@ export const REC_HERO_ACCENT = "info" as const;
  */
 export const CTA_ICON = 14;
 
+/**
+ * The dark CTA island on an accent card, and the ink on it. Shared so every
+ * card that opens programs draws the same button (founder, 2026-11-07).
+ */
+export function ctaIsland(
+  colors: SemanticColors,
+  isDark: boolean,
+  accentKey: keyof SemanticColors["accent"],
+): { islandBg: string; islandInk: string } {
+  const fill = colors.accent[accentKey];
+  const ink = colors.accentOn[accentKey];
+  const islandBg = isDark
+    ? colors.action.secondary
+    : bestForeground(fill, [colors.surface.inverse, ink]);
+  const islandInk = isDark ? colors.action.onSecondary : onColor(islandBg, colors);
+  return { islandBg, islandInk };
+}
+
 export interface RecHeroCardProps {
   /** ALL-CAPS eyebrow — "MATCHED TO YOU" / "PROGRAMS". */
   eyebrow: string;
@@ -95,10 +113,7 @@ const RecHeroCard: React.FC<RecHeroCardProps> = ({
   // mid-tone blue; white on a PALE accent is about 1.2:1 and the button simply
   // dissolves into the card. `bestForeground` picks whichever candidate actually
   // contrasts with THIS fill, which on a pale accent is its own dark ink.
-  const islandBg = isDark
-    ? colors.action.secondary
-    : bestForeground(fill, [colors.surface.inverse, ink]);
-  const islandInk = isDark ? colors.action.onSecondary : onColor(islandBg, colors);
+  const { islandBg, islandInk } = ctaIsland(colors, isDark, accentKey);
 
   return (
     <PressableScale scaleTo={0.98} onPress={onPress} style={[styles.card, style]}>

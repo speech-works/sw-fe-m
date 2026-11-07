@@ -40,12 +40,15 @@ import {
   REVENUECAT_IOS_API_KEY,
 } from "../constants/features";
 import {
+  getMyUser,
   getWallet,
   reconcileWallet,
   createPurchaseIntent,
   type Wallet,
   type ReconciledWallet,
 } from "../api";
+import type { User } from "../api/users";
+import { STORE_SUBSCRIPTIONS_URL } from "../util/functions/paywallView";
 import { selectStoreProduct } from "./selectStoreProduct";
 import { httpStatus } from "../util/functions/apiError";
 import type { StorePrice } from "./priceDisplay";
@@ -711,6 +714,34 @@ export async function pollWalletUntil(
 }
 
 /**
+ * Poll GET /users/me until the membership passes `predicate`, or time out.
+ *
+ * For a MEMBERSHIP purchase, and the reason it is not `pollWalletUntil`: the
+ * wallet's "membership" entitlement is already there for somebody on free
+ * days (a pack's bonus month), so waiting on it ended before the purchase had
+ * been seen and told them it was confirmed. The user payload says what KIND of
+ * membership it is (`plan`, `source`), which is the thing that changes.
+ *
+ * Returns the fresh user so the caller can put it in the store, or null.
+ */
+export async function pollMembershipUntil(
+  predicate: (membership: User["membership"]) => boolean,
+  { timeoutMs = 30_000, intervalMs = 1_500 }: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<User | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const user = await getMyUser();
+      if (predicate(user?.membership)) return user;
+    } catch (error) {
+      console.error("[purchases] pollMembershipUntil getMyUser failed:", error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return null;
+}
+
+/**
  * The wallet check behind an explicit "Check again" tap, as opposed to the
  * automatic one that runs itself the moment a purchase completes.
  *
@@ -794,10 +825,19 @@ export async function manageSubscriptions(): Promise<void> {
   } catch (err) {
     console.warn("[purchases] showManageSubscriptions failed, falling back to URL:", err);
   }
-  const url =
+  await openStoreSubscriptions(
     Platform.OS === "ios"
-      ? "https://apps.apple.com/account/subscriptions"
-      : "https://play.google.com/store/account/subscriptions";
+      ? STORE_SUBSCRIPTIONS_URL.app_store
+      : STORE_SUBSCRIPTIONS_URL.play_store,
+  );
+}
+
+/**
+ * Opens one store's subscription page in the browser or store app. For a plan
+ * bought on the OTHER store (an iPhone user with a Google Play plan), where the
+ * native sheet on this device cannot show it.
+ */
+export async function openStoreSubscriptions(url: string): Promise<void> {
   await Linking.openURL(url).catch((e) =>
     console.error("[purchases] Could not open store subscriptions URL:", e),
   );

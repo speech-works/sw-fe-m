@@ -1,0 +1,334 @@
+import {
+  deviceStoreFor,
+  freeDaysLine,
+  paywallView,
+  purchaseConfirmed,
+  type PaywallViewInput,
+} from "../paywallView";
+import type { User } from "../../../api/users";
+
+type M = NonNullable<User["membership"]>;
+
+const view = (
+  membership: Partial<M> | null,
+  extra: Partial<PaywallViewInput> = {},
+) =>
+  paywallView({
+    membership: membership as M | null,
+    platformOS: "ios",
+    picked: null,
+    monthlyLabel: "$2.99",
+    annualLabel: "$34.99",
+    monthlyKnown: true,
+    annualKnown: true,
+    endDateText: "December 7, 2026",
+    ...extra,
+  });
+
+const free: Partial<M> = {
+  active: false,
+  until: null,
+  daysRemaining: null,
+  willRenew: false,
+  plan: null,
+  source: null,
+  store: null,
+  freeUntil: null,
+  billingIssue: false,
+  actions: { pick: ["monthly", "annual"], primary: "buy" },
+};
+
+const packBonus: Partial<M> = {
+  active: true,
+  until: "2026-12-07T00:00:00Z",
+  daysRemaining: 12,
+  willRenew: false,
+  plan: null,
+  source: "pack_bonus",
+  store: null,
+  freeUntil: "2026-12-07T00:00:00Z",
+  billingIssue: false,
+  actions: { pick: ["monthly", "annual"], primary: "buy" },
+};
+
+const monthlyApple: Partial<M> = {
+  active: true,
+  until: "2026-12-07T00:00:00Z",
+  daysRemaining: 30,
+  willRenew: true,
+  plan: "monthly",
+  source: "purchase",
+  store: "app_store",
+  freeUntil: null,
+  billingIssue: false,
+  actions: { pick: ["annual"], primary: "upgrade" },
+};
+
+const annualApple: Partial<M> = {
+  ...monthlyApple,
+  plan: "annual",
+  actions: { pick: [], primary: "manage" },
+};
+
+describe("paywallView", () => {
+  describe("H2a: cards follow actions.pick", () => {
+    it("a free user can pick both, and annual is picked first", () => {
+      const v = view(free);
+      expect(v.cards.monthly.enabled).toBe(true);
+      expect(v.cards.annual.enabled).toBe(true);
+      expect(v.selectedPlan).toBe("annual");
+      expect(v.memberLayout).toBe(false);
+      expect(v.cta).toMatchObject({
+        kind: "buy",
+        plan: "annual",
+        label: "Start membership · $34.99/yr",
+        enabled: true,
+      });
+    });
+
+    it("the tapped card is kept, with its own price on the button", () => {
+      const v = view(free, { picked: "monthly" });
+      expect(v.selectedPlan).toBe("monthly");
+      expect(v.cta).toMatchObject({ label: "Start membership · $2.99/mo", plan: "monthly" });
+    });
+
+    it("a member on free days can pick both (they used to be disabled)", () => {
+      const v = view(packBonus);
+      expect(v.memberLayout).toBe(true);
+      expect(v.cards.monthly.enabled).toBe(true);
+      expect(v.cards.annual.enabled).toBe(true);
+      expect(v.cards.annual.selected).toBe(true);
+      expect(v.cta.kind).toBe("buy");
+    });
+
+    it("a monthly member can pick only annual, and the button upgrades", () => {
+      const v = view(monthlyApple);
+      expect(v.cards.monthly).toMatchObject({ enabled: false, current: true });
+      expect(v.cards.annual).toMatchObject({ enabled: true, selected: true });
+      expect(v.cta).toMatchObject({ kind: "upgrade", label: "Upgrade to Annual · $34.99/yr" });
+      expect(v.showManageLink).toBe(true);
+    });
+
+    it("a monthly member cannot select a disabled card by tapping it", () => {
+      const v = view(monthlyApple, { picked: "monthly" });
+      expect(v.selectedPlan).toBe("annual");
+    });
+
+    it("an annual member manages, with no card to pick", () => {
+      const v = view(annualApple);
+      expect(v.cards.monthly.enabled).toBe(false);
+      expect(v.cards.annual).toMatchObject({ enabled: false, current: true, selected: true });
+      expect(v.cta).toMatchObject({ kind: "manage", label: "Manage Subscription" });
+      expect(v.disclosure).toBe("current");
+    });
+
+    it("primary none shows no button and says there is no end date", () => {
+      const v = view({
+        active: true,
+        plan: null,
+        source: "unlimited",
+        actions: { pick: [], primary: "none" },
+      });
+      expect(v.cta.kind).toBe("none");
+      expect(v.notices).toEqual(["Your membership has no end date."]);
+      expect(v.disclosure).toBeNull();
+    });
+
+    it("says Pricing unavailable rather than a dash price", () => {
+      const v = view(free, { annualKnown: false });
+      expect(v.cta).toMatchObject({ label: "Pricing unavailable", enabled: false });
+    });
+
+    it("the current plan footnote says Renews when it renews", () => {
+      expect(view(monthlyApple).cards.monthly.endFootnote).toBe("Renews December 7, 2026");
+    });
+  });
+
+  describe("H2a fallback: an older server sends no actions", () => {
+    it("a free user can pick both", () => {
+      const v = view({ active: false, until: null, daysRemaining: null });
+      expect(v.cards.monthly.enabled && v.cards.annual.enabled).toBe(true);
+      expect(v.cta.kind).toBe("buy");
+    });
+
+    it("a member with no plan (free days) can pick both", () => {
+      const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: false, plan: null });
+      expect(v.cards.monthly.enabled && v.cards.annual.enabled).toBe(true);
+      expect(v.selectedPlan).toBe("annual");
+    });
+
+    it("a monthly member gets both cards disabled and the upgrade", () => {
+      const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "monthly" });
+      expect(v.cards.monthly.enabled || v.cards.annual.enabled).toBe(false);
+      expect(v.cta.kind).toBe("upgrade");
+    });
+
+    it("an annual member gets Manage", () => {
+      const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "annual" });
+      expect(v.cta.kind).toBe("manage");
+    });
+
+    it("no membership at all is a buyer", () => {
+      expect(view(null).cta.kind).toBe("buy");
+    });
+  });
+
+  describe("H2b: free days end when the plan starts", () => {
+    it("shows the line above the button when they can buy", () => {
+      expect(view(packBonus).notices).toEqual([
+        "You have 12 free days left. A plan you start today begins today, and your free days stop.",
+      ]);
+    });
+
+    it("uses the singular for one day", () => {
+      expect(view({ ...packBonus, daysRemaining: 1 }).notices).toEqual([
+        "You have 1 free day left. A plan you start today begins today, and your free days stop.",
+      ]);
+    });
+
+    it("says nothing about free days when they cannot buy", () => {
+      const v = view({ ...packBonus, actions: { pick: [], primary: "none" } });
+      expect(v.notices).toEqual(["Your membership has no end date."]);
+    });
+
+    it("says nothing about free days when they have none", () => {
+      expect(view(free).notices).toEqual([]);
+    });
+  });
+
+  describe("H2c: a plan that will not renew", () => {
+    const ending: Partial<M> = { ...monthlyApple, willRenew: false };
+
+    it("the card says Ends, not Renews", () => {
+      expect(view(ending).cards.monthly.endFootnote).toBe("Ends December 7, 2026");
+    });
+
+    it("the line under the button says it ends and will not renew", () => {
+      expect(view(ending).guarantee).toBe(
+        "Your plan ends on December 7, 2026. To keep it, turn renewal back on in the App Store.",
+      );
+    });
+
+    it("a renewing monthly plan names the yearly saving", () => {
+      expect(view(monthlyApple, { annualSavingsPct: 42 }).guarantee).toBe(
+        "You are on the monthly plan. Switch to yearly and save 42%.",
+      );
+    });
+
+    it("claims no saving it cannot price", () => {
+      expect(view(monthlyApple).guarantee).toBe("You are on the monthly plan.");
+    });
+  });
+
+  describe("H2e: the plan is on the other store", () => {
+    it("on iPhone with a Google Play plan, offers only Google Play", () => {
+      const v = view({ ...monthlyApple, store: "play_store" });
+      expect(v.cards.monthly.enabled || v.cards.annual.enabled).toBe(false);
+      expect(v.cta).toMatchObject({
+        kind: "openStore",
+        label: "Open Google Play",
+        url: "https://play.google.com/store/account/subscriptions",
+      });
+      expect(v.notices[0]).toBe("You bought your plan on Google Play. Change or cancel it there.");
+      expect(v.showManageLink).toBe(false);
+      expect(v.disclosure).toBeNull();
+    });
+
+    it("on Android with an App Store plan, offers only the App Store", () => {
+      const v = view(annualApple, { platformOS: "android" });
+      expect(v.cta).toMatchObject({
+        kind: "openStore",
+        label: "Open the App Store",
+        url: "https://apps.apple.com/account/subscriptions",
+      });
+      expect(v.notices[0]).toBe("You bought your plan on the App Store. Change or cancel it there.");
+    });
+
+    it("the same store behaves normally", () => {
+      expect(view(monthlyApple, { platformOS: "ios" }).cta.kind).toBe("upgrade");
+    });
+
+    it("never offers free-days buying on the other store", () => {
+      const v = view({ ...packBonus, store: "play_store" });
+      expect(v.cta.kind).toBe("openStore");
+      expect(v.notices.some((n) => n.includes("free day"))).toBe(false);
+    });
+
+    it("a store it cannot name falls back to the server's actions", () => {
+      expect(view({ ...monthlyApple, store: "stripe" }).cta.kind).toBe("upgrade");
+    });
+  });
+
+  describe("billing issue", () => {
+    it("names the store that bills them, above the button", () => {
+      const v = view({ ...monthlyApple, billingIssue: true });
+      expect(v.notices).toContain(
+        "Your last payment did not go through. To keep your membership, update your payment details in the App Store.",
+      );
+      expect(v.cta).toMatchObject({
+        kind: "openStore",
+        label: "Update payment",
+        url: "https://apps.apple.com/account/subscriptions",
+      });
+      expect(v.guarantee).toBe("You are on the monthly plan.");
+      expect(v.cards.annual.enabled).toBe(false);
+      expect(v.cards.annual.selected).toBe(false);
+    });
+
+    it("names Google Play for a Play plan", () => {
+      const v = view(
+        { ...monthlyApple, store: "play_store", billingIssue: true },
+        { platformOS: "android" },
+      );
+      expect(v.notices).toEqual([
+        "Your last payment did not go through. To keep your membership, update your payment details in Google Play.",
+      ]);
+    });
+  });
+
+  it("no notice line uses an em dash", () => {
+    const all = [
+      view(packBonus),
+      view({ ...monthlyApple, billingIssue: true, willRenew: false }),
+      view({ ...monthlyApple, store: "play_store" }),
+    ].flatMap((v) => [...v.notices, v.guarantee]);
+    expect(all.join(" ")).not.toMatch(/—/);
+  });
+});
+
+describe("deviceStoreFor", () => {
+  it("maps the platform to its store", () => {
+    expect(deviceStoreFor("ios")).toBe("app_store");
+    expect(deviceStoreFor("android")).toBe("play_store");
+    expect(deviceStoreFor("web")).toBeNull();
+  });
+});
+
+describe("freeDaysLine", () => {
+  it("drops the count when the server sent none", () => {
+    expect(freeDaysLine(null)).toBe("A plan you start today begins today, and your free days stop.");
+  });
+});
+
+describe("purchaseConfirmed", () => {
+  it("does not end the wait on free days alone", () => {
+    expect(purchaseConfirmed(packBonus as M, "annual")).toBe(false);
+    expect(purchaseConfirmed(packBonus as M, "monthly")).toBe(false);
+  });
+
+  it("ends when the server shows the plan", () => {
+    expect(purchaseConfirmed({ ...packBonus, plan: "annual" } as M, "annual")).toBe(true);
+    expect(purchaseConfirmed({ ...packBonus, plan: "monthly" } as M, "monthly")).toBe(true);
+    expect(purchaseConfirmed({ ...packBonus, source: "purchase" } as M, "monthly")).toBe(true);
+  });
+
+  it("an upgrade waits for annual, not the monthly plan they had", () => {
+    expect(purchaseConfirmed(monthlyApple as M, "annual")).toBe(false);
+    expect(purchaseConfirmed(annualApple as M, "annual")).toBe(true);
+  });
+
+  it("an inactive membership is never confirmed", () => {
+    expect(purchaseConfirmed({ ...free, plan: "annual" } as M, "annual")).toBe(false);
+    expect(purchaseConfirmed(null, "annual")).toBe(false);
+  });
+});

@@ -13,7 +13,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { getOffers, Offers, OfferItem } from "../../api/users";
 import { selectForYou, ForYouSelection } from "../../util/packs/forYou";
-import { isOpenable } from "../../util/packs/offers";
+import {
+  buildShelf,
+  ownerPickSubtitle,
+  OWNER_PICK_TITLE,
+  shownOffers,
+  type ShelfSlide,
+  type ShelfView,
+} from "../../util/packs/forYouShelf";
 import {
   cardVisibility,
   createSlideImpressionTracker,
@@ -169,28 +176,23 @@ const SECTION_HEIGHT =
 type ProgramsSource =
   | "home_for_you_header"
   | "home_for_you_end_tile"
-  | "home_browse_fallback";
+  | "home_browse_fallback"
+  /** The "Pick one to start" card for somebody who owns every program. */
+  | "home_owner_pick"
+  /** The "You finished all" card. */
+  | "home_all_complete";
 
 /**
  * What the carousel renders. The offers are the shelf; the tile is the way out.
  *
  * Kept as a tagged union rather than by padding `selection.items`, and that is
- * load-bearing for measurement: the slide impression tracker reads
- * `selection.items[index]`, so an extra entry there would file the shop door as
- * a program that somebody looked at. `forYou.ts` also forbids padding a ranked
- * list to reach N, for the same family of reasons.
+ * load-bearing for measurement: the slide impression tracker reads the slide,
+ * so an extra entry in the offers would file the shop door as a program that
+ * somebody looked at. `forYou.ts` also forbids padding a ranked list to reach
+ * N, for the same family of reasons. The union and the decision about which
+ * slides to show live in `forYouShelf.ts`, where they are tested.
  */
-type Slide =
-  /**
-   * `offerIndex` is its RANK AMONG OFFERS, which is no longer its position in
-   * the carousel. The in-progress slide sits in front of them, so offer 0 is
-   * slide 1 — and everything that used to read `items[slideIndex]` would be off
-   * by one. The impression tracker reads this instead.
-   */
-  | { kind: "offer"; item: OfferItem; offerIndex: number }
-  | { kind: "inProgress"; program: ActiveProgram }
-  | { kind: "allComplete" }
-  | { kind: "more" };
+type Slide = ShelfSlide;
 
 /** Whether a slide draws a cover, which decides where its action sits. */
 const slideHasCover = (slide: Slide): boolean =>
@@ -206,6 +208,8 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   const [offers, setOffers] = useState<Offers | null>(null);
   const [loading, setLoading] = useState(true);
   const lastFetchRef = useRef<number>(0);
+  /** A settled fetch whose `recommendation_shown` has not been sent yet. */
+  const shownPendingRef = useRef(false);
   const m = useMotion();
   const page = usePageScroll();
 
@@ -220,30 +224,17 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
       setOffers(data);
 
       // ── Funnel: recommendation_shown ────────────────────────────────────
-      // Fired here, once per settled fetch — NOT on render (this component
-      // re-renders on every parent update) and NOT on carousel settle
-      // (`onIndexChange` fires through runOnJS on every swipe and would spam
-      // one event per flick). `mode` comes from the same call the render uses,
-      // so the event can never claim a card that wasn't shown.
+      // Armed here, once per settled fetch, and fired by the effect below once
+      // the active program has settled too. The shelf now depends on both, and
+      // firing on the offers alone would name a variant before we knew which
+      // card the person would get. NOT on render (this component re-renders on
+      // every parent update) and NOT on carousel settle (`onIndexChange` fires
+      // on every swipe).
       //
       // Kept deliberately, and deliberately NOT renamed: it answers "did we
       // have something to offer", which is a real question. It just is not the
       // question everyone was reading it as. See `for_you_shelf_viewed`.
-      const shown = selectForYou(data);
-      if (shown.mode !== "hidden") {
-        track(ANALYTICS_EVENTS.RECOMMENDATION_SHOWN, {
-          surface: "home_for_you",
-          variant: shown.mode === "carousel" ? "carousel" : "browse_fallback",
-          state: null,
-          signalLevel: data.signalLevel ?? null,
-          count: shown.items.length,
-          catalogKey: shown.items[0]?.key ?? null,
-          packId: shown.items[0]?.packId ?? null,
-          priceInr: shown.items[0]?.priceInr ?? null,
-          hasMatchReason: shown.highlightFirst,
-          remaining: shown.remaining,
-        });
-      }
+      shownPendingRef.current = true;
     } catch (err) {
       // Deliberately does NOT clear `offers`. The sibling card learned this the
       // hard way: a refetch that set an error state on failure replaced a
@@ -270,6 +261,27 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   );
 
   const selection = selectForYou(offers);
+
+  /**
+   * The program they are in the middle of, which now leads this shelf instead
+   * of sitting in its own card above it.
+   */
+  const active = useActiveProgram();
+
+  /**
+   * ── ONE DECISION FOR THE RENDER AND BOTH EVENTS ───────────────────────────
+   * Every state of the shelf (new user, owner, finished, crisis, failed fetch)
+   * comes out of `buildShelf`. The render below and the two analytics events
+   * read this one object, so neither event can name a card that is not shown.
+   */
+  const view: ShelfView = buildShelf({
+    offers,
+    offersLoading: loading && !offers,
+    active,
+    selection,
+  });
+  const viewRef = useRef<ShelfView>(view);
+  viewRef.current = view;
   // One lookup for the whole carousel rather than one per slide, covering each
   // offer's charged tier AND its anchor tier. The anchor prices are what let a
   // struck "was" be a real store price instead of a backend constant — used by
@@ -304,12 +316,8 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
    * the rendered list at the bottom of this component.
    */
   const carouselSlidesRef = useRef<Slide[]>([]);
+  carouselSlidesRef.current = view.kind === "carousel" ? view.slides : [];
 
-  /**
-   * The program they are in the middle of, which now leads this shelf instead
-   * of sitting in its own card above it.
-   */
-  const active = useActiveProgram();
 
   const slidesRef = useRef<SlideImpressionTracker | null>(null);
   if (slidesRef.current === null) {
@@ -333,7 +341,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
       emit: (index, trigger: SlideTrigger, dwellMs) => {
         const slide = carouselSlidesRef.current[index];
         if (slide?.kind !== "offer") return;
-        const sel = selectionRef.current;
+        const v = viewRef.current;
         const { item, offerIndex } = slide;
         track(ANALYTICS_EVENTS.FOR_YOU_SLIDE_VIEWED, {
           surface: "home_for_you",
@@ -344,7 +352,8 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
           catalogKey: item.key,
           packId: item.packId,
           priceInr: item.priceInr,
-          highlight: offerIndex === 0 && sel.highlightFirst,
+          highlight:
+            offerIndex === 0 && v.kind === "carousel" && v.highlightFirst,
           dwellMs,
           trigger,
         });
@@ -369,8 +378,14 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     shelfSeenRef.current = true;
 
     const sel = selectionRef.current;
-    const isCarousel = sel.mode === "carousel";
-    const first = sel.items[0];
+    const v = viewRef.current;
+    if (v.kind === "skeleton") return;
+    const isCarousel = v.kind === "carousel";
+    // The browse fallback reports no card, as it always has: a zero would
+    // read as a card that nobody saw.
+    const hasCard = isCarousel && v.variant !== "browse_fallback";
+    const shown = shownOffers(v);
+    const first = shown[0];
     // The section rect plus a known offset gives us the card's box, so we report
     // on the thing that sells rather than on the heading above it.
     const seen = cardVisibility(
@@ -382,19 +397,17 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
 
     track(ANALYTICS_EVENTS.FOR_YOU_SHELF_VIEWED, {
       surface: "home_for_you",
-      variant: isCarousel ? "carousel" : "browse_fallback",
+      variant: v.variant,
       trigger: rect.atRest ? "at_rest" : "scroll",
       msToVisible: Date.now() - focusStartRef.current,
-      // Null rather than 0 on the browse fallback: it has no card, and a zero
-      // would read as one that nobody saw.
-      cardVisiblePct: isCarousel ? seen.cardVisiblePct : null,
-      ctaVisible: isCarousel ? seen.ctaVisible : null,
+      cardVisiblePct: hasCard ? seen.cardVisiblePct : null,
+      ctaVisible: hasCard ? seen.ctaVisible : null,
       signalLevel: offersRef.current?.signalLevel ?? null,
-      count: sel.items.length,
+      count: shown.length,
       remaining: sel.remaining,
       catalogKey: first?.key ?? null,
       packId: first?.packId ?? null,
-      hasMatchReason: sel.highlightFirst,
+      hasMatchReason: isCarousel && v.highlightFirst,
     });
 
     // Arms slide tracking and records slide 0 — the one the carousel can never
@@ -402,7 +415,28 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
     if (isCarousel) slides.seed();
   }, []);
 
-  const hasContent = !!offers && selection.mode !== "hidden";
+  const hasContent = view.kind !== "skeleton";
+
+  // ── Funnel: recommendation_shown, once both fetches have settled ──────────
+  useEffect(() => {
+    if (!shownPendingRef.current || !offers || active.loading) return;
+    const v = viewRef.current;
+    if (v.kind === "skeleton") return;
+    shownPendingRef.current = false;
+    const shown = shownOffers(v);
+    track(ANALYTICS_EVENTS.RECOMMENDATION_SHOWN, {
+      surface: "home_for_you",
+      variant: v.variant,
+      state: null,
+      signalLevel: offers.signalLevel ?? null,
+      count: shown.length,
+      catalogKey: shown[0]?.key ?? null,
+      packId: shown[0]?.packId ?? null,
+      priceInr: shown[0]?.priceInr ?? null,
+      hasMatchReason: v.kind === "carousel" && v.highlightFirst,
+      remaining: selection.remaining,
+    });
+  }, [offers, active.loading, active.program, active.allComplete, selection.remaining]);
 
   const { ref: shelfRef, onLayout: measureShelf, hasQualified } = useInView({
     threshold: 0.5,
@@ -525,43 +559,16 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
   };
 
   /**
-   * ── THE ACTIVE PROGRAM OUTRANKS EVERY OTHER STATE ──────────────────────────
-   * `selectForYou` decides what to do with the OFFERS, and it knows nothing
-   * about what somebody is in the middle of. So its answer cannot be the last
-   * word any more: a person with no offers to show but a program on day 3 was
-   * getting "Find your next program", and the program they had paid for did not
-   * appear on Home at all.
-   *
-   * Hidden included. A shelf with nothing to sell is still the right place for
-   * the thing they already own.
+   * ── EVERY STATE COMES FROM `buildShelf` ───────────────────────────────────
+   * The active program outranks the offers, crisis outranks everything, and
+   * Home is never blank for somebody who owns programs. Those rules, and why,
+   * are written down and tested in `forYouShelf.ts`. This only draws.
    */
-  const hasProgram = !!active.program;
-
-  /**
-   * ── OWNS EVERYTHING AND HAS FINISHED IT ────────────────────────────────────
-   * Checked FIRST, and that is not tidiness. `selectForYou` returns `hidden`
-   * when every product is owned, and its comment explains why that was safe:
-   * "the sibling card is already saying today's work is done". That sibling was
-   * SmartRecommendationCard, and it is gone — so without this line the exact
-   * hole it was written to prevent opens up, and the person who has bought
-   * everything and done all of it gets a blank space on Home.
-   */
-  // A user in crisis gets the support card below, even with everything done.
-  if (!hasProgram && active.allComplete && !offers?.crisisSupport) {
-    return (
-      <View ref={shelfRef} onLayout={measureShelf} style={style}>
-        <AllCompleteSlide />
-      </View>
-    );
-  }
-
-  if (selection.mode === "hidden" && !hasProgram) return null;
-
   let inner: React.ReactNode;
 
-  if (loading && !offers) {
+  if (view.kind === "skeleton") {
     // First load. Deliberately no heading over the skeleton — a heading claims a
-    // section that may never appear (a no-signal user gets the browse card, which
+    // section that may never appear (a failed fetch gets the browse card, which
     // has none). The bars mirror the settled section's SHAPE and total height so
     // nothing below jumps when the offers land; a neutral bar where the heading
     // will go promises a section, not a claim.
@@ -575,12 +582,12 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
         />
       </View>
     );
-  } else if (!hasProgram && offers?.crisisSupport) {
+  } else if (view.kind === "crisis") {
     // In crisis: support in the slot, never a program to buy.
-    inner = <CrisisSupportCard resource={offers.crisisSupport} />;
-  } else if (!hasProgram && selection.mode === "browse") {
-    // No second error card even when the fetch failed. No eyebrow claim, no
-    // badge — we have nothing to back one.
+    inner = <CrisisSupportCard resource={view.resource} />;
+  } else if (view.kind === "browse") {
+    // A failed fetch, or nothing openable. No second error card, no eyebrow
+    // claim, no badge — we have nothing to back one.
     inner = (
       <RecHeroCard
         eyebrow="PROGRAMS"
@@ -590,61 +597,34 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
         onPress={() => goToPrograms("home_browse_fallback")}
       />
     );
+  } else if (view.kind === "ownerPick") {
+    // They own every program and have started none. This used to be a blank
+    // space: nothing to sell, and no program on the shelf.
+    inner = (
+      <RecHeroCard
+        eyebrow="YOUR PROGRAMS"
+        title={OWNER_PICK_TITLE}
+        subtitle={ownerPickSubtitle(view.count)}
+        ctaLabel="See programs"
+        onPress={() => goToPrograms("home_owner_pick")}
+      />
+    );
+  } else if (view.kind === "allComplete") {
+    inner = (
+      <AllCompleteSlide
+        count={view.count}
+        onPress={() => goToPrograms("home_all_complete")}
+      />
+    );
   } else {
-    // The tile only exists when there is genuinely something else to see. With
-    // nothing left over it would be a door onto a room the person has already
-    // been shown, and the heading action goes with it for the same reason.
-    /**
-     * ── THE DOOR OUT IS NOT CONDITIONAL ON HAVING SOLD ANYTHING ────────────
-     * `remaining` counts eligible offers BEYOND the ones shown, so it is 0 in
-     * two opposite situations: the shelf showed everything there was, and the
-     * shelf showed nothing at all.
-     *
-     * The second is what a person with a program but no clinical signal gets.
-     * `selectForYou` returns `browse` with no items — deliberately, because a
-     * "For you" shelf with no basis for the claim reads as an advert — and the
-     * shelf then rendered their in-progress program as the only slide, with no
-     * dots, nothing to swipe and no way through to the other nine programs.
-     * A dead end on the one row of Home that is about programs.
-     *
-     * So the tile appears whenever there is a catalogue to open, and it changes
-     * its words rather than its presence: after real slides it is "more", after
-     * none it is "all". `showsOffers` is what separates the two, NOT `remaining`.
-     */
-    const showsOffers = selection.items.length > 0;
-    const hasMore = showsOffers
-      ? selection.remaining > 0
-      : (offers?.items ?? []).some((i) => !i.owned && isOpenable(i));
-    // NOT `slides` — that name is taken by the impression tracker a few lines
-    // up, and the two must never be confused for one another.
-    /**
-     * ── THE ORDER, AND WHY IT IS THIS ORDER ────────────────────────────────
-     * The program somebody is in the middle of comes first: it is the only
-     * slide about something they already paid for, and it was a separate card
-     * stacked above this shelf until now — two rows about programs, the taller
-     * one on top, pushing what you could buy off the fold.
-     *
-     * `offerIndex` is carried rather than inferred from position, because
-     * position is no longer rank. See the note on `Slide`.
-     */
-    const carouselSlides: Slide[] = [
-      ...(active.program
-        ? [{ kind: "inProgress" as const, program: active.program }]
-        : []),
-      ...selection.items.map((item, offerIndex) => ({
-        kind: "offer" as const,
-        item,
-        offerIndex,
-      })),
-      ...(hasMore ? [{ kind: "more" as const }] : []),
-    ];
-    carouselSlidesRef.current = carouselSlides;
+    const carouselSlides = view.slides;
+    const action = view.headerAction;
 
     inner = (
       <>
         <View style={styles.headingRow}>
           <Text variant="h3" color="primary">
-            For you
+            {view.heading}
           </Text>
 
           {/* NOT `TextLink`, and not for looks. TextLink pads 8pt above and
@@ -657,14 +637,12 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
               only where POSITION already makes the action unmistakable, and a
               right-aligned accent label with a chevron on a section heading is
               the one arrangement nobody reads as body copy. */}
-          {hasMore ? (
+          {action ? (
             <PressableScale
               scaleTo={0.97}
               onPress={() => goToPrograms("home_for_you_header")}
               accessibilityRole="link"
-              accessibilityLabel={
-                showsOffers ? "See more programs" : "Browse all programs"
-              }
+              accessibilityLabel={action.a11y}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={styles.headingAction}
             >
@@ -674,7 +652,7 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
                   enough that the heading still leads, familiar enough to read
                   as the same kind of thing as every other link. */}
               <Text variant="bodySm" color="link">
-                {showsOffers ? "See more" : "Browse all"}
+                {action.label}
               </Text>
               <Icon
                 name={icons.chevronRight}
@@ -701,6 +679,14 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
                 />
               );
             }
+            if (slide.kind === "allComplete") {
+              return (
+                <AllCompleteSlide
+                  count={slide.count}
+                  onPress={() => goToPrograms("home_all_complete")}
+                />
+              );
+            }
             if (slide.kind === "offer") {
               return (
                 <OfferSlide
@@ -712,16 +698,16 @@ const ForYouCarousel: React.FC<ForYouCarouselProps> = ({ style }) => {
                   )}
                   // `offerIndex`, not the slide's position. The top match is
                   // still the top match when something sits in front of it.
-                  highlight={
-                    slide.offerIndex === 0 && selection.highlightFirst
-                  }
+                  highlight={slide.offerIndex === 0 && view.highlightFirst}
+                  eyebrow={slide.eyebrow}
                   onPress={openDetail}
                 />
               );
             }
             return (
               <MoreProgramsTile
-                variant={showsOffers ? "more" : "all"}
+                variant={slide.variant}
+                count={slide.count}
                 onPress={() => goToPrograms("home_for_you_end_tile")}
               />
             );

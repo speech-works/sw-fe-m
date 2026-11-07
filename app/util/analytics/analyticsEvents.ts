@@ -45,6 +45,11 @@ export const ANALYTICS_EVENTS = {
     // against it is a ratio against a denominator nobody saw. Use
     // FOR_YOU_SHELF_VIEWED for reach and this one only for "did we have
     // something to offer".
+    // Home sends it once the offers AND the active program have settled.
+    // `variant` (same value on FOR_YOU_SHELF_VIEWED): 'carousel' |
+    // 'browse_fallback' (also crisis, as before) | 'programs_no_signal' |
+    // 'next_after_finished' | 'owner_pick' | 'owner_others' | 'all_finished'.
+    // See util/packs/forYouShelf.ts.
     RECOMMENDATION_SHOWN: 'recommendation_shown',   // props: { surface, variant, state, catalogKey, packId, strategy, priceInr, hasMatchReason, isRefresher, signalLevel?, count?, remaining? }
     PACK_CLICKED: 'pack_clicked',                   // props: { source, catalogKey, packId, priceInr, hasMatchReason, position? }
     PROGRAM_DETAIL_VIEWED: 'program_detail_viewed', // props: { catalogKey, packId }
@@ -93,7 +98,7 @@ export const ANALYTICS_EVENTS = {
     // The shop. `_opened` names who sent them (Home's link and Home's browse
     // fallback were one untracked function until now); `_viewed` fires only from
     // the branch that renders the list, never from loading/failed/empty.
-    PROGRAMS_LIST_OPENED: 'programs_list_opened',   // props: { source: 'home_for_you_more' | 'home_browse_fallback' | 'explore_entry' | 'pack_not_owned' }
+    PROGRAMS_LIST_OPENED: 'programs_list_opened',   // props: { source: 'home_for_you_header' | 'home_for_you_end_tile' | 'home_browse_fallback' | 'home_owner_pick' | 'home_all_complete' | 'explore_entry' | 'pack_not_owned' }
     PROGRAMS_LIST_VIEWED: 'programs_list_viewed',   // props: { count, hasSignal, signalLevel, heroCatalogKey, bonusEligible }
 
     // ── Paywall & Payments ────────────────────────────────────────────

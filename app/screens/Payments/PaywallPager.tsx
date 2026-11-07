@@ -33,6 +33,7 @@ import {
 import { CallLengthHero } from "../../components/membership/CallLengthHero";
 import { PlanPills } from "../../components/membership/PlanPills";
 import { PROGRAMS_NOTE } from "../../services/membershipOffer";
+import type { PlanCardView, PlanKey } from "../../util/functions/paywallView";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -123,15 +124,17 @@ export interface PaywallPagerProps {
   annualPerMonthLabel: string;
   annualLabel: string;
   annualSavingsPct: number;
-  plan: "monthly" | "annual";
+  /**
+   * Each plan card's state, from `paywallView`: whether it can be picked,
+   * whether it is picked, whether it is their plan now, and its end line.
+   */
+  cards: Record<PlanKey, PlanCardView>;
   onPickMonthly: () => void;
   onPickAnnual: () => void;
   /** Hides the plan tiles when no real price is known (Guideline 3.1.2). */
   priceKnown: boolean;
   disabled?: boolean;
   isMember?: boolean;
-  memberPlan?: "annual" | "monthly" | null;
-  renewalDateText?: string | null;
 }
 
 interface PageSkin {
@@ -153,14 +156,12 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
   annualPerMonthLabel,
   annualLabel,
   annualSavingsPct,
-  plan,
+  cards,
   onPickMonthly,
   onPickAnnual,
   priceKnown,
   disabled,
   isMember = false,
-  memberPlan = null,
-  renewalDateText = null,
 }) => {
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();
@@ -528,19 +529,14 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                       title="Monthly"
                       price={monthlyLabel}
                       priceSuffix="/mo"
-                      selected={memberPlan === "monthly"}
-                      footnote={
-                        memberPlan === "monthly" && renewalDateText
-                          ? `Renews ${renewalDateText}`
-                          : undefined
-                      }
-                      tag={
-                        memberPlan === "monthly"
-                          ? "CURRENT PLAN"
-                          : undefined
-                      }
+                      selected={cards.monthly.selected}
+                      footnote={cards.monthly.endFootnote ?? undefined}
+                      tag={cards.monthly.current ? "CURRENT PLAN" : undefined}
                       onPress={onPickMonthly}
-                      disabled={true}
+                      // Open only when the server says this plan can be
+                      // bought. Both used to be disabled for every member,
+                      // including somebody on free days who could only buy.
+                      disabled={disabled || !cards.monthly.enabled}
                     />
                     <PlanPills.Card
                       compact={short}
@@ -548,22 +544,19 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                       price={annualLabel}
                       priceSuffix="/yr"
                       footnote={
-                        memberPlan === "annual" && renewalDateText
-                          ? `Renews ${renewalDateText}`
-                          : priceKnown
-                            ? `${annualPerMonthLabel}/mo`
-                            : undefined
+                        cards.annual.endFootnote ??
+                        (priceKnown ? `${annualPerMonthLabel}/mo` : undefined)
                       }
                       tag={
-                        memberPlan === "annual"
+                        cards.annual.current
                           ? "CURRENT PLAN"
                           : annualSavingsPct > 0
                             ? `SAVE ${annualSavingsPct}%`
                             : undefined
                       }
-                      selected={memberPlan === "annual"}
+                      selected={cards.annual.selected}
                       onPress={onPickAnnual}
-                      disabled={true}
+                      disabled={disabled || !cards.annual.enabled}
                     />
                   </PlanPills>
                 ) : null}
@@ -653,9 +646,9 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                               title="Monthly"
                               price={monthlyLabel}
                               priceSuffix="/mo"
-                              selected={plan === "monthly"}
+                              selected={cards.monthly.selected}
                               onPress={onPickMonthly}
-                              disabled={disabled}
+                              disabled={disabled || !cards.monthly.enabled}
                             />
                             <PlanPills.Card
                               compact={short}
@@ -668,9 +661,9 @@ export const PaywallPager: React.FC<PaywallPagerProps> = ({
                                   ? `SAVE ${annualSavingsPct}%`
                                   : undefined
                               }
-                              selected={plan === "annual"}
+                              selected={cards.annual.selected}
                               onPress={onPickAnnual}
-                              disabled={disabled}
+                              disabled={disabled || !cards.annual.enabled}
                             />
                           </PlanPills>
                         ) : null}

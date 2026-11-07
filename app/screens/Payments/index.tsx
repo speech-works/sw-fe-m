@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
+  Platform,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -18,10 +19,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOffers, type MembershipOffer } from "../../api";
 import {
   purchaseProductById,
-  pollWalletUntil,
+  pollMembershipUntil,
   purchasesAvailable,
   manageSubscriptions,
+  openStoreSubscriptions,
 } from "../../services/purchases";
+import {
+  paywallView,
+  purchaseConfirmed,
+  type PlanKey,
+} from "../../util/functions/paywallView";
 import {
   showSuccessBottomSheet,
   showErrorBottomSheet,
@@ -45,7 +52,7 @@ import {
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useUserStore } from "../../stores/user";
-import { isMember, membershipEndsAt } from "../../util/functions/membership";
+import { membershipEndsAt } from "../../util/functions/membership";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import { useRestorePurchases } from "../../hooks/useRestorePurchases";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -76,15 +83,13 @@ const SubscribeScreenBody = () => {
   const styles = useStyles();
   const navBarInset = useNavBarInset();
   const user = useUserStore((s) => s.user);
-  const isAutoRenewingMember = isMember(user) && user?.membership?.willRenew !== false;
-  const isCurrentMember = isMember(user);
-  // Trust the server. `plan` is "annual" | "monthly" | null. null means either
-  // not a member, or a complimentary/pack_bonus membership with no store product.
-  const memberPlan: "annual" | "monthly" | null = user?.membership?.plan ?? null;
+  const setUser = useUserStore((s) => s.setUser);
+  const fetchUser = useUserStore((s) => s.fetchUser);
   const endsAt = membershipEndsAt(user);
   const renewalDateText = endsAt
     ? endsAt.toLocaleDateString(undefined, {
-        month: "long",
+        // "short": "Renews 27 November 2026" did not fit the plan card.
+        month: "short",
         day: "numeric",
         year: "numeric",
       })
@@ -99,14 +104,10 @@ const SubscribeScreenBody = () => {
   // Height of the pinned footer, so the scroll view can clear it exactly.
   // Starts at a sane guess so the first frame is never wrong by a whole screen.
   const [footerHeight, setFooterHeight] = useState(220);
-  // Default selection: if the user already owns monthly, pre-select monthly so
-  // the card highlights match their active plan. Otherwise default to annual
-  // (best value, the one we recommend).
-  const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
-    memberPlan === "monthly"
-      ? PAYMENT_PLAN_TYPE.MONTHLY
-      : PAYMENT_PLAN_TYPE.ANNUALLY,
-  );
+  // The card the reader tapped. Null until they tap one, and then
+  // `paywallView` picks the default: annual when it can be bought, else
+  // monthly, else their current plan.
+  const [picked, setPicked] = useState<PlanKey | null>(null);
   const [loading, setLoading] = useState(false);
   const [membership, setMembership] = useState<MembershipOffer | null>(null);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
@@ -117,6 +118,12 @@ const SubscribeScreenBody = () => {
   // literal — a stale price in a button is how a user ends up charged something
   // other than what they were shown (the exact class of bug that damaged
   // competitors' reviews). The membership block carries both product ids.
+  // The paywall decides from `user.membership`, so read it fresh. A plan
+  // bought or ended since the app opened would otherwise show the old cards.
+  useEffect(() => {
+    void fetchUser();
+  }, [fetchUser]);
+
   useEffect(() => {
     let cancelled = false;
     getOffers()
@@ -173,7 +180,7 @@ const SubscribeScreenBody = () => {
   // $34.99-vs-$59.88 is 42%, so computing this from the INR book (as it did)
   // under-claimed the saving to every dollar buyer.
   const annualSavingsPct = annual ? (savingPercentFor(annual) ?? 0) : 0;
-  // Is there a REAL price for the plan currently selected?
+  // Is there a REAL price for each plan?
   //
   // Every label above falls back to an em-dash placeholder, and `GET
   // /users/me/offers` failing is a perfectly ordinary event (reviewers sit
@@ -182,10 +189,37 @@ const SubscribeScreenBody = () => {
   // automatically unless cancelled...". That is an auto-renewing subscription
   // offered with no price attached, which is exactly what Guideline 3.1.2
   // forbids, and it looks like a bug to everyone else.
+  const monthlyKnown = !!monthly?.price;
+  const annualKnown = !!annual?.price;
+
+  /**
+   * ── EVERY DECISION ON THIS SCREEN COMES FROM HERE ────────────────────────
+   * Which cards can be picked, which one is, what the button says and does,
+   * and the lines above it. Pure and tested (util/functions/paywallView.ts),
+   * so nothing below decides on its own.
+   */
+  const view = paywallView({
+    membership: user?.membership,
+    platformOS: Platform.OS,
+    picked,
+    monthlyLabel,
+    annualLabel,
+    monthlyKnown,
+    annualKnown,
+    annualSavingsPct,
+    endDateText: renewalDateText,
+  });
+  // The plan the renewal text describes: the one being bought, which for an
+  // upgrade is annual whatever card looks picked.
+  const selectedPlan = view.cta.kind === "upgrade" ? "annual" : view.selectedPlan;
   const priceKnown =
-    paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-      ? !!annual?.price
-      : !!monthly?.price;
+    selectedPlan === "annual"
+      ? annualKnown
+      : selectedPlan === "monthly"
+        ? monthlyKnown
+        : false;
+  const cta = view.cta;
+  const isAutoRenewingMember = view.disclosure === "current";
 
   const sheetTranslateY = useSharedValue(Dimensions.get("window").height);
 
@@ -203,7 +237,7 @@ const SubscribeScreenBody = () => {
   }, []);
 
   const handlePayment = async () => {
-    if (!membership) return;
+    if (!membership || cta.kind !== "buy" || !cta.plan) return;
     // Payments not wired for this build/platform yet (flag off, or no store key
     // configured): explain gently rather than surface a red error. Billing is
     // Apple In-App Purchase (StoreKit) + Google Play Billing via RevenueCat —
@@ -213,7 +247,7 @@ const SubscribeScreenBody = () => {
       return;
     }
 
-    const isAnnual = paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY;
+    const isAnnual = cta.plan === "annual";
     const productId = isAnnual
       ? membership.annualProductId
       : membership.productId;
@@ -234,12 +268,16 @@ const SubscribeScreenBody = () => {
       const outcome = await purchaseProductById(productId);
       if (outcome.status === "purchased") {
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
-        // The entitlement is granted by the RevenueCat webhook, not the purchase
-        // call itself — poll our own backend until "membership" appears.
-        const wallet = await pollWalletUntil((w) =>
-          w.entitlements.includes("membership"),
+        // The grant comes from the RevenueCat webhook, not the purchase call
+        // itself, so poll our own backend. On the membership's PLAN, not the
+        // wallet's "membership" entitlement: somebody on free days already has
+        // that, and the wait used to end before the purchase had been seen.
+        const bought: PlanKey = isAnnual ? "annual" : "monthly";
+        const fresh = await pollMembershipUntil((m) =>
+          purchaseConfirmed(m, bought),
         );
-        if (wallet) {
+        if (fresh) {
+          setUser(fresh);
           showSuccessBottomSheet("You're in", "Your access is active.");
           navigation.goBack();
         } else {
@@ -298,10 +336,11 @@ const SubscribeScreenBody = () => {
       const outcome = await purchaseProductById(productId);
       if (outcome.status === "purchased") {
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
-        const wallet = await pollWalletUntil((w) =>
-          w.entitlements.includes("membership"),
+        const fresh = await pollMembershipUntil((m) =>
+          purchaseConfirmed(m, "annual"),
         );
-        if (wallet) {
+        if (fresh) {
+          setUser(fresh);
           showSuccessBottomSheet("Upgraded!", "You're now on the annual plan.");
           navigation.goBack();
         } else {
@@ -383,14 +422,12 @@ const SubscribeScreenBody = () => {
             annualPerMonthLabel={annualPerMonthLabel}
             annualLabel={annualLabel}
             annualSavingsPct={annualSavingsPct}
-            plan={paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY ? "annual" : "monthly"}
-            onPickMonthly={() => setPaymentPlan(PAYMENT_PLAN_TYPE.MONTHLY)}
-            onPickAnnual={() => setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY)}
-            priceKnown={priceKnown}
+            cards={view.cards}
+            onPickMonthly={() => setPicked("monthly")}
+            onPickAnnual={() => setPicked("annual")}
+            priceKnown={monthlyKnown && annualKnown}
             disabled={loading}
-            isMember={isCurrentMember}
-            memberPlan={memberPlan}
-            renewalDateText={renewalDateText}
+            isMember={view.memberLayout}
             dock={
               /* The SafeAreaView above deliberately omits the bottom edge, so
                  under edge-to-edge this would sit under the nav bar with the
@@ -410,69 +447,78 @@ const SubscribeScreenBody = () => {
                 can't sell says so instead of showing a button. */}
             {purchasesAvailable() ? (
               <>
-                {/* ── PRIMARY CTA ─────────────────────────────────────────
-                    Free:    "Start membership · ₹X/yr"  → handlePayment
-                    Monthly: "Upgrade to Annual · ₹X/yr" → handleUpgradeToAnnual
-                    Annual:  "Manage Subscription"        → manageSubscriptions */}
-                <TouchableOpacity
-                  style={[
-                    styles.upgradeBtnWrapper,
-                    (!isAutoRenewingMember && (loading || !membership)) && { opacity: 0.7 },
-                  ]}
-                  activeOpacity={0.85}
-                  onPress={
-                    memberPlan === "annual"
-                      ? manageSubscriptions
-                      : memberPlan === "monthly"
-                        ? handleUpgradeToAnnual
-                        : handlePayment
-                  }
-                  disabled={!isAutoRenewingMember && (loading || !membership)}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    memberPlan === "annual"
-                      ? "Manage Speechworks subscription"
-                      : memberPlan === "monthly"
-                        ? "Upgrade to annual plan"
-                        : "Start Speechworks membership"
-                  }
-                >
-                  <LinearGradient
-                    colors={[colors.premium.gold, colors.premium.goldDeep]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.upgradeBtn}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color={colors.text.inverse} />
-                    ) : (
-                      <DSText
-                        variant="title"
-                        style={styles.upgradeBtnText}
-                      >
-                        {memberPlan === "annual"
-                          ? "Manage Subscription"
-                          : memberPlan === "monthly"
-                            ? priceKnown
-                              ? `Upgrade to Annual · ${annualLabel}/yr`
-                              : "Upgrade to Annual"
-                            : !priceKnown
-                              ? "Pricing unavailable"
-                              : paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                                ? `Start membership · ${annualLabel}/yr`
-                                : `Start membership · ${monthlyLabel}/mo`}
+                {/* ── WHAT THEY HAVE TO KNOW BEFORE PAYING ────────────────
+                    Body size, primary ink, directly above the button: free
+                    days ending, a payment that failed, a plan on the other
+                    store. Never a grey caption below the fold. */}
+                {view.notices.length > 0 ? (
+                  <View style={styles.notices}>
+                    {view.notices.map((line) => (
+                      <DSText key={line} variant="body" color="primary" center>
+                        {line}
                       </DSText>
-                    )}
-                    <LinearGradient
-                      colors={[withAlpha(colors.surface.inverse, 0.15), "transparent"]}
-                      style={StyleSheet.absoluteFill}
-                    />
-                  </LinearGradient>
-                </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : null}
 
-                {/* ── SECONDARY CTA (monthly members only) ────────────────
+                {/* ── PRIMARY CTA ─────────────────────────────────────────
+                    From `view.cta`, which follows the server's actions:
+                    buy:       "Start membership · ₹X/yr"  → handlePayment
+                    upgrade:   "Upgrade to Annual · ₹X/yr" → handleUpgradeToAnnual
+                    manage:    "Manage Subscription"        → manageSubscriptions
+                    openStore: "Open Google Play"           → that store's page
+                    none:      no button at all */}
+                {cta.kind !== "none" ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.upgradeBtnWrapper,
+                      (!cta.enabled || loading || (!membership && (cta.kind === "buy" || cta.kind === "upgrade"))) && { opacity: 0.7 },
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={
+                      cta.kind === "manage"
+                        ? manageSubscriptions
+                        : cta.kind === "openStore"
+                          ? () => openStoreSubscriptions(cta.url)
+                          : cta.kind === "upgrade"
+                            ? handleUpgradeToAnnual
+                            : handlePayment
+                    }
+                    disabled={
+                      !cta.enabled ||
+                      loading ||
+                      (!membership && (cta.kind === "buy" || cta.kind === "upgrade"))
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={cta.a11y}
+                  >
+                    <LinearGradient
+                      colors={[colors.premium.gold, colors.premium.goldDeep]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.upgradeBtn}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color={colors.text.inverse} />
+                      ) : (
+                        <DSText
+                          variant="title"
+                          style={styles.upgradeBtnText}
+                        >
+                          {cta.label}
+                        </DSText>
+                      )}
+                      <LinearGradient
+                        colors={[withAlpha(colors.surface.inverse, 0.15), "transparent"]}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : null}
+
+                {/* ── SECONDARY CTA (upgrade only) ────────────────────────
                     A text link to manage/cancel the current monthly plan. */}
-                {memberPlan === "monthly" ? (
+                {view.showManageLink ? (
                   <TouchableOpacity
                     onPress={manageSubscriptions}
                     activeOpacity={0.7}
@@ -492,20 +538,16 @@ const SubscribeScreenBody = () => {
 
                 <View style={styles.guaranteeRow}>
                   <Icon
-                    name={isAutoRenewingMember ? "check-circle" : "shield"}
+                    name={view.guaranteeIsMember ? "check-circle" : "shield"}
                     size={size.iconInline}
-                    color={isAutoRenewingMember ? colors.premium.gold : colors.text.tertiary}
+                    color={view.guaranteeIsMember ? colors.premium.gold : colors.text.tertiary}
                   />
                   <DSText
                     variant="caption"
-                    color={isAutoRenewingMember ? "primary" : "tertiary"}
+                    color={view.guaranteeIsMember ? "primary" : "tertiary"}
                     style={styles.guaranteeText}
                   >
-                    {memberPlan === "annual"
-                      ? "You already have an active subscription"
-                      : memberPlan === "monthly"
-                        ? "Active monthly plan — upgrade anytime"
-                        : "Secure payment. Cancel anytime."}
+                    {view.guarantee}
                   </DSText>
                 </View>
 
@@ -524,14 +566,14 @@ const SubscribeScreenBody = () => {
                       ? `Billed through your app store account. Renews automatically on ${renewalDateText} unless cancelled in store settings at least 24 hours before.`
                       : "Tap above to view, change, or cancel your active subscription in App Store settings."}
                   </DSText>
-                ) : priceKnown ? (
+                ) : view.disclosure === "plan" && priceKnown ? (
                   <DSText
                     variant="caption"
                     color="tertiary"
                     center
                     style={styles.renewalDisclosure}
                   >
-                    {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                    {selectedPlan === "annual"
                       ? `${annualLabel} per year. Renews automatically unless cancelled 24 hours before the period ends.`
                       : `${monthlyLabel} per month. Renews automatically unless cancelled 24 hours before the period ends.`}
                   </DSText>
@@ -834,6 +876,10 @@ const useStyles = makeStyles((c) => ({
   },
   guaranteeText: {
     // guarantee type styling from variant
+  },
+  notices: {
+    gap: spacing.xs,
+    marginBottom: spacing.md,
   },
   renewalDisclosure: {
     marginTop: spacing.sm,

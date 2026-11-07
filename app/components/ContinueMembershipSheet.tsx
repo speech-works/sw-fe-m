@@ -6,7 +6,12 @@ import { useUserStore } from "../stores/user";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { purchasesAvailable } from "../services/purchases";
-import { membershipEndingSoon, membershipEndsAt } from "../util/functions/membership";
+import {
+  FREE_DAYS_END_LINE,
+  continueBody,
+  membershipEndingSoon,
+  membershipEndsAt,
+} from "../util/functions/membership";
 import { useMembershipPrice } from "../hooks/useMembershipPrice";
 import { canAskForMembership, recordMembershipAsk } from "../services/membershipAsk";
 
@@ -102,10 +107,19 @@ export const ContinueMembershipSheet: React.FC<ContinueMembershipSheetProps> = (
         </Text>
 
         <Text variant="body" color="secondary" center style={styles.body}>
-          {/* No claim about their speech. Only what they did, and what stops. */}
-          Membership is the longer calls and the whole technique library. Keep
-          it for {price.annualLabel} a year ({price.annualPerMonthLabel}/mo).
+          {/* No claim about their speech. Only what they did, and what stops.
+              Both plans, as the paywall offers both. It used to name only the
+              yearly price, which read as the only way to keep going. */}
+          {continueBody(price)}
         </Text>
+
+        {/* The paywall says this too, above its button. Said here first, so
+            nobody buys thinking the free days still run alongside the plan. */}
+        {user?.membership?.freeUntil ? (
+          <Text variant="body" color="primary" center style={styles.freeDays}>
+            {FREE_DAYS_END_LINE}
+          </Text>
+        ) : null}
 
         <View style={styles.actions}>
           <Button
@@ -148,6 +162,7 @@ const styles = StyleSheet.create({
   content: { alignItems: "center", paddingTop: spacing.sm },
   title: { marginTop: spacing.sm, marginBottom: spacing.sm },
   body: { lineHeight: 24 },
+  freeDays: { marginTop: spacing.md },
   actions: { width: "100%", marginTop: spacing["2xl"] },
   dismiss: { marginTop: spacing.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
   footnote: { marginTop: spacing.md },

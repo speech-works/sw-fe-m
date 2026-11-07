@@ -10,7 +10,7 @@ import Reanimated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { getAllSessionsOfUser, getWallet, logoutUser } from "../../api";
+import { getAllSessionsOfUser, logoutUser } from "../../api";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
@@ -51,7 +51,7 @@ const Settings = () => {
   const m = useMotion();
   const navigation = useNavigation<any>();
   const { logout, deleteAccount } = useContext(AuthContext);
-  const { user } = useUserStore();
+  const { user, fetchUser } = useUserStore();
   const showNotificationRow = useNotificationPermissionStore(selectShowNotificationRow);
   const notificationsNeedAttention = useNotificationPermissionStore(
     selectNotificationsNeedAttention,
@@ -61,8 +61,13 @@ const Settings = () => {
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   // The badge under the name used to be the literal string "FREE" for everyone,
   // so a member who had just paid was told otherwise on their own profile.
-  // Null until the wallet is known: no badge beats a wrong badge.
-  const [isMember, setIsMember] = useState<boolean | null>(null);
+  //
+  // From `user.membership.active`, the same answer the paywall uses. It used
+  // to read the wallet's "membership" entitlement, so this row and the
+  // paywall could disagree about the same person. Null until the server has
+  // said: no badge beats a wrong badge.
+  const isMember: boolean | null =
+    user?.membership != null ? user.membership.active === true : null;
   const [isVisible, setIsVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [profileMode, setProfileMode] = useState<"view" | "edit">("view");
@@ -129,18 +134,8 @@ const Settings = () => {
   // membership bought on the paywall would otherwise still read FREE here.
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      getWallet()
-        .then((wallet) => {
-          if (!cancelled) setIsMember(wallet.entitlements.includes("membership"));
-        })
-        .catch((error) =>
-          console.error("[settings] Failed to fetch wallet:", error),
-        );
-      return () => {
-        cancelled = true;
-      };
-    }, []),
+      void fetchUser();
+    }, [fetchUser]),
   );
 
   const onViewProfile = () => {

@@ -85,3 +85,32 @@ export function membershipEndingSoon(user: User | null | undefined): boolean {
   if (m.daysRemaining == null) return false;
   return m.daysRemaining <= CONTINUATION_WINDOW_DAYS;
 }
+
+/**
+ * The first sentence of the paywall's free-days line, also said on the day-28
+ * sheet. Buying a plan ends the free days; it does not add to them.
+ */
+export const FREE_DAYS_END_LINE =
+  "A plan you start today begins today, and your free days stop.";
+
+/**
+ * The day-28 sheet's body: what membership is, and BOTH plans' prices when
+ * they are known. It used to name only the yearly price, which read as the
+ * only way to keep going. No price at all rather than a dash.
+ */
+export function continueBody(price: {
+  priceKnown: boolean;
+  monthlyLabel: string;
+  annualLabel: string;
+  /** Whole-number yearly saving shown on the plan screen; 0 or absent hides it. */
+  annualSavingsPct?: number;
+}): string {
+  const what = "Membership is the longer calls and the whole technique library.";
+  const save =
+    price.annualSavingsPct && price.annualSavingsPct > 0
+      ? ` and save ${price.annualSavingsPct}%`
+      : "";
+  return price.priceKnown
+    ? `${what} Keep it for ${price.monthlyLabel} a month, or ${price.annualLabel} a year${save}.`
+    : what;
+}

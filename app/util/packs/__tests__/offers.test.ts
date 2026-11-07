@@ -1,4 +1,11 @@
-import { selectOffer, isOpenable, priceNoteFor } from "../offers";
+import {
+  selectOffer,
+  isOpenable,
+  priceNoteFor,
+  programEyebrow,
+  programShelfLabel,
+  offerSlideEyebrow,
+} from "../offers";
 import type { OfferItem } from "../../../api";
 
 const offer = (
@@ -113,5 +120,63 @@ describe("priceNoteFor — the note may never outlive the strike", () => {
         price("£11.99", 11.99, "GBP"),
       ),
     ).toBe("Launch offer");
+  });
+});
+
+describe("programEyebrow: NEW takes the tier word's place", () => {
+  it("names the tier and the length when the program is not new", () => {
+    expect(programEyebrow(offer("a", "deep", 1499, { arcDays: 14 }))).toBe(
+      "PREMIUM · 14 DAYS",
+    );
+    expect(programEyebrow(offer("b", "regular", 999, { arcDays: 7 }))).toBe(
+      "STANDARD · 7 DAYS",
+    );
+  });
+
+  it("says NEW in the same format while the program is new", () => {
+    expect(
+      programEyebrow(offer("a", "deep", 1499, { arcDays: 14, isNew: true })),
+    ).toBe("NEW · 14 DAYS");
+    expect(programEyebrow(offer("b", "small", 499, { isNew: true }))).toBe(
+      "NEW",
+    );
+  });
+
+  it("treats false and a missing flag (older backend) as not new", () => {
+    expect(
+      programEyebrow(offer("a", "small", 499, { arcDays: 5, isNew: false })),
+    ).toBe("FOCUSED · 5 DAYS");
+    expect(programEyebrow(offer("a", "small", 499, { arcDays: 5 }))).toBe(
+      "FOCUSED · 5 DAYS",
+    );
+  });
+
+  it("shares the word with programShelfLabel, so Home and the shop agree", () => {
+    const fresh = offer("a", "deep", 1499, { arcDays: 14, isNew: true });
+    expect(programShelfLabel(fresh)).toBe("NEW");
+    expect(programEyebrow(fresh).startsWith(programShelfLabel(fresh))).toBe(
+      true,
+    );
+    expect(programShelfLabel(offer("b", "deep", 1499))).toBe("PREMIUM");
+  });
+
+  it("is upper case and has no em dash", () => {
+    const text = programEyebrow(
+      offer("a", "regular", 999, { arcDays: 10, isNew: true }),
+    );
+    expect(text).toBe(text.toUpperCase());
+    expect(text).not.toContain("\u2014");
+  });
+});
+
+describe("offerSlideEyebrow: a slide's own eyebrow still wins", () => {
+  const fresh = offer("a", "deep", 1499, { arcDays: 14, isNew: true });
+
+  it("prints the program's eyebrow, NEW included, when the slide sets none", () => {
+    expect(offerSlideEyebrow(fresh)).toBe("NEW · 14 DAYS");
+  });
+
+  it("prints the slide's eyebrow over NEW", () => {
+    expect(offerSlideEyebrow(fresh, "TRY THIS NEXT")).toBe("TRY THIS NEXT");
   });
 });

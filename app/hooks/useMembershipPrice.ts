@@ -6,6 +6,7 @@ import {
   deriveAnchor,
   formatCurrency,
   resolvePriceDisplay,
+  savingPercentFor,
 } from "../services/priceDisplay";
 
 /**
@@ -47,6 +48,8 @@ export interface MembershipPrice {
    * nonsense and converting one ourselves would be a fabricated price.
    */
   annualAnchorLabel: string | null;
+  /** Whole-number yearly saving, as on the plan screen tag. 0 when unknown. */
+  annualSavingsPct: number;
   /** False until a real price is known. Never show a buy control without it. */
   priceKnown: boolean;
   /** The raw offer, for callers that need the product ids to purchase. */
@@ -106,6 +109,8 @@ export function useMembershipPrice(): MembershipPrice {
         : null) ?? DASH,
     annualAnchorLabel: annual?.anchor ?? null,
     priceKnown: !!annual?.price || !!monthly?.price,
+    // Same figure as the plan screen's SAVE tag, from the same pair of prices.
+    annualSavingsPct: annual ? (savingPercentFor(annual) ?? 0) : 0,
     offer,
   };
 }
