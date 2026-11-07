@@ -8,6 +8,7 @@ import {
   resolvePriceDisplay,
   savingPercentFor,
 } from "../services/priceDisplay";
+import { offersPaused } from "../services/purchaseSettlement";
 
 /**
  * ===========================================================================
@@ -54,18 +55,26 @@ export interface MembershipPrice {
   priceKnown: boolean;
   /** The raw offer, for callers that need the product ids to purchase. */
   offer: MembershipOffer | null;
+  /**
+   * The server's emergency stop (offers.purchasesPaused). While true, a
+   * selling surface shows PURCHASES_PAUSED_LINE and leads to no store sheet.
+   */
+  purchasesPaused: boolean;
 }
 
 const DASH = "—";
 
 export function useMembershipPrice(): MembershipPrice {
   const [offer, setOffer] = useState<MembershipOffer | null>(null);
+  const [purchasesPaused, setPurchasesPaused] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     getOffers()
       .then((o) => {
-        if (!cancelled) setOffer(o.membership);
+        if (cancelled) return;
+        setOffer(o.membership);
+        setPurchasesPaused(offersPaused(o));
       })
       // Swallowed on purpose. A screen that cannot price itself shows an em
       // dash and hides its buy control; it must not throw.
@@ -112,5 +121,6 @@ export function useMembershipPrice(): MembershipPrice {
     // Same figure as the plan screen's SAVE tag, from the same pair of prices.
     annualSavingsPct: annual ? (savingPercentFor(annual) ?? 0) : 0,
     offer,
+    purchasesPaused,
   };
 }

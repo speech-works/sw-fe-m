@@ -24,11 +24,14 @@ export const TERMS_OF_USE_URL = "https://speechworks.app/terms/";
  * The one support channel, used everywhere.
  *
  * There were three: this number (a UAE one), and a separate India number plus
- * contact@speechworks.in in Settings → Contact Support. App Store Connect takes
+ * a support email in Settings → Contact Support. App Store Connect takes
  * exactly one Support URL, and a number nobody watches is worse than an
  * inconsistent one — so everything now points at the India WhatsApp line, which
- * matches the canonical contact@speechworks.in address in the privacy policy.
+ * sits beside the canonical support inbox below.
  */
 export const SUPPORT_URL = "https://wa.me/917350075986";
-/** Canonical support inbox. Also the address published in the privacy policy. */
-export const SUPPORT_EMAIL = "contact@speechworks.in";
+/**
+ * Canonical support inbox, the one the founder reads (2026-11-07). Also the
+ * address on the website, terms and privacy policy.
+ */
+export const SUPPORT_EMAIL = "contact@speechworks.app";

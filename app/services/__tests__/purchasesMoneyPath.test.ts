@@ -408,6 +408,21 @@ describe("restore reports what actually happened", () => {
     expect(mockReconcileWallet).toHaveBeenCalledTimes(1);
   });
 
+  it("reports purchases that belong to another Speechworks account, never as a restore", async () => {
+    storeHas();
+    mockReconcileWallet.mockResolvedValue(
+      wallet({ balance: 0, entitlements: [], reconciled: true, foreignPurchases: true }),
+    );
+
+    expect(await restorePurchasesAndReconcile()).toEqual({ status: "foreign" });
+  });
+
+  it("treats an absent or false `foreignPurchases` as ours", async () => {
+    storeHas();
+    mockReconcileWallet.mockResolvedValue(wallet({ foreignPurchases: false }));
+    expect((await restorePurchasesAndReconcile())?.status).toBe("restored");
+  });
+
   it("treats an absent `reconciled` flag as true", async () => {
     // Only a backend new enough to send the flag can send false, so a plain
     // truthiness test would report every older backend as a failed check.

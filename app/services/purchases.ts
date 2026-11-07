@@ -59,6 +59,7 @@ import {
   classifyStoreError,
   intentConflictFrom,
   notifyPurchasesMayHaveChanged,
+  purchasesPausedFrom,
   type StorePhase,
 } from "./purchaseSettlement";
 import type { StorePrice } from "./priceDisplay";
@@ -288,7 +289,9 @@ export type PurchaseOutcome =
   /** The backend says they already own this program (409 ALREADY_OWNED). */
   | { status: "already_owned" }
   /** An earlier checkout for this program is still open (409 CHECKOUT_IN_PROGRESS). */
-  | { status: "checkout_in_progress" };
+  | { status: "checkout_in_progress" }
+  /** The server has paused selling (503 PURCHASES_PAUSED). No sheet opened. */
+  | { status: "paused" };
 
 /**
  * ── WHAT THE USER IS TOLD WHEN A PURCHASE FAILS ──────────────────────────────
@@ -449,6 +452,8 @@ export async function purchaseCatalogItem(
     if (conflict === "checkout_in_progress") {
       return { status: "checkout_in_progress" };
     }
+    // The emergency stop. No intent was recorded, so there is nothing to release.
+    if (purchasesPausedFrom(error)) return { status: "paused" };
     console.error("[purchases] createPurchaseIntent failed:", error);
     return {
       status: "error",
@@ -729,6 +734,11 @@ export async function getStorePrices(
  * caller can only guess, and it used to guess wrong.
  */
 export type RestoreResult =
+  /**
+   * The store's purchases belong to ANOTHER Speechworks account (the server's
+   * `foreignPurchases`). Never a success: nothing was added to this account.
+   */
+  | { status: "foreign" }
   | { status: "restored"; wallet: Wallet; activeInStore: boolean }
   | { status: "unverified"; wallet: Wallet; activeInStore: boolean }
   | { status: "nothing_found" }
@@ -751,7 +761,7 @@ const RESTORE_RETRY_FALLBACK_SECONDS = 5;
  *    purchases could not be restored.
  */
 async function forceReconcile(): Promise<
-  | { ok: true; wallet: Wallet; reconciled: boolean }
+  | { ok: true; wallet: Wallet; reconciled: boolean; foreignPurchases?: boolean }
   | { ok: false; retryAfterSeconds: number }
 > {
   try {
@@ -763,6 +773,8 @@ async function forceReconcile(): Promise<
       // `false`, so `!wallet.reconciled` would report every older backend as a
       // failed check. Compare against false explicitly.
       reconciled: wallet.reconciled !== false,
+      // Absent on an older server, and absent means false.
+      foreignPurchases: wallet.foreignPurchases === true,
     };
   } catch (error) {
     const status = httpStatus(error);
@@ -841,6 +853,7 @@ export async function restorePurchasesAndReconcile(): Promise<RestoreResult | nu
   if (!outcome.ok) {
     return { status: "throttled", retryAfterSeconds: outcome.retryAfterSeconds };
   }
+  if (outcome.foreignPurchases) return { status: "foreign" };
 
   return {
     status: outcome.reconciled ? "restored" : "unverified",
@@ -904,6 +917,27 @@ export async function pollMembershipUntil(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
   return null;
+}
+
+/**
+ * The membership check behind an explicit "Check again" tap. Asks the store
+ * once through the forced reconcile (see recheckWalletUntil for why), then
+ * reads the user's plan the same way the post-purchase wait does. A failed or
+ * throttled force is not the end: the poll still finds a webhook that landed.
+ */
+export async function recheckMembershipUntil(
+  predicate: (membership: User["membership"]) => boolean,
+  options: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<User | null> {
+  try {
+    await forceReconcile();
+  } catch (error) {
+    console.error(
+      "[purchases] recheckMembershipUntil: forced reconcile failed, falling back to the poll:",
+      error,
+    );
+  }
+  return pollMembershipUntil(predicate, options);
 }
 
 /**

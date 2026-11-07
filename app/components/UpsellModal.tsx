@@ -14,6 +14,7 @@ import { EVENT_NAMES } from "../stores/events/constants";
 import { navigationRef } from "../util/functions/navigation";
 import { purchasesAvailable } from "../services/purchases";
 import { useMembershipPrice } from "../hooks/useMembershipPrice";
+import { PURCHASES_PAUSED_LINE } from "../services/purchaseSettlement";
 import { BenefitRows } from "./membership/BenefitRows";
 import {
   HEADLINE_FOR,
@@ -250,6 +251,11 @@ const styles = StyleSheet.create({
   buyProCtaText: {
     ...typography.h3,
     zIndex: 1,
+  },
+  pausedText: {
+    ...typography.body,
+    textAlign: "center",
+    marginBottom: 16,
   },
   buyProBtnShine: {
     position: "absolute",
@@ -564,29 +570,37 @@ const UpsellModal = () => {
           },
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => {
-            setModalVisible(false);
-            setTimeout(() => {
-              navigationRef.navigate("PremiumModal" as never);
-            }, 300);
-          }}
-          style={[styles.buyProCtaButton, elevationDark.e2]}
-        >
-          <Gradient token="premiumGold" style={styles.buyProCtaGradient}>
-            {/* Dark slate ink on the gold fill (8.49:1). This label was white,
-                which is 2.10:1 on `premium.gold` — the same dark-on-bright rule
-                the rest of the app follows, on the one screen that sells. */}
-            <Text style={[styles.buyProCtaText, { color: colors.premium.onGold }]}>
-              {modalCta}
-            </Text>
-            <Gradient
-              colors={[withAlpha(colors.text.primary, 0.15), "transparent"]}
-              style={StyleSheet.absoluteFill}
-            />
-          </Gradient>
-        </TouchableOpacity>
+        {/* The server paused selling: the line replaces the button, so nothing
+            leads on to the plan screen or a store sheet. */}
+        {price.purchasesPaused ? (
+          <Text style={[styles.pausedText, { color: onGround }]}>
+            {PURCHASES_PAUSED_LINE}
+          </Text>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              setModalVisible(false);
+              setTimeout(() => {
+                navigationRef.navigate("PremiumModal" as never);
+              }, 300);
+            }}
+            style={[styles.buyProCtaButton, elevationDark.e2]}
+          >
+            <Gradient token="premiumGold" style={styles.buyProCtaGradient}>
+              {/* Dark slate ink on the gold fill (8.49:1). This label was white,
+                  which is 2.10:1 on `premium.gold` — the same dark-on-bright rule
+                  the rest of the app follows, on the one screen that sells. */}
+              <Text style={[styles.buyProCtaText, { color: colors.premium.onGold }]}>
+                {modalCta}
+              </Text>
+              <Gradient
+                colors={[withAlpha(colors.text.primary, 0.15), "transparent"]}
+                style={StyleSheet.absoluteFill}
+              />
+            </Gradient>
+          </TouchableOpacity>
+        )}
         <View style={styles.buyProTrustRow}>
           <Icon
             name={icons.locked}

@@ -71,6 +71,13 @@ import {
   onPurchasesMayHaveChanged,
   pendingLine,
   programPending,
+  offersPaused,
+  purchasesPausedFrom,
+  FOREIGN_PURCHASES_LINE,
+  MEMBERSHIP_CONFIRMING_LINE,
+  PURCHASES_PAUSED_LINE,
+  UNCLEAR_PROGRAM_LINE,
+  UNCLEAR_CREDITS_LINE,
 } from "../purchaseSettlement";
 
 const C = PURCHASES_ERROR_CODE;
@@ -115,20 +122,29 @@ describe("classifyStoreError", () => {
     expect(classifyStoreError(C.PAYMENT_PENDING_ERROR, "purchase")).toBe("store_pending");
   });
 
-  it("says payment received only for errors that follow a real charge", () => {
-    for (const code of [
-      C.NETWORK_ERROR,
-      C.OFFLINE_CONNECTION_ERROR,
-      C.UNKNOWN_BACKEND_ERROR,
-      C.UNEXPECTED_BACKEND_RESPONSE_ERROR,
-      C.INVALID_RECEIPT_ERROR,
-      C.MISSING_RECEIPT_FILE_ERROR,
-      C.RECEIPT_ALREADY_IN_USE_ERROR,
-      C.OPERATION_ALREADY_IN_PROGRESS_ERROR,
-      C.PRODUCT_ALREADY_PURCHASED_ERROR,
-    ]) {
-      expect(classifyStoreError(code, "purchase")).toBe("pending_after_charge");
-    }
+  // One assertion per code, so a code moving between groups names itself.
+  it.each([
+    ["UNEXPECTED_BACKEND_RESPONSE_ERROR", C.UNEXPECTED_BACKEND_RESPONSE_ERROR],
+    ["UNKNOWN_BACKEND_ERROR", C.UNKNOWN_BACKEND_ERROR],
+    ["INVALID_RECEIPT_ERROR", C.INVALID_RECEIPT_ERROR],
+    ["MISSING_RECEIPT_FILE_ERROR", C.MISSING_RECEIPT_FILE_ERROR],
+    ["PRODUCT_ALREADY_PURCHASED_ERROR", C.PRODUCT_ALREADY_PURCHASED_ERROR],
+    ["CUSTOMER_INFO_ERROR", C.CUSTOMER_INFO_ERROR],
+  ])("says payment received for %s, which only follows a real charge", (_name, code) => {
+    expect(classifyStoreError(code, "purchase")).toBe("pending_after_charge");
+  });
+
+  it.each([
+    ["NETWORK_ERROR", C.NETWORK_ERROR],
+    ["OFFLINE_CONNECTION_ERROR", C.OFFLINE_CONNECTION_ERROR],
+    ["OPERATION_ALREADY_IN_PROGRESS_ERROR", C.OPERATION_ALREADY_IN_PROGRESS_ERROR],
+    ["RECEIPT_ALREADY_IN_USE_ERROR", C.RECEIPT_ALREADY_IN_USE_ERROR],
+    [
+      "RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR",
+      C.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR,
+    ],
+  ])("waits without claiming a payment for %s", (_name, code) => {
+    expect(classifyStoreError(code, "purchase")).toBe("unclear");
   });
 
   it("keeps Buy for a declined or refused payment: nothing was taken", () => {
@@ -151,6 +167,61 @@ describe("classifyStoreError", () => {
   it("keeps every lookup error retryable, because no sheet has opened", () => {
     expect(classifyStoreError(C.NETWORK_ERROR, "lookup")).toBe("retryable_before_charge");
     expect(classifyStoreError(undefined, "lookup")).toBe("retryable_before_charge");
+  });
+});
+
+describe("the emergency stop", () => {
+  it("says the founder's line", () => {
+    expect(PURCHASES_PAUSED_LINE).toBe(
+      "Purchases are paused for a short while. Programs you own keep working.",
+    );
+  });
+
+  it("reads offers.purchasesPaused, and treats a missing flag as not paused", () => {
+    expect(offersPaused({ purchasesPaused: true })).toBe(true);
+    expect(offersPaused({ purchasesPaused: false })).toBe(false);
+    expect(offersPaused({})).toBe(false);
+    expect(offersPaused(null)).toBe(false);
+    expect(offersPaused(undefined)).toBe(false);
+  });
+
+  it("reads a 503 PURCHASES_PAUSED from the checkout, under either key", () => {
+    expect(
+      purchasesPausedFrom(httpError(503, { error: "x", code: "PURCHASES_PAUSED" })),
+    ).toBe(true);
+    expect(
+      purchasesPausedFrom(httpError(503, { error: "x", errorCode: "PURCHASES_PAUSED" })),
+    ).toBe(true);
+  });
+
+  it("ignores other statuses, other codes and plain errors", () => {
+    expect(purchasesPausedFrom(httpError(503, { code: "SOMETHING_ELSE" }))).toBe(false);
+    expect(purchasesPausedFrom(httpError(503))).toBe(false);
+    expect(purchasesPausedFrom(httpError(409, { code: "PURCHASES_PAUSED" }))).toBe(false);
+    expect(purchasesPausedFrom(new Error("offline"))).toBe(false);
+  });
+});
+
+describe("the new lines", () => {
+  it("keep the founder's wording, with no em dash", () => {
+    expect(FOREIGN_PURCHASES_LINE).toBe(
+      "This purchase belongs to another Speechworks account. Sign in to that account to use it.",
+    );
+    for (const line of [
+      FOREIGN_PURCHASES_LINE,
+      MEMBERSHIP_CONFIRMING_LINE,
+      PURCHASES_PAUSED_LINE,
+      UNCLEAR_PROGRAM_LINE,
+      UNCLEAR_CREDITS_LINE,
+    ]) {
+      expect(line).not.toMatch(/—/);
+    }
+  });
+
+  it("never claims a payment while it is unclear", () => {
+    expect(UNCLEAR_PROGRAM_LINE).toMatch(/^We are checking your payment/);
+    expect(UNCLEAR_CREDITS_LINE).toMatch(/^We are checking your payment/);
+    expect(UNCLEAR_PROGRAM_LINE).not.toMatch(/received/i);
   });
 });
 
@@ -267,10 +338,18 @@ describe("the session's open payments", () => {
 
 describe("purchaseCatalogItem", () => {
   it("waits instead of offering a retry when the purchase call fails after it ran", async () => {
-    mockPurchaseStoreProduct.mockRejectedValue(storeError(C.NETWORK_ERROR));
+    mockPurchaseStoreProduct.mockRejectedValue(storeError(C.INVALID_RECEIPT_ERROR));
     expect(await purchaseCatalogItem("calm-mind")).toEqual({
       status: "pending",
       kind: "after_charge",
+    });
+  });
+
+  it("waits with neutral words when the network drops during the purchase", async () => {
+    mockPurchaseStoreProduct.mockRejectedValue(storeError(C.NETWORK_ERROR));
+    expect(await purchaseCatalogItem("calm-mind")).toEqual({
+      status: "pending",
+      kind: "unclear",
     });
   });
 
@@ -319,6 +398,15 @@ describe("purchaseCatalogItem", () => {
     expect(mockPurchaseStoreProduct).not.toHaveBeenCalled();
   });
 
+  it("opens no store sheet while purchases are paused", async () => {
+    mockCreatePurchaseIntent.mockRejectedValue(
+      httpError(503, { error: "paused", code: "PURCHASES_PAUSED" }),
+    );
+    expect(await purchaseCatalogItem("calm-mind")).toEqual({ status: "paused" });
+    expect(mockGetProducts).not.toHaveBeenCalled();
+    expect(mockPurchaseStoreProduct).not.toHaveBeenCalled();
+  });
+
   it("still says try again for any other intent failure", async () => {
     mockCreatePurchaseIntent.mockRejectedValue(httpError(500));
     expect(await purchaseCatalogItem("calm-mind")).toEqual({
@@ -336,7 +424,7 @@ describe("purchaseProductById", () => {
     mockPurchaseStoreProduct.mockRejectedValue(storeError(C.NETWORK_ERROR));
     expect(
       await purchaseProductById("sw.credits.2", { settleAfterCharge: true }),
-    ).toEqual({ status: "pending", kind: "after_charge" });
+    ).toEqual({ status: "pending", kind: "unclear" });
   });
 
   it("keeps the old error for a caller that did not opt in (memberships)", async () => {

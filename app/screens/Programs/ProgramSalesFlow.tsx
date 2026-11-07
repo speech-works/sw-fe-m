@@ -90,6 +90,11 @@ export interface ProgramSalesFlowProps {
   /** Whether the first-purchase membership month would actually be granted. */
   bonusEligible: boolean;
   purchasing: boolean;
+  /**
+   * Set while the server has paused selling. Shown in place of the buy
+   * button, so the review sheet and the store sheet cannot open.
+   */
+  pausedLine?: string | null;
   onBuy: () => void;
   onBack: () => void;
 }
@@ -114,6 +119,7 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   isFounder,
   bonusEligible,
   purchasing,
+  pausedLine = null,
   onBuy,
   onBack,
 }) => {
@@ -382,17 +388,23 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
               {priceNote} · Save {savingLabel}
             </Text>
           ) : null}
-          <BuyButton
-            label={`Get ${offer.title}`}
-            loading={purchasing}
-            onPress={() => setSheetOpen(true)}
-            reduceMotion={reduceMotion}
-          />
+          {pausedLine ? (
+            <Text variant="body" color="primary" center>
+              {pausedLine}
+            </Text>
+          ) : (
+            <BuyButton
+              label={`Get ${offer.title}`}
+              loading={purchasing}
+              onPress={() => setSheetOpen(true)}
+              reduceMotion={reduceMotion}
+            />
+          )}
         </View>
       </View>
 
       <PurchaseSheet
-        visible={sheetOpen}
+        visible={sheetOpen && !pausedLine}
         onClose={() => setSheetOpen(false)}
         onDismissed={() => {
           if (confirmRef.current) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Wallet } from "../api";
 import { restorePurchasesAndReconcile } from "../services/purchases";
+import { FOREIGN_PURCHASES_LINE } from "../services/purchaseSettlement";
 import { useUserStore } from "../stores/user";
 import {
   showSuccessBottomSheet,
@@ -113,6 +114,13 @@ export function useRestorePurchases() {
           "Just a moment",
           `We checked a second ago. Please wait ${seconds(result.retryAfterSeconds)} and tap Restore again.`,
         );
+        return;
+      }
+
+      // The store's purchases are filed under another Speechworks account.
+      // Nothing was added to this one, so this is never a success sheet.
+      if (result.status === "foreign") {
+        showErrorBottomSheet("On another account", FOREIGN_PURCHASES_LINE);
         return;
       }
 

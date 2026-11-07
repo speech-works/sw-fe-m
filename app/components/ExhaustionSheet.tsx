@@ -3,7 +3,9 @@ import { Platform, StyleSheet, View } from "react-native";
 import { getOffers, getWallet, type Offers, type Wallet } from "../api";
 import {
   purchaseProductById,
+  pollMembershipUntil,
   pollWalletUntil,
+  recheckMembershipUntil,
   recheckWalletUntil,
 } from "../services/purchases";
 import {
@@ -11,9 +13,15 @@ import {
   creditsLanded,
   creditsPending,
   markCreditsPending,
+  MEMBERSHIP_CONFIRMING_LINE,
+  offersPaused,
   pendingLine,
+  PURCHASES_PAUSED_LINE,
   type PendingKind,
 } from "../services/purchaseSettlement";
+import { purchaseConfirmed } from "../util/functions/paywallView";
+import { useUserStore } from "../stores/user";
+import { PaymentProblemLink } from "./PaymentProblemLink";
 import { showErrorBottomSheet } from "../util/functions/bottomSheet";
 import { size, Text, Button, Icon, icons, Sheet, space, spacing, useTheme } from "../design-system";
 import { useStorePrices } from "../hooks/useStorePrices";
@@ -182,14 +190,30 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     product: "credits" | "membership",
     { userInitiated = false }: { userInitiated?: boolean } = {},
   ): Promise<boolean> => {
-    const landed = (w: Wallet) =>
-      product === "credits"
-        ? creditsLanded(startingBalance, w.balance)
-        : w.entitlements.includes("membership");
-    const wallet = userInitiated
-      ? await recheckWalletUntil(landed)
-      : await pollWalletUntil(landed);
-    if (!wallet) return false;
+    if (product === "membership") {
+      // The user's PLAN, not the wallet's "membership" entitlement: somebody on
+      // free days already has that, so a wait on it ended before the purchase
+      // had been seen. The same check as the plan screen (screens/Payments).
+      // The sheet sells the monthly product (offers.membership.productId).
+      const landed = (m: Parameters<typeof purchaseConfirmed>[0]) =>
+        purchaseConfirmed(m, "monthly");
+      const fresh = userInitiated
+        ? await recheckMembershipUntil(landed)
+        : await pollMembershipUntil(landed);
+      if (!fresh) {
+        // Not confirmed in time. Refresh the user so the rest of the app
+        // catches up as soon as it lands; the pending block says so honestly.
+        void useUserStore.getState().fetchUser();
+        return false;
+      }
+      useUserStore.getState().setUser(fresh);
+    } else {
+      const landed = (w: Wallet) => creditsLanded(startingBalance, w.balance);
+      const wallet = userInitiated
+        ? await recheckWalletUntil(landed)
+        : await pollWalletUntil(landed);
+      if (!wallet) return false;
+    }
     // Money and credits now agree, so this intent is closed and the latch has
     // done its job. Clearing it matters: someone who tops up, spends both calls
     // and runs out again in the same session is a NEW intent and has to be able
@@ -203,8 +227,11 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     return true;
   };
 
+  // The server's emergency stop. No buy button, no store sheet.
+  const paused = offersPaused(offers);
+
   const handleBuyCredits = async () => {
-    if (!offers?.topup) return;
+    if (!offers?.topup || offersPaused(offers)) return;
     setErrorMessage(null);
     setPurchasing("credits");
     try {
@@ -246,7 +273,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   };
 
   const handleBuyMembership = async () => {
-    if (!offers?.membership) return;
+    if (!offers?.membership || offersPaused(offers)) return;
     setErrorMessage(null);
     setPurchasing("membership");
     try {
@@ -256,7 +283,9 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
         // usually refused the second time, but "usually" is not a guard, and
         // the sheet has no business asking for money twice either way.
         setCharged("membership");
-        await confirmPurchase("membership");
+        setSettleTimedOut(false);
+        const confirmed = await confirmPurchase("membership");
+        if (!confirmed) setSettleTimedOut(true);
       } else if (outcome.status === "error") {
         setErrorMessage(outcome.message);
       }
@@ -331,7 +360,9 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
               <Text variant="body" color="secondary">
                 {pendingKind
                   ? pendingLine(pendingKind, "credits", settleTimedOut, Platform.OS)
-                  : "We're confirming it now. This can take a moment. You won't be charged again."}
+                  : charged === "membership" && settleTimedOut
+                    ? MEMBERSHIP_CONFIRMING_LINE
+                    : "We're confirming it now. This can take a moment. You won't be charged again."}
               </Text>
             </View>
 
@@ -343,6 +374,10 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
                 onPress={() => void recheckPurchase()}
               />
             </View>
+
+            <PaymentProblemLink
+              product={charged === "membership" ? "Membership" : "Call credits"}
+            />
           </>
         ) : (
           <>
@@ -368,45 +403,53 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
               </Text>
             </View>
 
-            <View style={styles.actions}>
-              {/*
-                Product ids AND prices come from GET /users/me/offers — never from a
-                literal here. A hardcoded "₹99" is a price that goes stale silently
-                the day we change it, and the user gets charged something other than
-                what the button promised. Until offers load we show the button
-                disabled with no price rather than guessing one.
+            {paused ? (
+              /* The server's emergency stop. No buy button, so no store sheet.
+                 Restore stays below. */
+              <Text variant="body" color="primary">
+                {PURCHASES_PAUSED_LINE}
+              </Text>
+            ) : (
+              <View style={styles.actions}>
+                {/*
+                  Product ids AND prices come from GET /users/me/offers — never from a
+                  literal here. A hardcoded "₹99" is a price that goes stale silently
+                  the day we change it, and the user gets charged something other than
+                  what the button promised. Until offers load we show the button
+                  disabled with no price rather than guessing one.
 
-                NO leftIcon. The DS Button locks its label to one line and shrinks
-                the type to fit; an icon takes width from that same row, so a phone
-                glyph here bought nothing and made "Get 2 calls · ₹99" the first
-                thing to go small. The price is the point — it should be full size.
-              */}
-              <Button
-                label={
-                  offers?.topup
-                    ? `Get ${offers.topup.credits} calls · ${topupPrice}`
-                    : "Get more calls"
-                }
-                loading={purchasing === "credits"}
-                disabled={purchasing !== null || !offers?.topup}
-                onPress={handleBuyCredits}
-              />
-
-              {offers?.showMembershipOffer && offers.membership ? (
+                  NO leftIcon. The DS Button locks its label to one line and shrinks
+                  the type to fit; an icon takes width from that same row, so a phone
+                  glyph here bought nothing and made "Get 2 calls · ₹99" the first
+                  thing to go small. The price is the point — it should be full size.
+                */}
                 <Button
-                  label={`Membership · ${membershipPrice}/month`}
-                  variant="secondary"
-                  loading={purchasing === "membership"}
-                  disabled={purchasing !== null}
-                  onPress={handleBuyMembership}
+                  label={
+                    offers?.topup
+                      ? `Get ${offers.topup.credits} calls · ${topupPrice}`
+                      : "Get more calls"
+                  }
+                  loading={purchasing === "credits"}
+                  disabled={purchasing !== null || !offers?.topup}
+                  onPress={handleBuyCredits}
                 />
-              ) : null}
-            </View>
+
+                {offers?.showMembershipOffer && offers.membership ? (
+                  <Button
+                    label={`Membership · ${membershipPrice}/month`}
+                    variant="secondary"
+                    loading={purchasing === "membership"}
+                    disabled={purchasing !== null}
+                    onPress={handleBuyMembership}
+                  />
+                ) : null}
+              </View>
+            )}
 
             {/* Renewal terms, only when the auto-renewing product is on screen. The
                 credit top-up is a consumable and renews nothing, so saying so there
                 would be false. */}
-            {offers?.showMembershipOffer && offers.membership ? (
+            {!paused && offers?.showMembershipOffer && offers.membership ? (
               <Text variant="caption" color="tertiary" center style={styles.renewal}>
                 {membershipPrice} per month. Renews automatically unless cancelled 24
                 hours before the period ends.

@@ -68,6 +68,12 @@ import {
   savingPercentFor,
 } from "../../services/priceDisplay";
 import { PaywallPager } from "./PaywallPager";
+import {
+  MEMBERSHIP_CONFIRMING_LINE,
+  offersPaused,
+  PURCHASES_PAUSED_LINE,
+} from "../../services/purchaseSettlement";
+import { PaymentProblemLink } from "../../components/PaymentProblemLink";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -115,6 +121,9 @@ const SubscribeScreenBody = () => {
   // it takes to say it: a second tap is a second charge.
   const [storeCharged, setStoreCharged] = useState(false);
   const [membership, setMembership] = useState<MembershipOffer | null>(null);
+  // The server's emergency stop (offers.purchasesPaused). While true, no buy
+  // or upgrade button and no store sheet. Manage and Restore keep working.
+  const [purchasesPaused, setPurchasesPaused] = useState(false);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
   // Guideline 3.1.1 — shared with Settings so there is one restore path.
   const { restoring, restore } = useRestorePurchases();
@@ -133,7 +142,9 @@ const SubscribeScreenBody = () => {
     let cancelled = false;
     getOffers()
       .then((o) => {
-        if (!cancelled) setMembership(o.membership);
+        if (cancelled) return;
+        setMembership(o.membership);
+        setPurchasesPaused(offersPaused(o));
       })
       .catch((e) => console.error("[Payments] Failed to load offers:", e));
     return () => {
@@ -224,6 +235,9 @@ const SubscribeScreenBody = () => {
         ? monthlyKnown
         : false;
   const cta = view.cta;
+  // Paused only hides the two buttons that open a store sheet.
+  const sellingPaused =
+    purchasesPaused && (cta.kind === "buy" || cta.kind === "upgrade");
   const isAutoRenewingMember = view.disclosure === "current";
 
   const sheetTranslateY = useSharedValue(Dimensions.get("window").height);
@@ -269,6 +283,7 @@ const SubscribeScreenBody = () => {
 
   const handlePayment = async () => {
     if (!membership || cta.kind !== "buy" || !cta.plan || storeCharged) return;
+    if (purchasesPaused) return;
     // Payments not wired for this build/platform yet (flag off, or no store key
     // configured): explain gently rather than surface a red error. Billing is
     // Apple In-App Purchase (StoreKit) + Google Play Billing via RevenueCat —
@@ -311,7 +326,7 @@ const SubscribeScreenBody = () => {
         finishAfterStorePurchase(
           fresh,
           { title: "You're in", message: "Your access is active." },
-          "Your purchase went through but is still being confirmed. It should appear shortly.",
+          MEMBERSHIP_CONFIRMING_LINE,
         );
       } else {
         // "error" or "cancelled" — `reason` separates a store failure from a
@@ -345,7 +360,7 @@ const SubscribeScreenBody = () => {
    * RevenueCat sends a PRODUCT_CHANGE webhook which our backend already handles.
    */
   const handleUpgradeToAnnual = async () => {
-    if (!membership || storeCharged) return;
+    if (!membership || storeCharged || purchasesPaused) return;
     if (!purchasesAvailable()) {
       setShowTestModeModal(true);
       return;
@@ -462,7 +477,7 @@ const SubscribeScreenBody = () => {
             onPickMonthly={() => setPicked("monthly")}
             onPickAnnual={() => setPicked("annual")}
             priceKnown={monthlyKnown && annualKnown}
-            disabled={loading || storeCharged}
+            disabled={loading || storeCharged || purchasesPaused}
             isMember={view.memberLayout}
             dock={
               /* The SafeAreaView above deliberately omits the bottom edge, so
@@ -504,7 +519,11 @@ const SubscribeScreenBody = () => {
                     manage:    "Manage Subscription"        → manageSubscriptions
                     openStore: "Open Google Play"           → that store's page
                     none:      no button at all */}
-                {cta.kind !== "none" ? (
+                {sellingPaused ? (
+                  <DSText variant="body" color="primary" center>
+                    {PURCHASES_PAUSED_LINE}
+                  </DSText>
+                ) : cta.kind !== "none" ? (
                   <TouchableOpacity
                     style={[
                       styles.upgradeBtnWrapper,
@@ -603,7 +622,7 @@ const SubscribeScreenBody = () => {
                       ? `Billed through your app store account. Renews automatically on ${renewalDateText} unless cancelled in store settings at least 24 hours before.`
                       : "Tap above to view, change, or cancel your active subscription in App Store settings."}
                   </DSText>
-                ) : view.disclosure === "plan" && priceKnown ? (
+                ) : view.disclosure === "plan" && priceKnown && !sellingPaused ? (
                   <DSText
                     variant="caption"
                     color="tertiary"
@@ -655,6 +674,8 @@ const SubscribeScreenBody = () => {
                     </DSText>
                   </TouchableOpacity>
                 </View>
+
+                <PaymentProblemLink product="Membership" />
               </>
             ) : (
               <DSText

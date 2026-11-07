@@ -342,6 +342,22 @@ describe("paywallView", () => {
     });
   });
 
+  describe("store billing retry (willRenew stays true)", () => {
+    it("shows the billing notice and Renews, not Ends", () => {
+      const v = view({ ...monthlyApple, billingIssue: true, willRenew: true });
+      expect(v.notices).toContain(
+        "Your last payment did not go through. To keep your membership, update your payment details in the App Store.",
+      );
+      expect(v.cards.monthly.endFootnote).toBe("Renews December 7, 2026");
+      expect(v.cta).toMatchObject({ kind: "openStore", label: "Update payment" });
+    });
+
+    it("an older server that sends willRenew false still reads Ends", () => {
+      const v = view({ ...monthlyApple, billingIssue: true, willRenew: false });
+      expect(v.cards.monthly.endFootnote).toBe("Ends December 7, 2026");
+    });
+  });
+
   it("no notice line uses an em dash", () => {
     const all = [
       view(packBonus),
@@ -363,6 +379,19 @@ describe("deviceStoreFor", () => {
 describe("freeDaysLine", () => {
   it("drops the count when the server sent none", () => {
     expect(freeDaysLine(null)).toBe("A plan you start today begins today, and your free days stop.");
+  });
+});
+
+describe("purchaseConfirmed for the exhaustion sheet's monthly purchase", () => {
+  it("does not confirm on free days, which already carry the membership entitlement", () => {
+    expect(purchaseConfirmed(packBonus as M, "monthly")).toBe(false);
+  });
+
+  it("confirms once the server shows a store plan", () => {
+    expect(purchaseConfirmed(monthlyApple as M, "monthly")).toBe(true);
+    expect(
+      purchaseConfirmed({ ...packBonus, source: "purchase" } as M, "monthly"),
+    ).toBe(true);
   });
 });
 

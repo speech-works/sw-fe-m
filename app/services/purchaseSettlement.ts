@@ -25,7 +25,7 @@ export type StorePhase = "lookup" | "purchase";
  *  retryable_before_charge  no payment can have been taken. Show the error and
  *                           keep the Buy button.
  *  pending_after_charge     the purchase call ran and failed in a way that can
- *                           follow a real charge. Wait for the grant, no Buy.
+ *                           only follow a real charge. Wait for the grant, no Buy.
  *  store_pending            the store says the payment is pending (a slow card
  *                           on Google Play). Wait for the grant, no Buy.
  */
@@ -60,22 +60,43 @@ const NOT_CHARGED_CODES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The codes that arrive AFTER the store has taken the money: the receipt could
- * not reach RevenueCat (offline, backend trouble) or the store says it is
- * already owned and unconsumed. "Payment received" is true here.
+ * The codes that can only follow a real charge: the store finished a
+ * transaction and posting its receipt to RevenueCat then failed. "Payment
+ * received" is true here. One line per code on why it belongs.
  */
 const AFTER_CHARGE_CODES: ReadonlySet<string> = new Set([
-  PURCHASES_ERROR_CODE.NETWORK_ERROR,
-  PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
+  // RevenueCat answered the receipt post with something it could not read.
   PURCHASES_ERROR_CODE.UNEXPECTED_BACKEND_RESPONSE_ERROR,
+  // RevenueCat failed while handling the receipt the store just issued.
   PURCHASES_ERROR_CODE.UNKNOWN_BACKEND_ERROR,
+  // A receipt exists to be judged invalid, so the store made a transaction.
   PURCHASES_ERROR_CODE.INVALID_RECEIPT_ERROR,
+  // Raised while reading the receipt to post it, after StoreKit returned.
   PURCHASES_ERROR_CODE.MISSING_RECEIPT_FILE_ERROR,
-  PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR,
-  PURCHASES_ERROR_CODE.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR,
+  // The skill: refresh and check. For our consumables it means an earlier
+  // charge the store still holds unconsumed, so a payment exists.
   PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR,
-  PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
+  // Building customer info from the posted receipt failed, so it was posted.
   PURCHASES_ERROR_CODE.CUSTOMER_INFO_ERROR,
+]);
+
+/**
+ * The codes from the purchase call that may or may not follow a charge. We
+ * wait (no second Buy, the checkout stays held) but never claim a payment.
+ */
+const UNCLEAR_CODES: ReadonlySet<string> = new Set([
+  // The skill says prompt a retry, but the drop can come before or after the
+  // store took the money, and a retry on a consumable can charge twice.
+  PURCHASES_ERROR_CODE.NETWORK_ERROR,
+  // Same as NETWORK_ERROR: offline before the sheet or before the receipt post.
+  PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
+  // Another purchase is running. Ours may never have started, theirs may charge.
+  PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
+  // The store receipt is tied to another app user. It proves an older payment,
+  // not that this tap charged anyone.
+  PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR,
+  // Same as RECEIPT_ALREADY_IN_USE_ERROR, for a subscription on another user.
+  PURCHASES_ERROR_CODE.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR,
 ]);
 
 export function classifyStoreError(
@@ -91,6 +112,7 @@ export function classifyStoreError(
   if (code !== undefined && AFTER_CHARGE_CODES.has(code)) {
     return "pending_after_charge";
   }
+  if (code !== undefined && UNCLEAR_CODES.has(code)) return "unclear";
   // UNKNOWN_ERROR and anything new: wait like a charge (no second Buy), but
   // the words must not claim a payment we cannot see.
   return "unclear";
@@ -117,6 +139,36 @@ export function intentConflictFrom(error: unknown): IntentConflict | null {
   if (code === "CHECKOUT_IN_PROGRESS") return "checkout_in_progress";
   return null;
 }
+
+// ── The server's emergency stop ───────────────────────────────────────────
+//
+// The backend can pause all selling. It says so in two places: GET
+// /users/me/offers carries `purchasesPaused: true`, and POST
+// /users/me/purchase-intent answers 503 with code PURCHASES_PAUSED. Either one
+// means no surface opens a store sheet. Owned content and Restore keep working.
+// An older server sends neither, which reads as "not paused".
+
+export const PURCHASES_PAUSED_LINE =
+  "Purchases are paused for a short while. Programs you own keep working.";
+
+/** True only when the offers payload says selling is paused. */
+export function offersPaused(
+  offers: { purchasesPaused?: boolean } | null | undefined,
+): boolean {
+  return offers?.purchasesPaused === true;
+}
+
+/** True only for the backend's 503 PURCHASES_PAUSED on a checkout. */
+export function purchasesPausedFrom(error: unknown): boolean {
+  const res = (error as any)?.response;
+  if (res?.status !== 503) return false;
+  const code = res?.data?.code ?? res?.data?.errorCode;
+  return code === "PURCHASES_PAUSED";
+}
+
+/** A restore found store purchases owned by another Speechworks account. */
+export const FOREIGN_PURCHASES_LINE =
+  "This purchase belongs to another Speechworks account. Sign in to that account to use it.";
 
 // ── What the buyer reads ──────────────────────────────────────────────────
 
@@ -146,6 +198,9 @@ export const UNCLEAR_CREDITS_LINE =
   "We are checking your payment. If it went through, your call credits arrive on their own.";
 export const UNCLEAR_TIMEOUT_LINE =
   "We could not confirm a payment yet. If you were charged, it unlocks on its own. You will not be charged twice.";
+/** A membership the store sold that our server has not confirmed yet. */
+export const MEMBERSHIP_CONFIRMING_LINE =
+  "Your purchase went through but is still being confirmed. It should appear shortly.";
 export const CHECKOUT_IN_PROGRESS_LINE =
   "Your earlier payment is still being confirmed. It will unlock on its own.";
 

@@ -70,6 +70,7 @@ import { join } from "path";
 import {
   pollMembershipUntil,
   pollWalletUntil,
+  recheckMembershipUntil,
   recheckWalletUntil,
 } from "../purchases";
 import { purchaseConfirmed } from "../../util/functions/paywallView";
@@ -285,6 +286,31 @@ describe("after a membership purchase, the wait reads the user's plan", () => {
     expect(
       await settled(pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST)),
     ).toEqual(onAnnual);
+  });
+
+  it("an explicit membership recheck asks the store once, then reads the plan", async () => {
+    mockReconcileWallet.mockResolvedValue({ ...NOT_OWNED, reconciled: true });
+    mockGetMyUser.mockResolvedValueOnce(onFreeDays).mockResolvedValue(onAnnual);
+    const user = await settled(
+      recheckMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST),
+    );
+    expect(user).toEqual(onAnnual);
+    expect(mockReconcileWallet).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failed forced pass does not stop the membership recheck", async () => {
+    mockReconcileWallet.mockRejectedValue(httpError(500));
+    mockGetMyUser.mockResolvedValue(onAnnual);
+    expect(
+      await settled(recheckMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST)),
+    ).toEqual(onAnnual);
+  });
+
+  it("the exhaustion sheet confirms membership on the plan, not the entitlement", () => {
+    const src = prose("app/components/ExhaustionSheet.tsx");
+    expect(src).not.toContain('entitlements.includes("membership")');
+    expect(src).toContain("pollMembershipUntil");
+    expect(src).toContain('purchaseConfirmed(m, "monthly")');
   });
 
   it("the paywall no longer waits on the wallet's membership entitlement", () => {

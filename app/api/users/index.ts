@@ -436,6 +436,12 @@ export interface Offers {
   items: OfferItem[];
   topup: TopupOffer;
   membership: MembershipOffer;
+  /**
+   * The server's emergency stop on selling. While true, no surface may open a
+   * store sheet. Owned content and Restore keep working. Absent on an older
+   * server, and absent means false.
+   */
+  purchasesPaused?: boolean;
 }
 
 // Response of POST /users/me/purchase-intent — the store tier to buy for a pack.
@@ -474,6 +480,11 @@ export async function getWallet(): Promise<Wallet> {
  */
 export interface ReconciledWallet extends Wallet {
   reconciled?: boolean;
+  /**
+   * True when a restore found store purchases that belong to ANOTHER
+   * Speechworks account. Absent on an older server, and absent means false.
+   */
+  foreignPurchases?: boolean;
 }
 
 /**

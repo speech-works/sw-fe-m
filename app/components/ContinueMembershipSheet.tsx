@@ -14,6 +14,7 @@ import {
 } from "../util/functions/membership";
 import { useMembershipPrice } from "../hooks/useMembershipPrice";
 import { canAskForMembership, recordMembershipAsk } from "../services/membershipAsk";
+import { PURCHASES_PAUSED_LINE } from "../services/purchaseSettlement";
 
 /**
  * ===========================================================================
@@ -122,15 +123,22 @@ export const ContinueMembershipSheet: React.FC<ContinueMembershipSheetProps> = (
         ) : null}
 
         <View style={styles.actions}>
-          <Button
-            label="Keep my access"
-            onPress={() => {
-              setVisible(false);
-              emit(EVENT_NAMES.SHOW_PREMIUM_UPSELL);
-            }}
-            accentColor={colors.accent.warning}
-            onAccentColor={colors.accentOn.warning}
-          />
+          {/* The server paused selling: no way on to the plan screen. */}
+          {price.purchasesPaused ? (
+            <Text variant="body" color="primary" center>
+              {PURCHASES_PAUSED_LINE}
+            </Text>
+          ) : (
+            <Button
+              label="Keep my access"
+              onPress={() => {
+                setVisible(false);
+                emit(EVENT_NAMES.SHOW_PREMIUM_UPSELL);
+              }}
+              accentColor={colors.accent.warning}
+              onAccentColor={colors.accentOn.warning}
+            />
+          )}
         </View>
 
         <PressableScale

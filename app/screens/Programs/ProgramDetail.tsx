@@ -20,12 +20,15 @@ import {
 import {
   clearProgramPending,
   markProgramPending,
+  offersPaused,
   onPurchasesMayHaveChanged,
   pendingLine,
   programPending,
+  PURCHASES_PAUSED_LINE,
   SETTLE_TIMEOUT_LINE,
   type PendingKind,
 } from "../../services/purchaseSettlement";
+import { PaymentProblemLink } from "../../components/PaymentProblemLink";
 import {
   size,
   Button,
@@ -168,6 +171,13 @@ const ProgramDetailScreen = () => {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [purchasing, setPurchasing] = useState(false);
   /**
+   * The server's emergency stop: offers.purchasesPaused, or a 503
+   * PURCHASES_PAUSED on the checkout. The sales flow shows the paused line in
+   * place of its buy button, so no store sheet can open. Owned programs and
+   * the pending screen are untouched.
+   */
+  const [purchasesPaused, setPurchasesPaused] = useState(false);
+  /**
    * ── MONEY HAS LEFT THE USER'S ACCOUNT ─────────────────────────────────────
    * Latched the instant the store says `purchased`, BEFORE the wallet is asked
    * anything. The tier SKUs are consumable on purpose (see
@@ -242,6 +252,7 @@ const ProgramDetailScreen = () => {
         setOffer(match);
         setIsFounder(offers.isFounderCohort);
         setBonusEligible(offers.bonusMembershipEligible);
+        setPurchasesPaused(offersPaused(offers));
         setOwned(match?.owned ?? false);
         // The grant landed while they were away. The latch has done its job.
         if (match?.owned) clearProgramPending(catalogKey);
@@ -465,7 +476,7 @@ const ProgramDetailScreen = () => {
   };
 
   const handleBuy = async () => {
-    if (!offer) return;
+    if (!offer || purchasesPaused) return;
     setPurchasing(true);
     // Funnel: bottom of the recommendation → purchase chain. `planId` is the
     // tier SKU key; `catalogKey` ties it back to the recommended pack.
@@ -521,6 +532,12 @@ const ProgramDetailScreen = () => {
             reason: "checkout_in_progress",
           });
           await settlePending("checkout_in_progress");
+          break;
+        case "paused":
+          // The server paused selling. No intent, no store sheet, no charge.
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "paused" });
+          setPurchasesPaused(true);
+          showErrorBottomSheet("Purchases paused", PURCHASES_PAUSED_LINE);
           break;
         case "already_owned":
           // They own it. Show it as theirs, with no error.
@@ -1218,6 +1235,7 @@ const ProgramDetailScreen = () => {
             loading={confirming || purchasing}
             onPress={() => void recheckPurchase()}
           />
+          <PaymentProblemLink product={brochure?.title ?? offer.title} />
         </View>
       </Page>
     );
@@ -1234,6 +1252,7 @@ const ProgramDetailScreen = () => {
       isFounder={isFounder}
       bonusEligible={bonusEligible}
       purchasing={purchasing}
+      pausedLine={purchasesPaused ? PURCHASES_PAUSED_LINE : null}
       onBuy={handleBuy}
       onBack={() => navigation.goBack()}
     />
