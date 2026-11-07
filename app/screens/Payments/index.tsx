@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOffers, type MembershipOffer } from "../../api";
 import {
   purchaseProductById,
+  playUpgradeChangeInfo,
   pollMembershipUntil,
   purchasesAvailable,
   manageSubscriptions,
@@ -109,6 +110,10 @@ const SubscribeScreenBody = () => {
   // monthly, else their current plan.
   const [picked, setPicked] = useState<PlanKey | null>(null);
   const [loading, setLoading] = useState(false);
+  // The store took the money. From here the buy and upgrade buttons stay off
+  // for as long as this screen is open, whatever our server says or how long
+  // it takes to say it: a second tap is a second charge.
+  const [storeCharged, setStoreCharged] = useState(false);
   const [membership, setMembership] = useState<MembershipOffer | null>(null);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
   // Guideline 3.1.1 — shared with Settings so there is one restore path.
@@ -236,8 +241,34 @@ const SubscribeScreenBody = () => {
     track(ANALYTICS_EVENTS.PAYWALL_VIEWED);
   }, []);
 
+  /**
+   * After the store says the purchase went through. Our server stays the
+   * source of truth, but the screen never waits on it with a live buy button:
+   * confirmed or not, the plan screen closes.
+   *
+   * Confirmed: the fresh user goes in the store and they get the success
+   * sheet. Not confirmed in time (the webhook is slow): refresh the user so
+   * the rest of the app catches up as soon as it lands, and say honestly that
+   * it went through and is still being confirmed. Either sheet outlives the
+   * screen, the same way the success sheet always has.
+   */
+  const finishAfterStorePurchase = (
+    fresh: Awaited<ReturnType<typeof pollMembershipUntil>>,
+    confirmed: { title: string; message: string },
+    pendingMessage: string,
+  ) => {
+    if (fresh) {
+      setUser(fresh);
+      showSuccessBottomSheet(confirmed.title, confirmed.message);
+    } else {
+      void fetchUser();
+      showSuccessBottomSheet("Almost there", pendingMessage);
+    }
+    navigation.goBack();
+  };
+
   const handlePayment = async () => {
-    if (!membership || cta.kind !== "buy" || !cta.plan) return;
+    if (!membership || cta.kind !== "buy" || !cta.plan || storeCharged) return;
     // Payments not wired for this build/platform yet (flag off, or no store key
     // configured): explain gently rather than surface a red error. Billing is
     // Apple In-App Purchase (StoreKit) + Google Play Billing via RevenueCat —
@@ -267,6 +298,7 @@ const SubscribeScreenBody = () => {
     try {
       const outcome = await purchaseProductById(productId);
       if (outcome.status === "purchased") {
+        setStoreCharged(true);
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
         // The grant comes from the RevenueCat webhook, not the purchase call
         // itself, so poll our own backend. On the membership's PLAN, not the
@@ -276,16 +308,11 @@ const SubscribeScreenBody = () => {
         const fresh = await pollMembershipUntil((m) =>
           purchaseConfirmed(m, bought),
         );
-        if (fresh) {
-          setUser(fresh);
-          showSuccessBottomSheet("You're in", "Your access is active.");
-          navigation.goBack();
-        } else {
-          showErrorBottomSheet(
-            "Almost there",
-            "Your purchase went through but is still being confirmed. It should appear shortly.",
-          );
-        }
+        finishAfterStorePurchase(
+          fresh,
+          { title: "You're in", message: "Your access is active." },
+          "Your purchase went through but is still being confirmed. It should appear shortly.",
+        );
       } else {
         // "error" or "cancelled" — `reason` separates a store failure from a
         // user backing out, so an abandonment isn't read as a payment failure.
@@ -313,10 +340,12 @@ const SubscribeScreenBody = () => {
   /**
    * Monthly→Annual upgrade. Apple handles this natively: the annual subscription
    * starts immediately, and Apple prorates/refunds the unused monthly days.
+   * Google Play does the same only when told which plan is being replaced,
+   * which is what `playUpgradeChangeInfo` supplies on Android.
    * RevenueCat sends a PRODUCT_CHANGE webhook which our backend already handles.
    */
   const handleUpgradeToAnnual = async () => {
-    if (!membership) return;
+    if (!membership || storeCharged) return;
     if (!purchasesAvailable()) {
       setShowTestModeModal(true);
       return;
@@ -331,24 +360,31 @@ const SubscribeScreenBody = () => {
     };
     track(ANALYTICS_EVENTS.PAYMENT_STARTED, payProps);
 
+    // Google Play keeps Monthly and Annual as separate subscriptions, so the
+    // upgrade has to name the monthly plan it replaces or Play starts a second
+    // one beside it. Null on iOS, where the subscription group swaps them.
+    const googleProductChangeInfo = playUpgradeChangeInfo({
+      platformOS: Platform.OS,
+      membership: user?.membership,
+      monthlyProductId: membership.productId,
+    });
+
     setLoading(true);
     try {
-      const outcome = await purchaseProductById(productId);
+      const outcome = await purchaseProductById(productId, {
+        googleProductChangeInfo,
+      });
       if (outcome.status === "purchased") {
+        setStoreCharged(true);
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
         const fresh = await pollMembershipUntil((m) =>
           purchaseConfirmed(m, "annual"),
         );
-        if (fresh) {
-          setUser(fresh);
-          showSuccessBottomSheet("Upgraded!", "You're now on the annual plan.");
-          navigation.goBack();
-        } else {
-          showErrorBottomSheet(
-            "Almost there",
-            "Your upgrade went through but is still being confirmed. It should appear shortly.",
-          );
-        }
+        finishAfterStorePurchase(
+          fresh,
+          { title: "Upgraded!", message: "You're now on the annual plan." },
+          "Your upgrade went through but is still being confirmed. It should appear shortly.",
+        );
       } else {
         track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
           ...payProps,
@@ -426,7 +462,7 @@ const SubscribeScreenBody = () => {
             onPickMonthly={() => setPicked("monthly")}
             onPickAnnual={() => setPicked("annual")}
             priceKnown={monthlyKnown && annualKnown}
-            disabled={loading}
+            disabled={loading || storeCharged}
             isMember={view.memberLayout}
             dock={
               /* The SafeAreaView above deliberately omits the bottom edge, so
@@ -472,7 +508,7 @@ const SubscribeScreenBody = () => {
                   <TouchableOpacity
                     style={[
                       styles.upgradeBtnWrapper,
-                      (!cta.enabled || loading || (!membership && (cta.kind === "buy" || cta.kind === "upgrade"))) && { opacity: 0.7 },
+                      (!cta.enabled || loading || ((storeCharged || !membership) && (cta.kind === "buy" || cta.kind === "upgrade"))) && { opacity: 0.7 },
                     ]}
                     activeOpacity={0.85}
                     onPress={
@@ -487,7 +523,8 @@ const SubscribeScreenBody = () => {
                     disabled={
                       !cta.enabled ||
                       loading ||
-                      (!membership && (cta.kind === "buy" || cta.kind === "upgrade"))
+                      ((storeCharged || !membership) &&
+                        (cta.kind === "buy" || cta.kind === "upgrade"))
                     }
                     accessibilityRole="button"
                     accessibilityLabel={cta.a11y}

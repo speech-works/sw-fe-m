@@ -1,4 +1,7 @@
 import {
+  APPLE_CANCEL_HELP_URL,
+  STORE_SUBSCRIPTIONS_URL,
+  deleteAccountRenewalNotice,
   deviceStoreFor,
   freeDaysLine,
   paywallView,
@@ -157,10 +160,51 @@ describe("paywallView", () => {
       expect(v.selectedPlan).toBe("annual");
     });
 
-    it("a monthly member gets both cards disabled and the upgrade", () => {
-      const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "monthly" });
+    it("a monthly member on this device's store gets both cards disabled and the upgrade", () => {
+      const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "monthly", store: "app_store" });
       expect(v.cards.monthly.enabled || v.cards.annual.enabled).toBe(false);
       expect(v.cta.kind).toBe("upgrade");
+    });
+
+    // R3: the server answers {pick: [], primary: "manage"} for these, and the
+    // fallback has to agree. An upgrade here would be a second plan on this
+    // device's store beside the one they already pay for.
+    it.each([
+      ["missing", undefined],
+      ["null", null],
+      ["unknown", "unknown"],
+      ["stripe", "stripe"],
+    ] as const)("a monthly member whose store is %s gets Manage, never the upgrade", (_, store) => {
+      const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "monthly", store });
+      expect(v.cta.kind).toBe("manage");
+      expect(v.cards.monthly.enabled || v.cards.annual.enabled).toBe(false);
+      expect(v.showManageLink).toBe(false);
+      // No "switch to yearly" promise the button cannot keep.
+      expect(view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "monthly", store }, { annualSavingsPct: 40 }).guarantee).toBe(
+        "You are on the monthly plan.",
+      );
+    });
+
+    it.each([null, "unknown", "stripe"] as const)(
+      "an annual member whose store is %s gets Manage",
+      (store) => {
+        const v = view({ active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "annual", store });
+        expect(v.cta.kind).toBe("manage");
+        expect(v.cards.monthly.enabled || v.cards.annual.enabled).toBe(false);
+      },
+    );
+
+    it("on Android, a monthly Play plan still gets the upgrade", () => {
+      const v = view(
+        { active: true, until: "x", daysRemaining: 3, willRenew: true, plan: "monthly", store: "play_store" },
+        { platformOS: "android" },
+      );
+      expect(v.cta.kind).toBe("upgrade");
+    });
+
+    it("an inactive plan with no store is still a buyer", () => {
+      const v = view({ active: false, until: null, daysRemaining: null, plan: "monthly", store: "unknown" });
+      expect(v.cta.kind).toBe("buy");
     });
 
     it("an annual member gets Manage", () => {
@@ -234,14 +278,26 @@ describe("paywallView", () => {
       expect(v.disclosure).toBeNull();
     });
 
-    it("on Android with an App Store plan, offers only the App Store", () => {
+    it("on Android with an App Store plan, sends them to Apple's own steps", () => {
+      // Apple does not let us cancel for them, and the App Store web address
+      // does nothing on an Android phone.
       const v = view(annualApple, { platformOS: "android" });
       expect(v.cta).toMatchObject({
         kind: "openStore",
-        label: "Open the App Store",
-        url: "https://apps.apple.com/account/subscriptions",
+        label: "Open Apple's steps",
+        url: "https://support.apple.com/118428",
       });
-      expect(v.notices[0]).toBe("You bought your plan on the App Store. Change or cancel it there.");
+      expect(v.notices[0]).toBe(
+        "You pay for your plan through Apple. To change or cancel it without an iPhone, follow Apple's steps.",
+      );
+      expect(v.cards.monthly.enabled || v.cards.annual.enabled).toBe(false);
+    });
+
+    it("a failed Apple payment seen on Android points to Apple, not the App Store", () => {
+      const v = view({ ...annualApple, billingIssue: true }, { platformOS: "android" });
+      expect(v.notices).toContain(
+        "Your last payment did not go through. To keep your membership, update your payment details with Apple.",
+      );
     });
 
     it("the same store behaves normally", () => {
@@ -330,5 +386,72 @@ describe("purchaseConfirmed", () => {
   it("an inactive membership is never confirmed", () => {
     expect(purchaseConfirmed({ ...free, plan: "annual" } as M, "annual")).toBe(false);
     expect(purchaseConfirmed(null, "annual")).toBe(false);
+  });
+});
+
+describe("deleteAccountRenewalNotice", () => {
+  const renewing = (over: Partial<M> = {}): M =>
+    ({
+      active: true,
+      until: "2026-12-07T00:00:00Z",
+      daysRemaining: 30,
+      plan: "monthly",
+      source: "purchase",
+      willRenew: true,
+      store: "app_store",
+      ...over,
+    }) as M;
+
+  it("says nothing when nothing renews", () => {
+    expect(deleteAccountRenewalNotice(null, "ios")).toBeNull();
+    expect(deleteAccountRenewalNotice(renewing({ active: false }), "ios")).toBeNull();
+    expect(deleteAccountRenewalNotice(renewing({ willRenew: false }), "ios")).toBeNull();
+    expect(deleteAccountRenewalNotice(renewing({ willRenew: undefined }), "ios")).toBeNull();
+    expect(deleteAccountRenewalNotice(renewing({ source: "pack_bonus" }), "ios")).toBeNull();
+    expect(deleteAccountRenewalNotice(renewing({ source: "grant" }), "ios")).toBeNull();
+  });
+
+  it("an App Store plan on an iPhone opens the native sheet", () => {
+    expect(deleteAccountRenewalNotice(renewing(), "ios")).toEqual({
+      line: "Your membership keeps renewing until you cancel it in the App Store.",
+      manage: { kind: "native" },
+    });
+  });
+
+  it("a Google Play plan on Android opens the native place", () => {
+    expect(deleteAccountRenewalNotice(renewing({ store: "play_store" }), "android")).toEqual({
+      line: "Your membership keeps renewing until you cancel it in Google Play.",
+      manage: { kind: "native" },
+    });
+  });
+
+  it("an Apple plan on Android says with Apple and opens Apple's steps", () => {
+    expect(deleteAccountRenewalNotice(renewing(), "android")).toEqual({
+      line: "Your membership keeps renewing until you cancel it with Apple.",
+      manage: { kind: "url", url: APPLE_CANCEL_HELP_URL },
+    });
+  });
+
+  it("a Google Play plan on an iPhone opens Google Play's page", () => {
+    expect(deleteAccountRenewalNotice(renewing({ store: "play_store" }), "ios")).toEqual({
+      line: "Your membership keeps renewing until you cancel it in Google Play.",
+      manage: { kind: "url", url: STORE_SUBSCRIPTIONS_URL.play_store },
+    });
+  });
+
+  it("an unknown store falls back to this device's store", () => {
+    for (const store of [null, undefined, "unknown", "stripe"] as const) {
+      expect(deleteAccountRenewalNotice(renewing({ store }), "android")).toEqual({
+        line: "Your membership keeps renewing until you cancel it in Google Play.",
+        manage: { kind: "native" },
+      });
+      expect(deleteAccountRenewalNotice(renewing({ store }), "ios")?.line).toBe(
+        "Your membership keeps renewing until you cancel it in the App Store.",
+      );
+    }
+  });
+
+  it("says nothing with no store to name", () => {
+    expect(deleteAccountRenewalNotice(renewing({ store: null }), "web")).toBeNull();
   });
 });

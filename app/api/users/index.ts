@@ -509,6 +509,15 @@ export async function getOffers(): Promise<Offers> {
   }
 }
 
+// POST /users/me/purchase-intent/{intentId}/cancel: the store took no money
+// (cancelled sheet, declined card), so the backend releases the checkout and a
+// fair retry is not held behind its 15-minute "checkout in progress" guard.
+export async function cancelPurchaseIntent(intentId: string): Promise<void> {
+  await axiosClient.post(
+    `/users/me/purchase-intent/${encodeURIComponent(intentId)}/cancel`,
+  );
+}
+
 // POST /users/me/purchase-intent — tell the backend which pack the user wants;
 // it returns the store tier SKU to purchase (the authoritative price decision).
 export async function createPurchaseIntent(

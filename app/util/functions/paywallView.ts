@@ -40,6 +40,14 @@ export function storeName(store: StoreKey): string {
 }
 
 /** Where a person manages a plan on that store. */
+/**
+ * Apple's own help page for cancelling a subscription. Covers people with no
+ * Apple device (Windows PC, Android). Apple does not let us cancel an App Store
+ * subscription for the customer, and its subscriptions web address does nothing
+ * on an Android phone, so this is the one place that helps them.
+ */
+export const APPLE_CANCEL_HELP_URL = "https://support.apple.com/118428";
+
 export const STORE_SUBSCRIPTIONS_URL: Record<StoreKey, string> = {
   app_store: "https://apps.apple.com/account/subscriptions",
   play_store: "https://play.google.com/store/account/subscriptions",
@@ -132,6 +140,13 @@ function serverActions(m: Membership | null | undefined): {
   // again, monthly upgrades to annual, annual is managed, and anybody else
   // can buy either plan.
   const plan = m?.active ? (m.plan ?? null) : null;
+  // A plan whose store we do not know (missing, "unknown", or Stripe) is never
+  // upgraded from here, the same answer the server gives. An upgrade on this
+  // device's store would start a second plan beside the one they pay for
+  // elsewhere, and charge them twice.
+  const store = m?.store ?? null;
+  const storeKnown = store === "app_store" || store === "play_store";
+  if (plan && !storeKnown) return { pick: [], primary: "manage" };
   if (plan === "annual") return { pick: [], primary: "manage" };
   if (plan === "monthly") return { pick: [], primary: "upgrade" };
   return { pick: ["monthly", "annual"], primary: "buy" };
@@ -209,6 +224,16 @@ export function paywallView(input: PaywallViewInput): PaywallView {
       a11y: `Update payment in ${storeName(billedBy)}`,
       enabled: true,
     };
+  } else if (otherStore === "app_store" && deviceStore !== "app_store") {
+    // Apple-billed plan on a phone that is not an iPhone: Apple's own steps.
+    cta = {
+      kind: "openStore",
+      store: otherStore,
+      url: APPLE_CANCEL_HELP_URL,
+      label: "Open Apple's steps",
+      a11y: "Open Apple's steps to change or cancel your plan",
+      enabled: true,
+    };
   } else if (otherStore) {
     const name = otherStore === "app_store" ? "the App Store" : "Google Play";
     cta = {
@@ -257,16 +282,23 @@ export function paywallView(input: PaywallViewInput): PaywallView {
 
   // ── The lines above the button ──────────────────────────────────────────
   const notices: string[] = [];
-  if (otherStore) {
+  if (otherStore === "app_store" && deviceStore !== "app_store") {
+    notices.push(
+      "You pay for your plan through Apple. To change or cancel it without an iPhone, follow Apple's steps.",
+    );
+  } else if (otherStore) {
     notices.push(
       `You bought your plan on ${storeName(otherStore)}. Change or cancel it there.`,
     );
   }
   if (m?.billingIssue === true) {
+    // No App Store on an Android phone: there, the payment details live with Apple.
+    const where =
+      billedBy === "app_store" && deviceStore !== "app_store"
+        ? "with Apple"
+        : `in ${billedBy ? storeName(billedBy) : "your store account"}`;
     notices.push(
-      `Your last payment did not go through. To keep your membership, update your payment details in ${
-        billedBy ? storeName(billedBy) : "your store account"
-      }.`,
+      `Your last payment did not go through. To keep your membership, update your payment details ${where}.`,
     );
   }
   // H2b. The founder asked for this to be clearly said: buying ends the free
@@ -288,9 +320,10 @@ export function paywallView(input: PaywallViewInput): PaywallView {
     : plan === "annual"
       ? "You already have an active subscription"
       : plan === "monthly"
-        ? // No switch from this phone when the plan lives in the other store,
-          // and no saving claimed when we cannot price it.
-          otherStore || fixPayment || save <= 0
+        ? // No switch named unless the button offers one (not on the other
+          // store, a failed payment, or a store we do not know), and no
+          // saving claimed when we cannot price it.
+          cta.kind !== "upgrade" || save <= 0
           ? "You are on the monthly plan."
           : `You are on the monthly plan. Switch to yearly and save ${save}%.`
         : "Secure payment. Cancel anytime.";
@@ -330,4 +363,60 @@ export function purchaseConfirmed(
   if (bought === "annual" && m.plan === "annual") return true;
   if (bought === "monthly" && m.plan != null) return true;
   return m.source === "purchase" && bought === "monthly";
+}
+
+/**
+ * ===========================================================================
+ * DELETING THE ACCOUNT DOES NOT STOP THE STORE BILLING
+ * ---------------------------------------------------------------------------
+ * Apple and Google bill the plan, not us, so deleting a Speechworks account
+ * leaves the store subscription running. Somebody about to delete needs to
+ * hear that, and needs the same way to cancel that the plan screen gives them.
+ *
+ * Only for a store plan that renews: `source === "purchase"` and
+ * `willRenew === true`. Free days and grants renew nothing.
+ *
+ * The store is the plan's own; when the server does not say which (missing,
+ * "unknown", or Stripe), it is this device's store. The way to manage it is
+ * the plan screen's for the same case:
+ *   same store as this phone   the native manage sheet (manageSubscriptions)
+ *   Apple plan on Android      Apple's own steps (APPLE_CANCEL_HELP_URL)
+ *   Play plan on an iPhone     Google Play's subscriptions page
+ * ===========================================================================
+ */
+export type DeleteAccountManage =
+  | { kind: "native" }
+  | { kind: "url"; url: string };
+
+export interface DeleteAccountRenewalNotice {
+  line: string;
+  manage: DeleteAccountManage;
+}
+
+export function deleteAccountRenewalNotice(
+  membership: User["membership"] | null | undefined,
+  platformOS: string,
+): DeleteAccountRenewalNotice | null {
+  const m = membership;
+  if (!m?.active || m.willRenew !== true || m.source !== "purchase") return null;
+
+  const deviceStore = deviceStoreFor(platformOS);
+  const store: StoreKey | null =
+    m.store === "app_store" || m.store === "play_store" ? m.store : deviceStore;
+  if (!store) return null;
+
+  // No App Store on an Android phone: there, the plan is cancelled with Apple.
+  if (store === "app_store" && deviceStore !== "app_store") {
+    return {
+      line: "Your membership keeps renewing until you cancel it with Apple.",
+      manage: { kind: "url", url: APPLE_CANCEL_HELP_URL },
+    };
+  }
+  return {
+    line: `Your membership keeps renewing until you cancel it in ${storeName(store)}.`,
+    manage:
+      store === deviceStore
+        ? { kind: "native" }
+        : { kind: "url", url: STORE_SUBSCRIPTIONS_URL[store] },
+  };
 }

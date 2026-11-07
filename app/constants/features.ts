@@ -45,3 +45,6 @@ export const REVENUECAT_ANDROID_API_KEY: string =
   Constants.expoConfig?.extra?.REVENUECAT_ANDROID_API_KEY ?? "";
 export const REVENUECAT_IOS_API_KEY: string =
   Constants.expoConfig?.extra?.REVENUECAT_IOS_API_KEY ?? "";
+/** RevenueCat Test Store key. Development builds only; see app.config.js. */
+export const REVENUECAT_TEST_STORE_KEY: string =
+  Constants.expoConfig?.extra?.REVENUECAT_TEST_STORE_KEY ?? "";

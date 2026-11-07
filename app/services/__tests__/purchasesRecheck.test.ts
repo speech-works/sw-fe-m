@@ -86,14 +86,26 @@ const arrived = (w: { entitlements: string[] }) =>
   w.entitlements.includes("pack:calm-mind");
 
 /**
- * Short and real rather than faked. `pollWalletUntil` awaits a setTimeout inside
- * a while loop, so fake timers would need the loop pumped by hand between every
- * tick; a 30ms budget with a 1ms gap exercises the same code in less time than
- * that plumbing takes to read.
+ * A 30ms budget with a 1ms gap, on FAKE time. These used to run on real
+ * timers, and a busy CI machine could spend the whole 30ms on the first read,
+ * so "keeps waiting through free days" failed now and then with fewer than
+ * three reads. On fake timers the clock only moves when `settled` moves it, so
+ * every test makes the same reads in the same order on every run.
  */
 const FAST = { timeoutMs: 30, intervalMs: 1 };
 
+/**
+ * Run a poll to its end on fake time. `runAllTimersAsync` lets the awaited
+ * reads resolve between ticks and stops once the poll sets no new timer,
+ * which is when it returned or its deadline passed.
+ */
+const settled = async <T,>(poll: Promise<T>): Promise<T> => {
+  await jest.runAllTimersAsync();
+  return poll;
+};
+
 beforeEach(() => {
+  jest.useFakeTimers();
   mockGetWallet.mockReset();
   mockReconcileWallet.mockReset();
   mockGetMyUser.mockReset();
@@ -101,11 +113,15 @@ beforeEach(() => {
   jest.spyOn(console, "warn").mockImplementation(() => {});
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 describe("an explicit recheck asks the store", () => {
   it("goes through the forced route, not the throttled wallet read", async () => {
     mockReconcileWallet.mockResolvedValue({ ...OWNED, reconciled: true });
 
-    expect(await recheckWalletUntil(arrived, FAST)).toEqual({
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toEqual({
       ...OWNED,
       reconciled: true,
     });
@@ -126,7 +142,7 @@ describe("an explicit recheck asks the store", () => {
     mockReconcileWallet.mockResolvedValue({ ...NOT_OWNED, reconciled: true });
     mockGetWallet.mockResolvedValue(NOT_OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toBeNull();
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toBeNull();
 
     expect(mockReconcileWallet).toHaveBeenCalledTimes(1);
     expect(mockGetWallet.mock.calls.length).toBeGreaterThan(1);
@@ -144,7 +160,7 @@ describe("an explicit recheck asks the store", () => {
       .mockResolvedValueOnce(NOT_OWNED)
       .mockResolvedValue(OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toEqual(OWNED);
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toEqual(OWNED);
   });
 });
 
@@ -162,14 +178,14 @@ describe("nothing short of uninstalling stops the recheck trying", () => {
     );
     mockGetWallet.mockResolvedValue(OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toEqual(OWNED);
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toEqual(OWNED);
   });
 
   it("does not turn a RevenueCat outage into a dead button", async () => {
     mockReconcileWallet.mockRejectedValue(httpError(500));
     mockGetWallet.mockResolvedValue(OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toEqual(OWNED);
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toEqual(OWNED);
   });
 
   /**
@@ -182,7 +198,7 @@ describe("nothing short of uninstalling stops the recheck trying", () => {
     mockReconcileWallet.mockRejectedValue(new Error("Network Error"));
     mockGetWallet.mockResolvedValue(OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toEqual(OWNED);
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toEqual(OWNED);
   });
 
   /**
@@ -194,7 +210,7 @@ describe("nothing short of uninstalling stops the recheck trying", () => {
     mockReconcileWallet.mockRejectedValue(httpError(404));
     mockGetWallet.mockResolvedValue(OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toEqual(OWNED);
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toEqual(OWNED);
     // Answered by forceReconcile's own fallback, so the predicate passed before
     // the poll was ever entered.
     expect(mockGetWallet).toHaveBeenCalledTimes(1);
@@ -204,7 +220,7 @@ describe("nothing short of uninstalling stops the recheck trying", () => {
     mockReconcileWallet.mockRejectedValue(httpError(500));
     mockGetWallet.mockResolvedValue(NOT_OWNED);
 
-    expect(await recheckWalletUntil(arrived, FAST)).toBeNull();
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toBeNull();
   });
 });
 
@@ -219,7 +235,7 @@ describe("the automatic post-purchase check stays cheap", () => {
   it("never posts to the forced route", async () => {
     mockGetWallet.mockResolvedValue(OWNED);
 
-    expect(await pollWalletUntil(arrived, FAST)).toEqual(OWNED);
+    expect(await settled(pollWalletUntil(arrived, FAST))).toEqual(OWNED);
     expect(mockReconcileWallet).not.toHaveBeenCalled();
   });
 });
@@ -250,9 +266,9 @@ describe("after a membership purchase, the wait reads the user's plan", () => {
       .mockResolvedValueOnce(onFreeDays)
       .mockResolvedValue(onAnnual);
 
-    const user = await pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST);
+    const user = await settled(pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST));
     expect(user).toEqual(onAnnual);
-    expect(mockGetMyUser.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(mockGetMyUser).toHaveBeenCalledTimes(3);
     // Never the wallet: that is the read that ended the wait too early.
     expect(mockGetWallet).not.toHaveBeenCalled();
   });
@@ -260,14 +276,14 @@ describe("after a membership purchase, the wait reads the user's plan", () => {
   it("returns null when the plan never arrives", async () => {
     mockGetMyUser.mockResolvedValue(onFreeDays);
     expect(
-      await pollMembershipUntil((m) => purchaseConfirmed(m, "monthly"), FAST),
+      await settled(pollMembershipUntil((m) => purchaseConfirmed(m, "monthly"), FAST)),
     ).toBeNull();
   });
 
   it("a failed read is not the end of the wait", async () => {
     mockGetMyUser.mockRejectedValueOnce(httpError(500)).mockResolvedValue(onAnnual);
     expect(
-      await pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST),
+      await settled(pollMembershipUntil((m) => purchaseConfirmed(m, "annual"), FAST)),
     ).toEqual(onAnnual);
   });
 

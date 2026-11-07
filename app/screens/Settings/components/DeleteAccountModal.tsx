@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import {
   useTheme,
   spacing,
@@ -9,6 +9,12 @@ import {
   Button,
   Icon,
 } from "../../../design-system";
+import { useUserStore } from "../../../stores/user";
+import { deleteAccountRenewalNotice } from "../../../util/functions/paywallView";
+import {
+  manageSubscriptions,
+  openStoreSubscriptions,
+} from "../../../services/purchases";
 
 const CONFIRM_WORD = "DELETE";
 
@@ -48,6 +54,16 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 
   const canDelete = confirmText.trim().toUpperCase() === CONFIRM_WORD;
 
+  // Deleting the account does not stop a store plan from billing. Said here,
+  // above the confirm field, with the same way to cancel the plan screen has.
+  const membership = useUserStore((s) => s.user?.membership);
+  const renewal = deleteAccountRenewalNotice(membership, Platform.OS);
+  const openManage = () => {
+    if (!renewal) return;
+    if (renewal.manage.kind === "native") void manageSubscriptions();
+    else void openStoreSubscriptions(renewal.manage.url);
+  };
+
   const handleDelete = async () => {
     if (!canDelete || isDeleting) return;
     setError(null);
@@ -80,6 +96,20 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
       <Text variant="bodySm" color="secondary" center style={styles.body}>
         Erases your recordings, progress, and history. This can't be undone.
       </Text>
+
+      {renewal ? (
+        <View style={styles.renewalBlock}>
+          <Text variant="bodySm" center>
+            {renewal.line}
+          </Text>
+          <Button
+            label="Manage subscription"
+            variant="secondary"
+            onPress={openManage}
+            disabled={isDeleting}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.confirmBlock}>
         <Text variant="label" color="secondary" style={styles.confirmLabel}>
@@ -135,6 +165,11 @@ const styles = StyleSheet.create({
   },
   body: {
     marginTop: spacing.md,
+    marginBottom: spacing["2xl"],
+  },
+  renewalBlock: {
+    width: "100%",
+    gap: spacing.sm,
     marginBottom: spacing["2xl"],
   },
   confirmBlock: {

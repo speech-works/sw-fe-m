@@ -404,7 +404,14 @@ const LoginScreen = () => {
     setUser(user);
   };
 
-  const providers = ALL_PROVIDERS;
+  // Android has no native Sign in with Apple, so Apple goes through the same
+  // web sign-in as Google, first in the list. Without it, someone who signed
+  // up on an iPhone with Apple could not reach their account (and the
+  // programs they bought) after moving to Android (founder, 2026-11-07).
+  // Apple's sign-in is the same person on both: Apple gives one user id per
+  // developer team, for the app and the web sign-in alike.
+  const providers =
+    Platform.OS === "android" ? ["apple", ...ALL_PROVIDERS] : ALL_PROVIDERS;
   // The Apple button takes slot 1 when present, so everything after it shifts.
   const staggerBase = appleAvailable ? 2 : 1;
 

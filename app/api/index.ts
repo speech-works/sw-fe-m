@@ -18,7 +18,7 @@ export {
     getDailyActivityStatsForTheWeek,
 } from "./progressReport";
 export { createRecording, deleteRecording } from "./recordings";
-export { deleteMe, updateUserById, getMyUser, getWallet, reconcileWallet, getOffers, createPurchaseIntent } from "./users";
+export { deleteMe, updateUserById, getMyUser, getWallet, reconcileWallet, getOffers, createPurchaseIntent, cancelPurchaseIntent } from "./users";
 export type { Wallet, ReconciledWallet, Offers, OfferItem, MembershipOffer, TopupOffer, PurchaseIntentResponse, EntitlementKey } from "./users";
 
 // Form Submission API (for exposure feedback, pack reflections, etc.)

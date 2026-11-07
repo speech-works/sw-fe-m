@@ -587,6 +587,16 @@ module.exports = {
       // founder creates the RevenueCat project and Play/App Store apps.
       REVENUECAT_ANDROID_API_KEY: process.env.REVENUECAT_ANDROID_API_KEY ?? "",
       REVENUECAT_IOS_API_KEY: process.env.REVENUECAT_IOS_API_KEY ?? "",
+      // RevenueCat Test Store key (test_…): fake store for development builds,
+      // pick "valid / failed / cancel" by hand. NEVER in a release build: the
+      // SDK crashes on purpose if a release build is configured with it, so it
+      // is dropped here whenever the build is a production one, and the app
+      // only reads it under __DEV__ (services/purchases.ts). Put it in a
+      // gitignored .env.development.local.
+      REVENUECAT_TEST_STORE_KEY:
+        process.env.NODE_ENV === "production"
+          ? ""
+          : (process.env.REVENUECAT_TEST_STORE_KEY ?? ""),
       eas: {
         projectId: "da01d434-2a75-41bb-b7cc-19fd2f720aa5",
       },

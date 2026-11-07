@@ -37,6 +37,7 @@ import { useMoodCheckStore } from "./app/stores/mood";
 import { useReminderStore } from "./app/stores/reminders";
 import { useUserStore } from "./app/stores/user";
 import { configurePurchases } from "./app/services/purchases";
+import { notifyPurchasesMayHaveChanged } from "./app/services/purchaseSettlement";
 import { navigationRef } from "./app/util/functions/navigation";
 import {
   registerForNotifications,
@@ -303,6 +304,11 @@ const App: React.FC = () => {
 
           console.log("App foregrounded: Refreshing user data...");
           await useUserStore.getState().fetchUser();
+
+          // A payment that settled while the app was in the background (or a
+          // Play pending payment that went through) unlocks without a tap:
+          // screens that show ownership re-read it from our backend.
+          notifyPurchasesMayHaveChanged();
 
           // Refresh buddy-thread unread count for the Community tab badge (best-effort).
           try {

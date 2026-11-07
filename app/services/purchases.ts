@@ -30,7 +30,9 @@
 import { Linking, Platform } from "react-native";
 import Purchases, {
   PRODUCT_CATEGORY,
+  STORE_REPLACEMENT_MODE,
   PURCHASES_ERROR_CODE,
+  type StoreProductChangeInfo,
   type PurchasesError,
   type PurchasesStoreProduct,
 } from "react-native-purchases";
@@ -38,23 +40,41 @@ import {
   PAYMENTS_ENABLED,
   REVENUECAT_ANDROID_API_KEY,
   REVENUECAT_IOS_API_KEY,
+  REVENUECAT_TEST_STORE_KEY,
 } from "../constants/features";
 import {
   getMyUser,
   getWallet,
   reconcileWallet,
   createPurchaseIntent,
+  cancelPurchaseIntent,
   type Wallet,
   type ReconciledWallet,
 } from "../api";
 import type { User } from "../api/users";
 import { STORE_SUBSCRIPTIONS_URL } from "../util/functions/paywallView";
-import { selectStoreProduct } from "./selectStoreProduct";
+import { baseProductId, selectStoreProduct } from "./selectStoreProduct";
 import { httpStatus } from "../util/functions/apiError";
+import {
+  classifyStoreError,
+  intentConflictFrom,
+  notifyPurchasesMayHaveChanged,
+  type StorePhase,
+} from "./purchaseSettlement";
 import type { StorePrice } from "./priceDisplay";
 
+/**
+ * The RevenueCat Test Store key, only in a development build and only when it
+ * really is a test key. Two locks: app.config.js drops it from production
+ * builds, and __DEV__ is false in every release build.
+ */
+export function testStoreKey(dev: boolean, key: string | undefined): string | null {
+  return dev && typeof key === "string" && key.startsWith("test_") ? key : null;
+}
+
 const getPlatformApiKey = (): string =>
-  Platform.OS === "ios" ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY;
+  testStoreKey(__DEV__, REVENUECAT_TEST_STORE_KEY) ??
+  (Platform.OS === "ios" ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY);
 
 /** True only when payments are on AND we actually have a key for this platform. */
 export const purchasesAvailable = (): boolean =>
@@ -98,6 +118,19 @@ export function configurePurchases(): void {
   if (configured || !purchasesAvailable()) return;
   Purchases.configure({ apiKey: getPlatformApiKey() });
   configured = true;
+
+  // A PURCHASE MADE BEFORE THE APP WAS KILLED. The SDK re-sends any transaction
+  // it had not finished as soon as it is configured on the next launch, and
+  // reports fresh customer info when it has. That is the moment a screen that
+  // still shows "not owned" should ask our backend again. The info itself is
+  // not read: our backend stays the only answer to what somebody owns.
+  try {
+    Purchases.addCustomerInfoUpdateListener(() => {
+      notifyPurchasesMayHaveChanged();
+    });
+  } catch (error) {
+    console.warn("[purchases] could not listen for customer info:", error);
+  }
 }
 
 /**
@@ -244,7 +277,18 @@ export async function logoutPurchasesUser(): Promise<void> {
 export type PurchaseOutcome =
   | { status: "purchased" }
   | { status: "cancelled" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string }
+  /**
+   * Paid, or possibly paid, and the grant has not landed. Only returned to a
+   * caller that opted in (`settleAfterCharge`, and every pack purchase). The
+   * caller must wait for the grant and never offer Buy again meanwhile. See
+   * purchaseSettlement.ts.
+   */
+  | { status: "pending"; kind: "after_charge" | "store_pending" | "unclear" }
+  /** The backend says they already own this program (409 ALREADY_OWNED). */
+  | { status: "already_owned" }
+  /** An earlier checkout for this program is still open (409 CHECKOUT_IN_PROGRESS). */
+  | { status: "checkout_in_progress" };
 
 /**
  * ── WHAT THE USER IS TOLD WHEN A PURCHASE FAILS ──────────────────────────────
@@ -296,7 +340,7 @@ export function storeErrorMessage(code: string | undefined): string {
     // The store itself is unhappy (App Store / Play outage, sandbox trouble).
     case PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR:
     case PURCHASES_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR:
-      return "The store is having trouble right now. Please try again in a few minutes.";
+      return "The payment did not go through, so you were not charged. Please try again.";
 
     // A charge is in flight AT THIS MOMENT. "Try again" is the one thing that
     // must not be said here: tapping Buy again while the store is mid-purchase
@@ -335,16 +379,34 @@ export function storeErrorMessage(code: string | undefined): string {
  * is NOT an error: the user chose it, they know they did it, and showing a
  * sheet about it is the app arguing with them.
  */
-function outcomeFromStoreError(error: unknown, context: string): PurchaseOutcome {
+function outcomeFromStoreError(
+  error: unknown,
+  context: string,
+  phase: StorePhase,
+  settleAfterCharge: boolean,
+): PurchaseOutcome {
   const purchasesError = error as PurchasesError | undefined;
   const code = purchasesError?.code as string | undefined;
 
-  if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) {
-    return { status: "cancelled" };
-  }
+  const classified = classifyStoreError(code, phase);
+  if (classified === "cancelled") return { status: "cancelled" };
 
   // Developer detail lives here and only here.
   console.error(`[purchases] ${context} failed (code ${code ?? "none"}):`, error);
+
+  // A caller that can wait for the grant gets told to wait. Retry advice after
+  // the purchase call ran is how a consumable gets bought twice.
+  if (settleAfterCharge) {
+    if (classified === "pending_after_charge") {
+      return { status: "pending", kind: "after_charge" };
+    }
+    if (classified === "store_pending") {
+      return { status: "pending", kind: "store_pending" };
+    }
+    if (classified === "unclear") {
+      return { status: "pending", kind: "unclear" };
+    }
+  }
   return { status: "error", message: storeErrorMessage(code) };
 }
 
@@ -374,10 +436,19 @@ export async function purchaseCatalogItem(
   }
 
   let tierProductId: string;
+  let intentId: string | undefined;
   try {
     const intent = await createPurchaseIntent(catalogItemKey);
     tierProductId = intent.tierProductId;
+    intentId = intent.intentId;
   } catch (error) {
+    // The backend refuses a second checkout with a 409. Neither one is a
+    // failure, and neither may open the store sheet.
+    const conflict = intentConflictFrom(error);
+    if (conflict === "already_owned") return { status: "already_owned" };
+    if (conflict === "checkout_in_progress") {
+      return { status: "checkout_in_progress" };
+    }
     console.error("[purchases] createPurchaseIntent failed:", error);
     return {
       status: "error",
@@ -385,7 +456,23 @@ export async function purchaseCatalogItem(
     };
   }
 
-  return chargeForProduct(tierProductId);
+  const outcome = await chargeForProduct(tierProductId, null, {
+    settleAfterCharge: true,
+  });
+  // No money moved (they cancelled, or the store refused the payment): release
+  // the checkout so trying again is never blocked. Any other outcome keeps it
+  // open; that is what stops a second charge while a payment settles.
+  if (intentId && releasesCheckout(outcome)) {
+    cancelPurchaseIntent(intentId).catch((err: unknown) =>
+      console.warn("[purchases] could not release the checkout:", err),
+    );
+  }
+  return outcome;
+}
+
+/** True when the purchase ended with no charge, so the checkout can be released. */
+export function releasesCheckout(outcome: PurchaseOutcome): boolean {
+  return outcome.status === "cancelled" || outcome.status === "error";
 }
 
 /**
@@ -404,6 +491,16 @@ export async function purchaseCatalogItem(
  */
 export async function purchaseProductById(
   productId: string,
+  options: {
+    googleProductChangeInfo?: StoreProductChangeInfo | null;
+    /**
+     * Return `pending` instead of an error when the purchase call fails in a
+     * way that can follow a real charge. For the credit top-up, whose sheet
+     * waits for the grant. The memberships leave it off and keep their error
+     * sheet: a subscription the store already sold is refused a second time.
+     */
+    settleAfterCharge?: boolean;
+  } = {},
 ): Promise<PurchaseOutcome> {
   if (!purchasesAvailable()) {
     return { status: "error", message: "Purchases are not available yet." };
@@ -418,7 +515,47 @@ export async function purchaseProductById(
     return { status: "error", message: IDENTITY_REFUSAL_MESSAGE };
   }
 
-  return chargeForProduct(productId);
+  return chargeForProduct(productId, options.googleProductChangeInfo ?? null, {
+    settleAfterCharge: options.settleAfterCharge ?? false,
+  });
+}
+
+/**
+ * The plan change Google Play needs for a Monthly to Annual upgrade, or null.
+ *
+ * On Play the two memberships are separate subscription products, so buying
+ * Annual with no change info starts a SECOND subscription beside the monthly
+ * one, and both bill. Naming the monthly product as the one being replaced
+ * makes Play swap them. Time proration (RevenueCat's advice for an upgrade)
+ * starts Annual now and credits the unused monthly days against it.
+ *
+ * Only on Android, and only when the plan being replaced is a monthly one on
+ * Google Play, or one whose store we were not told. Apple keeps both plans in
+ * one subscription group and swaps them itself, so iOS gets nothing.
+ *
+ * `oldProductIdentifier` is the subscription id with NO base plan suffix
+ * ("sw.membership.monthly", never "sw.membership.monthly:monthly"): Play
+ * matches it against the subscription the user owns.
+ */
+export function playUpgradeChangeInfo(input: {
+  platformOS: string;
+  membership: User["membership"] | null | undefined;
+  /** The monthly product id the app sells, from the server's offer. */
+  monthlyProductId: string | null | undefined;
+}): StoreProductChangeInfo | null {
+  const m = input.membership;
+  if (input.platformOS !== "android") return null;
+  if (!m?.active || m.plan !== "monthly") return null;
+  const store = m.store ?? null;
+  if (store !== "play_store" && store !== null && store !== "unknown") return null;
+  if (!input.monthlyProductId) return null;
+  return {
+    oldProductIdentifier: baseProductId(input.monthlyProductId),
+    // The current API (GoogleProductChangeInfo/PRORATION_MODE are deprecated).
+    // Time proration: the switch happens now and the unused monthly days are
+    // credited, which is what RevenueCat recommends for an upgrade.
+    replacementMode: STORE_REPLACEMENT_MODE.WITH_TIME_PRORATION,
+  };
 }
 
 /**
@@ -431,41 +568,69 @@ export async function purchaseProductById(
  * payment sheet, for an answer it already has. Private, so the only way to reach
  * a charge from outside this file is through a function that checks first.
  */
-async function chargeForProduct(productId: string): Promise<PurchaseOutcome> {
+async function chargeForProduct(
+  productId: string,
+  googleProductChangeInfo: StoreProductChangeInfo | null = null,
+  { settleAfterCharge = false }: { settleAfterCharge?: boolean } = {},
+): Promise<PurchaseOutcome> {
+  // TWO PHASES, TWO MEANINGS FOR AN ERROR. The lookup runs before any payment
+  // sheet exists, so its failures are always safe to retry. The purchase call
+  // is where money can move, so its failures go through classifyStoreError.
+  let products: PurchasesStoreProduct[];
   try {
-    const products: PurchasesStoreProduct[] = await Purchases.getProducts(
+    products = await Purchases.getProducts(
       [productId],
       productCategoryFor(productId),
     );
+  } catch (error) {
+    return outcomeFromStoreError(
+      error,
+      `product lookup of "${productId}"`,
+      "lookup",
+      settleAfterCharge,
+    );
+  }
 
-    // NOT products[0] — a Play subscription returns one product per base plan.
-    // See selectStoreProduct.ts for why guessing here is a wrong-price charge.
-    const selection = selectStoreProduct(productId, products);
-    if (!selection.ok) {
-      if (selection.reason === "ambiguous") {
-        console.error(
-          `[purchases] AMBIGUOUS "${productId}": the store returned ${selection.candidates.length} ` +
-            `base plans (${selection.candidates.join(", ")}). Refusing to guess which one to bill. ` +
-            `Fix: request the fully-qualified "<subscriptionId>:<basePlanId>" instead.`,
-        );
-      } else {
-        console.error(
-          `[purchases] product "${productId}" not found in the store as a ` +
-            `${productCategoryFor(productId)} product. Check it exists, is ACTIVE, that the id ` +
-            `matches ProductCatalog.ts exactly, and that its type in the console agrees with the ` +
-            `category above (a one-time SKU queried as a subscription comes back empty on Play).`,
-        );
-      }
-      return {
-        status: "error",
-        message: "That item isn't available for purchase right now.",
-      };
+  // NOT products[0] — a Play subscription returns one product per base plan.
+  // See selectStoreProduct.ts for why guessing here is a wrong-price charge.
+  const selection = selectStoreProduct(productId, products);
+  if (!selection.ok) {
+    if (selection.reason === "ambiguous") {
+      console.error(
+        `[purchases] AMBIGUOUS "${productId}": the store returned ${selection.candidates.length} ` +
+          `base plans (${selection.candidates.join(", ")}). Refusing to guess which one to bill. ` +
+          `Fix: request the fully-qualified "<subscriptionId>:<basePlanId>" instead.`,
+      );
+    } else {
+      console.error(
+        `[purchases] product "${productId}" not found in the store as a ` +
+          `${productCategoryFor(productId)} product. Check it exists, is ACTIVE, that the id ` +
+          `matches ProductCatalog.ts exactly, and that its type in the console agrees with the ` +
+          `category above (a one-time SKU queried as a subscription comes back empty on Play).`,
+      );
     }
+    return {
+      status: "error",
+      message: "That item isn't available for purchase right now.",
+    };
+  }
 
-    await Purchases.purchaseStoreProduct(selection.product);
+  try {
+    // The change info only means something to Play. Never sent on iOS, where
+    // the subscription group already swaps the plans.
+    if (googleProductChangeInfo && Platform.OS === "android") {
+      await Purchases.purchaseStoreProduct(selection.product, googleProductChangeInfo);
+    } else {
+      await Purchases.purchaseStoreProduct(selection.product);
+    }
     return { status: "purchased" };
   } catch (error) {
-    return outcomeFromStoreError(error, `purchase of "${productId}"`);
+    return outcomeFromStoreError(
+      error,
+      `purchase of "${productId}"`,
+      "purchase",
+      settleAfterCharge,
+    );
   }
 }
 

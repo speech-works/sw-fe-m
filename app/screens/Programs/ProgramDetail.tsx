@@ -4,7 +4,7 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOffers, type OfferItem, type Wallet } from "../../api";
 import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
@@ -17,6 +17,15 @@ import {
   pollWalletUntil,
   recheckWalletUntil,
 } from "../../services/purchases";
+import {
+  clearProgramPending,
+  markProgramPending,
+  onPurchasesMayHaveChanged,
+  pendingLine,
+  programPending,
+  SETTLE_TIMEOUT_LINE,
+  type PendingKind,
+} from "../../services/purchaseSettlement";
 import {
   size,
   Button,
@@ -168,8 +177,26 @@ const ProgramDetailScreen = () => {
    *
    * Once this is true the screen NEVER shows a buy affordance again in this
    * session: it either becomes the owned screen or the pending screen below.
+   *
+   * "This session" reaches past this screen: the program is also recorded in
+   * purchaseSettlement's in-memory list, so backing out and coming in again
+   * lands on the pending screen, not on Buy.
    */
-  const [charged, setCharged] = useState(false);
+  const [charged, setCharged] = useState(
+    () => programPending(catalogKey) !== null,
+  );
+  /**
+   * Why we are waiting, when it is not a plain `purchased`: the purchase call
+   * failed after it ran, Google Play holds the payment, or the backend says an
+   * earlier checkout is still open. Null keeps the original pending copy.
+   */
+  const [pendingKind, setPendingKind] = useState<PendingKind | null>(() =>
+    programPending(catalogKey),
+  );
+  /** The first wait ran out without the grant. Re-entry starts here too. */
+  const [settleTimedOut, setSettleTimedOut] = useState(
+    () => programPending(catalogKey) !== null,
+  );
   const [confirming, setConfirming] = useState(false);
   /**
    * The mount-time load already fetches progress, so the first focus must not
@@ -216,6 +243,8 @@ const ProgramDetailScreen = () => {
         setIsFounder(offers.isFounderCohort);
         setBonusEligible(offers.bonusMembershipEligible);
         setOwned(match?.owned ?? false);
+        // The grant landed while they were away. The latch has done its job.
+        if (match?.owned) clearProgramPending(catalogKey);
         setLoadFailed(false);
         // Only for owners: for everybody else the endpoint is a 403 and the
         // sales flow needs nothing from it.
@@ -327,6 +356,7 @@ const ProgramDetailScreen = () => {
         : await pollWalletUntil(landed);
       if (!wallet) return false;
       setOwned(true);
+      clearProgramPending(offer.key);
       // WITHOUT THIS, "Open" HAS NOWHERE TO SEND THEM. `ownedState` reads
       // `progress`, and the mount-time effect above only fetches it when the pack
       // is ALREADY owned — a purchase made mid-visit never triggers that fetch,
@@ -407,6 +437,33 @@ const ProgramDetailScreen = () => {
     }
   }, [confirming, confirmPurchase]);
 
+  /**
+   * Wait for a grant after a purchase that did not come back clean: the
+   * purchase call failed after it ran, Google Play holds the payment, or the
+   * backend says an earlier checkout is still open.
+   *
+   * The Buy button is gone from the first line of this, for this program, for
+   * the rest of the session. The same poll as a clean purchase runs; when the
+   * grant lands the normal success sheet shows. When it does not, the screen
+   * says it will unlock on its own.
+   */
+  const settlePending = async (kind: PendingKind) => {
+    if (!offer) return;
+    markProgramPending(offer.key, kind);
+    setPendingKind(kind);
+    setSettleTimedOut(false);
+    setCharged(true);
+    const confirmed = await confirmPurchase();
+    if (!confirmed) {
+      setSettleTimedOut(true);
+      // Only the "it failed after it ran" case changes its line on timeout.
+      // The other two already say they will unlock on their own.
+      if (kind === "after_charge") {
+        showErrorBottomSheet("Almost there", SETTLE_TIMEOUT_LINE);
+      }
+    }
+  };
+
   const handleBuy = async () => {
     if (!offer) return;
     setPurchasing(true);
@@ -418,57 +475,126 @@ const ProgramDetailScreen = () => {
       amountInr: offer.priceInr,
     };
     track(ANALYTICS_EVENTS.PAYMENT_STARTED, payProps);
+    // Set once the store may have taken money. After that, nothing on this
+    // path may say "nothing has been charged" or show Buy again.
+    let mayHaveCharged = false;
     try {
       const outcome = await purchaseCatalogItem(offer.key);
-      if (outcome.status !== "purchased") {
-        // Not completed: a user cancel or a store error. `reason` separates the
-        // two so an abandonment isn't read as a genuine payment failure.
-        track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
-          ...payProps,
-          reason: outcome.status === "error" ? outcome.message : outcome.status,
-        });
-        // A STORE ERROR MUST SAY SO. This branch used to track and nothing else,
-        // so a failed unlock closed the sheet and left the screen unchanged: a
-        // dead button. That silence is what App Review saw when it reported it
-        // "cannot locate the In-App Purchases" (Guideline 2.1(b)). It also hid
-        // the real cause from us, which is why 10 of 11 purchase attempts are on
-        // record with no reason attached.
-        //
-        // Only "error" speaks. A "cancelled" is the user's own choice and must
-        // stay quiet or every backed-out sheet accuses them of a failure. Same
-        // split, same copy as the membership paywall (screens/Payments/index.tsx).
-        if (outcome.status === "error") {
-          showErrorBottomSheet("Purchase didn't complete", outcome.message);
+      switch (outcome.status) {
+        case "purchased": {
+          track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
+          // LATCH FIRST, ASK THE WALLET SECOND. The charge is already real, so
+          // from here on this screen must never offer to sell it again, whatever
+          // the wallet says next.
+          mayHaveCharged = true;
+          markProgramPending(offer.key, "after_charge");
+          setPendingKind(null);
+          setCharged(true);
+          const confirmed = await confirmPurchase();
+          if (!confirmed) {
+            setSettleTimedOut(true);
+            // Not a failure: the store took the payment and our side has not
+            // caught up. The pending screen below is what they land on, and it
+            // carries the way to check again.
+            showErrorBottomSheet(
+              "Almost there",
+              "We have your payment. It is still being confirmed.",
+            );
+          }
+          break;
         }
-      }
-      if (outcome.status === "purchased") {
-        track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
-        // LATCH FIRST, ASK THE WALLET SECOND. The charge is already real, so
-        // from here on this screen must never offer to sell it again, whatever
-        // the wallet says next.
-        setCharged(true);
-        const confirmed = await confirmPurchase();
-        if (!confirmed) {
-          // Not a failure: the store took the payment and our side has not
-          // caught up. The pending screen below is what they land on, and it
-          // carries the way to check again.
-          showErrorBottomSheet(
-            "Almost there",
-            "We have your payment. It is still being confirmed.",
-          );
-        }
+        case "pending":
+          // The purchase call ran and did not come back clean, or Play is
+          // holding the payment. Either way money may have moved.
+          mayHaveCharged = true;
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+            ...payProps,
+            reason: `pending:${outcome.kind}`,
+          });
+          await settlePending(outcome.kind);
+          break;
+        case "checkout_in_progress":
+          // The backend refused a second checkout. No store sheet was opened.
+          mayHaveCharged = true;
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+            ...payProps,
+            reason: "checkout_in_progress",
+          });
+          await settlePending("checkout_in_progress");
+          break;
+        case "already_owned":
+          // They own it. Show it as theirs, with no error.
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+            ...payProps,
+            reason: "already_owned",
+          });
+          clearProgramPending(offer.key);
+          setOwned(true);
+          if (offer.packId) await fetchProgress(offer.packId);
+          break;
+        case "cancelled":
+        case "error":
+          // Not completed: a user cancel or an error before any charge.
+          // `reason` separates the two so an abandonment isn't read as a
+          // genuine payment failure.
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+            ...payProps,
+            reason: outcome.status === "error" ? outcome.message : outcome.status,
+          });
+          // A STORE ERROR MUST SAY SO. This branch used to track and nothing
+          // else, so a failed unlock closed the sheet and left the screen
+          // unchanged: a dead button. That silence is what App Review saw when
+          // it reported it "cannot locate the In-App Purchases" (Guideline
+          // 2.1(b)).
+          //
+          // Only "error" speaks. A "cancelled" is the user's own choice and
+          // must stay quiet or every backed-out sheet accuses them of a
+          // failure. Same split, same copy as the membership paywall
+          // (screens/Payments/index.tsx).
+          if (outcome.status === "error") {
+            showErrorBottomSheet("Purchase didn't complete", outcome.message);
+          }
+          break;
       }
     } catch (error) {
       console.error("[ProgramDetail] Purchase failed:", error);
       track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "exception" });
-      showErrorBottomSheet(
-        "Purchase didn't complete",
-        "Nothing has been charged. Please try again in a moment.",
-      );
+      // Past the charge, the pending screen is already up and says the right
+      // thing. Claiming "nothing has been charged" there would be false.
+      if (!mayHaveCharged) {
+        showErrorBottomSheet(
+          "Purchase didn't complete",
+          "Nothing has been charged. Please try again in a moment.",
+        );
+      }
     } finally {
       setPurchasing(false);
     }
   };
+
+  /**
+   * The app came to the front, or the RevenueCat SDK sent a transaction it
+   * had left unfinished (it does that on the next launch after the app was
+   * killed mid-purchase). Ask our backend again whether this program is owned,
+   * so a payment that settled while they were away unlocks without a tap.
+   */
+  useEffect(() => {
+    if (owned) return;
+    return onPurchasesMayHaveChanged(() => {
+      void (async () => {
+        try {
+          const offers = await getOffers();
+          const match = selectOffer(offers.items, catalogKey);
+          if (!match?.owned) return;
+          clearProgramPending(catalogKey);
+          setOwned(true);
+          if (match.packId) await fetchProgress(match.packId);
+        } catch (error) {
+          console.warn("[ProgramDetail] ownership refresh failed:", error);
+        }
+      })();
+    });
+  }, [owned, catalogKey, fetchProgress]);
 
   if (loading) {
     return (
@@ -1058,28 +1184,38 @@ const ProgramDetailScreen = () => {
         onBack={() => navigation.goBack()}
       >
         <View style={styles.ownedBlock}>
-          <View style={styles.ownedRow}>
-            <Icon
-              name={icons.success}
-              size={size.iconSm}
-              color={colors.feedback.successText}
-            />
-            <Text
-              variant="title"
-              color={colors.feedback.successText}
-              style={styles.ownedText}
-            >
-              Payment received
+          {pendingKind ? (
+            /* No "Payment received" heading here: the line carries its own
+               words, and for a Play pending payment it would not be true. */
+            <Text variant="body" color="secondary">
+              {pendingLine(pendingKind, "program", settleTimedOut, Platform.OS)}
             </Text>
-          </View>
-          <Text variant="body" color="secondary">
-            We&apos;re confirming it now. This can take a moment. You won&apos;t
-            be charged again.
-          </Text>
+          ) : (
+            <>
+              <View style={styles.ownedRow}>
+                <Icon
+                  name={icons.success}
+                  size={size.iconSm}
+                  color={colors.feedback.successText}
+                />
+                <Text
+                  variant="title"
+                  color={colors.feedback.successText}
+                  style={styles.ownedText}
+                >
+                  Payment received
+                </Text>
+              </View>
+              <Text variant="body" color="secondary">
+                We&apos;re confirming it now. This can take a moment. You
+                won&apos;t be charged again.
+              </Text>
+            </>
+          )}
           <Button
             label="Check again"
             leftIcon={icons.retry}
-            loading={confirming}
+            loading={confirming || purchasing}
             onPress={() => void recheckPurchase()}
           />
         </View>

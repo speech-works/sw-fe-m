@@ -1,11 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Platform, StyleSheet, View } from "react-native";
 import { getOffers, getWallet, type Offers, type Wallet } from "../api";
 import {
   purchaseProductById,
   pollWalletUntil,
   recheckWalletUntil,
 } from "../services/purchases";
+import {
+  clearCreditsPending,
+  creditsLanded,
+  creditsPending,
+  markCreditsPending,
+  pendingLine,
+  type PendingKind,
+} from "../services/purchaseSettlement";
+import { showErrorBottomSheet } from "../util/functions/bottomSheet";
 import { size, Text, Button, Icon, icons, Sheet, space, spacing, useTheme } from "../design-system";
 import { useStorePrices } from "../hooks/useStorePrices";
 import { resolvePriceDisplay } from "../services/priceDisplay";
@@ -69,7 +78,25 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
    * replaced by the pending block, whose only action is to check again.
    * Cleared once the grant lands, because a later top-up is a new intent.
    */
-  const [charged, setCharged] = useState<"credits" | "membership" | null>(null);
+  const [charged, setCharged] = useState<"credits" | "membership" | null>(
+    () => (creditsPending() ? "credits" : null),
+  );
+  /**
+   * Why the credits are being waited on, when the purchase call did not come
+   * back clean (see purchaseSettlement.ts). Null keeps the original pending
+   * copy for a plain `purchased`.
+   *
+   * Seeded from the session list so a sheet opened again while a top-up is
+   * still settling shows the wait, never the Buy button.
+   */
+  const [pendingKind, setPendingKind] = useState<PendingKind | null>(
+    () => creditsPending()?.kind ?? null,
+  );
+  const [settleTimedOut, setSettleTimedOut] = useState(
+    () => creditsPending() !== null,
+  );
+  /** A line to show once the sheet has fully closed. */
+  const afterCloseNotice = useRef<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   /**
    * A wallet check is in flight, whether it is the one that follows the charge
@@ -106,6 +133,25 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     Promise.all([getOffers(), getWallet()])
       .then(([offersRes, walletRes]) => {
         setOffers(offersRes);
+        const pending = creditsPending();
+        if (pending) {
+          // A top-up from earlier in this session is still settling. If it has
+          // landed, the wait is over; if not, keep its starting balance so the
+          // check still compares against the balance from before the payment.
+          if (creditsLanded(pending.startingBalance, walletRes.balance)) {
+            clearCreditsPending();
+            setCharged(null);
+            setPendingKind(null);
+            setSettleTimedOut(false);
+            setStartingBalance(walletRes.balance);
+          } else {
+            setCharged("credits");
+            setPendingKind(pending.kind);
+            setSettleTimedOut(true);
+            setStartingBalance(pending.startingBalance);
+          }
+          return;
+        }
         setStartingBalance(walletRes.balance);
       })
       .catch((error) => {
@@ -138,7 +184,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   ): Promise<boolean> => {
     const landed = (w: Wallet) =>
       product === "credits"
-        ? startingBalance === null || w.balance > startingBalance
+        ? creditsLanded(startingBalance, w.balance)
         : w.entitlements.includes("membership");
     const wallet = userInitiated
       ? await recheckWalletUntil(landed)
@@ -150,6 +196,9 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     // to buy. ProgramDetail gets the same result by letting its owned state win
     // over the latch.
     setCharged(null);
+    setPendingKind(null);
+    setSettleTimedOut(false);
+    if (product === "credits") clearCreditsPending();
     onResolved();
     return true;
   };
@@ -159,14 +208,34 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     setErrorMessage(null);
     setPurchasing("credits");
     try {
-      const outcome = await purchaseProductById(offers.topup.productId);
-      if (outcome.status === "purchased") {
-        // LATCH FIRST, ASK THE WALLET SECOND. The charge is real by this line,
-        // so whatever the wallet says next, this sheet is done selling.
+      const outcome = await purchaseProductById(offers.topup.productId, {
+        settleAfterCharge: true,
+      });
+      if (outcome.status === "purchased" || outcome.status === "pending") {
+        // LATCH FIRST, ASK THE WALLET SECOND. The charge is real (or may be) by
+        // this line, so whatever the wallet says next, this sheet is done
+        // selling, and so is every other copy of it this session.
+        const kind = outcome.status === "pending" ? outcome.kind : null;
+        markCreditsPending({
+          kind: kind ?? "after_charge",
+          startingBalance,
+        });
+        setPendingKind(kind);
+        setSettleTimedOut(false);
         setCharged("credits");
-        // A false answer needs no message of its own: the buy button is already
-        // gone and the pending block that took its place says what is going on.
-        await confirmPurchase("credits");
+        const confirmed = await confirmPurchase("credits");
+        if (!confirmed) {
+          setSettleTimedOut(true);
+          if (kind === "after_charge") {
+            // The founder's rule: say it will unlock on its own, and close the
+            // purchase sheet. The line shows once the sheet has gone, because
+            // a second native modal over this one freezes touches on iOS.
+            afterCloseNotice.current = pendingLine(kind, "credits", true);
+            onClose();
+          }
+          // A plain `purchased` or a Play pending payment stays on the
+          // pending block, which already says what is going on.
+        }
       } else if (outcome.status === "error") {
         setErrorMessage(outcome.message);
       }
@@ -226,7 +295,17 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
        it can arrive while the consent modal or a prompt is already up. Two
        native Modals presented at once freeze touches across the whole app on
        iOS, so it waits for the registry to clear instead of stacking. */
-    <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed} exclusive>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      onDismissed={() => {
+        onDismissed?.();
+        const notice = afterCloseNotice.current;
+        afterCloseNotice.current = null;
+        if (notice) showErrorBottomSheet("Almost there", notice);
+      }}
+      exclusive
+    >
       <View style={styles.content}>
         {charged ? (
           /* PAID, NOT YET CONFIRMED. The only thing this sheet may show once a
@@ -237,17 +316,22 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
              arrived. */
           <>
             <View style={styles.copyBlock}>
-              <Text variant="h2" color="primary">
-                Payment received
-              </Text>
+              {/* With a pendingKind the line carries its own words, and for a
+                  Play pending payment "Payment received" would not be true. */}
+              {pendingKind ? null : (
+                <Text variant="h2" color="primary">
+                  Payment received
+                </Text>
+              )}
               {/* SAYS THE ONE THING THEY NEED TO HEAR: they will not be billed
                   again. The old copy for this state said the purchase was
                   "taking longer than usual to show up. Try closing and
                   reopening the call", which read as a fault and sent them back
                   to the button that charges. */}
               <Text variant="body" color="secondary">
-                We&apos;re confirming it now. This can take a moment. You
-                won&apos;t be charged again.
+                {pendingKind
+                  ? pendingLine(pendingKind, "credits", settleTimedOut, Platform.OS)
+                  : "We're confirming it now. This can take a moment. You won't be charged again."}
               </Text>
             </View>
 
