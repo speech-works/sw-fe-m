@@ -13,22 +13,25 @@ import { isModuleOfferable } from "../../util/packs/dayLock";
 import { packErrorMessage } from "../../util/packs/packErrors";
 import { PackBrochure, PackProgress } from "../../api/packs/types";
 import {
+  confirmWalletGrant,
   purchaseCatalogItem,
-  pollWalletUntil,
-  recheckWalletUntil,
 } from "../../services/purchases";
 import {
   clearProgramPending,
   markProgramPending,
+  OTHER_ACCOUNT,
   offersPaused,
   onPurchasesMayHaveChanged,
   pendingLine,
+  programAttemptKey,
   programPending,
   PURCHASES_PAUSED_LINE,
   SETTLE_TIMEOUT_LINE,
+  showsOtherAccount,
   type PendingKind,
 } from "../../services/purchaseSettlement";
 import { PaymentProblemLink } from "../../components/PaymentProblemLink";
+import { OtherAccountNotice } from "../../components/OtherAccountNotice";
 import {
   size,
   Button,
@@ -344,8 +347,11 @@ const ProgramDetailScreen = () => {
    * unlock the screen, fetch progress so "Open" has a day to open, say the
    * purchase went through, and name the bonus month when there really is one.
    *
-   * Returns false when the wallet has not caught up yet. That is a WAIT, never
-   * a reason to show a buy button again.
+   * Returns "waiting" when the wallet has not caught up yet. That is a WAIT,
+   * never a reason to show a buy button again. Returns "other_account" when
+   * the server lists this attempt's tier SKU, bought since it started, as
+   * another Speechworks account's: the screen then shows "Paid on your other
+   * account", latched for the session, with "Check again" still under it.
    *
    * `userInitiated` chooses WHICH DOOR the question goes through, and on the
    * pending screen it is the difference between a button that can work and one
@@ -358,14 +364,25 @@ const ProgramDetailScreen = () => {
    * recheckWalletUntil.
    */
   const confirmPurchase = useCallback(
-    async ({ userInitiated = false }: { userInitiated?: boolean } = {}) => {
-      if (!offer) return false;
+    async ({
+      userInitiated = false,
+    }: { userInitiated?: boolean } = {}): Promise<
+      "landed" | "waiting" | "other_account"
+    > => {
+      if (!offer) return "waiting";
       const landed = (w: Wallet) =>
         w.entitlements.includes(`pack:${offer.key}`);
-      const wallet = userInitiated
-        ? await recheckWalletUntil(landed)
-        : await pollWalletUntil(landed);
-      if (!wallet) return false;
+      const wallet = await confirmWalletGrant(landed, {
+        userInitiated,
+        attemptKey: programAttemptKey(offer.key),
+      });
+      if (wallet === OTHER_ACCOUNT) {
+        markProgramPending(offer.key, "other_account");
+        setPendingKind("other_account");
+        setSettleTimedOut(true);
+        return "other_account";
+      }
+      if (!wallet) return "waiting";
       setOwned(true);
       clearProgramPending(offer.key);
       // WITHOUT THIS, "Open" HAS NOWHERE TO SEND THEM. `ownedState` reads
@@ -423,7 +440,7 @@ const ProgramDetailScreen = () => {
           "Your program is unlocked. You can start now.",
         );
       }
-      return true;
+      return "landed";
     },
     [offer, fetchProgress, bonusEligible],
   );
@@ -436,8 +453,10 @@ const ProgramDetailScreen = () => {
     if (confirming) return;
     setConfirming(true);
     try {
-      const confirmed = await confirmPurchase({ userInitiated: true });
-      if (!confirmed) {
+      const result = await confirmPurchase({ userInitiated: true });
+      // Under the other-account notice a tap that finds nothing new keeps the
+      // notice. "Still confirming" there would contradict it.
+      if (result === "waiting" && !showsOtherAccount(pendingKind)) {
         showErrorBottomSheet(
           "Still confirming",
           "Your payment is safe. Please check again in a moment.",
@@ -446,7 +465,7 @@ const ProgramDetailScreen = () => {
     } finally {
       setConfirming(false);
     }
-  }, [confirming, confirmPurchase]);
+  }, [confirming, confirmPurchase, pendingKind]);
 
   /**
    * Wait for a grant after a purchase that did not come back clean: the
@@ -464,8 +483,8 @@ const ProgramDetailScreen = () => {
     setPendingKind(kind);
     setSettleTimedOut(false);
     setCharged(true);
-    const confirmed = await confirmPurchase();
-    if (!confirmed) {
+    const result = await confirmPurchase();
+    if (result === "waiting") {
       setSettleTimedOut(true);
       // Only the "it failed after it ran" case changes its line on timeout.
       // The other two already say they will unlock on their own.
@@ -501,8 +520,8 @@ const ProgramDetailScreen = () => {
           markProgramPending(offer.key, "after_charge");
           setPendingKind(null);
           setCharged(true);
-          const confirmed = await confirmPurchase();
-          if (!confirmed) {
+          const result = await confirmPurchase();
+          if (result === "waiting") {
             setSettleTimedOut(true);
             // Not a failure: the store took the payment and our side has not
             // caught up. The pending screen below is what they land on, and it
@@ -1201,7 +1220,12 @@ const ProgramDetailScreen = () => {
         onBack={() => navigation.goBack()}
       >
         <View style={styles.ownedBlock}>
-          {pendingKind ? (
+          {showsOtherAccount(pendingKind) ? (
+            /* PAID ON THE OTHER ACCOUNT. Nothing unlocks here on its own, so
+               no line says it will. "Check again" stays below: a grant that
+               does arrive always wins. */
+            <OtherAccountNotice headingVariant="title" />
+          ) : pendingKind ? (
             /* No "Payment received" heading here: the line carries its own
                words, and for a Play pending payment it would not be true. */
             <Text variant="body" color="secondary">

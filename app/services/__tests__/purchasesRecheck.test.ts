@@ -68,12 +68,20 @@ jest.mock("../../stores/user", () => ({
 import { readFileSync } from "fs";
 import { join } from "path";
 import {
+  confirmMembershipGrant,
+  confirmWalletGrant,
   pollMembershipUntil,
   pollWalletUntil,
   recheckMembershipUntil,
   recheckWalletUntil,
 } from "../purchases";
 import { purchaseConfirmed } from "../../util/functions/paywallView";
+import {
+  __resetPendingForTests,
+  productAttemptKey,
+  programAttemptKey,
+  rememberAttempt,
+} from "../purchaseSettlement";
 
 /** An axios-shaped rejection, which is what the api layer re-throws. */
 const httpError = (status: number, data?: unknown) =>
@@ -309,7 +317,7 @@ describe("after a membership purchase, the wait reads the user's plan", () => {
   it("the exhaustion sheet confirms membership on the plan, not the entitlement", () => {
     const src = prose("app/components/ExhaustionSheet.tsx");
     expect(src).not.toContain('entitlements.includes("membership")');
-    expect(src).toContain("pollMembershipUntil");
+    expect(src).toContain("confirmMembershipGrant");
     expect(src).toContain('purchaseConfirmed(m, "monthly")');
   });
 
@@ -359,7 +367,205 @@ describe("both 'Check again' buttons force the pass", () => {
     expect(rechecksWith(file)).toContain("userInitiated: true");
   });
 
+  // Both surfaces go through confirmWalletGrant, which sends a tap with
+  // `userInitiated` to recheckWalletUntil (pinned in the tests above and below).
   it.each(RECHECK_SURFACES)("%s can reach the forced route at all", (file) => {
-    expect(prose(file)).toContain("recheckWalletUntil");
+    expect(prose(file)).toMatch(/confirmWalletGrant\(landed, \{\s*userInitiated,/);
+  });
+});
+
+/**
+ * ---------------------------------------------------------------------------
+ * PAID ON THE OTHER ACCOUNT
+ *
+ * The forced reconcile lists `foreignPurchaseItems`: store purchases another
+ * Speechworks account paid for. A pending purchase ends as "other_account"
+ * only when an item is of THIS attempt's product and bought since it started.
+ * ---------------------------------------------------------------------------
+ */
+const TIER = "sw.tier.999";
+const ATTEMPT_KEY = programAttemptKey("calm-mind");
+const recentItem = () => ({
+  productId: TIER,
+  purchasedAt: new Date(Date.now()).toISOString(),
+});
+const reconciled = (items?: unknown, wallet: object = NOT_OWNED) => ({
+  ...wallet,
+  reconciled: true,
+  foreignPurchases: items !== undefined,
+  ...(items !== undefined ? { foreignPurchaseItems: items } : {}),
+});
+
+describe("a pending purchase meets the server's foreign items", () => {
+  beforeEach(() => {
+    __resetPendingForTests();
+    rememberAttempt(ATTEMPT_KEY, { productId: TIER, startedAt: Date.now() });
+  });
+
+  it("same product, bought just now: the tap ends as the other account's", async () => {
+    mockReconcileWallet.mockResolvedValue(reconciled([recentItem()]));
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    expect(
+      await settled(recheckWalletUntil(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBe("other_account");
+  });
+
+  it("same product, bought long ago: still a wait", async () => {
+    mockReconcileWallet.mockResolvedValue(
+      reconciled([{ productId: TIER, purchasedAt: "2026-01-01T00:00:00.000Z" }]),
+    );
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    expect(
+      await settled(recheckWalletUntil(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBeNull();
+  });
+
+  it("a different product: still a wait", async () => {
+    mockReconcileWallet.mockResolvedValue(
+      reconciled([{ productId: "sw.credits.2", purchasedAt: new Date().toISOString() }]),
+    );
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    expect(
+      await settled(recheckWalletUntil(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBeNull();
+  });
+
+  it("an older server (foreignPurchases true, no items): still a wait", async () => {
+    mockReconcileWallet.mockResolvedValue({
+      ...NOT_OWNED,
+      reconciled: true,
+      foreignPurchases: true,
+    });
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    expect(
+      await settled(recheckWalletUntil(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBeNull();
+  });
+
+  it("no attempt key: never the notice", async () => {
+    mockReconcileWallet.mockResolvedValue(reconciled([recentItem()]));
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    expect(await settled(recheckWalletUntil(arrived, FAST))).toBeNull();
+  });
+
+  it("a grant that lands wins over a matching foreign item", async () => {
+    mockReconcileWallet.mockResolvedValue(reconciled([recentItem()]));
+    mockGetWallet.mockResolvedValueOnce(NOT_OWNED).mockResolvedValue(OWNED);
+    expect(
+      await settled(recheckWalletUntil(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toEqual(OWNED);
+  });
+
+  it("a failed forced pass never claims the other account", async () => {
+    mockReconcileWallet.mockRejectedValue(httpError(500));
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    expect(
+      await settled(recheckWalletUntil(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBeNull();
+  });
+
+  it("the membership recheck matches its own product", async () => {
+    const key = productAttemptKey("sw.membership.annual");
+    rememberAttempt(key, { productId: "sw.membership.annual", startedAt: Date.now() });
+    mockReconcileWallet.mockResolvedValue(
+      reconciled([
+        { productId: "sw.membership.annual", purchasedAt: new Date().toISOString() },
+      ]),
+    );
+    mockGetMyUser.mockResolvedValue({ id: "user-1", membership: null });
+    expect(
+      await settled(
+        recheckMembershipUntil((m) => purchaseConfirmed(m, "annual"), {
+          ...FAST,
+          attemptKey: key,
+        }),
+      ),
+    ).toBe("other_account");
+  });
+});
+
+describe("confirmWalletGrant: the one check every surface runs", () => {
+  beforeEach(() => {
+    __resetPendingForTests();
+    rememberAttempt(ATTEMPT_KEY, { productId: TIER, startedAt: Date.now() });
+  });
+
+  it("a tap goes straight to the forced route", async () => {
+    mockReconcileWallet.mockResolvedValue({ ...OWNED, reconciled: true });
+    expect(
+      await settled(confirmWalletGrant(arrived, { userInitiated: true, ...FAST })),
+    ).toEqual({ ...OWNED, reconciled: true });
+    expect(mockGetWallet).not.toHaveBeenCalled();
+  });
+
+  it("the automatic wait stays cheap when the grant lands", async () => {
+    mockGetWallet.mockResolvedValue(OWNED);
+    expect(await settled(confirmWalletGrant(arrived, FAST))).toEqual(OWNED);
+    expect(mockReconcileWallet).not.toHaveBeenCalled();
+  });
+
+  it("asks the store once when the automatic wait runs out, and matches the attempt", async () => {
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    mockReconcileWallet.mockResolvedValue(reconciled([recentItem()]));
+    expect(
+      await settled(confirmWalletGrant(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBe("other_account");
+    expect(mockReconcileWallet).toHaveBeenCalledTimes(1);
+  });
+
+  it("without a match the timed-out wait is still a wait", async () => {
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    mockReconcileWallet.mockResolvedValue({ ...NOT_OWNED, reconciled: true });
+    expect(
+      await settled(confirmWalletGrant(arrived, { ...FAST, attemptKey: ATTEMPT_KEY })),
+    ).toBeNull();
+    expect(mockReconcileWallet).toHaveBeenCalledTimes(1);
+  });
+
+  it("the one forced ask can still find a repaired grant", async () => {
+    mockGetWallet.mockResolvedValue(NOT_OWNED);
+    mockReconcileWallet.mockResolvedValue(reconciled([recentItem()], OWNED));
+    const result = await settled(
+      confirmWalletGrant(arrived, { ...FAST, attemptKey: ATTEMPT_KEY }),
+    );
+    expect(result).toMatchObject(OWNED);
+  });
+});
+
+describe("confirmMembershipGrant", () => {
+  const key = productAttemptKey("sw.membership.annual");
+  const onAnnual = {
+    id: "user-1",
+    membership: { active: true, until: "y", daysRemaining: 365, plan: "annual", source: "purchase" },
+  };
+  const annualNow = () =>
+    reconciled([{ productId: "sw.membership.annual", purchasedAt: new Date().toISOString() }]);
+
+  beforeEach(() => {
+    __resetPendingForTests();
+    rememberAttempt(key, { productId: "sw.membership.annual", startedAt: Date.now() });
+  });
+
+  it("reads the plan once more after the forced ask, so a repaired plan is found", async () => {
+    mockGetMyUser.mockResolvedValue({ id: "user-1", membership: null });
+    mockReconcileWallet.mockImplementation(async () => {
+      mockGetMyUser.mockResolvedValue(onAnnual);
+      return annualNow();
+    });
+    expect(
+      await settled(
+        confirmMembershipGrant((m) => purchaseConfirmed(m, "annual"), { ...FAST, attemptKey: key }),
+      ),
+    ).toEqual(onAnnual);
+  });
+
+  it("ends as the other account's when the plan never came", async () => {
+    mockGetMyUser.mockResolvedValue({ id: "user-1", membership: null });
+    mockReconcileWallet.mockResolvedValue(annualNow());
+    expect(
+      await settled(
+        confirmMembershipGrant((m) => purchaseConfirmed(m, "annual"), { ...FAST, attemptKey: key }),
+      ),
+    ).toBe("other_account");
   });
 });

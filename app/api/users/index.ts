@@ -485,6 +485,12 @@ export interface ReconciledWallet extends Wallet {
    * Speechworks account. Absent on an older server, and absent means false.
    */
   foreignPurchases?: boolean;
+  /**
+   * One entry per store purchase another Speechworks account paid for, with
+   * RevenueCat's purchase date (ISO) or null. Absent on an older server. Read
+   * through `foreignItemMatchesAttempt`, which tolerates any shape.
+   */
+  foreignPurchaseItems?: { productId: string; purchasedAt: string | null }[];
 }
 
 /**

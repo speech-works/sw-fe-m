@@ -18,6 +18,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOffers, type MembershipOffer } from "../../api";
 import {
+  confirmMembershipGrant,
   purchaseProductById,
   playUpgradeChangeInfo,
   pollMembershipUntil,
@@ -70,10 +71,13 @@ import {
 import { PaywallPager } from "./PaywallPager";
 import {
   MEMBERSHIP_CONFIRMING_LINE,
+  OTHER_ACCOUNT,
   offersPaused,
+  productAttemptKey,
   PURCHASES_PAUSED_LINE,
 } from "../../services/purchaseSettlement";
 import { PaymentProblemLink } from "../../components/PaymentProblemLink";
+import { OtherAccountNotice } from "../../components/OtherAccountNotice";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -120,6 +124,18 @@ const SubscribeScreenBody = () => {
   // for as long as this screen is open, whatever our server says or how long
   // it takes to say it: a second tap is a second charge.
   const [storeCharged, setStoreCharged] = useState(false);
+  // The server lists this attempt's product, bought since it started, as
+  // another Speechworks account's. The screen stays open with the "Paid on
+  // your other account" words in place of the buy button, a small "Check
+  // again" (a grant that arrives always wins) and the "Problem with a
+  // payment?" link below. Never "it should appear shortly". Holds the attempt
+  // so "Check again" asks about the same plan and product.
+  const [paidElsewhere, setPaidElsewhere] = useState<{
+    plan: PlanKey;
+    productId: string;
+    confirmed: { title: string; message: string };
+  } | null>(null);
+  const [recheckingElsewhere, setRecheckingElsewhere] = useState(false);
   const [membership, setMembership] = useState<MembershipOffer | null>(null);
   // The server's emergency stop (offers.purchasesPaused). While true, no buy
   // or upgrade button and no store sheet. Manage and Restore keep working.
@@ -320,12 +336,18 @@ const SubscribeScreenBody = () => {
         // wallet's "membership" entitlement: somebody on free days already has
         // that, and the wait used to end before the purchase had been seen.
         const bought: PlanKey = isAnnual ? "annual" : "monthly";
-        const fresh = await pollMembershipUntil((m) =>
-          purchaseConfirmed(m, bought),
+        const confirmed = { title: "You're in", message: "Your access is active." };
+        const fresh = await confirmMembershipGrant(
+          (m) => purchaseConfirmed(m, bought),
+          { attemptKey: productAttemptKey(productId) },
         );
+        if (fresh === OTHER_ACCOUNT) {
+          setPaidElsewhere({ plan: bought, productId, confirmed });
+          return;
+        }
         finishAfterStorePurchase(
           fresh,
-          { title: "You're in", message: "Your access is active." },
+          confirmed,
           MEMBERSHIP_CONFIRMING_LINE,
         );
       } else {
@@ -359,6 +381,30 @@ const SubscribeScreenBody = () => {
    * which is what `playUpgradeChangeInfo` supplies on Android.
    * RevenueCat sends a PRODUCT_CHANGE webhook which our backend already handles.
    */
+  /**
+   * "Check again" under the other-account notice. A grant that arrives always
+   * wins: it takes the normal success path. Anything else keeps the notice.
+   */
+  const recheckPaidElsewhere = async () => {
+    if (!paidElsewhere || recheckingElsewhere) return;
+    setRecheckingElsewhere(true);
+    try {
+      const fresh = await confirmMembershipGrant(
+        (m) => purchaseConfirmed(m, paidElsewhere.plan),
+        {
+          userInitiated: true,
+          attemptKey: productAttemptKey(paidElsewhere.productId),
+        },
+      );
+      if (fresh && fresh !== OTHER_ACCOUNT) {
+        setPaidElsewhere(null);
+        finishAfterStorePurchase(fresh, paidElsewhere.confirmed, MEMBERSHIP_CONFIRMING_LINE);
+      }
+    } finally {
+      setRecheckingElsewhere(false);
+    }
+  };
+
   const handleUpgradeToAnnual = async () => {
     if (!membership || storeCharged || purchasesPaused) return;
     if (!purchasesAvailable()) {
@@ -392,12 +438,21 @@ const SubscribeScreenBody = () => {
       if (outcome.status === "purchased") {
         setStoreCharged(true);
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
-        const fresh = await pollMembershipUntil((m) =>
-          purchaseConfirmed(m, "annual"),
+        const confirmed = {
+          title: "Upgraded!",
+          message: "You're now on the annual plan.",
+        };
+        const fresh = await confirmMembershipGrant(
+          (m) => purchaseConfirmed(m, "annual"),
+          { attemptKey: productAttemptKey(productId) },
         );
+        if (fresh === OTHER_ACCOUNT) {
+          setPaidElsewhere({ plan: "annual", productId, confirmed });
+          return;
+        }
         finishAfterStorePurchase(
           fresh,
-          { title: "Upgraded!", message: "You're now on the annual plan." },
+          confirmed,
           "Your upgrade went through but is still being confirmed. It should appear shortly.",
         );
       } else {
@@ -502,7 +557,31 @@ const SubscribeScreenBody = () => {
                     Body size, primary ink, directly above the button: free
                     days ending, a payment that failed, a plan on the other
                     store. Never a grey caption below the fold. */}
-                {view.notices.length > 0 ? (
+                {paidElsewhere ? (
+                  <View style={styles.notices}>
+                    <OtherAccountNotice headingVariant="title" center />
+                    <TouchableOpacity
+                      onPress={() => void recheckPaidElsewhere()}
+                      disabled={recheckingElsewhere}
+                      activeOpacity={0.7}
+                      style={styles.secondaryCta}
+                      accessibilityRole="button"
+                      accessibilityLabel="Check again"
+                    >
+                      {recheckingElsewhere ? (
+                        <ActivityIndicator color={colors.text.secondary} />
+                      ) : (
+                        <DSText
+                          variant="label"
+                          color="secondary"
+                          style={styles.managePlanLink}
+                        >
+                          Check again
+                        </DSText>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : view.notices.length > 0 ? (
                   <View style={styles.notices}>
                     {view.notices.map((line) => (
                       <DSText key={line} variant="body" color="primary" center>
@@ -523,7 +602,7 @@ const SubscribeScreenBody = () => {
                   <DSText variant="body" color="primary" center>
                     {PURCHASES_PAUSED_LINE}
                   </DSText>
-                ) : cta.kind !== "none" ? (
+                ) : paidElsewhere && (cta.kind === "buy" || cta.kind === "upgrade") ? null : cta.kind !== "none" ? (
                   <TouchableOpacity
                     style={[
                       styles.upgradeBtnWrapper,

@@ -51,7 +51,11 @@ jest.mock("../../stores/user", () => ({
 }));
 
 import { PURCHASES_ERROR_CODE } from "react-native-purchases";
-import { purchaseCatalogItem, purchaseProductById } from "../purchases";
+import {
+  purchaseCatalogItem,
+  purchaseProductById,
+  releasesCheckout,
+} from "../purchases";
 import {
   CHECKOUT_IN_PROGRESS_LINE,
   CREDITS_SETTLING_LINE,
@@ -75,6 +79,17 @@ import {
   purchasesPausedFrom,
   FOREIGN_PURCHASES_LINE,
   MEMBERSHIP_CONFIRMING_LINE,
+  OTHER_ACCOUNT,
+  OTHER_ACCOUNT_TITLE,
+  STORE_CLOCK_SLACK_MS,
+  foreignItemMatchesAttempt,
+  grantCheckVerdict,
+  lastAttempt,
+  otherAccountLine,
+  pendingTitle,
+  productAttemptKey,
+  programAttemptKey,
+  showsOtherAccount,
   PURCHASES_PAUSED_LINE,
   UNCLEAR_PROGRAM_LINE,
   UNCLEAR_CREDITS_LINE,
@@ -475,5 +490,201 @@ describe("releasesCheckout", () => {
     for (const kind of ["after_charge", "store_pending", "unclear"]) {
       expect(releasesCheckout({ status: "pending", kind })).toBe(false);
     }
+  });
+});
+
+/**
+ * ===========================================================================
+ * PAID ON THE OTHER ACCOUNT
+ * ---------------------------------------------------------------------------
+ * One Apple or Google Play account under two Speechworks accounts on one phone.
+ * The server keeps every payment with the account that paid, so when B's
+ * purchase ends up with A, B's "it unlocks on its own" wait never ended
+ * (TestFlight sandbox, 8 Nov 2026). These pin the final state that replaces it.
+ * ===========================================================================
+ */
+describe("paid on the other account", () => {
+  it("says the approved words, naming the store the phone uses", () => {
+    expect(OTHER_ACCOUNT_TITLE).toBe("Paid on your other account");
+    expect(otherAccountLine("ios")).toBe(
+      "This Apple account already paid for this on another Speechworks account. Sign in with that account to use it, or write to us and we will move it for you.",
+    );
+    expect(otherAccountLine("android")).toBe(
+      "This Google Play account already paid for this on another Speechworks account. Sign in with that account to use it, or write to us and we will move it for you.",
+    );
+  });
+
+  it("never says it unlocks on its own, and keeps house style", () => {
+    for (const os of ["ios", "android"]) {
+      const line = otherAccountLine(os);
+      expect(line).not.toMatch(/on its own|shortly|check again|—/i);
+      expect(line).not.toMatch(/SpeechWorks/);
+    }
+    expect(OTHER_ACCOUNT_TITLE).not.toMatch(/—/);
+  });
+
+  it("is the pending line for every product, timed out or not", () => {
+    for (const product of ["program", "credits"] as const) {
+      for (const timedOut of [false, true]) {
+        expect(pendingLine("other_account", product, timedOut, "ios")).toBe(
+          otherAccountLine("ios"),
+        );
+      }
+    }
+  });
+
+  it("has its own heading and notice; every other wait does not", () => {
+    expect(showsOtherAccount("other_account")).toBe(true);
+    expect(pendingTitle("other_account")).toBe(OTHER_ACCOUNT_TITLE);
+    for (const kind of [
+      "after_charge",
+      "store_pending",
+      "checkout_in_progress",
+      "unclear",
+      null,
+    ] as const) {
+      expect(showsOtherAccount(kind)).toBe(false);
+      expect(pendingTitle(kind)).toBeNull();
+    }
+  });
+
+  it("latches like any open payment, so reopening shows it, not Buy", () => {
+    markProgramPending("calm-mind", "other_account");
+    expect(programPending("calm-mind")).toBe("other_account");
+    markCreditsPending({ kind: "other_account", startingBalance: 0 });
+    expect(creditsPending()?.kind).toBe("other_account");
+  });
+
+  describe("foreignItemMatchesAttempt: only THIS attempt's purchase counts", () => {
+    const startedAt = Date.parse("2026-11-08T10:00:00.000Z");
+    const attempt = { productId: "sw.tier.999", startedAt };
+    const at = (ms: number) => new Date(ms).toISOString();
+
+    it("same product, bought after the attempt started: the notice", () => {
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.tier.999", purchasedAt: at(startedAt + 5_000) }],
+          attempt,
+        ),
+      ).toBe(true);
+    });
+
+    it("allows two minutes of store clock slack, and not a second more", () => {
+      const edge = startedAt - STORE_CLOCK_SLACK_MS;
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.tier.999", purchasedAt: at(edge) }],
+          attempt,
+        ),
+      ).toBe(true);
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.tier.999", purchasedAt: at(edge - 1_000) }],
+          attempt,
+        ),
+      ).toBe(false);
+    });
+
+    it("same product but an older purchase: no notice", () => {
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.tier.999", purchasedAt: "2026-08-01T09:00:00.000Z" }],
+          attempt,
+        ),
+      ).toBe(false);
+    });
+
+    it("a different product, however recent: no notice", () => {
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.credits.2", purchasedAt: at(startedAt + 5_000) }],
+          attempt,
+        ),
+      ).toBe(false);
+    });
+
+    it("a null or unreadable date: no notice", () => {
+      expect(
+        foreignItemMatchesAttempt([{ productId: "sw.tier.999", purchasedAt: null }], attempt),
+      ).toBe(false);
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.tier.999", purchasedAt: "not a date" }],
+          attempt,
+        ),
+      ).toBe(false);
+    });
+
+    it("a missing field (older server) or a wrong shape: no notice", () => {
+      for (const items of [undefined, null, true, "x", {}, [null], [{}], [{ productId: 1 }]]) {
+        expect(foreignItemMatchesAttempt(items, attempt)).toBe(false);
+      }
+    });
+
+    it("no attempt to compare against: no notice", () => {
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.tier.999", purchasedAt: at(startedAt) }],
+          null,
+        ),
+      ).toBe(false);
+    });
+
+    it("matches a Play base plan to its subscription id", () => {
+      expect(
+        foreignItemMatchesAttempt(
+          [{ productId: "sw.membership.monthly:monthly", purchasedAt: at(startedAt) }],
+          { productId: "sw.membership.monthly", startedAt },
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe("grantCheckVerdict: a pending purchase meets the reconcile", () => {
+    const wallet = { balance: 2, entitlements: ["pack:calm-mind"] };
+
+    it("a matched foreign item with no grant ends the wait as the other account's", () => {
+      expect(grantCheckVerdict(null, true)).toBe(OTHER_ACCOUNT);
+    });
+
+    it("no match keeps the wait exactly as before", () => {
+      expect(grantCheckVerdict(null, false)).toBeNull();
+    });
+
+    it("a grant that landed always wins", () => {
+      expect(grantCheckVerdict(wallet, true)).toBe(wallet);
+      expect(grantCheckVerdict(wallet, false)).toBe(wallet);
+    });
+  });
+
+  describe("each purchase remembers its attempt", () => {
+    it("a program checkout remembers its tier SKU and start time", async () => {
+      const before = Date.now();
+      await purchaseCatalogItem("calm-mind");
+      const attempt = lastAttempt(programAttemptKey("calm-mind"));
+      expect(attempt?.productId).toBe("sw.tier.999");
+      expect(attempt!.startedAt).toBeGreaterThanOrEqual(before);
+    });
+
+    it("a fixed product remembers itself", async () => {
+      mockGetProducts.mockResolvedValue([
+        { identifier: "sw.credits.2", priceString: "₹99", price: 99, currencyCode: "INR" },
+      ]);
+      await purchaseProductById("sw.credits.2", { settleAfterCharge: true });
+      expect(lastAttempt(productAttemptKey("sw.credits.2"))?.productId).toBe("sw.credits.2");
+    });
+  });
+
+  describe("the RECEIPT_* codes from the purchase call", () => {
+    it.each([C.RECEIPT_ALREADY_IN_USE_ERROR, C.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR])(
+      "code %s is the ordinary unclear wait, never the notice by itself",
+      async (code) => {
+        mockPurchaseStoreProduct.mockRejectedValue(storeError(code));
+        const outcome = await purchaseCatalogItem("calm-mind");
+        expect(outcome).toEqual({ status: "pending", kind: "unclear" });
+        // The checkout stays held while it is decided on the next check.
+        expect(releasesCheckout(outcome)).toBe(false);
+      },
+    );
   });
 });

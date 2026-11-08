@@ -2,11 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { getOffers, getWallet, type Offers, type Wallet } from "../api";
 import {
+  confirmMembershipGrant,
+  confirmWalletGrant,
   purchaseProductById,
-  pollMembershipUntil,
-  pollWalletUntil,
-  recheckMembershipUntil,
-  recheckWalletUntil,
 } from "../services/purchases";
 import {
   clearCreditsPending,
@@ -14,14 +12,18 @@ import {
   creditsPending,
   markCreditsPending,
   MEMBERSHIP_CONFIRMING_LINE,
+  OTHER_ACCOUNT,
   offersPaused,
   pendingLine,
+  productAttemptKey,
   PURCHASES_PAUSED_LINE,
+  showsOtherAccount,
   type PendingKind,
 } from "../services/purchaseSettlement";
 import { purchaseConfirmed } from "../util/functions/paywallView";
 import { useUserStore } from "../stores/user";
 import { PaymentProblemLink } from "./PaymentProblemLink";
+import { OtherAccountNotice } from "./OtherAccountNotice";
 import { showErrorBottomSheet } from "../util/functions/bottomSheet";
 import { size, Text, Button, Icon, icons, Sheet, space, spacing, useTheme } from "../design-system";
 import { useStorePrices } from "../hooks/useStorePrices";
@@ -189,7 +191,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   const confirmPurchase = async (
     product: "credits" | "membership",
     { userInitiated = false }: { userInitiated?: boolean } = {},
-  ): Promise<boolean> => {
+  ): Promise<"landed" | "waiting" | "other_account"> => {
     if (product === "membership") {
       // The user's PLAN, not the wallet's "membership" entitlement: somebody on
       // free days already has that, so a wait on it ended before the purchase
@@ -197,22 +199,34 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
       // The sheet sells the monthly product (offers.membership.productId).
       const landed = (m: Parameters<typeof purchaseConfirmed>[0]) =>
         purchaseConfirmed(m, "monthly");
-      const fresh = userInitiated
-        ? await recheckMembershipUntil(landed)
-        : await pollMembershipUntil(landed);
+      const fresh = await confirmMembershipGrant(landed, {
+        userInitiated,
+        attemptKey: offers?.membership
+          ? productAttemptKey(offers.membership.productId)
+          : undefined,
+      });
+      if (fresh === OTHER_ACCOUNT) {
+        showOtherAccount("membership");
+        return "other_account";
+      }
       if (!fresh) {
         // Not confirmed in time. Refresh the user so the rest of the app
         // catches up as soon as it lands; the pending block says so honestly.
         void useUserStore.getState().fetchUser();
-        return false;
+        return "waiting";
       }
       useUserStore.getState().setUser(fresh);
     } else {
       const landed = (w: Wallet) => creditsLanded(startingBalance, w.balance);
-      const wallet = userInitiated
-        ? await recheckWalletUntil(landed)
-        : await pollWalletUntil(landed);
-      if (!wallet) return false;
+      const wallet = await confirmWalletGrant(landed, {
+        userInitiated,
+        attemptKey: offers?.topup ? productAttemptKey(offers.topup.productId) : undefined,
+      });
+      if (wallet === OTHER_ACCOUNT) {
+        showOtherAccount("credits");
+        return "other_account";
+      }
+      if (!wallet) return "waiting";
     }
     // Money and credits now agree, so this intent is closed and the latch has
     // done its job. Clearing it matters: someone who tops up, spends both calls
@@ -224,7 +238,23 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     setSettleTimedOut(false);
     if (product === "credits") clearCreditsPending();
     onResolved();
-    return true;
+    return "landed";
+  };
+
+  /**
+   * PAID ON THE OTHER ACCOUNT. The server lists this attempt's product, bought
+   * since it started, as another Speechworks account's. No Buy and no line
+   * saying it unlocks on its own; "Check again" stays, because a grant that
+   * arrives always wins. Credits stay latched for the session like any other
+   * open payment, so reopening the sheet shows the same words, not Buy.
+   */
+  const showOtherAccount = (product: "credits" | "membership") => {
+    if (product === "credits") {
+      markCreditsPending({ kind: "other_account", startingBalance });
+    }
+    setCharged(product);
+    setPendingKind("other_account");
+    setSettleTimedOut(true);
   };
 
   // The server's emergency stop. No buy button, no store sheet.
@@ -250,8 +280,8 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
         setPendingKind(kind);
         setSettleTimedOut(false);
         setCharged("credits");
-        const confirmed = await confirmPurchase("credits");
-        if (!confirmed) {
+        const result = await confirmPurchase("credits");
+        if (result === "waiting") {
           setSettleTimedOut(true);
           if (kind === "after_charge") {
             // The founder's rule: say it will unlock on its own, and close the
@@ -284,8 +314,8 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
         // the sheet has no business asking for money twice either way.
         setCharged("membership");
         setSettleTimedOut(false);
-        const confirmed = await confirmPurchase("membership");
-        if (!confirmed) setSettleTimedOut(true);
+        const result = await confirmPurchase("membership");
+        if (result === "waiting") setSettleTimedOut(true);
       } else if (outcome.status === "error") {
         setErrorMessage(outcome.message);
       }
@@ -303,8 +333,10 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
     setErrorMessage(null);
     setConfirming(true);
     try {
-      const confirmed = await confirmPurchase(charged, { userInitiated: true });
-      if (!confirmed) {
+      const result = await confirmPurchase(charged, { userInitiated: true });
+      // Under the other-account notice a tap that finds nothing new keeps the
+      // notice, with no "Still confirming" to contradict it.
+      if (result === "waiting" && !showsOtherAccount(pendingKind)) {
         // Inline, never a bottom sheet. This sheet is itself a native modal,
         // and a second one presented over it freezes touches app-wide on iOS.
         setErrorMessage(
@@ -344,6 +376,9 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
              idempotent action that recovers a payment whose grant never
              arrived. */
           <>
+            {showsOtherAccount(pendingKind) ? (
+              <OtherAccountNotice headingVariant="h2" />
+            ) : (
             <View style={styles.copyBlock}>
               {/* With a pendingKind the line carries its own words, and for a
                   Play pending payment "Payment received" would not be true. */}
@@ -365,6 +400,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
                     : "We're confirming it now. This can take a moment. You won't be charged again."}
               </Text>
             </View>
+            )}
 
             <View style={styles.actions}>
               <Button

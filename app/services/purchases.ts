@@ -57,7 +57,14 @@ import { baseProductId, selectStoreProduct } from "./selectStoreProduct";
 import { httpStatus } from "../util/functions/apiError";
 import {
   classifyStoreError,
+  foreignItemMatchesAttempt,
+  grantCheckVerdict,
   intentConflictFrom,
+  lastAttempt,
+  productAttemptKey,
+  programAttemptKey,
+  rememberAttempt,
+  type OtherAccount,
   notifyPurchasesMayHaveChanged,
   purchasesPausedFrom,
   type StorePhase,
@@ -461,6 +468,12 @@ export async function purchaseCatalogItem(
     };
   }
 
+  // THIS attempt, so a later check can tell a purchase the other account
+  // made just now from one it made months ago (foreignItemMatchesAttempt).
+  rememberAttempt(programAttemptKey(catalogItemKey), {
+    productId: tierProductId,
+    startedAt: Date.now(),
+  });
   const outcome = await chargeForProduct(tierProductId, null, {
     settleAfterCharge: true,
   });
@@ -520,6 +533,10 @@ export async function purchaseProductById(
     return { status: "error", message: IDENTITY_REFUSAL_MESSAGE };
   }
 
+  rememberAttempt(productAttemptKey(productId), {
+    productId,
+    startedAt: Date.now(),
+  });
   return chargeForProduct(productId, options.googleProductChangeInfo ?? null, {
     settleAfterCharge: options.settleAfterCharge ?? false,
   });
@@ -761,7 +778,14 @@ const RESTORE_RETRY_FALLBACK_SECONDS = 5;
  *    purchases could not be restored.
  */
 async function forceReconcile(): Promise<
-  | { ok: true; wallet: Wallet; reconciled: boolean; foreignPurchases?: boolean }
+  | {
+      ok: true;
+      wallet: Wallet;
+      reconciled: boolean;
+      foreignPurchases?: boolean;
+      /** Raw, never trusted: read only through foreignItemMatchesAttempt. */
+      foreignPurchaseItems?: unknown;
+    }
   | { ok: false; retryAfterSeconds: number }
 > {
   try {
@@ -775,6 +799,7 @@ async function forceReconcile(): Promise<
       reconciled: wallet.reconciled !== false,
       // Absent on an older server, and absent means false.
       foreignPurchases: wallet.foreignPurchases === true,
+      foreignPurchaseItems: wallet.foreignPurchaseItems,
     };
   } catch (error) {
     const status = httpStatus(error);
@@ -879,16 +904,17 @@ export async function pollWalletUntil(
   { timeoutMs = 30_000, intervalMs = 1_500 }: { timeoutMs?: number; intervalMs?: number } = {},
 ): Promise<Wallet | null> {
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  // At least one read, so a zero budget still answers "has it landed now?".
+  for (;;) {
     try {
       const wallet = await getWallet();
       if (predicate(wallet)) return wallet;
     } catch (error) {
       console.error("[purchases] pollWalletUntil getWallet failed:", error);
     }
+    if (Date.now() >= deadline) return null;
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
-  return null;
 }
 
 /**
@@ -907,16 +933,29 @@ export async function pollMembershipUntil(
   { timeoutMs = 30_000, intervalMs = 1_500 }: { timeoutMs?: number; intervalMs?: number } = {},
 ): Promise<User | null> {
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  // At least one read: after a forced reconcile with a zero budget, this read
+  // is the only thing that sees a plan the reconcile just repaired.
+  for (;;) {
     try {
       const user = await getMyUser();
       if (predicate(user?.membership)) return user;
     } catch (error) {
       console.error("[purchases] pollMembershipUntil getMyUser failed:", error);
     }
+    if (Date.now() >= deadline) return null;
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
-  return null;
+}
+
+/**
+ * Options for a grant check. `attemptKey` names the purchase attempt being
+ * waited on (programAttemptKey / productAttemptKey). Without it a check can
+ * never answer "other account", only the grant or a wait.
+ */
+export interface RecheckOptions {
+  timeoutMs?: number;
+  intervalMs?: number;
+  attemptKey?: string;
 }
 
 /**
@@ -927,17 +966,23 @@ export async function pollMembershipUntil(
  */
 export async function recheckMembershipUntil(
   predicate: (membership: User["membership"]) => boolean,
-  options: { timeoutMs?: number; intervalMs?: number } = {},
-): Promise<User | null> {
+  { attemptKey, ...options }: RecheckOptions = {},
+): Promise<User | OtherAccount | null> {
+  let foreign = false;
   try {
-    await forceReconcile();
+    const forced = await forceReconcile();
+    foreign =
+      forced.ok &&
+      foreignItemMatchesAttempt(forced.foreignPurchaseItems, lastAttempt(attemptKey));
   } catch (error) {
     console.error(
       "[purchases] recheckMembershipUntil: forced reconcile failed, falling back to the poll:",
       error,
     );
   }
-  return pollMembershipUntil(predicate, options);
+  // The plan wins if it arrived. Only a plan that never came, with the server
+  // listing THIS attempt as another account's, ends the wait.
+  return grantCheckVerdict(await pollMembershipUntil(predicate, options), foreign);
 }
 
 /**
@@ -982,10 +1027,14 @@ export async function recheckMembershipUntil(
  */
 export async function recheckWalletUntil(
   predicate: (wallet: Wallet) => boolean,
-  options: { timeoutMs?: number; intervalMs?: number } = {},
-): Promise<Wallet | null> {
+  { attemptKey, ...options }: RecheckOptions = {},
+): Promise<Wallet | OtherAccount | null> {
+  let foreign = false;
   try {
     const forced = await forceReconcile();
+    foreign =
+      forced.ok &&
+      foreignItemMatchesAttempt(forced.foreignPurchaseItems, lastAttempt(attemptKey));
     // A 429 (`ok: false`) is not a fault and not a reason to stop. It means a
     // forced pass ran for this user seconds ago, so the store HAS been asked on
     // their behalf, and the poll below reads the result of that pass. The wait
@@ -1005,7 +1054,49 @@ export async function recheckWalletUntil(
       error,
     );
   }
-  return pollWalletUntil(predicate, options);
+  // ── PAID ON THE OTHER ACCOUNT ─────────────────────────────────────────────
+  // The forced pass also lists the store purchases another Speechworks account
+  // paid for (`foreignPurchaseItems`). Only one of THIS attempt's product,
+  // bought since it started, counts. The grant still wins whenever it lands.
+  return grantCheckVerdict(await pollWalletUntil(predicate, options), foreign);
+}
+
+/**
+ * The one wallet check every purchase surface runs, for the automatic wait
+ * after paying and for the "Check again" tap alike.
+ *
+ *  userInitiated  the tap. Straight to the forced route (recheckWalletUntil).
+ *  automatic      the cheap poll first, because the webhook usually lands
+ *                 inside it. When the poll runs out, ONE forced ask, with no
+ *                 second poll behind it. That ask is what finds a purchase the
+ *                 server keeps with another account, so the screen can say so
+ *                 at once instead of "it unlocks on its own" for ever. It runs
+ *                 only after a timed-out wait, so the ten-minute throttle the
+ *                 cheap poll protects is not what a normal purchase spends.
+ *
+ * Returns the wallet once the grant landed, OTHER_ACCOUNT when the server lists
+ * this attempt's product, bought since it started, as another Speechworks
+ * account's, or null while it is still a wait.
+ */
+export async function confirmWalletGrant(
+  predicate: (wallet: Wallet) => boolean,
+  { userInitiated = false, ...options }: RecheckOptions & { userInitiated?: boolean } = {},
+): Promise<Wallet | OtherAccount | null> {
+  if (userInitiated) return recheckWalletUntil(predicate, options);
+  const wallet = await pollWalletUntil(predicate, options);
+  if (wallet) return wallet;
+  return recheckWalletUntil(predicate, { ...options, timeoutMs: 0 });
+}
+
+/** confirmWalletGrant for a membership: the same two doors, on the user's plan. */
+export async function confirmMembershipGrant(
+  predicate: (membership: User["membership"]) => boolean,
+  { userInitiated = false, ...options }: RecheckOptions & { userInitiated?: boolean } = {},
+): Promise<User | OtherAccount | null> {
+  if (userInitiated) return recheckMembershipUntil(predicate, options);
+  const user = await pollMembershipUntil(predicate, options);
+  if (user) return user;
+  return recheckMembershipUntil(predicate, { ...options, timeoutMs: 0 });
 }
 
 /**

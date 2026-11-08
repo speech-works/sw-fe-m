@@ -14,6 +14,7 @@
 // Errors from the product LOOKUP (getProducts) happen before the payment sheet
 // exists, so they stay retryable whatever their code.
 import { PURCHASES_ERROR_CODE } from "react-native-purchases";
+import { baseProductId } from "./selectStoreProduct";
 
 /** Where in the purchase the store error came from. */
 export type StorePhase = "lookup" | "purchase";
@@ -93,7 +94,9 @@ const UNCLEAR_CODES: ReadonlySet<string> = new Set([
   // Another purchase is running. Ours may never have started, theirs may charge.
   PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
   // The store receipt is tied to another app user. It proves an older payment,
-  // not that this tap charged anyone.
+  // not that this tap charged anyone. Rare under RevenueCat's "Transfer to new
+  // App User ID". The next check decides by the server's foreign purchase
+  // items, like any other wait (see foreignItemMatchesAttempt).
   PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR,
   // Same as RECEIPT_ALREADY_IN_USE_ERROR, for a subscription on another user.
   PURCHASES_ERROR_CODE.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR,
@@ -180,7 +183,14 @@ export type PendingKind =
   /** The backend says an earlier checkout is still open. */
   | "checkout_in_progress"
   /** We cannot tell whether a payment was taken. */
-  | "unclear";
+  | "unclear"
+  /**
+   * The server's reconcile lists a purchase of THIS attempt's product, made
+   * since this attempt started, as paid for by another Speechworks account.
+   * Nothing will unlock here, so nothing may say it will. Buy stays hidden and
+   * "Check again" stays, because a grant that does arrive always wins.
+   */
+  | "other_account";
 
 export type SettleProduct = "program" | "credits";
 
@@ -203,6 +213,114 @@ export const MEMBERSHIP_CONFIRMING_LINE =
   "Your purchase went through but is still being confirmed. It should appear shortly.";
 export const CHECKOUT_IN_PROGRESS_LINE =
   "Your earlier payment is still being confirmed. It will unlock on its own.";
+
+// ── Paid on the other account ─────────────────────────────────────────────
+//
+// One store account (Apple account, Google Play account) can sit under two
+// Speechworks accounts on the same phone. The server keeps every payment with
+// the account that paid (one payment, one account). So when B's purchase ends
+// up with A, B's wait can never end, and "it unlocks on its own" is untrue.
+
+export const OTHER_ACCOUNT_TITLE = "Paid on your other account";
+
+/** The store account named the way the person knows it on this phone. */
+export function storeAccountName(platformOS: string): string {
+  return platformOS === "ios" ? "Apple account" : "Google Play account";
+}
+
+/** What to do about it: sign in there, or ask us to move it. */
+export function otherAccountLine(platformOS: string = "android"): string {
+  return `This ${storeAccountName(platformOS)} already paid for this on another Speechworks account. Sign in with that account to use it, or write to us and we will move it for you.`;
+}
+
+/** The heading for a pending state that has one of its own, else null. */
+export function pendingTitle(kind: PendingKind | null): string | null {
+  return kind === "other_account" ? OTHER_ACCOUNT_TITLE : null;
+}
+
+/** True when the screen shows the "Paid on your other account" notice. */
+export function showsOtherAccount(kind: PendingKind | null): boolean {
+  return kind === "other_account";
+}
+
+// ── This attempt ──────────────────────────────────────────────────────────
+//
+// The server's foreign items cover the whole store account: an old purchase
+// the other account made months ago is listed too. So the notice needs THIS
+// attempt's store product and start time, and only an item of that product
+// bought since then (less the store clock slack) counts.
+
+/** Store clocks and ours disagree a little. Two minutes of slack. */
+export const STORE_CLOCK_SLACK_MS = 2 * 60 * 1000;
+
+export interface PurchaseAttempt {
+  /** The store product of this attempt: a tier SKU, a membership or credits. */
+  productId: string;
+  /** Our clock when the attempt started (ms). */
+  startedAt: number;
+}
+
+/** The latest attempt per surface, in memory for this session. */
+const attempts = new Map<string, PurchaseAttempt>();
+
+/** The attempt key for a program checkout. */
+export const programAttemptKey = (catalogKey: string) => `program:${catalogKey}`;
+/** The attempt key for a fixed store product (credits, memberships). */
+export const productAttemptKey = (productId: string) => `product:${productId}`;
+
+export function rememberAttempt(key: string, attempt: PurchaseAttempt): void {
+  attempts.set(key, attempt);
+}
+
+export function lastAttempt(key: string | undefined): PurchaseAttempt | null {
+  return key ? (attempts.get(key) ?? null) : null;
+}
+
+/**
+ * Does the reconcile's `foreignPurchaseItems` hold a purchase of this
+ * attempt's product, made since it started? Tolerant on purpose: a missing
+ * field (an older server), a wrong shape, a null or unreadable date, or no
+ * attempt all answer false, which keeps the ordinary wait. Never the notice.
+ */
+export function foreignItemMatchesAttempt(
+  items: unknown,
+  attempt: PurchaseAttempt | null,
+): boolean {
+  if (!attempt || !Array.isArray(items)) return false;
+  const wanted = baseProductId(attempt.productId);
+  const since = attempt.startedAt - STORE_CLOCK_SLACK_MS;
+  return items.some((item) => {
+    if (!item || typeof item !== "object") return false;
+    const { productId, purchasedAt } = item as {
+      productId?: unknown;
+      purchasedAt?: unknown;
+    };
+    if (typeof productId !== "string" || typeof purchasedAt !== "string") {
+      return false;
+    }
+    if (baseProductId(productId) !== wanted) return false;
+    const at = Date.parse(purchasedAt);
+    return Number.isFinite(at) && at >= since;
+  });
+}
+
+/** A grant check's answer when the purchase is with another account. */
+export const OTHER_ACCOUNT = "other_account" as const;
+export type OtherAccount = typeof OTHER_ACCOUNT;
+
+/**
+ * What a grant check found. The grant wins whenever it landed. Only a check
+ * that found nothing AND matched this attempt in the server's foreign items
+ * (foreignItemMatchesAttempt) answers "other account". Otherwise it is still
+ * a wait (null).
+ */
+export function grantCheckVerdict<T>(
+  found: T | null,
+  attemptIsForeign: boolean,
+): T | OtherAccount | null {
+  if (found !== null) return found;
+  return attemptIsForeign ? OTHER_ACCOUNT : null;
+}
 
 /**
  * The one line to show while we wait for the grant.
@@ -227,6 +345,7 @@ export function pendingLine(
       : line;
   }
   if (kind === "checkout_in_progress") return CHECKOUT_IN_PROGRESS_LINE;
+  if (kind === "other_account") return otherAccountLine(platformOS);
   if (kind === "unclear") {
     if (timedOut) return UNCLEAR_TIMEOUT_LINE;
     return product === "program" ? UNCLEAR_PROGRAM_LINE : UNCLEAR_CREDITS_LINE;
@@ -292,6 +411,7 @@ export function creditsLanded(
 /** Test only. */
 export function __resetPendingForTests(): void {
   pendingPrograms.clear();
+  attempts.clear();
   pendingCredits = null;
 }
 
