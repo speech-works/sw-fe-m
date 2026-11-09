@@ -290,10 +290,10 @@ const SubscribeScreenBody = () => {
   ) => {
     if (fresh) {
       setUser(fresh);
-      showSuccessBottomSheet(confirmed.title, confirmed.message);
+      showSuccessBottomSheet(confirmed.title, confirmed.message, undefined, undefined, { dimBackdrop: true });
     } else {
       void fetchUser();
-      showSuccessBottomSheet("Almost there", pendingMessage);
+      showSuccessBottomSheet("Almost there", pendingMessage, undefined, undefined, { dimBackdrop: true });
     }
     navigation.goBack();
   };
@@ -359,7 +359,7 @@ const SubscribeScreenBody = () => {
           reason: outcome.status === "error" ? outcome.message : outcome.status,
         });
         if (outcome.status === "error") {
-          showErrorBottomSheet("Purchase didn't complete", outcome.message);
+          showErrorBottomSheet("Purchase didn't complete", outcome.message, undefined, undefined, { dimBackdrop: true });
         }
         // "cancelled" → the user backed out at the store sheet; stay silent.
       }
@@ -369,6 +369,9 @@ const SubscribeScreenBody = () => {
       showErrorBottomSheet(
         "Purchase didn't complete",
         "Nothing has been charged. Please try again in a moment.",
+        undefined,
+        undefined,
+        { dimBackdrop: true },
       );
     } finally {
       setLoading(false);
@@ -462,7 +465,7 @@ const SubscribeScreenBody = () => {
           reason: outcome.status === "error" ? outcome.message : outcome.status,
         });
         if (outcome.status === "error") {
-          showErrorBottomSheet("Upgrade didn't complete", outcome.message);
+          showErrorBottomSheet("Upgrade didn't complete", outcome.message, undefined, undefined, { dimBackdrop: true });
         }
       }
     } catch (error) {
@@ -471,6 +474,9 @@ const SubscribeScreenBody = () => {
       showErrorBottomSheet(
         "Upgrade didn't complete",
         "Nothing has been charged. Please try again in a moment.",
+        undefined,
+        undefined,
+        { dimBackdrop: true },
       );
     } finally {
       setLoading(false);

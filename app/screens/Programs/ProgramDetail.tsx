@@ -671,7 +671,7 @@ const ProgramDetailScreen = () => {
           // The server paused selling. No intent, no store sheet, no charge.
           track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "paused" });
           setPurchasesPaused(true);
-          showErrorBottomSheet("Purchases paused", PURCHASES_PAUSED_LINE);
+          showErrorBottomSheet("Purchases paused", PURCHASES_PAUSED_LINE, undefined, undefined, { dimBackdrop: true });
           break;
         case "already_owned":
           // They own it. Show it as theirs, with no error.
@@ -704,7 +704,7 @@ const ProgramDetailScreen = () => {
           // failure. Same split, same copy as the membership paywall
           // (screens/Payments/index.tsx).
           if (outcome.status === "error") {
-            showErrorBottomSheet("Purchase didn't complete", outcome.message);
+            showErrorBottomSheet("Purchase didn't complete", outcome.message, undefined, undefined, { dimBackdrop: true });
           }
           break;
       }

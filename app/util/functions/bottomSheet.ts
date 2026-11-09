@@ -15,6 +15,8 @@ export const showErrorBottomSheet = (
   desc: string,
   primaryAction?: BottomSheetAction,
   dismissLabel?: string,
+  /** `dimBackdrop`: keep the screen behind visible under a dim scrim. */
+  options?: { dimBackdrop?: boolean },
 ) => {
   // The one buzz worth keeping on an ordinary screen. Something failed, the
   // person may already be looking away, and this is the app's single door for
@@ -25,6 +27,7 @@ export const showErrorBottomSheet = (
     message: desc,
     primaryAction,
     dismissLabel,
+    dimBackdrop: options?.dimBackdrop === true,
   });
 };
 
