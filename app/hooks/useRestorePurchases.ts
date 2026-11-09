@@ -4,9 +4,22 @@ import { restorePurchasesAndReconcile } from "../services/purchases";
 import { FOREIGN_PURCHASES_LINE } from "../services/purchaseSettlement";
 import { useUserStore } from "../stores/user";
 import {
-  showSuccessBottomSheet,
-  showErrorBottomSheet,
+  showSuccessBottomSheet as globalSuccess,
+  showErrorBottomSheet as globalError,
 } from "../util/functions/bottomSheet";
+
+/** Where the restore result is shown. Default: the global sheet at the app
+ *  root. The iOS plan screen is a native modal, which that sheet cannot appear
+ *  over, so it passes its own. */
+export interface RestorePresenter {
+  success: (title: string, message: string) => void;
+  error: (title: string, message: string) => void;
+}
+
+const globalPresenter: RestorePresenter = {
+  success: (title, message) => globalSuccess(title, message),
+  error: (title, message) => globalError(title, message),
+};
 
 /**
  * Restore Purchases, shared by every surface that has to offer it.
@@ -73,7 +86,7 @@ const summarizeRestore = (wallet: Wallet): string | null => {
 
 const seconds = (n: number): string => `${n} second${n === 1 ? "" : "s"}`;
 
-export function useRestorePurchases() {
+export function useRestorePurchases(presenter: RestorePresenter = globalPresenter) {
   const [restoring, setRestoring] = useState(false);
 
   const restore = async () => {
@@ -87,7 +100,7 @@ export function useRestorePurchases() {
       // did not run. All three surfaces hide the button when payments are off,
       // so this is a guard, not a path users meet.
       if (!result) {
-        showErrorBottomSheet(
+        presenter.error(
           "Not available",
           "Purchases are not available in this version.",
         );
@@ -99,7 +112,7 @@ export function useRestorePurchases() {
         // this account. Nothing to celebrate and nothing broke. Name the store
         // account, because signing in with a different one is the usual reason a
         // real purchase "vanished".
-        showSuccessBottomSheet(
+        presenter.success(
           "Nothing to restore",
           "We found no purchases on your store account. If you paid with a different one, sign in to it and try again.",
         );
@@ -110,7 +123,7 @@ export function useRestorePurchases() {
         // A second tap a moment after the first. Not a failure, so it gets the
         // success sheet: an error buzz for a double tap is the app telling
         // someone off for being keen.
-        showSuccessBottomSheet(
+        presenter.success(
           "Just a moment",
           `We checked a second ago. Please wait ${seconds(result.retryAfterSeconds)} and tap Restore again.`,
         );
@@ -120,7 +133,7 @@ export function useRestorePurchases() {
       // The store's purchases are filed under another Speechworks account.
       // Nothing was added to this one, so this is never a success sheet.
       if (result.status === "foreign") {
-        showErrorBottomSheet("On another account", FOREIGN_PURCHASES_LINE);
+        presenter.error("On another account", FOREIGN_PURCHASES_LINE);
         return;
       }
 
@@ -150,7 +163,7 @@ export function useRestorePurchases() {
       // stamped its cooldown, so a button pressed now would only earn the
       // throttle message above.
       if (result.status === "unverified" || (!summary && result.activeInStore)) {
-        showErrorBottomSheet(
+        presenter.error(
           "Couldn't confirm your purchases",
           "Your store account has them, but we couldn't add them to your account just now. Please try again in a moment.",
         );
@@ -162,17 +175,17 @@ export function useRestorePurchases() {
         // above, which points at signing into another store account: this
         // account IS the right one, so that advice would send them off chasing a
         // purchase that is not missing.
-        showSuccessBottomSheet(
+        presenter.success(
           "Nothing to restore",
           "We checked and there's nothing active to restore right now. Anything you buy will show up here straight away.",
         );
         return;
       }
 
-      showSuccessBottomSheet("Purchases restored", summary);
+      presenter.success("Purchases restored", summary);
     } catch (error) {
       console.error("Error restoring purchases:", error);
-      showErrorBottomSheet(
+      presenter.error(
         "Couldn't restore",
         "Check your connection and try again.",
       );

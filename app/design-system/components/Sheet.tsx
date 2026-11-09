@@ -68,16 +68,17 @@ export interface SheetProps {
    */
   exclusive?: boolean;
   /**
-   * What sits behind the card. "opaque" (default, unchanged) hides the screen.
-   * "dim" keeps the screen visible under the overlay scrim, the way the store's
-   * own payment sheet does. For a sheet that is a step OF the screen behind it
-   * (a purchase review, its "You're in"), where a black void read as the page
-   * having gone (Android, 8 Nov 2026).
+   * What sits behind the card. "dim" keeps the screen visible under the overlay
+   * scrim, the way the store's own payment sheet does; a black void behind a
+   * sheet read as the page having gone (Android, 8-9 Nov 2026). "opaque" hides
+   * the screen. Default: dim, except a sheet with a header (title/right), which
+   * stays opaque because its header floats on the backdrop and needs a plain
+   * surface to stay readable.
    */
   backdrop?: "opaque" | "dim";
 }
 
-/** Bottom-sheet modal: opaque backdrop that fades in place (never slides), the
+/** Bottom-sheet modal: backdrop (dim, or opaque under a header) that fades in place (never slides), the
  * card + optional header slide up together. Tap the backdrop to close. */
 export const Sheet: React.FC<SheetProps> = ({
   visible,
@@ -91,13 +92,14 @@ export const Sheet: React.FC<SheetProps> = ({
   footer,
   contentStyle,
   exclusive = false,
-  backdrop: backdropKind = "opaque",
+  backdrop: backdropProp,
 }) => {
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
   const sheetId = useId();
   const hasHeader = !!(title || right);
+  const backdropKind = backdropProp ?? (hasHeader ? "opaque" : "dim");
 
   // Keep the latest callback in a ref so the exit-animation effect never needs it
   // in its deps (an inline closure would otherwise re-run the animation each render).
@@ -365,7 +367,7 @@ export const Sheet: React.FC<SheetProps> = ({
           paddingBottom: keyboardInset,
         }}
       >
-        {/* Backdrop: fades in place, never slides. Opaque unless asked to dim. */}
+        {/* Backdrop: fades in place, never slides. Dim, or opaque under a header. */}
         <Animated.View
           style={[
             StyleSheet.absoluteFill,

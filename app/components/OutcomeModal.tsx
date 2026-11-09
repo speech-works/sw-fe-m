@@ -23,8 +23,85 @@ import {
  *  until that closes (two stacked native Modals wedge touch handling on iOS). */
 const AUTO_CLOSE_MS = 1800;
 
-const OutcomeModal = () => {
+export interface OutcomeSheetProps {
+  visible: boolean;
+  type: "error" | "success";
+  title: string;
+  tag?: string;
+  message?: string;
+  primaryAction?: BottomSheetAction;
+  dismissLabel?: string;
+  autoClose?: boolean;
+  onClose: () => void;
+  /** Wait for other native modals to close first (the global instance). */
+  exclusive?: boolean;
+}
+
+/** The success/error sheet itself. The global OutcomeModal renders one at the
+ *  app root. A screen that is itself shown as a native modal (the plan screen
+ *  on iOS) renders its own, because a root-level sheet cannot appear over it. */
+export const OutcomeSheet = ({
+  visible,
+  type,
+  title,
+  tag = "",
+  message = "",
+  primaryAction,
+  dismissLabel = "",
+  autoClose = false,
+  onClose,
+  exclusive = false,
+}: OutcomeSheetProps) => {
   const { colors } = useTheme();
+  const success = type === "success";
+  // Bright valence disc with the AA-correct dark glyph (same pattern as ShareMoment).
+  const accent = success ? colors.accent.success : colors.accent.danger;
+  const accentOn = success ? colors.accentOn.success : colors.accentOn.danger;
+  // Disc scales in each time the sheet opens — celebratory bounce for success,
+  // a calm settle for errors (bounce stays reserved for celebration).
+  const discStyle = useSuccessPop(visible, { celebrate: success });
+
+  return (
+    <Sheet visible={visible} onClose={onClose} exclusive={exclusive}>
+      <View style={styles.body}>
+        <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
+          <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />
+        </Animated.View>
+        <Text variant="h2" center>{title}</Text>
+        {tag ? (
+          <Text variant="label" color="tertiary" center style={styles.tag}>{tag}</Text>
+        ) : null}
+        {message ? (
+          <Text variant="bodySm" color="secondary" center>{message}</Text>
+        ) : null}
+        <View style={styles.action}>
+          {primaryAction ? (
+            <>
+              <Button
+                label={primaryAction.label}
+                variant="primary"
+                onPress={() => {
+                  onClose();
+                  primaryAction.onPress();
+                }}
+              />
+              <Button
+                label={dismissLabel || "Not now"}
+                variant="secondary"
+                onPress={onClose}
+              />
+            </>
+          ) : autoClose ? null : (
+            <Button label="Got it" variant="primary" onPress={onClose} />
+          )}
+        </View>
+      </View>
+    </Sheet>
+  );
+};
+
+
+const OutcomeModal = () => {
   const { events, clear } = useEventStore();
   const [visible, setVisible] = useState(false);
   const [type, setType] = useState<"error" | "success">("success");
@@ -34,7 +111,6 @@ const OutcomeModal = () => {
   const [primaryAction, setPrimaryAction] = useState<BottomSheetAction | undefined>(undefined);
   const [dismissLabel, setDismissLabel] = useState("");
   const [autoClose, setAutoClose] = useState(false);
-  const [dimBackdrop, setDimBackdrop] = useState(false);
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -65,7 +141,6 @@ const OutcomeModal = () => {
         setPrimaryAction(event.detail?.primaryAction);
         setDismissLabel(event.detail?.dismissLabel || "");
         setAutoClose(!!event.detail?.autoClose);
-        setDimBackdrop(!!event.detail?.dimBackdrop);
         setVisible(true);
         clear(event.name);
       }
@@ -78,55 +153,19 @@ const OutcomeModal = () => {
     return () => clearTimeout(timer);
   }, [visible, autoClose]);
 
-  const success = type === "success";
-  // Bright valence disc with the AA-correct dark glyph (same pattern as ShareMoment).
-  const accent = success ? colors.accent.success : colors.accent.danger;
-  const accentOn = success ? colors.accentOn.success : colors.accentOn.danger;
-  // Disc scales in each time the sheet opens — celebratory bounce for success,
-  // a calm settle for errors (bounce stays reserved for celebration).
-  const discStyle = useSuccessPop(visible, { celebrate: success });
-
   return (
-    <Sheet
+    <OutcomeSheet
       visible={visible}
+      type={type}
+      title={title}
+      tag={tag}
+      message={message}
+      primaryAction={primaryAction}
+      dismissLabel={dismissLabel}
+      autoClose={autoClose}
       onClose={() => setVisible(false)}
       exclusive
-      backdrop={dimBackdrop ? "dim" : "opaque"}
-    >
-      <View style={styles.body}>
-        <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
-          <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />
-        </Animated.View>
-        <Text variant="h2" center>{title}</Text>
-        {tag ? (
-          <Text variant="label" color="tertiary" center style={styles.tag}>{tag}</Text>
-        ) : null}
-        {message ? (
-          <Text variant="bodySm" color="secondary" center>{message}</Text>
-        ) : null}
-        <View style={styles.action}>
-          {primaryAction ? (
-            <>
-              <Button
-                label={primaryAction.label}
-                variant="primary"
-                onPress={() => {
-                  setVisible(false);
-                  primaryAction.onPress();
-                }}
-              />
-              <Button
-                label={dismissLabel || "Not now"}
-                variant="secondary"
-                onPress={() => setVisible(false)}
-              />
-            </>
-          ) : autoClose ? null : (
-            <Button label="Got it" variant="primary" onPress={() => setVisible(false)} />
-          )}
-        </View>
-      </View>
-    </Sheet>
+    />
   );
 };
 

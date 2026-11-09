@@ -78,6 +78,8 @@ import {
 } from "../../services/purchaseSettlement";
 import { PaymentProblemLink } from "../../components/PaymentProblemLink";
 import { OtherAccountNotice } from "../../components/OtherAccountNotice";
+import { OutcomeSheet } from "../../components/OutcomeModal";
+import { haptics } from "../../design-system/haptics";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -143,7 +145,27 @@ const SubscribeScreenBody = () => {
   const [purchasesPaused, setPurchasesPaused] = useState(false);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
   // Guideline 3.1.1 — shared with Settings so there is one restore path.
-  const { restoring, restore } = useRestorePurchases();
+  const [restoreResult, setRestoreResult] = useState<{
+    type: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
+  // Kept apart from the result so the words stay put while the sheet slides out.
+  const [restoreSheetOpen, setRestoreSheetOpen] = useState(false);
+  // The plan screen is a native modal on iOS, and the app-wide result sheet
+  // cannot appear over it: the message was lost and touches stayed blocked
+  // after closing (F1, 10 Nov 2026). So the result shows here, on this screen.
+  const { restoring, restore } = useRestorePurchases({
+    success: (title, message) => {
+      setRestoreResult({ type: "success", title, message });
+      setRestoreSheetOpen(true);
+    },
+    error: (title, message) => {
+      haptics.error();
+      setRestoreResult({ type: "error", title, message });
+      setRestoreSheetOpen(true);
+    },
+  });
 
   // Prices come from the server (GET /users/me/offers), never a hardcoded
   // literal — a stale price in a button is how a user ends up charged something
@@ -779,6 +801,14 @@ const SubscribeScreenBody = () => {
           </View>
         </View>
       </Animated.View>
+
+      <OutcomeSheet
+        visible={restoreSheetOpen}
+        type={restoreResult?.type ?? "success"}
+        title={restoreResult?.title ?? ""}
+        message={restoreResult?.message ?? ""}
+        onClose={() => setRestoreSheetOpen(false)}
+      />
 
       <Sheet
         visible={showTestModeModal}

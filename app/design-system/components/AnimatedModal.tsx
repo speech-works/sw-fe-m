@@ -124,7 +124,13 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <Animated.View
-        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background.sunken }, scrimStyle]}
+        style={[
+          StyleSheet.absoluteFill,
+          // Dim, so the screen behind stays visible (same as Sheet). A bare modal
+          // draws straight onto this backdrop, so it keeps the plain surface.
+          { backgroundColor: bare ? colors.background.sunken : colors.overlay.scrim },
+          scrimStyle,
+        ]}
         pointerEvents="none"
       />
       <Pressable
