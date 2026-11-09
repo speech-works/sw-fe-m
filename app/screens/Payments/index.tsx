@@ -32,10 +32,6 @@ import {
   type PlanKey,
 } from "../../util/functions/paywallView";
 import {
-  showSuccessBottomSheet,
-  showErrorBottomSheet,
-} from "../../util/functions/bottomSheet";
-import {
   size,
   Text as DSText,
   Icon,
@@ -145,26 +141,32 @@ const SubscribeScreenBody = () => {
   const [purchasesPaused, setPurchasesPaused] = useState(false);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
   // Guideline 3.1.1 — shared with Settings so there is one restore path.
-  const [restoreResult, setRestoreResult] = useState<{
+  // Every result on this screen (purchase, upgrade, restore) is shown HERE.
+  // On iOS this screen is a native modal, and the app-wide result sheet cannot
+  // appear over it: the message was lost, and taps stayed blocked after the
+  // screen closed (10 Nov 2026). `closeAfter`: close the plan screen once the
+  // person dismisses the message (a finished purchase).
+  const [screenResult, setScreenResult] = useState<{
     type: "success" | "error";
     title: string;
     message: string;
+    closeAfter?: boolean;
   } | null>(null);
   // Kept apart from the result so the words stay put while the sheet slides out.
-  const [restoreSheetOpen, setRestoreSheetOpen] = useState(false);
-  // The plan screen is a native modal on iOS, and the app-wide result sheet
-  // cannot appear over it: the message was lost and touches stayed blocked
-  // after closing (F1, 10 Nov 2026). So the result shows here, on this screen.
+  const [resultOpen, setResultOpen] = useState(false);
+  const showResult = (
+    type: "success" | "error",
+    title: string,
+    message: string,
+    closeAfter = false,
+  ) => {
+    if (type === "error") haptics.error();
+    setScreenResult({ type, title, message, closeAfter });
+    setResultOpen(true);
+  };
   const { restoring, restore } = useRestorePurchases({
-    success: (title, message) => {
-      setRestoreResult({ type: "success", title, message });
-      setRestoreSheetOpen(true);
-    },
-    error: (title, message) => {
-      haptics.error();
-      setRestoreResult({ type: "error", title, message });
-      setRestoreSheetOpen(true);
-    },
+    success: (title, message) => showResult("success", title, message),
+    error: (title, message) => showResult("error", title, message),
   });
 
   // Prices come from the server (GET /users/me/offers), never a hardcoded
@@ -302,8 +304,9 @@ const SubscribeScreenBody = () => {
    * Confirmed: the fresh user goes in the store and they get the success
    * sheet. Not confirmed in time (the webhook is slow): refresh the user so
    * the rest of the app catches up as soon as it lands, and say honestly that
-   * it went through and is still being confirmed. Either sheet outlives the
-   * screen, the same way the success sheet always has.
+   * it went through and is still being confirmed. The message shows on this
+   * screen, and the screen closes when the person dismisses it (the app-wide
+   * sheet cannot appear over this screen on iOS, see `screenResult`).
    */
   const finishAfterStorePurchase = (
     fresh: Awaited<ReturnType<typeof pollMembershipUntil>>,
@@ -312,12 +315,11 @@ const SubscribeScreenBody = () => {
   ) => {
     if (fresh) {
       setUser(fresh);
-      showSuccessBottomSheet(confirmed.title, confirmed.message, undefined, undefined, { dimBackdrop: true });
+      showResult("success", confirmed.title, confirmed.message, true);
     } else {
       void fetchUser();
-      showSuccessBottomSheet("Almost there", pendingMessage, undefined, undefined, { dimBackdrop: true });
+      showResult("success", "Almost there", pendingMessage, true);
     }
-    navigation.goBack();
   };
 
   const handlePayment = async () => {
@@ -381,19 +383,17 @@ const SubscribeScreenBody = () => {
           reason: outcome.status === "error" ? outcome.message : outcome.status,
         });
         if (outcome.status === "error") {
-          showErrorBottomSheet("Purchase didn't complete", outcome.message, undefined, undefined, { dimBackdrop: true });
+          showResult("error", "Purchase didn't complete", outcome.message);
         }
         // "cancelled" → the user backed out at the store sheet; stay silent.
       }
     } catch (error) {
       console.error("[Payments] Purchase failed:", error);
       track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "exception" });
-      showErrorBottomSheet(
+      showResult(
+        "error",
         "Purchase didn't complete",
         "Nothing has been charged. Please try again in a moment.",
-        undefined,
-        undefined,
-        { dimBackdrop: true },
       );
     } finally {
       setLoading(false);
@@ -487,18 +487,16 @@ const SubscribeScreenBody = () => {
           reason: outcome.status === "error" ? outcome.message : outcome.status,
         });
         if (outcome.status === "error") {
-          showErrorBottomSheet("Upgrade didn't complete", outcome.message, undefined, undefined, { dimBackdrop: true });
+          showResult("error", "Upgrade didn't complete", outcome.message);
         }
       }
     } catch (error) {
       console.error("[Payments] Upgrade failed:", error);
       track(ANALYTICS_EVENTS.PAYMENT_FAILED, { ...payProps, reason: "exception" });
-      showErrorBottomSheet(
+      showResult(
+        "error",
         "Upgrade didn't complete",
         "Nothing has been charged. Please try again in a moment.",
-        undefined,
-        undefined,
-        { dimBackdrop: true },
       );
     } finally {
       setLoading(false);
@@ -803,11 +801,14 @@ const SubscribeScreenBody = () => {
       </Animated.View>
 
       <OutcomeSheet
-        visible={restoreSheetOpen}
-        type={restoreResult?.type ?? "success"}
-        title={restoreResult?.title ?? ""}
-        message={restoreResult?.message ?? ""}
-        onClose={() => setRestoreSheetOpen(false)}
+        visible={resultOpen}
+        type={screenResult?.type ?? "success"}
+        title={screenResult?.title ?? ""}
+        message={screenResult?.message ?? ""}
+        onClose={() => setResultOpen(false)}
+        onDismissed={() => {
+          if (screenResult?.closeAfter) navigation.goBack();
+        }}
       />
 
       <Sheet
@@ -901,13 +902,13 @@ export default SubscribeScreen;
 
 
 const useStyles = makeStyles((c) => ({
-  // `background.sunken`, which is what `Sheet` paints its backdrop with. It was
-  // `overlay.scrim` — indistinguishable here, because nothing is rendered
-  // behind this screen for a scrim to darken, and wrong the moment somebody
-  // makes this a transparent presentation.
+  // `overlay.scrim`: this screen IS a transparent presentation, so the app
+  // behind shows through, dimmed, like every other sheet. In light mode the
+  // solid dark backdrop also left the dark clock and battery on black
+  // (L1, founder pick B, 10 Nov 2026).
   mainContainer: {
     flex: 1,
-    backgroundColor: c.background.sunken,
+    backgroundColor: c.overlay.scrim,
   },
   safe: { flex: 1 },
   // Copied from `Sheet`'s own header, not re-derived from tokens.

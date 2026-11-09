@@ -33,6 +33,8 @@ export interface OutcomeSheetProps {
   dismissLabel?: string;
   autoClose?: boolean;
   onClose: () => void;
+  /** Runs once the sheet has fully closed. */
+  onDismissed?: () => void;
   /** Wait for other native modals to close first (the global instance). */
   exclusive?: boolean;
 }
@@ -50,6 +52,7 @@ export const OutcomeSheet = ({
   dismissLabel = "",
   autoClose = false,
   onClose,
+  onDismissed,
   exclusive = false,
 }: OutcomeSheetProps) => {
   const { colors } = useTheme();
@@ -62,7 +65,7 @@ export const OutcomeSheet = ({
   const discStyle = useSuccessPop(visible, { celebrate: success });
 
   return (
-    <Sheet visible={visible} onClose={onClose} exclusive={exclusive}>
+    <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed} exclusive={exclusive}>
       <View style={styles.body}>
         <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
           <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />

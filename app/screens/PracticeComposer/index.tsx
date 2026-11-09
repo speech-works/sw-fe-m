@@ -46,7 +46,7 @@ import {
   mix,
   AA_LARGE,
 } from "../../design-system";
-import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import { haptics } from "../../design-system/haptics";
 
 const CAPTION_MAX = 280;
 
@@ -136,6 +136,10 @@ const PracticeComposer = () => {
   const [captionFocused, setCaptionFocused] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [posting, setPosting] = useState(false);
+  // Shown inside this sheet, not as the app-wide error sheet: this screen is a
+  // native modal on iOS, and that sheet cannot appear over it (the message was
+  // lost and taps stayed blocked after closing, 10 Nov 2026).
+  const [shareError, setShareError] = useState(false);
 
   // Resolve the buddy thread this practice will be shared into.
   useEffect(() => {
@@ -245,6 +249,7 @@ const PracticeComposer = () => {
     };
     try {
       setPosting(true);
+      setShareError(false);
       await createPracticeSignal(threadId, input);
       track(ANALYTICS_EVENTS.POST_CREATED, {
         templateId,
@@ -258,7 +263,8 @@ const PracticeComposer = () => {
       params.onShared?.();
       navigation.goBack();
     } catch (e) {
-      showErrorBottomSheet("Couldn't share", "Please try again.");
+      haptics.error();
+      setShareError(true);
     } finally {
       setPosting(false);
     }
@@ -360,6 +366,11 @@ const PracticeComposer = () => {
           {caption.length}/{CAPTION_MAX}
         </Text>
 
+        {shareError ? (
+          <Text variant="bodySm" color="secondary" center accessibilityRole="alert">
+            Couldn't share. Please try again.
+          </Text>
+        ) : null}
         <Button
           label="Share with buddy"
           onPress={handlePost}
