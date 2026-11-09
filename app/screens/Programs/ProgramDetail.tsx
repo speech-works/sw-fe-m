@@ -14,10 +14,23 @@ import { packErrorMessage } from "../../util/packs/packErrors";
 import { PackBrochure, PackProgress } from "../../api/packs/types";
 import {
   confirmWalletGrant,
+  devPaymentsHooks,
+  finishEarlierPurchase,
   purchaseCatalogItem,
+  releaseCheckout,
+  storeCheckForCheckout,
 } from "../../services/purchases";
 import {
+  BUY_READY,
+  buyGateView,
+  checkoutFromConflict,
+  decideAfterEarlierFinished,
+  earlierPurchaseSuspectSince,
+  f3RoundVerdict,
+  newlyOwnedOthers,
+  lastAttempt,
   clearProgramPending,
+  gateAfterBuyTap,
   markProgramPending,
   OTHER_ACCOUNT,
   offersPaused,
@@ -28,8 +41,17 @@ import {
   PURCHASES_PAUSED_LINE,
   SETTLE_TIMEOUT_LINE,
   showsOtherAccount,
+  type BuyGate,
+  type OpenCheckout,
   type PendingKind,
 } from "../../services/purchaseSettlement";
+import {
+  clearOpenCheckout,
+  loadAllOpenCheckouts,
+  loadOpenCheckout,
+  saveOpenCheckout,
+} from "../../services/openCheckout";
+import { useUserStore } from "../../stores/user";
 import { PaymentProblemLink } from "../../components/PaymentProblemLink";
 import { OtherAccountNotice } from "../../components/OtherAccountNotice";
 import {
@@ -96,6 +118,22 @@ export function dayTitle(title: string): string {
   return title.replace(/^\s*Day\s+\d+\s*[:.\u2013\u2014-]\s*/i, "");
 }
 
+/** The programs this account owns now, by catalog key, or null if unknown. */
+async function ownedProgramKeys(): Promise<string[] | null> {
+  try {
+    const offers = await getOffers();
+    return offers.items.filter((i) => i.owned).map((i) => i.key);
+  } catch (error) {
+    console.warn("[ProgramDetail] could not read owned programs:", error);
+    return null;
+  }
+}
+
+/** How long the F3 check rests between rounds (each round also polls). */
+const OPEN_CHECKOUT_RECHECK_MS = 10_000;
+/** F1: after the earlier purchase finished, how long to look for THIS grant. */
+const EARLIER_FINISHED_GRANT_LOOK_MS = 4_000;
+
 /**
  * Day one's module id, for the restart path.
  *
@@ -127,6 +165,7 @@ const ProgramDetailScreen = () => {
   const route = useRoute<ExploreStackRouteProp<"ProgramDetail">>();
   const { catalogKey, packId } = route.params;
   const { colors } = useTheme();
+  const userId = useUserStore((s) => s.user?.id ?? null);
 
   const [offer, setOffer] = useState<OfferItem | null>(null);
   const [isFounder, setIsFounder] = useState(false);
@@ -212,6 +251,19 @@ const ProgramDetailScreen = () => {
   );
   const [confirming, setConfirming] = useState(false);
   /**
+   * What the Buy button may do right now, for the two waits that are NOT a
+   * payment of this attempt (purchaseSettlement.ts, BuyGate):
+   *  F1  Google refused Buy because an earlier purchase of the same SKU is
+   *      still open. We finish it, then offer Buy with a one-time note.
+   *  F3  an open checkout for this program (from this phone's record, or the
+   *      backend's 409). "Checking your payment…" until the grant lands, or it
+   *      is certain nothing was paid.
+   * The note lives in this state only, so leaving the screen drops it.
+   */
+  const [gate, setGate] = useState<BuyGate>(BUY_READY);
+  /** The open checkout the F3 check is about. */
+  const openCheckoutRef = useRef<OpenCheckout | null>(null);
+  /**
    * The mount-time load already fetches progress, so the first focus must not
    * fetch it a second time. Every focus after that does.
    */
@@ -267,6 +319,27 @@ const ProgramDetailScreen = () => {
           // retry rather than an "Open" button with no day to open.
           void fetchProgress(match.packId);
         }
+        // AN OPEN CHECKOUT FROM BEFORE (F3). Read before the page shows, so a
+        // purchase killed mid-way never flashes a live Buy. Nothing on the
+        // server says a checkout is open until Buy is tapped, so this phone's
+        // own record is the only early signal (services/openCheckout.ts).
+        if (match?.owned) {
+          void clearOpenCheckout(catalogKey);
+        } else if (match && programPending(catalogKey) === null) {
+          const open = await loadOpenCheckout(userId, catalogKey);
+          if (cancelled) return;
+          if (open?.charge) {
+            // The purchase call came back as a payment before the app died.
+            // That is the ordinary pending screen, never "no payment".
+            markProgramPending(catalogKey, open.charge);
+            setPendingKind(open.charge);
+            setSettleTimedOut(true);
+            setCharged(true);
+          } else if (open) {
+            openCheckoutRef.current = open;
+            setGate({ state: "checking_payment" });
+          }
+        }
       } catch (error) {
         console.error("[ProgramDetail] Failed to load offer:", error);
         // The offer is unknown, not absent. Say so, and offer a way back.
@@ -292,7 +365,7 @@ const ProgramDetailScreen = () => {
     return () => {
       cancelled = true;
     };
-  }, [catalogKey, packId, reloadNonce, fetchProgress]);
+  }, [catalogKey, packId, reloadNonce, fetchProgress, userId]);
 
   // "Try again" after a failed load. Bumping the nonce re-runs the effect
   // above, so there is still exactly one loading path.
@@ -366,7 +439,8 @@ const ProgramDetailScreen = () => {
   const confirmPurchase = useCallback(
     async ({
       userInitiated = false,
-    }: { userInitiated?: boolean } = {}): Promise<
+      timeoutMs,
+    }: { userInitiated?: boolean; timeoutMs?: number } = {}): Promise<
       "landed" | "waiting" | "other_account"
     > => {
       if (!offer) return "waiting";
@@ -374,6 +448,7 @@ const ProgramDetailScreen = () => {
         w.entitlements.includes(`pack:${offer.key}`);
       const wallet = await confirmWalletGrant(landed, {
         userInitiated,
+        timeoutMs,
         attemptKey: programAttemptKey(offer.key),
       });
       if (wallet === OTHER_ACCOUNT) {
@@ -385,6 +460,9 @@ const ProgramDetailScreen = () => {
       if (!wallet) return "waiting";
       setOwned(true);
       clearProgramPending(offer.key);
+      void clearOpenCheckout(offer.key);
+      openCheckoutRef.current = null;
+      setGate(BUY_READY);
       // WITHOUT THIS, "Open" HAS NOWHERE TO SEND THEM. `ownedState` reads
       // `progress`, and the mount-time effect above only fetches it when the pack
       // is ALREADY owned — a purchase made mid-visit never triggers that fetch,
@@ -428,6 +506,9 @@ const ProgramDetailScreen = () => {
         showSuccessBottomSheet(
           "You're in. The first month is on us",
           "Your program is unlocked, plus a free month of membership: 4 AI practice calls to use whenever you want them.",
+          undefined,
+          undefined,
+          { dimBackdrop: true },
         );
       } else {
         // THE PURCHASE STILL HAS TO BE ACKNOWLEDGED. This used to be the only
@@ -438,6 +519,9 @@ const ProgramDetailScreen = () => {
         showSuccessBottomSheet(
           "You're in",
           "Your program is unlocked. You can start now.",
+          undefined,
+          undefined,
+          { dimBackdrop: true },
         );
       }
       return "landed";
@@ -495,7 +579,9 @@ const ProgramDetailScreen = () => {
   };
 
   const handleBuy = async () => {
-    if (!offer || purchasesPaused) return;
+    if (!offer || purchasesPaused || gate.state !== "ready") return;
+    // The one-time note is spent by this tap.
+    setGate(gateAfterBuyTap);
     setPurchasing(true);
     // Funnel: bottom of the recommendation → purchase chain. `planId` is the
     // tier SKU key; `catalogKey` ties it back to the recommended pack.
@@ -543,14 +629,43 @@ const ProgramDetailScreen = () => {
           });
           await settlePending(outcome.kind);
           break;
-        case "checkout_in_progress":
-          // The backend refused a second checkout. No store sheet was opened.
+        case "checkout_in_progress": {
+          // The backend refused a second checkout. No store sheet was opened,
+          // and an open checkout is not a payment: no "Payment received", no
+          // "It will unlock on its own". The F3 check decides (see `gate`).
           mayHaveCharged = true;
           track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
             ...payProps,
             reason: "checkout_in_progress",
           });
-          await settlePending("checkout_in_progress");
+          const stored = await loadOpenCheckout(userId, offer.key);
+          if (stored?.charge) {
+            await settlePending(stored.charge);
+            break;
+          }
+          openCheckoutRef.current =
+            stored ??
+            checkoutFromConflict(
+              {
+                userId: userId ?? "",
+                catalogKey: offer.key,
+                productId: offer.tierProductId,
+              },
+              Date.now(),
+            );
+          setGate({ state: "checking_payment" });
+          break;
+        }
+        case "earlier_purchase_open":
+          // F1. Google refused THIS purchase: an earlier one of the same SKU
+          // is still open. Nothing was charged for this program, and the
+          // checkout was already released (purchases.ts). Finish the earlier
+          // purchase, then offer Buy again. Never "Payment received".
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+            ...payProps,
+            reason: "earlier_purchase_open",
+          });
+          setGate({ state: "finishing_earlier" });
           break;
         case "paused":
           // The server paused selling. No intent, no store sheet, no charge.
@@ -565,6 +680,7 @@ const ProgramDetailScreen = () => {
             reason: "already_owned",
           });
           clearProgramPending(offer.key);
+          void clearOpenCheckout(offer.key);
           setOwned(true);
           if (offer.packId) await fetchProgress(offer.packId);
           break;
@@ -623,6 +739,7 @@ const ProgramDetailScreen = () => {
           const match = selectOffer(offers.items, catalogKey);
           if (!match?.owned) return;
           clearProgramPending(catalogKey);
+          void clearOpenCheckout(catalogKey);
           setOwned(true);
           if (match.packId) await fetchProgress(match.packId);
         } catch (error) {
@@ -631,6 +748,165 @@ const ProgramDetailScreen = () => {
       })();
     });
   }, [owned, catalogKey, fetchProgress]);
+
+  // The latest check, for the two loops below, so a re-render does not
+  // restart them.
+  const confirmPurchaseRef = useRef(confirmPurchase);
+  confirmPurchaseRef.current = confirmPurchase;
+
+  /**
+   * F1: finish the earlier open purchase while this screen is open, with a
+   * backoff (finishEarlierPurchase). Once it finished, look once for THIS
+   * program's grant, because the earlier purchase may have been for this very
+   * program. Otherwise Buy comes back with its one-time note. Nothing here
+   * starts a purchase.
+   */
+  useEffect(() => {
+    if (gate.state !== "finishing_earlier" || !offer || owned) return;
+    let alive = true;
+    const attemptStartedAt =
+      lastAttempt(programAttemptKey(offer.key))?.startedAt ?? Date.now();
+    void (async () => {
+      // What the account owned BEFORE the earlier purchase is posted, so a
+      // program that becomes owned by it can explain the purchase (rule b).
+      const ownedBefore = await ownedProgramKeys();
+      const finished = await finishEarlierPurchase(() => alive);
+      if (!finished || !alive) return;
+      const result = await confirmPurchaseRef.current({
+        userInitiated: true,
+        timeoutMs: EARLIER_FINISHED_GRANT_LOOK_MS,
+      });
+      if (!alive) return;
+      if (result === "landed") return;
+      if (result === "other_account") {
+        setCharged(true);
+        return;
+      }
+      // ZERO RISK OF A DOUBLE CHARGE. Google sells the SKU again now. If the
+      // earlier purchase may have paid for THIS program (its record survives,
+      // or the store just posted a purchase of this product that no other
+      // program explains), its grant can still be on the way: a BOUNDED wait
+      // in F3 (at most 17 minutes), never the note + Buy straight away.
+      const [prior, records, ownedNow] = await Promise.all([
+        loadOpenCheckout(userId, offer.key),
+        loadAllOpenCheckouts(userId),
+        ownedProgramKeys(),
+      ]);
+      if (!alive) return;
+      const decision = decideAfterEarlierFinished({
+        prior,
+        suspectSince: earlierPurchaseSuspectSince({
+          before: finished.before,
+          after: finished.after,
+          productId: offer.tierProductId,
+          attemptStartedAt,
+        }),
+        otherRecords: records.filter((r) => r.catalogKey !== offer.key),
+        newlyOwnedOthers: newlyOwnedOthers(ownedBefore, ownedNow, offer.key),
+        othersOwnedBefore: ownedBefore,
+        userId: userId ?? "",
+        catalogKey: offer.key,
+        productId: offer.tierProductId,
+        now: Date.now(),
+      });
+      if (decision.kind === "paid") {
+        // This program's earlier store call came back as PAID. Never Buy
+        // again: the usual "Payment received" pending screen, with "Problem
+        // with a payment?", until the grant lands (a parked one needs a manual
+        // grant).
+        markProgramPending(offer.key, decision.pendingKind);
+        setPendingKind(decision.pendingKind);
+        setSettleTimedOut(true);
+        setCharged(true);
+        return;
+      }
+      if (decision.kind === "wait") {
+        openCheckoutRef.current = decision.checkout;
+        // On disk too, so leaving and coming back does not bring Buy back.
+        if (userId) void saveOpenCheckout(decision.checkout);
+        setGate({ state: "checking_payment" });
+        return;
+      }
+      setGate({ state: "ready", note: "earlier_finished" });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [gate.state, offer, owned, userId]);
+
+  /**
+   * F3: an open checkout for this program. Keep asking our server whether the
+   * program is owned (the settle poll, then the forced reconcile), and the
+   * "You're in" flow runs as usual when it is. Each round, f3RoundVerdict
+   * decides the rest: an ordinary checkout gets Buy back only when
+   * certainNoPayment agrees; a bounded F1 wait ends at its bound (or when
+   * another program newly became owned). Short of that, keep checking.
+   */
+  useEffect(() => {
+    if (gate.state !== "checking_payment" || !offer || owned) return;
+    let alive = true;
+    void (async () => {
+      for (let round = 0; alive; round++) {
+        const checkout = openCheckoutRef.current;
+        if (!checkout) return;
+        const result = await confirmPurchaseRef.current({
+          userInitiated: round > 0,
+        });
+        if (!alive || result === "landed") return;
+        if (result === "other_account") {
+          setCharged(true);
+          return;
+        }
+        // A checkout whose store sheet ended with no charge, where only the
+        // release call failed: release it now.
+        let released = false;
+        if (checkout.noCharge && checkout.intentId) {
+          released = (await releaseCheckout(checkout.intentId)) === "released";
+        }
+        const holdOver =
+          Date.now() >= checkout.holdEndsAt || devPaymentsHooks().holdOver === true;
+        // A bounded F1 wait that another program can explain: did one become
+        // owned since the attempt started?
+        const others =
+          checkout.explainableByOthers && checkout.othersOwnedBefore
+            ? newlyOwnedOthers(
+                checkout.othersOwnedBefore,
+                await ownedProgramKeys(),
+                checkout.catalogKey,
+              )
+            : [];
+        if (!alive) return;
+        if (released || holdOver || others.length > 0) {
+          const store = holdOver || released
+            ? await storeCheckForCheckout(checkout)
+            : { synced: false, hasPurchase: true };
+          if (!alive) return;
+          const verdict = f3RoundVerdict({
+            checkout,
+            now: holdOver ? Math.max(Date.now(), checkout.holdEndsAt) : Date.now(),
+            owned: false,
+            intentReleased: released,
+            storeSynced: store.synced,
+            storeHasPurchase: store.hasPurchase,
+            newlyOwnedOthers: others,
+          });
+          if (verdict === "note_no_payment" || verdict === "note_earlier_finished") {
+            openCheckoutRef.current = null;
+            void clearOpenCheckout(checkout.catalogKey);
+            setGate({
+              state: "ready",
+              note: verdict === "note_no_payment" ? "no_payment" : "earlier_finished",
+            });
+            return;
+          }
+        }
+        await new Promise((r) => setTimeout(r, OPEN_CHECKOUT_RECHECK_MS));
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [gate.state, offer, owned]);
 
   if (loading) {
     return (
@@ -1265,6 +1541,8 @@ const ProgramDetailScreen = () => {
     );
   }
 
+  const gateView = buyGateView(gate, "program");
+
   // NOT OWNED — the immersive, conversion-focused sales flow. Every honesty rule
   // above still holds: the flow only PRESENTS the offer/brochure it's handed and
   // buys through this screen's `handleBuy`; it computes no price and invents no
@@ -1277,6 +1555,10 @@ const ProgramDetailScreen = () => {
       bonusEligible={bonusEligible}
       purchasing={purchasing}
       pausedLine={purchasesPaused ? PURCHASES_PAUSED_LINE : null}
+      statusLine={gateView.line}
+      busyLabel={gateView.busyLabel}
+      note={gateView.note}
+      onBuyTapped={() => setGate(gateAfterBuyTap)}
       onBuy={handleBuy}
       onBack={() => navigation.goBack()}
     />

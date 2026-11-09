@@ -57,7 +57,6 @@ import {
   releasesCheckout,
 } from "../purchases";
 import {
-  CHECKOUT_IN_PROGRESS_LINE,
   CREDITS_SETTLING_LINE,
   PLAY_PENDING_PROGRAM_LINE,
   PROGRAM_SETTLING_LINE,
@@ -143,10 +142,20 @@ describe("classifyStoreError", () => {
     ["UNKNOWN_BACKEND_ERROR", C.UNKNOWN_BACKEND_ERROR],
     ["INVALID_RECEIPT_ERROR", C.INVALID_RECEIPT_ERROR],
     ["MISSING_RECEIPT_FILE_ERROR", C.MISSING_RECEIPT_FILE_ERROR],
-    ["PRODUCT_ALREADY_PURCHASED_ERROR", C.PRODUCT_ALREADY_PURCHASED_ERROR],
     ["CUSTOMER_INFO_ERROR", C.CUSTOMER_INFO_ERROR],
   ])("says payment received for %s, which only follows a real charge", (_name, code) => {
     expect(classifyStoreError(code, "purchase")).toBe("pending_after_charge");
+  });
+
+  // Google's "You already own this item": an EARLIER purchase of the same
+  // consumable is still open. THIS attempt was never charged (build 43).
+  it("never calls Google's already-owned refusal a payment of this attempt", () => {
+    expect(classifyStoreError(C.PRODUCT_ALREADY_PURCHASED_ERROR, "purchase")).toBe(
+      "earlier_purchase_open",
+    );
+    expect(classifyStoreError(C.PRODUCT_ALREADY_PURCHASED_ERROR, "lookup")).toBe(
+      "retryable_before_charge",
+    );
   });
 
   it.each([
@@ -298,17 +307,8 @@ describe("pendingLine", () => {
     );
   });
 
-  it("names an earlier checkout", () => {
-    expect(pendingLine("checkout_in_progress", "program", false)).toBe(
-      "Your earlier payment is still being confirmed. It will unlock on its own.",
-    );
-    expect(pendingLine("checkout_in_progress", "program", true)).toBe(
-      CHECKOUT_IN_PROGRESS_LINE,
-    );
-  });
-
   it("uses no em dashes", () => {
-    for (const kind of ["after_charge", "store_pending", "checkout_in_progress"] as const) {
+    for (const kind of ["after_charge", "store_pending", "unclear"] as const) {
       for (const product of ["program", "credits"] as const) {
         for (const timedOut of [false, true]) {
           expect(pendingLine(kind, product, timedOut)).not.toMatch(/—/);
@@ -491,6 +491,9 @@ describe("releasesCheckout", () => {
       expect(releasesCheckout({ status: "pending", kind })).toBe(false);
     }
   });
+  it("releases when Google refused because an earlier purchase is open", () => {
+    expect(releasesCheckout({ status: "earlier_purchase_open" })).toBe(true);
+  });
 });
 
 /**
@@ -539,7 +542,6 @@ describe("paid on the other account", () => {
     for (const kind of [
       "after_charge",
       "store_pending",
-      "checkout_in_progress",
       "unclear",
       null,
     ] as const) {

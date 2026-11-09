@@ -18,6 +18,8 @@ export interface ButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** Shown beside the spinner while `loading`. Without it the spinner stands alone. */
+  loadingLabel?: string;
   disabled?: boolean;
   leftIcon?: IconName;
   rightIcon?: IconName;
@@ -53,6 +55,7 @@ export const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   size = "lg",
   loading = false,
+  loadingLabel,
   disabled = false,
   leftIcon,
   rightIcon,
@@ -127,7 +130,20 @@ export const Button: React.FC<ButtonProps> = ({
       accessibilityLabel={accessibilityLabel}
       style={[containerStyle, style]}
     >
-      {loading ? (
+      {loading && loadingLabel ? (
+        <>
+          <ActivityIndicator color={fg} />
+          <Text
+            variant="title"
+            color={fg}
+            center
+            numberOfLines={1}
+            style={{ flexShrink: 1, minWidth: 0 }}
+          >
+            {loadingLabel}
+          </Text>
+        </>
+      ) : loading ? (
         <ActivityIndicator color={fg} />
       ) : (
         <>

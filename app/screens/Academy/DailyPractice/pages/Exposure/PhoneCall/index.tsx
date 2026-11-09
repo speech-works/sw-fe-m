@@ -37,6 +37,11 @@ import { useUserStore } from "../../../../../../stores/user";
 import { useAICallConsentStore } from "../../../../../../stores/aiCallConsent";
 import AICallConsentModal from "../../../../../../components/AICallConsentModal";
 import { postAiCallConsent } from "../../../../../../api/users";
+import { getWallet } from "../../../../../../api";
+import {
+  precheckCallAllowance,
+  walletWithin,
+} from "../../../../../../util/functions/callAllowance";
 import {
   Text,
   Icon,
@@ -355,6 +360,26 @@ const PhoneCall = () => {
     }
   };
 
+  /**
+   * "OUT OF CALLS" BEFORE "CONNECT HEADPHONES" (H1). Runs on the call button,
+   * before the headphones gate: a fresh wallet read (3 s limit) and, only when
+   * it is certain no call can start (precheckCallAllowance), the same "Out of
+   * calls" sheet the 402 opens. Starts nothing and spends nothing. Any error,
+   * timeout or unknown answers false, and the call goes on as before, where
+   * the 402 NO_CREDITS is still the source of truth.
+   */
+  const handleBeforeCallGate = async (): Promise<boolean> => {
+    const wallet = await walletWithin(getWallet);
+    const verdict = precheckCallAllowance({
+      wallet,
+      inProgram,
+      role: useUserStore.getState().user?.role,
+    });
+    if (verdict !== "no_calls") return false;
+    setShowExhaustionSheet(true);
+    return true;
+  };
+
   const markActivityComplete = async (): Promise<boolean> => {
     const activityId = currentActivityIdRef.current || currentActivityId;
     if (!activityId) return false;
@@ -651,6 +676,7 @@ const PhoneCall = () => {
             }
             ringtoneAsset={RINGING_SOUND_FILE}
             onCallStart={handleCallStart}
+            onBeforeCallGate={handleBeforeCallGate}
             onCallEnd={handleCallEnd}
             onCallEndAcknowledged={handleCallEndAcknowledged}
             inProgram={inProgram}

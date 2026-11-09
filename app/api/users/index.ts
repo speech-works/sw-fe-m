@@ -8,6 +8,13 @@ import type { CrisisResource } from "../crisis";
 export interface User {
   id: string;
   email: string;
+  /**
+   * Authorization role, sent by GET /users/me (the whole user row is spread
+   * into it). "reviewer" users may get free review calls inside assigned
+   * programs, which the call pre-check must not refuse. Absent on an older
+   * payload, and absent means "not known".
+   */
+  role?: "user" | "admin" | "reviewer" | string;
   bio?: string;
   name: string;
   profilePictureUrl?: string;
@@ -82,6 +89,14 @@ export interface User {
     store?: "app_store" | "play_store" | "stripe" | "unknown" | null;
     /** ISO instant the free days end, when they have free days. */
     freeUntil?: string | null;
+    /**
+     * NOT SENT YET (proposed, 9 Nov 2026). The end of the live STORE plan's
+     * own period (the primary purchase row's expiresAt), without free-month
+     * or gift days. `until` is the furthest end of every live row, so for a
+     * member who also has free days it is not the renewal date. Read only
+     * through planPeriodEnd.
+     */
+    planUntil?: string | null;
     /** The store could not take the last renewal payment. */
     billingIssue?: boolean;
     /** What the paywall may offer, decided by the server. */

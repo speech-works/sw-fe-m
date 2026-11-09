@@ -110,19 +110,48 @@ export interface PaywallViewInput {
   annualSavingsPct?: number;
   /** Their membership end date, formatted for display, or null. */
   endDateText: string | null;
+  /** The clock for the free-days date (year shown only when not this year). Tests set it. */
+  now?: Date;
 }
 
 /**
- * "You have 23 free days left. A plan you start today begins today, and your
- * free days stop." The count first, then what buying does to it.
+ * A short display date: day and short month in the device's own locale ("8
+ * Dec", or "Dec 8" on a US phone), the same options the plan card's "Renews"
+ * date uses, with the year only when it is not this year. Null for no date.
  */
-export function freeDaysLine(daysRemaining: number | null | undefined): string {
-  const rule = FREE_DAYS_END_LINE;
-  if (daysRemaining == null) return rule;
-  if (daysRemaining <= 0) return `Your free days end today. ${rule}`;
-  return daysRemaining === 1
-    ? `You have 1 free day left. ${rule}`
-    : `You have ${daysRemaining} free days left. ${rule}`;
+export function shortDisplayDate(
+  iso: string | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" as const } : {}),
+  });
+}
+
+/**
+ * M3 (founder-approved wording, 9 Nov 2026), above the buy button while they
+ * have free days and can buy or upgrade:
+ *   "Enjoy your free days until {date}. If you buy now, your plan starts today."
+ * {date} is when the free days end: `freeUntil`, else `until` for free-month
+ * or gift access. With no date: "Enjoy your free days. If you buy now, your
+ * plan starts today."
+ */
+export function freeDaysLine(
+  m: Pick<Membership, "freeUntil" | "until" | "source"> | null | undefined,
+  now: Date = new Date(),
+): string {
+  const end =
+    m?.freeUntil ??
+    (m?.source === "pack_bonus" || m?.source === "grant" ? m.until : null);
+  const date = shortDisplayDate(end, now);
+  return date
+    ? `Enjoy your free days until ${date}. ${FREE_DAYS_END_LINE}`
+    : `Enjoy your free days. ${FREE_DAYS_END_LINE}`;
 }
 
 /** The plan cards the reader may pick, and what the main button does. */
@@ -258,9 +287,9 @@ export function paywallView(input: PaywallViewInput): PaywallView {
       kind: "upgrade",
       plan: "annual",
       label: input.annualKnown
-        ? `Upgrade to Annual · ${input.annualLabel}/yr`
-        : "Upgrade to Annual",
-      a11y: "Upgrade to annual plan",
+        ? `Switch to yearly · ${input.annualLabel}/yr`
+        : "Switch to yearly",
+      a11y: "Switch to the yearly plan",
       enabled: true,
     };
   } else {
@@ -305,7 +334,7 @@ export function paywallView(input: PaywallViewInput): PaywallView {
   // days, and here is how many are left.
   const canBuy = cta.kind === "buy" || cta.kind === "upgrade";
   if (m?.freeUntil && canBuy) {
-    notices.push(freeDaysLine(m.daysRemaining));
+    notices.push(freeDaysLine(m, input.now));
   }
   if (cta.kind === "none") {
     notices.push("Your membership has no end date.");

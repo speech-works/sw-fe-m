@@ -1,6 +1,5 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Application from "expo-application";
-import * as SecureStore from "expo-secure-store";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import Reanimated, {
@@ -10,8 +9,7 @@ import Reanimated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { getAllSessionsOfUser, logoutUser } from "../../api";
-import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
+import { getAllSessionsOfUser } from "../../api";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
 import { getLevelStage, LevelStage } from "../../api/users";
@@ -103,26 +101,24 @@ const Settings = () => {
     transform: [{ translateY: floatY.value }],
   }));
 
-  // Revoking the refresh token server-side is best effort; clearing the local
-  // session is not. This used to call logout() ONLY inside the `if`, with no
-  // catch — so a missing/expired token, or simply being offline, left the
-  // button inert and the user trapped in an account they had asked to leave.
-  // Sign-out has to succeed locally no matter what the server says.
+  // Sign-out has to succeed locally no matter what the server says, and must
+  // not WAIT on the server either. logout() (AuthContext) clears the session at
+  // once and tells the server in the background, exactly once; this screen no
+  // longer sends its own POST /auth/logout (it used to, before logout() sent
+  // the same call again, and both were awaited: about 2.5 s of nothing). A
+  // second tap while one is running is ignored.
+  const loggingOut = useRef(false);
   const handleLogout = async () => {
+    if (loggingOut.current) return;
+    loggingOut.current = true;
     try {
-      const accessToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
-      );
-      const refreshToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
-      );
-      if (refreshToken && accessToken) {
-        await logoutUser({ refreshToken, appJwt: accessToken });
-      }
+      await logout();
     } catch (error) {
-      console.error("[settings] server logout failed, signing out anyway:", error);
+      console.error("[settings] sign-out failed:", error);
     } finally {
-      logout();
+      // Normally this screen is gone by now. If anything kept it, a later tap
+      // must work again.
+      loggingOut.current = false;
     }
   };
 

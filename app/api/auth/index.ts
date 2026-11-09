@@ -1,4 +1,6 @@
+import axios from "axios";
 import axiosClient from "../axiosClient";
+import { API_BASE_URL } from "../constants";
 
 // login user
 interface LoginProps {
@@ -137,4 +139,22 @@ export async function logoutUser({
     console.error("There was a problem during logout:", error);
     throw error;
   }
+}
+
+/**
+ * POST /auth/logout for a session this phone has ALREADY cleared (sign-out no
+ * longer waits on the server). A plain request with the tokens read before the
+ * clear: axiosClient's interceptors would read SecureStore (empty by now, or a
+ * NEW user's after a quick sign-in) and could start a refresh or a second
+ * logout event on a 401. Throws on failure; the caller only logs it.
+ */
+export async function logoutUserDetached({
+  refreshToken,
+  appJwt,
+}: LogoutPayload): Promise<void> {
+  await axios.post(
+    `${API_BASE_URL}/auth/logout`,
+    { appJwt, refreshToken },
+    { headers: { Authorization: `Bearer ${appJwt}` }, timeout: 10000 },
+  );
 }

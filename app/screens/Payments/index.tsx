@@ -54,7 +54,7 @@ import {
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useUserStore } from "../../stores/user";
-import { membershipEndsAt } from "../../util/functions/membership";
+import { planPeriodEnd } from "../../util/functions/membership";
 import { useStorePrices } from "../../hooks/useStorePrices";
 import { useRestorePurchases } from "../../hooks/useRestorePurchases";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -96,7 +96,8 @@ const SubscribeScreenBody = () => {
   const user = useUserStore((s) => s.user);
   const setUser = useUserStore((s) => s.setUser);
   const fetchUser = useUserStore((s) => s.fetchUser);
-  const endsAt = membershipEndsAt(user);
+  // The store plan's own period end, never free-month days (planPeriodEnd).
+  const endsAt = planPeriodEnd(user);
   const renewalDateText = endsAt
     ? endsAt.toLocaleDateString(undefined, {
         // "short": "Renews 27 November 2026" did not fit the plan card.
@@ -439,8 +440,8 @@ const SubscribeScreenBody = () => {
         setStoreCharged(true);
         track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, payProps);
         const confirmed = {
-          title: "Upgraded!",
-          message: "You're now on the annual plan.",
+          title: "Done",
+          message: "You are now on the yearly plan.",
         };
         const fresh = await confirmMembershipGrant(
           (m) => purchaseConfirmed(m, "annual"),
@@ -594,7 +595,7 @@ const SubscribeScreenBody = () => {
                 {/* ── PRIMARY CTA ─────────────────────────────────────────
                     From `view.cta`, which follows the server's actions:
                     buy:       "Start membership · ₹X/yr"  → handlePayment
-                    upgrade:   "Upgrade to Annual · ₹X/yr" → handleUpgradeToAnnual
+                    upgrade:   "Switch to yearly · ₹X/yr"  → handleUpgradeToAnnual
                     manage:    "Manage Subscription"        → manageSubscriptions
                     openStore: "Open Google Play"           → that store's page
                     none:      no button at all */}

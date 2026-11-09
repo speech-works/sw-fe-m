@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -64,6 +70,11 @@ import {
   type ProgramCover,
 } from "../../util/packs/programCover";
 import ProgramEvidence from "./ProgramEvidence";
+import { WaitMessage } from "../../components/WaitMessage";
+import {
+  NOTHING_CHARGED_UNTIL_CONFIRM,
+  waitMessageCandidates,
+} from "../../services/purchaseSettlement";
 
 /**
  * The pre-purchase sales experience for one program — an immersive, swipeable
@@ -95,6 +106,14 @@ export interface ProgramSalesFlowProps {
    * button, so the review sheet and the store sheet cannot open.
    */
   pausedLine?: string | null;
+  /** The F1 waiting line, shown under Buy, or null. */
+  statusLine?: string | null;
+  /** Set while Buy must wait: the button is disabled, with a spinner and this label. */
+  busyLabel?: string | null;
+  /** A one-time note under Buy (no icon), or null. */
+  note?: string | null;
+  /** The dock's Buy was tapped (before the review sheet opens). */
+  onBuyTapped?: () => void;
   onBuy: () => void;
   onBack: () => void;
 }
@@ -120,6 +139,10 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
   bonusEligible,
   purchasing,
   pausedLine = null,
+  statusLine = null,
+  busyLabel = null,
+  note = null,
+  onBuyTapped,
   onBuy,
   onBack,
 }) => {
@@ -393,18 +416,39 @@ const ProgramSalesFlow: React.FC<ProgramSalesFlowProps> = ({
               {pausedLine}
             </Text>
           ) : (
-            <BuyButton
-              label={`Get ${offer.title}`}
-              loading={purchasing}
-              onPress={() => setSheetOpen(true)}
-              reduceMotion={reduceMotion}
-            />
+            <>
+              <BuyButton
+                label={`Get ${offer.title}`}
+                loading={purchasing || busyLabel !== null}
+                busyLabel={busyLabel}
+                onPress={() => {
+                  onBuyTapped?.();
+                  setSheetOpen(true);
+                }}
+                reduceMotion={reduceMotion}
+              />
+              {/* UNDER the button, centred, caption style (founder, 9 Nov
+                  2026). L3: the fixed-height slot is ALWAYS reserved, from
+                  the first paint, so the button never moves between a fresh
+                  visit, waiting, checking and a note. Normal state: the
+                  checkout sheet's own "Nothing is charged until you
+                  confirm."; F1 wait or a note: that message; F3 checking:
+                  the message slot stays empty (WaitMessage shows the idle
+                  line only when no wait is on, see `idleText`). The dock is
+                  measured (barH), so the slot never covers the page above. */}
+              <WaitMessage
+                text={statusLine ?? note}
+                candidates={waitMessageCandidates("program")}
+                reserve
+                idleText={busyLabel === null ? NOTHING_CHARGED_UNTIL_CONFIRM : null}
+              />
+            </>
           )}
         </View>
       </View>
 
       <PurchaseSheet
-        visible={sheetOpen && !pausedLine}
+        visible={sheetOpen && !pausedLine && busyLabel === null}
         onClose={() => setSheetOpen(false)}
         onDismissed={() => {
           if (confirmRef.current) {
@@ -482,6 +526,8 @@ export default ProgramSalesFlow;
 interface BuyButtonProps {
   label: string;
   loading: boolean;
+  /** Shown beside the spinner while loading. Without it the spinner stands alone. */
+  busyLabel?: string | null;
   onPress: () => void;
   reduceMotion: boolean;
 }
@@ -496,11 +542,18 @@ interface BuyButtonProps {
 const BuyButton: React.FC<BuyButtonProps> = ({
   label,
   loading,
+  busyLabel = null,
   onPress,
   reduceMotion,
 }) => {
   const { colors, scheme } = useTheme();
-  const ink = colors.action.onPrimary;
+  // A WAIT LOOKS DISABLED. With a busy label (F1 "Please wait…", F3 "Checking
+  // your payment…") the button takes the design system's disabled fill, with
+  // no brand gradient, no sweep and no glow. The spinner and label use the
+  // secondary text ink rather than the faint disabled ink, so the words that
+  // say why it is waiting stay readable.
+  const busy = loading && !!busyLabel;
+  const ink = busy ? colors.text.secondary : colors.action.onPrimary;
   // Soft-edged shine ink. On dark, surface.inverse is white → a crisp glint;
   // on the light "paper" canvas it flips dark, so there we lean on the scheme-
   // aware sheen gloss instead of a dark streak.
@@ -509,7 +562,7 @@ const BuyButton: React.FC<BuyButtonProps> = ({
   const shimmer = useSharedValue(0);
 
   useEffect(() => {
-    if (reduceMotion || w === 0) return;
+    if (reduceMotion || w === 0 || busy) return;
     shimmer.value = withRepeat(
       withDelay(
         SHIMMER_GAP,
@@ -519,7 +572,7 @@ const BuyButton: React.FC<BuyButtonProps> = ({
       false,
     );
     return () => cancelAnimation(shimmer);
-  }, [reduceMotion, w, shimmer]);
+  }, [reduceMotion, w, shimmer, busy]);
 
   const sweepStyle = useAnimatedStyle(() => ({
     opacity: interpolate(shimmer.value, [0, 0.15, 0.85, 1], [0, 1, 1, 0]),
@@ -534,21 +587,28 @@ const BuyButton: React.FC<BuyButtonProps> = ({
       scaleTo={0.97}
       onPress={loading ? undefined : onPress}
       disabled={loading}
+      accessibilityState={{ disabled: loading, busy: loading }}
       style={[
         styles.buyCta,
-        { backgroundColor: colors.action.primary },
-        // Brand-coloured lift under the buy CTA. `blur: 24` is the CSS form of
-        // the `shadowRadius: 12` this used to carry.
-        castShadow(colors.action.primary, { y: 4, blur: 24, alpha: 0.5, elevation: 8 }),
-        primaryEdge(colors),
+        busy
+          ? { backgroundColor: colors.action.disabledBg }
+          : [
+              { backgroundColor: colors.action.primary },
+              // Brand-coloured lift under the buy CTA. `blur: 24` is the CSS
+              // form of the `shadowRadius: 12` this used to carry.
+              castShadow(colors.action.primary, { y: 4, blur: 24, alpha: 0.5, elevation: 8 }),
+              primaryEdge(colors),
+            ],
       ]}
     >
       <View
         style={styles.buyClip}
         onLayout={(e) => setW(e.nativeEvent.layout.width)}
       >
-        <Gradient token="brand" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        {!reduceMotion && w > 0 ? (
+        {busy ? null : (
+          <Gradient token="brand" style={StyleSheet.absoluteFill} pointerEvents="none" />
+        )}
+        {!reduceMotion && w > 0 && !busy ? (
           <Animated.View style={[styles.buySweep, sweepStyle]} pointerEvents="none">
             {shine ? (
               <Gradient
@@ -563,7 +623,15 @@ const BuyButton: React.FC<BuyButtonProps> = ({
           </Animated.View>
         ) : null}
 
-        {loading ? (
+        {loading && busyLabel ? (
+          // buyClip is already a centred row with a gap.
+          <>
+            <ActivityIndicator color={ink} />
+            <Text variant="title" color={ink} numberOfLines={1}>
+              {busyLabel}
+            </Text>
+          </>
+        ) : loading ? (
           <ActivityIndicator color={ink} />
         ) : (
           <Text variant="title" color={ink} numberOfLines={1}>
@@ -684,6 +752,47 @@ const HookPage: React.FC<HookPageProps> = ({
   const { height: windowHeight } = useWindowDimensions();
   const { colors } = useTheme();
   const glow = colors.action.primary;
+  /**
+   * ── NOTHING ON THIS PAGE MAY SIT UNDER THE BUY DOCK ──────────────────────
+   * The dock floats over the pager and grows: a waiting line, a one-time note
+   * or a two-line price push it up. `bottomPad` is its MEASURED height, but
+   * this page used to be a fixed column, so content taller than what was left
+   * overflowed downward under the dock ("Swipe to see your plan" under the
+   * price, iPhone 16 Pro, 9 Nov 2026).
+   *
+   * Now: when the content does not fit above the dock, the days/sessions row
+   * goes first (the cover line already says how many days; short phones never
+   * had it). If it still does not fit, the page scrolls, and its bottom
+   * padding (the dock height) keeps the last line clear of the dock. Reset
+   * whenever the dock height changes, so a shrinking dock brings the row back.
+   */
+  const [viewportH, setViewportH] = useState(0);
+  const [contentH, setContentH] = useState(0);
+  const [statsDropped, setStatsDropped] = useState(false);
+  useEffect(() => {
+    setStatsDropped(false);
+  }, [bottomPad]);
+  // Both sizes arrive in either order (content size often first), so the
+  // comparison runs whenever either one changes.
+  useEffect(() => {
+    if (!statsDropped && viewportH > 0 && contentH > viewportH + 0.5) {
+      setStatsDropped(true);
+    }
+  }, [statsDropped, viewportH, contentH]);
+  const onContentSize = (_w: number, h: number) => setContentH(h);
+  const showStats = (dayCount || sessionCount > 0) && !statsDropped;
+  const fillProps = {
+    style: styles.hookScroll,
+    contentContainerStyle: [
+      styles.hookFillScroll,
+      { paddingTop: topPad, paddingBottom: bottomPad },
+    ],
+    showsVerticalScrollIndicator: false,
+    bounces: false,
+    onLayout: (e: { nativeEvent: { layout: { height: number } } }) =>
+      setViewportH(e.nativeEvent.layout.height),
+    onContentSizeChange: onContentSize,
+  };
   const nudge = useSharedValue(0);
   const drift = useSharedValue(0);
   useEffect(() => {
@@ -747,12 +856,7 @@ const HookPage: React.FC<HookPageProps> = ({
     return (
       <View style={styles.hookRoot}>
         <CoverBackdrop cover={cover} height="76%" />
-        <View
-          style={[
-            styles.hookFill,
-            { paddingTop: topPad, paddingBottom: bottomPad },
-          ]}
-        >
+        <ScrollView {...fillProps}>
           <Animated.View entering={staggerEntering(0, reduceMotion)}>
             <StandaloneCover
               cover={cover}
@@ -776,7 +880,7 @@ const HookPage: React.FC<HookPageProps> = ({
 
           {matchPill}
 
-          {(dayCount || sessionCount > 0) && windowHeight >= COVER_STATS_MIN_HEIGHT && (
+          {showStats && windowHeight >= COVER_STATS_MIN_HEIGHT && (
             <Animated.View
               entering={staggerEntering(2, reduceMotion)}
               style={[styles.statsRow, styles.coverStats]}
@@ -793,7 +897,7 @@ const HookPage: React.FC<HookPageProps> = ({
 
           <View style={styles.hookGap} />
           {hint}
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -818,7 +922,7 @@ const HookPage: React.FC<HookPageProps> = ({
         <Icon name={icons.roadmap} size={216} color={withAlpha(glow, 0.14)} />
       </Animated.View>
 
-      <View style={[styles.hookFill, { paddingTop: topPad, paddingBottom: bottomPad }]}>
+      <ScrollView {...fillProps}>
         <View style={styles.hookGap} />
 
         <Animated.View entering={staggerEntering(0, reduceMotion)}>
@@ -841,7 +945,7 @@ const HookPage: React.FC<HookPageProps> = ({
 
         {matchPill}
 
-        {(dayCount || sessionCount > 0) && (
+        {showStats && (
           <Animated.View
             entering={staggerEntering(4, reduceMotion)}
             style={styles.statsRow}
@@ -859,7 +963,7 @@ const HookPage: React.FC<HookPageProps> = ({
         <View style={styles.hookGap} />
 
         {hint}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -1085,6 +1189,10 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
       visible={visible}
       onClose={onClose}
       onDismissed={onDismissed}
+      // The program page stays visible behind this sheet, dimmed, the way the
+      // store's own payment sheet leaves it. The opaque default turned the
+      // page into a black void (F2, Android, 8 Nov 2026).
+      backdrop="dim"
       // The gutter moves off the card and onto the body below, so the sheet's
       // scroller runs edge-to-edge. Otherwise its bounds sit exactly on the
       // CTA's edges and clip the button's glow into a flat-sided slab.
@@ -1197,7 +1305,7 @@ const PurchaseSheet: React.FC<PurchaseSheetProps> = ({
             reduceMotion={reduceMotion}
           />
           <Text variant="caption" color="tertiary" center>
-            Nothing is charged until you confirm.
+            {NOTHING_CHARGED_UNTIL_CONFIRM}
           </Text>
           <PressableScale onPress={onClose} style={styles.maybeLater}>
             <Text variant="bodySm" color="tertiary">
@@ -1314,8 +1422,13 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: "hidden",
   },
-  hookFill: {
+  // The page scrolls only when its content cannot fit above the dock; when it
+  // fits, flexGrow keeps the old full-height column (hookGap still spreads).
+  hookScroll: {
     flex: 1,
+  },
+  hookFillScroll: {
+    flexGrow: 1,
     paddingHorizontal: space.screenX,
   },
   hookGap: {

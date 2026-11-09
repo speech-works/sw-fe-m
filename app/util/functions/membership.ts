@@ -36,6 +36,38 @@ export function membershipEndsAt(user: User | null | undefined): Date | null {
 }
 
 /**
+ * ===========================================================================
+ * THE STORE PLAN'S OWN PERIOD END: "Renews {date}" / "Ends {date}" (M2)
+ * ---------------------------------------------------------------------------
+ * `until` is when ACCESS ends: the furthest live row, which includes free-month
+ * (pack_bonus) and gift days. A member who paid monthly and also has free days
+ * was told "Renews" on a date the store will not bill on. The plan card and
+ * the renewal disclosure must show the store plan's own end instead.
+ *
+ * The server does not send that yet (buildMembershipStatus in sw-be-2 sends
+ * `until`, and `freeUntil` only when NO purchase is live). So:
+ *   - `planUntil` when the server sends it (the proposed field);
+ *   - a purchase with `freeUntil` set: no date, rather than a wrong one;
+ *   - otherwise `until`, as before. For a purchase that is right whenever the
+ *     member has no free days running past the plan's own end.
+ * Null for no date. Not for gating (see isMember).
+ * ===========================================================================
+ */
+export function planPeriodEnd(user: User | null | undefined): Date | null {
+  const m = user?.membership;
+  if (!m) return null;
+  if (m.source === "purchase") {
+    if (m.planUntil !== undefined) {
+      if (!m.planUntil) return null;
+      const d = new Date(m.planUntil);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (m.freeUntil) return null;
+  }
+  return membershipEndsAt(user);
+}
+
+/**
  * Whole days left, already counted in the user's own calendar by the server.
  *
  * Deliberately not computed here. The same instant is a different DATE
@@ -87,11 +119,11 @@ export function membershipEndingSoon(user: User | null | undefined): boolean {
 }
 
 /**
- * The first sentence of the paywall's free-days line, also said on the day-28
- * sheet. Buying a plan ends the free days; it does not add to them.
+ * Said on the day-28 sheet while free days are running (founder-approved,
+ * 9 Nov 2026), and the second sentence of the paywall's free-days line. A plan
+ * bought now starts now; the server keeps the free days running alongside it.
  */
-export const FREE_DAYS_END_LINE =
-  "A plan you start today begins today, and your free days stop.";
+export const FREE_DAYS_END_LINE = "If you buy now, your plan starts today.";
 
 /**
  * The day-28 sheet's body: what membership is, and BOTH plans' prices when

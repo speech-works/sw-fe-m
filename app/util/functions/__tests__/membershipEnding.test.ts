@@ -150,7 +150,7 @@ describe("The day-28 sheet's words", () => {
     ).toBe("Membership is the longer calls and the whole technique library.");
   });
 
-  it("says the free days end when the plan starts", () => {
-    expect(FREE_DAYS_END_LINE).toBe("A plan you start today begins today, and your free days stop.");
+  it("says a plan bought now starts today (free days keep running)", () => {
+    expect(FREE_DAYS_END_LINE).toBe("If you buy now, your plan starts today.");
   });
 });

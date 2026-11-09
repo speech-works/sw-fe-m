@@ -1,7 +1,9 @@
 import * as SecureStore from "expo-secure-store"; // or AsyncStorage
 import React, { createContext, useEffect, useState } from "react";
 import { View } from "react-native";
-import { logoutUser, deleteMe } from "../api";
+import { deleteMe } from "../api";
+import { logoutUserDetached } from "../api/auth";
+import { removePushTokenDetached } from "../api/devices";
 import { palette } from "../design-system/primitives/palette";
 import { resetAuthInterceptor } from "../api/axiosClient";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
@@ -10,8 +12,10 @@ import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
 import {
   registerPushToken,
+  storedPushToken,
   unregisterPushToken,
 } from "../util/functions/notifications";
+import { signOutNow } from "../util/functions/signOut";
 import { clearAllPersistedUserState } from "../util/functions/clearUserState";
 import { logoutPurchasesUser } from "../services/purchases";
 
@@ -140,28 +144,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
   };
 
+  // SIGN OUT AT ONCE. This used to await the push-token removal and POST
+  // /auth/logout before clearing anything, so Log Out sat still for about
+  // 2.5 s on a real phone. Now the tokens those calls need are read first
+  // (the clear deletes them), the calls run in the background with errors
+  // only logged, and the local clear is all that is waited for. The server is
+  // told here and only here (util/functions/signOut.ts).
   const logout = async () => {
-    // Retrieve tokens for API logout
-    const accessToken = token;
-    const refreshToken = await SecureStore.getItemAsync(
-      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
-    );
-
-    // Deregister this device's push token while still authenticated (best-effort).
-    await unregisterPushToken();
-
-    if (accessToken && refreshToken) {
-      try {
-        // Call the API to properly logout
-        await logoutUser({ appJwt: accessToken, refreshToken });
-      } catch (error) {
-        console.error("Error during API logout", error);
-        // Optionally, you can decide whether to continue clearing local credentials if the API call fails.
-      }
-    }
-
-    track(ANALYTICS_EVENTS.USER_LOGGED_OUT);
-    await clearLocalSession();
+    await signOutNow({
+      readSecrets: async () => {
+        const [storedJwt, refreshToken, pushToken] = await Promise.all([
+          SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY),
+          SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY),
+          storedPushToken(),
+        ]);
+        return { appJwt: storedJwt ?? token ?? null, refreshToken, pushToken };
+      },
+      clearSession: async () => {
+        track(ANALYTICS_EVENTS.USER_LOGGED_OUT);
+        await clearLocalSession();
+      },
+      removePushToken: removePushTokenDetached,
+      revokeSession: logoutUserDetached,
+    });
   };
 
   const deleteAccount = async () => {

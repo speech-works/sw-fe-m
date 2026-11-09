@@ -114,8 +114,9 @@ export const ContinueMembershipSheet: React.FC<ContinueMembershipSheetProps> = (
           {continueBody(price)}
         </Text>
 
-        {/* The paywall says this too, above its button. Said here first, so
-            nobody buys thinking the free days still run alongside the plan. */}
+        {/* The paywall says this too, above its button: a plan bought now
+            starts today. The free days do keep running alongside it (the
+            server keeps them), so nothing here says they stop. */}
         {user?.membership?.freeUntil ? (
           <Text variant="body" color="primary" center style={styles.freeDays}>
             {FREE_DAYS_END_LINE}

@@ -53,4 +53,9 @@ export const ASYNC_KEYS_NAME = {
   // Holds NO entitlement and gates nothing but an animation — the TOP MATCH
   // watermark itself renders from the server's ranking either way.
   SW_ZSTORE_TOP_MATCH_STAMP: "SW_ZSTORE_TOP_MATCH_STAMP",
+  // Program checkouts this phone started and has not seen end (intent id, tier
+  // SKU, start time). Holds NO entitlement: it only keeps Buy disabled behind
+  // "Checking your payment…" after the app was killed mid-purchase, until the
+  // server grants the program or it is certain nothing was paid.
+  SW_OPEN_CHECKOUTS: "SW_OPEN_CHECKOUTS",
 };

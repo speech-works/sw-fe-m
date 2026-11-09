@@ -67,6 +67,14 @@ export interface SheetProps {
    * events (e.g. OutcomeModal). Default false = present immediately (unchanged).
    */
   exclusive?: boolean;
+  /**
+   * What sits behind the card. "opaque" (default, unchanged) hides the screen.
+   * "dim" keeps the screen visible under the overlay scrim, the way the store's
+   * own payment sheet does. For a sheet that is a step OF the screen behind it
+   * (a purchase review, its "You're in"), where a black void read as the page
+   * having gone (Android, 8 Nov 2026).
+   */
+  backdrop?: "opaque" | "dim";
 }
 
 /** Bottom-sheet modal: opaque backdrop that fades in place (never slides), the
@@ -83,6 +91,7 @@ export const Sheet: React.FC<SheetProps> = ({
   footer,
   contentStyle,
   exclusive = false,
+  backdrop: backdropKind = "opaque",
 }) => {
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
@@ -356,11 +365,17 @@ export const Sheet: React.FC<SheetProps> = ({
           paddingBottom: keyboardInset,
         }}
       >
-        {/* Opaque backdrop — fades in place, never slides. */}
+        {/* Backdrop: fades in place, never slides. Opaque unless asked to dim. */}
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: colors.background.sunken, opacity: backdrop },
+            {
+              backgroundColor:
+                backdropKind === "dim"
+                  ? colors.overlay.scrim
+                  : colors.background.sunken,
+              opacity: backdrop,
+            },
           ]}
         />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />

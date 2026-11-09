@@ -58,6 +58,7 @@ import {
   shouldShowEchoWarning,
 } from "../util/echoWarning";
 import { isHeadsetConnected } from "../util/functions/headset";
+import { runBeforeCallGate } from "../util/functions/callAllowance";
 import { evaluateCallGate, useCallGate } from "../util/functions/useCallGate";
 import { CALL_GATE_COPY } from "../util/functions/callGate";
 import { useRegisterNativeModal } from "../stores/nativeModal";
@@ -93,6 +94,14 @@ type Props = {
   userId?: string;
   sampleRate?: number;
   onCallStart?: () => Promise<string | null>;
+  /**
+   * Runs BEFORE the headphones and volume gate on a tap of the call button.
+   * Resolve true to stop: the screen has answered the tap itself (the call
+   * screen's "Out of calls" sheet, when the wallet says no call can start).
+   * Must never start an activity or spend anything; on any doubt resolve
+   * false and the call goes on exactly as without it. Not run for autoStart.
+   */
+  onBeforeCallGate?: () => Promise<boolean>;
   onCallEnd?: (payload: CallExitPayload) => void | Promise<void>;
   onCallEndAcknowledged?: (
     payload: CallEndAcknowledgementPayload,
@@ -492,6 +501,7 @@ const CallingWidget: React.FC<Props> = ({
   userId = "anonymous",
   sampleRate = DEFAULT_SAMPLE_RATE,
   onCallStart,
+  onBeforeCallGate,
   onCallEnd,
   onCallEndAcknowledged,
   ringtoneAsset,
@@ -673,6 +683,8 @@ const CallingWidget: React.FC<Props> = ({
    *  not call the one from the render before the screen moved on. */
   const onCallStartRef = useRef(onCallStart);
   onCallStartRef.current = onCallStart;
+  const onBeforeCallGateRef = useRef(onBeforeCallGate);
+  onBeforeCallGateRef.current = onBeforeCallGate;
   /**
    * Work that must wait until one of this widget's native Modals has fully
    * gone: navigating or presenting another Modal while one is still on screen
@@ -1970,6 +1982,16 @@ const CallingWidget: React.FC<Props> = ({
     if (!websocketUrl) {
       console.error("[Call] Missing websocketUrl for AI call.");
       setStatus("Call service unavailable");
+      return;
+    }
+
+    // OUT OF CALLS BEFORE HEADPHONES (H1). Only on a fresh tap: not after the
+    // pre-call screen was passed (that tap already ran it), not for autoStart.
+    if (
+      !callGatePassedRef.current &&
+      !autoStart &&
+      (await runBeforeCallGate(onBeforeCallGateRef.current))
+    ) {
       return;
     }
 

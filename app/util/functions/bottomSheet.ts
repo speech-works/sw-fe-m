@@ -36,12 +36,16 @@ export const showSuccessBottomSheet = (
   desc: string,
   primaryAction?: BottomSheetAction,
   dismissLabel?: string,
+  /** `dimBackdrop`: keep the screen behind visible under a dim scrim, the way
+   *  the store's own sheet does, instead of the opaque backdrop. */
+  options?: { dimBackdrop?: boolean },
 ) => {
   dispatchCustomEvent(EVENT_NAMES.SHOW_SUCCESS_MODAL, {
     title,
     message: desc,
     primaryAction,
     dismissLabel,
+    dimBackdrop: options?.dimBackdrop === true,
   });
 };
 

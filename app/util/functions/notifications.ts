@@ -398,6 +398,15 @@ export async function registerPushToken(): Promise<void> {
   }
 }
 
+/** This device's registered push token, or null. Read before a sign-out clears it. */
+export async function storedPushToken(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /** Deregister this device's push token (call on logout). Best-effort. */
 export async function unregisterPushToken(): Promise<void> {
   try {

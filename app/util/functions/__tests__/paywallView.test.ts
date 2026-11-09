@@ -108,7 +108,7 @@ describe("paywallView", () => {
       const v = view(monthlyApple);
       expect(v.cards.monthly).toMatchObject({ enabled: false, current: true });
       expect(v.cards.annual).toMatchObject({ enabled: true, selected: true });
-      expect(v.cta).toMatchObject({ kind: "upgrade", label: "Upgrade to Annual · $34.99/yr" });
+      expect(v.cta).toMatchObject({ kind: "upgrade", label: "Switch to yearly · $34.99/yr" });
       expect(v.showManageLink).toBe(true);
     });
 
@@ -218,16 +218,25 @@ describe("paywallView", () => {
   });
 
   describe("H2b: free days end when the plan starts", () => {
-    it("shows the line above the button when they can buy", () => {
-      expect(view(packBonus).notices).toEqual([
-        "You have 12 free days left. A plan you start today begins today, and your free days stop.",
+    // M3 (founder-approved wording, 9 Nov 2026).
+    const now = new Date("2026-11-09T12:00:00Z");
+    const dec7 = new Date("2026-12-07T00:00:00Z").toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+    });
+
+    it("shows the line above the button when they can buy, with the free-days end", () => {
+      expect(view(packBonus, { now }).notices).toEqual([
+        `Enjoy your free days until ${dec7}. If you buy now, your plan starts today.`,
       ]);
     });
 
-    it("uses the singular for one day", () => {
-      expect(view({ ...packBonus, daysRemaining: 1 }).notices).toEqual([
-        "You have 1 free day left. A plan you start today begins today, and your free days stop.",
-      ]);
+    it("shows it for an upgrade too", () => {
+      const v = view(
+        { ...packBonus, actions: { pick: ["annual"], primary: "upgrade" } },
+        { now },
+      );
+      expect(v.notices[0]).toMatch(/^Enjoy your free days until .+\. If you buy now, your plan starts today\.$/);
     });
 
     it("says nothing about free days when they cannot buy", () => {
@@ -376,9 +385,51 @@ describe("deviceStoreFor", () => {
   });
 });
 
-describe("freeDaysLine", () => {
-  it("drops the count when the server sent none", () => {
-    expect(freeDaysLine(null)).toBe("A plan you start today begins today, and your free days stop.");
+describe("freeDaysLine (M3)", () => {
+  const now = new Date("2026-11-09T12:00:00Z");
+  const fmt = (iso: string, withYear = false) =>
+    new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      ...(withYear ? { year: "numeric" as const } : {}),
+    });
+
+  it("names the end of the free days, from freeUntil", () => {
+    expect(freeDaysLine({ freeUntil: "2026-12-08T00:00:00Z", until: null, source: "pack_bonus" }, now)).toBe(
+      `Enjoy your free days until ${fmt("2026-12-08T00:00:00Z")}. If you buy now, your plan starts today.`,
+    );
+  });
+
+  it("falls back to until for free-month or gift access", () => {
+    for (const source of ["pack_bonus", "grant"] as const) {
+      expect(freeDaysLine({ freeUntil: null, until: "2026-12-08T00:00:00Z", source }, now)).toBe(
+        `Enjoy your free days until ${fmt("2026-12-08T00:00:00Z")}. If you buy now, your plan starts today.`,
+      );
+    }
+  });
+
+  it("never uses a store plan's until as the free-days end", () => {
+    expect(freeDaysLine({ freeUntil: null, until: "2026-12-08T00:00:00Z", source: "purchase" }, now)).toBe(
+      "Enjoy your free days. If you buy now, your plan starts today.",
+    );
+  });
+
+  it("adds the year only when it is not this year", () => {
+    expect(freeDaysLine({ freeUntil: "2027-01-05T00:00:00Z", until: null, source: "pack_bonus" }, now)).toBe(
+      `Enjoy your free days until ${fmt("2027-01-05T00:00:00Z", true)}. If you buy now, your plan starts today.`,
+    );
+    expect(fmt("2027-01-05T00:00:00Z", true)).toMatch(/2027/);
+    expect(fmt("2026-12-08T00:00:00Z")).not.toMatch(/2026/);
+  });
+
+  it("with no date: the line without one", () => {
+    const line = "Enjoy your free days. If you buy now, your plan starts today.";
+    expect(freeDaysLine(null, now)).toBe(line);
+    expect(freeDaysLine({ freeUntil: "not a date", until: null, source: "pack_bonus" }, now)).toBe(line);
+  });
+
+  it("keeps house style", () => {
+    expect(freeDaysLine(null, now)).not.toMatch(/—/);
   });
 });
 

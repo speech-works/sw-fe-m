@@ -34,6 +34,7 @@ const OutcomeModal = () => {
   const [primaryAction, setPrimaryAction] = useState<BottomSheetAction | undefined>(undefined);
   const [dismissLabel, setDismissLabel] = useState("");
   const [autoClose, setAutoClose] = useState(false);
+  const [dimBackdrop, setDimBackdrop] = useState(false);
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -64,6 +65,7 @@ const OutcomeModal = () => {
         setPrimaryAction(event.detail?.primaryAction);
         setDismissLabel(event.detail?.dismissLabel || "");
         setAutoClose(!!event.detail?.autoClose);
+        setDimBackdrop(!!event.detail?.dimBackdrop);
         setVisible(true);
         clear(event.name);
       }
@@ -85,7 +87,12 @@ const OutcomeModal = () => {
   const discStyle = useSuccessPop(visible, { celebrate: success });
 
   return (
-    <Sheet visible={visible} onClose={() => setVisible(false)} exclusive>
+    <Sheet
+      visible={visible}
+      onClose={() => setVisible(false)}
+      exclusive
+      backdrop={dimBackdrop ? "dim" : "opaque"}
+    >
       <View style={styles.body}>
         <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
           <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />

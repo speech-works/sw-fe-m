@@ -4,9 +4,15 @@ import { getOffers, getWallet, type Offers, type Wallet } from "../api";
 import {
   confirmMembershipGrant,
   confirmWalletGrant,
+  finishEarlierPurchase,
   purchaseProductById,
 } from "../services/purchases";
 import {
+  BUY_READY,
+  buyGateView,
+  gateAfterBuyTap,
+  waitMessageCandidates,
+  type BuyGate,
   clearCreditsPending,
   creditsLanded,
   creditsPending,
@@ -23,6 +29,7 @@ import {
 import { purchaseConfirmed } from "../util/functions/paywallView";
 import { useUserStore } from "../stores/user";
 import { PaymentProblemLink } from "./PaymentProblemLink";
+import { WaitMessage } from "./WaitMessage";
 import { OtherAccountNotice } from "./OtherAccountNotice";
 import { showErrorBottomSheet } from "../util/functions/bottomSheet";
 import { size, Text, Button, Icon, icons, Sheet, space, spacing, useTheme } from "../design-system";
@@ -117,6 +124,14 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   const checking = purchasing !== null || confirming;
   const { restoring, restore } = useRestorePurchases();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /**
+   * F1 for the credit top-up, which is a consumable too: Google refused the
+   * purchase because an earlier top-up is still open. Nothing was charged for
+   * this one. "Please wait…" while the earlier one finishes, then Buy with a
+   * one-time note. Reset whenever the sheet closes.
+   */
+  const [gate, setGate] = useState<BuyGate>(BUY_READY);
+  const gateView = buyGateView(gate, "credits");
   // Local-currency prices for the two fixed SKUs. Empty ⇒ INR fallback.
   const { prices: storePrices } = useStorePrices([
     offers?.topup?.productId,
@@ -140,6 +155,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   useEffect(() => {
     if (!visible) return;
     setErrorMessage(null);
+    setGate(BUY_READY);
     Promise.all([getOffers(), getWallet()])
       .then(([offersRes, walletRes]) => {
         setOffers(offersRes);
@@ -190,7 +206,10 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
    */
   const confirmPurchase = async (
     product: "credits" | "membership",
-    { userInitiated = false }: { userInitiated?: boolean } = {},
+    {
+      userInitiated = false,
+      timeoutMs,
+    }: { userInitiated?: boolean; timeoutMs?: number } = {},
   ): Promise<"landed" | "waiting" | "other_account"> => {
     if (product === "membership") {
       // The user's PLAN, not the wallet's "membership" entitlement: somebody on
@@ -220,6 +239,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
       const landed = (w: Wallet) => creditsLanded(startingBalance, w.balance);
       const wallet = await confirmWalletGrant(landed, {
         userInitiated,
+        timeoutMs,
         attemptKey: offers?.topup ? productAttemptKey(offers.topup.productId) : undefined,
       });
       if (wallet === OTHER_ACCOUNT) {
@@ -261,7 +281,8 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
   const paused = offersPaused(offers);
 
   const handleBuyCredits = async () => {
-    if (!offers?.topup || offersPaused(offers)) return;
+    if (!offers?.topup || offersPaused(offers) || gate.state !== "ready") return;
+    setGate(gateAfterBuyTap);
     setErrorMessage(null);
     setPurchasing("credits");
     try {
@@ -293,6 +314,9 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
           // A plain `purchased` or a Play pending payment stays on the
           // pending block, which already says what is going on.
         }
+      } else if (outcome.status === "earlier_purchase_open") {
+        // Nothing was charged for THIS top-up. Never "Payment received".
+        setGate({ state: "finishing_earlier" });
       } else if (outcome.status === "error") {
         setErrorMessage(outcome.message);
       }
@@ -323,6 +347,30 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
       setPurchasing(null);
     }
   };
+
+  // F1: finish the earlier top-up while the sheet is open (with a backoff).
+  // Finishing it posts a real earlier payment, so its credits may land now:
+  // look once, and if they did, that is the ordinary "landed" path. Otherwise
+  // Buy comes back with its one-time note. Nothing here starts a purchase.
+  const confirmRef = useRef(confirmPurchase);
+  confirmRef.current = confirmPurchase;
+  useEffect(() => {
+    if (!visible || gate.state !== "finishing_earlier") return;
+    let alive = true;
+    void (async () => {
+      const finished = await finishEarlierPurchase(() => alive);
+      if (finished === null || !alive) return;
+      const result = await confirmRef.current("credits", {
+        userInitiated: true,
+        timeoutMs: 4_000,
+      });
+      if (!alive || result !== "waiting") return;
+      setGate({ state: "ready", note: "earlier_finished" });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [visible, gate.state]);
 
   // The pending block's button. Runs the same check, and on success takes the
   // identical path an instant confirmation takes. `userInitiated` is what makes
@@ -465,9 +513,21 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
                       ? `Get ${offers.topup.credits} calls · ${topupPrice}`
                       : "Get more calls"
                   }
-                  loading={purchasing === "credits"}
+                  loading={purchasing === "credits" || gateView.busyLabel !== null}
+                  loadingLabel={gateView.busyLabel ?? undefined}
                   disabled={purchasing !== null || !offers?.topup}
                   onPress={handleBuyCredits}
+                />
+                {/* Under the top-up button, centred, caption style: the F1
+                    waiting line or its one-time note (WaitMessage). NO
+                    LAYOUT SHIFT (founder, 9 Nov 2026): the fixed-height slot
+                    is reserved whenever the top-up offer shows, empty or not,
+                    so nothing in this sheet ever moves when a message comes
+                    or goes. */}
+                <WaitMessage
+                  text={gateView.line ?? gateView.note}
+                  candidates={waitMessageCandidates("credits")}
+                  reserve
                 />
 
                 {offers?.showMembershipOffer && offers.membership ? (
@@ -475,7 +535,7 @@ const ExhaustionSheet: React.FC<ExhaustionSheetProps> = ({
                     label={`Membership · ${membershipPrice}/month`}
                     variant="secondary"
                     loading={purchasing === "membership"}
-                    disabled={purchasing !== null}
+                    disabled={purchasing !== null || gateView.busyLabel !== null}
                     onPress={handleBuyMembership}
                   />
                 ) : null}

@@ -33,6 +33,7 @@ import Purchases, {
   STORE_REPLACEMENT_MODE,
   PURCHASES_ERROR_CODE,
   type StoreProductChangeInfo,
+  type CustomerInfo,
   type PurchasesError,
   type PurchasesStoreProduct,
 } from "react-native-purchases";
@@ -56,7 +57,9 @@ import { STORE_SUBSCRIPTIONS_URL } from "../util/functions/paywallView";
 import { baseProductId, selectStoreProduct } from "./selectStoreProduct";
 import { httpStatus } from "../util/functions/apiError";
 import {
+  checkoutStartedNow,
   classifyStoreError,
+  finishRetryDelayMs,
   foreignItemMatchesAttempt,
   grantCheckVerdict,
   intentConflictFrom,
@@ -67,8 +70,16 @@ import {
   type OtherAccount,
   notifyPurchasesMayHaveChanged,
   purchasesPausedFrom,
+  storeHasPurchaseSince,
+  type OpenCheckout,
   type StorePhase,
 } from "./purchaseSettlement";
+import {
+  clearOpenCheckout,
+  loadOpenCheckout,
+  saveOpenCheckout,
+  updateOpenCheckout,
+} from "./openCheckout";
 import type { StorePrice } from "./priceDisplay";
 
 /**
@@ -83,6 +94,35 @@ export function testStoreKey(dev: boolean, key: string | undefined): string | nu
 const getPlatformApiKey = (): string =>
   testStoreKey(__DEV__, REVENUECAT_TEST_STORE_KEY) ??
   (Platform.OS === "ios" ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY);
+
+/**
+ * ── DEV-ONLY HOOKS FOR SCREENSHOTS OF THE PAYMENT WAITS ───────────────────
+ * Inert unless BOTH this is a development build (__DEV__, false in every
+ * release build) AND someone set the global from the JS debugger console:
+ *
+ *   globalThis.__SW_DEV_PAYMENTS = {
+ *     purchaseError: "6",      // the store call fails with this RC code ("6" =
+ *                              // PRODUCT_ALREADY_PURCHASED_ERROR) instead of running
+ *     purchaseResult: "purchased", // the store call "succeeds" without a sheet
+ *     checkoutConflict: true,  // POST purchase-intent "answers" 409 CHECKOUT_IN_PROGRESS
+ *     finishFailures: 3,       // the next 3 store syncs fail (F1 wait stays up)
+ *     holdOver: true,          // treat the 15-minute checkout hold as over (F3)
+ *   }
+ *
+ * No UI reaches these. Delete the global (or reload) to turn them off.
+ */
+type DevPaymentsHooks = {
+  purchaseError?: string;
+  purchaseResult?: "purchased";
+  checkoutConflict?: boolean;
+  finishFailures?: number;
+  holdOver?: boolean;
+};
+export function devPaymentsHooks(): DevPaymentsHooks {
+  if (!__DEV__) return {};
+  const hooks = (globalThis as { __SW_DEV_PAYMENTS?: DevPaymentsHooks }).__SW_DEV_PAYMENTS;
+  return hooks && typeof hooks === "object" ? hooks : {};
+}
 
 /** True only when payments are on AND we actually have a key for this platform. */
 export const purchasesAvailable = (): boolean =>
@@ -298,7 +338,15 @@ export type PurchaseOutcome =
   /** An earlier checkout for this program is still open (409 CHECKOUT_IN_PROGRESS). */
   | { status: "checkout_in_progress" }
   /** The server has paused selling (503 PURCHASES_PAUSED). No sheet opened. */
-  | { status: "paused" };
+  | { status: "paused" }
+  /**
+   * The store refused this purchase because an EARLIER purchase of the same
+   * consumable is still open (Google's "You already own this item"). Nothing
+   * was charged for this attempt. Only returned to a caller that opted in
+   * (`settleAfterCharge`). The caller finishes the earlier purchase
+   * (finishEarlierPurchase) and then offers Buy again. Never "Payment received".
+   */
+  | { status: "earlier_purchase_open" };
 
 /**
  * ── WHAT THE USER IS TOLD WHEN A PURCHASE FAILS ──────────────────────────────
@@ -407,6 +455,9 @@ function outcomeFromStoreError(
   // A caller that can wait for the grant gets told to wait. Retry advice after
   // the purchase call ran is how a consumable gets bought twice.
   if (settleAfterCharge) {
+    if (classified === "earlier_purchase_open") {
+      return { status: "earlier_purchase_open" };
+    }
     if (classified === "pending_after_charge") {
       return { status: "pending", kind: "after_charge" };
     }
@@ -448,6 +499,9 @@ export async function purchaseCatalogItem(
   let tierProductId: string;
   let intentId: string | undefined;
   try {
+    if (devPaymentsHooks().checkoutConflict) {
+      throw { response: { status: 409, data: { code: "CHECKOUT_IN_PROGRESS" } } };
+    }
     const intent = await createPurchaseIntent(catalogItemKey);
     tierProductId = intent.tierProductId;
     intentId = intent.intentId;
@@ -470,27 +524,205 @@ export async function purchaseCatalogItem(
 
   // THIS attempt, so a later check can tell a purchase the other account
   // made just now from one it made months ago (foreignItemMatchesAttempt).
+  const startedAt = Date.now();
   rememberAttempt(programAttemptKey(catalogItemKey), {
     productId: tierProductId,
-    startedAt: Date.now(),
+    startedAt,
   });
+  // ON DISK before the store sheet opens, so a purchase killed mid-way comes
+  // back to "Checking your payment…" and not to a live Buy (openCheckout.ts).
+  const userId = await ourUserId();
+  // This program's record from an EARLIER attempt, before this one replaces
+  // it. If Google refuses this attempt as already owned, that earlier attempt
+  // may be the open purchase, and the record must survive (F1, below).
+  const prior = await loadOpenCheckout(userId, catalogItemKey);
+  if (userId) {
+    await saveOpenCheckout(
+      checkoutStartedNow(
+        {
+          userId,
+          catalogKey: catalogItemKey,
+          intentId: intentId ?? null,
+          productId: tierProductId,
+        },
+        startedAt,
+      ),
+    );
+  }
   const outcome = await chargeForProduct(tierProductId, null, {
     settleAfterCharge: true,
   });
-  // No money moved (they cancelled, or the store refused the payment): release
+  // No money moved for this attempt (they cancelled, the store refused the
+  // payment, or an earlier purchase of the same SKU is still open): release
   // the checkout so trying again is never blocked. Any other outcome keeps it
   // open; that is what stops a second charge while a payment settles.
-  if (intentId && releasesCheckout(outcome)) {
-    cancelPurchaseIntent(intentId).catch((err: unknown) =>
-      console.warn("[purchases] could not release the checkout:", err),
-    );
+  if (outcome.status === "earlier_purchase_open" && prior && !prior.noCharge) {
+    // Put the earlier attempt's record back BEFORE returning, so the program
+    // page reads it after the finish step and waits in F3 instead of offering
+    // Buy (checkoutAfterEarlierFinished). This attempt's own intent is still
+    // released; a failure there only costs a 409 that F3 also handles.
+    await saveOpenCheckout(prior);
+    if (intentId) void releaseCheckout(intentId);
+  } else if (releasesCheckout(outcome)) {
+    void (async () => {
+      const released = intentId ? await releaseCheckout(intentId) : "released";
+      if (released === "failed") {
+        // Kept, marked as no charge: the program page retries the release.
+        await updateOpenCheckout(catalogItemKey, { noCharge: true });
+      } else {
+        await clearOpenCheckout(catalogItemKey);
+      }
+    })();
+  } else if (outcome.status === "purchased" || outcome.status === "pending") {
+    await updateOpenCheckout(catalogItemKey, {
+      charge: outcome.status === "pending" ? outcome.kind : "after_charge",
+    });
   }
   return outcome;
 }
 
 /** True when the purchase ended with no charge, so the checkout can be released. */
 export function releasesCheckout(outcome: PurchaseOutcome): boolean {
-  return outcome.status === "cancelled" || outcome.status === "error";
+  return (
+    outcome.status === "cancelled" ||
+    outcome.status === "error" ||
+    outcome.status === "earlier_purchase_open"
+  );
+}
+
+/**
+ * Release a checkout on the backend (POST .../cancel), which ends its
+ * 15-minute CHECKOUT_IN_PROGRESS hold at once.
+ *
+ *  released  the backend says cancelled, or knows no such intent (404): either
+ *            way nothing of ours is holding Buy any more.
+ *  paid      409 ALREADY_FULFILLED: a payment resolved it. Never "no payment".
+ *  failed    no answer (offline, 5xx). Try again later.
+ *
+ * Cancelling never loses a real payment: a store purchase made after the
+ * intent still resolves it (PurchaseIntentService.resolveForTierPurchase).
+ */
+export async function releaseCheckout(
+  intentId: string,
+): Promise<"released" | "paid" | "failed"> {
+  try {
+    await cancelPurchaseIntent(intentId);
+    return "released";
+  } catch (error) {
+    const status = httpStatus(error);
+    if (status === 409) return "paid";
+    if (status === 404) return "released";
+    console.warn("[purchases] could not release the checkout:", error);
+    return "failed";
+  }
+}
+
+/**
+ * Ask RevenueCat to post (and finish) every purchase the store still holds
+ * open, and return the customer info it answers with, or null on failure.
+ *
+ * ── WHY RESTORE ON ANDROID, NOT syncPurchases ─────────────────────────────
+ * Checked in the native SDK this build ships (purchases-android 10.12.0, via
+ * purchases-hybrid-common 18.19.0): `syncPurchases` posts each token with
+ * `postTokenWithoutConsuming`, so the open consumable stays unconsumed and
+ * Google keeps answering "You already own this item". `restorePurchases`
+ * posts with `postTransactionAndConsumeIfNeeded`, which consumes it once
+ * RevenueCat has the receipt. So Android restores. It shows no UI there.
+ *
+ * ── iOS CALLS NO STORE SYNC OR RESTORE HERE, EVER ─────────────────────────
+ * `syncPurchasesForResult` raised Apple's "Sign in to Apple Account" dialog on
+ * the simulator (9 Nov 2026), and `restorePurchases` can do the same on a
+ * device. A sign-in prompt in the middle of a payment wait is not acceptable,
+ * and nothing here runs from a Restore tap. StoreKit never holds a consumable
+ * "already owned" the way Play does, and the RevenueCat SDK finishes open
+ * transactions itself, so iOS has nothing to finish: it only reads RevenueCat's
+ * customer info (`getCustomerInfo`, which never prompts) and the caller goes
+ * straight to its decision. Restore stays behind the explicit Restore
+ * Purchases button (restorePurchasesAndReconcile).
+ *
+ * On Android the earlier payment reaches RevenueCat here, its webhook resolves
+ * the checkout that was open when it was made, and that program is granted.
+ */
+export async function finishOpenStorePurchases(): Promise<CustomerInfo | null> {
+  if (!purchasesAvailable()) return null;
+  configurePurchases();
+  try {
+    const dev = devPaymentsHooks();
+    if (typeof dev.finishFailures === "number" && dev.finishFailures > 0) {
+      dev.finishFailures -= 1;
+      throw new Error("dev: forced store sync failure");
+    }
+    if (Platform.OS === "android") return await Purchases.restorePurchases();
+    // iOS: read only. No sync, no restore, so no sign-in prompt (see above).
+    return await Purchases.getCustomerInfo();
+  } catch (error) {
+    console.warn("[purchases] finishing open store purchases failed:", error);
+    return null;
+  }
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The store's transaction list as RevenueCat has it now (cached), or null. */
+async function knownStoreTransactions(): Promise<unknown> {
+  try {
+    const info = await Purchases.getCustomerInfo();
+    return info?.nonSubscriptionTransactions ?? null;
+  } catch (error) {
+    console.warn("[purchases] could not read customer info:", error);
+    return null;
+  }
+}
+
+/** What the F1 finish step saw: the store's list before it, and after it. */
+export interface FinishedEarlierPurchase {
+  /** Null when it could not be read. Then a time window decides instead. */
+  before: unknown;
+  after: unknown;
+}
+
+/**
+ * F1: finish the earlier open purchase, retrying with a backoff
+ * (finishRetryDelayMs) while `isLive()` says the screen is still open.
+ * Resolves with the store's transaction list before and after, so the caller
+ * can see what the finish step posted (earlierPurchaseSuspectSince), or null
+ * if the screen went away first.
+ */
+export async function finishEarlierPurchase(
+  isLive: () => boolean,
+  wait: (ms: number) => Promise<unknown> = sleep,
+): Promise<FinishedEarlierPurchase | null> {
+  // Read once, before anything is posted: the open purchase is not in it yet.
+  const before = await knownStoreTransactions();
+  for (let attempt = 0; isLive(); attempt++) {
+    const info = await finishOpenStorePurchases();
+    if (info) return { before, after: info.nonSubscriptionTransactions };
+    if (!isLive()) return null;
+    await wait(finishRetryDelayMs(attempt));
+  }
+  return null;
+}
+
+/**
+ * F3: the store's half of the "certain no payment" rule. On Android it
+ * restores first (no UI there); on iOS it only reads RevenueCat's customer
+ * info, which never prompts (finishOpenStorePurchases). Then it reads whether
+ * the store lists a purchase of this checkout's product since it could have
+ * started. `synced: false` means we could not ask.
+ */
+export async function storeCheckForCheckout(
+  checkout: Pick<OpenCheckout, "productId" | "startedAt">,
+): Promise<{ synced: boolean; hasPurchase: boolean }> {
+  const info = await finishOpenStorePurchases();
+  if (!info) return { synced: false, hasPurchase: true };
+  return {
+    synced: true,
+    hasPurchase: storeHasPurchaseSince(
+      info.nonSubscriptionTransactions,
+      checkout.productId,
+      checkout.startedAt,
+    ),
+  };
 }
 
 /**
@@ -638,6 +870,13 @@ async function chargeForProduct(
   }
 
   try {
+    const dev = devPaymentsHooks();
+    if (typeof dev.purchaseError === "string") {
+      throw Object.assign(new Error("dev: forced store error"), {
+        code: dev.purchaseError,
+      });
+    }
+    if (dev.purchaseResult === "purchased") return { status: "purchased" };
     // The change info only means something to Play. Never sent on iOS, where
     // the subscription group already swaps the plans.
     if (googleProductChangeInfo && Platform.OS === "android") {
