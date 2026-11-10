@@ -1268,6 +1268,16 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
+  // The "I'm still here" answer to the idle warning: close it and tell the
+  // server to keep the call open.
+  const stayOnline = () => {
+    dismissIdleWarning();
+    try {
+      ws.current?.send(JSON.stringify({ type: "stay_online" }));
+      callDebugLog("[WS] Sent stay_online");
+    } catch {}
+  };
+
   const resetPlaybackLifecycleRefs = (clearPlaybackIds = true) => {
     currentPlaybackDurationMsRef.current = null;
     currentPlaybackStartedAtMsRef.current = null;
@@ -3920,11 +3930,14 @@ const CallingWidget: React.FC<Props> = ({
       </View>
 
       {/* --- IDLE WARNING OVERLAY --- */}
+      {/* Android Back counts as "I'm still here". Without onRequestClose,
+          Back did nothing while the call counted down (L1, 10 Nov 2026). */}
       <Modal
         visible={idleWarningVisible}
         transparent={true}
         animationType="fade"
         statusBarTranslucent={true}
+        onRequestClose={stayOnline}
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
@@ -3943,13 +3956,7 @@ const CallingWidget: React.FC<Props> = ({
             <View style={styles.promptButtonRow}>
               <TouchableOpacity
                 style={styles.promptButtonPrimary}
-                onPress={() => {
-                  dismissIdleWarning();
-                  try {
-                    ws.current?.send(JSON.stringify({ type: "stay_online" }));
-                    callDebugLog("[WS] Sent stay_online");
-                  } catch {}
-                }}
+                onPress={stayOnline}
               >
                 <Text style={styles.promptButtonTextPri}>I&apos;m still here</Text>
               </TouchableOpacity>

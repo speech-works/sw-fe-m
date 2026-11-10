@@ -399,7 +399,14 @@ export const SummaryScreen: React.FC = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={showFeedbackModal} animationType="slide" transparent>
+      {/* onRequestClose: Android Back closes the feedback sheet, as its own
+          close button does. Without it, Back did nothing (L1, 10 Nov 2026). */}
+      <Modal
+        visible={showFeedbackModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowFeedbackModal(false)}
+      >
         <MirrorWorkFeedbackModal
           onSubmit={submitFinalData}
           onClose={() => setShowFeedbackModal(false)}

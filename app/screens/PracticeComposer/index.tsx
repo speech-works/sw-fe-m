@@ -1,6 +1,7 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   StyleSheet,
   TextInput,
@@ -265,6 +266,9 @@ const PracticeComposer = () => {
     } catch (e) {
       haptics.error();
       setShareError(true);
+      // VoiceOver does not read a new "alert" Text on its own, so say it
+      // (L1, 10 Nov 2026).
+      AccessibilityInfo.announceForAccessibility("Couldn't share. Please try again.");
     } finally {
       setPosting(false);
     }
@@ -367,7 +371,13 @@ const PracticeComposer = () => {
         </Text>
 
         {shareError ? (
-          <Text variant="bodySm" color="secondary" center accessibilityRole="alert">
+          <Text
+            variant="bodySm"
+            color="secondary"
+            center
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
             Couldn't share. Please try again.
           </Text>
         ) : null}
