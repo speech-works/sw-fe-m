@@ -60,8 +60,9 @@ export const PlanOffer: React.FC<PlanOfferProps> = ({
   const [roomH, setRoomH] = useState(0);
   const [headH, setHeadH] = useState(0);
   const fullH = width / SCENE_RATIO;
-  // The faces and the edge sit in the bottom 45% of the art.
-  const minH = fullH * 0.45;
+  // The top 22% of the art is empty sky (clouds and faces sit below it), so
+  // that is all a short screen may crop. Past that, the top area scrolls.
+  const minH = fullH * 0.78;
   const sceneH =
     roomH > 0 && headH > 0 ? Math.min(fullH, Math.max(minH, roomH - headH)) : fullH;
   const onGround = colors.premium.onGround;
