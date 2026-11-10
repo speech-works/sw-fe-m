@@ -12,6 +12,7 @@ import {
   completeModule,
   getModule,
   getPackProgress,
+  markStepDone,
   startModule,
 } from "../../../api/packs";
 import {
@@ -31,6 +32,9 @@ import {
   mergeBlockCompletion,
   parseDoneBlocks,
   serializeDoneBlocks,
+  serverDoneBlocks,
+  tickRunOf,
+  ticksToSend,
 } from "../../../util/packs/blockCompletion";
 import { classifyPackError, packErrorMessage } from "../../../util/packs/packErrors";
 import {
@@ -349,7 +353,7 @@ const PackModuleScreen = () => {
           const next = mergeBlockCompletion(prev, completed);
           if (next !== prev && module?.id) {
             void AsyncStorage.setItem(
-              doneBlocksKey(packId, module.id),
+              doneBlocksKey(packId, module.id, tickRunOf(module)),
               serializeDoneBlocks(next),
             ).catch(() => {
               /* The screen is still correct this session; the latch refills
@@ -788,7 +792,7 @@ const PackModuleScreen = () => {
   useEffect(() => {
     if (!module?.id) return;
     let alive = true;
-    AsyncStorage.getItem(doneBlocksKey(packId, module.id))
+    AsyncStorage.getItem(doneBlocksKey(packId, module.id, tickRunOf(module)))
       .then((raw) => {
         if (!alive) return;
         const latched = parseDoneBlocks(raw);
@@ -804,6 +808,78 @@ const PackModuleScreen = () => {
       alive = false;
     };
   }, [packId, module?.id]);
+
+  /**
+   * Steps finished on another phone come with the day from the server, and
+   * join the ticks this phone already has (D1, 10 Nov 2026). Without this a
+   * day half done on one phone showed as not done on the other.
+   */
+  useEffect(() => {
+    if (!module?.id) return;
+    const fromServer = serverDoneBlocks(module);
+    if (fromServer.size === 0) return;
+    const moduleId = module.id;
+    setCompletedInteractiveBlocks((prev) => {
+      const next = mergeBlockCompletion(prev, fromServer);
+      if (next !== prev) {
+        void AsyncStorage.setItem(
+          doneBlocksKey(packId, moduleId, tickRunOf(module)),
+          serializeDoneBlocks(next),
+        ).catch(() => {
+          /* The server sends them again on the next load. */
+        });
+      }
+      return next;
+    });
+  }, [packId, module]);
+
+  /**
+   * Send this phone's ticks the server does not have yet, so the other
+   * phone sees them (D1, 10 Nov 2026). Best effort: offline, the tick still
+   * shows here, and a failed send is tried again on a later change or the
+   * next load of the day. The answer carries the other phone's ticks too.
+   */
+  const sentTicksRef = useRef<{ moduleId: string | null; ids: Set<string> }>({
+    moduleId: null,
+    ids: new Set(),
+  });
+  useEffect(() => {
+    if (!module?.id || !module.blocks?.length) return;
+    const moduleId = module.id;
+    if (sentTicksRef.current.moduleId !== moduleId) {
+      sentTicksRef.current = { moduleId, ids: new Set() };
+    }
+    const sent = sentTicksRef.current.ids;
+    const tickable = new Set(
+      module.blocks
+        .filter((b) => INTERACTIVE_BLOCK_TYPES.has(b.type))
+        .map((b) => b.id),
+    );
+    const pending = ticksToSend(
+      completedInteractiveBlocks,
+      serverDoneBlocks(module),
+      tickable,
+      sent,
+    );
+    const run = tickRunOf(module);
+    pending.forEach((blockId) => {
+      sent.add(blockId);
+      void markStepDone(packId, moduleId, blockId, run).then((res) => {
+        if (res === null) {
+          sent.delete(blockId);
+          return;
+        }
+        // Not saved: the program was restarted on the other phone after this
+        // day loaded. Take nothing from the answer; the next load of the day
+        // brings the new run (E1).
+        if (!res.applied || res.run !== run) return;
+        if (moduleRef.current?.id !== moduleId || res.ids.length === 0) return;
+        setCompletedInteractiveBlocks((prev) =>
+          mergeBlockCompletion(prev, new Set(res.ids)),
+        );
+      });
+    });
+  }, [packId, module, completedInteractiveBlocks]);
 
   /**
    * Back to the step they left, so Continue on Home means continue. Kept on
@@ -900,7 +976,7 @@ const PackModuleScreen = () => {
         const next = mergeBlockCompletion(prev, completed);
         if (next !== prev && module?.id) {
           void AsyncStorage.setItem(
-            doneBlocksKey(packId, module.id),
+            doneBlocksKey(packId, module.id, tickRunOf(module)),
             serializeDoneBlocks(next),
           ).catch(() => {
             /* Recoverable: the latch refills from the derived snapshot. */

@@ -356,6 +356,16 @@ export interface PackModule {
   isMandatory: boolean;
   orderIndex: number;
   blocks: ModuleContentBlock[];
+  /**
+   * Steps (block ids) of this day already finished, from any phone. Missing
+   * on a server from before 10 Nov 2026; read it as empty (D1).
+   */
+  completedBlockIds?: string[];
+  /**
+   * The program run those ticks belong to (0 until the first restart). The
+   * phone keeps its ticks under this number (E1). Missing on an older server.
+   */
+  completedBlockRun?: number;
 }
 
 export enum SpeechGoal {

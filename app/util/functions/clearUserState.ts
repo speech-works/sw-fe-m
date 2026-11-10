@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import { isDoneBlocksKey } from "../packs/blockCompletion";
 
 // Local push-token cache key (mirrors the const in notifications.ts).
 const PUSH_TOKEN_KEY = "SW_EXPO_PUSH_TOKEN";
@@ -23,6 +24,17 @@ export async function clearAllPersistedUserState(): Promise<void> {
     ]);
   } catch (e) {
     console.warn("[clearUserState] multiRemove failed:", e);
+  }
+
+  // 1b) The program step ticks, one key per day and run, so they are not in
+  //     ASYNC_KEYS_NAME. Left behind, the next account on this phone would
+  //     see them and send them to the server as its own (E2, 10 Nov 2026).
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const tickKeys = keys.filter(isDoneBlocksKey);
+    if (tickKeys.length > 0) await AsyncStorage.multiRemove(tickKeys);
+  } catch (e) {
+    console.warn("[clearUserState] step tick wipe failed:", e);
   }
 
   // 2) Reset in-memory state for EVERY store that holds user-scoped,

@@ -32,9 +32,34 @@
  * ===========================================================================
  */
 
-/** Where the latch for one module lives. One key per module, not per block. */
-export function doneBlocksKey(packId: string, moduleId: string): string {
-  return `pack-${packId}-module-${moduleId}-done-blocks`;
+/**
+ * Where the latch for one module lives. One key per module, not per block.
+ *
+ * And one per program RUN (E1, 10 Nov 2026): after a restart the old run's
+ * ticks stay under the old key, so they neither show in the new run nor get
+ * sent to the server again. Run 0 keeps the original key, so ticks saved
+ * before this change are still found.
+ */
+export function doneBlocksKey(
+  packId: string,
+  moduleId: string,
+  run: number = 0,
+): string {
+  const base = `pack-${packId}-module-${moduleId}-done-blocks`;
+  return run > 0 ? `${base}-run-${run}` : base;
+}
+
+/** Every key `doneBlocksKey` can make, for the log-out wipe (E2). */
+export function isDoneBlocksKey(key: string): boolean {
+  return /^pack-.+-module-.+-done-blocks(-run-\d+)?$/.test(key);
+}
+
+/** The run a day's ticks belong to. A server without the field means run 0. */
+export function tickRunOf(
+  module: { completedBlockRun?: unknown } | null | undefined,
+): number {
+  const run = module?.completedBlockRun;
+  return typeof run === "number" && Number.isInteger(run) && run >= 0 ? run : 0;
 }
 
 /**
@@ -77,4 +102,36 @@ export function parseDoneBlocks(raw: string | null): Set<string> {
 
 export function serializeDoneBlocks(ids: ReadonlySet<string>): string {
   return JSON.stringify(Array.from(ids));
+}
+
+/**
+ * ── TICKS FROM THE OTHER PHONE (D1, 10 Nov 2026) ─────────────────────────
+ * The server keeps the finished steps of a day too, so a day half done on
+ * one phone is not shown undone on another. The screen shows the union of
+ * the server's ticks and the phone's own; neither side can take a tick away.
+ */
+
+/** The server's ticks for a day. A server without the field gives none. */
+export function serverDoneBlocks(
+  module: { completedBlockIds?: unknown } | null | undefined,
+): Set<string> {
+  const ids = module?.completedBlockIds;
+  if (!Array.isArray(ids)) return new Set();
+  return new Set(ids.filter((id): id is string => typeof id === "string"));
+}
+
+/**
+ * The ticks this phone has and the server does not, limited to steps of
+ * this day the server accepts (`tickable`). Anything already sent in this
+ * visit is skipped; a failed send is retried on the next load of the day.
+ */
+export function ticksToSend(
+  local: ReadonlySet<string>,
+  server: ReadonlySet<string>,
+  tickable: ReadonlySet<string>,
+  sent: ReadonlySet<string>,
+): string[] {
+  return Array.from(local).filter(
+    (id) => tickable.has(id) && !server.has(id) && !sent.has(id),
+  );
 }

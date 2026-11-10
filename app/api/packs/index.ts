@@ -160,6 +160,44 @@ export const getFormRecall = async (
 };
 
 /**
+ * POST /packs/{packId}/modules/{moduleId}/blocks/{blockId}/done — tells the
+ * server one step of a day is finished, so the person's other phone shows it
+ * done too (D1, 10 Nov 2026). Ticking twice is fine.
+ *
+ * `run` is the program run the tick was made in. The server does not save a
+ * tick from a run before a restart, and says so with `applied: false` (E1).
+ *
+ * Returns the day's ticks, or null when the send failed (no network, or a
+ * server from before the endpoint). The caller keeps its own tick either way
+ * and tries again the next time the day loads.
+ */
+export const markStepDone = async (
+  packId: string,
+  moduleId: string,
+  blockId: string,
+  run: number,
+): Promise<{ ids: string[]; run: number; applied: boolean } | null> => {
+  try {
+    const response = await axiosClient.post(
+      `/packs/${packId}/modules/${moduleId}/blocks/${blockId}/done`,
+      { run },
+    );
+    const data = response.data ?? {};
+    const ids = Array.isArray(data.completedBlockIds)
+      ? data.completedBlockIds.filter((id: unknown): id is string => typeof id === "string")
+      : [];
+    return {
+      ids,
+      run: typeof data.run === "number" ? data.run : run,
+      // An older server sends no `applied`; it saved the tick.
+      applied: data.applied !== false,
+    };
+  } catch {
+    return null;
+  }
+};
+
+/**
  * GET /packs/{catalogKey}/evidence — every claim a program's teaching rests
  * on, with its source, its limit in plain words, and the date somebody last
  * read the paper.
