@@ -5,6 +5,14 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import type { ReminderCategory } from "../../constants/reminderTemplates";
 import { isSpentOneTime, normalizeReminderDate } from "./normalizeDate";
+import { decideSync, mergeReminders } from "./sync";
+import {
+  getServerReminders,
+  putServerReminders,
+  type ServerReminderList,
+  type SyncedReminder,
+} from "../../api/reminders";
+import { useUserStore } from "../user";
 import {
   cancelAllReminderNotifications,
   cancelReminderNotifications,
@@ -63,14 +71,54 @@ interface ReminderState {
   removeAll: () => Promise<void>;
   rescheduleAllActiveNotifications: () => Promise<void>;
   canAddMore: () => boolean;
+  /**
+   * When this phone's list last changed (ISO), and whose list it is. Both
+   * drive the sync with the server (D3, 10 Nov 2026). null until the first
+   * change or sync after this update.
+   */
+  updatedAt: string | null;
+  ownerId: string | null;
+  /** Read the server list and settle it with this phone's (see sync.ts). */
+  syncWithServer: (userId: string) => Promise<void>;
+}
+
+/**
+ * Sync and reschedule run one at a time (D3, 10 Nov 2026). The launch-time
+ * reschedule and a sync that takes the server list both end with a `set` of
+ * the whole list; run together, the slower one would write back the list the
+ * other just replaced.
+ */
+let exclusiveChain: Promise<unknown> = Promise.resolve();
+function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const run = exclusiveChain.then(fn, fn);
+  exclusiveChain = run.catch(() => undefined);
+  return run;
+}
+
+/** What the server keeps: everything but this phone's notification ids. */
+function toSynced(r: Reminder): SyncedReminder {
+  const { notificationIds: _ids, ...rest } = r;
+  return rest;
+}
+
+function fromSynced(r: SyncedReminder): Reminder {
+  return {
+    ...r,
+    date: normalizeReminderDate(r.date),
+    category: r.category as ReminderCategory,
+    notificationIds: [],
+  };
 }
 
 export { MAX_REMINDERS };
 
 export const useReminderStore = create<ReminderState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      const state: ReminderState = {
       reminders: [],
+      updatedAt: null,
+      ownerId: null,
 
       canAddMore: () => get().reminders.length < MAX_REMINDERS,
 
@@ -111,6 +159,7 @@ export const useReminderStore = create<ReminderState>()(
 
         newRem.notificationIds = scheduledNotificationIds;
         set((s) => ({ reminders: [...s.reminders, newRem] }));
+        markChanged();
       },
 
       updateReminder: async (id, changes) => {
@@ -169,6 +218,7 @@ export const useReminderStore = create<ReminderState>()(
             rem.id === id ? updatedRem : rem,
           ),
         }));
+        markChanged();
       },
 
       removeReminder: async (id) => {
@@ -181,6 +231,7 @@ export const useReminderStore = create<ReminderState>()(
         set((s) => ({
           reminders: s.reminders.filter((rem) => rem.id !== id),
         }));
+        markChanged();
       },
 
       toggleActive: async (id) => {
@@ -197,6 +248,7 @@ export const useReminderStore = create<ReminderState>()(
               r.id === id ? { ...r, active: false, notificationIds: [] } : r,
             ),
           }));
+          markChanged();
         } else {
           // Resuming — reschedule notifications. A failure here used to be
           // swallowed and then written as `active: true, notificationIds: []`:
@@ -230,6 +282,7 @@ export const useReminderStore = create<ReminderState>()(
                 : r,
             ),
           }));
+          markChanged();
         }
       },
 
@@ -237,7 +290,8 @@ export const useReminderStore = create<ReminderState>()(
         // Update all reminders to the target active state
         const updatedReminders = get().reminders.map(r => ({ ...r, active }));
         set({ reminders: updatedReminders });
-        
+        markChanged();
+
         // Then reschedule everything
         await get().rescheduleAllActiveNotifications();
       },
@@ -249,10 +303,129 @@ export const useReminderStore = create<ReminderState>()(
             .reminders.filter((r) => r.notificationIds.length > 0)
             .map((r) => cancelReminderNotifications(r)),
         );
-        set({ reminders: [] });
+        // Sign-out path. Forget whose list this was and do NOT push: an
+        // empty upload would delete the reminders on the person's other
+        // phones (D3, 10 Nov 2026).
+        set({ reminders: [], updatedAt: null, ownerId: null });
       },
 
-      rescheduleAllActiveNotifications: async () => {
+      rescheduleAllActiveNotifications: () => exclusive(rescheduleNow),
+
+      syncWithServer: (userId) =>
+        exclusive(async () => {
+          // A list left by a different account on this phone is never
+          // uploaded to, or kept for, this one (D3, 10 Nov 2026).
+          const { ownerId } = get();
+          if (ownerId && ownerId !== userId) {
+            await clearLocal();
+          }
+
+          let server: ServerReminderList;
+          try {
+            server = await getServerReminders();
+          } catch (error) {
+            console.warn("[Reminders] could not read the server list:", error);
+            return;
+          }
+          // Signed out (or switched account) while the request was out.
+          if (currentUserId() !== userId) return;
+
+          const local = get();
+          const decision = decideSync(
+            { count: local.reminders.length, updatedAt: local.updatedAt },
+            { updatedAt: server.updatedAt },
+          );
+
+          if (decision === "ADOPT") {
+            await adoptServerList(server);
+          } else if (decision === "MERGE") {
+            const merged = mergeReminders(
+              server.reminders.map(fromSynced),
+              local.reminders,
+              MAX_REMINDERS,
+            );
+            set({ reminders: merged, ownerId: userId });
+            await uploadNow(userId, new Date().toISOString());
+            await rescheduleNow();
+          } else if (decision === "UPLOAD") {
+            set({ ownerId: userId });
+            await uploadNow(
+              userId,
+              local.updatedAt ?? new Date().toISOString(),
+            );
+          } else {
+            set({ ownerId: userId });
+          }
+        }),
+    };
+
+    function currentUserId(): string | null {
+      const id = useUserStore.getState().user?.id;
+      return id ? String(id) : null;
+    }
+
+    /** Cancel this phone's reminder notifications and empty the list. */
+    async function clearLocal() {
+      await Promise.all(
+        get()
+          .reminders.filter((r) => r.notificationIds.length > 0)
+          .map((r) => cancelReminderNotifications(r)),
+      );
+      await cancelAllReminderNotifications();
+      set({ reminders: [], updatedAt: null, ownerId: null });
+    }
+
+    /**
+     * Take the server's list and schedule it on THIS phone. Times are
+     * wall-clock, so a 7:00 reminder fires at 7:00 local here too.
+     */
+    async function adoptServerList(server: ServerReminderList) {
+      await Promise.all(
+        get()
+          .reminders.filter((r) => r.notificationIds.length > 0)
+          .map((r) => cancelReminderNotifications(r)),
+      );
+      set({
+        reminders: server.reminders.map(fromSynced),
+        updatedAt: server.updatedAt,
+        ownerId: currentUserId(),
+      });
+      await rescheduleNow();
+    }
+
+    /** Send the whole list. Best effort: offline, the local list still works. */
+    async function uploadNow(userId: string, stamp: string) {
+      try {
+        const sent = get().reminders;
+        const res = await putServerReminders(sent.map(toSynced), stamp);
+        if (currentUserId() !== userId) return;
+        if (res.applied === false) {
+          // Another phone saved a newer list first: that one wins.
+          await adoptServerList(res);
+        } else if (get().reminders === sent && res.updatedAt) {
+          // Store the server's stamp (it pulls a fast phone clock back to
+          // now), unless the list changed again while this was out; that
+          // change has its own upload queued.
+          set({ updatedAt: res.updatedAt, ownerId: userId });
+        }
+      } catch (error) {
+        console.warn("[Reminders] could not save the list to the server:", error);
+      }
+    }
+
+    /**
+     * Every change the person makes: stamp it and send it. Not awaited, so a
+     * slow or missing network never holds up the screen.
+     */
+    function markChanged() {
+      const stamp = new Date().toISOString();
+      const userId = currentUserId();
+      set({ updatedAt: stamp, ...(userId ? { ownerId: userId } : {}) });
+      if (!userId) return;
+      void exclusive(() => uploadNow(userId, get().updatedAt ?? stamp));
+    }
+
+    async function rescheduleNow() {
 
         // 1. Cancel the previous generation — by stored id AND by what is
         // actually pending on the device.
@@ -320,8 +493,10 @@ export const useReminderStore = create<ReminderState>()(
               },
           ),
         });
-      },
-    }),
+    }
+
+    return state;
+    },
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_REMINDERS,
       storage: createJSONStorage(() => AsyncStorage),

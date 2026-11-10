@@ -1,8 +1,9 @@
-import { useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Reanimated, { FadeOut } from "react-native-reanimated";
 import { useReminderStore } from "../../../stores/reminders";
+import { useUserStore } from "../../../stores/user";
 import { ReminderCategory } from "../../../constants/reminderTemplates";
 import {
   useTheme,
@@ -39,6 +40,14 @@ const Reminders = () => {
   const m = useMotion();
   const { reminders, toggleActive, removeReminder, setAllActive } = useReminderStore();
   const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
+
+  // Pick up reminders set on the person's other phone (D3, 10 Nov 2026).
+  const userId = useUserStore((s) => s.user?.id);
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) void useReminderStore.getState().syncWithServer(String(userId));
+    }, [userId]),
+  );
 
   // Alert / confirm state
   const [promptVisible, setPromptVisible] = useState(false);

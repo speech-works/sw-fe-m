@@ -270,6 +270,21 @@ const App: React.FC = () => {
     };
   }, [rescheduleAllActiveNotifications]);
 
+  // Reminders follow the account to every phone (D3, 10 Nov 2026). On launch
+  // and on sign-in, settle this phone's list with the server's and reschedule
+  // here if the server's is newer. Waits for the reminder store to load.
+  const reminderUserId = useUserStore((s) => s.user?.id);
+  useEffect(() => {
+    if (!reminderUserId) return;
+    const run = () =>
+      void useReminderStore.getState().syncWithServer(String(reminderUserId));
+    if (useReminderStore.persist.hasHydrated()) {
+      run();
+      return;
+    }
+    return useReminderStore.persist.onFinishHydration(run);
+  }, [reminderUserId]);
+
   // Foreground sync for user data (stamina)
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
