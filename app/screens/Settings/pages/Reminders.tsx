@@ -3,6 +3,7 @@ import React, { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Reanimated, { FadeOut } from "react-native-reanimated";
 import { useReminderStore } from "../../../stores/reminders";
+import { reminderRepeatLabel } from "../../../stores/reminders/repeatLabel";
 import { useUserStore } from "../../../stores/user";
 import { ReminderCategory } from "../../../constants/reminderTemplates";
 import {
@@ -179,7 +180,7 @@ const Reminders = () => {
                   <ListItem
                     leftIcon={CATEGORY_META[rem.category]?.icon ?? "bell"}
                     label={rem.title}
-                    sublabel={`${rem.type === "ROUTINE" ? "Every day at" : "Once at"} ${rem.time}`}
+                    sublabel={reminderRepeatLabel(rem)}
                     right={<Toggle value={rem.active} onChange={() => handleToggleIndividual(rem.id)} />}
                     divider={index < arr.length - 1}
                     onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
