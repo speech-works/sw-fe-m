@@ -84,15 +84,15 @@ describe("paywallView", () => {
       expect(v.cta).toMatchObject({
         kind: "buy",
         plan: "annual",
-        label: "Start membership · $34.99/yr",
+        label: "Start membership",
         enabled: true,
       });
     });
 
-    it("the tapped card is kept, with its own price on the button", () => {
+    it("the tapped card is kept; the button has no price (the plan row shows it)", () => {
       const v = view(free, { picked: "monthly" });
       expect(v.selectedPlan).toBe("monthly");
-      expect(v.cta).toMatchObject({ label: "Start membership · $2.99/mo", plan: "monthly" });
+      expect(v.cta).toMatchObject({ label: "Start membership", plan: "monthly" });
     });
 
     it("a member on free days can pick both (they used to be disabled)", () => {
@@ -108,7 +108,7 @@ describe("paywallView", () => {
       const v = view(monthlyApple);
       expect(v.cards.monthly).toMatchObject({ enabled: false, current: true });
       expect(v.cards.annual).toMatchObject({ enabled: true, selected: true });
-      expect(v.cta).toMatchObject({ kind: "upgrade", label: "Switch to yearly · $34.99/yr" });
+      expect(v.cta).toMatchObject({ kind: "upgrade", label: "Switch to yearly" });
       expect(v.showManageLink).toBe(true);
     });
 

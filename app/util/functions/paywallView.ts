@@ -286,9 +286,8 @@ export function paywallView(input: PaywallViewInput): PaywallView {
     cta = {
       kind: "upgrade",
       plan: "annual",
-      label: input.annualKnown
-        ? `Switch to yearly · ${input.annualLabel}/yr`
-        : "Switch to yearly",
+      // No price here: the selected plan row right above shows it (K3).
+      label: "Switch to yearly",
       a11y: "Switch to the yearly plan",
       enabled: true,
     };
@@ -301,9 +300,7 @@ export function paywallView(input: PaywallViewInput): PaywallView {
         ? "Start membership"
         : !known(p)
           ? "Pricing unavailable"
-          : p === "annual"
-            ? `Start membership · ${input.annualLabel}/yr`
-            : `Start membership · ${input.monthlyLabel}/mo`,
+          : "Start membership",
       a11y: "Start Speechworks membership",
       enabled: !!p && known(p),
     };

@@ -34,11 +34,9 @@ const ALLOWED: Record<string, string> = {
   // Decorative, not an object with a shape to bound.
   //
   // Payments/index.tsx was listed here for two background blobs at opacity 0.1.
-  // They now live in Payments/PaywallPager.tsx as orbs whose colour comes from
-  // `interpolateColor`, so the grep below cannot see them and they need no
-  // entry. Still deliberately unedged, for the original reason: an edge would
-  // draw the blob. Any ANIMATED accent fill is invisible to this scanner — a
-  // known limit of a grep-based guard, not a new one.
+  // The plan screen no longer has them (PlanOffer, 10 Nov 2026), so it needs
+  // no entry. Any ANIMATED accent fill is invisible to this scanner — a known
+  // limit of a grep-based guard, not a new one.
   "app/screens/Academy/DailyPractice/pages/CognitivePractice/Breathing/components/BreathingHalo.tsx":
     "animated breathing halo; an outline would read as a ring the exercise does not have",
   "app/screens/Onboarding/OnboardingCelebration.tsx":

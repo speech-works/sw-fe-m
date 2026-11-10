@@ -202,7 +202,7 @@ describe("the call-length figure", () => {
  */
 const SELLING_SURFACES = [
   "app/screens/Payments/index.tsx",
-  "app/screens/Payments/PaywallPager.tsx",
+  "app/screens/Payments/PlanOffer.tsx",
   "app/components/UpsellModal.tsx",
   "app/components/MembershipDock.tsx",
   "app/components/ContinueMembershipSheet.tsx",

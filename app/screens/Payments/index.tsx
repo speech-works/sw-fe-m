@@ -46,6 +46,7 @@ import {
   spacing,
   radius,
   withAlpha,
+  palette,
 } from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
@@ -64,7 +65,7 @@ import {
   deriveAnchor,
   savingPercentFor,
 } from "../../services/priceDisplay";
-import { PaywallPager } from "./PaywallPager";
+import { PlanOffer } from "./PlanOffer";
 import {
   MEMBERSHIP_CONFIRMING_LINE,
   OTHER_ACCOUNT,
@@ -117,7 +118,6 @@ const SubscribeScreenBody = () => {
   const insets = useSafeAreaInsets();
   // Height of the pinned footer, so the scroll view can clear it exactly.
   // Starts at a sane guess so the first frame is never wrong by a whole screen.
-  const [footerHeight, setFooterHeight] = useState(220);
   // The card the reader tapped. Null until they tap one, and then
   // `paywallView` picks the default: annual when it can be bought, else
   // monthly, else their current plan.
@@ -254,11 +254,11 @@ const SubscribeScreenBody = () => {
   // a strike and a percentage is the same discount claimed twice, and in a
   // currency we cannot price `resolvePriceDisplay` withholds the anchor, which
   // silently withholds the tag too. That is the correct failure.
-  // Derived, so it must be formatted in the SAME currency the prices resolved to.
+  // Derived, so it is formatted in the SAME currency the prices resolved to.
   const annualPerMonthLabel =
-    (annual?.priceAmount != null
+    annual?.priceAmount != null
       ? formatCurrency(annual.priceAmount / 12, annual.currencyCode)
-      : null) ?? "—";
+      : null;
   // Read off the pair ACTUALLY on screen. ₹1499-vs-₹2388 is 37% but
   // $34.99-vs-$59.88 is 42%, so computing this from the INR book (as it did)
   // under-claimed the saving to every dollar buyer.
@@ -533,60 +533,52 @@ const SubscribeScreenBody = () => {
     <View style={styles.mainContainer}>
       <Animated.View style={[{ flex: 1 }, animatedSheetStyle]}>
         <View style={styles.safe}>
-          {/* ── THE CLOSE CONTROL, WHERE EVERY OTHER SHEET PUTS IT ────────
-              On the BACKDROP above the card, not inside it. That is the app's
-              sheet contract — see `Sheet`'s `right` prop and the canonical
-              call in `TagPickerSheet` — and this screen was the one surface
-              breaking it, with an X floating over its own first page.
-
-              The geometry is copied from `Sheet`'s header rather than re-
-              derived: a 44pt row on the 16pt screen gutter with a 16pt gap
-              down to the card. Two of those numbers used to live here as a
-              bare `marginTop: 64` on the card below, which was the right
-              distance by coincidence and had nothing in it.
-
-              It also hands 64pt back to the pages. `PaywallPager` was holding
-              that much clear at the top of every page purely so the headline
-              would not run under this button. */}
-          <View
-            style={[
-              styles.sheetHeader,
-              { paddingTop: Math.max(insets.top, spacing.md) },
-            ]}
-          >
-            <IconButton
-              name={icons.close}
-              onPress={() => navigation.goBack()}
-              accessibilityLabel="Close"
-            />
-          </View>
-
           <View style={styles.screenView}>
-          {/* ── THE OFFER ─────────────────────────────────────────────────
-              Three pages and one room. `PaywallPager` owns the ground, the
-              atmosphere, the close control and the pages; this screen keeps
-              everything that touches money.
-
-              What it replaced: a single vertical column that required a
-              scroll to reach the price, on a screen whose whole job is to
-              show a price. Before that, a four-slide carousel most readers
-              never swiped.
-
-              The dock is passed IN rather than rendered by the pager, so the
-              purchase call, the store guard and the 3.1.2 disclosure all stay
-              in one file with the offer they describe. */}
-          <PaywallPager
-            dockHeight={footerHeight}
+          {/* One page for everyone (PlanOffer, founder pick K3). It replaced
+              the three swipe pages, which cut the plans off at large text.
+              Restore and close sit on its orange layer (10 Nov 2026). */}
+          {/* The dock is passed IN, so the purchase call, the store guard
+              and the 3.1.2 disclosure stay in this file with the offer. */}
+          <PlanOffer
             monthlyLabel={monthlyLabel}
-            annualPerMonthLabel={annualPerMonthLabel}
             annualLabel={annualLabel}
+            annualPerMonthLabel={annualPerMonthLabel}
+            topInset={Math.max(insets.top, spacing.md)}
+            header={
+              <View style={styles.sheetHeader}>
+                {/* Restore at the top, where people look for it. Off while a
+                    payment is being confirmed, so a restore result cannot
+                    cross the purchase result. */}
+                {purchasesAvailable() ? (
+                  <TouchableOpacity
+                    onPress={restore}
+                    disabled={restoring || loading}
+                    hitSlop={LEGAL_HIT_SLOP}
+                    accessibilityRole="button"
+                    accessibilityLabel="Restore purchases"
+                  >
+                    <DSText variant="label" color={palette.ink.canvas}>
+                      {restoring ? "Restoring…" : "Restore"}
+                    </DSText>
+                  </TouchableOpacity>
+                ) : (
+                  <View />
+                )}
+                <IconButton
+                  name={icons.close}
+                  variant="ghost"
+                  color={palette.ink.canvas}
+                  onPress={() => navigation.goBack()}
+                  accessibilityLabel="Close"
+                />
+              </View>
+            }
             annualSavingsPct={annualSavingsPct}
             cards={view.cards}
             onPickMonthly={() => setPicked("monthly")}
             onPickAnnual={() => setPicked("annual")}
             priceKnown={monthlyKnown && annualKnown}
             disabled={loading || storeCharged || purchasesPaused}
-            isMember={view.memberLayout}
             dock={
               /* The SafeAreaView above deliberately omits the bottom edge, so
                  under edge-to-edge this would sit under the nav bar with the
@@ -596,7 +588,6 @@ const SubscribeScreenBody = () => {
                   styles.footer,
                   { paddingBottom: spacing["2xl"] + navBarInset },
                 ]}
-                onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
               >
             {/* purchasesAvailable(), not the raw PAYMENTS_ENABLED flag. With
                 the flag alone, an iOS build with no RevenueCat key rendered
@@ -681,17 +672,18 @@ const SubscribeScreenBody = () => {
                     accessibilityLabel={cta.a11y}
                   >
                     <LinearGradient
-                      colors={[colors.premium.gold, colors.premium.goldDeep]}
+                      colors={[palette.orange[300], palette.orange[400]]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.upgradeBtn}
                     >
                       {loading ? (
-                        <ActivityIndicator color={colors.text.inverse} />
+                        <ActivityIndicator color={palette.orange.on} />
                       ) : (
                         <DSText
                           variant="title"
                           style={styles.upgradeBtnText}
+                          maxFontSizeMultiplier={1.3}
                         >
                           {cta.label}
                         </DSText>
@@ -724,20 +716,24 @@ const SubscribeScreenBody = () => {
                   </TouchableOpacity>
                 ) : null}
 
+                {/* Members only: their plan status. For a buyer it was one
+                    more line on a screen that needs fewer (founder pick F). */}
+                {view.guaranteeIsMember ? (
                 <View style={styles.guaranteeRow}>
-                  <Icon
-                    name={view.guaranteeIsMember ? "check-circle" : "shield"}
-                    size={size.iconInline}
-                    color={view.guaranteeIsMember ? colors.premium.gold : colors.text.tertiary}
-                  />
-                  <DSText
-                    variant="caption"
-                    color={view.guaranteeIsMember ? "primary" : "tertiary"}
-                    style={styles.guaranteeText}
-                  >
-                    {view.guarantee}
-                  </DSText>
-                </View>
+                    <Icon
+                      name={view.guaranteeIsMember ? "check-circle" : "shield"}
+                      size={size.iconInline}
+                      color={view.guaranteeIsMember ? colors.premium.gold : colors.text.tertiary}
+                    />
+                    <DSText
+                      variant="caption"
+                      color={view.guaranteeIsMember ? "primary" : "tertiary"}
+                      style={styles.guaranteeText}
+                    >
+                      {view.guarantee}
+                    </DSText>
+                  </View>
+                ) : null}
 
                 {/* App Store Guideline 3.1.2 requires all of this ON the
                     purchase surface, in the binary: what renews, when it
@@ -760,38 +756,24 @@ const SubscribeScreenBody = () => {
                     color="tertiary"
                     center
                     style={styles.renewalDisclosure}
+                    maxFontSizeMultiplier={1.4}
                   >
-                    {selectedPlan === "annual"
-                      ? `${annualLabel} per year. Renews automatically unless cancelled 24 hours before the period ends.`
-                      : `${monthlyLabel} per month. Renews automatically unless cancelled 24 hours before the period ends.`}
+                    {/* The price and period are in the selected plan row
+                        right above the button, so this line does not repeat
+                        them (founder, 10 Nov 2026). */}
+                    Renews automatically unless cancelled 24 hours before the period ends.
                   </DSText>
                 ) : null}
 
                 <View style={styles.legalRow}>
-                  <TouchableOpacity
-                    onPress={restore}
-                    // Off while a payment is being confirmed, so a restore
-                    // result cannot cross the purchase result.
-                    disabled={restoring || loading}
-                    hitSlop={LEGAL_HIT_SLOP}
-                    accessibilityRole="button"
-                    accessibilityLabel="Restore purchases"
-                  >
-                    <DSText variant="caption" color="tertiary" style={styles.legalLink}>
-                      {restoring ? "Restoring…" : "Restore Purchases"}
-                    </DSText>
-                  </TouchableOpacity>
-                  <DSText variant="caption" color="tertiary">
-                    ·
-                  </DSText>
                   <TouchableOpacity
                     onPress={() => handleLinkPress(TERMS_OF_USE_URL)}
                     hitSlop={LEGAL_HIT_SLOP}
                     accessibilityRole="link"
                     accessibilityLabel="Terms of Use"
                   >
-                    <DSText variant="caption" color="tertiary" style={styles.legalLink}>
-                      Terms of Use
+                    <DSText variant="caption" color="tertiary" style={styles.legalLink} maxFontSizeMultiplier={1.4}>
+                      Terms
                     </DSText>
                   </TouchableOpacity>
                   <DSText variant="caption" color="tertiary">
@@ -803,13 +785,17 @@ const SubscribeScreenBody = () => {
                     accessibilityRole="link"
                     accessibilityLabel="Privacy Policy"
                   >
-                    <DSText variant="caption" color="tertiary" style={styles.legalLink}>
-                      Privacy Policy
+                    <DSText variant="caption" color="tertiary" style={styles.legalLink} maxFontSizeMultiplier={1.4}>
+                      Privacy
                     </DSText>
                   </TouchableOpacity>
+                  <DSText variant="caption" color="tertiary">
+                    ·
+                  </DSText>
+                  {/* Short names, one row: the four links used to take three
+                      lines at large text (10 Nov 2026). */}
+                  <PaymentProblemLink product="Membership" label="Payment help" maxFontSizeMultiplier={1.4} />
                 </View>
-
-                <PaymentProblemLink product="Membership" />
               </>
             ) : (
               <DSText
@@ -950,17 +936,16 @@ const useStyles = makeStyles((c) => ({
     minHeight: size.backBtn,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     paddingHorizontal: space.screenX,
     paddingBottom: space.groupGap,
   },
   // The card. `marginTop: 64` is gone — the header above is the gap now, and it
   // has a control in it.
+  // Full screen: the orange layer runs up under the status bar (K3).
   screenView: {
     flex: 1,
-    backgroundColor: c.background.canvas,
-    borderTopLeftRadius: radius.pill,
-    borderTopRightRadius: radius.pill,
+    backgroundColor: c.premium.ground,
     overflow: "hidden",
   },
   scrollContent: {
@@ -1043,7 +1028,7 @@ const useStyles = makeStyles((c) => ({
     // No background or top border either. The dock behind it paints the LIVE
     // interpolated ground, and a fixed canvas fill here would sit as a visible
     // slab against the slate on the last page.
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xl,
     paddingBottom: spacing["2xl"],
     paddingHorizontal: spacing["2xl"],
   },
@@ -1067,7 +1052,7 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "center",
   },
   upgradeBtnText: {
-    color: c.text.inverse,
+    color: palette.orange.on,
     letterSpacing: 0.5,
   },
   btnShine: {
@@ -1091,10 +1076,10 @@ const useStyles = makeStyles((c) => ({
     marginBottom: spacing.md,
   },
   renewalDisclosure: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     // Required disclosure, so it must stay legible — not shrunk below the
-    // caption ramp to win back vertical space.
-    lineHeight: 16,
+    // caption ramp to win back vertical space. No fixed lineHeight: at large
+    // text a fixed 16 made the lines overlap.
   },
   legalRow: {
     flexDirection: "row",
@@ -1102,7 +1087,7 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "center",
     flexWrap: "wrap",
     gap: spacing.xs,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   legalLink: {
     textDecorationLine: "underline",

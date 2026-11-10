@@ -14,8 +14,12 @@ const HIT_SLOP = { top: 10, bottom: 10, left: 8, right: 8 };
 export interface PaymentProblemLinkProps {
   /** The program or product they were buying, when known. */
   product?: string | null;
+  /** Shorter link text, for a row of links (the plan screen). */
+  label?: string;
   /** Override the text colour, for the dark plan screen. */
   color?: React.ComponentProps<typeof Text>["color"];
+  /** Match the links beside it at large text (the plan screen). */
+  maxFontSizeMultiplier?: number;
 }
 
 /**
@@ -28,7 +32,9 @@ export interface PaymentProblemLinkProps {
  */
 export const PaymentProblemLink: React.FC<PaymentProblemLinkProps> = ({
   product,
+  label,
   color = "tertiary",
+  maxFontSizeMultiplier,
 }) => {
   const userId = useUserStore((s) => s.user?.id ?? null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -55,8 +61,14 @@ export const PaymentProblemLink: React.FC<PaymentProblemLinkProps> = ({
         accessibilityRole="link"
         accessibilityLabel={PAYMENT_PROBLEM_LINK_LABEL}
       >
-        <Text variant="caption" color={color} center style={styles.link}>
-          {PAYMENT_PROBLEM_LINK_LABEL}
+        <Text
+          variant="caption"
+          color={color}
+          center
+          style={styles.link}
+          maxFontSizeMultiplier={maxFontSizeMultiplier}
+        >
+          {label ?? PAYMENT_PROBLEM_LINK_LABEL}
         </Text>
       </Pressable>
       {notice ? (
