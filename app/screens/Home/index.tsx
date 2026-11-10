@@ -46,7 +46,14 @@ const Home = () => {
   const { colors } = useTheme();
   const styles = useStyles();
   const { user, setUser } = useUserStore();
-  const { hasRecordedToday } = useMoodCheckStore();
+  const { hasRecordedToday, syncFromServer, _hasHydrated } =
+    useMoodCheckStore();
+
+  // Hide the mood card if another phone already answered today.
+  // (D2, 10 Nov 2026)
+  useEffect(() => {
+    if (_hasHydrated) void syncFromServer();
+  }, [_hasHydrated, syncFromServer]);
 
   const onboardingFlow = useOnboardingStore((s) => s.flow);
   const onboardingAnswers = useOnboardingStore((s) => s.answers);

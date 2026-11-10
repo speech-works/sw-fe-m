@@ -59,8 +59,13 @@ const emotions: {
 const MoodCheckPopup = () => {
   const { colors } = useTheme();
   const styles = useStyles();
-  const { hasRecordedToday, lastPopupDate, setPopupShown, _hasHydrated } =
-    useMoodCheckStore();
+  const {
+    hasRecordedToday,
+    lastPopupDate,
+    setPopupShown,
+    _hasHydrated,
+    syncFromServer,
+  } = useMoodCheckStore();
   const completedAt = useOnboardingNudgeStore((s) => s.completedAt);
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
@@ -94,7 +99,12 @@ const MoodCheckPopup = () => {
     // 1. Not recorded today
     // 2. Popup hasn't been shown today
     if (!hasRecordedToday && lastPopupDate !== today) {
-      const timer = setTimeout(() => {
+      let cancelled = false;
+      const timer = setTimeout(async () => {
+        // Ask the server first: another phone may have answered today.
+        // (D2, 10 Nov 2026)
+        const answeredElsewhere = await syncFromServer();
+        if (cancelled || answeredElsewhere) return;
         // STANDS DOWN RATHER THAN QUEUING.
         //
         // `exclusive` on the Sheet below defers-and-then-presents, which is
@@ -113,9 +123,12 @@ const MoodCheckPopup = () => {
         if (hasOpenModalExcept(POPUP_ID)) return;
         setVisible(true);
       }, 500);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
     }
-  }, [hasRecordedToday, lastPopupDate, _hasHydrated, completedAt]);
+  }, [hasRecordedToday, lastPopupDate, _hasHydrated, completedAt, syncFromServer]);
 
   const handleSkip = () => {
     setPopupShown(); // Mark as shown for today
