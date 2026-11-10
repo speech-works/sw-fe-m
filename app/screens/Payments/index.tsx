@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -75,6 +75,10 @@ import {
 import { PaymentProblemLink } from "../../components/PaymentProblemLink";
 import { OtherAccountNotice } from "../../components/OtherAccountNotice";
 import { OutcomeSheet } from "../../components/OutcomeModal";
+import {
+  showSuccessBottomSheet,
+  showErrorBottomSheet,
+} from "../../util/functions/bottomSheet";
 import { haptics } from "../../design-system/haptics";
 
 export enum PAYMENT_PLAN_TYPE {
@@ -154,13 +158,35 @@ const SubscribeScreenBody = () => {
   } | null>(null);
   // Kept apart from the result so the words stay put while the sheet slides out.
   const [resultOpen, setResultOpen] = useState(false);
+  // False once this screen is gone. A purchase or restore that finishes after
+  // the person closed the screen must still say what happened (10 Nov 2026).
+  const mountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+  // The result on screen right now, read without waiting for a re-render.
+  const shownResultRef = useRef<{ closeAfter?: boolean } | null>(null);
   const showResult = (
     type: "success" | "error",
     title: string,
     message: string,
     closeAfter = false,
   ) => {
+    if (!mountedRef.current) {
+      // Screen already closed: nothing is above the app any more, so the
+      // app-wide sheet can show it. That sheet buzzes on errors by itself.
+      if (type === "error") showErrorBottomSheet(title, message);
+      else showSuccessBottomSheet(title, message);
+      return;
+    }
+    // Never let a later result (a restore) replace a finished purchase's
+    // message: that would hide "You're in" and keep the screen open.
+    if (shownResultRef.current?.closeAfter && !closeAfter) return;
     if (type === "error") haptics.error();
+    shownResultRef.current = { closeAfter };
     setScreenResult({ type, title, message, closeAfter });
     setResultOpen(true);
   };
@@ -744,7 +770,9 @@ const SubscribeScreenBody = () => {
                 <View style={styles.legalRow}>
                   <TouchableOpacity
                     onPress={restore}
-                    disabled={restoring}
+                    // Off while a payment is being confirmed, so a restore
+                    // result cannot cross the purchase result.
+                    disabled={restoring || loading}
                     hitSlop={LEGAL_HIT_SLOP}
                     accessibilityRole="button"
                     accessibilityLabel="Restore purchases"
@@ -807,7 +835,13 @@ const SubscribeScreenBody = () => {
         message={screenResult?.message ?? ""}
         onClose={() => setResultOpen(false)}
         onDismissed={() => {
-          if (screenResult?.closeAfter) navigation.goBack();
+          const closeAfter = shownResultRef.current?.closeAfter;
+          shownResultRef.current = null;
+          if (!closeAfter) return;
+          // Wait one frame: on iOS, closing this sheet's native modal and the
+          // plan screen (also a native modal) in the same update can freeze
+          // touches.
+          requestAnimationFrame(() => navigation.goBack());
         }}
       />
 

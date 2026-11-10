@@ -144,11 +144,15 @@ axiosClient.interceptors.response.use(
         }
 
         // Use a new axios instance to avoid interceptors
+        // With a time limit: without one, a stuck connection kept
+        // `isRefreshing` true and every waiting request hung for good. A
+        // timeout is not a finished session, so it does not log anyone out.
         const refreshResponse = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
           {
             refreshToken,
           },
+          { timeout: 15000 },
         );
         // `appJwt` IS THE FIELD NAME. NOT `token`.
         //

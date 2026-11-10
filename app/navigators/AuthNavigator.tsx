@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect, useState } from "react";
+import { Linking } from "react-native";
 import Auth from "../screens/Auth";
 import ActOneWelcome from "../screens/PreAuth/ActOneWelcome";
 import ActOneTeaser from "../screens/PreAuth/ActOneTeaser";
@@ -56,7 +57,29 @@ export default function AuthNavigator() {
     return unsub;
   }, [hydrated]);
 
-  if (!hydrated) return null;
+  // OPENED BY A SIGN-IN REDIRECT. If the phone closed the app while the person
+  // was signing in in the browser (Samsung does this), the redirect restarts
+  // the app. Start on the sign-in screen then, because only that screen can
+  // finish the sign-in (it reads the redirect at mount). Otherwise the person
+  // landed on the welcome screen and the sign-in was lost (10 Nov 2026).
+  const [startUrlChecked, setStartUrlChecked] = useState(false);
+  const [openedBySignIn, setOpenedBySignIn] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    Linking.getInitialURL()
+      .then((url) => {
+        if (alive && url?.startsWith("speechworks://auth-callback")) {
+          setOpenedBySignIn(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => alive && setStartUrlChecked(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!hydrated || !startUrlChecked) return null;
 
   // WHERE A RETURNING STRANGER LANDS — three states, not two.
   //
@@ -81,10 +104,12 @@ export default function AuthNavigator() {
   //
   // The choice itself lives in `authEntryRoute` so it can be asserted without
   // mounting this navigator.
-  const initialRouteName = pickAuthEntryRoute({
-    preAuthEnabled: PRE_AUTH_ONBOARDING_ENABLED,
-    draftCompleted,
-  });
+  const initialRouteName = openedBySignIn
+    ? "Auth"
+    : pickAuthEntryRoute({
+        preAuthEnabled: PRE_AUTH_ONBOARDING_ENABLED,
+        draftCompleted,
+      });
 
   return (
     <Stack.Navigator

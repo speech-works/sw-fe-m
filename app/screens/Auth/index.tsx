@@ -1,6 +1,7 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   Platform,
   ScrollView,
@@ -9,7 +10,8 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { PRIVACY_POLICY_URL, SUPPORT_URL, TERMS_OF_USE_URL } from "./constants";
+import { PRIVACY_POLICY_URL, SUPPORT_EMAIL, TERMS_OF_USE_URL } from "./constants";
+import { copyToClipboard } from "../../util/functions/clipboard";
 
 import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
@@ -47,7 +49,10 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { signInWithApple } from "../../api/auth";
 import { apiErrorMessage } from "../../util/functions/apiError";
-import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
+import {
+  showErrorBottomSheet,
+  showSuccessBottomSheet,
+} from "../../util/functions/bottomSheet";
 // The WEB-redirect providers. Apple is deliberately absent: it now uses the
 // native ASAuthorization flow below, not the Safari round trip, so it has no
 // business in this list or in the generic button map.
@@ -72,6 +77,13 @@ const OAUTH_ICON_SIZE = 14;
 
 // Required to ensure the WebBrowser closes correctly on Android redirects
 WebBrowser.maybeCompleteAuthSession();
+
+const SIGN_IN_FAILED = "Couldn't sign you in. Please try again.";
+const SIGN_IN_INTERRUPTED = "Sign-in was interrupted. Please try again.";
+/** How long to wait for a sign-in redirect after the person is back in the app. */
+const RETURN_GRACE_MS = 3000;
+/** Sign-in codes already used, so the same redirect is never used twice. */
+const handledAuthCodes = new Set<string>();
 
 const LoginScreen = () => {
   const { colors, scheme } = useTheme();
@@ -123,13 +135,50 @@ const LoginScreen = () => {
     setSignInError(message);
   };
 
+  // True once the sign-in redirect for the current attempt has been taken.
+  const authHandledRef = useRef(false);
+
+  /**
+   * Takes a speechworks://auth-callback URL and signs in with it. ONE place for
+   * every way the redirect can arrive (10 Nov 2026):
+   *  - the live listener below, while the app is open;
+   *  - the browser result on Android;
+   *  - the URL the app was STARTED with, when the phone closed the app while
+   *    the person was in the browser (Samsung does this). Before, that
+   *    sign-in was dropped and the person was back at the buttons.
+   * Each code is used once, so two of these arriving together is harmless.
+   */
+  const consumeAuthUrl = async (url: string | null | undefined) => {
+    if (!url || !url.startsWith("speechworks://auth-callback")) return;
+    const code = new URLSearchParams(url.split("?")[1] ?? "").get("code");
+    if (code && handledAuthCodes.has(code)) return;
+    if (code) handledAuthCodes.add(code);
+    authHandledRef.current = true;
+    try {
+      await processAuthRedirect(url);
+    } catch (err: any) {
+      console.error("[OAuth] processAuthRedirect failed:", err?.message || err);
+      showError(apiErrorMessage(err, SIGN_IN_FAILED));
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then((url) => consumeAuthUrl(url))
+      .catch(() => {});
+    const sub = Linking.addEventListener("url", (e) => {
+      void consumeAuthUrl(e.url);
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onPressOAuth = async (provider: string) => {
     if (loadingProvider) return;
     setLoadingProvider(provider);
-
-    // App-global Linking listener — must be removed on EVERY exit path
-    // (finally below), or each failed attempt stacks another live handler.
-    let subscription: { remove: () => void } | undefined;
+    authHandledRef.current = false;
 
     try {
       const redirectUri = AuthSession.makeRedirectUri({
@@ -137,106 +186,71 @@ const LoginScreen = () => {
         path: "auth-callback",
       });
 
-      console.log("[OAuth 1] Provider:", provider);
-      console.log("[OAuth 1] Platform:", Platform.OS, "| isDev:", __DEV__);
-      console.log("[OAuth 1] Redirect URI:", redirectUri);
-
       let authUrl: string;
       try {
         const res = await loginUser({ provider, redirectTo: redirectUri });
         authUrl = res.redirectUrl;
-        console.log("[OAuth 2] ✅ Got auth URL from backend:", authUrl);
       } catch (e: any) {
-        console.error("[OAuth 2] ❌ loginUser() failed:", e?.message, e?.response?.data);
+        console.error("[OAuth 2] loginUser() failed:", e?.message, e?.response?.data);
         throw e;
       }
-
-      let linkingHandled = false;
-
-      const handleRedirect = async (event: { url: string }) => {
-        console.log("[OAuth Linking] URL received:", event.url);
-        if (linkingHandled) {
-          console.log("[OAuth Linking] Already handled, skipping.");
-          return;
-        }
-        const url = event.url;
-        if (!url.startsWith("speechworks://auth-callback")) {
-          console.log("[OAuth Linking] Not an auth-callback URL, ignoring.");
-          return;
-        }
-        linkingHandled = true;
-        console.log("[OAuth 4] ✅ Deep link captured:", url);
-        try {
-          await processAuthRedirect(url);
-        } catch (err: any) {
-          console.error("[OAuth 4] ❌ processAuthRedirect failed:", err.message || err);
-          showError(err.message || "Login failed. Please try again.");
-        } finally {
-          setLoadingProvider(null);
-        }
-      };
-
-
-      console.log("[OAuth 3] Registering Linking listener & opening browser...");
-      subscription = Linking.addEventListener("url", handleRedirect);
 
       if (Platform.OS === "ios") {
         // Both openBrowserAsync (SafariViewService crash: code 4099) and
         // openAuthSessionAsync (blank page) are broken in iOS Simulator on
-        // macOS 26.3 beta. Linking.openURL opens the full native Safari app
-        // which is unaffected by these simulator bugs.
-        // On real devices this also works: Safari opens, user authenticates,
-        // Supabase redirects to speechworks://auth-callback, iOS opens the app.
-        console.log("[OAuth 3] Opening Safari via Linking.openURL...");
+        // macOS 26.3 beta. Linking.openURL opens the full native Safari app.
+        // On real devices Safari opens, the user signs in, and Supabase
+        // redirects to speechworks://auth-callback, which the listener takes.
         await Linking.openURL(authUrl);
-        console.log("[OAuth 3] Linking.openURL resolved. Waiting for deep link...");
 
-        // Poll until the Linking listener handles the redirect (up to 5 min).
-        const deadline = Date.now() + 5 * 60 * 1000;
-        while (!linkingHandled && Date.now() < deadline) {
-          await new Promise((r) => setTimeout(r, 200));
+        // Wait for the redirect. If the person comes BACK to the app without
+        // it (they gave up in Safari), unlock the buttons after a short grace
+        // instead of keeping them locked for 5 minutes (10 Nov 2026). A late
+        // redirect is still taken by the listener.
+        let leftApp = AppState.currentState !== "active";
+        let returnedAt = 0;
+        const appStateSub = AppState.addEventListener("change", (state) => {
+          if (state === "active") {
+            if (leftApp) returnedAt = Date.now();
+          } else {
+            leftApp = true;
+          }
+        });
+        try {
+          const deadline = Date.now() + 5 * 60 * 1000;
+          while (!authHandledRef.current && Date.now() < deadline) {
+            if (returnedAt && Date.now() - returnedAt > RETURN_GRACE_MS) break;
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        } finally {
+          appStateSub.remove();
         }
-        if (!linkingHandled) {
-          console.warn("[OAuth 3] ❌ No deep link received after 5 minutes.");
-          showError("Login was interrupted. Please try again.");
-          setLoadingProvider(null);
-        } else {
-          console.log("[OAuth 3] ✅ Deep link handled.");
-        }
+        if (!authHandledRef.current) setLoadingProvider(null);
       } else {
-        // Android: openBrowserAsync (Custom Tabs) works correctly.
+        // Android: Custom Tabs.
         const result = await WebBrowser.openBrowserAsync(authUrl);
-        console.log("[OAuth 3] Browser closed. result.type:", result.type);
-
         const anyResult = result as any;
         if (anyResult.type === "success" && anyResult.url) {
-          console.log("[OAuth 3] Success URL:", anyResult.url);
-          if (!linkingHandled) {
-            linkingHandled = true;
-            await processAuthRedirect(anyResult.url);
-          }
-        } else if (result.type === "cancel") {
-          console.log("[OAuth 3] User cancelled.");
-          if (!linkingHandled) setLoadingProvider(null);
-        } else {
-          console.warn("[OAuth 3] result.type:", result.type, "— waiting 2s for deep link...");
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          if (!linkingHandled) {
-            console.warn("[OAuth 3] ❌ No deep link received after 2s.");
-            showError("Login was interrupted. Please try again.");
-            setLoadingProvider(null);
-          } else {
-            console.log("[OAuth 3] ✅ Deep link was handled during wait.");
-          }
+          await consumeAuthUrl(anyResult.url);
+          return;
+        }
+        // The tab can close a moment BEFORE the redirect arrives. Wait a
+        // little in every case; the listener takes it if it comes.
+        const until = Date.now() + RETURN_GRACE_MS;
+        while (!authHandledRef.current && Date.now() < until) {
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        if (!authHandledRef.current) {
+          // "cancel" is the person closing the tab: a choice, not a failure.
+          if (result.type !== "cancel") showError(SIGN_IN_INTERRUPTED);
+          setLoadingProvider(null);
         }
       }
-
     } catch (err: any) {
-      console.error("[OAuth] ❌ Unhandled error:", err.message || err);
-      showError(err.message || "Login failed. Please try again.");
+      console.error("[OAuth] Unhandled error:", err?.message || err);
+      // Never show raw technical text ("Network Error", "status code 500").
+      showError(apiErrorMessage(err, SIGN_IN_FAILED));
       setLoadingProvider(null);
-    } finally {
-      subscription?.remove();
     }
   };
 
@@ -597,18 +611,24 @@ const LoginScreen = () => {
       </Sheet>
 
       {/* Support is offered HERE, at the only moment anyone wants it — see the
-          note on showError. "Try again" is the cancel, because dismissing the
-          dialog already returns them to the buttons. */}
+          note on showError. The support email is shown in the dialog itself,
+          so nobody is sent out of the app to get help (founder, 10 Nov 2026).
+          "Try again" is the cancel, because dismissing the dialog already
+          returns them to the buttons. */}
       <Dialog
         visible={signInError !== null}
         onClose={() => setSignInError(null)}
         title="Couldn't sign you in"
-        message={signInError ?? ""}
+        message={`${signInError ?? ""}\n\nNeed help? Email us at ${SUPPORT_EMAIL}`}
         cancelLabel="Try again"
-        confirmLabel="Get help"
+        confirmLabel="Copy email"
         onConfirm={() => {
           setSignInError(null);
-          handleLinkPress(SUPPORT_URL);
+          void copyToClipboard(SUPPORT_EMAIL).then((copied) => {
+            if (copied) {
+              showSuccessBottomSheet("Email copied", SUPPORT_EMAIL);
+            }
+          });
         }}
       />
     </View>

@@ -52,14 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // On app startup, try loading token from SecureStore
     const loadToken = async () => {
-      const storedToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
-      );
-      if (storedToken) {
-        setToken(storedToken);
-      } else {
-        setToken(null);
+      // If secure storage fails, show the sign-in screen. Before, the error
+      // left `token` undefined and the app on a blank screen for good.
+      let storedToken: string | null = null;
+      try {
+        storedToken = await SecureStore.getItemAsync(
+          SECURE_KEYS_NAME.SW_APP_JWT_KEY,
+        );
+      } catch (e) {
+        console.error("[Auth] Could not read the stored session:", e);
       }
+      setToken(storedToken || null);
     };
     loadToken();
   }, []);

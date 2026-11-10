@@ -3,22 +3,21 @@ import * as WebBrowser from "expo-web-browser";
 import { showErrorBottomSheet } from "./bottomSheet";
 
 export const handleLinkPress = async (url: string) => {
+  // Open first, ask never. `canOpenURL` answered "no" for a plain https link on
+  // a Samsung with Chrome (Android package visibility, 10 Nov 2026), so "Get
+  // help" on the sign-in error showed "Couldn't open that link" instead of
+  // opening. `openURL` itself rejects when nothing can handle the link, on
+  // both platforms, so that rejection is the one honest signal.
   try {
-    const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      await Linking.openURL(url);
-    } else {
-      // Fallback for cases where the URL cannot be opened. The raw URL is not
-      // shown — it is noise to the reader and can be long enough to break the
-      // sheet's layout.
-      showErrorBottomSheet(
-        "Couldn't open that link",
-        "Your device didn't have an app that could handle it.",
-      );
-    }
+    await Linking.openURL(url);
   } catch (error) {
     console.error("Error opening link:", error);
-    showErrorBottomSheet("Failed to open link.", "Please try again later.");
+    // The raw URL is not shown: it is noise to the reader and can be long
+    // enough to break the sheet's layout.
+    showErrorBottomSheet(
+      "Couldn't open that link",
+      "Your device didn't have an app that could handle it.",
+    );
   }
 };
 
