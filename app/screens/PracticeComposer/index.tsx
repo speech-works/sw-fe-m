@@ -71,7 +71,6 @@ const FIELD_LABELS: Record<PracticePayloadField, string> = {
   durationSeconds: "Duration",
   timeOfDay: "Time of day",
   showedUp: "Showed up",
-  streakDays: "Days in a row",
   xpEarned: "Growth earned",
   leveledUp: "Level up",
   levelStageTitle: "Level",
