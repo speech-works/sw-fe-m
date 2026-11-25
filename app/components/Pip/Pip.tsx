@@ -48,6 +48,11 @@ export interface PipProps {
   backdrop: string;
   /** Pictures and checks only: hold this move at this many ms (no idle motion). */
   hold?: [PipMove, number] | null;
+  /** The kit's Jelly blob (default on, founder 2026-11-25): the blob (and the cut with it) wobbles on springs when Pip hops
+   *  (up-down speed), pops (puffs out) or sways (lags and leans), then settles. Reduced motion: off. */
+  jelly?: boolean;
+  /** Pip lab only (pictures): hold the jelly at the kit's own peak (j1 0.8, j2 0.5). */
+  labJellyHold?: boolean;
   /** Pip lab only (speed checks): draw without the blob cut. */
   labNoCut?: boolean;
   /** Pip lab only (speed checks): draw without the hand layer. */
@@ -113,27 +118,39 @@ const kitToPicture = (L: any) => { const S = L.stage, z = L.look.zoom, bp = L.lo
  * painted again). A layer whose shapes never change (body, collar, head, glasses, blob) is painted once. Only hair, face and
  * hands change shape, so only those repaint.
  */
-function Layer({ fs, motion, K, u, w, h, children }: { fs: any; motion: Motion | "still"; K: { k: number; ox: number; oy: number }; u: number; w: number; h: number; children: React.ReactNode }) {
+function Layer({ fs, motion, K, u, w, h, jel, piv, pad = 0, children }: { fs: any; motion: Motion | "still" | "jelly"; K: { k: number; ox: number; oy: number }; u: number; w: number; h: number; jel?: any; piv?: { x: number; y: number }; pad?: number; children: React.ReactNode }) {
+  // pad (px): the layer's canvas reaches this far past Pip's box on every side (the jelly squashes it; its edge must stay outside the box)
+  const vx = VIEW.x - pad / u, vy = VIEW.y - pad / u, vw = VIEW.w + (2 * pad) / u, vh = VIEW.h + (2 * pad) / u;
   const st = useAnimatedStyle(() => {
+    if (motion === "jelly" && jel && piv) {
+      // the kit's Jelly blob (sw-characters web/scripts/fx.js shape5): about the blob's centre, x' = (1+a) x + b y, y' = (1-a) y,
+      // a = 0.1 j1 (stretch / squash), b = 0.07 j2 (lean). On screen: translate, skewX, scaleX, scaleY (origin top left).
+      const a = 0.1 * jel.value[0], b = 0.07 * jel.value[1], sx = 1 + a, sy = 1 - a;
+      const Tx = piv.x - (sx * piv.x + b * piv.y), Ty = piv.y - sy * piv.y;
+      return { transform: [{ translateX: u * (sx * vx + b * vy + Tx - vx) }, { translateY: u * (sy * vy + Ty - vy) }, { skewX: Math.atan(b / sy) + "rad" }, { scaleX: sx }, { scaleY: sy }] };
+    }
     const f = fs.value;
     if (motion === "head" || motion === "hair" || motion === "face") {
       // the head matrix acts in kit units; in the picture it is K H K^-1; on screen (dp, origin top left) the translation is u * (A vb + T - vb)
       const H = f.headMatrix, a = H[0], b = H[1], c = H[2], d = H[3];
       const Tx = K.ox - (a * K.ox + c * K.oy) + K.k * H[4], Ty = K.oy - (b * K.ox + d * K.oy) + K.k * H[5];
-      return { transform: [{ translateX: u * (a * VIEW.x + c * VIEW.y + Tx - VIEW.x) }, { translateY: u * (b * VIEW.x + d * VIEW.y + Ty - VIEW.y) }, { rotate: Math.atan2(b, a) + "rad" }, { scale: Math.hypot(a, b) }] };
+      return { transform: [{ translateX: u * (a * vx + c * vy + Tx - vx) }, { translateY: u * (b * vx + d * vy + Ty - vy) }, { rotate: Math.atan2(b, a) + "rad" }, { scale: Math.hypot(a, b) }] };
     }
     const dy = motion === "body" ? f.breathBody - f.shoulderLift : motion === "collar" ? f.breathCollar - f.shoulderLift : motion === "lift" ? -f.shoulderLift : 0;
     return { transform: [{ translateY: u * K.k * dy }] };
   });
   return (
-    <Animated.View pointerEvents="none" style={[ABS, { width: w, height: h, transformOrigin: "left top" }, st]}>
-      <Svg width={w} height={h} viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`}>{children}</Svg>
+    <Animated.View pointerEvents="none" style={[ABS, { left: -pad, top: -pad, width: w + 2 * pad, height: h + 2 * pad, transformOrigin: "left top" }, st]}>
+      <Svg width={w + 2 * pad} height={h + 2 * pad} viewBox={`${vx} ${vy} ${vw} ${vh}`}>{children}</Svg>
     </Animated.View>);
 }
 
-const Figure = memo(function Figure({ fs, hs, B, uid, w, h, blob, blobColour, backdrop, noCut, noHands, arts }: { fs: any; hs: any; B: Bundle; uid: string; w: number; h: number; blob: boolean; blobColour?: string; backdrop: string; noCut?: boolean; noHands?: boolean; arts: string[] }) {
+const Figure = memo(function Figure({ fs, hs, jel, B, uid, w, h, blob, blobColour, backdrop, noCut, noHands, arts }: { fs: any; hs: any; jel: any; B: Bundle; uid: string; w: number; h: number; blob: boolean; blobColour?: string; backdrop: string; noCut?: boolean; noHands?: boolean; arts: string[] }) {
   const p = { fs }, L = B.L, LOOK = B.look, ST = B.ST, plan = B.I.hair, eg = LOOK.eyes.eg, SHW = LOOK.shadow, FR = LOOK.face.el, COL = B.COL, S = L.stage;
   const K = kitToPicture(L), u = w / VIEW.w;
+  // the jelly pivot: the middle of the blob (picture units)
+  const piv = useMemo(() => { const n = (L.blob.d.match(/-?\d+\.?\d*/g) || []).map(Number), xs = n.filter((_: number, i: number) => i % 2 === 0), ys = n.filter((_: number, i: number) => i % 2 === 1);
+    return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 }; }, [L]);
   const id = (s: string) => uid + s, url = (s: string) => `url(#${uid}${s})`;
   // only the hand drawings of the move being played are mounted (each one is about ten animated parts); idle mounts none
   const AS = SLOTS.map((art, i) => [art, i] as const).filter(([a]) => arts.includes(a));
@@ -234,17 +251,17 @@ const Figure = memo(function Figure({ fs, hs, B, uid, w, h, blob, blobColour, ba
 
   return (
     <>
-      {blob ? <Layer fs={fs} motion="still" K={K} u={u} w={w} h={h}><Path d={L.blob.d} fill={blobColour ?? L.blob.colour} /></Layer> : null}
+      {blob ? <Layer fs={fs} motion="jelly" jel={jel} piv={piv} pad={Math.round(w / 4)} K={K} u={u} w={w} h={h}><Path d={L.blob.d} fill={blobColour ?? L.blob.colour} /></Layer> : null}
       {layers}
       {noHands ? null : hands}
       {/* the matte, painted once, in the colour behind Pip: below the blob's cut line, everything outside the blob is covered,
-          so the body and the hands end exactly on the blob's curve (a moving layer cannot carry a fixed cut) */}
-      {noCut ? null : <Layer fs={fs} motion="still" K={K} u={u} w={w} h={h}><Path d={`M-400 -400H800V800H-400Z ${L.cut}`} fillRule="evenodd" fill={backdrop} /></Layer>}
+          so the body and the hands end exactly on the blob's curve (a moving layer cannot carry a fixed cut). It wobbles with the blob. */}
+      {noCut ? null : <Layer fs={fs} motion="jelly" jel={jel} piv={piv} pad={Math.round(w / 4)} K={K} u={u} w={w} h={h}><Path d={`M-400 -400H800V800H-400Z ${L.cut}`} fillRule="evenodd" fill={backdrop} /></Layer>}
     </>);
 });
 
 /** Pip, drawn live. Decorative: the screen around him says what happened. */
-export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip", size, blob = true, blobColour, backdrop, face = "calm", hold = null, labNoCut = false, labNoHands = false }, ref) {
+export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip", size, blob = true, blobColour, backdrop, face = "calm", hold = null, jelly = true, labJellyHold = false, labNoCut = false, labNoHands = false }, ref) {
   const B = useMemo(() => bundle(variant), [variant]);
   const uid = useMemo(() => "p" + UID++ + "_", []);
   const reduced = useReducedMotion();
@@ -262,6 +279,9 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
   const onDone = useCallback(() => { setPlaying(null); const d = done.current; done.current = null; if (d) d(); }, []);
   // whole-body motion: the outer view moves (native transform: nothing repaints), pivoting at Pip's feet
   const by = useSharedValue(0), bsc = useSharedValue(1), brot = useSharedValue(0);
+  // the jelly springs (kit fx.js shapeState): pushed by Pip's up-down speed; j = [j1, j2] read by the blob and the matte
+  const jel = useSharedValue<number[]>([0, 0]), jst = useSharedValue<number[]>([0, 0, 0, 0, 0, 1, 0]), jon = useSharedValue(0), sz = useSharedValue(size);
+  useEffect(() => { jon.value = labJellyHold ? 2 : jelly && !reduced ? 1 : 0; if (labJellyHold) jel.value = [0.8, 0.5]; else if (!jelly) jel.value = [0, 0]; sz.value = size; }, [jelly, labJellyHold, reduced, size, jon, jel, sz]);
   const bodyStyle = useAnimatedStyle(() => ({ transform: [{ translateY: by.value }, { rotate: brot.value + "deg" }, { scale: bsc.value }] }));
 
   useEffect(() => { bun.value = ui; fc.value = faceStill(B.FK, face); hs.value = null; hver.value = -1; }, [ui]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -279,6 +299,18 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
       f = overlayIdle(Bn.I, solveFrame(P, t), info.timeSinceFirstFrame);
       if (t >= P.totalMs) { t0.value = -1; fc.value = { from: Bn.FK.rest.calm.v, to: "calm", t0: -1e9 }; runOnJS(onDone)(); } }   // = faceStill(FK, "calm"), which is not a worklet
     fs.value = f;
+    if (jon.value === 1) {            // j1 stretch / squash, j2 lean (the kit's springs)
+      const dt = Math.min(0.05, (info.timeSincePreviousFrame ?? 16.7) / 1000), S = jst.value, y = by.value, sc = bsc.value, rot = brot.value;
+      // hop: the vertical speed in kit units (1000 per Pip width) / 1400, as in the kit. Pop: growing puffs the blob out (scale speed per s).
+      // Sway: the blob lags behind the tilt (degrees per s / 40) and leans.
+      const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+      const push = clamp(((y - S[4]) / dt / sz.value) * 1000 / 1400), puff = clamp((sc - S[5]) / dt), lean = clamp((rot - S[6]) / dt / 40);
+      let j1 = S[0], v1 = S[1], j2 = S[2], v2 = S[3];
+      v1 += (190 * (push + puff - j1) - 7 * v1) * dt; j1 += v1 * dt; v2 += (120 * (-0.6 * push + lean - j2) - 5 * v2) * dt; j2 += v2 * dt;
+      const moving = Math.abs(j1) + Math.abs(v1) + Math.abs(j2) + Math.abs(v2) > 1e-4;
+      jst.value = moving ? [j1, v1, j2, v2, y, sc, rot] : [0, 0, 0, 0, y, sc, rot];
+      if (moving || jel.value[0] !== 0 || jel.value[1] !== 0) jel.value = moving ? [j1, j2] : [0, 0];
+    }
     if (f.hair && f.hair.ver !== hver.value && (hf.value = hf.value + 1) % Bn.hairEvery === 0) { hver.value = f.hair.ver; hs.value = f.hair; }
   });
 
@@ -312,7 +344,7 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
     <Animated.View style={[{ width: size, height: h, transformOrigin: "50% 100%" }, bodyStyle]} accessible={false} importantForAccessibility="no-hide-descendants" pointerEvents="none">
       {/* one fixed box for all layers: a layer that breathes or lifts never shows its edge past Pip's picture */}
       <View style={{ width: size, height: h, overflow: "hidden" }}>
-        <Figure fs={fs} hs={hs} B={B} uid={uid} w={size} h={h} blob={blob} blobColour={blobColour} backdrop={backdrop} noCut={labNoCut} noHands={labNoHands} arts={arts} />
+        <Figure fs={fs} hs={hs} jel={jel} B={B} uid={uid} w={size} h={h} blob={blob} blobColour={blobColour} backdrop={backdrop} noCut={labNoCut} noHands={labNoHands} arts={arts} />
       </View>
     </Animated.View>);
 });

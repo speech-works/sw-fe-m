@@ -26,7 +26,7 @@ export default function PipLab() {
   const { width } = useWindowDimensions(), insets = useSafeAreaInsets();
   const pip = useRef<PipHandle>(null);
   const [variant, setVariant] = useState<PipVariant>("pip"), [mode, setMode] = useState<"light" | "dark">("dark");
-  const [hide, setHide] = useState(false), [noCut, setNoCut] = useState(false), [sz, setSz] = useState(360), [noHands, setNoHands] = useState(false);
+  const [hide, setHide] = useState(false), [noCut, setNoCut] = useState(false), [sz, setSz] = useState(360), [noHands, setNoHands] = useState(false), [jelly, setJelly] = useState(true), [jHold, setJHold] = useState(false);
   const [hold, setHold] = useState<[PipMove, number] | null>(null), [busy, setBusy] = useState(false), [rows, setRows] = useState<string[]>([]);
   // frame times, measured on the UI thread while a run records
   const rec = useSharedValue(0);   // 1 = recording, 2 = hand the times to JS
@@ -47,9 +47,9 @@ export default function PipLab() {
     setBusy(true); setHold(null); setRows([]); await sleep(800);
     await record("idle 10 s", () => sleep(10000));
     for (const m of PIP_MOVES) await record(m + " x5", async () => { for (let i = 0; i < 5; i++) { await pip.current?.play(m); await sleep(150); } });
-    await record("hop+pop+sway x3", async () => { for (let i = 0; i < 3; i++) for (const b of PIP_BODY) { await pip.current?.body(b); await sleep(100); } });
+    await record(`hop+pop+sway x3${jelly ? " (jelly)" : ""}`, async () => { for (let i = 0; i < 3; i++) for (const b of PIP_BODY) { await pip.current?.body(b); await sleep(100); } });
     console.log("SWPIPDONE"); setBusy(false);
-  }, [record]);
+  }, [record, jelly]);
 
   const Bt = ({ label, onPress, on }: { label: string; onPress: () => void; on?: boolean }) => (
     <Pressable onPress={onPress} disabled={busy} style={[st.b, on && st.on, busy && { opacity: 0.4 }]}><Text style={st.bt}>{label}</Text></Pressable>);
@@ -57,7 +57,7 @@ export default function PipLab() {
   return (
     <View style={[st.root, { backgroundColor: CANVAS[mode], paddingTop: insets.top + 8 }]}>
       <View style={{ height: Math.round(Math.min(width - 32, 360) * 322 / 372), justifyContent: "center" }}>
-        {hide ? null : <Pip ref={pip} key={variant} variant={variant} size={Math.min(width - 32, sz)} hold={hold} labNoCut={noCut} labNoHands={noHands} backdrop={CANVAS[mode]} />}
+        {hide ? null : <Pip ref={pip} key={variant} variant={variant} size={Math.min(width - 32, sz)} hold={hold} labNoCut={noCut} labNoHands={noHands} jelly={jelly} labJellyHold={jHold} backdrop={CANVAS[mode]} />}
       </View>
       <ScrollView style={st.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <View style={st.row}>
@@ -77,7 +77,7 @@ export default function PipLab() {
         <Text style={[st.h, { color: fg }]}>Moves</Text>
         <View style={st.row}>{PIP_MOVES.map(m => <Bt key={m} label={m.slice(2)} onPress={() => { setHold(null); pip.current?.play(m); }} />)}</View>
         <Text style={[st.h, { color: fg }]}>Whole body</Text>
-        <View style={st.row}>{PIP_BODY.map(b => <Bt key={b} label={b} onPress={() => pip.current?.body(b)} />)}</View>
+        <View style={st.row}>{PIP_BODY.map(b => <Bt key={b} label={b} onPress={() => pip.current?.body(b)} />)}<Bt label="Jelly" on={jelly} onPress={() => setJelly(j => !j)} /><Bt label="Jelly peak" on={jHold} onPress={() => setJHold(j => !j)} /></View>
         <Text style={[st.h, { color: fg }]}>Hold (pictures)</Text>
         <View style={st.row}>{PIP_MOVES.map(m => <Bt key={m} label={m.slice(2)} on={hold?.[0] === m} onPress={() => setHold(h => (h?.[0] === m ? null : [m, HOLDS[m]]))} />)}</View>
         <Text style={[st.h, { color: fg }]}>Faces</Text>
