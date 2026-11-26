@@ -14,6 +14,7 @@ import {
   Button,
   Surface,
   ProgressBar,
+  Sheet,
   usePageScroll,
   useTheme,
   spacing,
@@ -107,6 +108,14 @@ interface QuizRunnerProps {
    * where a second bar costs the answers their room on a small phone.
    */
   countOnly?: boolean;
+
+  /**
+   * Program days: after Check, the result and the explanation rise in a bottom
+   * sheet with its own button, in readable 16pt text, and a wrong pick stays
+   * neutral instead of warning yellow ("Not this one"). Program UX review,
+   * 2026-11-25. Closing the sheet keeps the explanation inline as before.
+   */
+  explanationSheet?: boolean;
 }
 
 /** For a host that draws the button itself (see `onFooterChange`). */
@@ -125,6 +134,7 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
     finishLabel = "Submit Quiz",
     onFooterChange,
     countOnly = false,
+    explanationSheet = false,
   },
   ref,
 ) {
@@ -135,6 +145,7 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [answers, setAnswers] = useState<QuizRunnerAnswer[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const question = questions[index];
   const isLast = index + 1 === questions.length;
@@ -181,6 +192,7 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
     // interaction and it should not wait on a request.
     if (revealExplanation && !revealed) {
       setRevealed(true);
+      if (explanationSheet && question.options[selected]?.explanation) setSheetOpen(true);
       setBusy(true);
       try {
         await onAnswer?.(answer);
@@ -288,14 +300,18 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
             const background = showAsCorrect
               ? colors.accentTint.success
               : showAsWrong
-                ? colors.accentTint.warning
+                ? explanationSheet
+                  ? colors.surface.control
+                  : colors.accentTint.warning
                 : isSelected
                   ? colors.action.primaryTint
                   : colors.surface.control;
             const border = showAsCorrect
               ? colors.accent.success
               : showAsWrong
-                ? colors.accent.warning
+                ? explanationSheet
+                  ? colors.border.strong
+                  : colors.accent.warning
                 : isSelected
                   ? colors.border.selected
                   : colors.border.default;
@@ -359,7 +375,7 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
           })}
         </View>
 
-        {revealed && chosen?.explanation ? (
+        {revealed && chosen?.explanation && !(explanationSheet && sheetOpen) ? (
           <View
             // The explanation is the point of the question, and it landed
             // below the fold with only its top edge showing.
@@ -401,6 +417,38 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
           </View>
         )}
       </Surface>
+
+      {explanationSheet ? (
+        <Sheet visible={sheetOpen && revealed} onClose={() => setSheetOpen(false)}>
+          <View style={styles.sheetBody}>
+            <View style={styles.sheetResult}>
+              <View
+                style={[
+                  styles.sheetDot,
+                  { backgroundColor: gotItRight ? colors.accent.success : colors.surface.control },
+                ]}
+              >
+                {gotItRight ? (
+                  <Icon name="check" size={size.iconXs} color={colors.accentOn.success} />
+                ) : null}
+              </View>
+              <Text variant="h3" color={gotItRight ? colors.feedback.successText : "primary"}>
+                {gotItRight ? "Correct" : "Not this one"}
+              </Text>
+            </View>
+            <Text variant="body" color="primary" style={styles.sheetText}>
+              {chosen?.explanation}
+            </Text>
+            <Button
+              label={isLast ? "Continue" : "Next question"}
+              onPress={() => {
+                setSheetOpen(false);
+                if (!isLast) press();
+              }}
+            />
+          </View>
+        </Sheet>
+      ) : null}
     </View>
   );
 });
@@ -456,6 +504,16 @@ const styles = StyleSheet.create({
     borderWidth: borderWidth.hairline,
   },
   explanationText: { lineHeight: 22 },
+  sheetBody: { gap: spacing.lg, paddingBottom: spacing.md },
+  sheetResult: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  sheetDot: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetText: { lineHeight: 24 },
   footer: {
     flexDirection: "row",
     alignItems: "center",

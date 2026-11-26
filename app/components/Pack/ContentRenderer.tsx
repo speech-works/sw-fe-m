@@ -43,6 +43,7 @@ import {
     radius,
 } from "../../design-system";
 import { LIST_TEXT_INDENT, SimpleMarkdown } from "./SimpleMarkdown";
+import { readMinutes, teachParts } from "../../util/packs/teachParts";
 import QuizRunner, { QuizRunnerHandle } from "../Quiz/QuizRunner";
 import type { QuizFooterState } from "../Quiz/quizFooter";
 import { submitQuizAnswer } from "../../api/quiz";
@@ -83,6 +84,10 @@ interface ContentRendererProps {
    */
   quizRef?: React.Ref<QuizRunnerHandle>;
   onQuizFooterChange?: (state: QuizFooterState) => void;
+  /** A lesson split at its headings shows this part (see util/packs/teachParts). */
+  textPart?: number;
+  /** Lesson text size from the reading sheet. */
+  textSize?: number;
 }
 
 /**
@@ -149,6 +154,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   onQuizCompleted,
   quizRef,
   onQuizFooterChange,
+  textPart = 0,
+  textSize,
 }) => {
   const navigation = useNavigation();
   const { colors } = useTheme();
@@ -182,6 +189,40 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   switch (block.type) {
     case ContentBlockType.TEXT: {
       const textContent = block.content as TextBlockContent;
+      const isTeach = !textContent.role || textContent.role === "teach";
+      // A long lesson, one part at a time (program UX review, 2026-11-25).
+      // The day player owns which part is showing and moves through the parts
+      // with its own Next and Back, so this only draws the part it is given.
+      const lessonParts = isTeach && !textContent.copy ? teachParts(textContent.markdown) : [];
+      if (lessonParts.length > 1) {
+        const at = Math.max(0, Math.min(textPart, lessonParts.length - 1));
+        return (
+          <View style={styles.textBlock}>
+            {at === 0 ? (
+              <View style={styles.partChips}>
+                <Text variant="caption" color="secondary" style={styles.partChip}>
+                  Part 1 of {lessonParts.length}
+                </Text>
+                <Text variant="caption" color="secondary" style={styles.partChip}>
+                  About {readMinutes(textContent.markdown)} min read
+                </Text>
+              </View>
+            ) : (
+              <Text variant="label" color="tertiary" style={styles.partLabel}>
+                {`PART ${at + 1} OF ${lessonParts.length}`}
+              </Text>
+            )}
+            <SimpleMarkdown
+              key={at}
+              content={lessonParts[at].markdown}
+              textColor={colors.text.primary}
+              readingSize={textSize}
+              keyLeadIns
+              flushTop
+            />
+          </View>
+        );
+      }
       return (
         <View style={styles.textBlock}>
           {/* Reading copy sits directly on the dark canvas — light-on-dark. */}
@@ -210,7 +251,12 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 {parts.map((part, i) => (
                   <React.Fragment key={i}>
                     {part.trim() ? (
-                      <SimpleMarkdown content={part} textColor={colors.text.primary} />
+                      <SimpleMarkdown
+                        content={part}
+                        textColor={colors.text.primary}
+                        readingSize={isTeach ? textSize : undefined}
+                        keyLeadIns={isTeach}
+                      />
                     ) : null}
                     {i < parts.length - 1 ? button(part) : null}
                   </React.Fragment>
@@ -645,6 +691,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           revealExplanation
           // The day screen's bar above already shows the progress.
           countOnly
+          // The explanation rises in a sheet (program UX review, 2026-11-25).
+          explanationSheet
           onAnswer={async ({ question, selectedIndex }) => {
             // blockId, and nothing more. The server reads the pack, the day and
             // whether this asks about today or yesterday off the block itself.
@@ -686,6 +734,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 };
 
 const useStyles = makeStyles((c) => ({
+  partChips: { flexDirection: "row", gap: 8, marginTop: 8 },
+  partChip: {
+    backgroundColor: c.surface.default,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    overflow: "hidden",
+  },
+  partLabel: { marginTop: 8 },
   textBlock: {
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.xs,

@@ -14,10 +14,27 @@ export const SimpleMarkdown = ({
   content,
   textColor,
   variant,
+  readingSize,
+  keyLeadIns,
+  flushTop,
 }: {
   content: string;
   textColor?: string;
   variant?: "instruction" | "default";
+  /** Reading text size from the lesson's text-size control (16/18/20). */
+  readingSize?: number;
+  /**
+   * A paragraph that opens with a bold lead-in ending in a colon
+   * ("**What to listen for:** ...") becomes a key block: the lead-in as its
+   * label, the rest as its text. A lead-in that says "not" gets the warning
+   * tone. Program UX review, 2026-11-25. Lessons only.
+   */
+  keyLeadIns?: boolean;
+  /**
+   * The content starts right under a label of its own (a lesson part's
+   * "PART 2 OF 3"), so its first heading drops its top margin.
+   */
+  flushTop?: boolean;
 }) => {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -33,6 +50,9 @@ export const SimpleMarkdown = ({
 
   const textStyle = textColor ? { color: textColor } : {};
   const linkColor = colors.text.link;
+  const sizeStyle = readingSize
+    ? { fontSize: readingSize, lineHeight: Math.round(readingSize * 1.5) }
+    : null;
 
   return (
     <View style={styles.container}>
@@ -75,7 +95,7 @@ export const SimpleMarkdown = ({
                 // heading, and that heading sits directly under the progress
                 // bar; zeroing the margin crowds the two together. The 36 is
                 // the breathing room at the top of a day, not dead space.
-                <View key={index} style={styles.h2Block}>
+                <View key={index} style={[styles.h2Block, flushTop && index === 0 && { marginTop: 0 }]}>
                   <Text style={[styles.h2, textStyle]}>{block.text}</Text>
                   <View style={styles.h2Mark} />
                 </View>
@@ -112,7 +132,7 @@ export const SimpleMarkdown = ({
             return (
               <View key={index} style={styles.story} testID="markdown-story">
                 <Text style={styles.storyLabel}>A real story</Text>
-                <SimpleMarkdown content={block.story} textColor={textColor} />
+                <SimpleMarkdown content={block.story} textColor={textColor} readingSize={readingSize} />
                 {block.takeaway.trim() !== "" && (
                   <View style={styles.storyTakeaway}>
                     <Text style={styles.storyLabel}>What this means for you</Text>
@@ -135,6 +155,7 @@ export const SimpleMarkdown = ({
                   style={[
                     styles.blockquoteText,
                     block.text.includes("**") && styles.blockquoteTextAroundBold,
+                    sizeStyle,
                     textStyle,
                   ]}
                 >
@@ -167,6 +188,7 @@ export const SimpleMarkdown = ({
                   style={[
                     variant === "instruction" ? styles.bodyLarge : styles.body,
                     block.checked && styles.completedText,
+                    sizeStyle,
                     textStyle,
                   ]}
                 >
@@ -183,6 +205,7 @@ export const SimpleMarkdown = ({
                   style={[
                     variant === "instruction" ? styles.bodyLarge : styles.body,
                     styles.listText,
+                    sizeStyle,
                     textStyle,
                   ]}
                 >
@@ -192,23 +215,47 @@ export const SimpleMarkdown = ({
             );
 
           case "paragraph":
-          default:
+          default: {
+            const lead = keyLeadIns ? KEY_LEAD_IN.exec(block.text) : null;
+            if (lead) {
+              const not = /\bnot\b/i.test(lead[1]);
+              return (
+                <View
+                  key={index}
+                  style={[styles.keyBlock, not && styles.keyBlockNot]}
+                  testID="markdown-key"
+                >
+                  <View style={[styles.keyBar, not && styles.keyBarNot]} />
+                  <Text style={[styles.keyLabel, not && styles.keyLabelNot]}>
+                    {lead[1].toUpperCase()}
+                  </Text>
+                  <Text style={[styles.body, styles.keyText, sizeStyle, textStyle]}>
+                    {parseLinksAndBold(lead[2], linkColor, textColor)}
+                  </Text>
+                </View>
+              );
+            }
             return (
               <Text
                 key={index}
                 style={[
                   variant === "instruction" ? styles.bodyLarge : styles.body,
+                  sizeStyle,
                   textStyle,
                 ]}
               >
                 {parseLinksAndBold(block.text, linkColor, textColor)}
               </Text>
             );
+          }
         }
       })}
     </View>
   );
 };
+
+/** "**What to listen for:** the rest" -> ["What to listen for", "the rest"]. */
+const KEY_LEAD_IN = /^\*\*([^*]{2,60}?):\*\*\s*([\s\S]+)$/;
 
 export type Block =
   | { kind: "blank" }
@@ -628,6 +675,34 @@ const useStyles = makeStyles((c, t) => ({
   container: {
     width: "100%",
   },
+  // A lesson's key line: lime for what to do, warm red for what not to do.
+  keyBlock: {
+    backgroundColor: c.accentTint.lime,
+    borderRadius: t.radius.input,
+    paddingVertical: 12,
+    paddingLeft: 16,
+    paddingRight: 14,
+    marginVertical: 8,
+    overflow: "hidden",
+  },
+  keyBlockNot: { backgroundColor: c.accentTint.danger },
+  keyBar: {
+    position: "absolute",
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: c.accentText.lime,
+  },
+  keyBarNot: { backgroundColor: c.feedback.dangerText },
+  keyLabel: {
+    ...t.typography.label,
+    color: c.accentText.lime,
+    marginBottom: 4,
+  },
+  keyLabelNot: { color: c.feedback.dangerText },
+  keyText: { marginBottom: 0 },
   divider: {
     marginVertical: spacing.lg,
   },

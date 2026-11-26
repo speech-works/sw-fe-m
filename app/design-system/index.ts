@@ -42,6 +42,8 @@ export {
   AA_LARGE,
 } from "./utils/contrast";
 export { withAlpha, mix } from "./utils/color";
+export { rangeValue } from "./utils/a11y";
+export type { RangeValue } from "./utils/a11y";
 
 // Paper boundaries — a filled object needs an edge on the light scheme, where
 // the hue reads but the shape does not. Every one of these is a no-op on ink.

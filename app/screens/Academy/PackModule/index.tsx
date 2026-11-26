@@ -44,6 +44,16 @@ import {
   nextOpenModuleId,
 } from "../../../util/packs/dayLock";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
+import {
+  DayGlow,
+  DayStepsSheet,
+  ReadingSheet,
+  StepsBar,
+  StepsButton,
+  TomorrowCard,
+} from "../../../components/Pack/DayChrome";
+import { TeachPart, teachParts } from "../../../util/packs/teachParts";
+import { dayStepList } from "../../../util/packs/stepList";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
 import { isFinishedActivity, useActivityStore } from "../../../stores/activity";
@@ -57,7 +67,6 @@ import {
   Icon,
   IconName,
   Page,
-  ProgressBar,
   Spinner,
   Text,
   icons,
@@ -987,6 +996,23 @@ const PackModuleScreen = () => {
     }
   }, [activities, module?.blocks, module?.id, packId, blockToActivityMap, isActivityCompleted]);
 
+  /**
+   * ── A LESSON, PART BY PART ────────────────────────────────────────────────
+   * A long teach block shows one part per screen (program UX review,
+   * 2026-11-25). The footer's Next and Back move through the parts first, and
+   * the round list button shows "2/4" and opens text size and the parts.
+   * A new step always opens on its first part.
+   */
+  const [partIndex, setPartIndex] = useState(0);
+  const [textSize, setTextSize] = useState(16);
+  const [daySheetOpen, setDaySheetOpen] = useState(false);
+  const [readingSheetOpen, setReadingSheetOpen] = useState(false);
+  /** Day done: the next day's own title, for the tomorrow card. */
+  const [nextDayTitle, setNextDayTitle] = useState<string | null>(null);
+  useEffect(() => {
+    setPartIndex(0);
+  }, [currentBlockIndex]);
+
   const handleNext = () => {
     if (module?.blocks && currentBlockIndex < module.blocks.length - 1) {
       setCurrentBlockIndex((prev) => prev + 1);
@@ -994,6 +1020,10 @@ const PackModuleScreen = () => {
   };
 
   const handleBack = () => {
+    if (partIndex > 0) {
+      setPartIndex((p) => p - 1);
+      return;
+    }
     if (currentBlockIndex > 0) {
       setCurrentBlockIndex((prev) => prev - 1);
     }
@@ -1161,6 +1191,7 @@ const PackModuleScreen = () => {
           finishedDay != null &&
           finishedDay >=
             Math.max(...result.modules.map((m) => m.dayIndex ?? 0));
+        setNextDayTitle(nextMod?.title ? nextMod.title : null);
         setDayClose(
           nextMod && nextMod.unlocked === false
             ? {
@@ -1236,6 +1267,11 @@ const PackModuleScreen = () => {
   };
 
   const handleFooterAction = () => {
+    const parts = lessonPartsOf(blocks[currentBlockIndex]);
+    if (parts.length > 1 && partIndex < parts.length - 1) {
+      setPartIndex((p) => p + 1);
+      return;
+    }
     const currentBlock = blocks[currentBlockIndex];
     const isInteractiveBlock = INTERACTIVE_BLOCK_TYPES.has(
       currentBlock?.type as ContentBlockType,
@@ -1427,18 +1463,22 @@ const PackModuleScreen = () => {
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
         <SchemeStatusBar />
         <View style={styles.successContent}>
-          <View
-            style={[
-              styles.successIconContainer,
-              { backgroundColor: colors.action.primaryTint },
-            ]}
-          >
-            <Icon
-              name={icons.milestone}
-              size={56}
-              color={colors.text.accent}
-            />
-          </View>
+          {module?.orderIndex ? (
+            <DayGlow day={module.orderIndex} />
+          ) : (
+            <View
+              style={[
+                styles.successIconContainer,
+                { backgroundColor: colors.action.primaryTint },
+              ]}
+            >
+              <Icon
+                name={icons.milestone}
+                size={56}
+                color={colors.text.accent}
+              />
+            </View>
+          )}
 
           <Text variant="h1" color="primary" center>
             {dayDoneTitle(module?.title)}
@@ -1460,6 +1500,7 @@ const PackModuleScreen = () => {
               {dayCloseLine(dayClose)}
             </Text>
           ) : null}
+          {dayClose && nextDayTitle ? <TomorrowCard title={nextDayTitle} /> : null}
 
           {/* The day's work is done and they are already stopped here. Asking
               at the START of a module would delay the thing they opened the
@@ -1608,7 +1649,12 @@ const PackModuleScreen = () => {
   });
   const isQuizButton = footerKind === "quizCheck" || footerKind === "quizNext";
 
-  let primaryLabel = "Next";
+  const lessonParts = lessonPartsOf(currentBlock);
+  const inLesson = lessonParts.length > 1;
+  const morePartsAhead = inLesson && partIndex < lessonParts.length - 1;
+  const stepList = dayStepList(blocks);
+
+  let primaryLabel = morePartsAhead ? "Next part" : "Next";
   let primaryIcon: IconName = icons.play;
   let primaryVariant: "primary" | "secondary" = "primary";
   if (footerKind === "quizCheck") {
@@ -1620,7 +1666,7 @@ const PackModuleScreen = () => {
     primaryLabel = "Skip";
     primaryIcon = icons.chevronRight;
     primaryVariant = "secondary";
-  } else if (footerKind === "complete") {
+  } else if (footerKind === "complete" && !morePartsAhead) {
     // "Finish the day" was cut to "Finish the..." on an iPhone SE.
     primaryLabel = "Finish";
     primaryIcon = icons.success;
@@ -1637,10 +1683,21 @@ const PackModuleScreen = () => {
       keyboardAvoiding
       footerDocked={!isReadingOnly}
       footerMelt={isReadingOnly}
-      scrollResetKey={currentBlockIndex}
+      scrollResetKey={`${currentBlockIndex}:${partIndex}`}
       footer={
         <View style={styles.footerRow}>
-          {!isFirstBlock ? (
+          {blocks.length > 0 ? (
+            <StepsButton
+              badge={
+                inLesson
+                  ? `${partIndex + 1}/${lessonParts.length}`
+                  : `${currentBlockIndex + 1}/${blocks.length}`
+              }
+              accessibilityLabel={inLesson ? "Text size and the parts of this lesson" : "Today's steps"}
+              onPress={() => (inLesson ? setReadingSheetOpen(true) : setDaySheetOpen(true))}
+            />
+          ) : null}
+          {!isFirstBlock || partIndex > 0 ? (
             <Button
               label="Back"
               variant="ghost"
@@ -1668,10 +1725,10 @@ const PackModuleScreen = () => {
         </View>
       }
     >
-      <ProgressBar
-        value={currentBlockIndex + 1}
-        max={totalBlocks}
-        color={colors.text.accent}
+      <StepsBar
+        count={totalBlocks}
+        current={currentBlockIndex}
+        fill={inLesson ? (partIndex + 1) / lessonParts.length : 1}
       />
 
       {blocks.length === 0 ? (
@@ -1694,8 +1751,30 @@ const PackModuleScreen = () => {
           quizRef={quizRef}
           onQuizFooterChange={setQuizFooter}
           blockIndex={currentBlockIndex}
+          textPart={partIndex}
+          textSize={textSize}
         />
       )}
+
+      <DayStepsSheet
+        visible={daySheetOpen}
+        onClose={() => setDaySheetOpen(false)}
+        steps={stepList}
+        current={currentBlockIndex}
+        minutes={module.estimatedDurationMin}
+      />
+      <ReadingSheet
+        visible={readingSheetOpen}
+        onClose={() => setReadingSheetOpen(false)}
+        parts={lessonParts}
+        current={partIndex}
+        textSize={textSize}
+        onTextSize={setTextSize}
+        onPick={(i) => {
+          setPartIndex(i);
+          setReadingSheetOpen(false);
+        }}
+      />
 
       {/* Skip Confirmation Bottom Sheet */}
       <Sheet
@@ -1791,6 +1870,15 @@ const PackModuleScreen = () => {
     </Page>
   );
 };
+
+/** A teach block's parts, or [] when it is not split (see util/packs/teachParts). */
+function lessonPartsOf(block: { type: ContentBlockType; content: unknown } | undefined): TeachPart[] {
+  if (!block || block.type !== ContentBlockType.TEXT) return [];
+  const c = block.content as TextBlockContent;
+  if (c.copy || (c.role && c.role !== "teach")) return [];
+  const parts = teachParts(c.markdown);
+  return parts.length > 1 ? parts : [];
+}
 
 const styles = StyleSheet.create({
   centerFill: {
