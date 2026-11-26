@@ -4,7 +4,8 @@ import {
   useRoute,
   useIsFocused,
 } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { showPipMoment } from "../../../../../components/Pip";
 import {  StyleSheet,
   TouchableOpacity,
   View,
@@ -200,6 +201,15 @@ const FollowUp = () => {
     useState<EXPRESSION_TYPE_ENUM | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [showSuccessSheet, setShowSuccessSheet] = useState(false);
+  // The "Mood recorded" sheet leads somewhere (recommendations, home), so it stays. Pip's moment plays once, when it closes
+  // (the host sits below native modals, so not while the sheet is up) (founder 2026-11-26).
+  const moodPipFired = useRef(false);
+  const closeSuccessSheet = () => {
+    setShowSuccessSheet(false);
+    if (moodPipFired.current) return;
+    moodPipFired.current = true;
+    void showPipMoment("mood-saved");
+  };
   const [showExitPromptSheet, setShowExitPromptSheet] = useState(false);
   const [recoverySheet, setRecoverySheet] = useState<RecoverySheetState>({
     visible: false,
@@ -944,7 +954,7 @@ const FollowUp = () => {
 
       <Sheet
         visible={showSuccessSheet}
-        onClose={() => setShowSuccessSheet(false)}
+        onClose={() => closeSuccessSheet()}
       >
         <View
           style={[
@@ -977,7 +987,7 @@ const FollowUp = () => {
 
           <TouchableOpacity
             style={styles.sheetPrimaryButton}
-            onPress={() => setShowSuccessSheet(false)}
+            onPress={() => closeSuccessSheet()}
             activeOpacity={0.9}
           >
             <Gradient token="meadow" style={styles.sheetPrimaryGradient}>
@@ -999,7 +1009,7 @@ const FollowUp = () => {
               },
             ]}
             onPress={() => {
-              setShowSuccessSheet(false);
+              closeSuccessSheet();
               navigateToHome();
             }}
             activeOpacity={0.8}

@@ -1,5 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { showPipMoment } from "../../../components/Pip";
 import { StyleSheet, View } from "react-native";
 import {
   getProgramGoals,
@@ -71,6 +72,13 @@ const GoalsReportScreen = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [closed, setClosed] = useState(false);
+  // Pip's moment: "the program is done" plays once, when the page switches to its closed state (founder 2026-11-26).
+  const pipFired = useRef(false);
+  useEffect(() => {
+    if (!closed || pipFired.current) return;
+    pipFired.current = true;
+    void showPipMoment("program-done");
+  }, [closed]);
   /**
    * ── ASK ONLY WHAT IS STILL OPEN ────────────────────────────────────────────
    * Some last days already ask this question inside the day (Word Swap day 7

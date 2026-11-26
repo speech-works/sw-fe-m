@@ -16,6 +16,9 @@ import type { PipStageHandle } from "../../components/Pip/fx/PipStage";
 import { FX_EFFECTS } from "../../components/Pip/fx/library";
 import { SFX_NAMES, playSfx, setSfxOverride } from "../../components/Pip/fx/sfx";
 import type { FxEffect } from "../../components/Pip/fx/types";
+import { PipMoment } from "../../components/Pip/PipMoment";
+import type { PipBackdrop, PipMomentHandle } from "../../components/Pip/PipMoment";
+import { PIP_MOMENTS } from "../../components/Pip/pipMoments";
 
 const KEY = "fxWeb.rejects";
 // Freesound candidates (CC0 only), found 2026-11-26; previews play from cdn.freesound.org, nothing is bundled
@@ -49,8 +52,8 @@ const save = (v: Record<string, boolean>) => { try { localStorage.setItem(KEY, J
 
 type Theme = typeof THEME.dark;
 /** One phone: a real-looking program step with Pip's stage over it. It measures its own screen (effects are placed in it). */
-const Phone = forwardRef<PipStageHandle, { k: number; pw: number; ph: number; T: Theme; dark: boolean; effect: FxEffect | null; sound: boolean; variant: PipVariant; motion: Motion; caption?: string; winKey: string }>(
-  function Phone({ k, pw, ph, T, dark, effect, sound, variant, motion, caption, winKey }, ref) {
+const Phone = forwardRef<PipStageHandle, { k: number; pw: number; ph: number; T: Theme; dark: boolean; effect: FxEffect | null; sound: boolean; variant: PipVariant; motion: Motion; caption?: string; winKey: string; moment?: React.Ref<PipMomentHandle>; backdrop?: PipBackdrop | undefined }>(
+  function Phone({ k, pw, ph, T, dark, effect, sound, variant, motion, caption, winKey, moment, backdrop }, ref) {
     const screenRef = useRef<View>(null);
     const [screen, setScreen] = useState({ x: 0, y: 0, width: PHONE.w, height: PHONE.h });
     const measure = useCallback(() => {
@@ -72,6 +75,7 @@ const Phone = forwardRef<PipStageHandle, { k: number; pw: number; ph: number; T:
           <View style={[s.stageBox, { top: Math.round(330 * k) }]} pointerEvents="none">
             <PipStage ref={ref} key={variant + ":" + pw + ":" + motion} startHidden screen={screen} stageW={pw - 12} stageH={Math.round(260 * k)} effect={effect} sound={sound} variant={variant} size={Math.round(230 * k)} motionStyle={motion} />
           </View>
+          {moment ? <PipMoment ref={moment} backdrop={backdrop} screen={screen} dark={dark} sound={sound} variant={variant} /> : null}
         </View>
         {caption ? <Text style={[s.cap, { color: T.fg }]}>{caption}</Text> : null}
       </View>);
@@ -96,6 +100,12 @@ export default function FxWeb() {
   // entry and exit sounds: off (founder: the old pop / slide sounds were too much)
   const [moveSound] = useState(false);
   const [variant, setVariant] = useState<PipVariant>("pip"), [dark, setDark] = useState(true), [sound, setSound] = useState(true);
+  // phase 3 moments: the picked effect with its text, over a dimmed screen or on the screen as it is
+  const momentRef = useRef<PipMomentHandle>(null), [backdrop, setBackdrop] = useState<PipBackdrop | undefined>(undefined);   // undefined = each moment's own pick
+  const playMoment = async (i: number) => {
+    if (busyRef.current) return; busyRef.current = true; setBusy(true); setLast(PIP_MOMENTS[i].ref + " " + PIP_MOMENTS[i].name);
+    try { if (shown.current) await move(exit); await momentRef.current?.play(PIP_MOMENTS[i]); } finally { busyRef.current = false; setBusy(false); }
+  };
   const [entry, setEntry] = useState<PipBody>(PIP_IN), [exit, setExit] = useState<PipBody>(PIP_OUT);
   const [effect, setEffect] = useState<FxEffect | null>(null), [busy, setBusy] = useState(false);
   const [rejects, setRejects] = useState<Record<string, boolean>>(load);
@@ -167,6 +177,13 @@ export default function FxWeb() {
     for (let k = 1; k <= FX_EFFECTS.length; k++) { const e = FX_EFFECTS[(i + k) % FX_EFFECTS.length]; if (!rejects[e.id]) { play(e); return; } }
   };
 
+  // a link like http://localhost:8096/#play=fireworks plays that effect when the page opens (the moments review page links here)
+  useEffect(() => {
+    const id = ((globalThis as any).location?.hash ?? "").match(/play=([a-z0-9-]+)/)?.[1]; if (!id) return;
+    const e = FX_EFFECTS.find(x => x.id === id); if (!e) return;
+    const h = setTimeout(() => play(e), 1200); return () => clearTimeout(h);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const answers = useCallback(() => ({
     rejectedEffects: FX_EFFECTS.filter(e => rejects[e.id]).map(e => `${e.id}: ${e.name}`),
     keptEffects: FX_EFFECTS.filter(e => !rejects[e.id]).map(e => `${e.id}: ${e.name}`),
@@ -191,7 +208,7 @@ export default function FxWeb() {
       {/* the phone(s): a real-looking program step under Pip, so you see what the effect covers and what stays visible */}
       <View style={[s.phoneCol, narrow && { paddingBottom: 8 }]}>
         <View style={{ flexDirection: "row", gap: 14 }}>
-          <Phone ref={stage} k={k} pw={pw} ph={ph} T={T} dark={dark} effect={effect} sound={sound} variant={variant} motion={compare ? "v1" : motion} caption={compare ? "Old motion" : undefined} winKey={win.width + "x" + win.height + ":" + compare} />
+          <Phone ref={stage} k={k} pw={pw} ph={ph} T={T} dark={dark} effect={effect} sound={sound} variant={variant} motion={compare ? "v1" : motion} caption={compare ? "Old motion" : undefined} winKey={win.width + "x" + win.height + ":" + compare} moment={compare ? undefined : momentRef} backdrop={backdrop} />
           {compare ? <Phone ref={stageB} k={k} pw={pw} ph={ph} T={T} dark={dark} effect={effect} sound={false} variant={variant} motion="v2" caption="New motion" winKey={win.width + "x" + win.height + ":" + compare} /> : null}
         </View>
         <Text style={[s.small, { color: T.sub, textAlign: "center" }]}>{busy ? "Playing: " + (last || effect?.name || "") : last || effect ? "Last played: " + (last || effect?.name) : "Pick an effect or a body move to play"}</Text>
@@ -212,6 +229,17 @@ export default function FxWeb() {
           {compare ? null : <Btn label="Old" on={motion === "v1"} onPress={() => setMotion("v1")} off={busy} />}
           {compare ? null : <Btn label="New" on={motion === "v2"} onPress={() => setMotion("v2")} off={busy} />}
         </View>
+        {compare ? null : <View style={[s.card, { backgroundColor: T.card, borderColor: "#E8A33D" }]}>
+          <Text style={[s.title, { color: T.fg }]}>Moments in the app (your picks)</Text>
+          <Text style={[s.small, { color: T.sub }]}>Pip comes in, the effect, the moment's text, Pip leaves. Watch each one over a dimmed screen and on the normal screen.</Text>
+          <View style={s.row}>
+            <Text style={[s.lab, { color: T.sub }]}>Screen</Text>
+            <Btn label="Your picks" on={backdrop === undefined} onPress={() => setBackdrop(undefined)} off={busy} />
+            <Btn label="Dimmed" on={backdrop === "dim"} onPress={() => setBackdrop("dim")} off={busy} />
+            <Btn label="Normal screen" on={backdrop === "none"} onPress={() => setBackdrop("none")} off={busy} />
+          </View>
+          <View style={s.row}>{PIP_MOMENTS.map((m, i) => <Btn key={m.id} label={m.ref + " " + m.name} onPress={() => playMoment(i)} off={busy} />)}</View>
+        </View>}
         <View style={[s.card, { backgroundColor: T.card, borderColor: T.line }]}>
           <Text style={[s.title, { color: T.fg }]}>Body moves{compare ? ": both phones play at the same moment" : ""}</Text>
           <Text style={[s.small, { color: T.sub }]}>Pip stays on the screen. Play one move at a time.</Text>

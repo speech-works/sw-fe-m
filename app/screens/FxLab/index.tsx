@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { runOnJS, useFrameCallback, useSharedValue } from "react-native-reanimated";
-import { PIP_ENTER, PIP_EXIT, PIP_IN, PIP_OUT } from "../../components/Pip";
+import { PIP_ENTER, PIP_EXIT, PIP_IN, PIP_MOMENTS, PIP_OUT, showPipMoment } from "../../components/Pip";
 import type { PipBody, PipVariant } from "../../components/Pip";
 import { PipStage } from "../../components/Pip/fx/PipStage";
 import type { PipStageHandle } from "../../components/Pip/fx/PipStage";
@@ -137,6 +137,11 @@ export default function FxLab() {
 
       <Text style={{ color: fg, fontSize: 13, paddingHorizontal: 16, marginTop: 6 }} selectable>sounds played {sfxStatus.played}{sfxStatus.last ? " · " + sfxStatus.last : ""}</Text>
       <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+        {/* phase 3: the real moments, played by the app's root host (dim or not as picked, with their text) */}
+        <View style={[s.card, { backgroundColor: card, borderColor: "#E8A33D" }]}>
+          <Text style={[s.title, { color: fg }]}>Moments in the app</Text>
+          <View style={[s.row, { paddingHorizontal: 0 }]}>{PIP_MOMENTS.map(m => <Btn key={m.id} label={m.ref + " " + m.name} onPress={() => { void showPipMoment(m.id); }} />)}</View>
+        </View>
         {speed.length ? (
           <View style={[s.card, { backgroundColor: card, borderColor: line }]}>
             <View style={s.head}>

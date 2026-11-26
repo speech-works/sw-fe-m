@@ -6,6 +6,7 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { showPipMoment } from "../../components/Pip";
 import { getOffers, type OfferItem, type Wallet } from "../../api";
 import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
 import { selectOffer } from "../../util/packs/offers";
@@ -516,13 +517,8 @@ const ProgramDetailScreen = () => {
         // who bought a pack without a gift attached paid and got no sentence at
         // all. Tightening the branch above without this one would have turned a
         // wrong congratulation into a silent charge, which is worse.
-        showSuccessBottomSheet(
-          "You're in",
-          "Your program is unlocked. You can start now.",
-          undefined,
-          undefined,
-          { dimBackdrop: true },
-        );
+        // Pip's moment replaced the "You're in" sheet (founder 2026-11-26); same words: "You're in" / "Your program is unlocked. You can start now."
+        void showPipMoment("program-bought");
       }
       return "landed";
     },

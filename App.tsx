@@ -58,6 +58,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { PipMomentHost } from "./app/components/Pip";
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -413,6 +414,8 @@ const App: React.FC = () => {
                       <GlobalStaminaController />
                       <OutOfStaminaController />
                       <InsetProbe />
+                      {/* Pip's moments (app/components/Pip/pipMoments.ts): one host above every screen; screens call showPipMoment(id). */}
+                      <ThemedPipHost />
                     </ThemedNavRoot>
                   </DeadTapDetector>
                 </FontLoader>
@@ -433,3 +436,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+/** Pip's moment host, following the in-app Light/Dark preference. */
+function ThemedPipHost() {
+  const { scheme } = useTheme();
+  return <PipMomentHost dark={scheme === "dark"} />;
+}

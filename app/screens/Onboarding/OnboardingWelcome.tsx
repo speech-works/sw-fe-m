@@ -1,5 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { showPipMoment } from "../../components/Pip";
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,6 +58,13 @@ const OnboardingWelcome: React.FC = () => {
   const user = useUserStore((s) => s.user);
   const { emit } = useEventStore();
   const [stageHeight, setStageHeight] = useState(0);
+  // Pip welcomes the person once, when the screen first mounts (founder 2026-11-26).
+  const pipFired = useRef(false);
+  useEffect(() => {
+    if (pipFired.current) return;
+    pipFired.current = true;
+    void showPipMoment("welcome");
+  }, []);
   // Continue now makes two network calls, so it needs a visible busy state —
   // and a guard, since a double tap would fire two flow fetches and two
   // navigates.

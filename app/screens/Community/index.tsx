@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // so it must render via MCI until the backend emits DS/Lucide names (see bondStageIcon).
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { showPipMoment } from "../../components/Pip";
 import CustomScrollView from "../../components/CustomScrollView";
 import Discover from "../Discover";
 import PeopleHeader from "./PeopleHeader";
@@ -271,6 +272,16 @@ const Community = () => {
   const codeInputRef = useRef<TextInput>(null);
   const [submittingCode, setSubmittingCode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  // The welcome takeover is a native modal (AnimatedModal), and Pip's host sits below native modals, so the "buddy paired"
+  // moment plays when the takeover closes, once per opening (founder 2026-11-26). Never for "Request sent".
+  const welcomeOpen = useRef(false);
+  welcomeOpen.current = showWelcome;
+  const closeWelcome = () => {
+    if (!welcomeOpen.current) return;
+    welcomeOpen.current = false;
+    setShowWelcome(false);
+    void showPipMoment("buddy-paired");
+  };
   /**
    * A rejected code, said INSIDE the sheet you typed it in.
    *
@@ -1933,7 +1944,7 @@ const Community = () => {
         {/* ── Buddy Welcome Modal ── */}
         <WatermarkModal
           visible={showWelcome}
-          onClose={() => setShowWelcome(false)}
+          onClose={closeWelcome}
           watermarkIcon={icons.pairing}
           watermarkColor={colors.action.primary}
           tag="BUDDY CONNECTED"
@@ -2067,7 +2078,7 @@ const Community = () => {
       {/* ── Buddy Welcome Modal ── */}
       <WatermarkModal
         visible={showWelcome}
-        onClose={() => setShowWelcome(false)}
+        onClose={closeWelcome}
         watermarkIcon={icons.pairing}
         watermarkColor={colors.action.primary}
         tag="BUDDY CONNECTED"
