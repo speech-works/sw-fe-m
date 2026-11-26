@@ -19,6 +19,13 @@ import type { FxEffect } from "../../components/Pip/fx/types";
 import { PipMoment } from "../../components/Pip/PipMoment";
 import type { PipBackdrop, PipMomentHandle } from "../../components/Pip/PipMoment";
 import { PIP_MOMENTS } from "../../components/Pip/pipMoments";
+import { ThemeProvider } from "../../design-system";
+import type { DayDoneHandle } from "../../components/Pack/DayDone";
+import { DAY_DONE_SAMPLES, DayDoneReal } from "./DayDoneReal";
+import type { DayDoneSample } from "./DayDoneReal";
+import { ProgramLab, labLink, parseLabHash } from "./ProgramLab";
+import type { LabSpec } from "./ProgramLab";
+import { PROGRAM_LAB_LINKS } from "./programLabLinks";
 
 const KEY = "fxWeb.rejects";
 // Freesound candidates (CC0 only), found 2026-11-26; previews play from cdn.freesound.org, nothing is bundled
@@ -119,6 +126,20 @@ export default function FxWeb() {
   useEffect(() => { shown.current = false; }, [variant, pw, compare, motion]);
 
   const [last, setLast] = useState("");
+  // Day done (real): the app's own day-done screen in a phone frame of a real size (no scaling: 1 px = 1 dp).
+  // A link like http://localhost:8096/#daydone=390x844,goals,light opens it at once.
+  const ddRef = useRef<DayDoneHandle>(null);
+  const [dd, setDd] = useState<{ sample: DayDoneSample; w: number; h: number; run: number; auto: boolean } | null>(null);
+  useEffect(() => {
+    const m = ((globalThis as any).location?.hash ?? "").match(/daydone=(\d+)x(\d+)(?:,([a-z-]+))?(?:,(light|dark))?/); if (!m) return;
+    setDd({ sample: (DAY_DONE_SAMPLES.find(x => x[0] === m[3])?.[0] ?? "goals"), w: +m[1], h: +m[2], run: 0, auto: true });
+    if (m[4]) setDark(m[4] === "dark");
+  }, []);
+  // Program screens (real): the app's own program screens with sample data. A link like
+  // http://localhost:8096/#program=390x844,day1,step=5,dark opens one (all links: ProgramLab.tsx, programLabLinks.ts).
+  const [pl, setPl] = useState<{ spec: LabSpec; run: number } | null>(() => { const sp = parseLabHash((globalThis as any).location?.hash ?? ""); return sp ? { spec: sp, run: 0 } : null; });
+  useEffect(() => { if (pl?.spec.dark != null) setDark(pl.spec.dark); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const openPl = (hash: string) => { const sp = parseLabHash(hash); if (!sp) return; try { (globalThis as any).history.replaceState(null, "", hash); } catch { /* ignore */ } if (sp.dark != null) setDark(sp.dark); setDd(null); setPl(o => ({ spec: sp, run: (o?.run ?? 0) + 1 })); };
   // sound picks: role -> "ours" or a Freesound id
   const [picks, setPicks] = useState<Record<string, string>>(() => { try { const v = localStorage.getItem(KEY + ".sounds"); return v ? JSON.parse(v) : {}; } catch { return {}; } });
   const picksRef = useRef(picks);
@@ -203,11 +224,25 @@ export default function FxWeb() {
       <Text style={[s.chipT, { color: on ? "#141311" : T.fg }]}>{label}</Text>
     </Pressable>);
   const narrow = narrowW;
+  // bare link (what the phone frame's iframe loads): only the phone screen, filling the window, so the window IS the phone
+  if (pl?.spec.bare) return <View style={{ flex: 1, backgroundColor: dark ? "#141311" : "#F7F4EE" }}><ProgramLab key={pl.run + ":" + dark} spec={pl.spec} dark={dark} /></View>;
+  const plSrc = pl && typeof location !== "undefined" ? location.pathname + decodeURIComponent(location.hash || "").replace(/,(dark|light|bare)\b/g, "") + "," + (dark ? "dark" : "light") + ",bare" : "";
   return (
     <View style={[s.page, { backgroundColor: T.page, flexDirection: narrow ? "column" : "row" }]}>
       {/* the phone(s): a real-looking program step under Pip, so you see what the effect covers and what stays visible */}
       <View style={[s.phoneCol, narrow && { paddingBottom: 8 }]}>
-        <View style={{ flexDirection: "row", gap: 14 }}>
+        {dd ? (
+          <View testID="dd-frame" style={[s.phone, { width: dd.w + 12, height: dd.h + 12, borderColor: dark ? "#2A2825" : "#CFC8BA" }]}>
+            <ThemeProvider scheme={dark ? "dark" : "light"}>
+              <DayDoneReal ref={ddRef} key={dd.sample + ":" + dd.w + "x" + dd.h + ":" + dd.run + ":" + dark} sample={dd.sample} autoPlay={dd.auto} sound={sound}
+                insets={{ top: 44, bottom: 24 }} onHome={() => setLast("Day done: left the screen (Back to home)")} />
+            </ThemeProvider>
+          </View>) : null}
+        {pl ? (
+          <View testID="pl-frame" style={[s.phone, { width: pl.spec.w + 12, height: pl.spec.h + 12, borderColor: dark ? "#2A2825" : "#CFC8BA" }]}>
+            {React.createElement("iframe", { key: pl.run + ":" + dark + ":" + plSrc, src: plSrc, title: "Program screen preview", style: { width: pl.spec.w, height: pl.spec.h, border: 0, display: "block", background: "transparent" } })}
+          </View>) : null}
+        <View style={{ flexDirection: "row", gap: 14, display: dd || pl ? "none" : "flex" }}>
           <Phone ref={stage} k={k} pw={pw} ph={ph} T={T} dark={dark} effect={effect} sound={sound} variant={variant} motion={compare ? "v1" : motion} caption={compare ? "Old motion" : undefined} winKey={win.width + "x" + win.height + ":" + compare} moment={compare ? undefined : momentRef} backdrop={backdrop} />
           {compare ? <Phone ref={stageB} k={k} pw={pw} ph={ph} T={T} dark={dark} effect={effect} sound={false} variant={variant} motion="v2" caption="New motion" winKey={win.width + "x" + win.height + ":" + compare} /> : null}
         </View>
@@ -228,6 +263,28 @@ export default function FxWeb() {
           <Btn label="Compare old and new" on={compare} onPress={() => setCompare(v => !v)} off={busy} />
           {compare ? null : <Btn label="Old" on={motion === "v1"} onPress={() => setMotion("v1")} off={busy} />}
           {compare ? null : <Btn label="New" on={motion === "v2"} onPress={() => setMotion("v2")} off={busy} />}
+        </View>
+        <View style={[s.card, { backgroundColor: T.card, borderColor: "#E8A33D" }]}>
+          <Text style={[s.title, { color: T.fg }]}>Program screens (real)</Text>
+          <Text style={[s.small, { color: T.sub }]}>The app's own program screens with sample data (Dating, Intimacy and Vulnerability, Days 1 and 2). No login. Tap one; the address bar link can be reused in a screenshot. Light or dark follows the Dark / Light button above.</Text>
+          <View style={s.row}>{pl ? <Btn label="Close" onPress={() => { try { (globalThis as any).history.replaceState(null, "", "#"); } catch { /* ignore */ } setPl(null); }} /> : null}</View>
+          {PROGRAM_LAB_LINKS.map(g => (
+            <View key={g.group}>
+              <Text style={[s.lab, { color: T.sub, marginTop: 8 }]}>{g.group}</Text>
+              <View style={s.row}>{g.items.map(it => <Btn key={it.label} label={it.label} onPress={() => openPl(labLink(it.word, 390, 844, it.rest, dark))} />)}</View>
+            </View>))}
+        </View>
+        <View style={[s.card, { backgroundColor: T.card, borderColor: "#E8A33D" }]}>
+          <Text style={[s.title, { color: T.fg }]}>Day done (real)</Text>
+          <Text style={[s.small, { color: T.sub }]}>The app's own day-done screen with the real Pip, at a real phone size. The goals are a stand-in (nothing is saved). Tap the goals, "Not yet" and "Back to home" in the phone.</Text>
+          <View style={s.row}>
+            <Btn label="▶ Play beat 1" on onPress={() => setDd(d => ({ sample: d?.sample ?? "goals", w: d?.w ?? 360, h: d?.h ?? 740, run: (d?.run ?? 0) + 1, auto: true }))} />
+            <Btn label="Continue" onPress={() => ddRef.current?.toBeat2()} off={!dd} />
+            <Btn label="Reset" onPress={() => setDd(d => (d ? { ...d, run: d.run + 1, auto: false } : d))} off={!dd} />
+            <Btn label="Close" onPress={() => setDd(null)} off={!dd} />
+          </View>
+          <View style={s.row}>{DAY_DONE_SAMPLES.map(([id, label]) => <Btn key={id} label={label} on={dd?.sample === id} onPress={() => setDd(d => ({ w: d?.w ?? 360, h: d?.h ?? 740, run: (d?.run ?? 0) + 1, sample: id, auto: true }))} />)}</View>
+          <View style={s.row}>{([[360, 740], [390, 844], [430, 932]] as const).map(([w, h]) => <Btn key={w} label={w + " x " + h} on={dd?.w === w} onPress={() => setDd(d => ({ sample: d?.sample ?? "goals", run: (d?.run ?? 0) + 1, w, h, auto: true }))} />)}</View>
         </View>
         {compare ? null : <View style={[s.card, { backgroundColor: T.card, borderColor: "#E8A33D" }]}>
           <Text style={[s.title, { color: T.fg }]}>Moments in the app (your picks)</Text>

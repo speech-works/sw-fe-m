@@ -31,6 +31,9 @@ export const POSES                       = {
     { art: 'palmR', atX: 750, atY: 985, size: 322, angle: 4, mirror: false, sl: .42, wristX: 0, wristY: 0, fa: 0, bend: 0 }] },
   wave: { variant: 'B', dur: 3250, mid: .36, face: 'smile', enter: [0, 0], rigid: true, parts: [
     { art: 'wave', atX: 0, atY: 0, size: 280, angle: 0, mirror: true, sl: .40, wristX: 782, wristY: 872, fa: 2, bend: 3 }] },
+  // the SAME wave with the wrist 78 lower and 18 further out (782, 872 -> 800, 950): the open hand is beside the cheek and jaw, clear of the glasses (founder, 2026-11-27: the day's start step, where he is small and at the screen edge). Same drawing, size, sleeve and motion; the rigid arm is solved from this wrist.
+  waveLow: { variant: 'B', dur: 3250, mid: .36, face: 'smile', enter: [0, 0], rigid: true, parts: [
+    { art: 'wave', atX: 0, atY: 0, size: 280, angle: 0, mirror: true, sl: .40, wristX: 800, wristY: 950, fa: 2, bend: 3 }] },
   cheek: { variant: 'B', dur: 2600, mid: .5, face: 'warm', enter: [0, 0], rigid: true, parts: [
     { art: 'cheek', atX: 0, atY: 0, size: 320, angle: 0, mirror: true, sl: .50, wristX: 748, wristY: 930, fa: -10, bend: -11 }] },
   chin: { variant: 'B', dur: 3000, mid: .5, face: 'thinking', enter: [0, 0], rigid: true, parts: [
@@ -66,6 +69,7 @@ export const MOMENTS                                                            
     headSink: 4, gazeX: .5, gazeY: -.6, shrugUpPad: 80, shrugDownPad: 60, faceIn: 0, faceOff: 0 },
   // the other moments: faceIn / faceOff = pose ms where the pose face starts and where the calm face comes back (the beat's face flag)
   'h-wave': { pose: 'wave', peakMs: 1170, lead: 0, hold: 0, inT: 0, outT: 0, endPause: 0, browMs: 0, headSink: 0, gazeX: 0, gazeY: 0, shrugUpPad: 0, shrugDownPad: 0, faceIn: WAVE_X.faceIn, faceOff: WAVE.T - WAVE_X.faceOut },
+  'h-wave-low': { pose: 'waveLow', peakMs: 1170, lead: 0, hold: 0, inT: 0, outT: 0, endPause: 0, browMs: 0, headSink: 0, gazeX: 0, gazeY: 0, shrugUpPad: 0, shrugDownPad: 0, faceIn: WAVE_X.faceIn, faceOff: WAVE.T - WAVE_X.faceOut },
   'h-cheek': { pose: 'cheek', peakMs: 1300, lead: 0, hold: 0, inT: 0, outT: 0, endPause: 0, browMs: 0, headSink: 0, gazeX: 0, gazeY: 0, shrugUpPad: 0, shrugDownPad: 0, faceIn: 350, faceOff: 2450 },
   'h-chin': { pose: 'chin', peakMs: 1500, lead: 0, hold: 0, inT: 0, outT: 0, endPause: 0, browMs: 0, headSink: 0, gazeX: 0, gazeY: 0, shrugUpPad: 0, shrugDownPad: 0, faceIn: 300, faceOff: 2850 },
   'h-heart': { pose: 'heart3', peakMs: 1170, lead: 0, hold: 0, inT: 0, outT: 0, endPause: 0, browMs: 0, headSink: 0, gazeX: 0, gazeY: 0, shrugUpPad: 0, shrugDownPad: 0, faceIn: 350, faceOff: 2450 },

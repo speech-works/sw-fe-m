@@ -37,15 +37,19 @@ export const PIP_EXIT: PipBody[] = ["exit-sink", "exit-slide", "exit-jump"];
 export const PIP_BODY_MS: Record<PipBody, number> = { hop: 420, pop: 500, sway: 720, nod: 500, lean: 900, peek: 650, bighop: 810, bounce: 550, settle: 460, rise: 700,
   enter: 1150, "enter-peek": 1200, "enter-drop": 1100, "exit-sink": 900, "exit-slide": 950, "exit-jump": 850, duck: 1500, peekaboo: 1700, hide: 1600 };
 /** One beat of a choreography: at `at` ms from the start, do any of these. A hand move lasts 3.3 to 4 s (PIP_MOVE_MS), starts and
- *  ends on the calm face, and owns the face while it plays; a face change takes 340 ms. */
-export type PipBeat = { at: number; face?: PipFace; move?: PipMove; body?: PipBody; haptic?: "light" | "selection" | "success" };
+ *  ends on the calm face, and owns the face while it plays; a face change takes 340 ms.
+ *  `low` (with move "h-wave" only): the same wave with the hand lower, beside his cheek and jaw and clear of his glasses. */
+export type PipBeat = { at: number; face?: PipFace; move?: PipMove; low?: boolean; body?: PipBody; haptic?: "light" | "selection" | "success" };
 export const PIP_MOVE_MS: Record<PipMove, number> = { "h-palms": 3280, "h-wave": 4050, "h-cheek": 3400, "h-chin": 3800, "h-heart": 3400 };
+/** The low wave (core: moment "h-wave-low" = the wave's drawing, sleeve and motion with the wrist 78 kit units lower and 18 further out). Not a PipMove of its
+ *  own: ask for it with `low` on an "h-wave" beat or on play(). */
+const WAVE_LOW = "h-wave-low";
 export const PIP_FACES: PipFace[] = ["calm", "smile", "laugh", "proud", "curious", "listening", "thinking", "warm"];
 
 export interface PipHandle {
   /** Play one hand move (3.3 to 4 s). Every move starts and ends on the calm face: if Pip shows another face, it eases to calm
    *  first (340 ms), then the move starts. Resolves when the move ends; set a face after that. Under reduced motion it resolves at once. */
-  play: (move: PipMove) => Promise<void>;
+  play: (move: PipMove, opts?: { low?: boolean }) => Promise<void>;
   /** Change the face (340 ms morph from the face as it is now). */
   face: (name: PipFace) => void;
   /** A whole-body motion (no hands): hop (a small jump, 0.5 s), pop (a quick grow, 0.5 s) or sway (a side to side tilt, 0.7 s).
@@ -108,7 +112,7 @@ function bundle(v: PipVariant): Bundle {
   const hit = CACHE[v]; if (hit) return hit;
   const L: any = PIP_APP.looks.find((x: any) => x.id === v) ?? PIP_APP.looks[0], look = L.look;
   const I = prepareIdle(look, { seconds: IDLE_SEC }), PREP: Record<string, any> = {};
-  for (const id of PIP_MOVES) PREP[id] = prepare(id, look);
+  for (const id of [...PIP_MOVES, WAVE_LOW]) PREP[id] = prepare(id, look);
   const FR = look.face.el;
   const ST = { nose: kids(FR.nose), tongue: kids(FR.tongue), cheek: kids(FR.cheek), layers: look.layers.map((l: any) => (l.hairItems ? null : kids(l.svg))),
     eyes: { ring: look.eyes.ring.map(kids), white: look.eyes.white.map(kids), pupil: look.eyes.pupil.map(kids) },
@@ -367,8 +371,8 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
   const t0 = useSharedValue(-1), mom = useSharedValue<string>(""), pend = useSharedValue<string>(""), startAt = useSharedValue(0), nowT = useSharedValue(0), still = useSharedValue(reduced ? 1 : 0);
   const holdM = useSharedValue<string>(hold ? hold[0] : ""), holdT = useSharedValue(hold ? hold[1] : 0);
   const done = useRef<(() => void) | null>(null);
-  const [playing, setPlaying] = useState<PipMove | null>(null);
-  const artsOf = useCallback((m: PipMove | null) => (m ? B.PREP[m].hands.map((h: any) => h.art as string) : []), [B]);
+  const [playing, setPlaying] = useState<string | null>(null);   // a PipMove or WAVE_LOW: the key in PREP
+  const artsOf = useCallback((m: string | null) => (m ? B.PREP[m].hands.map((h: any) => h.art as string) : []), [B]);
   const arts = useMemo(() => artsOf(hold ? hold[0] : playing), [artsOf, hold, playing]);
   const onDone = useCallback(() => { setPlaying(null); const d = done.current; done.current = null; if (d) d(); }, []);
   // whole-body motion: the outer view moves (native transform: nothing repaints), pivoting at Pip's feet
@@ -578,13 +582,14 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
   }, [size, by, bx, brot, bsc, bsx, bsy, fx, fy, bs, tube, tr, tsx, tsy, hr, hx, hy, hsx, hsy, clk]);
   const handle = useRef<PipHandle | null>(null);
   useImperativeHandle(ref, () => (handle.current = {
-    play: (move: PipMove) => new Promise<void>(res => {
+    play: (move: PipMove, opts?: { low?: boolean }) => new Promise<void>(res => {
       if (reduced) { res(); return; }
+      const key = opts?.low && move === "h-wave" ? WAVE_LOW : move;
       const prev = done.current; done.current = () => { if (prev) prev(); res(); };
-      setPlaying(move);   // mount this move's hands first; the move starts on the UI thread once the face is calm
+      setPlaying(key);   // mount this move's hands first; the move starts on the UI thread once the face is calm
       runOnUI(() => { "worklet"; const calm = fc.value.to === "calm" && nowT.value - fc.value.t0 >= FACE_MS;
         if (!calm) fc.value = faceGo(bun.value.FK, fc.value, "calm", nowT.value);
-        pend.value = move; startAt.value = calm ? 0 : nowT.value + FACE_MS; })();
+        pend.value = key; startAt.value = calm ? 0 : nowT.value + FACE_MS; })();
     }),
     face: (name: PipFace) => { runOnUI(() => { "worklet"; fc.value = faceGo(bun.value.FK, fc.value, name, nowT.value); })(); },
     body: (kind: PipBody) => new Promise<void>(res => {
@@ -687,7 +692,7 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
           if (b.haptic) haptics[b.haptic]();
           if (b.face) h.face(b.face);
           if (!reduced && b.body) h.body(b.body);
-          if (!reduced && b.move) h.play(b.move);
+          if (!reduced && b.move) h.play(b.move, { low: b.low });
         }, Math.max(0, b.at)));
       }
       timers.current.push(setTimeout(res, endMs));

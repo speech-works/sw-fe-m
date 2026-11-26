@@ -15,6 +15,11 @@ import type { PipStageHandle } from "../../components/Pip/fx/PipStage";
 import { FX_EFFECTS } from "../../components/Pip/fx/library";
 import { SFX_NAMES, playSfx, sfxStatus } from "../../components/Pip/fx/sfx";
 import type { FxEffect } from "../../components/Pip/fx/types";
+import { DAY_DONE_SAMPLES, DayDoneReal } from "./DayDoneReal";
+import type { DayDoneSample } from "./DayDoneReal";
+import { ProgramLab, labLink, parseLabHash } from "./ProgramLab";
+import type { LabSpec } from "./ProgramLab";
+import { PROGRAM_LAB_LINKS } from "./programLabLinks";
 
 const KEY = "fxLab.likes";
 const CANVAS = { light: "#F7F4EE", dark: "#141311" };
@@ -36,6 +41,10 @@ export default function FxLab() {
   const [effect, setEffect] = useState<FxEffect | null>(null), [busy, setBusy] = useState(false);
   // entry and exit: start from an empty stage, Pip arrives, the effect plays, he leaves (on by default)
   const [noMask, setNoMask] = useState(false);
+  // the real day-done screen (components/Pack/DayDone) with sample words; `run` restarts it
+  const [dayDoneReal, setDayDoneReal] = useState<{ sample: DayDoneSample; run: number } | null>(null);
+  // the real program screens with sample data (ProgramLab); on a phone only the states a link can set up without taps
+  const [programLab, setProgramLab] = useState<{ spec: LabSpec; run: number } | null>(null);
   const [ends, setEnds] = useState(true), [entry, setEntry] = useState<PipBody>(PIP_IN), [exit, setExit] = useState<PipBody>(PIP_OUT);
   const move = useCallback(async (m: PipBody) => {
     // entry and exit: silent (founder 2026-11-26: the pop / slide sounds were too much); duck / peekaboo / hide keep theirs
@@ -139,7 +148,15 @@ export default function FxLab() {
       <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         {/* phase 3: the real moments, played by the app's root host (dim or not as picked, with their text) */}
         <View style={[s.card, { backgroundColor: card, borderColor: "#E8A33D" }]}>
-          <Text style={[s.title, { color: fg }]}>Moments in the app</Text>
+          <Text style={[s.title, { color: fg }]}>Day done (real)</Text>
+          <View style={[s.row, { paddingHorizontal: 0 }]}>{DAY_DONE_SAMPLES.map(([id, label]) => <Btn key={id} label={label} onPress={() => setDayDoneReal(d => ({ sample: id, run: (d?.run ?? 0) + 1 }))} />)}</View>
+          <Text style={[s.title, { color: fg, marginTop: 12 }]}>Program screens (real, sample data)</Text>
+          {PROGRAM_LAB_LINKS.map(g => (
+            <View key={g.group}>
+              <Text style={{ color: sub, fontSize: 14, marginTop: 8 }}>{g.group}</Text>
+              <View style={[s.row, { paddingHorizontal: 0 }]}>{g.items.filter(it => !it.rest.some(r => r.startsWith("do="))).map(it => <Btn key={it.label} label={it.label} onPress={() => { const sp = parseLabHash(labLink(it.word, Math.round(width), 800, it.rest, dark)); if (sp) setProgramLab(o => ({ spec: sp, run: (o?.run ?? 0) + 1 })); }} />)}</View>
+            </View>))}
+          <Text style={[s.title, { color: fg, marginTop: 12 }]}>Moments in the app</Text>
           <View style={[s.row, { paddingHorizontal: 0 }]}>{PIP_MOMENTS.map(m => <Btn key={m.id} label={m.ref + " " + m.name} onPress={() => { void showPipMoment(m.id); }} />)}</View>
         </View>
         {speed.length ? (
@@ -174,6 +191,13 @@ export default function FxLab() {
             <Heart id={"sfx:" + n} label={n} />
           </View>)) : null}
       </ScrollView>
+      {programLab ? (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 40 }]}>
+          <ProgramLab key={programLab.run} spec={programLab.spec} dark={dark} />
+          <Pressable onPress={() => setProgramLab(null)} accessibilityLabel="Close the preview" style={{ position: "absolute", top: insets.top + 4, right: 12, minWidth: 44, minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", zIndex: 50 }} /* invisible: the recordings show only the app's own screen (founder) */ />
+        </View>) : null}
+      {/* "Back to home" (after Pip's wave) closes it */}
+      {dayDoneReal ? <View style={[StyleSheet.absoluteFill, { zIndex: 40 }]}><DayDoneReal key={dayDoneReal.sample + ":" + dayDoneReal.run} sample={dayDoneReal.sample} sound={sound} onHome={() => setDayDoneReal(null)} /></View> : null}
     </View>);
 }
 

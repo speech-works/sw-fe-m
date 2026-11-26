@@ -2,7 +2,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text as RNText, TextInput, View } from "react-native";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text as RNText,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { submitFormResponse } from "../../../api";
 import { getFormRecall } from "../../../api/packs";
 import {
@@ -12,16 +25,24 @@ import {
   FormRecallItem,
 } from "../../../api/packs/types";
 import PressableScale from "../../../components/PressableScale";
+import { zoneTitleSize } from "../../../components/Pack/dayStepFrame";
+import {
+  ON_ORANGE_DISC,
+  ON_ORANGE_MUTED,
+  ZONE_TEXT_X,
+  sheetFill,
+} from "../../../components/Pack/zoneSheet";
 import {
   Button,
-  Page,
-  Surface,
+  Icon,
   Text,
+  haptics,
   borderWidth,
   fonts,
   radius,
   spacing,
   useTheme,
+  useKeyboardInset,
 } from "../../../design-system";
 import {
   showErrorBottomSheet,
@@ -233,6 +254,8 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
   // and the box now share one height: the box grows to the example's height
   // plus one line, so the example always fits.
   const [exampleHeight, setExampleHeight] = useState(0);
+  // Typing: the field's border turns the brand orange (#FF9040), in both schemes.
+  const [focused, setFocused] = useState(false);
   const boxMinHeight = field.singleLine
     ? undefined
     : Math.max(120, exampleHeight > 0 ? exampleHeight + 22 : 0);
@@ -269,12 +292,16 @@ const TextInputField: React.FC<FieldProps> = ({ field, value, onChange }) => {
             fieldStyles.textInput,
             field.singleLine ? fieldStyles.textInputSingle : null,
             boxMinHeight ? { minHeight: boxMinHeight } : null,
+            // web: no browser focus ring, the orange border is the focus mark
+            Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null,
             {
               backgroundColor: colors.input.bg,
-              borderColor: colors.input.border,
+              borderColor: focused ? colors.action.primary : colors.input.border,
               color: colors.text.primary,
             },
           ]}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           value={text}
           onChangeText={handleChange}
           placeholder={field.singleLine ? placeholder : undefined}
@@ -405,10 +432,16 @@ const PackFormScreen = () => {
   const { colors } = useTheme();
   const { configuration, formId, packId, moduleId, blockId } = route.params;
 
-  // Flow accent, inherited from the card that opened this form (reflection = purple).
-  const accentKey: AccentKey = route.params.accentKey ?? "purple";
-  const accent = colors.accent[accentKey];
-  const onAccent = colors.accentOn[accentKey];
+  // ONE ACCENT: the brand orange (founder, 2026-11-27: the log's action is orange; purple stays only as the small "Log"
+  // label on the card). `accentKey` from the card is no longer used here.
+  const { scheme } = useTheme();
+  const accent = colors.action.primary;
+  const onAccent = colors.action.onPrimary;
+  const sheetBg = sheetFill(colors, scheme);
+  const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
+  const keyboardOpen = useKeyboardOpen();
+  const keyboardInset = useKeyboardInset();
 
   // A text box opens with the person's earlier answer when the day asks for
   // it (defaultValue). Everything else starts empty. See initialFormAnswers.
@@ -532,88 +565,173 @@ const PackFormScreen = () => {
     }
   };
 
+  const fields = configuration?.fields || [];
+  const subLine = header.description?.trim() || "";
+  const titleType = zoneTitleSize(header.title, screenW - 2 * ZONE_TEXT_X);
+  const ink = colors.action.onPrimary;
+
   return (
-    <>
-      <Page
-        title={header.title}
-        description={header.description || undefined}
-        onBack={() => navigation.goBack()}
-        keyboardAvoiding
-        footer={
+    <View style={[styles.root, { backgroundColor: colors.action.primary }]}>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+      {/* iOS: KeyboardAvoidingView. Android: a plain View padded by the real
+          keyboard height. With edge-to-edge the window never resizes, and
+          KeyboardAvoidingView's "height" mode can stay shrunk after the keyboard
+          closes, which showed the orange root under the Save bar. */}
+      <KeyboardWrap style={styles.fill} inset={keyboardInset}>
+        <ScrollView
+          style={styles.fill}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ORANGE ZONE (medium): back disc, the form title and its sub line. The sub line owns its top gap. */}
+          <View style={{ paddingTop: insets.top + HEAD_TOP }}>
+            <View style={styles.headRow}>
+              <Pressable
+                onPress={() => {
+                  haptics.light();
+                  navigation.goBack();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                hitSlop={8}
+                style={({ pressed }) => [styles.disc, pressed && styles.pressed]}
+              >
+                <Icon name="arrow-left" size={22} color={ink} />
+              </Pressable>
+            </View>
+            <View style={styles.zoneText}>
+              <Text
+                accessibilityRole="header"
+                style={[
+                  styles.zoneTitle,
+                  {
+                    color: ink,
+                    fontSize: titleType.fontSize,
+                    lineHeight: titleType.lineHeight,
+                  },
+                ]}
+              >
+                {header.title}
+              </Text>
+              {subLine ? <Text style={styles.zoneSub}>{subLine}</Text> : null}
+            </View>
+          </View>
+
+          {/* SHEET: question + field blocks. No card, no lines; each block owns its bottom gap. */}
+          <View style={[styles.sheet, { backgroundColor: sheetBg }]}>
+            {recall.length > 0 ? (
+              <View
+                style={[
+                  styles.recall,
+                  {
+                    backgroundColor: colors.surface.row,
+                    borderColor: colors.border.hairline,
+                  },
+                ]}
+                accessible
+                accessibilityLabel={`Saved earlier. ${recall
+                  .map((r) => `${r.label}: ${r.value}`)
+                  .join(". ")}`}
+              >
+                <Text variant="eyebrow" color="tertiary">
+                  SAVED EARLIER
+                </Text>
+                {recall.map((item, i) => (
+                  <View key={`${item.label}-${i}`} style={styles.recallItem}>
+                    <Text variant="bodySm" color="secondary">
+                      {item.label}
+                    </Text>
+                    <Text variant="body" color="primary">
+                      {item.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {fields.map((field) => {
+              const required = isFieldRequired(field, fields, answers);
+              return (
+                <View key={field.id} style={styles.block}>
+                  <Text style={[styles.question, { color: colors.text.primary }]}>
+                    {field.label}
+                    {required ? (
+                      <Text style={[styles.requiredTag, { color: colors.text.accent }]}>
+                        {"  Required"}
+                      </Text>
+                    ) : null}
+                  </Text>
+                  {field.description ? (
+                    <Text
+                      variant="bodySm"
+                      color="secondary"
+                      style={styles.fieldDescription}
+                    >
+                      {field.description}
+                    </Text>
+                  ) : null}
+                  {renderField(field)}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
+
+        {/* SAVE BAR: pinned at the bottom (on the keyboard when it is open). The hairline belongs to the bar. */}
+        <View
+          style={[
+            styles.saveBar,
+            {
+              backgroundColor: sheetBg,
+              borderTopColor: colors.border.hairline,
+              // Android's keyboard height excludes the nav bar, so keep that gap while open.
+              paddingBottom:
+                keyboardOpen && Platform.OS === "ios" ? 12 : Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
           <Button
             label="Save"
             leftIcon="check"
-            accentColor={accent}
-            onAccentColor={onAccent}
             loading={submitting}
             disabled={!allRequiredFilled}
             onPress={handleSubmit}
           />
-        }
-      >
-        {recall.length > 0 ? (
-          <Surface level="default" rounded="card" padded={spacing.xl}>
-            <View
-              style={styles.recall}
-              accessible
-              accessibilityLabel={`Saved earlier. ${recall
-                .map((r) => `${r.label}: ${r.value}`)
-                .join(". ")}`}
-            >
-              <Text variant="eyebrow" color="tertiary">
-                SAVED EARLIER
-              </Text>
-              {recall.map((item, i) => (
-                <View key={`${item.label}-${i}`} style={styles.recallItem}>
-                  <Text variant="bodySm" color="secondary">
-                    {item.label}
-                  </Text>
-                  <Text variant="body" color="primary">
-                    {item.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </Surface>
-        ) : null}
-
-        {(configuration?.fields || []).map((field) => (
-          <Surface
-            key={field.id}
-            level="default"
-            rounded="card"
-            padded={spacing.xl}
-          >
-            <View style={styles.fieldHeader}>
-              <Text variant="title" color="primary" style={styles.fieldLabel}>
-                {field.label}
-              </Text>
-              {isFieldRequired(field, configuration?.fields || [], answers) && (
-                <View
-                  style={[styles.requiredBadge, { backgroundColor: accent }]}
-                >
-                  <Text variant="caption" color={onAccent}>
-                    Required
-                  </Text>
-                </View>
-              )}
-            </View>
-            {field.description ? (
-              <Text
-                variant="bodySm"
-                color="secondary"
-                style={styles.fieldDescription}
-              >
-                {field.description}
-              </Text>
-            ) : null}
-            {renderField(field)}
-          </Surface>
-        ))}
-      </Page>
-    </>
+        </View>
+      </KeyboardWrap>
+    </View>
   );
 };
+
+const KeyboardWrap: React.FC<{
+  style: object;
+  inset: number;
+  children: React.ReactNode;
+}> = ({ style, inset, children }) =>
+  Platform.OS === "ios" ? (
+    <KeyboardAvoidingView style={style} behavior="padding">
+      {children}
+    </KeyboardAvoidingView>
+  ) : (
+    <View style={[style, { paddingBottom: inset }]}>{children}</View>
+  );
+
+/** true while the on-screen keyboard is up (the Save bar then sits on it with a smaller bottom pad). */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const showEv = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEv = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const a = Keyboard.addListener(showEv, () => setOpen(true));
+    const b = Keyboard.addListener(hideEv, () => setOpen(false));
+    return () => {
+      a.remove();
+      b.remove();
+    };
+  }, []);
+  return open;
+}
 
 export default PackFormScreen;
 
@@ -621,32 +739,69 @@ export default PackFormScreen;
 // Screen Styles
 // ─────────────────────────────────────────────────────────
 
+/** Back disc: 8 under the status bar, 44 round (the day frame's numbers). */
+const HEAD_TOP = 8;
+const DISC = 44;
+
 const styles = StyleSheet.create({
+  root: { flex: 1, overflow: "hidden" },
+  fill: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
+  headRow: { paddingHorizontal: 16, minHeight: DISC, justifyContent: "center" },
+  disc: {
+    width: DISC,
+    height: DISC,
+    borderRadius: DISC / 2,
+    backgroundColor: ON_ORANGE_DISC,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressed: { transform: [{ scale: 0.96 }] },
+  zoneText: { paddingHorizontal: ZONE_TEXT_X, paddingTop: 12, paddingBottom: 24 },
+  zoneTitle: { fontFamily: fonts.extrabold, fontWeight: "800", letterSpacing: -0.7 },
+  zoneSub: {
+    marginTop: 6,
+    fontFamily: fonts.medium,
+    fontWeight: "500",
+    fontSize: 14,
+    lineHeight: 20,
+    color: ON_ORANGE_MUTED,
+  },
+  sheet: {
+    flexGrow: 1,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingTop: 28,
+    paddingHorizontal: ZONE_TEXT_X,
+  },
+  // a question and its field: one block with its own bottom gap
+  block: { marginBottom: 24 },
+  question: {
+    fontFamily: fonts.semibold,
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 23,
+    marginBottom: 12,
+  },
+  requiredTag: { fontFamily: fonts.medium, fontWeight: "500", fontSize: 12 },
+  saveBar: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   recall: {
     gap: spacing.md,
+    padding: spacing.xl,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 24,
   },
   recallItem: {
     gap: spacing.xxs,
   },
-  fieldHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
   fieldDescription: {
-    marginTop: -spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  fieldLabel: {
-    flex: 1,
-    lineHeight: 22,
-  },
-  requiredBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    borderRadius: radius.sm,
+    marginTop: -4,
+    marginBottom: 12,
   },
 });
 
@@ -699,7 +854,7 @@ const fieldStyles = StyleSheet.create({
 
   // TEXT_INPUT
   textInputSingle: {
-    minHeight: 48,
+    minHeight: 52,
     paddingVertical: spacing.md,
   },
   counter: {
@@ -707,9 +862,10 @@ const fieldStyles = StyleSheet.create({
     textAlign: "right",
   },
   textInput: {
-    borderRadius: radius.input,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: spacing.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontFamily: fonts.regular,
     fontSize: 15,
     minHeight: 120,

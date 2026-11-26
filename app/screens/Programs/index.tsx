@@ -856,6 +856,84 @@ const ProgramsScreen = () => {
         ? programCoverFor(item.key, item.coverImage)
         : null;
 
+    // ── YOURS: ONE CALM ROW PER PROGRAM (mock 14) ───────────────────────────
+    // Cover, name, the server's reason (only when it sent one), "7 days ·
+    // Standard", and the way in. Only the program in progress has the filled
+    // "Resume" pill; every other row says "Open". The reason owns its top gap,
+    // so a row without one leaves no hole. The way in is pinned to the foot.
+    if (ownedCover && view === "yours") {
+      const inProgress = !!item.packId && item.packId === activePackId;
+      const meta = [
+        item.arcDays ? `${item.arcDays} days` : null,
+        capitalise(programShelfLabel(item).toLowerCase()),
+      ]
+        .filter(Boolean)
+        .join(" \u00b7 ");
+      return (
+        <PressableScale
+          key={item.key}
+          scaleTo={0.98}
+          onPress={() => openDetail(item, source, index)}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.title}. ${meta}. ${
+            inProgress ? "Resume" : "Open"
+          }.`}
+          style={[
+            styles.yoursRow,
+            {
+              backgroundColor: colors.surface.default,
+              borderColor: colors.border.default,
+            },
+          ]}
+        >
+          <CoverBook
+            cover={ownedCover}
+            width={YOURS_COVER_W}
+            radius={radius.md}
+            style={styles.flatCover}
+          />
+          <View style={styles.yoursBody}>
+            <Text variant="h3" color="primary" style={styles.yoursTitle}>
+              {item.title}
+            </Text>
+            {reason ? (
+              <Text variant="bodySm" color="accent" numberOfLines={3} style={styles.yoursReason}>
+                {reason}
+              </Text>
+            ) : null}
+            <Text variant="caption" color="secondary" style={styles.yoursMeta}>
+              {meta}
+            </Text>
+            <View style={styles.yoursFoot}>
+              {inProgress ? (
+                <View style={[styles.resumePill, { backgroundColor: colors.action.primary }]}>
+                  <Icon
+                    name={icons.play}
+                    size={size.iconInline}
+                    color={colors.action.onPrimary}
+                  />
+                  <Text variant="label" color={colors.action.onPrimary}>
+                    Resume
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.openLink}>
+                  <Text variant="title" color={colors.text.accent}>
+                    Open
+                  </Text>
+                  <Icon
+                    name={icons.chevronRight}
+                    size={size.iconSm}
+                    color={colors.text.accent}
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+        </PressableScale>
+      );
+    }
+
     return (
       <PressableScale
         key={item.key}
@@ -1612,6 +1690,7 @@ const HERO_COVER_W = 144;
 const ROW_TILE_W = 148;
 /** A cover beside an owned program's card on "Your programs". */
 const OWNED_COVER_W = 84;
+const YOURS_COVER_W = 78;
 
 type TierFilter = "all" | "regular" | "deep";
 
@@ -1809,6 +1888,32 @@ const styles = StyleSheet.create({
   },
   // With the card stretched to the cover's height, `auto` pushes the action to
   // the bottom edge, level with the foot of the cover.
+  yoursRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 14,
+    padding: 14,
+    borderRadius: 24,
+    borderWidth: borderWidth.hairline,
+  },
+  flatCover: Platform.select({
+    web: { boxShadow: "none" } as object,
+    default: { shadowOpacity: 0, elevation: 0 },
+  }) as object,
+  yoursBody: { flex: 1, minWidth: 0 },
+  yoursTitle: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
+  yoursReason: { marginTop: 5, fontSize: 13.5, lineHeight: 19 },
+  yoursMeta: { marginTop: 5, fontSize: 13, lineHeight: 18 },
+  yoursFoot: { marginTop: "auto", paddingTop: spacing.sm, flexDirection: "row" },
+  openLink: { flexDirection: "row", alignItems: "center", gap: 4 },
+  resumePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
   yoursAction: {
     marginTop: "auto",
   },

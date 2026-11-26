@@ -85,7 +85,7 @@ function warp(P          , t        )         {
   if (!P.palms) return t;
   return t < P.inT ? t : t < P.inT + P.hold ? P.inT + (t - P.inT) * (P.dur - P.outT - P.inT) / P.hold : P.dur - P.outT + (t - P.inT - P.hold);
 }
-const KIND                                   = { 'h-palms': 'palms', 'h-wave': 'wave', 'h-cheek': 'cheek', 'h-chin': 'chin', 'h-heart': 'heart' };
+const KIND                                   = { 'h-palms': 'palms', 'h-wave': 'wave', 'h-wave-low': 'wave', 'h-cheek': 'cheek', 'h-chin': 'chin', 'h-heart': 'heart' };
 function beatAt(P          , ms        )       { 'worklet'; const k = P.kind; return k === 'palms' ? beatPalms(ms, P.dur) : k === 'wave' ? beatWave(ms) : k === 'cheek' ? beatCheek(ms) : k === 'chin' ? beatChin(ms) : beatHeart(ms); }
 
                                                                                                                   // k includes the pop of the beat; w (sleeve width) does not
@@ -196,7 +196,7 @@ export function prepare(id          , look      )           {
   const M = MOMENTS[id], pose = POSES[M.pose], palms = id === 'h-palms', A = pose.variant === 'A', kind = KIND[id];
   const real = palms ? M.inT + M.hold + M.outT : pose.dur, scriptEnd = palms ? M.lead + real + M.endPause + M.browMs : real;
   const P           = { id, kind, palms, tall: !!look.tall, variantA: A, dur: pose.dur, lead: M.lead, real, inT: M.inT, hold: M.hold, outT: M.outT, scriptEnd, durationMs: scriptEnd, totalMs: scriptEnd + SPRINGS.settleMs, peakMs: M.peakMs,
-    poseFace: pose.face          , baseFace: 'calm', faceIn: M.faceIn, faceOff: M.faceOff, hands: [], shoulder: makeShoulderLine(look.shoulderPath, look.zoom, look.bottomPad), colours: handColours(look), armShadow: look.armShadow !== false && look.shadow && (id === 'h-palms' || id === 'h-wave') ? { dx: look.shadow.dx, dy: look.shadow.dy, sh: shadowSet(look) } : null, eg: look.eyes.eg, fk: faceKit(look.face), stepMs: SPRINGS.stepMs, rot: [], ny: [], gx: [], gy: [] };
+    poseFace: pose.face          , baseFace: 'calm', faceIn: M.faceIn, faceOff: M.faceOff, hands: [], shoulder: makeShoulderLine(look.shoulderPath, look.zoom, look.bottomPad), colours: handColours(look), armShadow: look.armShadow !== false && look.shadow && (id === 'h-palms' || kind === 'wave') ? { dx: look.shadow.dx, dy: look.shadow.dy, sh: shadowSet(look) } : null, eg: look.eyes.eg, fk: faceKit(look.face), stepMs: SPRINGS.stepMs, rot: [], ny: [], gx: [], gy: [] };
   const peak = beatAt(P, pose.dur * pose.mid); if (A) peak.up = up2(pose.dur * pose.mid, pose.dur, UP2.i, UP2.o);
   pose.parts.forEach((part, i) => { const art = HAND_ART[part.art], w = art.wrists[0];
     const h           = { art: part.art, artW: art.w, artH: art.h, ox: -w[0] * art.w, oy: -w[1] * art.h, wdeg: w[2], cutHalf: cutHalf(part.art), m: part.mirror ? -1 : 1, size: part.size, sl: part.sl, sgn: i % 2 ? -1 : 1, rigid: pose.rigid, enX: pose.enter[0], enY: pose.enter[1],

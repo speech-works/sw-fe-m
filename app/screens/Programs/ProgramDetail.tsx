@@ -5,7 +5,6 @@ import {
 } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showPipMoment } from "../../components/Pip";
 import { getOffers, type OfferItem, type Wallet } from "../../api";
 import { getPackBrochure, getPackProgress, restartPack } from "../../api/packs";
@@ -64,23 +63,18 @@ import {
   icons,
   useTheme,
   spacing,
-  radius,
+  fonts,
   Spinner,
   ErrorState,
-  IconButton,
-  space,
 } from "../../design-system";
-import {
-  CoverBackdrop,
-  STANDALONE_COVER_W,
-  StandaloneCover,
-} from "../../components/ProgramCoverArt";
+
+
 import {
   programCoverFor,
-  type ProgramCover,
 } from "../../util/packs/programCover";
 import PressableScale from "../../components/PressableScale";
 import ProgramSalesFlow from "./ProgramSalesFlow";
+import { OwnedProgramPage } from "./OwnedProgramPage";
 import NextDayCountdown from "./NextDayCountdown";
 import {
   showErrorBottomSheet,
@@ -1166,319 +1160,187 @@ const ProgramDetailScreen = () => {
       catalogKey,
       brochure?.coverImage ?? offer.coverImage,
     );
-    return (
-      <Page
-        title={brochure?.title ?? offer.title}
-        description={brochure?.description}
-        onBack={() => navigation.goBack()}
-        hero={
-          cover ? (
-            <OwnedCoverHeader
-              cover={cover}
-              eyebrow={dayCount ? `${dayCount}-day program` : null}
-              title={offer.title}
-              description={brochure?.description ?? null}
-              onBack={() => navigation.goBack()}
-            />
-          ) : undefined
+    const metaLine =
+      [
+        dayCount ? `${dayCount} days` : null,
+        moduleCount > 0 ? `${moduleCount} sessions` : null,
+      ]
+        .filter(Boolean)
+        .join(" \u00b7 ") || null;
+
+    // The owned line: what the screen can honestly say it is. No line, no gap.
+    let ownedLine: string | null = null;
+    let extra: React.ReactNode = null;
+    if (ownedState.needsRetry) {
+      // A retry, NOT an "Open" button. There is no day id to open, and a
+      // button that leads to a spinner that never resolves is worse than no
+      // button at all.
+      ownedLine = ownedState.line;
+      extra = (
+        <Text variant="body" color="secondary">
+          We couldn&apos;t load your days just now.
+        </Text>
+      );
+    } else if (ownedState.loadingProgress) {
+      extra = <Spinner label="Loading your days…" />;
+    } else if (ownedState.canOpen) {
+      ownedLine = ownedState.line;
+    } else if (opensAt) {
+      extra = (
+        <NextDayCountdown
+          opensAt={opensAt}
+          dayIndex={progress?.nextIncompleteDay}
+          // Without this the card paired a day number with an instant that
+          // belongs to a different day. See `describesNamedDay` there.
+          currentDay={progress?.currentDay}
+          onOpened={refreshProgress}
+        />
+      );
+    } else {
+      ownedLine = "That\u2019s today done.";
+    }
+
+    // The one pinned button.
+    const cta = ownedState.needsRetry
+      ? {
+          label: "Try again",
+          icon: icons.retry,
+          loading: refreshingProgress,
+          onPress: () => void retryProgress(),
         }
-      >
-        {(dayCount || moduleCount > 0) && (
-          <View style={styles.metaRow}>
-            {dayCount ? (
-              <View style={styles.metaChip}>
-                <Icon name={icons.timeline} size={size.iconInline} color={colors.text.secondary} />
-                <Text variant="label" color="secondary">
-                  {dayCount} days
+      : ownedState.canOpen
+        ? {
+            label: ownedState.cta,
+            icon: ownedState.finished ? icons.refresh : icons.play,
+            loading: opening,
+            // NOT `onPress={openOwned}`. `PressableScale` forwards the raw
+            // `GestureResponderEvent`, which would BECOME `targetModuleId`
+            // and send PackModule a moduleId that is not a string.
+            onPress: () => openOwned(),
+          }
+        : null;
+
+    // ── THE LIST IS THE WAY BACK IN, NOT A BUTTON ─────────────────────────
+    // The list names every day, so it is the only surface that scales. A row
+    // opens when the SERVER says it is open (`unlocked` from
+    // GET /packs/{id}/progress). A day behind the user is never gated, so
+    // `isModuleOfferable` adds the second question once the arc is COMPLETE
+    // (a skipped day then dead-ends: the server refuses to start it).
+    // Rows have no lines between them: their own height separates them.
+    // Bold = the next day to do; none is bold when every day is done.
+    const nextDay =
+      progress && progress.packStatus !== "COMPLETED"
+        ? progress.nextIncompleteDay
+        : null;
+    const days =
+      brochure && brochure.modules.length > 0 ? (
+        <View>
+          {brochure.modules.map((m) => {
+            const mp = moduleStateById.get(m.id);
+            const done = mp?.status === "COMPLETED";
+            // Only an explicit `false` locks a row. An older backend that does
+            // not send the field leaves every day openable.
+            const locked = mp?.unlocked === false;
+            const offerable =
+              !!mp &&
+              isModuleOfferable(mp, {
+                packStatus: progress?.packStatus,
+                // `arcDays` decides the refusal, so it must not read as "no
+                // arc" just because one payload left it out.
+                arcDays: progress?.arcDays ?? brochure?.arcDays ?? null,
+              });
+            // Not offerable, and NOT because the clock has yet to reach it: a
+            // day they skipped on a program they have since finished. Closed
+            // silently would be a dead end, so it stays pressable and
+            // explains itself.
+            const skipped = !!mp && !locked && !offerable;
+            const isNext =
+              !done && nextDay != null && m.dayIndex === nextDay && !locked && !skipped;
+            const dayName = m.dayIndex
+              ? `Day ${m.dayIndex}`
+              : `Session ${m.orderIndex}`;
+
+            const row = (
+              <View style={styles.moduleRow}>
+                <Text variant="label" color="tertiary" style={styles.dayLabel}>
+                  {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
                 </Text>
-              </View>
-            ) : null}
-            {moduleCount > 0 ? (
-              <View style={styles.metaChip}>
-                <Icon name={icons.checklist} size={size.iconInline} color={colors.text.secondary} />
-                <Text variant="label" color="secondary">
-                  {moduleCount} sessions
+                <Text
+                  variant={isNext ? "title" : "body"}
+                  color={locked || skipped ? "tertiary" : "primary"}
+                  style={[styles.moduleTitle, !isNext && styles.moduleTitleMed]}
+                >
+                  {dayTitle(m.title)}
                 </Text>
-              </View>
-            ) : null}
-            {/*
-              What the quizzes say, and ONLY once there are enough of them to
-              mean anything. One answered question would put "100%" on the
-              screen after a lucky guess, which is worse than saying nothing.
-
-              Deliberately a quiet chip next to "7 days", not a headline. This
-              measures whether the teaching stuck, which is a small part of what
-              the program is for; the week is judged by whether the user told
-              somebody, and that is not scored anywhere.
-            */}
-            {/* Quiz score chip removed (founder, B13, 2026-11-05): "9 of 10 right" did not say what it counted. Quiz results stay inside the days. */}
-          </View>
-        )}
-
-        {/* THE WAY IN. Without this the screen was a receipt. */}
-        {ownedState.needsRetry ? (
-          // A retry, NOT an "Open" button. There is no day id to open, and a
-          // button that leads to a spinner that never resolves is worse than
-          // no button at all.
-          <View style={styles.ownedBlock}>
-            <View style={styles.ownedRow}>
-              <Icon
-                name={icons.success}
-                size={size.iconSm}
-                color={colors.feedback.successText}
-              />
-              <Text
-                variant="title"
-                color={colors.feedback.successText}
-                style={styles.ownedText}
-              >
-                {ownedState.line}
-              </Text>
-            </View>
-            <Text variant="body" color="secondary">
-              We couldn&apos;t load your days just now.
-            </Text>
-            <Button
-              label="Try again"
-              leftIcon={icons.retry}
-              loading={refreshingProgress}
-              onPress={() => void retryProgress()}
-            />
-          </View>
-        ) : ownedState.loadingProgress ? (
-          <View style={styles.centered}>
-            <Spinner label="Loading your days…" />
-          </View>
-        ) : ownedState.canOpen ? (
-          <View style={styles.ownedBlock}>
-            <View style={styles.ownedRow}>
-              <Icon
-                name={icons.success}
-                size={size.iconSm}
-                color={colors.feedback.successText}
-              />
-              {/* flex: 1 — a Text in a row does not shrink in React Native, so
-                  without it this line overflowed the screen gutter on both
-                  sides and the tick sat outside the page padding. */}
-              <Text
-                variant="title"
-                color={colors.feedback.successText}
-                style={styles.ownedText}
-              >
-                {ownedState.line}
-              </Text>
-            </View>
-            <Button
-              label={ownedState.cta}
-              leftIcon={ownedState.finished ? icons.refresh : icons.play}
-              loading={opening}
-              // NOT `onPress={openOwned}`. `PressableScale` forwards the raw
-              // `GestureResponderEvent` to whatever `onPress` it is given —
-              // `Button`'s `onPress: () => void` type does not stop that at
-              // the call site, since a function expecting fewer args is a
-              // valid `() => void`. Passed directly, that event object BECAME
-              // `targetModuleId` (`targetModuleId ?? ownedState.moduleId` sees
-              // a truthy event and never falls through), so every tap of this
-              // button sent PackModule a moduleId that was never a string —
-              // `getModule` 404'd, surfacing as "Module not found." on
-              // return from GoalsAsk (the redirect there races ahead of the
-              // failed content fetch, which is why the bug is invisible on
-              // the page you land on first). The wrapper is what the day-row
-              // taps already do correctly a few lines below.
-              onPress={() => openOwned()}
-            />
-          </View>
-        ) : opensAt ? (
-          <View style={styles.ownedBlock}>
-            <NextDayCountdown
-              opensAt={opensAt}
-              dayIndex={progress?.nextIncompleteDay}
-              // Without this the card paired a day number with an instant that
-              // belongs to a different day. See `describesNamedDay` there.
-              currentDay={progress?.currentDay}
-              onOpened={refreshProgress}
-            />
-          </View>
-        ) : (
-          <View style={styles.ownedRow}>
-            <Icon
-              name={icons.success}
-              size={size.iconSm}
-              color={colors.feedback.successText}
-            />
-            <Text
-              variant="title"
-              color={colors.feedback.successText}
-              style={styles.ownedText}
-            >
-              That&apos;s today done.
-            </Text>
-          </View>
-        )}
-        {brochure && brochure.modules.length > 0 && (
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.surface.default,
-                borderColor: colors.border.default,
-              },
-            ]}
-          >
-            <Text variant="h3" color="primary">
-              {progress ? "The days" : "What\u2019s inside"}
-            </Text>
-            {/*
-              ── THE LIST IS THE WAY BACK IN, NOT A BUTTON ───────────────────
-              A "Review Day N" button answers the question once and then has to
-              grow: on day 6 the same logic wants six of them, and picking one
-              day to feature is arbitrary. The list already names every day, so
-              it is the only surface that scales.
-
-              A row opens when the SERVER says it is open. `unlocked` comes
-              from GET /packs/{id}/progress; a day already behind the user is
-              never gated, because `isModuleUnlocked` only closes days AHEAD of
-              the clock. So finished days stay readable for the whole arc.
-
-              That last sentence is why `unlocked` cannot be the only gate once
-              the arc is COMPLETE: at that point EVERY day is behind the user,
-              including one they skipped and never did. `isModuleOfferable` adds
-              that second question.
-            */}
-            <View style={styles.dayList}>
-              {brochure.modules.map((m, i) => {
-                const mp = moduleStateById.get(m.id);
-                const done = mp?.status === "COMPLETED";
-                // Only an explicit `false` locks a row. An older backend that
-                // does not send the field leaves every day openable, which is
-                // what this screen did before the field existed.
-                const locked = mp?.unlocked === false;
-                // `!!mp && !locked` was not enough on a FINISHED arc. Progress
-                // returns a row for every module, so `!!mp` is always true, and
-                // every day of a finished arc is behind the clock, so `locked`
-                // is always false. A day the user SKIPPED therefore looked open
-                // and dead-ended: the server refuses to start it. One shared
-                // rule now answers this for both surfaces.
-                const offerable =
-                  !!mp &&
-                  isModuleOfferable(mp, {
-                    packStatus: progress?.packStatus,
-                    // Fall back to the brochure: `arcDays` is the field that
-                    // decides the refusal, so it must not read as "no arc" just
-                    // because one payload left it out.
-                    arcDays: progress?.arcDays ?? brochure?.arcDays ?? null,
-                  });
-                // Not offerable, and NOT because the clock has yet to reach it:
-                // a day they skipped on a program they have since finished.
-                //
-                // Closing the row is right, but closing it silently is the same
-                // dead end one step quieter. With no chevron and no lock glyph
-                // the row reads as ordinary text, and a paid row that ignores a
-                // tap without saying anything is exactly the kind of thing
-                // people write reviews about. So it stays pressable and
-                // explains itself instead.
-                const skipped = !!mp && !locked && !offerable;
-                const dayName = m.dayIndex
-                  ? `Day ${m.dayIndex}`
-                  : `Session ${m.orderIndex}`;
-
-                const row = (
-                  <View style={styles.moduleRow}>
-                    <Text variant="label" color="tertiary" style={styles.dayLabel}>
-                      {m.dayIndex ? `Day ${m.dayIndex}` : `${m.orderIndex}`}
-                    </Text>
-                    <Text
-                      variant="body"
-                      color={locked || skipped ? "tertiary" : "primary"}
-                      style={styles.moduleTitle}
-                    >
-                      {dayTitle(m.title)}
-                    </Text>
-                    {/*
-                      TWO SLOTS, TWO JOBS. The state glyph says what this day
-                      IS; the chevron says the row opens. They were one slot,
-                      and a finished day showed only its tick — which reads as
-                      "done", not as "tap me". The one row the user most wants
-                      to reopen was the one row with no affordance on it.
-                    */}
-                    <View style={styles.moduleMark}>
-                      {done ? (
-                        <Icon
-                          name={icons.success}
-                          size={size.iconSm}
-                          color={colors.feedback.successText}
-                        />
-                      ) : locked || skipped ? (
-                        // A skipped day on a finished program is closed too, so
-                        // it carries the same glyph. The two are not the same
-                        // reason, and the sheet on tap is what tells them apart:
-                        // this one needs a restart, not a wait.
-                        <Icon
-                          name={icons.locked}
-                          size={size.iconSm}
-                          color={colors.text.tertiary}
-                        />
-                      ) : null}
-                    </View>
-                    <View style={styles.moduleChevron}>
-                      {offerable ? (
-                        <Icon
-                          name={icons.chevronRight}
-                          size={size.iconSm}
-                          color={colors.text.tertiary}
-                        />
-                      ) : null}
-                    </View>
-                  </View>
-                );
-
-                // A hairline between rows, never under the last one. Rows are
-                // tappable now, so they need to read as separate targets
-                // rather than as lines of one paragraph.
-                const divider =
-                  i < brochure.modules.length - 1 ? (
-                    <View
-                      style={[
-                        styles.dayDivider,
-                        { backgroundColor: colors.border.default },
-                      ]}
+                {/* TWO SLOTS, TWO JOBS: the state glyph says what this day IS,
+                    the chevron says the row opens. Both keep a fixed width, so
+                    a row with no tick leaves nothing but its own width. */}
+                <View style={styles.moduleMark}>
+                  {done ? (
+                    <Icon
+                      name={icons.success}
+                      size={size.iconSm}
+                      color={colors.feedback.successText}
                     />
-                  ) : null;
+                  ) : locked || skipped ? (
+                    <Icon
+                      name={icons.locked}
+                      size={size.iconSm}
+                      color={colors.text.tertiary}
+                    />
+                  ) : null}
+                </View>
+                <View style={styles.moduleChevron}>
+                  {offerable ? (
+                    <Icon
+                      name={icons.chevronRight}
+                      size={size.iconSm}
+                      color={colors.text.tertiary}
+                    />
+                  ) : null}
+                </View>
+              </View>
+            );
 
-                return (
-                  <React.Fragment key={m.id}>
-                    {offerable || skipped ? (
-                      <PressableScale
-                        scaleTo={0.99}
-                        disabled={opening}
-                        onPress={() =>
-                          skipped ? explainSkippedDay() : openOwned(m.id)
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={`${dayName}, ${dayTitle(m.title)}.${
-                          done ? " Done." : ""
-                        } ${skipped ? "Not open. Explains why." : "Opens it."}`}
-                      >
-                        {row}
-                      </PressableScale>
-                    ) : (
-                      <View
-                        accessibilityLabel={`${dayName}, ${dayTitle(
-                          m.title,
-                        )}. Not open yet.`}
-                      >
-                        {row}
-                      </View>
-                    )}
-                    {divider}
-                  </React.Fragment>
-                );
-              })}
-            </View>
-          </View>
-        )}
+            return offerable || skipped ? (
+              <PressableScale
+                key={m.id}
+                scaleTo={0.99}
+                disabled={opening}
+                onPress={() => (skipped ? explainSkippedDay() : openOwned(m.id))}
+                accessibilityRole="button"
+                accessibilityLabel={`${dayName}, ${dayTitle(m.title)}.${
+                  done ? " Done." : ""
+                } ${skipped ? "Not open. Explains why." : "Opens it."}`}
+              >
+                {row}
+              </PressableScale>
+            ) : (
+              <View
+                key={m.id}
+                accessibilityLabel={`${dayName}, ${dayTitle(m.title)}. Not open yet.`}
+              >
+                {row}
+              </View>
+            );
+          })}
+        </View>
+      ) : null;
 
-      </Page>
+    return (
+      <OwnedProgramPage
+        cover={cover}
+        eyebrow={dayCount ? `${dayCount}-day program` : null}
+        title={offer.title}
+        description={brochure?.description ?? null}
+        meta={metaLine}
+        ownedLine={ownedLine}
+        extra={extra}
+        daysHeading={days ? (progress ? "The days" : "What\u2019s inside") : null}
+        days={days}
+        cta={cta}
+        onBack={() => navigation.goBack()}
+      />
     );
   }
 
@@ -1563,108 +1425,34 @@ const ProgramDetailScreen = () => {
 
 export default ProgramDetailScreen;
 
-/**
- * The owned page's header when the program has a cover. `Page` renders a
- * `hero` in place of its own title block, back bar included, so the back
- * button is drawn here with the same geometry.
- *
- * The backdrop bleeds past the page gutter and up to the top of the scroll
- * body, so it reads as the page's ground rather than as a box behind the cover.
- */
-const OwnedCoverHeader: React.FC<{
-  cover: ProgramCover;
-  eyebrow: string | null;
-  title: string;
-  description: string | null;
-  onBack: () => void;
-}> = ({ cover, eyebrow, title, description, onBack }) => {
-  const insets = useSafeAreaInsets();
-  // `Page`'s own top padding, which the backdrop climbs back over.
-  const pageTop = insets.top + space.inlineGap;
-  const backdropH =
-    pageTop + size.backBtn + space.titleGap + (STANDALONE_COVER_W * 4) / 3 + 120;
-  return (
-    <View>
-      <CoverBackdrop
-        cover={cover}
-        height={backdropH}
-        style={{
-          top: -pageTop,
-          left: -space.screenX,
-          right: -space.screenX,
-        }}
-      />
-      <View style={styles.coverBackBar}>
-        <IconButton name="arrow-left" onPress={onBack} />
-      </View>
-      <View style={styles.coverWrap}>
-        <StandaloneCover cover={cover} eyebrow={eyebrow} title={title} />
-      </View>
-      {description ? (
-        // Left-aligned (founder, 2026-11-05): a centred paragraph of four
-        // lines has ragged edges on both sides and is harder to read.
-        <Text variant="body" color="secondary" style={styles.coverDescription}>
-          {description}
-        </Text>
-      ) : null}
-    </View>
-  );
-};
-
 const styles = StyleSheet.create({
-  coverBackBar: {
-    minHeight: size.backBtn,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  coverWrap: { marginTop: space.titleGap },
-  coverDescription: { marginTop: space.groupGap },
   centered: {
     paddingVertical: spacing["3xl"],
     alignItems: "center",
   },
-  // No bottom margin here or on `card`: `Page` already puts space.groupGap
-  // between its children, and the hand-rolled margins were stacking on top of
-  // it for a rhythm nothing else on the screen shared.
-  metaRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  metaChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  card: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    padding: spacing.xl,
-    gap: spacing.md,
-  },
-  // The card owns the gap between its heading and the list; the list owns the
-  // rows. Without this the card's own `gap` doubled up with the row padding.
-  dayList: {
-    marginTop: spacing.xs,
-  },
+  // A row is a tap target: 58 high, like the mock. Rows have no lines between
+  // them, so nothing is left behind when one has no tick.
   moduleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
-    // A row is a tap target now. It used to be text height (about 20pt), which
-    // is half the 44pt minimum and the real reason tapping a day felt wrong.
-    minHeight: 44,
+    minHeight: 58,
     paddingVertical: spacing.sm,
   },
   dayLabel: {
-    minWidth: 46,
+    width: 58,
   },
   moduleTitle: {
     flex: 1,
+    paddingRight: spacing.sm,
+  },
+  moduleTitleMed: {
+    fontFamily: fonts.medium,
+    fontWeight: "500",
   },
   // Fixed, so every title ends at the same place whether its row carries a
   // tick, a lock or nothing at all.
   moduleMark: {
-    width: size.iconSm,
+    width: 28,
     alignItems: "center",
   },
   // Its own slot, so the state glyph never shifts when a chevron appears
@@ -1673,17 +1461,9 @@ const styles = StyleSheet.create({
     width: size.iconSm,
     alignItems: "center",
   },
-  dayDivider: {
-    height: StyleSheet.hairlineWidth,
-    // Starts under the title, not under the day number: an inset rule reads as
-    // "these belong to one list", a full-bleed one cuts the card into strips.
-    marginLeft: 46 + spacing.md,
-  },
   ownedBlock: {
     gap: spacing.lg,
   },
-  // Left-aligned like every other block on the page. It used to centre itself,
-  // which on an overflowing row pushed the tick outside the screen gutter.
   ownedRow: {
     flexDirection: "row",
     alignItems: "center",

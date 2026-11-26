@@ -1,0 +1,40 @@
+/** DEV ONLY: the buttons of the "Program screens (real)" card (web page and phone lab). word + rest = the link; see ProgramLab.tsx. */
+export type LabItem = { label: string; word: string; rest: string[] };
+export const PROGRAM_LAB_LINKS: { group: string; items: LabItem[] }[] = [
+  { group: "Day 1 (When you cannot plan what to say)", items: [
+    { label: "1 Video", word: "program", rest: ["day1", "step=1"] },
+    { label: "2 Start", word: "program", rest: ["day1", "step=2"] },
+    { label: "3 Lesson p1", word: "program", rest: ["day1", "step=3"] },
+    { label: "3 Lesson p3", word: "program", rest: ["day1", "step=3", "part=2"] },
+    { label: "Reading sheet", word: "reading", rest: ["day1", "step=3"] },
+    { label: "5 Quiz", word: "program", rest: ["day1", "step=5"] },
+    { label: "5 Quiz answer sheet", word: "program", rest: ["day1", "step=5", "do=pick:2;tap:Check;wait:1500"] },
+    { label: "6 Practice card", word: "program", rest: ["day1", "step=6"] },
+    { label: "6 Practice done", word: "program", rest: ["day1", "step=6", "done=6"] },
+    { label: "Practice screen", word: "practice", rest: ["day1", "step=6"] },
+    { label: "7 Log card", word: "program", rest: ["day1", "step=7"] },
+    { label: "7 Log done", word: "program", rest: ["day1", "step=7", "done=7"] },
+    { label: "Log form", word: "form", rest: ["day1"] },
+    { label: "9 Close", word: "program", rest: ["day1", "step=9"] },
+    { label: "Day done, beat 1", word: "program", rest: ["day1", "step=9", "do=finish;wait:3500"] },
+    { label: "Day done, goals", word: "program", rest: ["day1", "step=9", "do=finish;wait:3500;tap:Continue;wait:2500"] },
+    { label: "Steps sheet", word: "steps", rest: ["day1", "step=2"] },
+  ] },
+  { group: "Day 2 (From yesterday)", items: [
+    { label: "1 Start", word: "program", rest: ["day2", "step=1"] },
+    { label: "2 From yesterday", word: "program", rest: ["day2", "step=2"] },
+    { label: "2 Answer sheet", word: "program", rest: ["day2", "step=2", "do=pick:1;tap:Check;wait:1500"] },
+    { label: "6 Practice card", word: "program", rest: ["day2", "step=6"] },
+    { label: "Steps sheet", word: "steps", rest: ["day2", "step=1"] },
+  ] },
+  { group: "Program page, Programs, Home", items: [
+    { label: "Page owned", word: "programpage", rest: ["owned"] },
+    { label: "Page owned, scrolled", word: "programpage", rest: ["owned", "scrolled"] },
+    { label: "Page not owned", word: "programpage", rest: ["notowned"] },
+    { label: "Page not owned, scrolled", word: "programpage", rest: ["notowned", "scrolled"] },
+    { label: "Programs: Yours", word: "programs", rest: ["yours"] },
+    { label: "Programs: Browse", word: "programs", rest: ["browse"] },
+    { label: "Home card, day 1", word: "home", rest: ["day1"] },
+    { label: "Home card, day 2", word: "home", rest: ["day2"] },
+  ] },
+];

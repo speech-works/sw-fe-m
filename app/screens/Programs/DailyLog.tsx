@@ -53,9 +53,22 @@ export function DailyLog({
    * earlier request failed.
    */
   goals,
+  /**
+   * Called on every answer, at the tap: a tick, an untick ("toggle") or the
+   * way out ("dismiss"). The day-done screen uses it for Pip's nod, which is
+   * the same for all three. Nothing about saving hangs off it.
+   */
+  onAnswer,
+  /**
+   * "sheet": inside the day-done sheet. The question is left-aligned and a
+   * size bigger, and the block has no top margin (the sheet owns the spacing).
+   */
+  layout = "page",
 }: {
   packId: string;
   goals?: ProgramGoal[];
+  onAnswer?: (kind: "toggle" | "dismiss") => void;
+  layout?: "page" | "sheet";
 }) {
   // Only goals with nothing said about them yet. A goal already marked done is
   // not a question any more.
@@ -104,6 +117,7 @@ export function DailyLog({
   const toggle = useCallback(
     async (goal: ProgramGoal) => {
       const on = ticked.includes(goal.id);
+      onAnswer?.("toggle");
       // Optimistic: the tick moves on tap. A round trip first makes a one-tap
       // control feel broken on a slow connection.
       setTicked((prev) => (on ? prev.filter((id) => id !== goal.id) : [...prev, goal.id]));
@@ -125,8 +139,10 @@ export function DailyLog({
         setTicked((prev) => (on ? [...prev, goal.id] : prev.filter((id) => id !== goal.id)));
       }
     },
-    [ticked],
+    [ticked, onAnswer],
   );
+
+  const sheet = layout === "sheet";
 
   const takeover = (
     <FurthestMoment
@@ -142,12 +158,17 @@ export function DailyLog({
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, sheet && styles.rootSheet]}>
       {/*
         `title`, not `label`. This is a QUESTION put to the user and the only
         interactive thing on the screen below it.
       */}
-      <Text variant="title" color="primary" center>
+      <Text
+        variant={sheet ? "h2" : "title"}
+        color="primary"
+        center={!sheet}
+        style={sheet ? styles.questionSheet : undefined}
+      >
         Did any of these happen?
       </Text>
 
@@ -173,7 +194,10 @@ export function DailyLog({
       {ticked.length === 0 ? (
         <TextLink
           label={fearList ? "None of them" : "Not yet"}
-          onPress={() => setDismissed(true)}
+          onPress={() => {
+            setDismissed(true);
+            onAnswer?.("dismiss");
+          }}
         />
       ) : null}
 
@@ -191,6 +215,14 @@ const styles = StyleSheet.create({
     marginTop: spacing["3xl"],
     width: "100%",
     alignItems: "center",
+  },
+  rootSheet: {
+    marginTop: 0,
+  },
+  questionSheet: {
+    alignSelf: "stretch",
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
   },
   list: {
     alignSelf: "stretch",

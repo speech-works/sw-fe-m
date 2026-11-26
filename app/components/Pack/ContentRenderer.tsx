@@ -1,10 +1,8 @@
-import { useNavigation } from "@react-navigation/native";
-// The DARK elevation set, imported statically because these live in a static
-// StyleSheet. Scheme-aware surfaces should prefer `useTheme().elevation`.
-import { elevationDark } from "../../design-system/elevation";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import React, { useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "react-native-reanimated";
 import { View, useWindowDimensions } from "react-native";
 import {
     createPracticeActivityFromPack,
@@ -27,22 +25,16 @@ import {
 import { GoalsBlock } from "./blocks/GoalsBlock";
 import { WeekReviewBlock } from "./blocks/WeekReviewBlock";
 import {
-  size,
     Text,
     TextLink,
-    Icon,
     icons,
-    Spinner,
     useTheme,
-  accentEdge,
-  primaryEdge,
     makeStyles,
-    withAlpha,
     spacing,
-    space,
-    radius,
 } from "../../design-system";
+import { PageScrollContext } from "../../design-system/pageScroll";
 import { LIST_TEXT_INDENT, SimpleMarkdown } from "./SimpleMarkdown";
+import { LessonParts } from "./LessonText";
 import { readMinutes, teachParts } from "../../util/packs/teachParts";
 import QuizRunner, { QuizRunnerHandle } from "../Quiz/QuizRunner";
 import type { QuizFooterState } from "../Quiz/quizFooter";
@@ -60,11 +52,13 @@ import {
   classifyPackError,
   packErrorMessage,
 } from "../../util/packs/packErrors";
-import { formCardText, formStartLabel } from "../../util/packs/formBlock";
+import { formCardText, formScreenHeader, formStartLabel } from "../../util/packs/formBlock";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { reframePairs, savedPairsFromBlock } from "../../util/packs/reframeReplies";
 import { SavedReframes } from "./SavedReframes";
-import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
+import { DayLaunch, useDayFrame } from "./DayFrame";
+import { PIP_BACK, PIP_CARD_DONE, PIP_PICKED } from "./dayStepFrame";
+import { LaunchCard, LaunchLink, LaunchPart } from "./LaunchCard";
 import { VideoPlayer } from "../VideoPlayer";
 
 interface ContentRendererProps {
@@ -88,62 +82,28 @@ interface ContentRendererProps {
   textPart?: number;
   /** Lesson text size from the reading sheet. */
   textSize?: number;
+  /**
+   * A practice or log card: the day's other action for this step, the one its
+   * dock shows ("Skip"). A launch layout that gives the dock's pill to the
+   * card's own button shows it as a small link in the sheet (launchLayout.ts).
+   */
+  dockAction?: { label: string; onPress: () => void };
 }
 
 /**
- * A finished ACTIVITY/FORM block. Done work should recede, not shout — so it's a
- * calm `surface.elevated` card with a solid success badge, matching how completed
- * items read elsewhere (e.g. PracticeGrid's corner badge), NOT a bright gradient
- * hero (which stays reserved for the active call-to-action).
- */
-/**
- * A finished step, and the way back into it.
+ * ── A FINISHED STEP, AND THE WAY BACK INTO IT ──────────────────────────────
+ * A practice or a log step is a launch card on the day frame's sheet
+ * (LaunchCard, mocks 04 and 05). Done work recedes: a quiet "Completed" tag in
+ * the label's slot, and "Do it again" as a quiet button, because the only
+ * thing the screen still wants is to move on, which the dock's "Next" says in
+ * the one filled button.
  *
- * ── WHY THE RETRY IS A LINK AND NOT A BUTTON ───────────────────────────────
- * This card is not asking for anything. The step is done and the only thing
- * the screen still wants from this person is to move on, which the footer's
- * Next/Complete already says in the loudest voice on the page. A second solid
- * button here would compete with it and turn a finished step back into a
- * decision.
- *
- * But it has to be THERE. Practice you cannot repeat is not practice, and
- * these are techniques whose whole value is the reps. The card used to be a
- * dead end: once done, the only way to do it again was to abandon the module
- * and come back through the day list, which most people will never find.
+ * But the way back has to be THERE. Practice you cannot repeat is not
+ * practice, and these are techniques whose whole value is the reps.
  *
  * Doing it again NEVER un-finishes the step — see util/packs/blockCompletion
  * for why that has to be enforced rather than assumed.
  */
-const CompletedCard: React.FC<{
-  title: string;
-  children?: React.ReactNode;
-  onRetry?: () => void;
-}> = ({ title, children, onRetry }) => {
-  const { colors } = useTheme();
-  const styles = useStyles();
-  return (
-    <View style={styles.completedCard}>
-      <View style={styles.completedChip}>
-        <Icon name={icons.success} size={size.iconInline} color={colors.accentOn.success} />
-        <Text variant="label" color={colors.accentOn.success}>
-          Completed
-        </Text>
-      </View>
-      <View style={styles.textContainer}>
-        <Text variant="h2" color="primary">
-          {title}
-        </Text>
-        {children}
-      </View>
-      {onRetry ? (
-        <View style={styles.completedRetry}>
-          <TextLink label="Do it again" onPress={onRetry} underline={false} />
-        </View>
-      ) : null}
-    </View>
-  );
-};
-
 export const ContentRenderer: React.FC<ContentRendererProps> = ({
   block,
   packId,
@@ -156,9 +116,12 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   onQuizFooterChange,
   textPart = 0,
   textSize,
+  dockAction,
 }) => {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  // The day frame this step sits in (null outside it): its Pip answers a tap.
+  const dayFrame = useDayFrame();
   const storeActivities = useActivityStore((s) => s.activities);
   const styles = useStyles();
   const [loading, setLoading] = useState(false);
@@ -179,12 +142,70 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
    * short scroll is better than a lesson too small to read.
    */
   const { height: windowHeight } = useWindowDimensions();
+  // On the day frame the sheet says how much room it has: the video fills it,
+  // 28 under the sheet's edge (the frame's 24 and 4 here) and clear of the
+  // fade above the dock (28), with nothing to scroll (mock 09).
+  const sheetRoom = useContext(PageScrollContext)?.viewportHeight ?? 0;
+
+  /**
+   * Back on the card with the step just done (a practice finished, a log
+   * saved): Pip in the zone shows the warm face and nods once. The same for
+   * both cards, and nothing else: no stars, no XP. A step that is already
+   * done when the card opens gets the same nod from the frame when he has
+   * come up (dayStepFrame), so here it is only the face.
+   */
+  const isCard = block.type === ContentBlockType.ACTIVITY || block.type === ContentBlockType.FORM;
+  /**
+   * What a launch card draws in its own sheet, right under the description: a small link, "Do it again" when the step is
+   * done, otherwise the dock's other action ("Skip this practice"). The card's own button is the dock's pill (DayLaunch).
+   * Null when there is nothing: the part and its gap are then not drawn.
+   */
+  const launchAction = (start: { label: string; loading?: boolean; onPress: () => void }, skipLabel: string) => {
+    if (isCompleted) {
+      return (
+        <LaunchPart gap={6}>
+          <LaunchLink label="Do it again" disabled={start.loading} onPress={start.onPress} />
+        </LaunchPart>
+      );
+    }
+    if (!dockAction) return null;
+    return (
+      <LaunchPart gap={6}>
+        <LaunchLink label={dockAction.label === "Skip" ? skipLabel : dockAction.label} onPress={dockAction.onPress} />
+      </LaunchPart>
+    );
+  };
+  const wasCompleted = useRef(!!isCompleted), openedAt = useRef(Date.now());
+  const focused = useIsFocused();
+  const reducedMotion = useReducedMotion();
+  const doneBeat = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => doneBeat.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    // Only while this screen is the one on show: the step is marked done
+    // while the practice or the form is still over the card, and a beat he
+    // plays behind it is not seen.
+    if (!isCard || !isCompleted || !focused || wasCompleted.current) return;
+    wasCompleted.current = true;
+    const pip = () => dayFrame?.pip()?.pip;
+    if (Date.now() - openedAt.current < 1200) { pip()?.face("warm"); return; }
+    // The beats of PIP_CARD_DONE on timers of this card's own, so that
+    // nothing else he is asked to do on the way back can drop them.
+    doneBeat.current = PIP_CARD_DONE.map((beat) =>
+      setTimeout(() => {
+        if (beat.face) pip()?.face(beat.face);
+        if (beat.body && !reducedMotion) void pip()?.body(beat.body);
+      }, beat.at),
+    );
+  }, [isCard, isCompleted, focused, dayFrame, reducedMotion]);
   // `windowHeight - 360` is the room between the heading and the buttons. It only
   // takes over on small phones, where half the screen ran under the buttons.
-  const videoMaxHeight = Math.max(
-    Math.min(windowHeight * 0.5, windowHeight - 360),
-    windowHeight - 470,
-  );
+  const videoMaxHeight =
+    dayFrame && sheetRoom > 0
+      ? Math.max(160, sheetRoom - 24 - 4 - 28)
+      : Math.max(
+          Math.min(windowHeight * 0.5, windowHeight - 360),
+          windowHeight - 470,
+        );
 
   switch (block.type) {
     case ContentBlockType.TEXT: {
@@ -196,35 +217,27 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       const lessonParts = isTeach && !textContent.copy ? teachParts(textContent.markdown) : [];
       if (lessonParts.length > 1) {
         const at = Math.max(0, Math.min(textPart, lessonParts.length - 1));
+        // The chip row, the part's heading and its text, and the cross-fade
+        // between parts: see LessonText.
         return (
-          <View style={styles.textBlock}>
-            {at === 0 ? (
-              <View style={styles.partChips}>
-                <Text variant="caption" color="secondary" style={styles.partChip}>
-                  Part 1 of {lessonParts.length}
-                </Text>
-                <Text variant="caption" color="secondary" style={styles.partChip}>
-                  About {readMinutes(textContent.markdown)} min read
-                </Text>
-              </View>
-            ) : (
-              <Text variant="label" color="tertiary" style={styles.partLabel}>
-                {`PART ${at + 1} OF ${lessonParts.length}`}
-              </Text>
-            )}
-            <SimpleMarkdown
-              key={at}
-              content={lessonParts[at].markdown}
-              textColor={colors.text.primary}
-              readingSize={textSize}
-              keyLeadIns
-              flushTop
-            />
-          </View>
+          <LessonParts
+            parts={lessonParts}
+            at={at}
+            minutes={readMinutes(textContent.markdown)}
+            textSize={textSize}
+          />
         );
       }
+      // The start and the close of the day (bridge_in / bridge_out) are plain
+      // text straight on the day frame's sheet, 24 from the screen edge. Each
+      // paragraph is its own block in SimpleMarkdown, so a text with one
+      // paragraph (the last day has no "tomorrow") leaves no gap behind.
+      const isBridge = textContent.role === "bridge_in" || textContent.role === "bridge_out";
+      // A lesson with one part, on the day frame's sheet: no chip row (and so
+      // no gap for it), the big heading with its rule at the top.
+      const lessonOnSheet = isTeach && !!dayFrame;
       return (
-        <View style={styles.textBlock}>
+        <View style={isBridge ? styles.bridgeText : lessonOnSheet ? styles.lessonText : styles.textBlock}>
           {/* Reading copy sits directly on the dark canvas — light-on-dark. */}
           {/* `{{copyButton}}` on its own line marks where the Copy button goes,
               right under the sentence that tells the reader to send the text.
@@ -256,6 +269,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                         textColor={colors.text.primary}
                         readingSize={isTeach ? textSize : undefined}
                         keyLeadIns={isTeach}
+                        leadHeading={lessonOnSheet && i === 0 ? "big" : undefined}
                       />
                     ) : null}
                     {i < parts.length - 1 ? button(part) : null}
@@ -278,7 +292,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         videoContent.thumbnailUrl,
       );
       return (
-        <View style={styles.mediaContainer}>
+        <View style={dayFrame ? styles.mediaOnSheet : styles.mediaContainer}>
           {/*
             No isLocked or onPressUnlock. Both were passed for years and neither
             ever did anything: the server writes isLocked nowhere, so the prop
@@ -481,99 +495,40 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         />
       );
 
-      // Done → calm success card; active → solid action.primary CTA hero.
-      if (isCompleted) {
-        return (
-          <>
-          <CompletedCard
-            title={stepTitle}
-            onRetry={handleStartActivity}
-          >
-            <SimpleMarkdown content={cardLine} textColor={colors.text.secondary} />
-            <SavedReframes pairs={savedReframes} />
-            {hasMore ? (
-              <TextLink
-                label="More about this step"
-                onPress={() => setShowStepSheet(true)}
-                underline
-              />
-            ) : null}
-          </CompletedCard>
-          {stepSheet}
-          {exhaustionSheet}
-          </>
-        );
-      }
-
-      const ink = colors.action.onPrimary;
-
+      // The whole sheet is the card (LaunchCard). Only the pinned button
+      // starts the step, so the hints and "More about this step" are their
+      // own taps and never start a call.
+      const minutes = (content as ReferenceBlockContent & { estimatedMinutes?: number }).estimatedMinutes;
       return (
         <>
-        {/* The card is a plain surface. Only the title, the task line and
-            the Start button start the step, so the hints and "More about
-            this step" below are their own taps and never start a call. */}
-        <View style={styles.card}>
-          <View style={[styles.cardFill, { backgroundColor: colors.action.primary }, primaryEdge(colors)]}>
-            {/* Decorative bubbles — subtle ink wash on the bright fill. */}
-            <View
-              style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
-              pointerEvents="none"
-            />
-            <View
-              style={[styles.bubbleBottomLeft, { backgroundColor: withAlpha(ink, 0.1) }]}
-              pointerEvents="none"
-            />
-
-            <View style={styles.cardContent}>
-              <TactileTouchableOpacity
-                onPress={handleStartActivity}
-                disabled={loading}
-                activeOpacity={0.9}
-                style={{ gap: space.groupGap, alignItems: "flex-start", alignSelf: "stretch" }}
-              >
-                {/* Title and Description — no eyebrow (matches home card language). */}
-                <View style={styles.textContainer}>
-                  <Text variant="h2" color={ink}>
-                    {stepTitle}
-                  </Text>
-                  <SimpleMarkdown content={cardLine} textColor={ink} />
-                </View>
-
-                {/* Action = solid dark island (matches home hero CTAs). */}
-                <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
-                  {loading ? (
-                    <Spinner size="small" color={colors.action.onSecondary} />
-                  ) : (
-                    <>
-                      <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
-                      <Text variant="title" color={colors.action.onSecondary}>
-                        {startLabel}
-                      </Text>
-                    </>
-                  )}
-                </View>
-              </TactileTouchableOpacity>
-
-              {stepCard?.hints.length ? (
-                <View style={{ gap: spacing.sm, alignSelf: "stretch" }}>
+          <LaunchCard tone="practice" minutes={minutes} completed={isCompleted} title={stepTitle}>
+            <LaunchPart>
+              <SimpleMarkdown content={cardLine} textColor={colors.text.secondary} readingSize={15} />
+            </LaunchPart>
+            {launchAction({ label: startLabel, loading, onPress: handleStartActivity }, "Skip this practice")}
+            {!isCompleted && stepCard?.hints.length ? (
+              <LaunchPart gap={8}>
+                <View style={styles.hints}>
                   {stepCard.hints.map((h, i) => (
-                    <StepHint key={i} kind={h.kind} text={h.text} color={ink} />
+                    <StepHint key={i} kind={h.kind} text={h.text} color={colors.text.secondary} />
                   ))}
                 </View>
-              ) : null}
-              {hasMore ? (
-                <TextLink
-                  label="More about this step"
-                  onPress={() => setShowStepSheet(true)}
-                  color={ink}
-                  underline
-                />
-              ) : null}
-            </View>
-          </View>
-        </View>
-        {stepSheet}
-        {exhaustionSheet}
+              </LaunchPart>
+            ) : null}
+            {isCompleted && savedReframes.length > 0 ? (
+              <LaunchPart gap={12}>
+                <SavedReframes pairs={savedReframes} />
+              </LaunchPart>
+            ) : null}
+            {hasMore ? (
+              <LaunchPart gap={12}>
+                <TextLink label="More about this step" onPress={() => setShowStepSheet(true)} align="left" underline />
+              </LaunchPart>
+            ) : null}
+          </LaunchCard>
+          <DayLaunch label={startLabel} icon={icons.play} loading={loading} completed={!!isCompleted} onPress={handleStartActivity} />
+          {stepSheet}
+          {exhaustionSheet}
         </>
       );
     }
@@ -607,62 +562,31 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           // because this day payload was loaded before the user left for the
           // activity and is not refetched on the way back.
           hasRecall: !!formContent.recallFrom,
-          // Reflection flow accent — keeps the form's inner controls in sync
-          // with the purple reflection card that opened it.
+          // No longer read by the form screen (its action is the brand orange,
+          // founder decision 2026-11-27). Kept so the route's params do not change.
           accentKey: "purple",
         });
       };
 
-      // Done → calm success card; active → a solid purple hero (the app's
-      // "reflect / write it down" accent), distinct from the orange practice
-      // hero so the two block types read as different steps at a glance.
-      if (isCompleted) {
-        return (
-          <CompletedCard title={formTitle} onRetry={handleStartForm}>
-            {formBody ? (
-              <SimpleMarkdown content={formBody} textColor={colors.text.secondary} />
-            ) : null}
-          </CompletedCard>
-        );
-      }
-
-      const ink = colors.accentOn.purple;
-
+      // The same launch card as a practice (LaunchCard, mock 05). Purple is
+      // only the small "LOG" label; the action is the brand orange (founder
+      // decision, 2026-11-27).
+      // With no text of its own for the card, the step shows the form's
+      // one-line summary, the line the form screen shows under the same title.
+      const cardBody =
+        formBody || formScreenHeader(config, formContent?.titleOverride, formContent?.descriptionOverride).description;
       return (
-        <TactileTouchableOpacity
-          style={styles.card}
-          onPress={handleStartForm}
-          activeOpacity={0.9}
-        >
-          <View style={[styles.cardFill, { backgroundColor: colors.accent.purple }, accentEdge(colors, "purple")]}>
-            <View
-              style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
-              pointerEvents="none"
-            />
-            <View
-              style={[styles.bubbleBottomLeft, { backgroundColor: withAlpha(ink, 0.1) }]}
-              pointerEvents="none"
-            />
-
-            <View style={styles.cardContent}>
-              {/* Title and Description — no eyebrow (matches home card language). */}
-              <View style={styles.textContainer}>
-                <Text variant="h2" color={ink}>
-                  {formTitle}
-                </Text>
-                {formBody ? <SimpleMarkdown content={formBody} textColor={ink} /> : null}
-              </View>
-
-              {/* Action = solid dark island (matches home hero CTAs). */}
-              <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
-                <Icon name={icons.play} size={size.iconSm} color={colors.action.onSecondary} />
-                <Text variant="title" color={colors.action.onSecondary}>
-                  {formStartLabel(config?.formKey, config?.fields)}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </TactileTouchableOpacity>
+        <>
+          <LaunchCard tone="log" completed={isCompleted} title={formTitle}>
+            {cardBody ? (
+              <LaunchPart>
+                <SimpleMarkdown content={cardBody} textColor={colors.text.secondary} readingSize={15} />
+              </LaunchPart>
+            ) : null}
+            {launchAction({ label: formStartLabel(config?.formKey, config?.fields), onPress: handleStartForm }, "Skip for now")}
+          </LaunchCard>
+          <DayLaunch label={formStartLabel(config?.formKey, config?.fields)} icon={icons.play} completed={!!isCompleted} onPress={handleStartForm} />
+        </>
       );
     }
 
@@ -685,6 +609,30 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           ref={quizRef}
           questions={questions}
           eyebrow={quiz.mode === "recall" ? "FROM YESTERDAY" : "CHECK"}
+          // Every quiz of a day sits straight on the day frame's sheet. For
+          // "From yesterday" the frame's orange zone says so (dayStepFrame),
+          // so the number tile and the label row are not drawn.
+          plain={!!dayFrame}
+          // A check quiz has no zone title, so it keeps its own row: number
+          // tile, "CHECK" and "Question 1 of 3" (mock 03). No card: the sheet
+          // is the card.
+          kindRow={quiz.mode !== "recall"}
+          // Pip in the zone nods when an answer is picked: the same nod for
+          // every answer, before Check, so it never marks right or wrong.
+          onPick={quiz.mode === "recall" ? () => void dayFrame?.pip()?.pip?.perform(PIP_PICKED) : undefined}
+          // While the answer sheet is up, the Pip that peeks over it has the
+          // moment: the one in the zone goes down behind the page sheet, and
+          // comes back up when the answer sheet has closed.
+          onSheet={
+            quiz.mode === "recall"
+              ? (open) => {
+                  const pip = dayFrame?.pip();
+                  if (!pip) return;
+                  if (open) void pip.down();
+                  else void pip.rise({ quiet: true }).then(() => pip.pip?.perform(PIP_BACK));
+                }
+              : undefined
+          }
           // Explain each answer as it is given. Every option carries an
           // explanation and a wrong answer costs nothing here, so there is no
           // reason to make somebody wait until the end to find out.
@@ -733,16 +681,17 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   }
 };
 
-const useStyles = makeStyles((c) => ({
-  partChips: { flexDirection: "row", gap: 8, marginTop: 8 },
-  partChip: {
-    backgroundColor: c.surface.default,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    overflow: "hidden",
+const useStyles = makeStyles(() => ({
+  // A one-part lesson on the day frame's sheet: 24 from the screen edge (the
+  // frame's content has the 16 gutter). Split lessons: LessonText.
+  lessonText: { paddingHorizontal: spacing.sm, gap: spacing.lg },
+  // 24 from the screen edge (the frame's content has the 16 gutter), 10 more above
+  // (34 under the sheet's edge)
+  bridgeText: {
+    paddingHorizontal: spacing.sm,
+    paddingTop: 10,
+    gap: spacing.lg,
   },
-  partLabel: { marginTop: 8 },
   textBlock: {
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.xs,
@@ -753,80 +702,10 @@ const useStyles = makeStyles((c) => ({
   mediaContainer: {
     marginBottom: spacing.xl,
   },
-  // Solid vivid hero card (active ACTIVITY / FORM) — matches the home hero cards.
-  card: {
-    marginBottom: spacing.xl,
-    borderRadius: radius.card,
-    ...elevationDark.e3,
+  // The video on the day frame's sheet: 28 under the sheet's edge. It is the
+  // only thing on the sheet, so it owns no gap under it.
+  mediaOnSheet: {
+    paddingTop: 4,
   },
-  cardFill: {
-    borderRadius: radius.card,
-    padding: spacing.xl,
-    overflow: "hidden",
-    position: "relative",
-  },
-  bubbleTopRight: {
-    position: "absolute",
-    top: -40,
-    right: -40,
-    width: 140,
-    height: 140,
-    borderRadius: radius.full,
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -20,
-    left: -20,
-    width: 90,
-    height: 90,
-    borderRadius: radius.full,
-  },
-  cardContent: {
-    zIndex: 1,
-    gap: space.groupGap,
-    alignItems: "flex-start",
-  },
-  textContainer: {
-    gap: space.titleSub,
-  },
-  cta: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: space.inlineGap,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    marginTop: spacing.xs,
-  },
-  // Completed card — calm surface, solid success badge (matches app convention)
-  completedCard: {
-    marginBottom: spacing.xl,
-    borderRadius: radius.card,
-    padding: spacing.xl,
-    backgroundColor: c.surface.elevated,
-    borderWidth: 1,
-    borderColor: c.border.hairline,
-    gap: space.groupGap,
-    alignItems: "flex-start",
-  },
-  /**
-   * Divided from the card's own content, because it is an action and the rest
-   * is a record. `groupGap` alone read as a fourth line of the same block.
-   */
-  completedRetry: {
-    alignSelf: "stretch",
-    paddingTop: space.groupGap,
-    borderTopWidth: 1,
-    borderTopColor: c.border.hairline,
-  },
-  completedChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    gap: space.inlineGap,
-    backgroundColor: c.accent.success,
-  },
+  hints: { gap: spacing.sm, alignSelf: "stretch" },
 }));

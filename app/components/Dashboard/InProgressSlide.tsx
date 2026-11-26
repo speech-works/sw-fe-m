@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import PressableScale from "../PressableScale";
 import {
   Icon,
@@ -10,13 +10,15 @@ import {
   size,
   space,
   spacing,
+  fonts,
   useTheme,
   withAlpha,
 } from "../../design-system";
 import type { ActiveProgram } from "./useActiveProgram";
 import { dayCloseLine } from "../../util/packs/dayLock";
 import { packIconFor } from "./packIcon";
-import CoverSlide from "./CoverSlide";
+import { CoverBook } from "../ProgramCoverArt";
+import { COVER_SLIDE_HEIGHT } from "./CoverSlide";
 import { programCoverFor } from "../../util/packs/programCover";
 
 /**
@@ -116,7 +118,19 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
    */
   const cover = programCoverFor(program.catalogKey, program.coverImage);
   if (cover) {
+    // Mock 14: the day screens in small. An orange top holds the status and the
+    // program's name, its cover tucked behind a small sheet; the sheet holds the
+    // next day, the day bar and the button.
+    //
+    // "NEXT UP" and its day line are ONE block that owns its top gap. When the
+    // program is done (a refresher) there is no next day, so the block renders
+    // nothing and the bar row moves up. The bar has one segment per day.
     const showBar = !program.isRefresher && totalModules > 0;
+    const showNext = !program.isRefresher && !!nextModule;
+    const doneDays = Math.round(
+      Math.max(0, Math.min(1, percentComplete)) * totalModules,
+    );
+    const sheetBg = colors.surface.default;
     return (
       <PressableScale
         scaleTo={0.98}
@@ -125,77 +139,81 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
         accessibilityLabel={a11yLabel}
         style={styles.press}
       >
-        <CoverSlide
-          cover={cover}
-          radius={radius.card}
-          border={colors.border.default}
-          label={
-            <View style={[styles.coverChip, { backgroundColor: colors.action.primary }]}>
-              <Text variant="eyebrow" color={ink} numberOfLines={1}>
+        <View
+          style={[
+            styles.homeCard,
+            { backgroundColor: colors.action.primary },
+            primaryEdge(colors),
+          ]}
+        >
+          <View style={styles.homeZone}>
+            <View style={styles.homeWords}>
+              <Text variant="eyebrow" color={ink} numberOfLines={1} style={styles.homeLabel}>
                 {program.isRefresher ? "YOU FINISHED THIS" : "IN PROGRESS"}
               </Text>
-            </View>
-          }
-          title={program.title}
-          note={
-            program.isRefresher ? (
-              <Text variant="bodySm" color="secondary" numberOfLines={2}>
-                Start it again from day one.
+              <Text variant="h2" color={ink} numberOfLines={3} style={styles.homeTitle}>
+                {program.title}
               </Text>
-            ) : nextModule ? (
-              <>
-                <Text variant="caption" color="tertiary">
+            </View>
+            {/* The cover stands on the sheet's edge and goes behind it: the
+                sheet is drawn after the zone, so its edge covers the cover's
+                lowest tenth. Tied to the zone's bottom, so it stays tucked
+                however tall the zone is. */}
+            <View style={styles.homeCover} pointerEvents="none">
+              <CoverBook cover={cover} width={HOME_COVER_W} radius={radius.md} style={styles.flat} />
+            </View>
+          </View>
+          <View style={[styles.homeSheet, { backgroundColor: sheetBg }]}>
+            {showNext ? (
+              <View style={styles.homeNext}>
+                <Text variant="eyebrow" color={colors.text.secondary} style={styles.homeNextLabel}>
                   {dayLocked ? "TODAY" : "NEXT UP"}
                 </Text>
-                <Text variant="label" color="primary" numberOfLines={2} style={styles.coverNext}>
-                  {/* As on the plain card: never advertise a day that cannot
-                      be started. */}
-                  {dayLocked ? dayCloseLine(dayCloseState) : nextModule.title}
+                <Text variant="title" color="primary" numberOfLines={2} style={styles.homeNextLine}>
+                  {/* Never advertise a day that cannot be started. */}
+                  {dayLocked ? dayCloseLine(dayCloseState) : nextModule?.title}
                 </Text>
-              </>
-            ) : null
-          }
-          detail={
-            showBar ? (
-              <>
-                <Text variant="caption" color="secondary" numberOfLines={1}>
-                  Day {moduleOrder} of {totalModules}
-                </Text>
-                <View
-                  style={[
-                    styles.bar,
-                    styles.coverBar,
-                    { backgroundColor: withAlpha(colors.text.primary, 0.14) },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.barFill,
-                      {
-                        backgroundColor: colors.action.primary,
-                        width: `${Math.round(
-                          Math.max(0, Math.min(1, percentComplete)) * 100,
-                        )}%`,
-                      },
-                    ]}
-                  />
+              </View>
+            ) : null}
+            <View style={styles.homeRow}>
+              {showBar ? (
+                <View style={styles.homeDetail}>
+                  <Text variant="caption" color="secondary" numberOfLines={1}>
+                    Day {moduleOrder} of {totalModules}
+                  </Text>
+                  <View style={styles.segs}>
+                    {Array.from({ length: totalModules }, (_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.seg,
+                          {
+                            backgroundColor:
+                              i < doneDays
+                                ? colors.action.primary
+                                : colors.surface.control,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
                 </View>
-              </>
-            ) : null
-          }
-          action={
-            <View style={[styles.coverCta, { backgroundColor: colors.action.primary }]}>
-              <Icon
-                name={dayLocked ? icons.success : icons.play}
-                size={size.iconInline}
-                color={ink}
-              />
-              <Text variant="label" color={ink}>
-                {ctaLabel}
-              </Text>
+              ) : (
+                <View style={styles.homeDetail} />
+              )}
+              <View style={[styles.coverCta, { backgroundColor: colors.action.primary }]}>
+                <Icon
+                  name={dayLocked ? icons.success : icons.play}
+                  size={size.iconInline}
+                  color={ink}
+                />
+                <Text variant="label" color={ink}>
+                  {ctaLabel}
+                </Text>
+              </View>
             </View>
-          }
-        />
+          </View>
+        </View>
       </PressableScale>
     );
   }
@@ -329,11 +347,19 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
 
 export default InProgressSlide;
 
+/** The cover on the Home card, tucked behind the small sheet. */
+const HOME_COVER_W = 82;
+/** How far the cover goes behind the sheet. */
+const HOME_COVER_TUCK = 11;
+
 const styles = StyleSheet.create({
   // `flex: 1` on both, so the slide fills whatever height the tallest card in
   // the row establishes. Without it the card keeps its natural size and the
   // carousel leaves a gap under the short ones.
-  press: { flex: 1 },
+  // The floor is on the pressable itself, not only on the card inside it: on
+  // native a `flex: 1` chain under an auto-height carousel row can resolve to 0
+  // and leave the card empty (seen on the S22).
+  press: { flex: 1, minHeight: COVER_SLIDE_HEIGHT },
   card: {
     flex: 1,
     borderRadius: radius.card,
@@ -371,20 +397,44 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     marginTop: spacing.lg,
   },
-  coverChip: {
-    alignSelf: "flex-start",
-    paddingHorizontal: space.inlineGap + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.chip,
+  homeCard: {
+    flex: 1,
+    minHeight: COVER_SLIDE_HEIGHT,
+    borderRadius: radius.card,
+    overflow: "hidden",
+    padding: 2,
   },
-  coverBar: { marginTop: spacing.xs + 2 },
-  coverNext: { marginTop: spacing.xxs },
+  homeZone: { flexGrow: 1, flexShrink: 0, minHeight: 116, paddingTop: 18, paddingLeft: space.cardPad - 2, paddingRight: HOME_COVER_W + 36 },
+  homeWords: { minWidth: 0 },
+  homeLabel: { fontSize: 12, lineHeight: 16, letterSpacing: 1 },
+  homeTitle: { marginTop: spacing.xs, fontSize: 22, lineHeight: 26, fontFamily: fonts.extrabold, fontWeight: "800", letterSpacing: -0.4 },
+  homeCover: { position: "absolute", bottom: -HOME_COVER_TUCK, right: 20 },
+  flat: Platform.select({
+    web: { boxShadow: "none" } as object,
+    default: { shadowOpacity: 0, elevation: 0 },
+  }) as object,
+  homeSheet: {
+    borderTopLeftRadius: radius.card - 4,
+    borderTopRightRadius: radius.card - 4,
+    borderBottomLeftRadius: radius.card - 2,
+    borderBottomRightRadius: radius.card - 2,
+    paddingHorizontal: space.cardPad - 2,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  homeNext: { marginBottom: spacing.lg },
+  homeNextLabel: { fontSize: 11, lineHeight: 14, letterSpacing: 1 },
+  homeNextLine: { marginTop: 2, fontSize: 15, lineHeight: 20 },
+  homeRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  homeDetail: { flex: 1, minWidth: 0 },
+  segs: { flexDirection: "row", gap: 3, marginTop: 6 },
+  seg: { flex: 1, height: 4, borderRadius: 2 },
   coverCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: 13,
     borderRadius: radius.pill,
   },
 });

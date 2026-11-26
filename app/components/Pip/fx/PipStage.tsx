@@ -6,7 +6,8 @@
  */
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { View, useWindowDimensions } from "react-native";
-import { useFrameCallback, useReducedMotion, useSharedValue } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 import { Pip } from "../Pip";
 import type { PipHandle, PipProps } from "../Pip";
 import { FxLayer } from "./FxLayer";
@@ -30,11 +31,16 @@ export interface PipStageProps extends PipProps {
   effect: FxEffect | null;
   /** false = particles only, no sounds. */
   sound?: boolean;
+  /** Peeking (PipPeek): Pip's figure is cut off below this line (px from the stage top), so while he slides behind a button
+   *  or sheet he can never show below it. Only the figure is cut: the effect's particles stay free. */
+  figureClip?: number;
+  /** Peeking: moves Pip's figure down (px) inside the stage, under `figureClip`. */
+  figureY?: SharedValue<number>;
   /** The visible screen in window px (default: the whole window). The web preview page puts a phone screen inside the browser window. */
   screen?: { x: number; y: number; width: number; height: number };
 }
 
-export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect, sound = true, screen, ...pip }, ref) {
+export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect, sound = true, screen, figureClip, figureY, ...pip }, ref) {
   const reduced = useReducedMotion();
   const pipRef = useRef<PipHandle>(null);
   const clock = useSharedValue(-1), t0 = useSharedValue(-1), endMs = useSharedValue(0);
@@ -67,15 +73,23 @@ export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipSt
     timers.current.push(setTimeout(() => { run.value = 0; clock.value = -1; frame.setActive(false); res(); }, effect.ms + 50));
   }), [effect, sound, reduced, frame, clock, t0, endMs, run, measure]);
   useImperativeHandle(ref, () => ({ get pip() { return pipRef.current; }, fire }), [fire]);
+  const noShift = useSharedValue(0), shift = figureY ?? noShift;
+  const figSt = useAnimatedStyle(() => ({ transform: [{ translateY: shift.value }] }));
+  const figure = (
+    <Animated.View style={[{ position: "absolute", left: Math.round((stageW - pip.size) / 2), top }, figSt]}>
+      <Pip ref={pipRef} {...pip} scene={"scene" in pip ? pip.scene : effect?.scene ?? null} />
+    </Animated.View>);
   return (
     // zIndex: the stage (and so its effects) floats above the screen's other content
     <View ref={root} onLayout={measure} style={{ width: stageW, height: stageH, zIndex: 50 }} pointerEvents="none">
       <View pointerEvents="none" style={fxBox}>
         <FxLayer effect={effect} layer="back" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
       </View>
-      <View style={{ position: "absolute", left: Math.round((stageW - pip.size) / 2), top }}>
-        <Pip ref={pipRef} {...pip} scene={"scene" in pip ? pip.scene : effect?.scene ?? null} />
-      </View>
+      {figureClip == null ? figure : (
+        // the cut box reaches far above and to the sides (raised hands, a hop), and ends exactly at figureClip
+        <View pointerEvents="none" style={{ position: "absolute", left: -pip.size, top: -pip.size, width: stageW + 2 * pip.size, height: figureClip + pip.size, overflow: "hidden" }}>
+          <View style={{ position: "absolute", left: pip.size, top: pip.size }}>{figure}</View>
+        </View>)}
       <View pointerEvents="none" style={fxBox}>
         <FxLayer effect={effect} layer="front" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
       </View>
