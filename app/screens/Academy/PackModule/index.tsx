@@ -1576,12 +1576,6 @@ const PackModuleScreen = () => {
   const currentBlock = blocks[currentBlockIndex];
   const isLastBlock = currentBlockIndex >= blocks.length - 1;
   const isFirstBlock = currentBlockIndex === 0;
-  // A step that is only reading has nothing to tap, so the page runs behind the
-  // buttons as it does on the practice screens. Every other step has controls
-  // of its own and keeps the docked footer (see Page `footerDocked`).
-  const isReadingOnly =
-    currentBlock?.type === ContentBlockType.TEXT &&
-    !(currentBlock.content as TextBlockContent).copy;
   const totalBlocks = blocks.length || 1;
 
   if (!module) {
@@ -1681,8 +1675,9 @@ const PackModuleScreen = () => {
       compactHeader={!isFirstBlock}
       onBack={() => navigation.goBack()}
       keyboardAvoiding
-      footerDocked={!isReadingOnly}
-      footerMelt={isReadingOnly}
+      // Docked on every step (founder, 2026-11-26): on a lesson part the floating footer let the text run behind the
+      // see-through Back button and read through it. The docked strip has its own fade above it.
+      footerDocked
       scrollResetKey={`${currentBlockIndex}:${partIndex}`}
       footer={
         <View style={styles.footerRow}>

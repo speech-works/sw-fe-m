@@ -428,9 +428,12 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
                   { backgroundColor: gotItRight ? colors.accent.success : colors.surface.control },
                 ]}
               >
+                {/* "Not this one" gets a lightbulb, the app's tip icon: here is the idea, never a mark (founder, Q1 A) */}
                 {gotItRight ? (
                   <Icon name="check" size={size.iconXs} color={colors.accentOn.success} />
-                ) : null}
+                ) : (
+                  <Icon name="lightbulb" size={size.iconXs} color={colors.text.secondary} />
+                )}
               </View>
               <Text variant="h3" color={gotItRight ? colors.feedback.successText : "primary"}>
                 {gotItRight ? "Correct" : "Not this one"}
