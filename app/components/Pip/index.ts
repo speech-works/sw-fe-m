@@ -1,2 +1,2 @@
-export { Pip, PIP_BODY, PIP_FACES, PIP_MOVES } from "./Pip";
-export type { PipBody, PipFace, PipHandle, PipMove, PipProps, PipVariant } from "./Pip";
+export { Pip, PIP_BODY, PIP_BODY_MS, PIP_ENTER, PIP_EXIT, PIP_IN, PIP_OUT, PIP_FACES, PIP_MOVES, PIP_MOVE_MS } from "./Pip";
+export type { PipBeat, PipBody, PipFace, PipHandle, PipMove, PipProps, PipVariant } from "./Pip";

@@ -14,16 +14,18 @@ import { navigationRef } from "../util/functions/navigation";
 // The Pip lab: dev builds open it from the dev menu. A release build made with EXPO_PUBLIC_PIP_LAB=1 (speed checks on a real phone)
 // opens it at start. Normal release builds do not register it.
 import PipLab from "../screens/PipLab";
+import FxLab from "../screens/FxLab";
 const PIP_LAB = __DEV__ || process.env.EXPO_PUBLIC_PIP_LAB === "1";
 const toPipLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "PipLab" }] }); };
+const toFxLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "FxLab" }] }); };
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   useEffect(() => {
     // the lab replaces the whole stack, so nothing else on screen costs frames while it measures (Reload to leave it)
-    if (__DEV__) DevSettings.addMenuItem("Pip lab", toPipLab);
-    if (!__DEV__ && PIP_LAB) { const h = setTimeout(toPipLab, 1500); return () => clearTimeout(h); }
+    if (__DEV__) { DevSettings.addMenuItem("Pip lab", toPipLab); DevSettings.addMenuItem("FX lab", toFxLab); }
+    if (!__DEV__ && PIP_LAB) { const h = setTimeout(toFxLab, 1500); return () => clearTimeout(h); }
   }, []);
   useEffect(() => {
     console.log("AppNavigator mounted");
@@ -36,6 +38,7 @@ export default function AppNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Root" component={BottomTabNavigator} />
       {PIP_LAB ? <Stack.Screen name="PipLab" component={PipLab} /> : null}
+      {PIP_LAB ? <Stack.Screen name="FxLab" component={FxLab} /> : null}
       <Stack.Screen name="ExploreStack" component={ExploreStackNavigator} />
       <Stack.Screen
         name="PremiumModal"

@@ -8,6 +8,8 @@
  */
 import React, { useCallback, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { runOnJS, useFrameCallback, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PIP_BODY, PIP_FACES, PIP_MOVES, Pip } from "../../components/Pip";
@@ -25,6 +27,7 @@ function stat(run: string, ft: number[]): Stat {
 export default function PipLab() {
   const { width } = useWindowDimensions(), insets = useSafeAreaInsets();
   const pip = useRef<PipHandle>(null);
+  const nav = useNavigation<NavigationProp<ParamListBase>>();
   const [variant, setVariant] = useState<PipVariant>("pip"), [mode, setMode] = useState<"light" | "dark">("dark");
   const [hide, setHide] = useState(false), [noCut, setNoCut] = useState(false), [sz, setSz] = useState(360), [noHands, setNoHands] = useState(false), [jelly, setJelly] = useState(true), [jHold, setJHold] = useState(false);
   const [hold, setHold] = useState<[PipMove, number] | null>(null), [busy, setBusy] = useState(false), [rows, setRows] = useState<string[]>([]);
@@ -65,6 +68,7 @@ export default function PipLab() {
           <Bt label="Pip-f" on={variant === "pip-f"} onPress={() => setVariant("pip-f")} />
           <Bt label={mode === "dark" ? "Dark" : "Light"} onPress={() => setMode(m => (m === "dark" ? "light" : "dark"))} />
           <Bt label="Test" onPress={test} />
+          <Bt label="FX lab" onPress={() => nav.navigate("FxLab")} />
         </View>
         <View style={st.row}>
           <Bt label="Idle 5 s" onPress={async () => { setBusy(true); await record(`idle 5 s ${sz} dp${hide ? " (no Pip)" : ""}${noCut ? " (no cut)" : ""}${noHands ? " (no hands)" : ""}`, () => sleep(5000)); setBusy(false); }} />
