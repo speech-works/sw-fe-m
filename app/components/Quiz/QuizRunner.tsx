@@ -21,6 +21,7 @@ import {
   radius,
   borderWidth,
 } from "../../design-system";
+import { PipPeek } from "../Pip/PipPeek";
 import { QuizFooterState, quizFooterAction } from "./quizFooter";
 
 /**
@@ -419,7 +420,12 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
       </Surface>
 
       {explanationSheet ? (
-        <Sheet visible={sheetOpen && revealed} onClose={() => setSheetOpen(false)}>
+        <Sheet
+          visible={sheetOpen && revealed}
+          onClose={() => setSheetOpen(false)}
+          // Pip peeks over the sheet's top edge for the answer (founder picks M3 A, M4 A; placement A)
+          above={sheetOpen && revealed ? (space: number) => <PipPeek key={index + ":" + (gotItRight ? "r" : "n")} moment={gotItRight ? "quiz-right" : "quiz-not-this"} space={space} /> : undefined}
+        >
           <View style={styles.sheetBody}>
             <View style={styles.sheetResult}>
               <View

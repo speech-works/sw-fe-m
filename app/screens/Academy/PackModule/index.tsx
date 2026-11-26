@@ -101,6 +101,7 @@ import {
   sameBlockIndex,
   takeSavedSteps,
 } from "../../../util/packs/dayRefresh";
+import { showPipMoment } from "../../../components/Pip";
 import { dayStepKey, resumeStepIndex } from "../../../util/packs/dayStep";
 
 type PackModuleScreenRouteProp = RouteProp<
@@ -1106,6 +1107,15 @@ const PackModuleScreen = () => {
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
+  // Pip's day-done moment (founder pick M5: Star burst), once each time the day-done view shows. No text of its own: the
+  // view's heading already says "Day N done".
+  const dayDonePip = useRef(false);
+  useEffect(() => {
+    if (!showSuccess) { dayDonePip.current = false; return; }
+    if (dayDonePip.current) return;
+    dayDonePip.current = true;
+    void showPipMoment("day-done", { title: undefined, body: undefined });
+  }, [showSuccess]);
   /** Handed to DailyLog so it does not refetch what handleComplete just read. */
   const [goalsAfterModule, setGoalsAfterModule] = useState<
     ProgramGoal[] | undefined
