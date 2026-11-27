@@ -44,7 +44,7 @@ import Animated, { FadeIn, useAnimatedScrollHandler, useAnimatedStyle, useReduce
 import type { SharedValue } from "react-native-reanimated";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
-import { Button, Gradient, Icon, Text, fonts, haptics, icons, radius, space, useKeyboardInset, useNavBarInset, useTheme } from "../../design-system";
+import { Button, Gradient, Icon, Text, fonts, haptics, icons, radius, space, useKeyboardInset, useTheme } from "../../design-system";
 import type { IconName, PageScrollState } from "../../design-system";
 import { PageScrollContext } from "../../design-system/pageScroll";
 import type { PipFace } from "../Pip/Pip";
@@ -158,7 +158,6 @@ export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = t
   const reduced = useReducedMotion();
   const safe = useContext(SafeAreaInsetsContext);
   const keyboardInset = useKeyboardInset();
-  const navBarInset = useNavBarInset();
   const top = safe?.top ?? 0, bottom = safe?.bottom ?? 0;
   const sheetBg = sheetFill(colors, scheme), ink = colors.action.onPrimary;
 

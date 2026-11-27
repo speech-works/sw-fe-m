@@ -359,7 +359,7 @@ function JellyBox({ mv, jel, piv, u, w, h, children }: { mv: Mv; jel: any; piv: 
 }
 
 /** Pip, drawn live. Decorative: the screen around him says what happened. */
-export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip", size, blob = true, blobColour, backdrop, face = "calm", hold = null, startHidden = false, jelly = true, motionStyle = "v2", scene = null, labJellyHold = false, labNoCut = false, labNoHands = false }, ref) {
+export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip", size, blob = true, blobColour, face = "calm", hold = null, startHidden = false, jelly = true, motionStyle = "v2", scene = null, labJellyHold = false, labNoCut = false, labNoHands = false }, ref) {
   const B = useMemo(() => bundle(variant), [variant]);
   const uid = useMemo(() => "p" + UID++ + "_", []);
   const reduced = useReducedMotion();
