@@ -8,7 +8,6 @@ import Reanimated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
-import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 import PressableScale from "../../../../../components/PressableScale";
 import {
     LibStackNavigationProp,
@@ -181,41 +180,25 @@ const SummaryPage = () => {
     (item) => item.yourAnswer.isCorrect,
   ).length;
   const totalCount = finalAnswers.length;
-  const scorePercentage = Math.round((correctCount / totalCount) * 100);
 
   const goBack = () =>
     from === "MOOD_CHECK"
       ? navigation.navigate("Root" as any, { screen: "HOME" })
       : navigation.navigate("Library", { from });
 
-  // The hero gradient is tone-graded by score band — celebrate / energise /
-  // encourage. A low score gets the cool aurora, never a shaming red. The ink
-  // is the accentOn shade AA-paired with each gradient's end stop.
-  const band: { token: GradientName; ink: string } =
-    scorePercentage >= 80
-      ? { token: "meadow", ink: colors.accentOn.success }
-      : scorePercentage >= 60
-        ? { token: "sunrise", ink: colors.accentOn.danger }
-        : { token: "aurora", ink: colors.accentOn.info };
+  // One calm hero for every result. The colour, the words and the confetti used
+  // to change with the score band, which graded the person. Now the same blue
+  // and the same plain words show for a 1/5 and a 5/5; the fraction and the
+  // per-question marks stay because they show answers, not praise. The ink is
+  // the accentOn shade AA-paired with the gradient's end stop.
+  const band: { token: GradientName; ink: string } = {
+    token: "aurora",
+    ink: colors.accentOn.info,
+  };
   const inkMuted = withAlpha(band.ink, 0.72);
 
-  const verdict =
-    scorePercentage >= 80
-      ? "Excellent work!"
-      : scorePercentage >= 60
-        ? "Great effort!"
-        : "Keep practicing!";
-
-  // The warmth lives inside the hero — the page's one vivid moment — instead of
-  // a second bright card colliding with the orange footer button.
-  const encouragement =
-    scorePercentage >= 80
-      ? "You clearly know this inside out. Carry that confidence into your next session."
-      : scorePercentage >= 60
-        ? "Solid work. Skim the ones you missed and it'll stick for good."
-        : "Every answer you review makes the next attempt easier. You've got this.";
-
-  const celebrate = scorePercentage >= 60 && !m.reduced;
+  const verdict = "Quiz done";
+  const encouragement = "You answered every question. The review below shows each answer.";
 
   return (
     <View style={styles.root}>
@@ -279,7 +262,6 @@ const SummaryPage = () => {
 
       {/* Celebration — a viewport overlay (never a scroll child), so the burst
           plays over the page and clears itself instead of parking mid-scroll. */}
-      {celebrate ? <ConfettiAnimation /> : null}
     </View>
   );
 };

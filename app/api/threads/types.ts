@@ -99,7 +99,6 @@ export interface PracticePayload {
   durationSeconds?: number;
   timeOfDay?: "morning" | "afternoon" | "evening" | "night";
   showedUp?: boolean;
-  streakDays?: number;
   xpEarned?: number;
   leveledUp?: boolean;
   levelStageTitle?: string;

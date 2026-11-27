@@ -4004,7 +4004,7 @@ const CallingWidget: React.FC<Props> = ({
               {shownEndReason === "dropped"
                 ? "The call dropped."
                 : shownEndReason === "limit_reached"
-                ? "Great practice!"
+                ? "You practiced today"
                 : shownEndReason === "crisis"
                   ? "You matter"
                 : shownEndReason === "technical_difficulty"
@@ -4027,7 +4027,7 @@ const CallingWidget: React.FC<Props> = ({
                 : shownEndReason === "technical_difficulty"
                   ? "We hit a technical problem and ended the call. This attempt will not count as completed."
                 : shownEndReason === "user_ended"
-                  ? "You've successfully ended the conversation. Great job practicing today!"
+                  ? "You made the call and ended it when you chose. That counts as practice."
                   : "The call was ended due to inactivity. You can start a new session anytime."}
             </Text>
             {/* The save behind this button failed. Said here, because this

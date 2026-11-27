@@ -8,9 +8,9 @@ describe("donePracticeHeadline", () => {
     });
   });
 
-  it("is unchanged outside programs", () => {
+  it("names the action outside programs, with confetti", () => {
     expect(donePracticeHeadline({ isAborted: false, inProgram: false })).toEqual({
-      title: "Great Job!",
+      title: "You did it",
       confetti: true,
     });
   });
