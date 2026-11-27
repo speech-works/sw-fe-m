@@ -95,7 +95,7 @@ export const PROP_SHAPES: Record<string, FxShape> = {
   // an orange bouncy ball with a white stripe
   ball: { paths: [ink(circ(50, 50, 40), "#FF7A1A"), { d: "M14 40C34 52 66 52 86 40", stroke: "#FFF9E9", sw: 7 }] },
   // a folded note
-  note: { paths: [ink("M18 14H70L84 28V86H18Z", "#FFF9E9"), ink("M70 14V28H84Z", "#E6DCCB"), line("M30 42H70M30 56H70M30 70H56", "#B9AE9C", 5)] },
+  "paper-note": { paths: [ink("M18 14H70L84 28V86H18Z", "#FFF9E9"), ink("M70 14V28H84Z", "#E6DCCB"), line("M30 42H70M30 56H70M30 70H56", "#B9AE9C", 5)] },
   // a soft round glow (aurora bands, haze): one colour, soft by low opacity in the emitter
   glow: { paths: [{ d: circ(50, 50, 48), fill: "$c", opacity: 0.35 }, { d: circ(50, 50, 32), fill: "$c", opacity: 0.45 }, { d: circ(50, 50, 18), fill: "$c", opacity: 0.6 }] },
   // an aurora ribbon: a long wavy band of light, soft edge and a brighter core
@@ -115,7 +115,7 @@ export const PROP_SHAPES: Record<string, FxShape> = {
     { d: circ(28, 66, 5), fill: "#FF9DB1", opacity: 0.6 }, { d: circ(72, 66, 5), fill: "#FF9DB1", opacity: 0.6 },
   ] },
   // a small practice card: orange top band and text lines
-  card: { paths: [
+  "practice-card": { paths: [
     ink(rrect(10, 22, 80, 56, 8), "#2A2723"),
     { d: "M14 30A4 4 0 0 1 18 26H82A4 4 0 0 1 86 30V38H14Z", fill: "#FF9040" },
     line("M20 50H72M20 60H64M20 70H50", "#8E877C", 4),

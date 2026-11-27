@@ -314,7 +314,7 @@ const skipped: FxEffect[] = [
   { id: "sk2-flick", name: "Flick it away", ms: 2000,
     feel: "A little card of this practice pops up and gets flicked off to the right with a spin and a swish: not now, and that is fine.",
     emitters: [
-      { kind: "track", shapes: ["card"], origin: at(200, 520), size: [0.3, 0.3], at: 0,
+      { kind: "track", shapes: ["practice-card"], origin: at(200, 520), size: [0.3, 0.3], at: 0,
         keys: [{ t: 0, s: 0, o: 0 }, { t: 80, o: 1 }, { t: 280, s: 1, e: "back" }, { t: 560, r: -6, x: -0.02 }, { t: 640, r: -10, x: -0.03, e: "out" },
           { t: 1000, x: 0.95, y: -0.28, r: 200, s: 0.7, e: "in" }, { t: 1040, o: 0 }] },
       { kind: "twinkle", shapes: ["sparkle", "dot"], colors: [CREAM, SUN], count: 8, at: 700, stagger: 300, area: [0.55, 0.42, 0.98, 0.62], size: [0.02, 0.035], life: [300, 500] },
@@ -330,7 +330,7 @@ const saved: FxEffect[] = [
     feel: "A journal opens over the form, your note flies up from Save into it, it shuts with a soft clap, a green check lands on the cover, and it floats off to Pip.",
     emitters: [
       { kind: "track", shapes: ["book-open"], origin: at(195, 440), size: [0.34, 0.34], at: 0, keys: [{ t: 0, s: 0 }, { t: 260, s: 1, e: "back" }, { t: 780, s: 1, o: 1 }, { t: 800, o: 0, e: "hold" }] },
-      { kind: "track", shapes: ["note"], origin: at(195, 780), size: [0.1, 0.1], at: 120, keys: [{ t: 0, s: 0.5, o: 0 }, { t: 100, s: 1, o: 1 }, ...flight([[100, 195, 780, 60], [560, 195, 450, 0]]).slice(1), { t: 640, s: 0.4, o: 0 }] },
+      { kind: "track", shapes: ["paper-note"], origin: at(195, 780), size: [0.1, 0.1], at: 120, keys: [{ t: 0, s: 0.5, o: 0 }, { t: 100, s: 1, o: 1 }, ...flight([[100, 195, 780, 60], [560, 195, 450, 0]]).slice(1), { t: 640, s: 0.4, o: 0 }] },
       { kind: "track", shapes: ["book-closed"], origin: at(195, 440), size: [0.26, 0.26], at: 780,
         keys: [{ t: 0, s: 1.15, o: 0 }, { t: 20, o: 1, e: "hold" }, { t: 140, s: 1 }, { t: 700, s: 1 }, { t: 1150, x: 0.34, y: -0.66, s: 0.3, o: 0, e: "in" }] },
       { kind: "track", shapes: ["check-badge"], origin: at(205, 440), size: [0.12, 0.12], at: 930,
