@@ -52,13 +52,13 @@ const COVER_DESCRIPTIONS: Record<string, string> = {
   breaking_thought_traps:
     "A person in an orange beret laughs as the wooden cage around them breaks apart. The top of the cage flies off, a dark rain cloud drifts away and the sun comes out.",
   bouncing_back:
-    "A person with braids and glasses springs up out of a jack-in-the-box, both arms raised high, with confetti all around.",
+    "A person with braids and pink glasses laughs and waves both hands as they spring up out of a jack-in-the-box, with confetti all around.",
   dating_intimacy:
     "Two profile cards lean toward each other. In each photo a person looks across at the other with a warm smile. Hearts and two speech bubbles sit between the cards.",
   speech_toolkit:
     "A person in star-shaped glasses smiles behind an open toolbox. Tools are scattered all around: a wrench, a saw, a hammer, a drill, a tape measure, a level and a paintbrush.",
   art_of_disclosure:
-    "A person in a cowboy hat looks over the top of a brick wall with a warm smile, fingers curled over the edge.",
+    "A person in a headscarf looks over the top of a brick wall, fingers curled over the edge.",
   word_swap:
     "A person in a turban, smiling, sits up to the shoulders in a heap of speech bubbles of every shape. One orange bubble beside them stands out from the rest.",
 };
