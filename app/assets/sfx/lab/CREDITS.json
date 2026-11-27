@@ -811,5 +811,397 @@
    0,
    165
   ]
+ },
+ {
+  "file": "b2-door-bell-1.m4a",
+  "name": "DoorBell Shortened",
+  "freesound_id": 442280,
+  "author": "jwheeler91",
+  "page": "https://freesound.org/people/jwheeler91/sounds/442280/",
+  "license": "CC0",
+  "duration_s": 1.9,
+  "onsets_ms": [
+   10
+  ]
+ },
+ {
+  "file": "b2-bird-chirp-1.m4a",
+  "name": "titmouse call",
+  "freesound_id": 271150,
+  "author": "seth-m",
+  "page": "https://freesound.org/people/seth-m/sounds/271150/",
+  "license": "CC0",
+  "duration_s": 1.3,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "b2-bird-chirp-2.m4a",
+  "name": "corne.wav",
+  "freesound_id": 387534,
+  "author": "Soundwarf",
+  "page": "https://freesound.org/people/Soundwarf/sounds/387534/",
+  "license": "CC0",
+  "duration_s": 0.9,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "b2-cat-meow-1.m4a",
+  "name": "Cat Meow",
+  "freesound_id": 436541,
+  "author": "Mafon2",
+  "page": "https://freesound.org/people/Mafon2/sounds/436541/",
+  "license": "CC0",
+  "duration_s": 0.54,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "b2-cat-purr-1.m4a",
+  "name": "Cat short purr",
+  "freesound_id": 436542,
+  "author": "Mafon2",
+  "page": "https://freesound.org/people/Mafon2/sounds/436542/",
+  "license": "CC0",
+  "duration_s": 1.28,
+  "onsets_ms": [
+   30
+  ]
+ },
+ {
+  "file": "b2-phone-buzz-2.m4a",
+  "name": "Phone vibration",
+  "freesound_id": 515295,
+  "author": "Breviceps",
+  "page": "https://freesound.org/people/Breviceps/sounds/515295/",
+  "license": "CC0",
+  "duration_s": 1.01,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "b2-rain-soft-1.m4a",
+  "name": "light_rain_on_umbrella.mp3",
+  "freesound_id": 73026,
+  "author": "j1987",
+  "page": "https://freesound.org/people/j1987/sounds/73026/",
+  "license": "CC0",
+  "duration_s": 2.2,
+  "onsets_ms": [
+   5,
+   610,
+   1605
+  ]
+ },
+ {
+  "file": "b2-hand-bell-1.m4a",
+  "name": "Ringing bell - happy.wav",
+  "freesound_id": 116779,
+  "author": "domrodrig",
+  "page": "https://freesound.org/people/domrodrig/sounds/116779/",
+  "license": "CC0",
+  "duration_s": 1.6,
+  "onsets_ms": [
+   15
+  ]
+ },
+ {
+  "file": "b2-hello-notes-1.m4a",
+  "name": "Kalimba (C-note) (re-pitched to 5 notes)",
+  "freesound_id": 331047,
+  "author": "foochie_foochie",
+  "page": "https://freesound.org/people/foochie_foochie/sounds/331047/",
+  "license": "CC0",
+  "duration_s": 1.42,
+  "onsets_ms": [
+   0,
+   180,
+   360,
+   540,
+   720
+  ]
+ },
+ {
+  "file": "b2-chat-a-1.m4a",
+  "name": "Kalimba (C-note) (re-pitched to 3 notes)",
+  "freesound_id": 331047,
+  "author": "foochie_foochie",
+  "page": "https://freesound.org/people/foochie_foochie/sounds/331047/",
+  "license": "CC0",
+  "duration_s": 1.0,
+  "onsets_ms": [
+   0,
+   150,
+   300
+  ]
+ },
+ {
+  "file": "b2-chat-b-1.m4a",
+  "name": "Kalimba (C-note) (re-pitched to 3 notes)",
+  "freesound_id": 331047,
+  "author": "foochie_foochie",
+  "page": "https://freesound.org/people/foochie_foochie/sounds/331047/",
+  "license": "CC0",
+  "duration_s": 1.02,
+  "onsets_ms": [
+   0,
+   160,
+   320
+  ]
+ },
+ {
+  "file": "a2-desk-bell-1.m4a",
+  "name": "hotel bell",
+  "freesound_id": 532751,
+  "author": "iwanPlays",
+  "page": "https://freesound.org/people/iwanPlays/sounds/532751/",
+  "license": "CC0",
+  "duration_s": 1.5,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-toaster-pop-1.m4a",
+  "name": "Toaster pop 1.wav",
+  "freesound_id": 164557,
+  "author": "deleted_user_2104797",
+  "page": "https://freesound.org/people/deleted_user_2104797/sounds/164557/",
+  "license": "CC0",
+  "duration_s": 0.9,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-door-creak-1.m4a",
+  "name": "Squeaky_Door_Open.wav",
+  "freesound_id": 400327,
+  "author": "N-RAZM",
+  "page": "https://freesound.org/people/N-RAZM/sounds/400327/",
+  "license": "CC0",
+  "duration_s": 1.1,
+  "onsets_ms": [
+   0,
+   185,
+   470
+  ]
+ },
+ {
+  "file": "a2-spoon-clink-1.m4a",
+  "name": "Spoon and Cup.wav",
+  "freesound_id": 366205,
+  "author": "Holly6674",
+  "page": "https://freesound.org/people/Holly6674/sounds/366205/",
+  "license": "CC0",
+  "duration_s": 0.75,
+  "onsets_ms": [
+   0,
+   180,
+   510
+  ]
+ },
+ {
+  "file": "a2-phone-hangup-1.m4a",
+  "name": "Phone pick up / hang up",
+  "freesound_id": 218083,
+  "author": "deraj",
+  "page": "https://freesound.org/people/deraj/sounds/218083/",
+  "license": "CC0",
+  "duration_s": 0.9,
+  "onsets_ms": [
+   20,
+   185
+  ]
+ },
+ {
+  "file": "a2-twang-1.m4a",
+  "name": "Rubber band twang",
+  "freesound_id": 718596,
+  "author": "JoMungus",
+  "page": "https://freesound.org/people/JoMungus/sounds/718596/",
+  "license": "CC0",
+  "duration_s": 0.99,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-mic-tap-1.m4a",
+  "name": "tappingMic.wav",
+  "freesound_id": 149034,
+  "author": "susychristiansen",
+  "page": "https://freesound.org/people/susychristiansen/sounds/149034/",
+  "license": "CC0",
+  "duration_s": 0.95,
+  "onsets_ms": [
+   0,
+   300,
+   585
+  ]
+ },
+ {
+  "file": "a2-snore-1.m4a",
+  "name": "Sleep",
+  "freesound_id": 528254,
+  "author": "LilMati",
+  "page": "https://freesound.org/people/LilMati/sounds/528254/",
+  "license": "CC0",
+  "duration_s": 0.6,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-bird-tweet-1.m4a",
+  "name": "Single Bird Chirp 2",
+  "freesound_id": 233254,
+  "author": "alegemaate",
+  "page": "https://freesound.org/people/alegemaate/sounds/233254/",
+  "license": "CC0",
+  "duration_s": 0.71,
+  "onsets_ms": [
+   15,
+   100,
+   180
+  ]
+ },
+ {
+  "file": "a2-bird-tweet-2.m4a",
+  "name": "Single Bird Chirp",
+  "freesound_id": 233255,
+  "author": "alegemaate",
+  "page": "https://freesound.org/people/alegemaate/sounds/233255/",
+  "license": "CC0",
+  "duration_s": 0.31,
+  "onsets_ms": [
+   40
+  ]
+ },
+ {
+  "file": "a2-cartoon-shake-1.m4a",
+  "name": "Cartoon Shake",
+  "freesound_id": 578405,
+  "author": "nomiqbomi",
+  "page": "https://freesound.org/people/nomiqbomi/sounds/578405/",
+  "license": "CC0",
+  "duration_s": 1.05,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-plug-in-1.m4a",
+  "name": "plug getting connected to wall socket",
+  "freesound_id": 525017,
+  "author": "preyk",
+  "page": "https://freesound.org/people/preyk/sounds/525017/",
+  "license": "CC0",
+  "duration_s": 0.33,
+  "onsets_ms": [
+   0,
+   135
+  ]
+ },
+ {
+  "file": "a2-switch-1.m4a",
+  "name": "Switch Flip #1",
+  "freesound_id": 278205,
+  "author": "IanStarGem",
+  "page": "https://freesound.org/people/IanStarGem/sounds/278205/",
+  "license": "CC0",
+  "duration_s": 0.5,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-choir-1.m4a",
+  "name": "Short Choir",
+  "freesound_id": 444491,
+  "author": "Breviceps",
+  "page": "https://freesound.org/people/Breviceps/sounds/444491/",
+  "license": "CC0",
+  "duration_s": 2.32,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-bounce-settle-1.m4a",
+  "name": "Cartoon Bounce Boing Boing",
+  "freesound_id": 882277,
+  "author": "Qvantor",
+  "page": "https://freesound.org/people/Qvantor/sounds/882277/",
+  "license": "CC0",
+  "duration_s": 2.24,
+  "onsets_ms": [
+   0,
+   415,
+   755,
+   1025,
+   1250,
+   1430
+  ]
+ },
+ {
+  "file": "a2-squeak-1.m4a",
+  "name": "Squeaky Toy #1",
+  "freesound_id": 468443,
+  "author": "Breviceps",
+  "page": "https://freesound.org/people/Breviceps/sounds/468443/",
+  "license": "CC0",
+  "duration_s": 0.44,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-marimba-climb-1.m4a",
+  "name": "Marimba - C7 (pitched into a rising run)",
+  "freesound_id": 373581,
+  "author": "sgossner",
+  "page": "https://freesound.org/people/sgossner/sounds/373581/",
+  "license": "CC0",
+  "duration_s": 1.7,
+  "onsets_ms": [
+   0,
+   190,
+   380,
+   570,
+   800
+  ]
+ },
+ {
+  "file": "a2-marimba-note-1.m4a",
+  "name": "Marimba - C7 (pitched into a rising run)",
+  "freesound_id": 373581,
+  "author": "sgossner",
+  "page": "https://freesound.org/people/sgossner/sounds/373581/",
+  "license": "CC0",
+  "duration_s": 0.9,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "a2-marimba-wave-1.m4a",
+  "name": "Marimba - C7 (pitched into a rising run)",
+  "freesound_id": 373581,
+  "author": "sgossner",
+  "page": "https://freesound.org/people/sgossner/sounds/373581/",
+  "license": "CC0",
+  "duration_s": 1.23,
+  "onsets_ms": [
+   0,
+   110,
+   220,
+   330
+  ]
  }
 ]
