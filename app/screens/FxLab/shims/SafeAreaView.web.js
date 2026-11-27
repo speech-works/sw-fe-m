@@ -24,3 +24,4 @@ export const SafeAreaView = React.forwardRef(({ style = {}, mode, edges, ...rest
   };
   return <View style={[style, extra]} {...rest} ref={ref} />;
 });
+SafeAreaView.displayName = "SafeAreaView";

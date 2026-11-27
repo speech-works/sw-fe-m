@@ -553,6 +553,11 @@ describe("F1 on the money path", () => {
  */
 describe("F1: the earlier purchase may have been this program", () => {
   const now = Date.parse("2026-11-08T10:00:00.000Z");
+  // The records here are dated 8 Nov 2026 and stored checkouts expire after 7 days by the clock
+  // (OPEN_CHECKOUT_MAX_AGE_MS), so the clock is pinned to that morning: without this the tests fail from 15 Nov on.
+  let clock: jest.SpyInstance;
+  beforeEach(() => { clock = jest.spyOn(Date, "now").mockReturnValue(now + 60_000); });
+  afterEach(() => clock.mockRestore());
   const tx = (id: string, date: string, product = "sw.tier.999") => ({
     transactionIdentifier: id,
     productIdentifier: product,
@@ -786,6 +791,10 @@ describe("F3 on the money path", () => {
  */
 describe("F1: explained, bounded, never a long lock", () => {
   const at = (hhmm: string) => Date.parse(`2026-11-08T${hhmm}:00.000Z`);
+  // Same as above: pin the clock to the evening these records are dated, or the 7-day expiry drops them.
+  let clock: jest.SpyInstance;
+  beforeEach(() => { clock = jest.spyOn(Date, "now").mockReturnValue(at("22:15")); });
+  afterEach(() => clock.mockRestore());
   const tx = (id: string, date: number) => ({
     transactionIdentifier: id,
     productIdentifier: "sw.tier.999",
