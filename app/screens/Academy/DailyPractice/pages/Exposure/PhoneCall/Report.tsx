@@ -23,28 +23,11 @@ import {
   Gradient,
   Spinner,
 } from "../../../../../../design-system";
-import type { SemanticColors } from "../../../../../../design-system";
 
 interface Props {
   practiceActivityId: string;
   onContinue: () => void;
 }
-
-// Score → color. On the dark canvas colored text uses the lighter
-// `feedback.*Text` variants; the bright meter segments use the accent/primary base.
-const scoreTextColor = (v: number, colors: SemanticColors) =>
-  v >= 4
-    ? colors.feedback.successText
-    : v >= 3
-      ? colors.feedback.warningText
-      : colors.text.accent;
-
-const scoreFillColor = (v: number, colors: SemanticColors) =>
-  v >= 4
-    ? colors.accent.success
-    : v >= 3
-      ? colors.accent.warning
-      : colors.action.primary;
 
 /**
  * Display labels for the three AI-assessed call ratings.
@@ -68,43 +51,6 @@ const SCORE_LABELS: Record<(typeof SCORE_KEYS)[number], string> = {
   confidence: "Presence",
   clarity: "Message",
   engagement: "Connection",
-};
-
-const ScoreMeter = ({ label, value }: { label: string; value?: number }) => {
-  const { colors } = useTheme();
-  const v = typeof value === "number" ? value : 0;
-  const textColor = scoreTextColor(v, colors);
-  const fill = scoreFillColor(v, colors);
-  return (
-    <View style={[styles.scoreCard, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
-      <Text variant="display" color={textColor} style={styles.scoreValue}>
-        {typeof value === "number" ? value : "–"}
-        <Text variant="bodySm" color="tertiary">
-          /5
-        </Text>
-      </Text>
-      <View style={styles.segs}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <View
-            key={i}
-            style={[
-              styles.seg,
-              {
-                backgroundColor: i < Math.round(v) ? fill : colors.surface.control,
-                // Hairline edge so each cell is delineated on the light "paper"
-                // canvas (bright fills otherwise blend into the track); keeps the hue.
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.border.strong,
-              },
-            ]}
-          />
-        ))}
-      </View>
-      <Text variant="label" color="tertiary" style={styles.scoreLabel}>
-        {label}
-      </Text>
-    </View>
-  );
 };
 
 const SectionCard = ({
@@ -257,14 +203,9 @@ const PhoneCallReport: React.FC<Props> = ({
           </Text>
         </View>
 
-        {/* Scores */}
-        {report.scores && (
-          <View style={styles.scoreRow}>
-            <ScoreMeter label={SCORE_LABELS.confidence} value={report.scores.confidence} />
-            <ScoreMeter label={SCORE_LABELS.clarity} value={report.scores.clarity} />
-            <ScoreMeter label={SCORE_LABELS.engagement} value={report.scores.engagement} />
-          </View>
-        )}
+        {/* The three ratings are shown as words only: the written reason for each
+            one below. The 1 to 5 numbers and bars graded the person, and the
+            product shows no scores. The API still sends them. */}
 
         {report.score_rationale && (
           <SectionCard
@@ -502,26 +443,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   summary: {
-    marginTop: spacing.sm,
-  },
-
-  // Scores
-  scoreRow: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.lg },
-  scoreCard: {
-    flex: 1,
-    borderRadius: radius.chip,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.sm,
-    alignItems: "center",
-    borderWidth: borderWidth.thin,
-  },
-  scoreValue: {
-    fontSize: 30,
-    letterSpacing: -1,
-  },
-  segs: { flexDirection: "row", gap: 3, marginTop: spacing.sm, alignSelf: "stretch" },
-  seg: { flex: 1, height: 5, borderRadius: 3 },
-  scoreLabel: {
     marginTop: spacing.sm,
   },
 
