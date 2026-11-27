@@ -263,104 +263,223 @@ const finished: FxEffect[] = [
     pip: [{ at: 0, face: "curious" }, { at: 450, body: "bighop", face: "laugh", haptic: "success" }, { at: 1500, body: "sway", face: "proud" }, { at: 3500, face: "smile" }] },
 ];
 
-// Step skipped (the practice screen; "Skip this practice" at x 24-149, y 607; empty sheet below it, y 640-750)
+// ═════════════ Round 3 (2026-11-28): step skipped and reflection saved, acted with sticker props ═════════════
+// The founder's inspiration: everyday things turned into little cars and creatures with happy faces, a peekaboo box, speed lines
+// and cloud puffs. So the practice card, the stone and the note have faces; props are big (0.2 to 0.5 of the screen width).
 type K = NonNullable<E["keys"]>[number];
-/** A flight through points: each hop a parabola sampled every ~35 ms (linear keys, so x keeps its speed and y follows the arc).
- *  pts: [time ms, x pt, y pt, arc height pt to the NEXT point]; offsets are from the first point, in screen-width fractions. */
-function flight(pts: [number, number, number, number][], spin = 0): K[] {
-  const [, x0, y0] = pts[0], keys: K[] = [];
+const px = (n: number) => n / W;   // screen points -> a track offset (fractions of the screen width)
+/** One acting prop: a track at a place on the screen (points), `size` in screen widths; key times are from the effect's start. */
+const tr = (shape: string, o: [number, number], size: number, keys: K[], more: Partial<E> = {}): E =>
+  ({ kind: "track", shapes: [shape], origin: at(o[0], o[1]), size: [size, size], at: 0, keys, ...more });
+/** Hops through points: each hop a parabola sampled every ~30 ms (linear keys: x keeps its speed, y follows the arc).
+ *  pts: [time ms, x pt, y pt, arc height pt to the NEXT point]. Offsets are from `o` (points). `tilt` = nose up while in the air. */
+function hops(o: [number, number], pts: [number, number, number, number][], tilt = 0): K[] {
+  const keys: K[] = [];
   for (let i = 0; i < pts.length - 1; i++) {
-    const [ta, xa, ya, h] = pts[i], [tb, xb, yb] = pts[i + 1], n = Math.max(2, Math.round((tb - ta) / 35));
+    const [ta, xa, ya, h] = pts[i], [tb, xb, yb] = pts[i + 1], n = Math.max(2, Math.round((tb - ta) / 30));
     for (let k = i ? 1 : 0; k <= n; k++) {
-      const u = k / n, x = xa + (xb - xa) * u, y = ya + (yb - ya) * u - 4 * h * u * (1 - u);
-      keys.push({ t: Math.round(ta + (tb - ta) * u), x: (x - x0) / W, y: (y - y0) / W, r: spin ? (u < 0.5 ? -spin : spin) * Math.sin(Math.PI * u) : undefined, e: "lin" });
+      const u = k / n;
+      keys.push({ t: Math.round(ta + (tb - ta) * u), x: px(xa + (xb - xa) * u - o[0]), y: px(ya + (yb - ya) * u - 4 * h * u * (1 - u) - o[1]), r: -tilt * Math.sin(Math.PI * u), s: k === n ? 0.9 : 1, e: "lin" });
     }
   }
   return keys;
 }
-const WATER = 688, SKIP_SND = 300;
-// the stone's touches land exactly on the splashes in lab-water-skip-1 (10, 320, 605 and 825 ms into the sound)
-const TOUCH = [10, 320, 605, 825].map(h => SKIP_SND + h);
-const STONE: [number, number, number, number][] = [[SKIP_SND - 260, 70, 612, 10], [TOUCH[0], 140, WATER, 46], [TOUCH[1], 232, WATER, 30], [TOUCH[2], 300, WATER, 16], [TOUCH[3], 344, WATER, 6], [TOUCH[3] + 160, 366, WATER, 0]];
-const ripple = (t: number, x: number, size: number): E[] => [
-  { kind: "ring", shapes: ["ringline"], colors: ["#A9DCFF"], origin: at(x, WATER + 6), at: t, size: [size, size], life: [760, 760], opacity: 0.85 },
-  { kind: "burst", shapes: ["drop"], colors: ["#BFE3FF", CREAM], origin: at(x, WATER), at: t, count: Math.round(size * 40), spread: [-150, -30], speed: [0.22, 0.42], drag: 1.5, gravity: 2.4, size: [0.012, 0.02], life: [360, 420], upright: true, fadeIn: 20, fadeOut: 120 },
-];
-/** The stone: skimmed from the left of the Skip link, four touches on the splashes, a last slide, then it sinks. */
-function stoneTrack(): E {
-  const T0 = STONE[0][0], k = flight(STONE.map(([t, x, y, h]) => [t - T0, x, y, h] as [number, number, number, number]), 10);
-  const end = STONE[STONE.length - 1][0] - T0;
-  return { kind: "track", shapes: ["stone"], origin: at(70, 612), size: [0.085, 0.085], at: T0,
-    keys: [{ ...k[0], o: 0 }, { ...k[1], o: 1 }, ...k.slice(2), { t: end + 220, x: (366 - 70) / W, y: (WATER + 8 - 612) / W, s: 0.5, o: 0, e: "in" }] };
+/** A part fixed to a moving body: the body's keys, with the part's offset (dx, dy: screen widths at scale 1) turned and scaled
+ *  with the body. `own` = the part's own turn [time, degrees, easing] (a flap folding, a lid); put those times where the body is still. */
+function att(body: K[], dx: number, dy: number, own: [number, number, K["e"]?][] = []): K[] {
+  let x = 0, y = 0, r = 0, s = 1, o = 1;
+  const B = body.map(k => ({ t: k.t, x: (x = k.x ?? x), y: (y = k.y ?? y), r: (r = k.r ?? r), s: (s = k.s ?? s), o: (o = k.o ?? o), e: k.e }));
+  const times = [...new Set([...B.map(b => b.t), ...own.map(w => w[0])])].sort((a, b) => a - b);
+  return times.map(t => {
+    const b = [...B].reverse().find(q => q.t <= t) ?? B[0], w = [...own].reverse().find(q => q[0] <= t), mine = own.find(q => q[0] === t);
+    const a = (b.r * Math.PI) / 180;
+    return { t, x: b.x + b.s * (dx * Math.cos(a) - dy * Math.sin(a)), y: b.y + b.s * (dx * Math.sin(a) + dy * Math.cos(a)), r: b.r + (w ? w[1] : 0), s: b.s, o: b.o, e: mine ? mine[2] : b.t === t ? b.e : undefined };
+  });
 }
-const skipped: FxEffect[] = [
-  { id: "sk2-stone", name: "Skipping stone", ms: 2600,
-    feel: "A flat pebble is skimmed from the Skip link across the empty sheet: four touches, each hop shorter and lower, a splash and a ripple on every touch, exactly on the sound, then it sinks.",
-    emitters: [
-      stoneTrack(),
-      ...TOUCH.flatMap((t, i) => ripple(t, [140, 232, 300, 344][i], [0.2, 0.17, 0.14, 0.11][i])),
-      ...ripple(TOUCH[3] + 220, 366, 0.24),
-    ],
-    sounds: [{ name: "lab-water-skip-1", at: SKIP_SND, volume: 0.9 }, { name: "lab-plop-small-1", at: TOUCH[3] + 200, volume: 0.6 }],
-    pip: [{ at: 0, face: "warm", look: [-0.7, 1] }, ...TOUCH.map((t, i) => ({ at: t - 60, look: [[-0.35, 1], [0.15, 1], [0.5, 1], [0.8, 1]][i] as [number, number] })),
-      { at: TOUCH[3] + 450, look: "off", face: "smile", body: "sway" }, { at: TOUCH[3] + 1250, body: "nod" }] },
-  { id: "sk2-frog", name: "Leap frog", ms: 2600,
-    feel: "A little frog pops out of the Skip link, says ribbit, and leaps over the practice in three springy hops, each hop on its own boing, and out of the screen.",
-    emitters: [{ kind: "track", shapes: ["frog"], origin: at(150, 670), size: [0.17, 0.17], at: 0,
-      keys: [{ t: 0, s: 0, y: 0.02 }, { t: 260, s: 1, y: 0, e: "back" }, { t: 560, s: 1 }, { t: 620, s: 0.9, y: 0.01 },
-        ...flight([[640, 150, 670, 80], [1020, 232, 670, 80], [1400, 314, 670, 80], [1780, 450, 630, 0]]).map(k => ({ ...k, x: k.x, y: (k.y ?? 0) })) , { t: 1820, o: 0 }] }],
-    sounds: [{ name: "lab-frog-ribbit-cartoon-1", at: 300, volume: 0.75 }, { name: "lab-hop-boing-small-1", at: 640, volume: 0.6 }, { name: "lab-hop-boing-small-1", at: 1020, volume: 0.55 }, { name: "lab-hop-boing-small-1", at: 1400, volume: 0.5 }],
-    pip: [{ at: 0, face: "curious", look: [-0.6, 1] }, { at: 640, look: [-0.2, 1], face: "laugh" }, { at: 1020, look: [0.3, 1] }, { at: 1400, look: [0.8, 1] }, { at: 1900, look: "off", face: "smile", body: "sway" }] },
-  { id: "sk2-flick", name: "Flick it away", ms: 2000,
-    feel: "A little card of this practice pops up and gets flicked off to the right with a spin and a swish: not now, and that is fine.",
-    emitters: [
-      { kind: "track", shapes: ["practice-card"], origin: at(200, 520), size: [0.3, 0.3], at: 0,
-        keys: [{ t: 0, s: 0, o: 0 }, { t: 80, o: 1 }, { t: 280, s: 1, e: "back" }, { t: 560, r: -6, x: -0.02 }, { t: 640, r: -10, x: -0.03, e: "out" },
-          { t: 1000, x: 0.95, y: -0.28, r: 200, s: 0.7, e: "in" }, { t: 1040, o: 0 }] },
-      { kind: "twinkle", shapes: ["sparkle", "dot"], colors: [CREAM, SUN], count: 8, at: 700, stagger: 300, area: [0.55, 0.42, 0.98, 0.62], size: [0.02, 0.035], life: [300, 500] },
-    ],
-    sounds: [{ name: "pop", at: 0, volume: 0.4 }, { name: "lab-card-flick-1", at: 640, volume: 0.75 }],
-    pip: [{ at: 0, face: "curious", look: [-0.4, 1] }, { at: 640, look: [0.8, 0.2], face: "smile" }, { at: 1200, look: "off", body: "sway" }, { at: 1700, body: "nod" }] },
+/** A part that appears on a body part-way: hidden until `t`, then `enter` keys, then it follows the body's keys after `from`. */
+const joins = (body: K[], t: number, enter: (Omit<K, "t"> & { t?: number })[], from: number): K[] => [
+  { ...enter[0], t: 0, o: 0 }, { ...enter[0], t, o: enter[0].o ?? 1, e: "hold" }, ...enter.slice(1).map(k => ({ ...k, t: k.t ?? t })), ...body.filter(k => k.t > from)];
+const ICE = "#BFE3FF";
+
+// ─────────── Step skipped: the practice screen ───────────
+// Pip big in the hero (face and collar x 105-285, y 165-396); the sheet below y 396; "Skip this practice" at x 24-149, y 607;
+// the empty sheet y 630-750. Tone: not now is fine, on we go. Pip's hands say it (palms-up shrug, a wave).
+
+// A. The skipping stone. Sound lab-water-skip-1 has its three splashes at 10, 320 and 595 ms; lab-plop-small-1 its plop at 85 ms.
+const SKIM = 700, TOUCH = [10, 320, 595].map(h => SKIM + h), TX = [84, 184, 258], SINK = TOUCH[2] + 270, SX = 306, WATER = 700;
+const splash = (t: number, x: number, size: number): E[] => [
+  { kind: "ring", shapes: ["p3-ripple"], colors: [ICE], origin: at(x, WATER + 3), at: t, size: [size * 1.5, size * 1.5], life: [760, 760], opacity: 0.9 },
+  { kind: "ring", shapes: ["p3-ripple"], colors: ["#FFFFFF"], origin: at(x, WATER + 3), at: t + 130, size: [size * 0.95, size * 0.95], life: [640, 640], opacity: 0.7 },
+  tr("p3-splash", [x, WATER], size, [{ t: 0, s: 0.15, o: 0 }, { t: t - 1, s: 0.15, o: 0, e: "hold" }, { t, o: 1, e: "hold" }, { t: t + 120, s: 1, e: "out" }, { t: t + 220, s: 0.96 }, { t: t + 400, s: 0.6, y: 0.012, o: 0, e: "in" }]),
+  { kind: "burst", shapes: ["drop"], colors: [ICE, "#FFFFFF"], origin: at(x, WATER - 4), at: t, count: Math.round(size * 30), spread: [-150, -30], speed: [0.2, 0.42], drag: 1.4, gravity: 2.2, size: [0.014, 0.026], life: [380, 460], upright: true, fadeIn: 20, fadeOut: 120 },
+];
+const stone = (): E => {
+  const o: [number, number] = [-50, 640], yS = WATER - 13;
+  const k = hops(o, [[TOUCH[0] - 250, -50, 640, 6], [TOUCH[0], TX[0], yS, 66], [TOUCH[1], TX[1], yS, 44], [TOUCH[2], TX[2], yS, 22], [SINK, SX, yS + 2, 0]], 9);
+  return tr("p3-stone", o, 0.28, [{ ...k[0], t: 0, o: 0 }, { ...k[0], o: 1, e: "hold" }, ...k.slice(1), { t: SINK + 240, x: px(SX + 6 - o[0]), y: px(yS + 20 - o[1]), r: 24, s: 0.55, o: 0, e: "in" }]);
+};
+
+// B. The sneaker car. Wheels on the ground line y 720; the car is 0.36 of the screen wide.
+const CAR = { x: 215, y: 638, S: 0.5 }, HOP = 720, LAND = 1040, GO = 1560;
+const carKeys: K[] = [
+  { t: 0, x: px(-330), r: 0 }, { t: 480, x: px(8), r: 5, e: "out" }, { t: 620, x: 0, r: 0 },                       // rolls in, brakes nose-down, settles
+  { t: LAND, y: 0 }, { t: LAND + 70, y: px(7), s: 0.97 }, { t: LAND + 240, y: 0, s: 1, e: "back" },              // the card lands: the car dips
+  { t: GO - 330, x: 0, r: 0 }, { t: GO - 60, x: px(-26), r: 4, e: "out" }, { t: GO, x: px(-26), r: 4 },           // pulls back, crouches
+  { t: GO + 90, x: px(10), r: -9, e: "in" }, { t: GO + 470, x: px(330), r: -7, e: "lin" },                       // wheelie and away
+];
+const SEAT: [number, number] = [-0.2 * CAR.S, -0.22 * CAR.S];
+const rider = (): E => {
+  const o: [number, number] = [CAR.x, CAR.y], seat = att(carKeys, SEAT[0], SEAT[1]);
+  const from: [number, number] = [86, 590], to: [number, number] = [CAR.x + SEAT[0] * W, CAR.y + SEAT[1] * W];
+  const fly = hops(o, [[HOP, from[0], from[1], 70], [LAND, to[0], to[1], 0]]).map(k => ({ ...k, s: 0.86, r: -10 + 10 * ((k.t - HOP) / (LAND - HOP)) }));
+  return tr("p3-card", o, 0.27, [
+    { t: 0, x: px(from[0] - o[0]), y: px(from[1] - o[1]), s: 0, o: 0 }, { t: 180, s: 0, o: 1, e: "hold" }, { t: 420, s: 1, e: "back" },
+    { t: HOP - 110, s: 1, r: 0 }, { t: HOP, s: 0.86, y: px(from[1] + 5 - o[1]), r: -10 },
+    ...fly.slice(1), ...seat.filter(k => k.t > LAND).map(k => ({ ...k, s: 0.86 * (k.s ?? 1) })),
+  ]);
+};
+const puffs = (t: number, x: number, n: number, big = 0.13): E[] => Array.from({ length: n }, (_, i): E =>
+  tr("p3-puff", [x - i * 34, 700 - (i % 2) * 18], big - i * 0.025, [{ t: 0, s: 0, o: 0 }, { t: t + i * 70, s: 0.2, o: 1, e: "hold" }, { t: t + i * 70 + 160, s: 1, e: "out" },
+    { t: t + i * 70 + 620, s: 1.25, x: px(-34), y: px(-16), o: 0, e: "out" }]));
+const speedLines = (t: number): E[] => [640, 662, 688, 706, 652].map((y, i): E =>
+  tr("speed", [195, y], 0.5 + (i % 3) * 0.14, [{ t: 0, x: 1.1, o: 0 }, { t: t + i * 50, x: 1.1, o: 0.9, e: "hold" }, { t: t + i * 50 + 330, x: -1.2, e: "lin" }], { colors: [i % 2 ? "#FFF9E9" : LIME] }));
+
+// C. The balloon. Balloon and card share one box (0.5 of the screen wide): the card's face sits at the Skip link.
+const LOON = { x: 62, y: 538, S: 0.5 }, LIFT = 950;
+const loonKeys: K[] = [
+  { t: LIFT - 150, y: 0, r: 0 }, { t: LIFT, y: px(8), r: 0, e: "out" },                                  // the string pulls tight: a small dip
+  { t: LIFT + 420, y: px(-70), x: px(10), r: 5, e: "in" }, { t: LIFT + 980, y: px(-230), x: px(-12), r: -6, e: "lin" }, { t: LIFT + 1540, y: px(-400), x: px(10), r: 5, e: "lin" },
+  { t: LIFT + 2100, y: px(-560), x: px(-8), r: -4, e: "lin" }, { t: LIFT + 2650, y: px(-730), x: px(6), r: 3, e: "lin" },
 ];
 
-// Reflection saved (the form screen: Save button at the bottom (y 790), the form fields in the middle). Picked acting: leans close, warm.
-const SAVED_END = [{ at: 0, face: "warm" as const }];
+const skipped: FxEffect[] = [
+  // SYNC: the stone's three touches land on the three splashes of lab-water-skip-1 (710, 1020, 1295 ms); it sinks on the plop
+  // of lab-plop-small-1 (1565 ms); the pond pops open on "pop".
+  { id: "sk3-skimmer", name: "Happy skimming stone", ms: 3500,
+    feel: "Pip shrugs, palms up, as a pond opens on the empty sheet and a big smiling stone is skimmed across it: three skips, each lower and shorter, a crown splash and ripples on every touch, then it sinks with a plop.",
+    emitters: [
+      tr("p3-pond", [195, WATER + 2], 0.92, [{ t: 0, s: 0 }, { t: 90, s: 0 }, { t: 400, s: 1, e: "back" }, { t: 2650, s: 1 }, { t: 2760, s: 1.04, e: "out" }, { t: 3000, s: 0, e: "in" }]),
+      ...TOUCH.flatMap((t, i) => splash(t, TX[i], [0.26, 0.2, 0.15][i])),
+      stone(),
+      ...splash(SINK + 60, SX + 4, 0.22),
+    ],
+    sounds: [{ name: "pop", at: 110, volume: 0.35 }, { name: "lab-water-skip-1", at: SKIM, volume: 0.95 }, { name: "lab-plop-small-1", at: SINK - 25, volume: 0.7 }, { name: "lab-kalimba-warm-1", at: SINK + 500, volume: 0.4 }],
+    pip: [{ at: 0, move: "h-palms", look: [-0.9, 0.9] }, { at: TOUCH[0] - 80, look: [-0.6, 1] }, { at: TOUCH[1] - 80, look: [0, 1] }, { at: TOUCH[2] - 80, look: [0.45, 1] }, { at: SINK - 60, look: [0.75, 1], haptic: "light" },
+      { at: SINK + 600, look: "off" }] },
+  // SYNC: the card springs on lab-hop-boing-small-1 (720 ms) and lands in the shoe on the pat of lab-grip-pat-2 (1040 ms);
+  // the car shoots off on lab-ff-zip-2 (1560 ms), with a whoosh under the speed lines.
+  { id: "sk3-sneaker-car", name: "Sneaker car getaway", ms: 3600,
+    feel: "A sneaker on wheels rolls up, the practice card (it has a happy face) hops out of the Skip link into it, the car pulls back, pops a wheelie and zooms off in cloud puffs and speed lines while Pip gives an easy shrug.",
+    emitters: [
+      rider(),
+      tr("p3-sneaker", [CAR.x, CAR.y], CAR.S, carKeys),
+      ...puffs(480, 118, 2, 0.12), ...puffs(GO + 40, 190, 4, 0.22),
+      ...speedLines(GO + 120),
+    ],
+    sounds: [{ name: "lab-swoosh-soft-2", at: 0, volume: 0.5 }, { name: "pop", at: 200, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: HOP, volume: 0.65 }, { name: "lab-grip-pat-2", at: LAND - 60, volume: 0.75 },
+      { name: "lab-ff-zip-2", at: GO, volume: 0.8 }, { name: "whoosh", at: GO + 60, volume: 0.45 }, { name: "chime-up", at: GO + 700, volume: 0.35 }],
+    pip: [{ at: 0, look: [-0.5, 1], face: "curious" }, { at: 250, move: "h-palms" }, { at: HOP, look: [-0.3, 1] }, { at: LAND, look: [0.1, 1], haptic: "light" }, { at: GO, look: [0.9, 0.9] },
+      { at: GO + 600, look: "off" }] },
+  // SYNC: the card pops on "pop" (40 ms); the balloon springs full on lab-cartoon-boing-2 (430 ms); lift-off on
+  // lab-hop-boing-small-2 (950 ms, the string pulls tight); the balloon hiss runs under the climb.
+  { id: "sk3-float-away", name: "Floats away", ms: 4200,
+    feel: "The practice card pops out of the Skip link, a lime balloon springs up above it, the string pulls tight and the card floats up past Pip and out of the top of the screen while he waves it goodbye.",
+    emitters: [
+      tr("p3-loon-card", [LOON.x, LOON.y], LOON.S, [{ t: 0, s: 0 }, { t: 60, s: 0 }, { t: 320, s: 1, e: "back" }, ...loonKeys]),
+      tr("p3-loon", [LOON.x, LOON.y], LOON.S, [{ t: 0, s: 0 }, { t: 430, s: 0 }, { t: 640, s: 1.14, e: "out" }, { t: 760, s: 0.96 }, { t: 840, s: 1 }, ...loonKeys], { colors: [LIME] }),
+      { kind: "burst", shapes: ["sparkle", "glitter"], colors: [LIME, CREAM, SUN], origin: at(LOON.x, LOON.y - 60), at: 620, count: 8, spread: [0, 360], speed: [0.2, 0.45], drag: 3, size: [0.025, 0.05], life: [500, 800] },
+      { kind: "twinkle", shapes: ["sparkle"], colors: [CREAM, LIME], count: 6, at: LIFT + 300, stagger: 1500, area: [0.03, 0.2, 0.3, 0.75], size: [0.03, 0.05], life: [500, 800] },
+    ],
+    sounds: [{ name: "pop", at: 40, volume: 0.5 }, { name: "lab-cartoon-boing-2", at: 425, volume: 0.6 }, { name: "lab-hop-boing-small-2", at: LIFT, volume: 0.55 }, { name: "lab-balloon-release-2", at: LIFT + 100, volume: 0.3 },
+      { name: "lab-kalimba-warm-2", at: LIFT + 500, volume: 0.5 }],
+    pip: [{ at: 0, look: [-0.9, 1], face: "curious" }, { at: 120, move: "h-wave" }, { at: LIFT + 400, look: [-1, 0.7] }, { at: LIFT + 1000, look: [-1, 0.1] }, { at: LIFT + 1600, look: [-1, -0.6] }, { at: LIFT + 2300, look: [-0.7, -1] },
+      { at: 3900, look: "off" }] },
+];
+
+// ─────────── Reflection saved: the form screen ───────────
+// Pip small, top right (x 254-386, y 136-250); the form fills y 270-760; Save at the bottom (y 765-815). The note (your words,
+// with a happy face) always comes out of the Save button; what keeps it stands in the middle of the form, clear of Pip.
+const SAVE: [number, number] = [195, 778];
+/** The note pops out of Save at `t`, crouches and jumps up to (x, y) by `top`. */
+const noteUp = (t: number, top: number, x: number, y: number): K[] => [
+  { t: 0, s: 0, o: 0 }, { t, s: 0, o: 1, e: "hold" }, { t: t + 200, s: 1, e: "back" }, { t: t + 290, s: 0.9, y: px(6), r: 0 },
+  { t: top, x: px(x - SAVE[0]), y: px(y - SAVE[1]), s: 1, r: -8, e: "out" }];
+const leaveToPip = (c: [number, number], t: number): K[] => [{ t, x: 0, y: 0, s: 1, r: 0 }, { t: t + 130, y: px(10), s: 0.96 }, { t: t + 520, x: px(232 - c[0]), y: px(268 - c[1]), s: 0.14, r: 10, e: "in" }, { t: t + 560, o: 0 }];
+
+// A. The cardboard box
+const BOX: [number, number] = [195, 500], BS = 0.56;
+const boxKeys: K[] = [{ t: 0, y: px(150), s: 0.5, o: 0 }, { t: 60, o: 1 }, { t: 380, y: 0, s: 1, e: "back" }, { t: 1110, s: 1, y: 0 }, { t: 1170, s: 1.05, y: px(4) }, { t: 1330, s: 1, y: 0, e: "back" },
+  { t: 2460, s: 1 }, { t: 2520, s: 0.95 }, { t: 2680, s: 1, e: "back" }, ...leaveToPip(BOX, 3350)];
+// B. The jar of kept notes
+const JAR: [number, number] = [195, 492], JS = 0.56;
+const jarKeys: K[] = [{ t: 0, s: 0 }, { t: 320, s: 1, e: "back" }, { t: 1500, s: 1 }, { t: 1560, s: 1.05 }, { t: 1720, s: 1, e: "back" }, { t: 2050, s: 1 }, { t: 2110, s: 0.95 }, { t: 2270, s: 1, e: "back" },
+  { t: 2380, r: -6 }, { t: 2510, r: 6 }, { t: 2640, r: -3 }, { t: 2750, r: 0 }, { t: 3100, s: 1 }, { t: 3230, s: 1.1, e: "out" }, { t: 3440, s: 0, e: "in" }];
+// C. The envelope
+const ENV: [number, number] = [195, 492], ES = 0.6;
+const envKeys: K[] = [{ t: 0, s: 0 }, { t: 320, s: 1, e: "back" }, { t: 1225, s: 1 }, { t: 1290, s: 1.04 }, { t: 1420, s: 1 }, { t: 1500, s: 1 }, { t: 1560, s: 0.94 }, { t: 1720, s: 1, e: "back" },
+  { t: 2130, s: 1 }, { t: 2190, s: 0.93 }, { t: 2360, s: 1, e: "back" }, ...leaveToPip(ENV, 2750)];
+const glow = (c: [number, number], t: number, colors: string[]): E[] => [
+  { kind: "burst", shapes: ["sparkle", "glitter", "dot"], colors, origin: at(c[0], c[1]), at: t, count: 14, spread: [0, 360], speed: [0.3, 0.7], drag: 3, gravity: 0.08, size: [0.026, 0.055], life: [700, 1100], fadeOut: 400 },
+  { kind: "twinkle", shapes: ["sparkle", "sparkpair"], colors, count: 8, at: t + 100, stagger: 700, area: [(c[0] - 150) / W, (c[1] - 130) / H, (c[0] + 150) / W, (c[1] + 110) / H], size: [0.04, 0.075], life: [500, 800] },
+];
+
 const saved: FxEffect[] = [
-  { id: "rs2-journal", name: "Into the journal", ms: 2200,
-    feel: "A journal opens over the form, your note flies up from Save into it, it shuts with a soft clap, a green check lands on the cover, and it floats off to Pip.",
+  // SYNC: the note springs on lab-hop-boing-small-1 (590 ms) and lands in the box on lab-envelope-tuck-2 (1110 ms); it peeks on
+  // "boop" (1450 ms); the flaps slap shut on the pat of lab-grip-pat-2 (2320 ms) and the thud of lab-book-close-2 (2460 ms);
+  // the tape zips on with lab-ff-zip-1 (2750 ms); the check pops on lab-save-confirm-1 (2980 ms).
+  { id: "rs3-peekaboo-box", name: "Peekaboo keepsake box", ms: 3950,
+    feel: "A cardboard box pops up, your note (it has a happy face) jumps out of Save into it, peeks back out with big eyes, ducks, the flaps fold shut, lime tape seals it, a green check lands on the front and the box goes off to Pip.",
     emitters: [
-      { kind: "track", shapes: ["book-open"], origin: at(195, 440), size: [0.34, 0.34], at: 0, keys: [{ t: 0, s: 0 }, { t: 260, s: 1, e: "back" }, { t: 780, s: 1, o: 1 }, { t: 800, o: 0, e: "hold" }] },
-      { kind: "track", shapes: ["paper-note"], origin: at(195, 780), size: [0.1, 0.1], at: 120, keys: [{ t: 0, s: 0.5, o: 0 }, { t: 100, s: 1, o: 1 }, ...flight([[100, 195, 780, 60], [560, 195, 450, 0]]).slice(1), { t: 640, s: 0.4, o: 0 }] },
-      { kind: "track", shapes: ["book-closed"], origin: at(195, 440), size: [0.26, 0.26], at: 780,
-        keys: [{ t: 0, s: 1.15, o: 0 }, { t: 20, o: 1, e: "hold" }, { t: 140, s: 1 }, { t: 700, s: 1 }, { t: 1150, x: 0.34, y: -0.66, s: 0.3, o: 0, e: "in" }] },
-      { kind: "track", shapes: ["check-badge"], origin: at(205, 440), size: [0.12, 0.12], at: 930,
-        keys: [{ t: 0, s: 0 }, { t: 200, s: 1.15, e: "out" }, { t: 300, s: 1 }, { t: 550, s: 1 }, { t: 1000, x: 0.31, y: -0.66, s: 0.3, o: 0, e: "in" }] },
-      sparks(at(205, 440), 950, [LIME, CREAM, GOLD], 10),
+      tr("p3-box-in", BOX, BS, [...boxKeys.filter(k => k.t < 2460), { t: 2460, o: 0, e: "hold" }]),
+      tr("p3-note", SAVE, 0.24, [...noteUp(300, 900, BOX[0], 322), { t: 1000, y: px(314 - SAVE[1]), r: 0 }, { t: 1110, y: px(BOX[1] + 10 - SAVE[1]), s: 0.8, e: "in" }, { t: 1120, o: 0, e: "hold" }]),
+      tr("p3-note-peek", BOX, 0.24, [{ t: 0, o: 0, y: px(38) }, { t: 1450, o: 1, e: "hold" }, { t: 1620, y: px(-14), e: "back" }, { t: 1780, r: -8 }, { t: 1960, r: 7 }, { t: 2060, r: 0 }, { t: 2180, y: px(38), e: "in" }, { t: 2190, o: 0, e: "hold" }]),
+      tr("p3-box-front", BOX, BS, boxKeys),
+      tr("p3-flap-l", BOX, BS * 2, att(boxKeys, -0.34 * BS, -0.04 * BS, [[0, -138], [2180, -138], [2320, 0, "in"]])),
+      tr("p3-flap-r", BOX, BS * 2, att(boxKeys, 0.34 * BS, -0.04 * BS, [[0, 138], [2320, 138], [2460, 0, "in"]])),
+      tr("p3-box-tape", BOX, BS, joins(boxKeys, 2750, [{ y: px(-26), o: 1 }, { t: 2850, y: 0, e: "in" }], 2850)),
+      tr("p3-badge", BOX, BS, joins(boxKeys, 2980, [{ s: 0.4, o: 1 }, { t: 3110, s: 1.2, e: "out" }, { t: 3220, s: 1 }], 3220)),
+      ...glow([BOX[0] + 40, BOX[1] + 40], 3000, [LIME, CREAM, GOLD]),
     ],
-    sounds: [{ name: "lab-page-flip-1", at: 0, volume: 0.5 }, { name: "lab-envelope-tuck-1", at: 520, volume: 0.6 }, { name: "lab-book-close-1", at: 790, volume: 0.8 }, { name: "lab-save-confirm-1", at: 940, volume: 0.7 }],
-    pip: [...SAVED_END, { at: 200, look: [-1, 1] }, { at: 1500, look: "off", body: "lean" }, { at: 2000, body: "nod" }] },
-  { id: "rs2-stamp", name: "Stamped", ms: 2200,
-    feel: "A rubber stamp drops onto the sheet above Save, thump, lifts away and leaves a green check seal that glows for a moment.",
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: 590, volume: 0.6 }, { name: "lab-envelope-tuck-2", at: 1110, volume: 0.7 }, { name: "boop", at: 1450, volume: 0.55 },
+      { name: "lab-grip-pat-2", at: 2260, volume: 0.8 }, { name: "lab-book-close-2", at: 2420, volume: 0.8 }, { name: "lab-ff-zip-1", at: 2750, volume: 0.6 }, { name: "lab-save-confirm-1", at: 2980, volume: 0.75 },
+      { name: "lab-swoosh-soft-1", at: 3480, volume: 0.4 }],
+    pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 1450, face: "laugh", body: "hop" }, { at: 2320, face: "smile" }, { at: 2980, face: "proud", body: "nod", haptic: "success" }, { at: 3700, look: "off", face: "warm" }] },
+  // SYNC: the note folds into a heart on lab-page-flip-2 (900 ms); the heart lands in the jar on "ding" (1500 ms); the lid
+  // clicks on with lab-lock-click-2 (2050 ms); the check and the glow come on lab-save-confirm-2 (2300 ms).
+  { id: "rs3-heart-jar", name: "Jar of kept notes", ms: 3500,
+    feel: "A glass jar of folded notes pops up, your note jumps out of Save, folds itself into a red heart and drops in with the others, the gold lid clicks on, the jar wiggles and glows and a green check lands on it.",
     emitters: [
-      { kind: "track", shapes: ["stamp"], origin: at(195, 668), size: [0.24, 0.24], at: 0,
-        keys: [{ t: 0, y: -0.7, o: 1 }, { t: 360, y: 0, e: "in" }, { t: 420, y: 0.006, s: 0.97 }, { t: 520, y: 0, s: 1 }, { t: 820, y: -0.75, o: 0, e: "in" }] },
-      { kind: "track", shapes: ["seal"], origin: at(195, 700), size: [0.22, 0.22], at: 360,
-        keys: [{ t: 0, s: 1.12, o: 0 }, { t: 30, o: 1, e: "hold" }, { t: 200, s: 1 }, { t: 1300, s: 1, o: 1 }, { t: 1650, o: 0 }] },
-      { kind: "ring", shapes: ["ringline"], colors: ["#58CC02"], origin: at(195, 700), at: 380, size: [0.5, 0.5], life: [500, 500], opacity: 0.7 },
-      sparks(at(195, 700), 400, [LIME, CREAM], 8),
+      tr("p3-jar", JAR, JS, jarKeys),
+      tr("p3-note", SAVE, 0.24, [...noteUp(300, 860, JAR[0], 305), { t: 900, s: 1, r: 0 }, { t: 1030, s: 0.25, r: 200, e: "in" }, { t: 1040, o: 0, e: "hold" }]),
+      tr("p3-heart", [JAR[0], 305], 0.17, [{ t: 0, s: 0.3, o: 0 }, { t: 980, o: 1, e: "hold" }, { t: 1130, s: 1.25, e: "out" }, { t: 1230, s: 1 }, { t: 1300, y: px(-8), e: "out" },
+        { t: 1500, x: 0.02 * JS, y: px(JAR[1] - 305) + 0.08 * JS, s: 0.9, e: "in" }, { t: 1510, o: 0, e: "hold" }]),
+      tr("p3-jar-heart", JAR, JS, joins(jarKeys, 1500, [{ y: 0, o: 1 }, { t: 1580, y: px(-9), e: "out" }, { t: 1700, y: 0, e: "in" }], 1720)),
+      tr("p3-jar-shine", JAR, JS, jarKeys),
+      tr("p3-jar-lid", JAR, JS, [{ t: 0, s: 0, y: -0.16 * JS, x: 0.5 * JS, r: 16 }, { t: 320, s: 1, e: "back" }, { t: 1000, y: -0.2 * JS, r: 12 }, { t: 1740, y: -0.16 * JS, r: 16 }, { t: 1900, x: 0, y: -0.24 * JS, r: 4, e: "io" }, { t: 2050, y: 0, r: 0, e: "in" }, ...jarKeys.filter(k => k.t > 2050)]),
+      tr("p3-badge", JAR, JS, joins(jarKeys, 2300, [{ s: 0.4, o: 1 }, { t: 2430, s: 1.2, e: "out" }, { t: 2540, s: 1 }], 2750)),
+      ...glow(JAR, 2320, [GOLD, CREAM, PINK]),
     ],
-    sounds: [{ name: "lab-rubber-stamp-1", at: 360, volume: 0.85 }, { name: "lab-save-confirm-1", at: 520, volume: 0.6 }],
-    pip: [...SAVED_END, { at: 100, look: [-0.5, 1] }, { at: 420, face: "proud" }, { at: 900, look: "off", body: "lean", face: "warm" }, { at: 1700, body: "nod" }] },
-  { id: "rs2-check", name: "Check flies to Pip", ms: 2000,
-    feel: "A green check pops out of the Save button with a ring, then flies up in an arc to Pip, who takes it with a warm nod.",
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: 590, volume: 0.55 }, { name: "lab-page-flip-2", at: 900, volume: 0.7 }, { name: "ding", at: 1500, volume: 0.55 },
+      { name: "lab-lock-click-2", at: 2050, volume: 0.85 }, { name: "lab-save-confirm-2", at: 2300, volume: 0.75 }, { name: "lab-stars-twinkle-1", at: 2450, volume: 0.3 }],
+    pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 1000, face: "smile" }, { at: 1500, body: "nod" }, { at: 2300, face: "proud", body: "pop", haptic: "success" }, { at: 3200, look: "off", face: "warm" }] },
+  // SYNC: the note slides in on the two rustles of lab-envelope-tuck-1 (1000 and 1225 ms); the flap shuts on the pat of
+  // lab-grip-pat-2 (1500 ms); the wax seal stamps on the thump of lab-rubber-stamp-1 (2130 ms), with lab-save-confirm-1 right after.
+  { id: "rs3-sealed", name: "Signed and sealed", ms: 4200,
+    feel: "An envelope pops open, your note jumps out of Save and slides inside, the flap shuts, a red wax seal with a check stamps it closed, and the envelope flies up to Pip, who makes heart hands.",
     emitters: [
-      { kind: "track", shapes: ["check-badge"], origin: at(195, 780), size: [0.14, 0.14], at: 0,
-        keys: [{ t: 0, s: 0 }, { t: 220, s: 1.2, e: "out" }, { t: 320, s: 1 }, { t: 450, s: 1 }, ...flight([[450, 195, 780, 120], [1050, 300, 190, 0]]).slice(1).map(k => ({ ...k, s: 1 - 0.5 * ((k.t - 450) / 600) })), { t: 1250, s: 0.3, o: 0 }] },
-      { kind: "ring", shapes: ["ringline"], colors: ["#58CC02"], origin: at(195, 780), at: 60, size: [0.45, 0.45], life: [500, 500], opacity: 0.7 },
-      sparks(at(300, 190), 1050, [LIME, CREAM, GOLD], 10),
+      tr("p3-env-back", ENV, ES, envKeys),
+      tr("p3-env-flap-up", ENV, ES, [...envKeys.filter(k => k.t < 1500), { t: 1500, o: 0, e: "hold" }]),
+      tr("p3-note", SAVE, 0.24, [...noteUp(250, 800, ENV[0], 300), { t: 1000, y: px(294 - SAVE[1]), r: 0 }, { t: 1225, y: px(ENV[1] + 42 - SAVE[1]), s: 0.84, e: "io" }, { t: 1490, s: 0.84 }, { t: 1500, o: 0, e: "hold" }]),
+      tr("p3-env-front", ENV, ES, envKeys),
+      tr("p3-env-flap", ENV, ES, joins(envKeys, 1500, [{ s: 1, o: 1 }], 1500)),
+      tr("p3-env-seal", ENV, ES, joins(envKeys, 2000, [{ s: 2.4, y: -0.1 * ES, o: 0 }, { t: 2040, o: 1 }, { t: 2130, s: 1, y: 0, e: "in" }], 2130)),
+      { kind: "ring", shapes: ["p3-ripple"], colors: [CREAM], origin: at(ENV[0], ENV[1] + 0.115 * ES * W), at: 2130, size: [0.5, 0.5], life: [450, 450], opacity: 0.8 },
+      ...glow([ENV[0], ENV[1] + 20], 2150, [RED, CREAM, GOLD]),
+      { kind: "rise", shapes: ["heart"], colors: [RED, PINK], count: 5, at: 3200, stagger: 400, area: [0.55, 0.24, 0.64, 0.31], speed: [0.12, 0.2], sway: 0.015, size: [0.035, 0.055], life: [550, 600], upright: true },
     ],
-    sounds: [{ name: "lab-save-confirm-1", at: 40, volume: 0.7 }, { name: "lab-kalimba-warm-1", at: 1050, volume: 0.6 }],
-    pip: [...SAVED_END, { at: 400, look: [-0.6, 1] }, { at: 700, look: [-0.3, 0.6] }, { at: 1050, look: "off", body: "lean" }, { at: 1600, body: "nod" }] },
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: 540, volume: 0.55 }, { name: "lab-envelope-tuck-1", at: 1000, volume: 0.75 }, { name: "lab-grip-pat-2", at: 1440, volume: 0.75 },
+      { name: "lab-rubber-stamp-1", at: 2110, volume: 0.9 }, { name: "lab-save-confirm-1", at: 2230, volume: 0.65 }, { name: "lab-swoosh-soft-1", at: 2880, volume: 0.45 }, { name: "heart-blip", at: 3270, volume: 0.5 }],
+    pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 800, move: "h-heart" }, { at: 2130, look: [-0.6, 0.9], haptic: "success" }, { at: 3300, look: "off" }] },
 ];
 
 /** The sample options per moment id (they replace the old options in the lab while the samples are judged). */
