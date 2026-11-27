@@ -41,7 +41,8 @@ export const PIP_BODY_MS: Record<PipBody, number> = { hop: 420, pop: 500, sway: 
 /** One beat of a choreography: at `at` ms from the start, do any of these. A hand move lasts 3.3 to 4 s (PIP_MOVE_MS), starts and
  *  ends on the calm face, and owns the face while it plays; a face change takes 340 ms.
  *  `low` (with move "h-wave" only): the same wave with the hand lower, beside his cheek and jaw and clear of his glasses. */
-export type PipBeat = { at: number; face?: PipFace; move?: PipMove; low?: boolean; body?: PipBody; haptic?: "light" | "selection" | "success" };
+/** look: where the eyes go (gx -1 left .. 1 right, gy -1 up .. 1 down; the head turns a little with them), "off" = back to the idle glance. */
+export type PipBeat = { at: number; face?: PipFace; move?: PipMove; low?: boolean; body?: PipBody; haptic?: "light" | "selection" | "success"; look?: [number, number] | "off" };
 export const PIP_MOVE_MS: Record<PipMove, number> = { "h-palms": 3280, "h-wave": 4050, "h-cheek": 3400, "h-chin": 3800, "h-heart": 3400 };
 /** The low wave (core: moment "h-wave-low" = the wave's drawing, sleeve and motion with the wrist 78 kit units lower and 18 further out). Not a PipMove of its
  *  own: ask for it with `low` on an "h-wave" beat or on play(). */
@@ -412,6 +413,8 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
   useEffect(() => { v2f.value = v2 ? 1 : 0; if (!v2) { tr.value = 0; tsx.value = 1; tsy.value = 1; hr.value = 0; hx.value = 0; hy.value = 0; hsx.value = 1; hsy.value = 1; } }, [v2]);   // eslint-disable-line react-hooks/exhaustive-deps
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
+  // a directed look (beat `look`): lon blends the pupils from the idle glance to (lgx, lgy)
+  const lgx = useSharedValue(0), lgy = useSharedValue(0), lon = useSharedValue(0);
   // the jelly springs (kit fx.js shapeState): pushed by Pip's up-down speed; j = [j1, j2] read by the blob and the matte
   const jel = useSharedValue<number[]>([0, 0]), jst = useSharedValue<number[]>([0, 0, 0, 0, 0, 1, 0, 0]), jon = useSharedValue(0), sz = useSharedValue(size);
   useEffect(() => { jon.value = labJellyHold ? 2 : jelly && !reduced ? 1 : 0; if (labJellyHold) jel.value = [0.8, 0.5]; else if (!jelly) jel.value = [0, 0]; sz.value = size; }, [jelly, labJellyHold, reduced, size, jon, jel, sz]);
@@ -431,6 +434,7 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
     else { const P = Bn.PREP[mom.value], t = ts - t0.value;
       f = overlayIdle(Bn.I, solveFrame(P, t), info.timeSinceFirstFrame);
       if (t >= P.totalMs) { t0.value = -1; fc.value = { from: Bn.FK.rest.calm.v, to: "calm", t0: -1e9 }; runOnJS(onDone)(); } }   // = faceStill(FK, "calm"), which is not a worklet
+    if (lon.value > 0.001) { const e = f.eyes, k = lon.value; f = { ...f, eyes: { ...e, pupilX: e.pupilX + (lgx.value * 11 - e.pupilX) * k, pupilY: e.pupilY + (lgy.value * 8 - e.pupilY) * k } }; }
     fs.value = f;
     if (v2f.value === 1) {   // v2: while a hand rests on the cheek or chin the head keeps close to the torso (eased over about 0.1 s)
       const tg = t0.value >= 0 && (mom.value === "h-cheek" || mom.value === "h-chin") ? 0.25 : 1, g = hg.value;
@@ -709,18 +713,24 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
       const h = handle.current; if (!h) { res(); return; }
       let endMs = 0;
       for (const b of beats) {
-        const len = Math.max(b.face ? FACE_MS : 0, b.body ? PIP_BODY_MS[b.body] : 0, b.move ? PIP_MOVE_MS[b.move] + FACE_MS : 0);
+        const len = Math.max(b.look ? 200 : 0, b.face ? FACE_MS : 0, b.body ? PIP_BODY_MS[b.body] : 0, b.move ? PIP_MOVE_MS[b.move] + FACE_MS : 0);
         endMs = Math.max(endMs, b.at + len);
         timers.current.push(setTimeout(() => {
           if (b.haptic) haptics[b.haptic]();
           if (b.face) h.face(b.face);
+          if (b.look) {
+            const ease = { duration: 200, easing: Easing.out(Easing.cubic) };
+            if (b.look === "off") { lon.value = withTiming(0, ease); if (v2 && !reduced) { hx.value = withTiming(0, ease); hr.value = withTiming(0, ease); } }
+            else { lgx.value = withTiming(b.look[0], ease); lgy.value = withTiming(b.look[1], ease); lon.value = withTiming(1, ease);
+              if (v2 && !reduced) { hx.value = withTiming(b.look[0] * 0.012 * size, ease); hr.value = withTiming(b.look[0] * 3 + b.look[1] * 0.5, ease); } }
+          }
           if (!reduced && b.body) h.body(b.body);
           if (!reduced && b.move) h.play(b.move, { low: b.low });
         }, Math.max(0, b.at)));
       }
       timers.current.push(setTimeout(res, endMs));
     }),
-  }), [reduced, pend, startAt, fc, bun, nowT, by, bsc, brot, bx, bsx, bsy, fx, fy, bs, tube, H0, size, v2, bodyV2]);
+  }), [reduced, pend, startAt, fc, bun, nowT, by, bsc, brot, bx, bsx, bsy, fx, fy, bs, tube, H0, size, v2, bodyV2, lgx, lgy, lon, hx, hr]);
 
   const h = Math.round(size * VIEW.h / VIEW.w);
   return (

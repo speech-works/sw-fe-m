@@ -38,9 +38,12 @@ export interface PipStageProps extends PipProps {
   figureY?: SharedValue<number>;
   /** The visible screen in window px (default: the whole window). The web preview page puts a phone screen inside the browser window. */
   screen?: { x: number; y: number; width: number; height: number };
+  /** The background effects (layer "back") end at this line, px from the screen's top: on a screen with a bottom sheet, the
+   *  hero behind Pip changes (night, heat, rays) and the sheet stays as it is. */
+  backClip?: number;
 }
 
-export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect, sound = true, screen, figureClip, figureY, ...pip }, ref) {
+export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect, sound = true, screen, figureClip, figureY, backClip, ...pip }, ref) {
   const reduced = useReducedMotion();
   const pipRef = useRef<PipHandle>(null);
   const clock = useSharedValue(-1), t0 = useSharedValue(-1), endMs = useSharedValue(0);
@@ -82,7 +85,7 @@ export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipSt
   return (
     // zIndex: the stage (and so its effects) floats above the screen's other content
     <View ref={root} onLayout={measure} style={{ width: stageW, height: stageH, zIndex: 50 }} pointerEvents="none">
-      <View pointerEvents="none" style={fxBox}>
+      <View pointerEvents="none" style={[fxBox, backClip != null && { height: Math.max(0, backClip), overflow: "hidden" as const }]}>
         <FxLayer effect={effect} layer="back" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
       </View>
       {figureClip == null ? figure : (

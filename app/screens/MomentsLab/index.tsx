@@ -12,8 +12,11 @@ import { NavigationContext } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Pip } from "../../components/Pip";
-import type { PipBeat, PipHandle, PipVariant } from "../../components/Pip";
+import type { PipBeat, PipVariant } from "../../components/Pip";
+import { PipStage } from "../../components/Pip/fx/PipStage";
+import type { PipStageHandle } from "../../components/Pip/fx/PipStage";
+import { SAMPLE_MOMENTS } from "../../components/Pip/fx/samples";
+import type { FxEffect } from "../../components/Pip/fx/types";
 import { PIP_MOMENTS } from "../../components/Pip/moments";
 import { playSfx, SFX } from "../../components/Pip/fx/sfx";
 import { Audio } from "expo-av";
@@ -60,7 +63,7 @@ const SCREEN_OF: Record<string, keyof typeof SCR> = {
 const LETTERS = "ABCDEFGH";
 const SLOTS = ["ours", "A", "B", "C"] as const;
 const candOf = (kind: string, slot: string) => CANDS.filter(c => c.role === kind).sort((a, b) => a.rank - b.rank)[["A", "B", "C"].indexOf(slot)];
-const soundLabel = (v?: string) => (!v ? "-" : v === "none" ? "no sound" : `${v.split(":")[0]} ${v.split(":")[1] === "ours" ? "(ours)" : v.split(":")[1]}`);
+const soundLabel = (v?: string) => (!v ? "-" : v === "none" ? "no sound" : v === "own" ? "its own sounds" : `${v.split(":")[0]} ${v.split(":")[1] === "ours" ? "(ours)" : v.split(":")[1]}`);
 const net: Record<string, Audio.Sound> = {};
 async function playChoice(v?: string) {
   if (!v || v === "none") return;
@@ -78,7 +81,9 @@ const plain = (k: string) => k.replace(/-/g, " ");
 
 export default function MomentsLab() {
   const { width } = useWindowDimensions(), insets = useSafeAreaInsets();
-  const pip = useRef<PipHandle>(null), alive = useRef(true);
+  const stage = useRef<PipStageHandle>(null), alive = useRef(true), shot = useRef<View>(null);
+  const pip = { get current() { return stage.current?.pip ?? null; } };
+  const [fx, setFx] = useState<FxEffect | null>(null), [runId, setRunId] = useState(0), [win, setWin] = useState<{ x: number; y: number; width: number; height: number } | undefined>(undefined);
   const nav = React.useContext(NavigationContext) as NavigationProp<ParamListBase> | undefined;
   const [variant, setVariant] = useState<PipVariant>("pip"), [mode, setMode] = useState<"light" | "dark">("dark");
   const [idx, setIdx] = useState(0), [picks, setPicks] = useState<Picks>({}), [summary, setSummary] = useState(false), [jump, setJump] = useState(false);
@@ -123,10 +128,21 @@ export default function MomentsLab() {
     AsyncStorage.setItem(KEY, JSON.stringify(all)).catch(() => undefined);
   };
   const toggle = (o: PipOption) => save({ anim: picks[moment.id]?.anim === o.id ? undefined : o.id });
+  const samples = SAMPLE_MOMENTS[moment.id];
+  const toggleSample = (e: FxEffect) => save(picks[moment.id]?.anim === e.id ? { anim: undefined, sound: undefined } : { anim: e.id, sound: "own" });
+  const playSample = (e: FxEffect) => { if (busy) return; setFx(e); setRunId(r => r + 1); };
+  useEffect(() => {
+    if (!runId || !fx) return;
+    let live = true; setBusy(true);
+    const h = setTimeout(async () => {   // a frame later: the stage has the new effect (its particles made, its sounds loading)
+      try { await stage.current?.fire(); await sleep(500); if (alive.current) stage.current?.pip?.face("calm"); } finally { if (live && alive.current) setBusy(false); }
+    }, 60);
+    return () => { live = false; clearTimeout(h); };
+  }, [runId]);   // eslint-disable-line react-hooks/exhaustive-deps
   const chooseSound = (v: string) => { save({ sound: v }); playChoice(v); };
 
   const lines = PIP_MOMENTS.map(m => {
-    const p = picks[m.id] || {}, o = m.options.find(x => x.id === p.anim);
+    const p = picks[m.id] || {}, o = m.options.find(x => x.id === p.anim) ?? SAMPLE_MOMENTS[m.id]?.find(x => x.id === p.anim);
     return `${m.id}: ${o ? `${o.id} ${o.name}` : "NO ANIMATION"} | sound: ${p.sound ? soundLabel(p.sound) + ` [${p.sound}]` : "NO SOUND"}${p.note?.trim() ? ` | comment: ${p.note.trim()}` : ""}`;
   });
   const missing = PIP_MOMENTS.filter(m => !isDone(m.id)).length;
@@ -141,15 +157,18 @@ export default function MomentsLab() {
   const scr = SCR[SCREEN_OF[moment.id]];
   const screenH = Math.round(height * 0.56), k = screenH / 844, screenW = Math.round(390 * k);
   const plainSize = Math.min(width - 32, 260);
-  const pipEl = <Pip ref={pip} key={variant + moment.id} variant={variant} size={scr ? Math.round(scr.size * k) : plainSize} {...(scr ? { blob: false, labNoCut: true, jelly: false } : {})} />;
+  const pSize = scr ? Math.round(scr.size * k) : plainSize, pH = Math.round(pSize * 322 / 372);
+  const stageFx = samples && fx && samples.some(e => e.id === fx.id) ? fx : null;
+  const pipEl = (
+    <PipStage ref={stage} key={variant + moment.id} variant={variant} size={pSize} stageW={pSize} stageH={pH} pipTop={0} effect={stageFx} screen={win}
+      {...(scr ? { blob: false, labNoCut: true, jelly: false, figureClip: Math.round((scr.cut - scr.y) * k), backClip: Math.round(scr.cut * k) } : {})} />);
+  const measureShot = () => shot.current?.measureInWindow((x, y, w, h) => { if (Number.isFinite(x) && w > 0) setWin(o => (o && o.x === x && o.y === y && o.width === w ? o : { x, y, width: w, height: h })); });
   return (
     <View style={[s.root, { backgroundColor: CANVAS[mode], paddingTop: insets.top + 6 }]}>
       {scr ? (
-        <View style={[s.screen, { width: screenW, height: screenH }]}>
+        <View ref={shot} onLayout={measureShot} style={[s.screen, { width: screenW, height: screenH }]}>
           <Image source={scr.img} style={{ width: screenW, height: screenH }} resizeMode="cover" />
-          <View pointerEvents="none" style={[s.abs, { left: 0, top: 0, width: screenW, height: Math.round(scr.cut * k), overflow: "hidden" }]}>
-            <View style={[s.abs, { left: Math.round(scr.x * k), top: Math.round(scr.y * k) }]}>{pipEl}</View>
-          </View>
+          <View pointerEvents="none" style={[s.abs, { left: Math.round(scr.x * k), top: Math.round(scr.y * k) }]}>{pipEl}</View>
         </View>
       ) : (
         <View style={[s.screen, { width: screenW, height: screenH, backgroundColor: CANVAS[mode], borderWidth: 1, borderColor: line, justifyContent: "center", alignItems: "center" }]}>
@@ -174,18 +193,35 @@ export default function MomentsLab() {
           </View>
           <Text style={[s.note, { color: missing ? "#E8A33D" : "#7BC67B" }]}>{missing ? `${missing} moments still need a pick` : "All 24 moments done"}</Text>
           {PIP_MOMENTS.map((m, i) => {
-            const p = picks[m.id] || {}, oi = m.options.findIndex(x => x.id === p.anim);
+            const p = picks[m.id] || {}, list: { id: string; name: string }[] = SAMPLE_MOMENTS[m.id] ?? m.options, oi = list.findIndex(x => x.id === p.anim);
             return (
               <Pressable key={m.id} onPress={() => { go(i); setSummary(false); }} style={[s.card, { backgroundColor: card, borderColor: isDone(m.id) ? line : "#E8A33D" }]}>
                 <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>{i + 1}. {m.title}</Text>
-                <Text style={[s.small, { color: oi >= 0 ? fg : "#E8A33D" }]}>{oi >= 0 ? `${LETTERS[oi]}: ${m.options[oi].name}` : "No animation yet"} - {p.sound ? soundLabel(p.sound) : "no sound yet"}</Text>
+                <Text style={[s.small, { color: oi >= 0 ? fg : "#E8A33D" }]}>{oi >= 0 ? `${LETTERS[oi]}: ${list[oi].name}` : "No animation yet"} - {p.sound ? soundLabel(p.sound) : "no sound yet"}</Text>
                 {p.note?.trim() ? <Text style={[s.small, { color: sub }]}>Comment: {p.note.trim()}</Text> : null}
               </Pressable>);
           })}
         </ScrollView>
       ) : (
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-          {moment.options.map((o, oi) => {
+          {samples ? <Text style={[s.tiny, { color: "#7BC67B", textAlign: "center", marginTop: 6 }]}>New samples: each one plays the whole moment (props, background and its own sounds)</Text> : null}
+          {samples ? samples.map((e, oi) => {
+            const starred = picks[moment.id]?.anim === e.id;
+            return (
+              <View key={e.id} style={[s.opt, { backgroundColor: card, borderColor: starred ? "#E8A33D" : line }]}>
+                <Pressable disabled={busy} onPress={() => playSample(e)} style={[s.optPlay, busy && { opacity: 0.5 }]} accessibilityLabel={`Play ${LETTERS[oi]}`}>
+                  <Text style={s.optL}>{LETTERS[oi]}</Text>
+                  <Text style={s.playT}>▶</Text>
+                </Pressable>
+                <View style={{ flex: 1, paddingHorizontal: 10 }}>
+                  <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]} numberOfLines={1}>{e.name}</Text>
+                  <Text style={[s.tiny, { color: sub }]}>{(e.ms / 1000).toFixed(1)} s - {e.feel}</Text>
+                </View>
+                <Pressable onPress={() => toggleSample(e)} style={s.star} accessibilityLabel={starred ? "Unpick" : "Pick this one"}>
+                  <Text style={{ fontSize: 30, color: starred ? "#E8A33D" : sub }}>{starred ? "★" : "☆"}</Text>
+                </Pressable>
+              </View>);
+          }) : moment.options.map((o, oi) => {
             const starred = picks[moment.id]?.anim === o.id, pool = isPool(o);
             const run = () => (pool ? playPool(o) : o.variants ? play(o.variants[Object.keys(o.variants)[0]]) : play(o.beats || []));
             return (
@@ -207,7 +243,7 @@ export default function MomentsLab() {
                 </Pressable>
               </View>);
           })}
-          <View style={[s.card, { backgroundColor: card, borderColor: picks[moment.id]?.sound ? line : "#E8A33D" }]}>
+          {samples ? null : <View style={[s.card, { backgroundColor: card, borderColor: picks[moment.id]?.sound ? line : "#E8A33D" }]}>
             <View style={s.head}>
               <Text style={[s.body, { color: fg, flex: 1, marginTop: 0, fontWeight: "700" }]}>Sound: {soundLabel(heard)}{picks[moment.id]?.sound ? " ✓" : ""}</Text>
               <Btn label={`Kind: ${kind}`} onPress={() => setKindOf(k => ({ ...k, [moment.id]: KINDS[(KINDS.indexOf(kind) + 1) % KINDS.length] }))} />
@@ -217,7 +253,7 @@ export default function MomentsLab() {
               <Btn label="None" on={picks[moment.id]?.sound === "none"} onPress={() => chooseSound("none")} />
               {SLOTS.map(sl => <Btn key={sl} label={sl === "ours" ? "Ours" : sl} on={picks[moment.id]?.sound === `${kind}:${sl}`} onPress={() => chooseSound(`${kind}:${sl}`)} />)}
             </View>
-          </View>
+          </View>}
           <View style={[s.card, { backgroundColor: card, borderColor: line }]}>
             <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>Comment</Text>
             <TextInput key={moment.id} defaultValue={picks[moment.id]?.note ?? ""} onChangeText={t => save({ note: t })} multiline

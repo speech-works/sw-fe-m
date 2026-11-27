@@ -13,6 +13,7 @@
  * - At most 90 particles per effect, at most 16 "flicker" particles. Sounds sit on the visual hits.
  */
 import type { FxEffect, FxEmitter, FxShape } from "./types";
+import { PROP_SHAPES } from "./props";
 
 // ───────────────────────────── colours ─────────────────────────────
 // Three sticker sets. Neon: lime, hot red, candy pink, white. Warm: Speechworks orange, sunny yellow, coral, peach.
@@ -144,6 +145,7 @@ export const FX_SHAPES: Record<string, FxShape> = {
     [ln("M37 58V14", "$c", 17), fl("M24 54C24 46 78 45 80 58V78C80 88 70 94 56 94H44C32 94 24 86 24 76Z", "$c", 3)],
     [ln("M52 60V72M66 60V72", INK, 3.5, 0.35)]),
 };
+Object.assign(FX_SHAPES, PROP_SHAPES);   // the acting props (./props.ts)
 
 // ───────────────────────────── emitter helpers ─────────────────────────────
 type E = FxEmitter;

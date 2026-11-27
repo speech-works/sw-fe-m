@@ -31,6 +31,33 @@ export const SFX = {
   ding: require("../../../assets/sfx/ding.m4a"),
   "heart-blip": require("../../../assets/sfx/heart-blip.m4a"),
   sleepy: require("../../../assets/sfx/sleepy.m4a"),
+  // CC0 sounds from freesound.org for the moment samples (app/assets/sfx/lab/CREDITS.json)
+  "lab-clock-tick-1": require("../../../assets/sfx/lab/clock-tick-1.m4a"),
+  "lab-clock-tick-2": require("../../../assets/sfx/lab/clock-tick-2.m4a"),
+  "lab-clock-wind-1": require("../../../assets/sfx/lab/clock-wind-1.m4a"),
+  "lab-clock-wind-2": require("../../../assets/sfx/lab/clock-wind-2.m4a"),
+  "lab-confetti-pop-1": require("../../../assets/sfx/lab/confetti-pop-1.m4a"),
+  "lab-confetti-pop-2": require("../../../assets/sfx/lab/confetti-pop-2.m4a"),
+  "lab-ff-zip-1": require("../../../assets/sfx/lab/ff-zip-1.m4a"),
+  "lab-ff-zip-2": require("../../../assets/sfx/lab/ff-zip-2.m4a"),
+  "lab-fire-whoosh-1": require("../../../assets/sfx/lab/fire-whoosh-1.m4a"),
+  "lab-fire-whoosh-2": require("../../../assets/sfx/lab/fire-whoosh-2.m4a"),
+  "lab-grip-pat-1": require("../../../assets/sfx/lab/grip-pat-1.m4a"),
+  "lab-grip-pat-2": require("../../../assets/sfx/lab/grip-pat-2.m4a"),
+  "lab-kids-yay-1": require("../../../assets/sfx/lab/kids-yay-1.m4a"),
+  "lab-kids-yay-2": require("../../../assets/sfx/lab/kids-yay-2.m4a"),
+  "lab-medal-ding-1": require("../../../assets/sfx/lab/medal-ding-1.m4a"),
+  "lab-medal-ding-2": require("../../../assets/sfx/lab/medal-ding-2.m4a"),
+  "lab-music-box-1": require("../../../assets/sfx/lab/music-box-1.m4a"),
+  "lab-music-box-2": require("../../../assets/sfx/lab/music-box-2.m4a"),
+  "lab-page-flip-1": require("../../../assets/sfx/lab/page-flip-1.m4a"),
+  "lab-page-flip-2": require("../../../assets/sfx/lab/page-flip-2.m4a"),
+  "lab-party-horn-1": require("../../../assets/sfx/lab/party-horn-1.m4a"),
+  "lab-party-horn-2": require("../../../assets/sfx/lab/party-horn-2.m4a"),
+  "lab-pencil-check-1": require("../../../assets/sfx/lab/pencil-check-1.m4a"),
+  "lab-pencil-check-2": require("../../../assets/sfx/lab/pencil-check-2.m4a"),
+  "lab-yawn-cartoon-1": require("../../../assets/sfx/lab/yawn-cartoon-1.m4a"),
+  "lab-yawn-cartoon-2": require("../../../assets/sfx/lab/yawn-cartoon-2.m4a"),
 } as const;
 export type SfxName = keyof typeof SFX;
 export const SFX_NAMES = Object.keys(SFX) as SfxName[];
@@ -45,7 +72,9 @@ let modeSet = false;
  *  server, iOS, web): the bundled module as before. */
 function source(n: SfxName): any {
   // the packer names each file after its path: app/assets/sfx/chime-up.m4a -> raw resource "app_assets_sfx_chimeup"
-  if (Platform.OS === "android" && !__DEV__) return { uri: `android.resource://${Application.applicationId ?? "com.speechworks.app"}/raw/app_assets_sfx_${n.replace(/[^a-z0-9]/g, "")}` };
+  // (a lab sound in app/assets/sfx/lab/ff-zip-2.m4a -> "app_assets_sfx_lab_ffzip2")
+  const raw = n.startsWith("lab-") ? `lab_${n.slice(4).replace(/[^a-z0-9]/g, "")}` : n.replace(/[^a-z0-9]/g, "");
+  if (Platform.OS === "android" && !__DEV__) return { uri: `android.resource://${Application.applicationId ?? "com.speechworks.app"}/raw/app_assets_sfx_${raw}` };
   return SFX[n];
 }
 
