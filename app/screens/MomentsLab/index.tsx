@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { NavigationContext } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pip } from "../../components/Pip";
 import type { PipBeat, PipHandle, PipVariant } from "../../components/Pip";
@@ -23,7 +23,7 @@ const KEY = "momentsLab.final";
 const CANVAS = { light: "#F7F4EE", dark: "#141311" };
 const AREAS = ["Program", "Practice", "Home", "Onboarding", "Social", "System"] as const;
 /** One final animation and one sound per moment. sound: "none", or "<kind>:ours|A|B|C". */
-type Pick = { anim?: string; sound?: string };
+type Pick = { anim?: string; sound?: string; note?: string };
 type Picks = Record<string, Pick>;
 
 // the library candidates (Freesound, CC0; the FX lab's list): 3 per kind, played from the internet, nothing bundled
@@ -127,7 +127,7 @@ export default function MomentsLab() {
 
   const lines = PIP_MOMENTS.map(m => {
     const p = picks[m.id] || {}, o = m.options.find(x => x.id === p.anim);
-    return `${m.id}: ${o ? `${o.id} ${o.name}` : "NO ANIMATION"} | sound: ${p.sound ? soundLabel(p.sound) + ` [${p.sound}]` : "NO SOUND"}`;
+    return `${m.id}: ${o ? `${o.id} ${o.name}` : "NO ANIMATION"} | sound: ${p.sound ? soundLabel(p.sound) + ` [${p.sound}]` : "NO SOUND"}${p.note?.trim() ? ` | comment: ${p.note.trim()}` : ""}`;
   });
   const missing = PIP_MOMENTS.filter(m => !isDone(m.id)).length;
   const share = () => { Share.share({ message: lines.join("\n") }).catch(() => undefined); };
@@ -179,6 +179,7 @@ export default function MomentsLab() {
               <Pressable key={m.id} onPress={() => { go(i); setSummary(false); }} style={[s.card, { backgroundColor: card, borderColor: isDone(m.id) ? line : "#E8A33D" }]}>
                 <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>{i + 1}. {m.title}</Text>
                 <Text style={[s.small, { color: oi >= 0 ? fg : "#E8A33D" }]}>{oi >= 0 ? `${LETTERS[oi]}: ${m.options[oi].name}` : "No animation yet"} - {p.sound ? soundLabel(p.sound) : "no sound yet"}</Text>
+                {p.note?.trim() ? <Text style={[s.small, { color: sub }]}>Comment: {p.note.trim()}</Text> : null}
               </Pressable>);
           })}
         </ScrollView>
@@ -217,6 +218,12 @@ export default function MomentsLab() {
               {SLOTS.map(sl => <Btn key={sl} label={sl === "ours" ? "Ours" : sl} on={picks[moment.id]?.sound === `${kind}:${sl}`} onPress={() => chooseSound(`${kind}:${sl}`)} />)}
             </View>
           </View>
+          <View style={[s.card, { backgroundColor: card, borderColor: line }]}>
+            <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>Comment</Text>
+            <TextInput key={moment.id} defaultValue={picks[moment.id]?.note ?? ""} onChangeText={t => save({ note: t })} multiline
+              placeholder="Anything about this moment, e.g. B but slower" placeholderTextColor={sub}
+              style={[s.input, { color: fg, borderColor: line }]} />
+          </View>
           <View style={s.row}>
             <Btn label="All picks" onPress={() => setSummary(true)} />
             <Btn label={jump ? "Hide list" : "Jump to..."} on={jump} onPress={() => setJump(v => !v)} />
@@ -253,6 +260,7 @@ const s = StyleSheet.create({
   body: { fontSize: 16, lineHeight: 22, marginTop: 6 },
   small: { fontSize: 14, lineHeight: 19, marginTop: 6 },
   tiny: { fontSize: 13, lineHeight: 17, marginTop: 2 },
+  input: { minHeight: 64, borderWidth: 1, borderRadius: 12, padding: 10, marginTop: 8, fontSize: 16, textAlignVertical: "top" },
   abs: { position: "absolute" },
   screen: { borderRadius: 18, overflow: "hidden" },
   opt: { flexDirection: "row", alignItems: "center", borderRadius: 16, borderWidth: 1.5, padding: 8, marginTop: 8 },
