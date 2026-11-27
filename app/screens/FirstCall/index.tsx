@@ -5,6 +5,7 @@ import {
   abortPracticeActivity,
   completePracticeActivity,
 } from "../../api";
+import { showPipMoment } from "../../components/Pip";
 import { WS_BASE_URL } from "../../api/constants";
 import { FirstCallOffer, fetchFirstCallOffer } from "../../api/firstCall";
 import { PracticeActivityContentType } from "../../api/practiceActivities/types";
@@ -118,6 +119,14 @@ const FirstCall: React.FC<FirstCallProps> = ({ standalone, onFinished }) => {
    * because they can plainly see it did not happen, unsettling.
    */
   const connectedRef = useRef(false);
+  // Pip's moment: "your first call is done" plays once, when the phase becomes aftercare. Aftercare is only reached by a call
+  // that connected (a call that never connected goes to "failed", which never gets a moment) (founder 2026-11-26).
+  const pipFired = useRef(false);
+  useEffect(() => {
+    if (phase !== "aftercare" || pipFired.current) return;
+    pipFired.current = true;
+    void showPipMoment("first-call-done");
+  }, [phase]);
   /**
    * The same fact as `connectedRef`, in state, because the escape hatch below
    * has to RENDER on it.

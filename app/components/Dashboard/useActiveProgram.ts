@@ -21,6 +21,8 @@ export interface ActiveProgram {
   title: string;
   /** One or two lines of what the arc is. See the note in InProgressSlide. */
   description: string | null;
+  /** The server's one-line reason this program fits them, when it sent one. */
+  reason?: string | null;
   /**
    * The card offers a restart instead of a "next day", and `openProgram`
    * performs one before it navigates.
@@ -221,6 +223,7 @@ export function useActiveProgram(): ActiveProgramState {
               packId: rec.pack.id,
               title: rec.pack.title,
               description: rec.pack.description ?? null,
+              reason: rec.reason ?? null,
               isRefresher: refresher,
               icon: rec.pack.icon ?? null,
               catalogKey: rec.pack.catalogKey ?? null,

@@ -10,17 +10,54 @@ import { readableParagraphs } from "../../util/packs/readableParagraphs";
  *  Anything placed under a list item (the Copy button) lines up with this. */
 export const LIST_TEXT_INDENT = 28;
 
+/**
+ * The program screens' rows (program-mocks/system.md; the day frame turns this on for everything on its sheet):
+ * list rows 4 apart (not 12) and as wide as the paragraphs (no 16 kept free at the right, which wrapped a line early).
+ * A list then ends 16 above what follows, as a paragraph does (its last row's 4 and the blank line's 12).
+ * Off everywhere else, so screens outside a program look as they did.
+ */
+export const MarkdownTight = React.createContext(false);
+
 export const SimpleMarkdown = ({
   content,
   textColor,
   variant,
+  readingSize,
+  keyLeadIns,
+  flushTop,
+  leadHeading,
 }: {
   content: string;
   textColor?: string;
   variant?: "instruction" | "default";
+  /** Reading text size from the lesson's text-size control (16/18/20). */
+  readingSize?: number;
+  /**
+   * A paragraph that opens with a bold lead-in ending in a colon
+   * ("**What to listen for:** ...") becomes a key block: the lead-in as its
+   * label, the rest as its text. A lead-in that says "not" gets the warning
+   * tone. Program UX review, 2026-11-25. Lessons only.
+   */
+  keyLeadIns?: boolean;
+  /**
+   * The content starts right under a label of its own (a lesson part's
+   * "PART 2 OF 3"), so its first heading drops its top margin.
+   */
+  flushTop?: boolean;
+  /**
+   * A lesson on the day frame's sheet (program screens redesign, 2026-11-27).
+   * The content's first heading is the part's heading, whatever its level:
+   *   "big"    the lesson's first part: 24/30 with the orange rule under it.
+   *            The rule belongs to this heading and to no other.
+   *   "small"  a later part: 20/26, no rule.
+   * The heading starts flush (the chip row above it owns the gap between them,
+   * so a lesson with no chip row leaves no gap).
+   */
+  leadHeading?: "big" | "small";
 }) => {
   const styles = useStyles();
   const { colors } = useTheme();
+  const tight = React.useContext(MarkdownTight);
 
   if (!content) return null;
 
@@ -30,9 +67,18 @@ export const SimpleMarkdown = ({
   // element instead of one element per line.
   const lines = content.replace(/\r\n/g, "\n").split("\n");
   const blocks = groupBlocks(lines);
+  // The lesson's lead heading: the first heading, when nothing but blank lines
+  // comes before it.
+  const leadAt = leadHeading
+    ? blocks.findIndex((b, i) => b.kind === "header" && blocks.slice(0, i).every((x) => x.kind === "blank"))
+    : -1;
 
   const textStyle = textColor ? { color: textColor } : {};
   const linkColor = colors.text.link;
+  const sizeStyle = readingSize
+    ? // body 16/26 (program screens system), in the same ratio at 18 and 20
+      { fontSize: readingSize, lineHeight: Math.round(readingSize * 1.625) }
+    : null;
 
   return (
     <View style={styles.container}>
@@ -45,10 +91,25 @@ export const SimpleMarkdown = ({
             // sitting with the one it names.
             const isSub = (b?: Block) => b?.kind === "header" && b.level >= 3;
             if (isSub(blocks[index - 1]) || isSub(blocks[index + 1])) return null;
+            // The lesson's lead heading owns the space under it, and nothing
+            // is above it.
+            if (leadAt >= 0 && (index < leadAt || index === leadAt + 1)) return null;
             return <View key={index} style={{ height: 12 }} />;
           }
 
           case "header": {
+            if (index === leadAt) {
+              return leadHeading === "big" ? (
+                <View key={index} style={styles.leadBlock}>
+                  <Text style={[styles.leadBig, textStyle]}>{block.text}</Text>
+                  <View style={styles.leadRule} />
+                </View>
+              ) : (
+                <Text key={index} style={[styles.leadSmall, textStyle]}>
+                  {block.text}
+                </Text>
+              );
+            }
             const headerStyle = {
               1: styles.h1,
               2: styles.h2,
@@ -75,7 +136,7 @@ export const SimpleMarkdown = ({
                 // heading, and that heading sits directly under the progress
                 // bar; zeroing the margin crowds the two together. The 36 is
                 // the breathing room at the top of a day, not dead space.
-                <View key={index} style={styles.h2Block}>
+                <View key={index} style={[styles.h2Block, flushTop && index === 0 && { marginTop: 0 }]}>
                   <Text style={[styles.h2, textStyle]}>{block.text}</Text>
                   <View style={styles.h2Mark} />
                 </View>
@@ -112,7 +173,8 @@ export const SimpleMarkdown = ({
             return (
               <View key={index} style={styles.story} testID="markdown-story">
                 <Text style={styles.storyLabel}>A real story</Text>
-                <SimpleMarkdown content={block.story} textColor={textColor} />
+                {/* 15.5/25 at the standard size: half a point under the lesson's body */}
+                <SimpleMarkdown content={block.story} textColor={textColor} readingSize={readingSize ? readingSize - 0.5 : undefined} />
                 {block.takeaway.trim() !== "" && (
                   <View style={styles.storyTakeaway}>
                     <Text style={styles.storyLabel}>What this means for you</Text>
@@ -135,6 +197,7 @@ export const SimpleMarkdown = ({
                   style={[
                     styles.blockquoteText,
                     block.text.includes("**") && styles.blockquoteTextAroundBold,
+                    sizeStyle,
                     textStyle,
                   ]}
                 >
@@ -150,7 +213,7 @@ export const SimpleMarkdown = ({
 
           case "checkbox":
             return (
-              <View key={index} style={styles.listItem}>
+              <View key={index} style={[styles.listItem, tight && styles.listItemTight]}>
                 <MaterialCommunityIcons
                   name={
                     block.checked ? "checkbox-marked" : "checkbox-blank-outline"
@@ -167,6 +230,7 @@ export const SimpleMarkdown = ({
                   style={[
                     variant === "instruction" ? styles.bodyLarge : styles.body,
                     block.checked && styles.completedText,
+                    sizeStyle,
                     textStyle,
                   ]}
                 >
@@ -177,12 +241,13 @@ export const SimpleMarkdown = ({
 
           case "list":
             return (
-              <View key={index} style={styles.listItem}>
-                <Text style={[styles.bullet, textStyle]}>{block.marker}</Text>
+              <View key={index} style={[styles.listItem, tight && styles.listItemTight]}>
+                <Text style={[styles.bullet, sizeStyle, textStyle]}>{block.marker}</Text>
                 <Text
                   style={[
                     variant === "instruction" ? styles.bodyLarge : styles.body,
                     styles.listText,
+                    sizeStyle,
                     textStyle,
                   ]}
                 >
@@ -192,23 +257,47 @@ export const SimpleMarkdown = ({
             );
 
           case "paragraph":
-          default:
+          default: {
+            const lead = keyLeadIns ? KEY_LEAD_IN.exec(block.text) : null;
+            if (lead) {
+              const not = /\bnot\b/i.test(lead[1]);
+              return (
+                <View
+                  key={index}
+                  style={[styles.keyBlock, not && styles.keyBlockNot]}
+                  testID="markdown-key"
+                >
+                  <View style={[styles.keyBar, not && styles.keyBarNot]} />
+                  <Text style={[styles.keyLabel, not && styles.keyLabelNot]}>
+                    {lead[1].toUpperCase()}
+                  </Text>
+                  <Text style={[styles.body, styles.keyText, sizeStyle, textStyle]}>
+                    {parseLinksAndBold(lead[2], linkColor, textColor)}
+                  </Text>
+                </View>
+              );
+            }
             return (
               <Text
                 key={index}
                 style={[
                   variant === "instruction" ? styles.bodyLarge : styles.body,
+                  sizeStyle,
                   textStyle,
                 ]}
               >
                 {parseLinksAndBold(block.text, linkColor, textColor)}
               </Text>
             );
+          }
         }
       })}
     </View>
   );
 };
+
+/** "**What to listen for:** the rest" -> ["What to listen for", "the rest"]. */
+const KEY_LEAD_IN = /^\*\*([^*]{2,60}?):\*\*\s*([\s\S]+)$/;
 
 export type Block =
   | { kind: "blank" }
@@ -628,6 +717,34 @@ const useStyles = makeStyles((c, t) => ({
   container: {
     width: "100%",
   },
+  // A lesson's key line: lime for what to do, warm red for what not to do.
+  keyBlock: {
+    backgroundColor: c.accentTint.lime,
+    borderRadius: t.radius.input,
+    paddingVertical: 12,
+    paddingLeft: 16,
+    paddingRight: 14,
+    marginVertical: 8,
+    overflow: "hidden",
+  },
+  keyBlockNot: { backgroundColor: c.accentTint.danger },
+  keyBar: {
+    position: "absolute",
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: c.accentText.lime,
+  },
+  keyBarNot: { backgroundColor: c.feedback.dangerText },
+  keyLabel: {
+    ...t.typography.label,
+    color: c.accentText.lime,
+    marginBottom: 4,
+  },
+  keyLabelNot: { color: c.feedback.dangerText },
+  keyText: { marginBottom: 0 },
   divider: {
     marginVertical: spacing.lg,
   },
@@ -675,6 +792,31 @@ const useStyles = makeStyles((c, t) => ({
     backgroundColor: c.action.primary,
     marginTop: 12,
   },
+  // ── A LESSON'S LEAD HEADING (see `leadHeading`) ──
+  // big: 24/30, then the rule (12 above it, 20 under it); small: 20/26, 10 under it
+  leadBlock: { marginBottom: 20 },
+  leadBig: {
+    fontFamily: fonts.extrabold,
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: -0.5,
+    color: c.text.primary,
+  },
+  leadRule: {
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: c.action.primary,
+    marginTop: 12,
+  },
+  leadSmall: {
+    fontFamily: fonts.bold,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    color: c.text.primary,
+    marginBottom: 10,
+  },
   h3: {
     ...t.typography.title,
     fontSize: 17,
@@ -713,6 +855,11 @@ const useStyles = makeStyles((c, t) => ({
     marginBottom: 8,
     paddingRight: 16,
   },
+  // MarkdownTight: the row's text keeps its own 4 under it, and that is the whole gap.
+  listItemTight: {
+    marginBottom: 0,
+    paddingRight: 0,
+  },
   // flex: 1, not flexShrink: 1. A shrinking Text is measured at the row's
   // full width and then squeezed, so iOS lays the lines out too wide and the
   // end of the item is cut off at the right edge ("the hard parts and th",
@@ -745,19 +892,29 @@ const useStyles = makeStyles((c, t) => ({
     backgroundColor: c.action.primaryTint,
     borderRadius: t.radius.md,
   },
+  // The one card in a lesson (it is someone else's voice): a row surface with
+  // a hairline, one step up from the day sheet. Its label and its link are
+  // inside it. The blank lines around it in the text are the gaps (12 each),
+  // so with its own 4 under it the card sits 16 from what follows, as a
+  // paragraph does, and a lesson with no story has no gap left over.
   story: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginVertical: 16,
-    backgroundColor: c.surface.inset,
-    borderRadius: t.radius.md,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+    marginBottom: 4,
+    backgroundColor: c.surface.elevated,
+    borderWidth: 1,
+    borderColor: c.border.default,
+    borderRadius: 20,
   },
   storyLabel: {
-    ...t.typography.caption,
-    color: c.text.secondary,
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: c.text.tertiary,
     textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   storyTakeaway: {
     marginTop: 12,

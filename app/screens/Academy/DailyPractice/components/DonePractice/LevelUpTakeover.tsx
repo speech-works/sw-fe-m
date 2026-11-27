@@ -8,10 +8,10 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { showPipMoment } from "../../../../../components/Pip";
 import { RewardReveal } from "../../../../../components/RewardReveal";
 import {
   CelebrationLight,
-  CelebrationBurst,
 } from "../../../../../components/CelebrationLight";
 import {
   partsUnlockedBetween,
@@ -84,7 +84,7 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
   newLevel,
   stageTitle,
   manifest,
-  onClose,
+  onClose: onCloseProp,
   onTryOn,
 }) => {
   const { colors } = useTheme();
@@ -99,6 +99,13 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
   );
   const hasRewards = unlocked.length > 0;
   const grand = stageCrossedBetween(fromLevel, newLevel);
+
+  // Pip's moment replaced the stage confetti (founder 2026-11-26). The takeover's card clips its children (overflow hidden),
+  // so Pip cannot play inside it; the moment plays on the app-level host the moment the takeover closes. Plain level-ups: none.
+  const onClose = () => {
+    onCloseProp();
+    if (grand) void showPipMoment("new-stage");
+  };
 
   /*
    * BOTH EFFECTS BELOW ARE GATED ON `visible`, NOT ON MOUNT.
@@ -201,20 +208,7 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
           </Text>
         )}
 
-        {grand && visible && (
-          // Last child, so it falls IN FRONT of the cards. Clipped by the
-          // card's own overflow, so nothing rains onto the rest of the screen.
-          <CelebrationBurst
-            reduced={reduced}
-            colors={[
-              colors.action.primary,
-              colors.accent.warning,
-              colors.accent.info,
-              colors.accent.purple,
-              colors.accent.danger,
-            ]}
-          />
-        )}
+        {/* Pip's moment replaced the stage confetti here (founder 2026-11-26); see onClose. */}
 
         <View style={styles.actions}>
           {hasRewards && onTryOn ? (

@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Directions, Gesture, GestureDetector } from "react-native-gesture-handler";
 import { updateMyUser } from "../../api/users";
+import { showPipMoment } from "../../components/Pip";
 import { useUserStore } from "../../stores/user";
 import { useAvatarDraftStore } from "../../stores/avatarDraft";
 import { useAvatarSavedStore } from "../../stores/avatarSaved";
@@ -156,6 +157,8 @@ const AvatarStudio = () => {
       // celebrate a save that might still fail.
       markAvatarSaved();
       showToast("Avatar saved");
+      // Pip's moment (founder 2026-11-26): not awaited, the host lives above navigation. Home's sheen stays.
+      void showPipMoment("avatar-saved");
       navigation.goBack();
     } catch (error) {
       console.error("Avatar save failed:", error);

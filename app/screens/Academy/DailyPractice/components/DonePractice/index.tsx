@@ -5,7 +5,7 @@ import { StatusBar, StyleSheet, View } from "react-native";
 import Animated, {
 } from "react-native-reanimated";
 
-import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
+import { showPipMoment } from "../../../../../components/Pip";
 import ScreenView from "../../../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import {
@@ -101,6 +101,13 @@ const DonePractice = ({
   // "Step done" and no confetti inside a program; see doneTitle.ts.
   const headline = donePracticeHeadline({ isAborted, inProgram });
   const { reduced } = useMotion();
+  // Pip's moment fires once, only while this screen is the focused one (a celebration must never surface over another screen).
+  const pipFired = useRef(false);
+  useEffect(() => {
+    if (!headline.confetti || !isFocused || pipFired.current) return;
+    pipFired.current = true;
+    void showPipMoment("practice-done", { title: headline.title });
+  }, [headline.confetti, headline.title, isFocused]);
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
@@ -198,9 +205,7 @@ const DonePractice = ({
       {/* Dark canvas (replaces the legacy light gradient background). */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: pageColor }]} />
 
-      {/* Confetti (only a completion outside a program) — bright saturated hues read on the dark canvas.
-          Gated on reduced motion here: ConfettiAnimation does not self-gate. */}
-      {headline.confetti && !reduced && <ConfettiAnimation />}
+      {/* Pip's moment replaced the confetti here (founder 2026-11-26); it plays only for a completion outside a program. */}
 
       {/* This screen reads no insets of its own and centres its content in the
           window. Under edge-to-edge the window grows by the nav bar, which would

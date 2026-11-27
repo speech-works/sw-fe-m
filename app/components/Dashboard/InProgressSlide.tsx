@@ -1,22 +1,24 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import PressableScale from "../PressableScale";
 import {
   Icon,
   Text,
+  borderWidth,
   icons,
   primaryEdge,
   radius,
   size,
   space,
   spacing,
+  fonts,
   useTheme,
   withAlpha,
 } from "../../design-system";
 import type { ActiveProgram } from "./useActiveProgram";
 import { dayCloseLine } from "../../util/packs/dayLock";
 import { packIconFor } from "./packIcon";
-import CoverSlide from "./CoverSlide";
+import { COVER_SLIDE_HEIGHT } from "./CoverSlide";
 import { programCoverFor } from "../../util/packs/programCover";
 
 /**
@@ -116,7 +118,15 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
    */
   const cover = programCoverFor(program.catalogKey, program.coverImage);
   if (cover) {
+    // Big cover tile: the cover across the top at a fixed height, then the
+    // words. The reason owns its top gap, so a program without one leaves no
+    // hole. A finished program has no bar and no day count, only the line that
+    // says so.
     const showBar = !program.isRefresher && totalModules > 0;
+    const doneDays = Math.round(
+      Math.max(0, Math.min(1, percentComplete)) * totalModules,
+    );
+    const reason = program.reason?.trim() ? program.reason.trim() : null;
     return (
       <PressableScale
         scaleTo={0.98}
@@ -125,77 +135,70 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
         accessibilityLabel={a11yLabel}
         style={styles.press}
       >
-        <CoverSlide
-          cover={cover}
-          radius={radius.card}
-          border={colors.border.default}
-          label={
-            <View style={[styles.coverChip, { backgroundColor: colors.action.primary }]}>
-              <Text variant="eyebrow" color={ink} numberOfLines={1}>
-                {program.isRefresher ? "YOU FINISHED THIS" : "IN PROGRESS"}
+        <View
+          style={[
+            styles.tile,
+            {
+              backgroundColor: colors.surface.default,
+              borderColor: colors.border.default,
+            },
+          ]}
+        >
+          <Image
+            source={cover.source}
+            resizeMode="cover"
+            style={styles.tileCover}
+            accessible={false}
+            importantForAccessibility="no"
+          />
+          <View style={styles.tileBody}>
+            <Text variant="h3" color="primary" style={styles.tileTitle}>
+              {program.title}
+            </Text>
+            {reason ? (
+              <Text variant="bodySm" color="accent" numberOfLines={2} style={styles.tileReason}>
+                {reason}
               </Text>
-            </View>
-          }
-          title={program.title}
-          note={
-            program.isRefresher ? (
-              <Text variant="bodySm" color="secondary" numberOfLines={2}>
-                Start it again from day one.
-              </Text>
-            ) : nextModule ? (
-              <>
-                <Text variant="caption" color="tertiary">
-                  {dayLocked ? "TODAY" : "NEXT UP"}
-                </Text>
-                <Text variant="label" color="primary" numberOfLines={2} style={styles.coverNext}>
-                  {/* As on the plain card: never advertise a day that cannot
-                      be started. */}
-                  {dayLocked ? dayCloseLine(dayCloseState) : nextModule.title}
-                </Text>
-              </>
-            ) : null
-          }
-          detail={
-            showBar ? (
-              <>
-                <Text variant="caption" color="secondary" numberOfLines={1}>
-                  Day {moduleOrder} of {totalModules}
-                </Text>
-                <View
-                  style={[
-                    styles.bar,
-                    styles.coverBar,
-                    { backgroundColor: withAlpha(colors.text.primary, 0.14) },
-                  ]}
-                >
+            ) : null}
+            {showBar ? (
+              <View style={styles.segs}>
+                {Array.from({ length: totalModules }, (_, i) => (
                   <View
+                    key={i}
                     style={[
-                      styles.barFill,
+                      styles.seg,
                       {
-                        backgroundColor: colors.action.primary,
-                        width: `${Math.round(
-                          Math.max(0, Math.min(1, percentComplete)) * 100,
-                        )}%`,
+                        backgroundColor:
+                          i < doneDays
+                            ? colors.action.primary
+                            : colors.surface.control,
                       },
                     ]}
                   />
-                </View>
-              </>
-            ) : null
-          }
-          action={
-            <View style={[styles.coverCta, { backgroundColor: colors.action.primary }]}>
-              <Icon
-                name={dayLocked ? icons.success : icons.play}
-                size={size.iconInline}
-                color={ink}
-              />
-              <Text variant="label" color={ink}>
-                {ctaLabel}
+                ))}
+              </View>
+            ) : null}
+            <View style={styles.tileRow}>
+              <Text variant="caption" color="secondary" numberOfLines={1} style={styles.tileMeta}>
+                {program.isRefresher
+                  ? "You finished this"
+                  : totalModules > 0
+                    ? `Day ${moduleOrder} of ${totalModules}`
+                    : ""}
               </Text>
+              <View style={[styles.coverCta, { backgroundColor: colors.action.primary }]}>
+                <Icon
+                  name={dayLocked ? icons.success : icons.play}
+                  size={size.iconInline}
+                  color={ink}
+                />
+                <Text variant="label" color={ink}>
+                  {ctaLabel}
+                </Text>
+              </View>
             </View>
-          }
-        />
+          </View>
+        </View>
       </PressableScale>
     );
   }
@@ -333,7 +336,10 @@ const styles = StyleSheet.create({
   // `flex: 1` on both, so the slide fills whatever height the tallest card in
   // the row establishes. Without it the card keeps its natural size and the
   // carousel leaves a gap under the short ones.
-  press: { flex: 1 },
+  // The floor is on the pressable itself, not only on the card inside it: on
+  // native a `flex: 1` chain under an auto-height carousel row can resolve to 0
+  // and leave the card empty (seen on the S22).
+  press: { flex: 1, minHeight: COVER_SLIDE_HEIGHT },
   card: {
     flex: 1,
     borderRadius: radius.card,
@@ -371,20 +377,41 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     marginTop: spacing.lg,
   },
-  coverChip: {
-    alignSelf: "flex-start",
-    paddingHorizontal: space.inlineGap + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.chip,
+  tile: {
+    flex: 1,
+    minHeight: COVER_SLIDE_HEIGHT,
+    borderRadius: 22,
+    borderWidth: borderWidth.hairline,
+    overflow: "hidden",
   },
-  coverBar: { marginTop: spacing.xs + 2 },
-  coverNext: { marginTop: spacing.xxs },
+  // An explicit height, never a flex chain: on Android a flex child of an
+  // auto-height carousel row can resolve to 0.
+  tileCover: { width: "100%", height: 150 },
+  tileBody: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
+  },
+  tileTitle: { fontSize: 17, lineHeight: 21, fontFamily: fonts.extrabold, fontWeight: "800" },
+  tileReason: { marginTop: 4, fontSize: 12, lineHeight: 17 },
+  segs: { flexDirection: "row", gap: 3, marginTop: 8 },
+  seg: { flex: 1, height: 4, borderRadius: 2 },
+  tileRow: {
+    marginTop: "auto",
+    paddingTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  tileMeta: { flex: 1, minWidth: 0 },
   coverCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    height: 36,
     borderRadius: radius.pill,
   },
 });

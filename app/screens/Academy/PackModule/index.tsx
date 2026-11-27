@@ -25,6 +25,7 @@ import {
 import { getProgramGoals } from "../../../api/programGoals";
 import { ProgramGoal } from "../../../api/programGoals/types";
 import { DailyLog } from "../../Programs/DailyLog";
+import { DayDone } from "../../../components/Pack/DayDone";
 import { takeGoalsAskOutcome } from "../../Programs/GoalsAsk/outcome";
 import { dayTitle } from "../../Programs/ProgramDetail";
 import {
@@ -44,6 +45,11 @@ import {
   nextOpenModuleId,
 } from "../../../util/packs/dayLock";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
+import { DayStepsSheet, ReadingSheet } from "../../../components/Pack/DayChrome";
+import { DayFrame, DayIslandDock } from "../../../components/Pack/DayFrame";
+import { dayStepFrame } from "../../../components/Pack/dayStepFrame";
+import { TeachPart, teachParts } from "../../../util/packs/teachParts";
+import { dayStepList } from "../../../util/packs/stepList";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
 import { isFinishedActivity, useActivityStore } from "../../../stores/activity";
@@ -56,8 +62,6 @@ import {
   Button,
   Icon,
   IconName,
-  Page,
-  ProgressBar,
   Spinner,
   Text,
   icons,
@@ -987,6 +991,23 @@ const PackModuleScreen = () => {
     }
   }, [activities, module?.blocks, module?.id, packId, blockToActivityMap, isActivityCompleted]);
 
+  /**
+   * ── A LESSON, PART BY PART ────────────────────────────────────────────────
+   * A long teach block shows one part per screen (program UX review,
+   * 2026-11-25). The footer's Next and Back move through the parts first, and
+   * the round list button shows "2/4" and opens text size and the parts.
+   * A new step always opens on its first part.
+   */
+  const [partIndex, setPartIndex] = useState(0);
+  const [textSize, setTextSize] = useState(16);
+  const [daySheetOpen, setDaySheetOpen] = useState(false);
+  const [readingSheetOpen, setReadingSheetOpen] = useState(false);
+  /** Day done: the next day's own title, for the tomorrow card. */
+  const [nextDayTitle, setNextDayTitle] = useState<string | null>(null);
+  useEffect(() => {
+    setPartIndex(0);
+  }, [currentBlockIndex]);
+
   const handleNext = () => {
     if (module?.blocks && currentBlockIndex < module.blocks.length - 1) {
       setCurrentBlockIndex((prev) => prev + 1);
@@ -994,6 +1015,10 @@ const PackModuleScreen = () => {
   };
 
   const handleBack = () => {
+    if (partIndex > 0) {
+      setPartIndex((p) => p - 1);
+      return;
+    }
     if (currentBlockIndex > 0) {
       setCurrentBlockIndex((prev) => prev - 1);
     }
@@ -1076,6 +1101,7 @@ const PackModuleScreen = () => {
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
+  // Pip's day-done moment (founder pick M5: Star burst) plays inside the day-done view itself (DayDone).
   /** Handed to DailyLog so it does not refetch what handleComplete just read. */
   const [goalsAfterModule, setGoalsAfterModule] = useState<
     ProgramGoal[] | undefined
@@ -1161,6 +1187,7 @@ const PackModuleScreen = () => {
           finishedDay != null &&
           finishedDay >=
             Math.max(...result.modules.map((m) => m.dayIndex ?? 0));
+        setNextDayTitle(nextMod?.title ? nextMod.title : null);
         setDayClose(
           nextMod && nextMod.unlocked === false
             ? {
@@ -1236,6 +1263,11 @@ const PackModuleScreen = () => {
   };
 
   const handleFooterAction = () => {
+    const parts = lessonPartsOf(blocks[currentBlockIndex]);
+    if (parts.length > 1 && partIndex < parts.length - 1) {
+      setPartIndex((p) => p + 1);
+      return;
+    }
     const currentBlock = blocks[currentBlockIndex];
     const isInteractiveBlock = INTERACTIVE_BLOCK_TYPES.has(
       currentBlock?.type as ContentBlockType,
@@ -1423,82 +1455,64 @@ const PackModuleScreen = () => {
   }
 
   if (showSuccess) {
+    // The day-done screen (DayDone: two beats, Pip on the sheet's edge). It
+    // runs Pip's moment itself, so nothing else may fire one here.
+    //
+    // The goals check is a second beat, and only when there is something to
+    // ask: goals we already hold that nobody has reported on. When the fetch in
+    // handleComplete failed we hold none, and there is no log rather than an
+    // error (DailyLog's own rule), so the screen stays at one beat.
+    const openGoals =
+      !hideDailyLog && !!goalsAfterModule?.some((g) => !g.report);
     return (
-      <ScreenView style={{ backgroundColor: colors.background.canvas }}>
-        <SchemeStatusBar />
-        <View style={styles.successContent}>
-          <View
-            style={[
-              styles.successIconContainer,
-              { backgroundColor: colors.action.primaryTint },
-            ]}
-          >
-            <Icon
-              name={icons.milestone}
-              size={56}
-              color={colors.text.accent}
-            />
-          </View>
-
-          <Text variant="h1" color="primary" center>
-            {dayDoneTitle(module?.title)}
-          </Text>
-
-          {/* WHY THE DAY CLOSES ITSELF HERE.
-              The arc continues but tomorrow is tomorrow, so there is no "next"
-              button to offer. Saying nothing looked like the app running out
-              of things to say, and the button we used to show instead led
-              straight to a locked screen that told them today's work was still
-              waiting. This is the honest version of that button. */}
-          {dayClose ? (
-            <Text
-              variant="body"
-              color="accent"
-              center
-              style={styles.successDayClose}
-            >
-              {dayCloseLine(dayClose)}
-            </Text>
-          ) : null}
-
-          {/* The day's work is done and they are already stopped here. Asking
-              at the START of a module would delay the thing they opened the
-              app to do, and after the LAST module this screen is replaced by
-              the report, so the two never collide. */}
-          {hideDailyLog ? null : (
-            <DailyLog packId={packId} goals={goalsAfterModule} />
-          )}
-
-          {/*
+      <ScreenView style={{ backgroundColor: colors.action.primary }}>
+        <DayDone
+          heading={dayDoneTitle(module?.title)}
+          /* WHY THE DAY CLOSES ITSELF HERE.
+             The arc continues but tomorrow is tomorrow, so there is no "next"
+             button to offer. Saying nothing looked like the app running out
+             of things to say, and the button we used to show instead led
+             straight to a locked screen that told them today's work was still
+             waiting. This is the honest version of that button. */
+          closeLine={dayClose ? dayCloseLine(dayClose) : null}
+          /* Tomorrow's day by its own title, under the close line (the words
+             the TOMORROW card used to hold). */
+          nextTitle={dayClose && nextDayTitle ? nextDayTitle : null}
+          /* The day's work is done and they are already stopped here. Asking
+             at the START of a module would delay the thing they opened the
+             app to do, and after the LAST module this screen is replaced by
+             the report, so the two never collide. */
+          goalsSlot={
+            openGoals
+              ? ({ onAnswer }) => (
+                  <DailyLog
+                    packId={packId}
+                    goals={goalsAfterModule}
+                    layout="sheet"
+                    onAnswer={onAnswer}
+                  />
+                )
+              : null
+          }
+          /*
             THE EXIT IS NOT ALWAYS A SECOND CHOICE. On a day-gated pack there
             is usually no next module, so "back" was the only thing on the
             screen — drawn as a ghost, i.e. bare text with no button shape.
-            The sole action on a screen has to look like an action.
+            The sole action on a screen has to look like an action. (DayDone
+            draws it as the main button when it stands alone.)
 
             It also said "Dashboard", which is not a place in this app. The tab
             is called Home.
-          */}
-          <View style={styles.successActionContainer}>
-            {nextModuleId && (
-              <Button
-                label="Start the next one"
-                leftIcon={icons.play}
-                onPress={handleNextModule}
-              />
-            )}
-            <Button
-              label="Back to home"
-              variant={nextModuleId ? "ghost" : "secondary"}
-              // Same no-dead-ends rule as everywhere else on this screen: if
-              // there is no stack to go back to, go Home rather than nowhere.
-              onPress={() =>
-                navigation.canGoBack()
-                  ? navigation.goBack()
-                  : navigateToHomeFallback()
-              }
-            />
-          </View>
-        </View>
+          */
+          onNext={nextModuleId ? handleNextModule : null}
+          // Same no-dead-ends rule as everywhere else on this screen: if
+          // there is no stack to go back to, go Home rather than nowhere.
+          onHome={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigateToHomeFallback()
+          }
+        />
       </ScreenView>
     );
   }
@@ -1535,12 +1549,6 @@ const PackModuleScreen = () => {
   const currentBlock = blocks[currentBlockIndex];
   const isLastBlock = currentBlockIndex >= blocks.length - 1;
   const isFirstBlock = currentBlockIndex === 0;
-  // A step that is only reading has nothing to tap, so the page runs behind the
-  // buttons as it does on the practice screens. Every other step has controls
-  // of its own and keeps the docked footer (see Page `footerDocked`).
-  const isReadingOnly =
-    currentBlock?.type === ContentBlockType.TEXT &&
-    !(currentBlock.content as TextBlockContent).copy;
   const totalBlocks = blocks.length || 1;
 
   if (!module) {
@@ -1608,7 +1616,12 @@ const PackModuleScreen = () => {
   });
   const isQuizButton = footerKind === "quizCheck" || footerKind === "quizNext";
 
-  let primaryLabel = "Next";
+  const lessonParts = lessonPartsOf(currentBlock);
+  const inLesson = lessonParts.length > 1;
+  const morePartsAhead = inLesson && partIndex < lessonParts.length - 1;
+  const stepList = dayStepList(blocks);
+
+  let primaryLabel = morePartsAhead ? "Next part" : "Next";
   let primaryIcon: IconName = icons.play;
   let primaryVariant: "primary" | "secondary" = "primary";
   if (footerKind === "quizCheck") {
@@ -1620,83 +1633,39 @@ const PackModuleScreen = () => {
     primaryLabel = "Skip";
     primaryIcon = icons.chevronRight;
     primaryVariant = "secondary";
-  } else if (footerKind === "complete") {
+  } else if (footerKind === "complete" && !morePartsAhead) {
     // "Finish the day" was cut to "Finish the..." on an iPhone SE.
     primaryLabel = "Finish";
     primaryIcon = icons.success;
   }
 
-  return (
-    <Page
-      title={moduleTitle}
-      description={progressLabel}
-      // Step 1 names the day. From step 2 the person knows where they are, and
-      // the large heading kept the answers of a quiz off a small phone.
-      compactHeader={!isFirstBlock}
-      onBack={() => navigation.goBack()}
-      keyboardAvoiding
-      footerDocked={!isReadingOnly}
-      footerMelt={isReadingOnly}
-      scrollResetKey={currentBlockIndex}
-      footer={
-        <View style={styles.footerRow}>
-          {!isFirstBlock ? (
-            <Button
-              label="Back"
-              variant="ghost"
-              leftIcon="chevron-left"
-              fullWidth={false}
-              onPress={handleBack}
-              style={styles.footerBack}
-            />
-          ) : (
-            <View style={styles.footerBack} />
-          )}
-          <View style={styles.footerPrimary}>
-            <Button
-              label={primaryLabel}
-              variant={primaryVariant}
-              leftIcon={primaryIcon}
-              loading={isQuizButton ? quizFooter.busy : isCompleting}
-              onPress={
-                isQuizButton
-                  ? () => quizRef.current?.press()
-                  : handleFooterAction
-              }
-            />
-          </View>
-        </View>
-      }
-    >
-      <ProgressBar
-        value={currentBlockIndex + 1}
-        max={totalBlocks}
-        color={colors.text.accent}
+  // The frame this step sits in: the zone's height, what the zone says, and Pip
+  // (components/Pack/dayStepFrame). A step with no entry there gets the slim frame.
+  // A practice or log card that is already done shows Pip warm, with one nod.
+  const stepFrame = dayStepFrame(currentBlock, moduleTitle, {
+    completed: isCurrentBlockCompleted,
+  });
+  const sheets = (
+    <>
+      <DayStepsSheet
+        visible={daySheetOpen}
+        onClose={() => setDaySheetOpen(false)}
+        steps={stepList}
+        current={currentBlockIndex}
+        minutes={module.estimatedDurationMin}
       />
-
-      {blocks.length === 0 ? (
-        <Text variant="body" color="secondary" center style={styles.emptyText}>
-          No content available for this module.
-        </Text>
-      ) : (
-        // Pack blocks are now DS-native (dark cards / light-on-dark reading copy),
-        // so they render directly on the dark canvas — no light reading sheet.
-        <ContentRenderer
-          key={currentBlock?.id || currentBlockIndex}
-          block={currentBlock}
-          packId={packId}
-          moduleId={module.id}
-          isMandatory={module.isMandatory}
-          isCompleted={completedInteractiveBlocks.has(currentBlock?.id || "")}
-          onActivityCreated={handleActivityCreated}
-          onFormCompleted={handleFormCompleted}
-          onQuizCompleted={handleQuizCompleted}
-          quizRef={quizRef}
-          onQuizFooterChange={setQuizFooter}
-          blockIndex={currentBlockIndex}
-        />
-      )}
-
+      <ReadingSheet
+        visible={readingSheetOpen}
+        onClose={() => setReadingSheetOpen(false)}
+        parts={lessonParts}
+        current={partIndex}
+        textSize={textSize}
+        onTextSize={setTextSize}
+        onPick={(i) => {
+          setPartIndex(i);
+          setReadingSheetOpen(false);
+        }}
+      />
       {/* Skip Confirmation Bottom Sheet */}
       <Sheet
         visible={showSkipConfirmation}
@@ -1788,9 +1757,104 @@ const PackModuleScreen = () => {
           </View>
         </View>
       </Sheet>
-    </Page>
+    </>
+  );
+
+  const DockView = DayIslandDock;
+  return (
+    <ScreenView style={{ backgroundColor: colors.action.primary }}>
+      <DayFrame
+        zone={stepFrame.zone}
+        title={moduleTitle}
+        meta={progressLabel}
+        onBack={() => navigation.goBack()}
+        bar={
+          blocks.length > 0
+            ? {
+                count: totalBlocks,
+                current: currentBlockIndex,
+                fill: inLesson ? (partIndex + 1) / lessonParts.length : 1,
+              }
+            : null
+        }
+        headerText={stepFrame.headerText}
+        zoneTitle={stepFrame.zoneTitle}
+        zoneMeta={stepFrame.zoneMeta}
+        pip={stepFrame.pip}
+        pipFace={stepFrame.pipFace}
+        pipReach={stepFrame.pipReach}
+        // Pip's own moves for this step, once he has come up.
+        onPipUp={(p) => void p.pip?.perform(stepFrame.pipUp)}
+        textDelay={stepFrame.textDelay}
+        contentKey={currentBlock?.id || currentBlockIndex}
+        scrollResetKey={`${currentBlockIndex}:${partIndex}`}
+        overlays={sheets}
+        dock={
+          <DockView
+            steps={
+              blocks.length > 0
+                ? {
+                    badge: inLesson
+                      ? `${partIndex + 1}/${lessonParts.length}`
+                      : `${currentBlockIndex + 1}/${blocks.length}`,
+                    accessibilityLabel: inLesson
+                      ? "Text size and the parts of this lesson"
+                      : "Today's steps",
+                    onPress: () =>
+                      inLesson ? setReadingSheetOpen(true) : setDaySheetOpen(true),
+                  }
+                : null
+            }
+            // No "Back" on the first step: the dock has no empty slot for it.
+            onBack={!isFirstBlock || partIndex > 0 ? handleBack : null}
+            label={primaryLabel}
+            variant={primaryVariant}
+            icon={primaryIcon}
+            loading={isQuizButton ? quizFooter.busy : isCompleting}
+            onPress={
+              isQuizButton ? () => quizRef.current?.press() : handleFooterAction
+            }
+          />
+        }
+      >
+        {blocks.length === 0 ? (
+          <Text variant="body" color="secondary" center style={styles.emptyText}>
+            No content available for this module.
+          </Text>
+        ) : (
+          <ContentRenderer
+            key={currentBlock?.id || currentBlockIndex}
+            block={currentBlock}
+            packId={packId}
+            moduleId={module.id}
+            isMandatory={module.isMandatory}
+            isCompleted={completedInteractiveBlocks.has(currentBlock?.id || "")}
+            onActivityCreated={handleActivityCreated}
+            onFormCompleted={handleFormCompleted}
+            onQuizCompleted={handleQuizCompleted}
+            quizRef={quizRef}
+            onQuizFooterChange={setQuizFooter}
+            blockIndex={currentBlockIndex}
+            textPart={partIndex}
+            textSize={textSize}
+            // A practice or log card may show the dock's "Skip" as a link in
+            // its sheet (components/Pack/LaunchCard).
+            dockAction={{ label: primaryLabel, onPress: handleFooterAction }}
+          />
+        )}
+      </DayFrame>
+    </ScreenView>
   );
 };
+
+/** A teach block's parts, or [] when it is not split (see util/packs/teachParts). */
+function lessonPartsOf(block: { type: ContentBlockType; content: unknown } | undefined): TeachPart[] {
+  if (!block || block.type !== ContentBlockType.TEXT) return [];
+  const c = block.content as TextBlockContent;
+  if (c.copy || (c.role && c.role !== "teach")) return [];
+  const parts = teachParts(c.markdown);
+  return parts.length > 1 ? parts : [];
+}
 
 const styles = StyleSheet.create({
   centerFill: {
@@ -1834,49 +1898,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: spacing["4xl"],
-  },
-  // Footer
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  footerBack: {
-    flex: 1,
-  },
-  footerPrimary: {
-    flex: 1.5,
-  },
-  // Success screen
-  // `space.screenX`, not `spacing["3xl"]`. This screen was inset 32 while every
-  // other screen in the app is inset 16, so its copy measured narrower than the
-  // module the user had just read and the whole page looked like a different
-  // app.
-  successContent: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: space.screenX,
-  },
-  successIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: radius.full,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: space.sectionGap,
-  },
-  successDayClose: {
-    marginTop: space.rowGap,
-  },
-  // ONE OWNER FOR THE GAP UNDER THE COPY. This used to carry a 40pt bottom
-  // margin while `DailyLog` carried a 24pt top margin, so the space between the
-  // subtitle and the log was 64 — a hole big enough to read as a missing
-  // element. The block below owns its own separation now.
-  successActionContainer: {
-    width: "100%",
-    gap: spacing.md,
-    marginTop: spacing["3xl"],
   },
   // Skip Confirmation Modal
   skipModalContainer: {

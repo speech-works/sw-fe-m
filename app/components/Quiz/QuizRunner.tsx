@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import {
   size,
   Text,
@@ -14,12 +14,16 @@ import {
   Button,
   Surface,
   ProgressBar,
+  Sheet,
   usePageScroll,
   useTheme,
   spacing,
   radius,
   borderWidth,
+  fonts,
 } from "../../design-system";
+import { PipPeek } from "../Pip/PipPeek";
+import { PIP_HIDE } from "../Pack/zoneSheet";
 import { QuizFooterState, quizFooterAction } from "./quizFooter";
 
 /**
@@ -54,6 +58,11 @@ import { QuizFooterState, quizFooterAction } from "./quizFooter";
  * scroll is how a list becomes impossible to drag.
  * ============================================================================
  */
+
+/** Pip over the answer sheet's edge (mock 03, at 390 wide; smaller on a narrower screen): his width in his own
+ *  picture (the mock's 112 is of the 320 wide site picture) and how far his middle is from the screen's right edge. */
+const PEEK_W = 130;
+const PEEK_CENTRE = 70;
 
 export interface QuizRunnerOption {
   text: string;
@@ -107,6 +116,37 @@ interface QuizRunnerProps {
    * where a second bar costs the answers their room on a small phone.
    */
   countOnly?: boolean;
+
+  /**
+   * Program days: after Check, the result and the explanation rise in a bottom
+   * sheet with its own button, in readable 16pt text, and a wrong pick stays
+   * neutral instead of warning yellow ("Not this one"). Program UX review,
+   * 2026-11-25. Closing the sheet keeps the explanation inline as before.
+   */
+  explanationSheet?: boolean;
+
+  /**
+   * The quiz sits straight on the day frame's sheet (program screens redesign,
+   * 2026-11-27; first used by "From yesterday", where the frame's orange zone
+   * holds the label as its title): no card around it, no number tile and
+   * eyebrow row, the question in the sheet's own type and the answers as rows.
+   * "Question 1 of 1" is not shown: the count line appears from two questions
+   * on, and it owns the gap under it.
+   */
+  plain?: boolean;
+
+  /**
+   * With `plain`: one row above the question with the number tile, the
+   * eyebrow ("CHECK") and "Question 1 of 3" at the right (a day's check quiz,
+   * mock 03). The row owns the gap under it. Without it (From yesterday) the
+   * frame's zone title is the label.
+   */
+  kindRow?: boolean;
+
+  /** An answer was picked (any answer, before Check). */
+  onPick?: () => void;
+  /** The explanation sheet opened or closed. */
+  onSheet?: (open: boolean) => void;
 }
 
 /** For a host that draws the button itself (see `onFooterChange`). */
@@ -125,16 +165,34 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
     finishLabel = "Submit Quiz",
     onFooterChange,
     countOnly = false,
+    explanationSheet = false,
+    plain = false,
+    kindRow = false,
+    onPick,
+    onSheet,
   },
   ref,
 ) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const { width: screenW } = useWindowDimensions();
   const pageScroll = usePageScroll();
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number>();
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [answers, setAnswers] = useState<QuizRunnerAnswer[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // The host hears the sheet open and close (the day frame's Pip steps aside
+  // for the Pip that peeks over the sheet). Not on the first render.
+  const sheetShown = sheetOpen && revealed;
+  const sheetTold = useRef(false);
+  const onSheetRef = useRef(onSheet);
+  onSheetRef.current = onSheet;
+  useEffect(() => {
+    if (sheetTold.current === sheetShown) return;
+    sheetTold.current = sheetShown;
+    onSheetRef.current?.(sheetShown);
+  }, [sheetShown]);
 
   const question = questions[index];
   const isLast = index + 1 === questions.length;
@@ -181,6 +239,7 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
     // interaction and it should not wait on a request.
     if (revealExplanation && !revealed) {
       setRevealed(true);
+      if (explanationSheet && question.options[selected]?.explanation) setSheetOpen(true);
       setBusy(true);
       try {
         await onAnswer?.(answer);
@@ -236,6 +295,232 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
     return isLast ? finishLabel : "Next Question";
   };
 
+  // THE ANSWER SHEET (mocks 03 and 12). It grows from the bottom with its text
+  // (2 to 6 lines; longer text scrolls), the button is pinned under the text,
+  // and Pip rides the sheet's top edge up with it, at the right, where he
+  // covers the least of the answers. Correct and "Not this one" are the same
+  // sheet in the same voice: no red, no cross, no stars.
+  const peekK = Math.min(1, screenW / 390);
+  const answerSheet = explanationSheet ? (
+    <Sheet
+      visible={sheetOpen && revealed}
+      onClose={() => setSheetOpen(false)}
+      // 28 like every sheet of the day frame (the design-system Sheet defaults to 36)
+      contentStyle={styles.sheetCard}
+      // Pip peeks over the sheet's top edge for the answer, and stays while
+      // the sheet is up (see PipPeek and the two quiz moments in pipMoments)
+      above={sheetOpen && revealed ? (space: number) => (
+        <View style={styles.peekRow}>
+          <View style={{ marginRight: Math.round(PEEK_CENTRE * peekK - (Math.round(PEEK_W * peekK) + 40) / 2) }}>
+            <PipPeek key={index + ":" + (gotItRight ? "r" : "n")} moment={gotItRight ? "quiz-right" : "quiz-not-this"} space={space} max={Math.round(PEEK_W * peekK)} hide={PIP_HIDE} stay />
+          </View>
+        </View>
+      ) : undefined}
+      footer={
+        <Button
+          label={isLast ? "Continue" : "Next question"}
+          onPress={() => {
+            setSheetOpen(false);
+            if (!isLast) press();
+          }}
+        />
+      }
+    >
+      <View style={styles.sheetBody}>
+        <View style={styles.sheetResult}>
+          <View
+            style={[
+              styles.sheetDot,
+              { backgroundColor: gotItRight ? colors.accent.success : scheme === "dark" ? colors.surface.control : colors.surface.inset },
+            ]}
+          >
+            {/* "Not this one" gets a lightbulb, the app's tip icon: here is the idea, never a mark (founder, Q1 A) */}
+            {gotItRight ? (
+              <Icon name="check" size={size.iconInline} color={colors.accentOn.success} />
+            ) : (
+              <Icon name="lightbulb" size={size.iconInline} color={colors.text.secondary} />
+            )}
+          </View>
+          <Text color={gotItRight ? colors.feedback.successText : "primary"} style={styles.sheetTitle}>
+            {gotItRight ? "Correct" : "Not this one"}
+          </Text>
+        </View>
+        <Text variant="body" color="primary" style={styles.sheetText}>
+          {chosen?.explanation}
+        </Text>
+      </View>
+    </Sheet>
+  ) : null;
+
+  const answerRows = (
+  <View style={plain ? styles.plainAnswers : styles.answers}>
+    {question.options.map((opt, i) => {
+      const isSelected = selected === i;
+      // Once revealed, the correct option is marked whether or not it is
+      // the one they picked. Being shown only that you were wrong, with
+      // no indication of what was right, is worse than not asking.
+      const showAsCorrect = revealed && opt.isCorrect;
+      const showAsWrong = revealed && isSelected && !opt.isCorrect;
+      // On the day sheet the right answer carries a green tick whether or not
+      // it was the pick (mock 12); elsewhere only a right pick does.
+      const tickGreen = Boolean(showAsCorrect && (isSelected || plain));
+
+      const background = showAsCorrect
+        ? colors.accentTint.success
+        : showAsWrong
+          ? plain
+            ? // your own pick keeps its orange tick on a plain row (mock 12)
+              colors.surface.elevated
+            : explanationSheet
+            ? colors.surface.control
+            : colors.accentTint.warning
+          : isSelected
+            ? colors.action.primaryTint
+            : plain
+              ? colors.surface.elevated
+              : colors.surface.control;
+      const border = showAsCorrect
+        ? plain && scheme !== "dark"
+          ? colors.accentEdge.success
+          : colors.accent.success
+        : showAsWrong
+          ? plain
+            ? colors.border.default
+            : explanationSheet
+            ? colors.border.strong
+            : colors.accent.warning
+          : isSelected
+            ? colors.border.selected
+            : colors.border.default;
+
+      return (
+        <TouchableOpacity
+          key={i}
+          onPress={() => {
+            if (revealed) return;
+            if (selected !== i) onPick?.();
+            setSelected(i);
+          }}
+          activeOpacity={revealed ? 1 : 0.7}
+          disabled={revealed}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: isSelected, disabled: revealed }}
+          style={[
+            styles.ansRow,
+            plain && styles.plainRow,
+            { backgroundColor: background, borderColor: border },
+          ]}
+        >
+          <View style={[styles.ansRowContent, plain && styles.plainRowContent]}>
+            {/* Once checked, a right pick turns its tick green, the same
+                green as the border and the reason box. An orange tick on
+                a green row read as two different answers. */}
+            <View
+              style={[
+                styles.radioOuter,
+                plain && styles.plainRadio,
+                {
+                  borderColor:
+                    tickGreen
+                      ? colors.accent.success
+                      : isSelected
+                        ? colors.action.primary
+                        : plain
+                          ? colors.text.tertiary
+                          : colors.border.strong,
+                  backgroundColor:
+                    tickGreen
+                      ? colors.accent.success
+                      : isSelected
+                        ? colors.action.primary
+                        : "transparent",
+                },
+              ]}
+            >
+              {(isSelected || tickGreen) && (
+                <Icon
+                  name="check"
+                  size={size.iconXs}
+                  color={
+                    tickGreen
+                      ? colors.accentOn.success
+                      : colors.action.onPrimary
+                  }
+                />
+              )}
+            </View>
+            <Text
+              variant="body"
+              color={isSelected || plain ? "primary" : "secondary"}
+              style={[styles.ansText, plain && styles.plainRowText]}
+            >
+              {opt.text}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+  );
+
+  const explanationBox =
+    revealed && chosen?.explanation && !(explanationSheet && sheetOpen) ? (
+    <View
+      // The explanation is the point of the question, and it landed
+      // below the fold with only its top edge showing.
+      onLayout={() => pageScroll?.scrollToEnd()}
+      style={[
+        styles.explanation,
+        plain && styles.plainExplanation,
+        plain
+          ? // the neutral field colour for every answer, never blue (mock 12)
+            { backgroundColor: colors.input.bg, borderColor: colors.input.border }
+          : {
+              backgroundColor: gotItRight
+                ? colors.accentTint.success
+                : colors.accentTint.info,
+              borderColor: colors.border.default,
+            },
+      ]}
+    >
+      <Text variant="bodySm" color="secondary" style={plain ? styles.plainExplanationText : styles.explanationText}>
+        {chosen.explanation}
+      </Text>
+    </View>
+  ) : null;
+
+  if (plain) {
+    // Straight on the day frame's sheet. Every part owns the gap above it (or,
+    // for the count line, under it), so a part that is not there leaves nothing.
+    return (
+      <View>
+        {kindRow ? (
+          <View style={styles.kindRow}>
+            <View style={[styles.kindTile, { backgroundColor: colors.action.primaryTint }]}>
+              <Text style={[styles.kindNum, { color: colors.text.accent }]}>{index + 1}</Text>
+            </View>
+            <Text style={[styles.kindLabel, { color: colors.text.secondary }]}>{eyebrow}</Text>
+            {questions.length > 1 ? (
+              <Text style={[styles.kindCount, { color: colors.text.secondary }]}>
+                Question {index + 1} of {questions.length}
+              </Text>
+            ) : null}
+          </View>
+        ) : questions.length > 1 ? (
+          <Text variant="bodySm" color="secondary" style={styles.plainCount}>
+            Question {index + 1} of {questions.length}
+          </Text>
+        ) : null}
+        <Text color="primary" style={styles.plainQuestion}>
+          {question.text}
+        </Text>
+        {answerRows}
+        {explanationBox}
+        {answerSheet}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <View style={styles.progressSection}>
@@ -276,109 +561,9 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
           </Text>
         </View>
 
-        <View style={styles.answers}>
-          {question.options.map((opt, i) => {
-            const isSelected = selected === i;
-            // Once revealed, the correct option is marked whether or not it is
-            // the one they picked. Being shown only that you were wrong, with
-            // no indication of what was right, is worse than not asking.
-            const showAsCorrect = revealed && opt.isCorrect;
-            const showAsWrong = revealed && isSelected && !opt.isCorrect;
+        {answerRows}
 
-            const background = showAsCorrect
-              ? colors.accentTint.success
-              : showAsWrong
-                ? colors.accentTint.warning
-                : isSelected
-                  ? colors.action.primaryTint
-                  : colors.surface.control;
-            const border = showAsCorrect
-              ? colors.accent.success
-              : showAsWrong
-                ? colors.accent.warning
-                : isSelected
-                  ? colors.border.selected
-                  : colors.border.default;
-
-            return (
-              <TouchableOpacity
-                key={i}
-                onPress={() => !revealed && setSelected(i)}
-                activeOpacity={revealed ? 1 : 0.7}
-                disabled={revealed}
-                style={[
-                  styles.ansRow,
-                  { backgroundColor: background, borderColor: border },
-                ]}
-              >
-                <View style={styles.ansRowContent}>
-                  {/* Once checked, a right pick turns its tick green, the same
-                      green as the border and the reason box. An orange tick on
-                      a green row read as two different answers. */}
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      {
-                        borderColor:
-                          isSelected && showAsCorrect
-                            ? colors.accent.success
-                            : isSelected
-                              ? colors.action.primary
-                              : colors.border.strong,
-                        backgroundColor:
-                          isSelected && showAsCorrect
-                            ? colors.accent.success
-                            : isSelected
-                              ? colors.action.primary
-                              : "transparent",
-                      },
-                    ]}
-                  >
-                    {isSelected && (
-                      <Icon
-                        name="check"
-                        size={size.iconXs}
-                        color={
-                          showAsCorrect
-                            ? colors.accentOn.success
-                            : colors.action.onPrimary
-                        }
-                      />
-                    )}
-                  </View>
-                  <Text
-                    variant="body"
-                    color={isSelected ? "primary" : "secondary"}
-                    style={styles.ansText}
-                  >
-                    {opt.text}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {revealed && chosen?.explanation ? (
-          <View
-            // The explanation is the point of the question, and it landed
-            // below the fold with only its top edge showing.
-            onLayout={() => pageScroll?.scrollToEnd()}
-            style={[
-              styles.explanation,
-              {
-                backgroundColor: gotItRight
-                  ? colors.accentTint.success
-                  : colors.accentTint.info,
-                borderColor: colors.border.default,
-              },
-            ]}
-          >
-            <Text variant="bodySm" color="secondary" style={styles.explanationText}>
-              {chosen.explanation}
-            </Text>
-          </View>
-        ) : null}
+        {explanationBox}
 
         {/* Nothing to press once the last question is revealed — the quiz
             already finished (see `submit`), and the host screen's own
@@ -401,6 +586,8 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
           </View>
         )}
       </Surface>
+
+      {answerSheet}
     </View>
   );
 });
@@ -456,6 +643,61 @@ const styles = StyleSheet.create({
     borderWidth: borderWidth.hairline,
   },
   explanationText: { lineHeight: 22 },
+  // ── the answer sheet: text 24 from the screen edge (the sheet has the 16
+  // gutter), the button in the sheet's pinned footer at the gutter ──
+  sheetCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  // 8 under the text (and the 12 of the sheet): the sheet's fade above the pinned button starts under the last line, never on it
+  sheetBody: { gap: 14, paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
+  sheetResult: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  sheetDot: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetTitle: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 26 },
+  sheetText: { lineHeight: 25 },
+  // Pip's place over the sheet's edge: the row spans the sheet, he is at its right
+  peekRow: { alignSelf: "stretch", alignItems: "flex-end" },
+  // ── `kindRow`: number tile, eyebrow, count (4 more above: 28 under the sheet's edge) ──
+  kindRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginTop: 4,
+    marginBottom: 22,
+    paddingHorizontal: spacing.sm,
+  },
+  kindTile: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  kindNum: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 20 },
+  kindLabel: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 1, textTransform: "uppercase", flexShrink: 1 },
+  kindCount: { fontFamily: fonts.medium, fontWeight: "500", fontSize: 13, lineHeight: 18, marginLeft: "auto" },
+  // ── `plain`: straight on the day frame's sheet (system.md: question 21/29,
+  // rows radius 20 at the screen gutter, text 24 from the screen edge) ──
+  plainCount: { paddingHorizontal: spacing.sm, marginBottom: 10 },
+  plainQuestion: {
+    fontFamily: fonts.bold,
+    fontSize: 21,
+    lineHeight: 29,
+    letterSpacing: -0.3,
+    paddingHorizontal: spacing.sm,
+  },
+  plainAnswers: { gap: 10, marginTop: 22 },
+  plainRow: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: 18,
+    borderWidth: 1.5,
+    borderRadius: 20,
+    minHeight: 64,
+    justifyContent: "center",
+  },
+  plainRowContent: { gap: 14 },
+  plainRadio: { width: 24, height: 24, borderWidth: 1.8 },
+  plainRowText: { fontFamily: fonts.medium, fontWeight: "500" },
+  // the reason under the answers: it owns the gap above it
+  plainExplanation: { marginTop: 14, borderRadius: 16, borderWidth: 1, paddingVertical: 14, paddingHorizontal: spacing.lg },
+  plainExplanationText: { fontSize: 15, lineHeight: 22 },
   footer: {
     flexDirection: "row",
     alignItems: "center",

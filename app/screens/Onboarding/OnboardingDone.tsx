@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
@@ -8,7 +8,7 @@ import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import { useOpenStudioStore } from "../../stores/openStudio";
 import { getOffers, type OfferItem } from "../../api";
-import OnboardingCelebration, { CelebrationConfetti } from "./OnboardingCelebration";
+import { showPipMoment } from "../../components/Pip";
 import {
   size,
   Button,
@@ -74,6 +74,15 @@ const OnboardingDone: React.FC = () => {
   // Measured, never assumed: the dock is one button tall or two depending on
   // `serverConfirmedComplete`, and it owns its own safe-area padding.
   const [dockH, setDockH] = useState(0);
+
+  // Pip's moment replaced the celebration hero and the confetti (founder 2026-11-26). Once per mount, and only when the
+  // server confirmed completion: a partial save gets no celebration.
+  const pipFired = useRef(false);
+  useEffect(() => {
+    if (!serverConfirmedComplete || pipFired.current) return;
+    pipFired.current = true;
+    void showPipMoment("onboarding-done");
+  }, [serverConfirmedComplete]);
 
   // The clinical baseline is seeded in the same request that completes
   // onboarding, so by the time this screen mounts the backend can already
@@ -217,8 +226,7 @@ const OnboardingDone: React.FC = () => {
           </Text>
         ) : null}
 
-        {/* Confetti belongs to a finish line, not to a partial save. */}
-        {serverConfirmedComplete ? <OnboardingCelebration /> : null}
+        {/* Pip's moment replaced the celebration hero here (founder 2026-11-26). */}
 
         {topMatch ? (
           <View
@@ -304,10 +312,7 @@ const OnboardingDone: React.FC = () => {
         </View>
       </View>
 
-      {/* Full-screen confetti, in front of everything (pointerEvents none, so the
-          Continue button stays tappable). Falls from above the top edge to past
-          the bottom on any device. */}
-      <CelebrationConfetti />
+      {/* Pip's moment replaced the full-screen confetti (founder 2026-11-26). */}
     </ScreenView>
   );
 };

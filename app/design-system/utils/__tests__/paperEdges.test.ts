@@ -43,6 +43,13 @@ const ALLOWED: Record<string, string> = {
     "confetti/celebration bubbles over a celebration ground, not objects on the page",
 
   // Already bounded by something else.
+  //
+  // The orange day screens: the orange is the whole ground of the screen (edge to edge), with a sheet over it. There is
+  // no object shape to bound, and an outline around the screen would only draw a line at the device edge.
+  "app/components/Pack/DayFrame.tsx": "the day screen's flat orange ground, full screen, with the sheet over it",
+  "app/components/Pack/DayDone.tsx": "the day-done screen's flat orange ground, full screen, with the sheet over it",
+  "app/screens/Academy/PackModule/index.tsx": "ScreenView ground of the orange day screen (full screen)",
+  "app/screens/Academy/PackFormScreen/index.tsx": "ScreenView ground of the orange log form screen (full screen)",
 };
 
 const SCAN_ROOTS = ["app/screens", "app/components"];

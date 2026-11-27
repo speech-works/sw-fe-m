@@ -11,6 +11,7 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
@@ -61,6 +62,12 @@ export interface SheetProps {
    *  it is still visible leaves it on top of (or lingering over) the new screen. */
   onDismissed?: () => void;
   contentStyle?: ViewStyle;
+  /** Something that rises out of the sheet's top edge and slides with it (Pip on the quiz answer sheet). It is drawn
+   *  BEHIND the card, so the card's top edge hides its lower part; `aboveOverlap` px of it sit behind the card.
+   *  A function gets the free height between the sheet's top and the status bar, so it can shrink or step aside when a
+   *  tall sheet leaves little room (it must never be cut off at the top). */
+  above?: React.ReactNode | ((spaceAbove: number) => React.ReactNode);
+  aboveOverlap?: number;
   /**
    * Defer presenting until no other native modal is open, to avoid the iOS
    * two-native-Modal touch freeze. Use for root-mounted sheets that fire on
@@ -91,12 +98,18 @@ export const Sheet: React.FC<SheetProps> = ({
   onDismissed,
   footer,
   contentStyle,
+  above,
+  aboveOverlap = 0,
   exclusive = false,
   backdrop: backdropProp,
 }) => {
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
+  const winH = useWindowDimensions().height;
+  // the sliding unit's height (header + card), for the free space above it (see `above`)
+  const [unitH, setUnitH] = React.useState(0);
+  const spaceAbove = Math.max(0, winH - insets.top - keyboardInset - unitH);
   const sheetId = useId();
   const hasHeader = !!(title || right);
   const backdropKind = backdropProp ?? (hasHeader ? "opaque" : "dim");
@@ -387,7 +400,13 @@ export const Sheet: React.FC<SheetProps> = ({
             unit takes its content height whatever the container has left, and
             a `flex-end` column spills the excess off the TOP — the header is
             the first thing to go. */}
-        <Animated.View style={{ flexShrink: 1, transform: [{ translateY }] }}>
+        <Animated.View style={{ flexShrink: 1, transform: [{ translateY }] }} onLayout={above ? e => setUnitH(e.nativeEvent.layout.height) : undefined}>
+          {above && unitH > 0 ? (
+            // zero height: takes no room in the sheet; its child hangs upward from the card's top edge
+            <View pointerEvents="none" style={{ height: 0, overflow: "visible", zIndex: 0 }}>
+              <View style={{ position: "absolute", left: 0, right: 0, bottom: -aboveOverlap, alignItems: "center" }}>{typeof above === "function" ? above(spaceAbove + aboveOverlap) : above}</View>
+            </View>
+          ) : null}
           {hasHeader ? (
             <View style={styles.header}>
               {/* The title yields to the actions, never the other way round: a

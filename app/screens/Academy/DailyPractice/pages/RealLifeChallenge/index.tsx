@@ -30,7 +30,11 @@ import {
   spacing,
   radius,
   fonts,
+  space,
 } from "../../../../../design-system";
+import { DayFrame } from "../../../../../components/Pack/DayFrame";
+import { ZONE_TEXT_X } from "../../../../../components/Pack/zoneSheet";
+import type { PipOnEdgeHandle } from "../../../../../components/Pip/PipOnEdge";
 import { useMarkActivityStart } from "../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../components/DonePractice";
@@ -196,6 +200,17 @@ const RealLifeChallenge = () => {
   };
 
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
+
+  // Opened from a program day (the day hands over its pack): the program look.
+  // An orange zone with the title and Pip on the sheet's edge, the text in the
+  // sheet (DayFrame, the frame of the day's own steps). Anywhere else the
+  // screen keeps the look it always had.
+  const inProgram = !!packContext?.packId;
+  /** Pip in the zone, once he has come up. */
+  const zonePip = useRef<PipOnEdgeHandle | null>(null);
+  /** The step is being saved and Pip nods: the button waits, a second tap does nothing. */
+  const [leaving, setLeaving] = useState(false);
+  const leavingRef = useRef(false);
   const [reflectionText, setReflectionText] = useState("");
   const [showIRLModal, setShowIRLModal] = useState(false);
 
@@ -340,7 +355,7 @@ const RealLifeChallenge = () => {
     // The day asks no question after this step, so the step is done here.
     if (noReflection) {
       deleteRecordingFile();
-      void finishActivity();
+      void (inProgram ? finishInProgram() : finishActivity());
       return;
     }
     // Someone who just recorded the answer in the app has already done it, so
@@ -372,12 +387,31 @@ const RealLifeChallenge = () => {
    * it, and empty text is simply not sent.
    */
   const handleReflectionComplete = async () => {
-    void finishActivity();
+    void (inProgram ? finishInProgram() : finishActivity());
   };
 
   const finishActivity = async () => {
     await markActivityComplete();
     setCurrentStep(ChallengeStep.SUMMARY);
+  };
+
+  /**
+   * The end of the step in the program look: the step is saved, Pip nods once
+   * (his own acknowledgement: listening face, one nod, warm face), and the
+   * person is back on the day's practice card, which now says "Completed".
+   * There is no "Step done" page between: the card says it. Nothing is
+   * rewarded and nothing is counted.
+   * The nod never holds the save back and the save never cuts the nod.
+   */
+  const finishInProgram = async () => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    setLeaving(true);
+    await Promise.all([
+      markActivityComplete(),
+      zonePip.current?.react().catch(() => {}),
+    ]);
+    handleDone();
   };
 
   const handleDone = () => {
@@ -428,6 +462,142 @@ const RealLifeChallenge = () => {
 
   if (currentStep === ChallengeStep.SUMMARY) {
     return renderSummaryScreen();
+  }
+
+  // The program look (see `inProgram`): both steps sit in the day's frame.
+  // Same words, same buttons, same handlers as the plain look below.
+  if (inProgram) {
+    const onInstruction = currentStep === ChallengeStep.INSTRUCTION;
+    return (
+      <DayFrame
+        zone="medium"
+        compact
+        headerText={false}
+        title={title}
+        meta=""
+        zoneTitle={title}
+        pip="small"
+        pipFace="listening"
+        onPipUp={(pip) => {
+          zonePip.current = pip;
+        }}
+        onBack={handleBack}
+        contentKey="practice"
+        scrollResetKey={currentStep}
+        dock={
+          <Button
+            label={onInstruction ? instructionsCta : "Save and finish"}
+            loading={leaving}
+            onPress={
+              onInstruction ? handleInstructionsComplete : handleReflectionComplete
+            }
+          />
+        }
+        overlays={exitSheet}
+      >
+        <View style={styles.sheetText}>
+          {/* One step on these days, so "Step 1" promised a second. The chip
+              owns the gap under it. */}
+          {noReflection ? null : (
+            <View
+              style={[
+                styles.stepChip,
+                styles.sheetChip,
+                { backgroundColor: colors.action.primaryTint },
+              ]}
+            >
+              <Text variant="eyebrow" color="link">
+                {onInstruction ? "STEP 1" : "STEP 2"}
+              </Text>
+            </View>
+          )}
+
+          {onInstruction ? (
+            <>
+              {/* The sheet is the card: no card around the instructions. */}
+              <SimpleMarkdown
+                content={sentencesOnOwnLines(challengeData.instructions)}
+                variant="instruction"
+                readingSize={16}
+                textColor={colors.text.primary}
+              />
+
+              {/* The recorder owns the gap above it. */}
+              {recordingConfig ? (
+                <View style={[styles.recorderBlock, styles.sheetBlock]}>
+                  <Text variant="body" color="primary" center>
+                    You have up to {recordingConfig.maxSeconds} seconds.
+                  </Text>
+                  <SmartRecorder
+                    prevRecordingUri={recordingUri}
+                    onRecorded={keepRecording}
+                    onDiscard={deleteRecordingFile}
+                    onSubmit={handleInstructionsComplete}
+                    confirmShortAudio={false}
+                    hideSeparator
+                    maxSeconds={recordingConfig.maxSeconds}
+                  />
+                  <Text variant="bodySm" color="tertiary" center>
+                    This recording stays on your phone.
+                  </Text>
+                  <Text variant="bodySm" color="tertiary" center>
+                    Prefer not to record? Say your answer out loud, then tap {instructionsCta}.
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* The day's own reassurance, in a soft orange tint: a different
+                  voice from the steps. It owns the gap above it, and a day
+                  with no such line shows nothing here. */}
+              {challengeData.encouragement?.trim() ? (
+                <View
+                  style={[
+                    styles.note,
+                    { backgroundColor: colors.action.primaryTint },
+                  ]}
+                >
+                  <Text style={[styles.noteText, { color: colors.text.primary }]}>
+                    {challengeData.encouragement}
+                  </Text>
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {/* The day's question is the heading of this page. */}
+              <Text style={[styles.question, { color: colors.text.primary }]}>
+                {completionPrompt}
+              </Text>
+              {/* Said out loud: a lone text box above a button reads as
+                  required whether it is or not. */}
+              <Text variant="bodySm" color="secondary" style={styles.optional}>
+                Optional. What you write is saved with this step.
+              </Text>
+              <View
+                style={[
+                  styles.field,
+                  {
+                    backgroundColor: colors.input.bg,
+                    borderColor: colors.input.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  value={reflectionText}
+                  onChangeText={setReflectionText}
+                  placeholder={challengeData.completionPlaceholder || "How did it go?"}
+                  placeholderTextColor={colors.input.placeholder}
+                  multiline
+                  maxLength={5000}
+                  textAlignVertical="top"
+                  style={[styles.fieldInput, { color: colors.text.primary }]}
+                />
+              </View>
+            </>
+          )}
+        </View>
+      </DayFrame>
+    );
   }
 
   // Step 1 — the challenge briefing.
@@ -673,6 +843,52 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   tipText: {
+    lineHeight: 22,
+  },
+  // ── the program look: the text on the day frame's sheet ──
+  // The sheet's rows start at the screen gutter (16); its text starts at 24.
+  sheetText: {
+    paddingHorizontal: ZONE_TEXT_X - space.screenX,
+    paddingTop: 4,
+  },
+  sheetChip: {
+    marginBottom: spacing.lg,
+  },
+  sheetBlock: {
+    marginTop: spacing.xl,
+  },
+  note: {
+    marginTop: spacing.xl,
+    borderRadius: radius.input,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  noteText: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  question: {
+    fontFamily: fonts.semibold,
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 23,
+  },
+  optional: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  field: {
+    borderWidth: 1,
+    borderRadius: radius.input,
+    overflow: "hidden",
+  },
+  fieldInput: {
+    minHeight: 160,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontFamily: fonts.regular,
+    fontSize: 15,
     lineHeight: 22,
   },
   textAreaSurface: {
