@@ -19,7 +19,7 @@ import FxLab from "../screens/FxLab";
 import MomentsLab from "../screens/MomentsLab";
 // EXPO_PUBLIC_PIP_LAB=moments: the same lab build, opening on the Moments lab (the founder picks Pip's moments on the phone).
 const LAB_START = process.env.EXPO_PUBLIC_PIP_LAB;
-const PIP_LAB = __DEV__ || LAB_START === "1" || LAB_START === "moments";
+const PIP_LAB = __DEV__ || LAB_START === "1" || LAB_START === "moments" || LAB_START === "final";
 const toPipLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "PipLab" }] }); };
 const toFxLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "FxLab" }] }); };
 const toMomentsLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "MomentsLab" }] }); };
@@ -30,7 +30,7 @@ export default function AppNavigator() {
   useEffect(() => {
     // the lab replaces the whole stack, so nothing else on screen costs frames while it measures (Reload to leave it)
     if (__DEV__) { DevSettings.addMenuItem("Pip lab", toPipLab); DevSettings.addMenuItem("FX lab", toFxLab); DevSettings.addMenuItem("Moments lab", toMomentsLab); }
-    if (!__DEV__ && PIP_LAB) { const h = setTimeout(LAB_START === "moments" ? toMomentsLab : toFxLab, 1500); return () => clearTimeout(h); }
+    if (!__DEV__ && PIP_LAB) { const h = setTimeout(LAB_START === "moments" || LAB_START === "final" ? toMomentsLab : toFxLab, 1500); return () => clearTimeout(h); }
   }, []);
   useEffect(() => {
     console.log("AppNavigator mounted");

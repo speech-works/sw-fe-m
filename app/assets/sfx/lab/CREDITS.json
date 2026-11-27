@@ -1203,5 +1203,41 @@
    220,
    330
   ]
+ },
+ {
+  "file": "pick-ding-a.m4a",
+  "name": "correct",
+  "freesound_id": 243701,
+  "author": "ertfelda",
+  "page": "https://freesound.org/s/243701/",
+  "license": "CC0",
+  "duration_s": 0.32,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "pick-boop-c.m4a",
+  "name": "Bubble",
+  "freesound_id": 269583,
+  "author": "deleted_user_3854053",
+  "page": "https://freesound.org/s/269583/",
+  "license": "CC0",
+  "duration_s": 0.38,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "pick-chimeup-b.m4a",
+  "name": "UI Toast Notification",
+  "freesound_id": 878254,
+  "author": "Qvantor",
+  "page": "https://freesound.org/s/878254/",
+  "license": "CC0",
+  "duration_s": 0.63,
+  "onsets_ms": [
+   0
+  ]
  }
 ]

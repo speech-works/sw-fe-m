@@ -15,7 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PipBeat, PipVariant } from "../../components/Pip";
 import { PipStage } from "../../components/Pip/fx/PipStage";
 import type { PipStageHandle } from "../../components/Pip/fx/PipStage";
-import { SAMPLE_MOMENTS } from "../../components/Pip/fx/samples";
+import { SAMPLE_MOMENTS as ALL_SAMPLES } from "../../components/Pip/fx/samples";
+import { FINAL_MOMENTS, FINAL_NOTES } from "../../components/Pip/fx/final";
 import type { FxEffect } from "../../components/Pip/fx/types";
 import { PIP_MOMENTS } from "../../components/Pip/moments";
 import { playSfx, SFX } from "../../components/Pip/fx/sfx";
@@ -67,8 +68,12 @@ const SCREEN_OF: Record<string, keyof typeof SCR> = {
   "buddy-paired": "stage", "purchase-done": "stage", "error-safe": "stage", "waiting-empty": "stage", "permission-ask": "stage",
 };
 const LETTERS = "ABCDEFGH";
+/** Final mode (the phone lab build with EXPO_PUBLIC_PIP_LAB=final, or #momentslab=final on the web): every moment shows only
+ *  the founder's final pick(s), to check them on the phone. */
+const FINAL = process.env.EXPO_PUBLIC_PIP_LAB === "final" || (() => { try { return /momentslab=final/.test((globalThis as any).location?.hash ?? ""); } catch { return false; } })();
+const SAMPLE_MOMENTS = FINAL ? FINAL_MOMENTS : ALL_SAMPLES;
 /** Web review: #momentslab=day-done,step-skipped shows only those moments (in that order), nothing else to look at. */
-const ONLY: string[] | null = (() => { try { const m = ((globalThis as any).location?.hash ?? "").match(/momentslab=([a-z0-9,-]+)/); return m ? m[1].split(",") : null; } catch { return null; } })();
+const ONLY: string[] | null = (() => { try { const m = ((globalThis as any).location?.hash ?? "").match(/momentslab=([a-z0-9,-]+)/); return m && m[1] !== "final" ? m[1].split(",") : null; } catch { return null; } })();
 const ORDER: number[] = ONLY ? ONLY.map(id => PIP_MOMENTS.findIndex(m => m.id === id)).filter(i => i >= 0) : PIP_MOMENTS.map((_, i) => i);
 const SHOWN = ORDER.map(i => PIP_MOMENTS[i]);
 const SLOTS = ["ours", "A", "B", "C"] as const;
@@ -217,7 +222,7 @@ export default function MomentsLab() {
         </ScrollView>
       ) : (
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-          {samples ? <Text style={[s.tiny, { color: "#7BC67B", textAlign: "center", marginTop: 6 }]}>New samples: each one plays the whole moment (props, background and its own sounds)</Text> : null}
+          {samples ? <Text style={[s.tiny, { color: "#7BC67B", textAlign: "center", marginTop: 6 }]}>{FINAL ? `Final pick${samples.length > 1 ? "s" : ""}. ${FINAL_NOTES[moment.id] ?? ""}` : "New samples: each one plays the whole moment (props, background and its own sounds)"}</Text> : null}
           {samples ? samples.map((e, oi) => {
             const starred = picks[moment.id]?.anim === e.id;
             return (
