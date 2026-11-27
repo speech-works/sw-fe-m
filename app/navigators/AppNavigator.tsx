@@ -15,16 +15,19 @@ import { navigationRef } from "../util/functions/navigation";
 // opens it at start. Normal release builds do not register it.
 import PipLab from "../screens/PipLab";
 import FxLab from "../screens/FxLab";
+// The Moments lab (founder picks 2 of 4 Pip moves for each of 24 moments): dev menu "Moments lab", lab builds only.
+import MomentsLab from "../screens/MomentsLab";
 const PIP_LAB = __DEV__ || process.env.EXPO_PUBLIC_PIP_LAB === "1";
 const toPipLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "PipLab" }] }); };
 const toFxLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "FxLab" }] }); };
+const toMomentsLab = () => { if (navigationRef.isReady()) navigationRef.reset({ index: 0, routes: [{ name: "MomentsLab" }] }); };
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   useEffect(() => {
     // the lab replaces the whole stack, so nothing else on screen costs frames while it measures (Reload to leave it)
-    if (__DEV__) { DevSettings.addMenuItem("Pip lab", toPipLab); DevSettings.addMenuItem("FX lab", toFxLab); }
+    if (__DEV__) { DevSettings.addMenuItem("Pip lab", toPipLab); DevSettings.addMenuItem("FX lab", toFxLab); DevSettings.addMenuItem("Moments lab", toMomentsLab); }
     if (!__DEV__ && PIP_LAB) { const h = setTimeout(toFxLab, 1500); return () => clearTimeout(h); }
   }, []);
   useEffect(() => {
@@ -39,6 +42,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Root" component={BottomTabNavigator} />
       {PIP_LAB ? <Stack.Screen name="PipLab" component={PipLab} /> : null}
       {PIP_LAB ? <Stack.Screen name="FxLab" component={FxLab} /> : null}
+      {PIP_LAB ? <Stack.Screen name="MomentsLab" component={MomentsLab} /> : null}
       <Stack.Screen name="ExploreStack" component={ExploreStackNavigator} />
       <Stack.Screen
         name="PremiumModal"
