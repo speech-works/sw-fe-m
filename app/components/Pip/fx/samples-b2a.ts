@@ -104,8 +104,8 @@ const toastKeys: K[] = [...att(upTo(toasterKeys, 660), 0, 0.24 * TSS), { t: POP,
   { t: POP + 300, y: -0.13 * TSS, r: 0, e: "in" }, { t: POP + 360, y: -0.16 * TSS, e: "out" }, { t: POP + 440, y: -0.13 * TSS }, ...att(after(toasterKeys, POP + 440), 0, -0.13 * TSS)];
 
 const practiceDone: FxEffect[] = [
-  // SYNC: the sticky pops out of Done on "pop" (60 ms); the big check lands on the stroke of lab-pencil-check-1 (520 ms) with the
-  // marimba note right on it (530 ms); the sticky's two happy hops land at 1110 and 1300 ms; it flies up to Pip on the swoosh (1420 ms).
+  // SYNC: the sticky pops out of Done on "pop" (60 ms); the big check lands on the thump of lab-rubber-stamp-1 (520 ms) with a
+  // ding right on it (540 ms); the sticky's two happy hops land at 1110 and 1300 ms; it flies up to Pip on the swoosh (1420 ms).
   { id: "pd-todo-check", name: "To-do gets its check", ms: 1900,
     feel: "A yellow TO DO sticky jumps out of the Done button, a fat orange check slams onto it, the note does a happy little dance and flies up to Pip, who nods, proud.",
     emitters: [
@@ -114,7 +114,9 @@ const practiceDone: FxEffect[] = [
       ding([TD[0] + 12, TD[1] + 10], 520, 0.62, CREAM),
       sparks([TD[0] + 20, TD[1] + 20], 530, [OR2, SUN, CREAM], 10),
     ],
-    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-pencil-check-1", at: 505, volume: 0.8 }, { name: "lab-a2-marimba-note-1", at: 530, volume: 0.55 }, { name: "lab-swoosh-soft-1", at: 1420, volume: 0.4 }],
+    // founder: "sound does not match animation" -> the check SLAMS on, so a stamp thump + ding on the slam, a boing on each hop
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-rubber-stamp-1", at: 520, volume: 0.8 }, { name: "ding", at: 540, volume: 0.55 }, { name: "lab-hop-boing-small-1", at: 1110, volume: 0.5 },
+      { name: "lab-hop-boing-small-1", at: 1300, volume: 0.45 }, { name: "lab-swoosh-soft-1", at: 1420, volume: 0.4 }],
     pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 530, face: "proud", body: "nod", haptic: "light" }, { at: 1500, look: "off", face: "smile" }] },
   // SYNC: the finger pushes the button down on the ring of lab-a2-desk-bell-1 (430 ms): the bell squashes, the ding lines fly
   // out and Pip hops on the same beat.

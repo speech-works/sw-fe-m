@@ -10,6 +10,7 @@ import type { FxEffect, FxEmitter } from "./types";
 import { FXK, fxById } from "./library";
 import { SAMPLES_B2A } from "./samples-b2a";
 import { SAMPLES_B2B } from "./samples-b2b";
+import { SAMPLES_B2C } from "./samples-b2c";
 
 const W = 390, H = 844;
 const at = (x: number, y: number): [number, number] => [x / W, y / H];
@@ -495,4 +496,5 @@ export const SAMPLE_MOMENTS: Record<string, FxEffect[]> = {
   "day-closed": nextDay,
   ...SAMPLES_B2A,
   ...SAMPLES_B2B,
+  ...SAMPLES_B2C,
 };
