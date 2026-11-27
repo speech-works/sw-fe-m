@@ -1,37 +1,57 @@
 import fs from "fs";
 import path from "path";
-import { PART_REGISTRY } from "../registry";
+import { PART_IDS } from "../registry";
 import type { AvatarSlot } from "../../../types/avatar";
+import CATALOG from "../../../components/KitAvatar/kit/catalog.json";
+import RESERVED_HINT from "../../../components/Pip/pip-app.json";
 
 /**
- * Every part the registry can draw must be offered in the Studio.
+ * Every part the avatar kit lets users wear must be offered in the Studio, and
+ * nothing else.
  *
- * The Studio lists its ids as hand-written literals, one array per slot. That
- * duplication is invisible to the compiler and to the linter: adding a part to
- * the registry and forgetting the screen leaves a part that exists, renders,
- * has a name — and that nobody can ever select. It happened: 32 parts were
- * added and the hair, expression and prop arrays silently kept their old five.
- *
- * Reading the screen as TEXT is deliberate. Importing it would drag in the
- * whole React Native component tree for a check that is really about two lists
- * agreeing, and a brittle-but-honest string check is worth more here than an
- * elegant one nobody can run.
+ * The Studio lists each slot as `PART_IDS.<slot>`. Reading the screen as TEXT
+ * is deliberate: importing it would drag in the whole React Native component
+ * tree for a check that is really about the screen and the catalog agreeing.
  */
 const SCREEN = path.join(__dirname, "../../../screens/AvatarStudio/index.tsx");
+const CAT: any = CATALOG;
 
-describe("the Studio offers the whole catalog", () => {
+const SLOTS: AvatarSlot[] = ["face", "hair", "beard", "headgear", "eyewear", "collar"];
+
+describe("the Studio offers the whole kit", () => {
   const source = fs.readFileSync(SCREEN, "utf8");
 
-  // `bg` and `aura` have no picker of their own beyond what is asserted below;
-  // `head` is the single fixed base part.
-  const SLOTS: AvatarSlot[] = ["face", "hair", "beard", "headgear", "eyewear", "collar", "prop", "bg"];
-
   SLOTS.forEach((slot) => {
-    it(`offers every ${slot}`, () => {
-      const missing = Object.keys(PART_REGISTRY[slot]).filter(
-        (id) => !source.includes(`"${id}"`),
-      );
-      expect(missing).toEqual([]);
+    it(`offers every ${slot} the kit has`, () => {
+      expect(source).toContain(`ids={PART_IDS.${slot}}`);
+      const kit = Object.keys(CAT.parts).filter((id) => CAT.parts[id].slot === slot);
+      expect(PART_IDS[slot]).toEqual(kit);
+      expect(PART_IDS[slot].length).toBeGreaterThan(0);
     });
+  });
+
+  it("offers no slot the kit has no parts for (no empty tabs)", () => {
+    (["bg", "aura", "prop"] as AvatarSlot[]).forEach((slot) => expect(PART_IDS[slot]).toEqual([]));
+    expect(source).not.toMatch(/key: "prop"/);
+    expect(source).not.toMatch(/slot="bg"/);
+  });
+
+  it("offers the kit's own palettes", () => {
+    expect(source).toContain("swatches={SKIN_TONES}");
+    expect(source).toContain("swatches={HAIR_COLORS}");
+    expect(source).toContain("swatches={COLLAR_COLORS}");
+    expect(source).toContain("swatches={BG_COLORS}");
+  });
+
+  it("never lets a user build Pip: no reserved part is offered", () => {
+    const reserved = Object.values<any>(CAT.parts).filter((p) => p.flags && p.flags.reserved);
+    expect(reserved).toEqual([]);
+    // Pip's own look ids (his jacket, his tie) are not in the user catalog
+    const pipParts = new Set<string>();
+    (RESERVED_HINT as any).looks.forEach((l: any) => Object.values<string>(l.look.parts).forEach((id) => id && pipParts.add(id)));
+    const offered = new Set(SLOTS.flatMap((s) => PART_IDS[s]));
+    const pipOnly = [...pipParts].filter((id) => !CAT.parts[id]);
+    expect(pipOnly.length).toBeGreaterThan(0);
+    pipOnly.forEach((id) => expect(offered.has(id)).toBe(false));
   });
 });

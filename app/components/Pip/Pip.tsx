@@ -17,8 +17,10 @@ import type { BlobScene } from "./scenes";
 import { haptics } from "../../design-system/haptics";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Stop, parse } from "react-native-svg";
 import Animated, { Easing, runOnJS, runOnUI, useAnimatedProps, useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { FACE_MS, HAND_ART, faceGo, faceNow, faceStill, hairElement, hairPath, overlayIdle, prepare, prepareIdle, solveFrame, solveIdle } from "./core/app.js";
+import { FACE_MS, HAND_ART, faceGo, faceNow, faceStill, hairElement, hairPath, handColours, overlayIdle, prepare, prepareIdle, solveFrame, solveIdle } from "./core/app.js";
 import PIP_APP from "./pip-app.json";
+import type { AvatarManifest } from "../../types/avatar";
+import { kitKey, liveFigure, STAGE_INFO } from "../KitAvatar/kitLook";
 
 export type PipVariant = "pip" | "pip-f";
 export type PipMove = "h-palms" | "h-wave" | "h-cheek" | "h-chin" | "h-heart";
@@ -61,6 +63,9 @@ export interface PipHandle {
 }
 export interface PipProps {
   variant?: PipVariant;
+  /** A user's own kit avatar in Pip's place (the "Avatar saved" moment): the same drawer, idle, faces, hand moves and body
+   *  moves, drawn on the user's blob (their backdrop colour; scenes do not recolour it). Pip's own variant is then ignored. */
+  look?: AvatarManifest | null;
   /** Width in px. The height follows the picture (372 x 322). */
   size: number;
   /** false: no colour blob behind Pip (the body is still cut by the blob's curve). */
@@ -96,7 +101,7 @@ export interface PipProps {
 const HAIR_EVERY: Record<PipVariant, number> = { pip: 2, "pip-f": 3 };
 const BLUSH_K = 0.8;           // founder: blush a little lighter than the studio
 const IDLE_SEC = 40;           // the idle (blink, glance, breath, hair) is solved once for 40 s, then loops
-const VIEW = { x: -24, y: -6, w: 372, h: 322 };   // the site picture is 320 x 310; the blob reaches a little outside it
+export const VIEW = { x: -24, y: -6, w: 372, h: 322 };   // the site picture is 320 x 310; the blob reaches a little outside it
 const SLOTS = ["palmL", "palmR", "wave", "cheek", "chin", "heart3"];
 const SHADOW_SLOTS = ["palmL", "palmR", "wave"];
 const ID6 = [1, 0, 0, 1, 0, 0], AWAY = [1, 0, 0, 1, 0, 3000], NONE = "M0 0";
@@ -105,19 +110,36 @@ const ART: any = HAND_ART;
 const kids = (xml: string) => (xml ? (parse("<svg>" + xml + "</svg>") as any)?.children : null);
 const camel = (a: Record<string, string>) => { const o: any = {}; for (const k in a) o[k.replace(/-(\w)/g, (_, c) => c.toUpperCase())] = a[k]; return o; };
 
-/** One Pip, ready to draw: the look (baked), its moments and idle (prepared once per variant), the static SVG nodes. */
-type Bundle = { L: any; look: any; I: any; FK: any; PREP: Record<string, any>; ST: any; COL: any };
-const CACHE: Partial<Record<PipVariant, Bundle>> = {};
-function bundle(v: PipVariant): Bundle {
-  const hit = CACHE[v]; if (hit) return hit;
-  const L: any = PIP_APP.looks.find((x: any) => x.id === v) ?? PIP_APP.looks[0], look = L.look;
-  const I = prepareIdle(look, { seconds: IDLE_SEC }), PREP: Record<string, any> = {};
-  for (const id of [...PIP_MOVES, WAVE_LOW]) PREP[id] = prepare(id, look);
+/** One figure, ready to draw: the look, its moments and idle (prepared once), the static SVG nodes. */
+export type Bundle = { L: any; look: any; I: any; FK: any; PREP: Record<string, any>; ST: any; COL: any };
+/** The bundle for any figure on a blob stage. L = { look, stage, blob: { d, colour }, cut } (pip-app.json's shape). moves = the hand
+ *  moves to prepare (none: idle only; the hand colours then come straight from the look). idle = prepareIdle options.
+ *  User avatars (components/KitAvatar) use this with no moves and no hair motion. */
+export function makeBundle(L: any, moves: string[], idle: { seconds: number; hair?: boolean }): Bundle {
+  const look = L.look;
+  const I = prepareIdle(look, idle), PREP: Record<string, any> = {};
+  for (const id of moves) PREP[id] = prepare(id, look);
   const FR = look.face.el;
   const ST = { nose: kids(FR.nose), tongue: kids(FR.tongue), cheek: kids(FR.cheek), layers: look.layers.map((l: any) => (l.hairItems ? null : kids(l.svg))),
     eyes: { ring: look.eyes.ring.map(kids), white: look.eyes.white.map(kids), pupil: look.eyes.pupil.map(kids) },
     shadow: look.shadow ? look.shadow.regions.map((r: any) => kids(r.svg)) : [] };
-  const b = { L, look, I, FK: I.fk, PREP, ST, COL: PREP["h-palms"].colours };
+  return { L, look, I, FK: I.fk, PREP, ST, COL: PREP["h-palms"] ? PREP["h-palms"].colours : handColours(look) };
+}
+const CACHE: Partial<Record<PipVariant, Bundle>> = {};
+const SITE_ARM = { pivotR: 900, pivotY: 1300 };   // the site arm pivots (bake-pip-app.mjs ARM_SITE): the sleeve runs on under the blob
+/** A user's kit avatar ready to act like Pip: the look from the manifest (KitAvatar/kitLook), every hand move prepared for it. */
+const USER_CACHE = new Map<string, Bundle>();
+function userBundle(m: AvatarManifest | null | undefined): Bundle {
+  const key = kitKey(m), hit = USER_CACHE.get(key); if (hit) return hit;
+  const L: any = liveFigure(m);
+  L.look.arm = SITE_ARM; L.look.outline = STAGE_INFO.outline;   // prepare() reads both (as Pip's baked look carries them)
+  const b = makeBundle(L, [...PIP_MOVES, WAVE_LOW], { seconds: IDLE_SEC });
+  USER_CACHE.clear(); USER_CACHE.set(key, b); return b;
+}
+function bundle(v: PipVariant): Bundle {
+  const hit = CACHE[v]; if (hit) return hit;
+  const L: any = PIP_APP.looks.find((x: any) => x.id === v) ?? PIP_APP.looks[0];
+  const b = makeBundle(L, [...PIP_MOVES, WAVE_LOW], { seconds: IDLE_SEC });
   CACHE[v] = b; return b;
 }
 
@@ -157,7 +179,7 @@ const kitToPicture = (L: any) => { const S = L.stage, z = L.look.zoom, bp = L.lo
  */
 /** Shared motion of the whole figure apart from its blob: fx / fy = figure offset (px), bs = blob scale (0 = gone),
  *  tube = 1 while Pip may only show inside the blob's width (rising out of it, sinking into it, slipping behind its edge). */
-type Mv = { fx: any; fy: any; bs: any; tube: any };
+export type Mv = { fx: any; fy: any; bs: any; tube: any };
 /** motionStyle "v2" only: the pose of the torso and of the head on it (shared values), and their pivots (picture units).
  *  Torso: turns by tr (degrees) and stretches by tsx / tsy about P (the middle of its base, below the blob).
  *  Head: rides on the torso at N (the chin), takes HEAD_FOLLOW of the torso's turn, plus its own turn hr (degrees),
@@ -217,7 +239,7 @@ function Layer({ fs, mv, motion, K, u, w, h, jel, piv, pad = 0, padB = 0, pose =
     </Animated.View>);
 }
 
-const Figure = memo(function Figure({ fs, mv, hs, jel, B, uid, w, h, blob, blobColour, noCut, noHands, arts, pv, scene }: { fs: any; mv: Mv; hs: any; jel: any; B: Bundle; uid: string; w: number; h: number; blob: boolean; blobColour?: string; noCut?: boolean; noHands?: boolean; arts: string[]; pv?: Omit<Pose, "P" | "N"> | null; scene?: BlobScene["id"] | null }) {
+export const Figure = memo(function Figure({ fs, mv, hs, jel, B, uid, w, h, blob, blobColour, noCut, noHands, arts, pv, scene }: { fs: any; mv: Mv; hs: any; jel: any; B: Bundle; uid: string; w: number; h: number; blob: boolean; blobColour?: string; noCut?: boolean; noHands?: boolean; arts: string[]; pv?: Omit<Pose, "P" | "N"> | null; scene?: BlobScene["id"] | null }) {
   const p = { fs }, L = B.L, LOOK = B.look, ST = B.ST, plan = B.I.hair, eg = LOOK.eyes.eg, SHW = LOOK.shadow, FR = LOOK.face.el, COL = B.COL, S = L.stage;
   const K = kitToPicture(L), u = w / VIEW.w;
   // v2: the torso's pivot (kit 500, 1160: the middle of the jacket's base) and the head's (kit 500, 820: just above the chin);
@@ -359,11 +381,12 @@ function JellyBox({ mv, jel, piv, u, w, h, children }: { mv: Mv; jel: any; piv: 
 }
 
 /** Pip, drawn live. Decorative: the screen around him says what happened. */
-export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip", size, blob = true, blobColour, face = "calm", hold = null, startHidden = false, jelly = true, motionStyle = "v2", scene = null, labJellyHold = false, labNoCut = false, labNoHands = false }, ref) {
-  const B = useMemo(() => bundle(variant), [variant]);
+export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip", look, size, blob = true, blobColour, face = "calm", hold = null, startHidden = false, jelly = true, motionStyle = "v2", scene = null, labJellyHold = false, labNoCut = false, labNoHands = false }, ref) {
+  const lookKey = look === undefined ? null : kitKey(look);
+  const B = useMemo(() => (lookKey === null ? bundle(variant) : userBundle(look)), [variant, lookKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   const uid = useMemo(() => "p" + UID++ + "_", []);
   const reduced = useReducedMotion();
-  const ui = useMemo(() => ({ I: B.I, FK: B.FK, PREP: B.PREP, hairEvery: HAIR_EVERY[variant] }), [B, variant]);
+  const ui = useMemo(() => ({ I: B.I, FK: B.FK, PREP: B.PREP, hairEvery: lookKey === null ? HAIR_EVERY[variant] : 2 }), [B, variant, lookKey]);
   const bun = useSharedValue<any>(ui);
   const fc = useSharedValue<any>(faceStill(B.FK, face));
   const fs = useSharedValue<any>(solveIdle(B.I, 0, faceNow(B.FK, faceStill(B.FK, face), 0)));
@@ -704,7 +727,7 @@ export const Pip = forwardRef<PipHandle, PipProps>(function Pip({ variant = "pip
     <Animated.View style={[{ width: size, height: h, transformOrigin: "50% 100%" }, bodyStyle]} accessible={false} importantForAccessibility="no-hide-descendants" pointerEvents="none">
       {/* nothing here clips: the blob, its jelly and the effects may show over the screen around Pip */}
       <View style={{ width: size, height: h }}>
-        <Figure fs={fs} mv={mv} hs={hs} jel={jel} B={B} uid={uid} w={size} h={h} blob={blob} blobColour={blobColour} noCut={labNoCut} noHands={labNoHands} arts={arts} pv={pv} scene={scene} />
+        <Figure fs={fs} mv={mv} hs={hs} jel={jel} B={B} uid={uid} w={size} h={h} blob={blob} blobColour={lookKey === null ? blobColour : B.L.blob.colour} noCut={labNoCut} noHands={labNoHands} arts={arts} pv={pv} scene={lookKey === null ? scene : null} />
       </View>
     </Animated.View>);
 });

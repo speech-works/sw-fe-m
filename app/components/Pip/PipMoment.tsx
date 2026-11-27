@@ -18,9 +18,13 @@ import { PipStage } from "./fx/PipStage";
 import type { PipStageHandle } from "./fx/PipStage";
 import { FX_EFFECTS } from "./fx/library";
 import type { PipMomentDef } from "./pipMoments";
+import type { AvatarManifest } from "../../types/avatar";
+import { kitKey } from "../KitAvatar/kitLook";
 
 export type PipBackdrop = "dim" | "none";
-export interface PipMomentHandle { play: (m: PipMomentDef) => Promise<void> }
+/** A moment to play. `look`: the user's avatar for a moment whose figure is "user" (default: the signed-in user's). */
+export type PipMomentPlay = PipMomentDef & { look?: AvatarManifest | null };
+export interface PipMomentHandle { play: (m: PipMomentPlay) => Promise<void> }
 export interface PipMomentProps {
   /** Override the moment's own backdrop (the preview page compares the two); default: the moment's (pipMoments.ts). */
   backdrop?: PipBackdrop;
@@ -39,11 +43,11 @@ export const PipMoment = forwardRef<PipMomentHandle, PipMomentProps>(function Pi
   const win = useWindowDimensions(), ins = useContext(SafeAreaInsetsContext) ?? { top: 0, bottom: 0, left: 0, right: 0 };
   const W = screen?.width ?? win.width, H = screen?.height ?? win.height;
   const stage = useRef<PipStageHandle>(null), skip = useRef(false);
-  const [m, setM] = useState<PipMomentDef | null>(null);
+  const [m, setM] = useState<PipMomentPlay | null>(null);
   const scrim = useSharedValue(0), txt = useSharedValue(0);
   const effect = m?.effect ? FX_EFFECTS.find(e => e.id === m.effect) ?? null : null;
 
-  const play = useCallback(async (def: PipMomentDef) => {
+  const play = useCallback(async (def: PipMomentPlay) => {
     skip.current = false; setM(def);
     await wait(50);                                                    // the stage mounts with this moment's effect
     if ((backdrop ?? def.backdrop) === "dim") scrim.value = withTiming(1, { duration: 260, easing: ease });
@@ -81,7 +85,10 @@ export const PipMoment = forwardRef<PipMomentHandle, PipMomentProps>(function Pi
       <View pointerEvents="none" style={onDim
         ? { position: "absolute", left: 0, width: W, top: ins.top + 24, bottom: ins.bottom + 24 + H * 0.08, alignItems: "center", justifyContent: "center" }
         : { position: "absolute", left: 0, width: W, bottom: ins.bottom + 40, alignItems: "center" }}>
-        <PipStage ref={stage} key={m.id + ":" + variant} startHidden screen={screen} stageW={W} stageH={stageH} effect={effect} sound={sound} variant={variant} size={size} />
+        {m.figure === "user"
+          // the user's own avatar in Pip's place: the same stage, effect, beats, entry and exit; drawn on the user's blob
+          ? <PipStage ref={stage} key={m.id + ":user:" + kitKey(m.look)} startHidden screen={screen} stageW={W} stageH={stageH} effect={effect} sound={sound} look={m.look ?? null} size={size} />
+          : <PipStage ref={stage} key={m.id + ":" + variant} startHidden screen={screen} stageW={W} stageH={stageH} effect={effect} sound={sound} variant={variant} size={size} />}
         {hasText ? (
           <Animated.View style={[{ width: textW, marginTop: 14, alignItems: "center", zIndex: 60 /* above the effect's particles (stage zIndex 50): text stays readable */ }, !onDim && [s.card, { backgroundColor: dark ? "#23211E" : "#FFFFFF", borderColor: dark ? "#3A3733" : "#DDD6C8" }], txtSt]}
             accessibilityLiveRegion="polite">

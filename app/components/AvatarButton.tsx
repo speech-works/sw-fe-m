@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { View } from "react-native";
 import PressableScale from "./PressableScale";
 import { UserAvatar } from "./UserAvatar";
 import { useUserStore } from "../stores/user";
@@ -16,15 +15,16 @@ interface AvatarButtonProps {
   onPress: () => void;
 }
 
-// Circular by default — the character's tile is itself a circle, so a round
-// container reads as "the actual avatar" with no corner gaps.
-
 /**
- * The user's owned avatar as a tappable identity disc (Settings hero, My
- * Profile). Reads the manifest straight from the user store, so a save in the
- * studio reflects here immediately without any refetch. The character is drawn
- * oversized and clipped to the disc (filled with its own backdrop colour) so it
- * reads as a solid avatar and the level badge sits flush on the edge.
+ * The user's owned avatar as a tappable identity (Settings hero, My Profile).
+ * Reads the manifest straight from the user store, so a save in the studio
+ * reflects here immediately without any refetch.
+ *
+ * The character stands on its own colour blob, uncropped: a round or square
+ * crop would cut the body flat and could cut the collar (repo rule: full
+ * collar, body ends on the blob). The level badge sits at the top-left corner,
+ * by the head, never over the collar. `shape` is kept for callers; the blob is
+ * the same either way.
  */
 export const AvatarButton: React.FC<AvatarButtonProps> = ({
   size,
@@ -37,10 +37,6 @@ export const AvatarButton: React.FC<AvatarButtonProps> = ({
     () => normalizeManifest(user?.avatarManifest),
     [user?.avatarManifest],
   );
-  const borderRadius = shape === "circle" ? size / 2 : Math.round(size * 0.28);
-  // The tile is 0.75×size, so render at 4/3×size for the tile to fill the disc.
-  const inner = Math.round(size * (4 / 3));
-
   return (
     <PressableScale
       onPress={onPress}
@@ -55,21 +51,7 @@ export const AvatarButton: React.FC<AvatarButtonProps> = ({
         size={size}
         shape={shape}
         level={level}
-        content={
-          <View
-            style={{
-              width: size,
-              height: size,
-              borderRadius,
-              overflow: "hidden",
-              backgroundColor: manifest.colors.bg,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <UserAvatar manifest={manifest} size={inner} />
-          </View>
-        }
+        content={<UserAvatar manifest={manifest} size={size} />}
       />
     </PressableScale>
   );

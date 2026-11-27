@@ -30,6 +30,9 @@ export type PipMomentDef = {
   source?: string;
   /** "dim": rare big moments get the screen to themselves; "none": frequent ones play over the screen as it is (D1 A). */
   backdrop: "dim" | "none";
+  /** "user": the user's own kit avatar plays the moment in Pip's place (founder 2026-11-27: the snapshot after saving an
+   *  avatar shows the avatar just saved, not the mascot). Default: Pip. */
+  figure?: "pip" | "user";
 };
 
 export const PIP_MOMENTS: PipMomentDef[] = [
@@ -47,7 +50,7 @@ export const PIP_MOMENTS: PipMomentDef[] = [
   { id: "new-stage", ref: "M9", name: "New stage reached", effect: "spark-fountain", title: "New stage", body: "You reached the next stage of your practice.", source: "approved line", backdrop: "dim" },
   { id: "mood-saved", ref: "M10", name: "Mood check-in saved", effect: "speech-heart", title: "Mood recorded", body: "Your check-in is saved.", source: "title: FollowUp.tsx; body: approved line (shortened)", backdrop: "none" },
   { id: "first-call-done", ref: "M11", name: "First AI call done", beats: [{ at: 0, face: "warm", body: "nod" }, { at: 1400, face: "smile", body: "settle" }, { at: 2600, face: "calm" }], title: "Your first call is done", body: "Next, a moment to note how it felt.", source: "approved line", backdrop: "dim" },
-  { id: "avatar-saved", ref: "M12", name: "Avatar saved", effect: "sticker-snap", title: "Avatar saved", source: "approved line", backdrop: "none" },
+  { id: "avatar-saved", ref: "M12", name: "Avatar saved", effect: "sticker-snap", title: "Avatar saved", source: "approved line", backdrop: "none", figure: "user" },
   { id: "buddy-paired", ref: "M13", name: "Buddy paired", effect: "hearts", title: "You're paired", body: "You and your buddy can now see each other's posts.", source: "approved line", backdrop: "none" },
 ];
 

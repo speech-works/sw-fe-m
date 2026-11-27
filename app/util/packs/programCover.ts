@@ -35,32 +35,32 @@ const BUNDLED_COVERS: Record<string, ImageSourcePropType> = {
 };
 
 /**
- * What each picture shows, for a screen reader. Written from the round 3
- * covers (sw-landing/artwork/program-covers/BRIEF.md): what is in the picture,
+ * What each picture shows, for a screen reader. Written from the round 4
+ * covers (the site's kit cast; sw-landing/artwork/program-covers/build-r4.cjs): what is in the picture,
  * never what the program promises. The iceberg is the one cover with words
  * on it, so its description reads them out.
  */
 const COVER_DESCRIPTIONS: Record<string, string> = {
   interview_ready:
-    "A video call on a desktop monitor. A person in a suit and tie looks ready to answer. Yellow sticky notes are stuck all round the screen. Some notes are crossed out and one has a tick.",
+    "A video call on a desktop monitor. A person in glasses, a suit and a tie looks ready to answer. Yellow sticky notes are stuck all round the screen. Some notes are crossed out and one has a tick.",
   hard_conversations:
-    "A hand holds a phone. A person with a headset rises out of the screen, looking worried, in the middle of a sentence. A green speech bubble carries their words out past the edge of the phone.",
+    "A hand holds a phone. On the screen, a person with red hair and a headset is speaking. A green speech bubble carries their words out past the edge of the phone.",
   panic_button:
-    "A big red no sign. Inside it, a person with blonde hair blowing sideways looks flustered, eyes wide and teeth gritted. Pale hands reach in from a blue cloud behind them, and the red bar of the sign crosses the hands out.",
+    "A big red no sign. Inside it, a person in a blue beanie looks scared, eyes wide and mouth open. Pale hands reach in from a blue cloud behind them, and the red bar of the sign crosses the hands out.",
   understanding_your_voice:
-    "An iceberg with a small tip above the water and a much bigger part below. Labels on the tip say Blocks and Repetitions. Labels below the water say Fear, Swapped words, Avoidance and Tiredness. A person in a headscarf looks out of a yellow submarine, and a few fish swim past.",
+    "An iceberg with a small tip above the water and a much bigger part below. Labels on the tip say Blocks and Repetitions. Labels below the water say Fear, Swapped words, Avoidance and Tiredness. A person in headphones looks out of a yellow submarine, and a few fish swim past.",
   breaking_thought_traps:
-    "A big head seen from the side, eyes closed and calm. At the back of the head a door stands open. A small version of the same person runs out of it, toward a flight of stairs.",
+    "A person in an orange beret laughs as the wooden cage around them breaks apart. The top of the cage flies off, a dark rain cloud drifts away and the sun comes out.",
   bouncing_back:
-    "A person with braids and glasses springs up out of a jack-in-the-box, both arms raised high, with confetti all around.",
+    "A person with braids and pink glasses laughs and waves both hands as they spring up out of a jack-in-the-box, with confetti all around.",
   dating_intimacy:
-    "Two profile cards lean toward each other. In one photo a person laughs, and in the other a person glances across at them. A heart and two speech bubbles sit between the cards.",
+    "Two profile cards lean toward each other. In each photo a person looks across at the other with a warm smile. Hearts and two speech bubbles sit between the cards.",
   speech_toolkit:
-    "A person in star-shaped glasses, a hard hat and a hi-vis vest stands behind an open toolbox. Tools are scattered all around: a wrench, a saw, a hammer, a drill, a tape measure, a level and a paintbrush.",
+    "A person in star-shaped glasses smiles behind an open toolbox. Tools are scattered all around: a wrench, a saw, a hammer, a drill, a tape measure, a level and a paintbrush.",
   art_of_disclosure:
-    "A person in a cowboy hat looks over the top of a brick wall with a warm smile, fingers curled over the edge.",
+    "A person in a headscarf looks over the top of a brick wall, fingers curled over the edge.",
   word_swap:
-    "A person with blonde pigtails sits up to the shoulders in a heap of speech bubbles of every shape. One orange bubble beside them stands out from the rest.",
+    "A person in a turban, smiling, sits up to the shoulders in a heap of speech bubbles of every shape. One orange bubble beside them stands out from the rest.",
 };
 
 /** The programs that ship with art, pinned by a test against the seeds. */

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -9,15 +9,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { showPipMoment } from "../../../../../components/Pip";
-import { RewardReveal } from "../../../../../components/RewardReveal";
 import {
   CelebrationLight,
 } from "../../../../../components/CelebrationLight";
-import {
-  partsUnlockedBetween,
-  stageCrossedBetween,
-} from "../../../../../assets/avatar/registry";
-import type { AvatarManifest } from "../../../../../types/avatar";
+import { stageCrossedBetween } from "../../../../../assets/avatar/registry";
 import {
   size,
   AnimatedModal,
@@ -37,20 +32,16 @@ import {
 interface LevelUpTakeoverProps {
   visible: boolean;
   /** The level they were on before this completion. Needed as well as the new
-   *  one because a single practice can carry more than one level, and the
-   *  reward list has to cover every rung it passed. */
+   *  one because a single practice can carry more than one level, and a stage
+   *  crossing anywhere in that jump is still a stage crossing. */
   fromLevel: number;
   newLevel: number;
   stageTitle: string | null;
-  /** The user's saved avatar — the reward cards are drawn wearing it. */
-  manifest?: AvatarManifest | null;
   /**
    * The single exit path — backdrop tap and the CTA both route through it.
    * Deliberately the Phase-5 seam: reward-grant chaining hooks here.
    */
   onClose: () => void;
-  /** Dismiss and open the Avatar Studio. Omit and the offer is not made. */
-  onTryOn?: () => void;
 }
 
 /**
@@ -60,10 +51,9 @@ interface LevelUpTakeoverProps {
  * while any other native modal (e.g. the Reminder sheet) is up — never two
  * live native Modals. No faces here (one-face rule).
  *
- * When the level opened new wardrobe it also carries the reward reveal, INLINE
- * rather than as a follow-up popup: a second native Modal over this one is the
- * iOS touch-freeze, and a level-up that has to be dismissed twice stops being
- * a gift. The gear is the pitch, so it goes above the CTA, not behind it.
+ * Levels open no wardrobe now: every avatar kit piece is free to wear (the old
+ * travel gear and level rewards are gone with the old part set, founder
+ * 2026-11-27), so there is no reward block and no "Try it on".
  *
  * CELEBRATION HAS TWO TIERS, and the reason is arithmetic. A level costs
  * `18(level-1)²` XP against an 800/week cap, so a committed user sees five or
@@ -83,21 +73,11 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
   fromLevel,
   newLevel,
   stageTitle,
-  manifest,
   onClose: onCloseProp,
-  onTryOn,
 }) => {
   const { colors } = useTheme();
   const { reduced } = useMotion();
 
-  // Derived, not granted: a part is "earned" the moment the level is reached,
-  // so there is nothing to write anywhere. Levelling twice in one session lists
-  // both rungs.
-  const unlocked = useMemo(
-    () => partsUnlockedBetween(fromLevel, newLevel),
-    [fromLevel, newLevel],
-  );
-  const hasRewards = unlocked.length > 0;
   const grand = stageCrossedBetween(fromLevel, newLevel);
 
   // Pip's moment replaced the stage confetti (founder 2026-11-26). The takeover's card clips its children (overflow hidden),
@@ -138,7 +118,8 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
   }, [pop, reduced, visible]);
 
   const discStyle = useAnimatedStyle(() => {
-    // Identity transform, not an omitted key — see the note in RewardReveal.
+    // Identity transform, not an omitted key: an omitted transform key can leave
+    // the last animated value applied on Android.
     if (reduced) return { opacity: pop.value, transform: [{ scale: 1 }] };
     return {
       opacity: Math.min(1, pop.value * 1.6),
@@ -196,32 +177,14 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
           </Text>
         ) : null}
 
-        {hasRewards ? (
-          // The reward block replaces the encouragement line rather than
-          // stacking under it. Both say "this was worth doing"; the one that
-          // shows you the hat says it better, and two of them makes a tall
-          // modal out of a short moment.
-          <RewardReveal manifest={manifest} partIds={unlocked} />
-        ) : (
-          <Text variant="body" color="secondary" center style={styles.message}>
-            Every practice makes you stronger.
-          </Text>
-        )}
+        <Text variant="body" color="secondary" center style={styles.message}>
+          Every practice makes you stronger.
+        </Text>
 
         {/* Pip's moment replaced the stage confetti here (founder 2026-11-26); see onClose. */}
 
         <View style={styles.actions}>
-          {hasRewards && onTryOn ? (
-            <>
-              <Button
-                label={unlocked.length === 1 ? "Try it on" : "Try them on"}
-                onPress={onTryOn}
-              />
-              <Button label="Keep going" variant="ghost" onPress={onClose} />
-            </>
-          ) : (
-            <Button label="Keep going" onPress={onClose} />
-          )}
+          <Button label="Keep going" onPress={onClose} />
         </View>
       </View>
     </AnimatedModal>

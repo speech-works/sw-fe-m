@@ -7,13 +7,12 @@ import { showPipMoment } from "../../components/Pip";
 import { useUserStore } from "../../stores/user";
 import { useAvatarDraftStore } from "../../stores/avatarDraft";
 import { useAvatarSavedStore } from "../../stores/avatarSaved";
-import { stageIndexForLevel } from "../../types/avatar";
 import {
   BG_COLORS,
   COLLAR_COLORS,
   HAIR_COLORS,
+  PART_IDS,
   SKIN_TONES,
-  STAGE_NAMES,
 } from "../../assets/avatar/registry";
 import { UserAvatar } from "../../components/UserAvatar";
 import {
@@ -40,7 +39,6 @@ type SlotTab =
   | "headgear"
   | "eyewear"
   | "collar"
-  | "prop"
   | "backdrop";
 
 const SLOT_TABS: { key: SlotTab; label: string; icon: string }[] = [
@@ -51,7 +49,6 @@ const SLOT_TABS: { key: SlotTab; label: string; icon: string }[] = [
   { key: "headgear", label: "Headgear", icon: icons.avatarHeadgear },
   { key: "eyewear", label: "Eyewear", icon: icons.avatarEyewear },
   { key: "collar", label: "Collar", icon: icons.avatarCollar },
-  { key: "prop", label: "Prop", icon: icons.avatarProp },
   { key: "backdrop", label: "Backdrop", icon: icons.avatarBackdrop },
 ];
 
@@ -60,11 +57,11 @@ const TOAST_MS = 2600;
 const TOAST_BOTTOM = 120;
 
 /**
- * The Avatar Studio — where the user builds the character they own. Free
- * choices (skin/hair/wardrobe) are the IKEA labor; journey gear appears in the
- * same rows, locked until its stage is reached, because the locked hat IS the
- * level-up pitch. Saving writes the manifest to the user (PATCH /users/me);
- * the draft survives an app kill and is never lost on a failed save.
+ * The Avatar Studio — where the user builds the character they own, from the
+ * layered avatar kit (the website's kit). Every piece is free to wear; each
+ * cell previews the draft wearing it. Saving writes the manifest to the user
+ * (PATCH /users/me); the draft survives an app kill and is never lost on a
+ * failed save.
  */
 const AvatarStudio = () => {
   const navigation = useNavigation<any>();
@@ -82,12 +79,6 @@ const AvatarStudio = () => {
   // The pending navigation action captured by the unsaved-changes guard — its
   // presence drives the DS confirm Dialog (no native Alert).
   const [pendingLeave, setPendingLeave] = useState<unknown>(null);
-
-  const stage = stageIndexForLevel(user?.level ?? 1);
-  /** One number gates the whole wardrobe. The stage above is only used for the
-   *  header's copy — the picker itself works in levels, which is finer and
-   *  matches what the Achievements screen already tells people. */
-  const userLevel = user?.level ?? 1;
 
   useEffect(() => {
     loadFromUser(user?.avatarManifest);
@@ -157,8 +148,9 @@ const AvatarStudio = () => {
       // celebrate a save that might still fail.
       markAvatarSaved();
       showToast("Avatar saved");
-      // Pip's moment (founder 2026-11-26): not awaited, the host lives above navigation. Home's sheen stays.
-      void showPipMoment("avatar-saved");
+      // The "Avatar saved" moment (founder 2026-11-26), played by the avatar just saved (2026-11-27), not by Pip.
+      // Not awaited: the host lives above navigation. Home's sheen stays.
+      void showPipMoment("avatar-saved", { look: saved.avatarManifest ?? draft });
       navigation.goBack();
     } catch (error) {
       console.error("Avatar save failed:", error);
@@ -175,7 +167,7 @@ const AvatarStudio = () => {
     <>
       <Page
         title="Your Avatar"
-        description={`${STAGE_NAMES[stage]} gear unlocked so far. Practice to earn the rest.`}
+        description="Pick each piece. You can change it any time."
         onBack={() => navigation.goBack()}
         footer={
           <Button
@@ -187,7 +179,7 @@ const AvatarStudio = () => {
       >
         {/* The mirror: the draft, live. */}
         <View style={styles.preview}>
-          <UserAvatar manifest={draft} size={220} animate />
+          <UserAvatar manifest={draft} size={240} animate />
         </View>
 
         <View style={styles.dock}>
@@ -215,18 +207,8 @@ const AvatarStudio = () => {
           {tab === "face" && (
             <PartGrid
               slot="face"
-              ids={[
-                "face.brand",
-                "face.smile",
-                "face.joy",
-                "face.wink",
-                "face.wow",
-                "face.proud",
-                "face.laugh",
-                "face.speaking",
-              ]}
+              ids={PART_IDS.face}
               draft={draft}
-              level={userLevel}
               onSelect={(id) => setPart("face", id)}
             />
           )}
@@ -247,22 +229,9 @@ const AvatarStudio = () => {
               </Text>
               <PartGrid
                 slot="hair"
-                ids={[
-                  "hair.crop",
-                  "hair.swoop",
-                  "hair.curls",
-                  "hair.waves",
-                  "hair.long",
-                  "hair.afro",
-                  "hair.braids",
-                  "hair.ponytail",
-                  "hair.spacebuns",
-                  "hair.bob",
-                  "hair.pigtails",
-                ]}
+                ids={PART_IDS.hair}
                 draft={draft}
-                level={userLevel}
-                onSelect={(id) => setPart("hair", id)}
+                  onSelect={(id) => setPart("hair", id)}
                 allowNone
               />
             </>
@@ -271,17 +240,8 @@ const AvatarStudio = () => {
           {tab === "beard" && (
             <PartGrid
               slot="beard"
-              ids={[
-                "beard.stubble",
-                "beard.mustache",
-                "beard.handlebar",
-                "beard.horseshoe",
-                "beard.walrus",
-                "beard.goatee",
-                "beard.full",
-              ]}
+              ids={PART_IDS.beard}
               draft={draft}
-              level={userLevel}
               onSelect={(id) => setPart("beard", id)}
               allowNone
             />
@@ -290,34 +250,8 @@ const AvatarStudio = () => {
           {tab === "headgear" && (
             <PartGrid
               slot="headgear"
-              ids={[
-                "headgear.beanie",
-                "headgear.cap",
-                "headgear.headphones",
-                "headgear.tourist",
-                "headgear.explorer",
-                "headgear.cowboy",
-                "headgear.party",
-                "headgear.crown",
-                "headgear.tophat",
-                "headgear.pirate",
-                "headgear.viking",
-                "headgear.newsboy",
-                "headgear.hardhat",
-                "headgear.santa",
-                "headgear.bandana",
-                "headgear.beret",
-                "headgear.witch",
-                "headgear.sombrero",
-                "headgear.deerstalker",
-                "headgear.grad",
-                "headgear.chef",
-                "headgear.sailorcap",
-                "headgear.police",
-                "headgear.aviatorcap",
-              ]}
+              ids={PART_IDS.headgear}
               draft={draft}
-              level={userLevel}
               onSelect={(id) => setPart("headgear", id)}
               allowNone
             />
@@ -326,29 +260,8 @@ const AvatarStudio = () => {
           {tab === "eyewear" && (
             <PartGrid
               slot="eyewear"
-              ids={[
-                "eyewear.round",
-                "eyewear.square",
-                "eyewear.wayfarer",
-                "eyewear.roundshades",
-                "eyewear.lime",
-                "eyewear.aviator",
-                "eyewear.heart",
-                "eyewear.star",
-                "eyewear.cateye",
-                "eyewear.daisy",
-                "eyewear.threed",
-                "eyewear.oversized",
-                "eyewear.goggles",
-                "eyewear.browline",
-                "eyewear.rimless",
-                "eyewear.hex",
-                "eyewear.pixel",
-                "eyewear.leopard",
-                "eyewear.monocle",
-              ]}
+              ids={PART_IDS.eyewear}
               draft={draft}
-              level={userLevel}
               onSelect={(id) => setPart("eyewear", id)}
               allowNone
             />
@@ -370,104 +283,20 @@ const AvatarStudio = () => {
               </Text>
               <PartGrid
                 slot="collar"
-                ids={[
-                  "collar.scarf",
-                  "collar.bowtie",
-                  "collar.cowl",
-                  "collar.peterpan",
-                  "collar.mandarin",
-                  "collar.sailor",
-                  "collar.wing",
-                  "collar.shawl",
-                  "collar.barrymoore",
-                  "collar.cascade",
-                  "collar.square",
-                  "collar.wrap",
-                  "collar.clerical",
-                  "collar.eton",
-                  "collar.horseshoe",
-                  "collar.chelsea",
-                  "collar.polo",
-                  "collar.johnny",
-                  "collar.medici",
-                  "collar.puritan",
-                  "collar.buttondown",
-                  "collar.pin",
-                ]}
+                ids={PART_IDS.collar}
                 draft={draft}
-                level={userLevel}
                 onSelect={(id) => setPart("collar", id)}
-                allowNone
               />
             </>
-          )}
-
-          {tab === "prop" && (
-            <PartGrid
-              slot="prop"
-              ids={[
-                "prop.mic",
-                "prop.book",
-                "prop.camera",
-                "prop.compass",
-                "prop.lantern",
-                "prop.flag",
-                "prop.mug",
-                "prop.plant",
-                "prop.cat",
-                "prop.trophy",
-                "prop.plane",
-                "prop.balloon",
-                "prop.skateboard",
-                "prop.duck",
-                "prop.dog",
-                "prop.icecream",
-                "prop.controller",
-                "prop.sunflower",
-              ]}
-              draft={draft}
-              level={userLevel}
-              onSelect={(id) => setPart("prop", id)}
-              allowNone
-            />
           )}
 
           {tab === "backdrop" && (
-            <>
-              {/* Colour first: every pattern derives BOTH its tones from this
-                  swatch, so picking the colour changes the pattern too. */}
-              <Text variant="label" color="tertiary" style={styles.subLabel}>
-                Colour
-              </Text>
-              <SwatchGrid
-                swatches={BG_COLORS}
-                selectedHex={draft.colors.bg}
-                onSelect={(hex) => setColor("bg", hex)}
-              />
-              <Text variant="label" color="tertiary" style={styles.subLabel}>
-                Pattern
-              </Text>
-              <PartGrid
-                slot="bg"
-                ids={[
-                  "bg.hearts",
-                  "bg.eggs",
-                  "bg.cow",
-                  "bg.monstera",
-                  "bg.stars",
-                  "bg.bolts",
-                  "bg.dots",
-                  "bg.checks",
-                  "bg.swirl",
-                  "bg.blob",
-                  "bg.wavybands",
-                ]}
-                draft={draft}
-                level={userLevel}
-                onSelect={(id) => setPart("bg", id)}
-                allowNone
-              />
-            </>
+            // The backdrop is the colour of the blob the character stands on.
+            <SwatchGrid
+              swatches={BG_COLORS}
+              selectedHex={draft.colors.bg}
+              onSelect={(hex) => setColor("bg", hex)}
+            />
           )}
         </View>
         </GestureDetector>

@@ -182,8 +182,8 @@ const BUBBLES = BUBBLE_SLOTS.map((slot, i) => ({
  * screen whose whole job is one tap — and continuously moving things are
  * permanent attention magnets, competing with the very CTA they sit above.
  *
- * The scene keeps exactly ONE ambient motion now: the character's slow breath.
- * One living thing in a still frame reads as alive; four read as busy.
+ * The character is a still picture too (founder, 2026-11-27: only Home's and
+ * the Studio's avatar are live), so the drifting stage wash is the one motion.
  */
 const Bubble: React.FC<{
   label: string;
@@ -211,7 +211,7 @@ const WelcomeStage: React.FC<{
    *               there would show them a list they explicitly did not choose.
    */
   labels?: string[];
-  /** Optional custom face id (e.g., 'face.joy') to override the default avatar face. */
+  /** Optional kit face id (e.g., 'face.smile') to override the default avatar face. */
   face?: string;
 }> = ({ available, labels, face }) => {
   const { colors } = useTheme();
@@ -239,13 +239,12 @@ const WelcomeStage: React.FC<{
     >
       <StageBlobs size={s.blob} />
 
-      {/* When a specific face is requested (like joyous for the teaser), we 
-          override the default brand face in the manifest. Otherwise, we rely
+      {/* When a specific face is requested (the smile for the teaser), we
+          override the default calm face in the manifest. Otherwise, we rely
           on UserAvatar's default normalization. */}
-      <UserAvatar 
-        size={s.avatar} 
-        animate 
-        manifest={face ? { ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, face } as any } : undefined} 
+      <UserAvatar
+        size={s.avatar}
+        manifest={face ? { ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, face } } : undefined}
       />
 
       {shown.map(({ b, label }) => (

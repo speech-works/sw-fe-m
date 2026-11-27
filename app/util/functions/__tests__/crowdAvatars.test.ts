@@ -4,8 +4,7 @@ import {
   HAIR_COLORS,
   BG_COLORS,
   COLLAR_COLORS,
-  PART_REGISTRY,
-  partTier,
+  PART_IDS,
 } from "../../../assets/avatar/registry";
 import type { AvatarManifest, AvatarSlot } from "../../../types/avatar";
 
@@ -16,13 +15,8 @@ import type { AvatarManifest, AvatarSlot } from "../../../types/avatar";
  *
  * What these tests hold: the crowd looks like it belongs to this product (only
  * colours and parts the studio itself offers), it is stable rather than
- * reshuffling on every render, and it SHOWS OFF the wardrobe rather than
+ * reshuffling on every render, and it SHOWS OFF the avatar kit rather than
  * hiding it.
-
- * That last one reverses an earlier rule. The wall used to be everyday-only, so
- * a stranger could not imply progression nobody made. Over-applied: these are
- * illustrations, so a crown on one makes no claim about any person. The
- * honesty question was always the caption beside the wall, never the clothes.
  */
 
 describe("crowdAvatar", () => {
@@ -69,46 +63,15 @@ describe("crowdAvatar", () => {
     }
   });
 
-  it("actually shows off the earned wardrobe", () => {
-    // The wall is the shop window. A silent revert to everyday-only would look
-    // completely fine on screen and quietly stop selling anything, which is
-    // exactly the kind of regression nobody files a bug for.
+  it("shows off the wardrobe: many different pieces across the wall", () => {
+    // The wall is the shop window. A wall that wore three collars and one hat
+    // would look fine tile by tile and quietly stop showing the kit.
     const wall = Array.from({ length: 60 }, (_, i) => crowdAvatar(`t${i}`));
-    const premium = new Set<string>();
-    wall.forEach((a) => {
-      [a.parts.headgear, a.parts.eyewear, a.parts.collar].forEach((id) => {
-        if (id && partTier(id) !== "everyday") premium.add(id);
-      });
-    });
-    expect(premium.size).toBeGreaterThanOrEqual(6);
-  });
-
-  it("leans premium in the slots where a silhouette is the point", () => {
-    // Of the heads that DO wear something, most wear something worth wanting.
-    // Note this is mostly the CATALOG talking, not the weight: headgear is 18
-    // premium to 5 everyday, so even a flat draw lands near 78%. The weight is
-    // a nudge, and it earns its keep in eyewear, which is close to even.
-    const wall = Array.from({ length: 200 }, (_, i) => crowdAvatar(`w${i}`));
-    const share = (f: (a: AvatarManifest) => string | null) => {
-      const worn = wall.map(f).filter((g): g is string => g !== null);
-      return worn.filter((g) => partTier(g) !== "everyday").length / worn.length;
-    };
-    expect(share((a) => a.parts.headgear)).toBeGreaterThan(0.5);
-    expect(share((a) => a.parts.eyewear)).toBeGreaterThan(0.5);
-  });
-
-  it("is still a room, not a fancy-dress party", () => {
-    // The costume-box risk is about how OFTEN gear appears, which the bare-head
-    // test covers. What this holds is the other half: plain pieces have not been
-    // squeezed out, so the wall reads as a mix of people rather than a uniform.
-    const wall = Array.from({ length: 60 }, (_, i) => crowdAvatar(`m${i}`));
-    const plain = new Set<string>();
-    wall.forEach((a) => {
-      [a.parts.headgear, a.parts.eyewear, a.parts.collar].forEach((id) => {
-        if (id && partTier(id) === "everyday") plain.add(id);
-      });
-    });
-    expect(plain.size).toBeGreaterThanOrEqual(6);
+    const worn = (f: (a: AvatarManifest) => string | null) =>
+      new Set(wall.map(f).filter((g): g is string => g !== null));
+    expect(worn((a) => a.parts.collar).size).toBeGreaterThanOrEqual(10);
+    expect(worn((a) => a.parts.hair).size).toBeGreaterThanOrEqual(10);
+    expect(worn((a) => a.parts.headgear).size).toBeGreaterThanOrEqual(5);
   });
 
   it("keeps the pieces that are illegible at 50pt off the wall", () => {
@@ -120,9 +83,7 @@ describe("crowdAvatar", () => {
         return [p.headgear, p.eyewear, p.collar];
       }).flat(),
     );
-    ["headgear.cap", "collar.bowtie", "eyewear.goggles"].forEach((id) =>
-      expect(worn.has(id)).toBe(false),
-    );
+    ["eyewear.sunglasses"].forEach((id) => expect(worn.has(id)).toBe(false));
   });
 
   it("leaves the large majority of heads bare", () => {
@@ -135,21 +96,16 @@ describe("crowdAvatar", () => {
     expect(bare / gear.length).toBeGreaterThan(0.7);
   });
 
-  it("never uses the cap — its brim reads as a visor and skews young", () => {
-    const gear = Array.from({ length: 40 }, (_, i) => crowdAvatar(`c${i}`).parts.headgear);
-    expect(gear).not.toContain("headgear.cap");
-  });
-
-  it("only ever uses parts the registry can actually draw", () => {
-    // The pools are string literals, and an unknown part id renders NOTHING by
-    // design (UserAvatar's layer table) — so a typo or a catalog rename does not
-    // crash, it silently strips clothing off the wall. This is the check that
-    // makes the literals safe.
+  it("only ever uses parts the kit can actually draw", () => {
+    // An unknown part id draws the kit DEFAULT for its slot — so a typo or a
+    // catalog rename does not crash, it silently dresses the wall in crew tees.
+    // This is the check that makes the face literals safe.
     for (let i = 0; i < 60; i++) {
       const a = crowdAvatar(`r${i}`);
       for (const [slot, id] of Object.entries(a.parts)) {
         if (id === null) continue;
-        expect(PART_REGISTRY[slot as AvatarSlot][id]).toBeDefined();
+        if (slot === "head") continue;
+        expect(PART_IDS[slot as AvatarSlot]).toContain(id);
       }
     }
   });
