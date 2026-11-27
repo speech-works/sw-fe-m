@@ -99,7 +99,7 @@ const ActOneTeaser: React.FC = () => {
           <WelcomeStage
             available={stageHeight}
             labels={phrases.slice(0, 3)}
-            face="face.joy"
+            face="face.smile"
           />
         </Animated.View>
 

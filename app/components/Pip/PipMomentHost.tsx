@@ -8,14 +8,19 @@ import { PipMoment } from "./PipMoment";
 import type { PipMomentHandle } from "./PipMoment";
 import { pipMoment } from "./pipMoments";
 import type { PipMomentDef, PipMomentId } from "./pipMoments";
+import type { AvatarManifest } from "../../types/avatar";
+import { useUserStore } from "../../stores/user";
 
 let host: PipMomentHandle | null = null, playing: Promise<void> | null = null, waiting = false;
 
-/** Play a moment (pipMoments.ts). `with` overrides its text, e.g. the real day number. Resolves when Pip has left. */
-export async function showPipMoment(id: PipMomentId, override?: Partial<Pick<PipMomentDef, "title" | "body">>): Promise<void> {
+/** Play a moment (pipMoments.ts). `override` changes its text, e.g. the real day number. A moment whose figure is "user"
+ *  is played by the user's own avatar: `override.look`, or else the signed-in user's saved one. Resolves when the figure has left. */
+export async function showPipMoment(id: PipMomentId, override?: Partial<Pick<PipMomentDef, "title" | "body">> & { look?: AvatarManifest | null }): Promise<void> {
   if (!host) return;
   if (playing) { if (waiting) return; waiting = true; await playing; waiting = false; }
-  const run = host.play({ ...pipMoment(id), ...override });
+  const def = pipMoment(id);
+  const look = def.figure === "user" ? (override?.look !== undefined ? override.look : useUserStore.getState().user?.avatarManifest ?? null) : undefined;
+  const run = host.play({ ...def, ...override, ...(look !== undefined ? { look } : {}) });
   playing = run.finally(() => { playing = null; });
   return playing;
 }

@@ -3,8 +3,7 @@ import { StyleSheet, View, Animated, Dimensions, ScrollView } from "react-native
 import { useUserStore } from "../../../../../stores/user";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
 import { UserAvatar } from "../../../../../components/UserAvatar";
-import { manifestWithStageKit } from "../../../../../assets/avatar/registry";
-import { normalizeManifest, StageIndex } from "../../../../../types/avatar";
+import { normalizeManifest } from "../../../../../types/avatar";
 import {
   useTheme,
   primaryEdge,
@@ -29,8 +28,8 @@ type AchievementsProps = {
 const Achievements = ({ stageData }: AchievementsProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
-  // The user's own avatar (their identity — skin/hair/face stay theirs); each
-  // stage card overrides only the gear slots with that stage's kit.
+  // The user's own avatar on every stage card. (Stages used to dress it in
+  // travel gear; that gear is gone with the old part set.)
   const baseManifest = useMemo(
     () => normalizeManifest(user?.avatarManifest),
     [user?.avatarManifest],
@@ -189,16 +188,10 @@ const Achievements = ({ stageData }: AchievementsProps) => {
             onScroll={scrollHandler}
             scrollEventThrottle={16}
           >
-            {stage.stages.map((s, i) => {
+            {stage.stages.map((s) => {
               const isUnlocked = stage.level >= s.minLevel;
               const isCurrent =
                 stage.level >= s.minLevel && (s.maxLevel === null || stage.level <= s.maxLevel);
-              // YOUR avatar wearing this stage's kit (index-keyed, so it can
-              // never mis-map a server title — the old title→face lookup wrongly
-              // locked Voyager/North Star). Only the current stage animates.
-              const stageIndex = Math.min(i, 4) as StageIndex;
-              const kitManifest = manifestWithStageKit(baseManifest, stageIndex);
-
               return (
                 <View
                   key={s.title}
@@ -220,9 +213,8 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                     <View style={styles.stageAvatar}>
                       <View style={!isUnlocked ? styles.dimmed : undefined}>
                         <UserAvatar
-                          manifest={kitManifest}
+                          manifest={baseManifest}
                           size={60}
-                          animate={isCurrent}
                           accessibilityLabel={`Your avatar as ${s.title}`}
                         />
                       </View>
@@ -350,10 +342,11 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   dimmed: { opacity: 0.45 },
+  // Top-right, by the head: a badge at the bottom would sit on the collar.
   lockBadge: {
     position: "absolute",
     right: -2,
-    bottom: -2,
+    top: -2,
     width: 20,
     height: 20,
     borderRadius: radius.full,

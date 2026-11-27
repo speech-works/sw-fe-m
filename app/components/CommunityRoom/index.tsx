@@ -101,10 +101,10 @@ const SUBJECT_GAP = 14;
 /**
  * WHAT `size` ACTUALLY DRAWS.
  *
- * `UserAvatar` renders `viewBox="-8 -8 64 64"` and its tile path occupies units
- * 0 to 48, so the squircle you SEE is 75&#37; of the size you asked for, sitting
- * 12.5&#37; in from every edge. The remaining ring is transparent padding that
- * hair and collars overflow into.
+ * `UserAvatar shape="square"` draws a rounded-square frame that is 75&#37; of the
+ * size you asked for, sitting 12.5&#37; in from every edge (components/KitAvatar
+ * kitLook.ts FRAME_BOX: the old tile's size and corner). The figure is cut by
+ * the frame, and the body runs on past its bottom edge.
  *
  * This matters twice here. A background or shadow on a full-size wrapper draws
  * a plate 33&#37; larger than the avatar and frames it. And the seat, which was
@@ -113,7 +113,7 @@ const SUBJECT_GAP = 14;
  */
 const TILE_SCALE = 0.75;
 const TILE_INSET = 0.125;
-/** The tile's own corner radius: 11 units of the same 64-unit viewBox. */
+/** The tile's own corner radius: 11/64 of the size (kitLook.ts FRAME.r). */
 const TILE_RADIUS = 11 / 64;
 
 /**

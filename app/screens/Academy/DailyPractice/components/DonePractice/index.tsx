@@ -28,7 +28,6 @@ import { getMyBuddy } from "../../../../../api/buddies";
 import { useInboxStore } from "../../../../../stores/inbox";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
-import { useUserStore } from "../../../../../stores/user";
 import { useMotion } from "../../../../../design-system/useMotion";
 import { useCompletionCelebration } from "./useCompletionCelebration";
 import { donePracticeHeadline } from "./doneTitle";
@@ -113,10 +112,6 @@ const DonePractice = ({
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
   // `activityId` binds the celebration to THIS completion's snapshot.
   const celebration = useCompletionCelebration({ enabled: !isAborted, activityId });
-  // Read AFTER the celebration hook, which calls `setUser` with the fresh
-  // totals — the manifest itself is untouched by a completion, but taking it
-  // from the store keeps the reward cards on whatever the user last saved.
-  const user = useUserStore((state) => state.user);
   const [showTakeover, setShowTakeover] = useState(false);
   const takeoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** The takeover is a once-per-screen moment: never re-arm after it has been
@@ -140,15 +135,6 @@ const DonePractice = ({
       go();
     },
     [dismissTakeover],
-  );
-
-  /** "Try them on" — the reward reveal's CTA. Routes through `leaveScreen` so
-   *  the takeover is dismissed before we navigate: the Studio must not open
-   *  underneath a live native Modal. `AvatarStudio` is a root-stack screen, so
-   *  it is reachable from here. */
-  const openStudio = useCallback(
-    () => leaveScreen(() => navigation.navigate("AvatarStudio")),
-    [leaveScreen, navigation],
   );
 
   // Arm the level-up takeover a beat after the success screen settles; reduced
@@ -424,11 +410,7 @@ const DonePractice = ({
         fromLevel={celebration.fromLevel}
         newLevel={celebration.newLevel}
         stageTitle={celebration.stageTitle}
-        manifest={user?.avatarManifest}
         onClose={dismissTakeover}
-        // Opening the avatar studio leaves the program. In a program the
-        // takeover only offers "Keep going".
-        onTryOn={inProgram ? undefined : openStudio}
       />
     </ScreenView>
   );

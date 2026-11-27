@@ -1,4 +1,4 @@
-import { PART_LABELS, PART_REGISTRY } from "../registry";
+import { PART_IDS, PART_LABELS } from "../registry";
 import type { AvatarSlot } from "../../../types/avatar";
 
 /**
@@ -12,7 +12,9 @@ import type { AvatarSlot } from "../../../types/avatar";
  * This is a guard rather than a measurement: it cannot know real font metrics,
  * so the budgets are deliberately slack. It exists because the catalog grows in
  * batches — 32 parts landed in one change — and eyeballing every new label is
- * exactly the check that gets skipped.
+ * exactly the check that gets skipped. The kit's own part names are
+ * descriptions ("Long braids, ending above the shoulders line"), so the
+ * registry keeps short names for the cells.
  */
 /**
  * Hard limits, chosen as a rule rather than a measurement.
@@ -29,10 +31,10 @@ const MAX_TOTAL = 24;
 describe("part labels", () => {
   it("gives every registered part a name", () => {
     const missing: string[] = [];
-    (Object.keys(PART_REGISTRY) as AvatarSlot[]).forEach((slot) => {
+    (Object.keys(PART_IDS) as AvatarSlot[]).forEach((slot) => {
       // `head` is the one fixed base part and never appears in a picker.
       if (slot === "head") return;
-      Object.keys(PART_REGISTRY[slot]).forEach((id) => {
+      PART_IDS[slot].forEach((id) => {
         if (!PART_LABELS[id]) missing.push(id);
       });
     });

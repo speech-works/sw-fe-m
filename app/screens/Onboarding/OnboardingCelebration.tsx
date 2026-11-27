@@ -54,37 +54,33 @@ const STAGE = 286; // stage height that the light layers center within
 // (232 before the caption block was added under the hero)
 
 /**
- * The hero DRESSES ITSELF: bare, then the hat, then the camera.
+ * The hero DRESSES ITSELF: bare, then the sun hat, then the glasses.
  *
- * Those two are the Seeker kit (`STAGE_KITS[0]`), which every account owns from
- * the first minute. The screen used to show them already worn, which told
- * nobody anything — a hat on a drawing is just a drawing. Putting them on, one
- * at a time, with their names underneath, is the whole point: it says these are
- * PIECES, they go on, and by implication they come off.
- *
- * The heart glasses the hero used to wear are gone. They are free wardrobe
- * rather than Seeker kit, and with the captions naming two items, a third
- * unnamed one on the same face muddies the sentence.
+ * Both are kit pieces every account can wear from the first minute. Putting
+ * them on, one at a time, with their names underneath, is the whole point: it
+ * says these are PIECES, they go on, and by implication they come off.
+ * (It used to be the tourist hat and camera of the old travel gear, which is
+ * gone with the old part set; the kit has no props.)
  */
 const HERO_BASE: AvatarManifest = {
   ...DEFAULT_MANIFEST,
-  parts: { ...DEFAULT_MANIFEST.parts, face: "face.joy" },
+  parts: { ...DEFAULT_MANIFEST.parts, face: "face.smile" },
 };
 const HERO_HAT: AvatarManifest = {
   ...HERO_BASE,
-  parts: { ...HERO_BASE.parts, headgear: "headgear.tourist" },
+  parts: { ...HERO_BASE.parts, headgear: "headgear.sunhat" },
 };
 const HERO_FULL: AvatarManifest = {
   ...HERO_HAT,
-  parts: { ...HERO_HAT.parts, prop: "prop.camera" },
+  parts: { ...HERO_HAT.parts, eyewear: "eyewear.round" },
 };
 
 /**
  * One linear clock for the whole sequence, 0 to 1.
  *
  * Every beat below is a fraction of it rather than its own delayed animation,
- * so the hat, the camera, the four captions and the speech bubble physically
- * cannot drift apart. Times: hat at 1.0s, camera at 2.1s, bubble at 3.2s.
+ * so the hat, the glasses, the four captions and the speech bubble physically
+ * cannot drift apart. Times: hat at 1.0s, glasses at 2.1s, bubble at 3.2s.
  */
 const SEQ_MS = 4600;
 const HAT_IN = [0.217, 0.283] as const;
@@ -290,12 +286,12 @@ const Caption: React.FC<{ reduced: boolean; seq: SharedValue<number> }> = ({
       </Animated.View>
       <Animated.View style={[styles.cap, s3]}>
         <Text variant="bodySm" color="secondary" center>
-          and a camera
+          and glasses
         </Text>
       </Animated.View>
       <Animated.View style={[styles.cap, s4]}>
         <Text variant="bodySm" color="secondary" center>
-          Your sun hat and camera are already yours.
+          Your sun hat and glasses are already yours.
         </Text>
       </Animated.View>
     </View>
