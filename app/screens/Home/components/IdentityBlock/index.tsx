@@ -100,7 +100,6 @@ const LEVEL_RING = { size: 34, stroke: 3 };
  */
 /** The pre-rings size, kept for the single-ring fallback — see `today` below. */
 const SOLO_RING = { size: 62, stroke: 3 };
-const SOLO_AVATAR_SIZE = 46;
 /** At or below this %, the energy ring switches to the caution hue. */
 const LOW_ENERGY = 25;
 
@@ -439,7 +438,9 @@ export const IdentityBlock: React.FC = () => {
                   color={energyHue}
                   trackColor={colors.surface.track}
                 >
-                  <UserAvatar manifest={user?.avatarManifest} size={SOLO_AVATAR_SIZE} animate />
+                  {/* The ring's inside IS the avatar's frame (founder 2026-11-27): no blob; the circle cuts
+                      the figure and the body runs on past it, so its bottom never shows. Live: blink, glance, breath. */}
+                  <UserAvatar manifest={user?.avatarManifest} size={SOLO_RING.size - 2 * SOLO_RING.stroke} shape="ring" animate />
                 </ProgressRing>
               </PressableScale>
             </View>

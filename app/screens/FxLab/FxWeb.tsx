@@ -117,13 +117,15 @@ export default function FxWeb() {
     const lk = PIP_MOMENTS[i].figure === "user" ? (look !== undefined ? look : LAB_LOOKS[5][1]) : undefined;
     try { if (shown.current) await move(exit); await momentRef.current?.play({ ...PIP_MOMENTS[i], ...(lk !== undefined ? { look: lk } : {}) }); } finally { busyRef.current = false; setBusy(false); }
   };
-  // a link like http://localhost:8096/#moment=avatar-saved,light[,look=3] plays that moment when the page opens
-  // (look = a sample avatar from AvatarLab.tsx LAB_LOOKS, for a "user" moment)
+  // a link like http://localhost:8096/#moment=avatar-saved,light[,look=3][,shape=bg.cloud] plays that moment when the page opens
+  // (look = a sample avatar from AvatarLab.tsx LAB_LOOKS, shape = its blob shape, for a "user" moment)
   useEffect(() => {
-    const mm = ((globalThis as any).location?.hash ?? "").match(/moment=([a-z-]+)(?:,(light|dark))?(?:,look=(\d+))?/); if (!mm) return;
+    const mm = ((globalThis as any).location?.hash ?? "").match(/moment=([a-z-]+)(?:,(light|dark))?(?:,look=(\d+))?(?:,shape=([a-z.-]+))?/); if (!mm) return;
     const i = PIP_MOMENTS.findIndex(x => x.id === mm[1]); if (i < 0) return;
     if (mm[2]) setDark(mm[2] === "dark");
-    const h = setTimeout(() => { void playMoment(i, mm[3] ? LAB_LOOKS[+mm[3]]?.[1] ?? null : undefined); }, 1500); return () => clearTimeout(h);
+    const base = mm[3] ? LAB_LOOKS[+mm[3]]?.[1] ?? null : mm[4] ? LAB_LOOKS[5][1] : undefined;
+    const look = base && mm[4] ? { ...base, parts: { ...base.parts, bg: mm[4] } } : base;
+    const h = setTimeout(() => { void playMoment(i, look); }, 1500); return () => clearTimeout(h);
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const [entry, setEntry] = useState<PipBody>(PIP_IN), [exit, setExit] = useState<PipBody>(PIP_OUT);
   const [effect, setEffect] = useState<FxEffect | null>(null), [busy, setBusy] = useState(false);
