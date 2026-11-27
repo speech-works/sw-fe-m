@@ -502,5 +502,314 @@
   "page": "https://freesound.org/people/sparklepunk_/sounds/620672/",
   "license": "CC0",
   "duration_s": 2.0
+ },
+ {
+  "file": "stone-skip-clean-1.m4a",
+  "name": "Rock Skip",
+  "freesound_id": 350430,
+  "author": "bevibeldesign",
+  "page": "https://freesound.org/people/bevibeldesign/sounds/350430/",
+  "license": "CC0",
+  "duration_s": 1.11,
+  "onsets_ms": [
+   0,
+   320,
+   595
+  ]
+ },
+ {
+  "file": "stone-skip-clean-2.m4a",
+  "name": "Rock Skip Half-Fail",
+  "freesound_id": 350431,
+  "author": "bevibeldesign",
+  "page": "https://freesound.org/people/bevibeldesign/sounds/350431/",
+  "license": "CC0",
+  "duration_s": 0.61,
+  "onsets_ms": [
+   0,
+   135,
+   250,
+   380
+  ]
+ },
+ {
+  "file": "plop-small-1.m4a",
+  "name": "Water_drop_9.wav",
+  "freesound_id": 166325,
+  "author": "deleted_user_2104797",
+  "page": "https://freesound.org/people/deleted_user_2104797/sounds/166325/",
+  "license": "CC0",
+  "duration_s": 0.46,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "plop-small-2.m4a",
+  "name": "Drop - Water",
+  "freesound_id": 533146,
+  "author": "mattfinarelli",
+  "page": "https://freesound.org/people/mattfinarelli/sounds/533146/",
+  "license": "CC0",
+  "duration_s": 0.38,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "splash-tiny-1.m4a",
+  "name": "small splash",
+  "freesound_id": 391948,
+  "author": "ssierra1202",
+  "page": "https://freesound.org/people/ssierra1202/sounds/391948/",
+  "license": "CC0",
+  "duration_s": 0.4,
+  "onsets_ms": [
+   0,
+   380
+  ]
+ },
+ {
+  "file": "splash-tiny-2.m4a",
+  "name": "Tiny Splash",
+  "freesound_id": 321490,
+  "author": "dslrguide",
+  "page": "https://freesound.org/people/dslrguide/sounds/321490/",
+  "license": "CC0",
+  "duration_s": 0.4,
+  "onsets_ms": [
+   0,
+   245
+  ]
+ },
+ {
+  "file": "frog-ribbit-cartoon-1.m4a",
+  "name": "Cartoon Frog.wav",
+  "freesound_id": 447917,
+  "author": "Breviceps",
+  "page": "https://freesound.org/people/Breviceps/sounds/447917/",
+  "license": "CC0",
+  "duration_s": 0.7,
+  "onsets_ms": [
+   0,
+   115
+  ]
+ },
+ {
+  "file": "frog-ribbit-cartoon-2.m4a",
+  "name": "Frog.ogg",
+  "freesound_id": 536759,
+  "author": "egomassive",
+  "page": "https://freesound.org/people/egomassive/sounds/536759/",
+  "license": "CC0",
+  "duration_s": 0.46,
+  "onsets_ms": [
+   0,
+   260
+  ]
+ },
+ {
+  "file": "hop-boing-small-1.m4a",
+  "name": "Cartoon, Penguin 02.wav",
+  "freesound_id": 459341,
+  "author": "LilMati",
+  "page": "https://freesound.org/people/LilMati/sounds/459341/",
+  "license": "CC0",
+  "duration_s": 0.23,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "hop-boing-small-2.m4a",
+  "name": "Retro Jump 02.wav",
+  "freesound_id": 458641,
+  "author": "LilMati",
+  "page": "https://freesound.org/people/LilMati/sounds/458641/",
+  "license": "CC0",
+  "duration_s": 0.16,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "card-flick-1.m4a",
+  "name": "Playing Cards Throw EQ",
+  "freesound_id": 569068,
+  "author": "IdkMrGarcia",
+  "page": "https://freesound.org/people/IdkMrGarcia/sounds/569068/",
+  "license": "CC0",
+  "duration_s": 0.6,
+  "onsets_ms": [
+   0,
+   165,
+   235,
+   315
+  ]
+ },
+ {
+  "file": "card-flick-2.m4a",
+  "name": "1cards.wav",
+  "freesound_id": 120508,
+  "author": "bigmac4029",
+  "page": "https://freesound.org/people/bigmac4029/sounds/120508/",
+  "license": "CC0",
+  "duration_s": 0.13,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "book-close-1.m4a",
+  "name": "bkClose.wav",
+  "freesound_id": 156927,
+  "author": "tia666",
+  "page": "https://freesound.org/people/tia666/sounds/156927/",
+  "license": "CC0",
+  "duration_s": 0.6,
+  "onsets_ms": [
+   0,
+   70,
+   330,
+   515
+  ]
+ },
+ {
+  "file": "book-close-2.m4a",
+  "name": "Notebook close",
+  "freesound_id": 320456,
+  "author": "Kukensius",
+  "page": "https://freesound.org/people/Kukensius/sounds/320456/",
+  "license": "CC0",
+  "duration_s": 0.6,
+  "onsets_ms": [
+   40
+  ]
+ },
+ {
+  "file": "rubber-stamp-1.m4a",
+  "name": "Stamp",
+  "freesound_id": 362624,
+  "author": "kermite607",
+  "page": "https://freesound.org/people/kermite607/sounds/362624/",
+  "license": "CC0",
+  "duration_s": 0.5,
+  "onsets_ms": [
+   0,
+   280,
+   350
+  ]
+ },
+ {
+  "file": "rubber-stamp-2.m4a",
+  "name": "Stamp",
+  "freesound_id": 362622,
+  "author": "kermite607",
+  "page": "https://freesound.org/people/kermite607/sounds/362622/",
+  "license": "CC0",
+  "duration_s": 0.5,
+  "onsets_ms": [
+   0,
+   405
+  ]
+ },
+ {
+  "file": "save-confirm-1.m4a",
+  "name": "Task Complete Pop",
+  "freesound_id": 878606,
+  "author": "Qvantor",
+  "page": "https://freesound.org/people/Qvantor/sounds/878606/",
+  "license": "CC0",
+  "duration_s": 0.72,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "save-confirm-2.m4a",
+  "name": "Success Chime",
+  "freesound_id": 878601,
+  "author": "Qvantor",
+  "page": "https://freesound.org/people/Qvantor/sounds/878601/",
+  "license": "CC0",
+  "duration_s": 1.0,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "pen-click-1.m4a",
+  "name": "Clicking Pen.wav",
+  "freesound_id": 331967,
+  "author": "dmunk",
+  "page": "https://freesound.org/people/dmunk/sounds/331967/",
+  "license": "CC0",
+  "duration_s": 0.3,
+  "onsets_ms": [
+   0,
+   155
+  ]
+ },
+ {
+  "file": "pen-click-2.m4a",
+  "name": "Click.wav",
+  "freesound_id": 432134,
+  "author": "MaximBomba",
+  "page": "https://freesound.org/people/MaximBomba/sounds/432134/",
+  "license": "CC0",
+  "duration_s": 0.17,
+  "onsets_ms": [
+   0,
+   165
+  ]
+ },
+ {
+  "file": "drawer-close-1.m4a",
+  "name": "Drawer",
+  "freesound_id": 360949,
+  "author": "marcusgar",
+  "page": "https://freesound.org/people/marcusgar/sounds/360949/",
+  "license": "CC0",
+  "duration_s": 0.5,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "drawer-close-2.m4a",
+  "name": "Foley_Furniture_Drawer_Wood_Close.wav",
+  "freesound_id": 486082,
+  "author": "Nox_Sound",
+  "page": "https://freesound.org/people/Nox_Sound/sounds/486082/",
+  "license": "CC0",
+  "duration_s": 0.88,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "lock-click-1.m4a",
+  "name": "Small Padlock Opening",
+  "freesound_id": 536414,
+  "author": "Rudmer_Rotteveel",
+  "page": "https://freesound.org/people/Rudmer_Rotteveel/sounds/536414/",
+  "license": "CC0",
+  "duration_s": 0.25,
+  "onsets_ms": [
+   0
+  ]
+ },
+ {
+  "file": "lock-click-2.m4a",
+  "name": "Latch_04.wav",
+  "freesound_id": 56246,
+  "author": "Q.K.",
+  "page": "https://freesound.org/people/Q.K./sounds/56246/",
+  "license": "CC0",
+  "duration_s": 0.28,
+  "onsets_ms": [
+   0,
+   165
+  ]
  }
 ]

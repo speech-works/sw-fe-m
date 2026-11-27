@@ -264,55 +264,103 @@ const finished: FxEffect[] = [
 ];
 
 // Step skipped (the practice screen; "Skip this practice" at x 24-149, y 607; empty sheet below it, y 640-750)
-const SKIP_PIP = (follow: number): any[] => [{ at: 0, face: "warm", look: [-0.7, 1] }, { at: follow, look: [0.7, 1] }, { at: follow + 700, look: "off", body: "sway" }, { at: follow + 1500, face: "smile", body: "nod" }];
+type K = NonNullable<E["keys"]>[number];
+/** A flight through points: each hop a parabola sampled every ~35 ms (linear keys, so x keeps its speed and y follows the arc).
+ *  pts: [time ms, x pt, y pt, arc height pt to the NEXT point]; offsets are from the first point, in screen-width fractions. */
+function flight(pts: [number, number, number, number][], spin = 0): K[] {
+  const [, x0, y0] = pts[0], keys: K[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ta, xa, ya, h] = pts[i], [tb, xb, yb] = pts[i + 1], n = Math.max(2, Math.round((tb - ta) / 35));
+    for (let k = i ? 1 : 0; k <= n; k++) {
+      const u = k / n, x = xa + (xb - xa) * u, y = ya + (yb - ya) * u - 4 * h * u * (1 - u);
+      keys.push({ t: Math.round(ta + (tb - ta) * u), x: (x - x0) / W, y: (y - y0) / W, r: spin ? (u < 0.5 ? -spin : spin) * Math.sin(Math.PI * u) : undefined, e: "lin" });
+    }
+  }
+  return keys;
+}
+const WATER = 688, SKIP_SND = 300;
+// the stone's touches land exactly on the splashes in lab-water-skip-1 (10, 320, 605 and 825 ms into the sound)
+const TOUCH = [10, 320, 605, 825].map(h => SKIP_SND + h);
+const STONE: [number, number, number, number][] = [[SKIP_SND - 260, 70, 612, 10], [TOUCH[0], 140, WATER, 46], [TOUCH[1], 232, WATER, 30], [TOUCH[2], 300, WATER, 16], [TOUCH[3], 344, WATER, 6], [TOUCH[3] + 160, 366, WATER, 0]];
+const ripple = (t: number, x: number, size: number): E[] => [
+  { kind: "ring", shapes: ["ringline"], colors: ["#A9DCFF"], origin: at(x, WATER + 6), at: t, size: [size, size], life: [760, 760], opacity: 0.85 },
+  { kind: "burst", shapes: ["drop"], colors: ["#BFE3FF", CREAM], origin: at(x, WATER), at: t, count: Math.round(size * 40), spread: [-150, -30], speed: [0.22, 0.42], drag: 1.5, gravity: 2.4, size: [0.012, 0.02], life: [360, 420], upright: true, fadeIn: 20, fadeOut: 120 },
+];
+/** The stone: skimmed from the left of the Skip link, four touches on the splashes, a last slide, then it sinks. */
+function stoneTrack(): E {
+  const T0 = STONE[0][0], k = flight(STONE.map(([t, x, y, h]) => [t - T0, x, y, h] as [number, number, number, number]), 10);
+  const end = STONE[STONE.length - 1][0] - T0;
+  return { kind: "track", shapes: ["stone"], origin: at(70, 612), size: [0.085, 0.085], at: T0,
+    keys: [{ ...k[0], o: 0 }, { ...k[1], o: 1 }, ...k.slice(2), { t: end + 220, x: (366 - 70) / W, y: (WATER + 8 - 612) / W, s: 0.5, o: 0, e: "in" }] };
+}
 const skipped: FxEffect[] = [
-  { id: "sk-stone", name: "Skipping stone", ms: 2800,
-    feel: "A pebble skips across the empty sheet from the Skip link: three hops, a ripple at each touch, then it slides off the edge. Pip follows it and shrugs: fine by me.",
+  { id: "sk2-stone", name: "Skipping stone", ms: 2600,
+    feel: "A flat pebble is skimmed from the Skip link across the empty sheet: four touches, each hop shorter and lower, a splash and a ripple on every touch, exactly on the sound, then it sinks.",
     emitters: [
-      { kind: "track", shapes: ["stone"], origin: at(150, 640), size: [0.07, 0.07], at: 100,
-        keys: [{ t: 0, x: -0.1, y: -0.08, o: 0 }, { t: 80, o: 1 }, { t: 300, x: 0, y: 0.08, e: "in" }, { t: 560, x: 0.18, y: -0.02, e: "out" }, { t: 760, x: 0.32, y: 0.1, e: "in" }, { t: 940, x: 0.44, y: 0.04, e: "out" },
-          { t: 1080, x: 0.53, y: 0.12, e: "in" }, { t: 1600, x: 0.78, y: 0.13, o: 0, e: "out" }] },
-      ...[[400, 150 + 0, 671], [860, 150 + 0.32 * W, 679], [1180, 150 + 0.53 * W, 687]].map(([t, x, y]): E => ({ kind: "ring", shapes: ["ringline"], colors: [CREAM], origin: at(x, y), at: t, size: [0.18, 0.18], life: [650, 650], opacity: 0.8 })),
+      stoneTrack(),
+      ...TOUCH.flatMap((t, i) => ripple(t, [140, 232, 300, 344][i], [0.2, 0.17, 0.14, 0.11][i])),
+      ...ripple(TOUCH[3] + 220, 366, 0.24),
     ],
-    sounds: [{ name: "lab-water-skip-1", at: 380, volume: 0.75 }, { name: "lab-swoosh-soft-1", at: 1150, volume: 0.4 }],
-    pip: SKIP_PIP(700) },
-  { id: "sk-plane", name: "Paper plane", ms: 2700,
-    feel: "A paper plane takes off from the Skip link, loops once over the sheet and glides off the right edge, leaving a dotted trail. Pip watches it go and nods.",
+    sounds: [{ name: "lab-water-skip-1", at: SKIP_SND, volume: 0.9 }, { name: "lab-plop-small-1", at: TOUCH[3] + 200, volume: 0.6 }],
+    pip: [{ at: 0, face: "warm", look: [-0.7, 1] }, ...TOUCH.map((t, i) => ({ at: t - 60, look: [[-0.35, 1], [0.15, 1], [0.5, 1], [0.8, 1]][i] as [number, number] })),
+      { at: TOUCH[3] + 450, look: "off", face: "smile", body: "sway" }, { at: TOUCH[3] + 1250, body: "nod" }] },
+  { id: "sk2-frog", name: "Leap frog", ms: 2600,
+    feel: "A little frog pops out of the Skip link, says ribbit, and leaps over the practice in three springy hops, each hop on its own boing, and out of the screen.",
+    emitters: [{ kind: "track", shapes: ["frog"], origin: at(150, 670), size: [0.17, 0.17], at: 0,
+      keys: [{ t: 0, s: 0, y: 0.02 }, { t: 260, s: 1, y: 0, e: "back" }, { t: 560, s: 1 }, { t: 620, s: 0.9, y: 0.01 },
+        ...flight([[640, 150, 670, 80], [1020, 232, 670, 80], [1400, 314, 670, 80], [1780, 450, 630, 0]]).map(k => ({ ...k, x: k.x, y: (k.y ?? 0) })) , { t: 1820, o: 0 }] }],
+    sounds: [{ name: "lab-frog-ribbit-cartoon-1", at: 300, volume: 0.75 }, { name: "lab-hop-boing-small-1", at: 640, volume: 0.6 }, { name: "lab-hop-boing-small-1", at: 1020, volume: 0.55 }, { name: "lab-hop-boing-small-1", at: 1400, volume: 0.5 }],
+    pip: [{ at: 0, face: "curious", look: [-0.6, 1] }, { at: 640, look: [-0.2, 1], face: "laugh" }, { at: 1020, look: [0.3, 1] }, { at: 1400, look: [0.8, 1] }, { at: 1900, look: "off", face: "smile", body: "sway" }] },
+  { id: "sk2-flick", name: "Flick it away", ms: 2000,
+    feel: "A little card of this practice pops up and gets flicked off to the right with a spin and a swish: not now, and that is fine.",
     emitters: [
-      { kind: "track", shapes: ["plane"], origin: at(150, 610), size: [0.12, 0.12], at: 100,
-        keys: [{ t: 0, s: 0.4, o: 0, r: -10 }, { t: 120, s: 1, o: 1 }, { t: 500, x: 0.25, y: -0.1, r: -30 }, { t: 800, x: 0.4, y: -0.02, r: 60 }, { t: 1050, x: 0.3, y: 0.06, r: 170 }, { t: 1300, x: 0.38, y: -0.06, r: 330 },
-          { t: 1900, x: 0.95, y: -0.2, r: 345, e: "in" }] },
-      { kind: "twinkle", shapes: ["dot"], colors: [CREAM], count: 14, at: 300, stagger: 1500, area: [0.42, 0.62, 0.95, 0.76], size: [0.012, 0.018], life: [500, 700], opacity: 0.7 },
+      { kind: "track", shapes: ["card"], origin: at(200, 520), size: [0.3, 0.3], at: 0,
+        keys: [{ t: 0, s: 0, o: 0 }, { t: 80, o: 1 }, { t: 280, s: 1, e: "back" }, { t: 560, r: -6, x: -0.02 }, { t: 640, r: -10, x: -0.03, e: "out" },
+          { t: 1000, x: 0.95, y: -0.28, r: 200, s: 0.7, e: "in" }, { t: 1040, o: 0 }] },
+      { kind: "twinkle", shapes: ["sparkle", "dot"], colors: [CREAM, SUN], count: 8, at: 700, stagger: 300, area: [0.55, 0.42, 0.98, 0.62], size: [0.02, 0.035], life: [300, 500] },
     ],
-    sounds: [{ name: "lab-swoosh-soft-1", at: 150, volume: 0.6 }, { name: "lab-swoosh-soft-2", at: 1300, volume: 0.5 }],
-    pip: SKIP_PIP(800) },
-  { id: "sk-ball", name: "Bouncy ball", ms: 2600,
-    feel: "A small orange ball drops out of the Skip link and bounces across the sheet, each bounce lower, then rolls off. Boing, boing, boing.",
-    emitters: [
-      { kind: "track", shapes: ["ball"], origin: at(150, 700), size: [0.06, 0.06], at: 100,
-        keys: [{ t: 0, x: -0.05, y: -0.22, o: 0 }, { t: 60, o: 1 }, { t: 320, x: 0, y: 0, e: "in" }, { t: 560, x: 0.14, y: -0.16, e: "out" }, { t: 800, x: 0.28, y: 0, e: "in" }, { t: 980, x: 0.38, y: -0.09, e: "out" },
-          { t: 1160, x: 0.48, y: 0, e: "in" }, { t: 1280, x: 0.54, y: -0.03, e: "out" }, { t: 1400, x: 0.6, y: 0, e: "in" }, { t: 2000, x: 0.85, y: 0, r: 540, o: 0, e: "lin" }] },
-    ],
-    sounds: [{ name: "lab-cartoon-boing-1", at: 400, volume: 0.6 }, { name: "lab-cartoon-boing-1", at: 880, volume: 0.45 }, { name: "lab-cartoon-boing-2", at: 1240, volume: 0.35 }],
-    pip: SKIP_PIP(600) },
+    sounds: [{ name: "pop", at: 0, volume: 0.4 }, { name: "lab-card-flick-1", at: 640, volume: 0.75 }],
+    pip: [{ at: 0, face: "curious", look: [-0.4, 1] }, { at: 640, look: [0.8, 0.2], face: "smile" }, { at: 1200, look: "off", body: "sway" }, { at: 1700, body: "nod" }] },
 ];
 
-// Reflection saved (picked acting: leans close, warm). Only the sound was wrong: three sound ideas, each with a small touch.
-const SAVED_PIP = [{ at: 0, face: "warm" as const, body: "lean" as const }, { at: 1100, body: "nod" as const }];
+// Reflection saved (the form screen: Save button at the bottom (y 790), the form fields in the middle). Picked acting: leans close, warm.
+const SAVED_END = [{ at: 0, face: "warm" as const }];
 const saved: FxEffect[] = [
-  { id: "rs-tucked", name: "Note tucked in", ms: 2000,
-    feel: "A folded note slides up from the Save button and tucks away behind the sheet's edge with a paper sound and two soft kalimba notes.",
-    emitters: [{ kind: "track", shapes: ["note"], origin: at(195, 760), size: [0.1, 0.1], at: 0,
-      keys: [{ t: 0, s: 0.6, o: 0 }, { t: 150, s: 1, o: 1, y: -0.05 }, { t: 650, x: 0.18, y: -1.2, r: -10 }, { t: 850, x: 0.2, y: -1.28, s: 0.5, o: 0 }] }],
-    sounds: [{ name: "lab-envelope-tuck-1", at: 500, volume: 0.7 }, { name: "lab-kalimba-warm-1", at: 800, volume: 0.6 }], pip: SAVED_PIP },
-  { id: "rs-bell", name: "Soft bell", ms: 1800,
-    feel: "One warm bell note and a few slow sparkles around Pip as he leans in.",
-    emitters: [twinkle([0.55, 0.1, 0.98, 0.3], 200, 6, [CREAM, SUN], 900)],
-    sounds: [{ name: "lab-soft-bell-1", at: 150, volume: 0.6 }], pip: SAVED_PIP },
-  { id: "rs-harp", name: "Harp breath", ms: 1800,
-    feel: "A gentle harp run upward, like a breath out, while he leans in.",
-    emitters: [twinkle([0.55, 0.1, 0.98, 0.3], 300, 5, [CREAM, LILAC], 900)],
-    sounds: [{ name: "lab-harp-gliss-1", at: 100, volume: 0.55 }], pip: SAVED_PIP },
+  { id: "rs2-journal", name: "Into the journal", ms: 2200,
+    feel: "A journal opens over the form, your note flies up from Save into it, it shuts with a soft clap, a green check lands on the cover, and it floats off to Pip.",
+    emitters: [
+      { kind: "track", shapes: ["book-open"], origin: at(195, 440), size: [0.34, 0.34], at: 0, keys: [{ t: 0, s: 0 }, { t: 260, s: 1, e: "back" }, { t: 780, s: 1, o: 1 }, { t: 800, o: 0, e: "hold" }] },
+      { kind: "track", shapes: ["note"], origin: at(195, 780), size: [0.1, 0.1], at: 120, keys: [{ t: 0, s: 0.5, o: 0 }, { t: 100, s: 1, o: 1 }, ...flight([[100, 195, 780, 60], [560, 195, 450, 0]]).slice(1), { t: 640, s: 0.4, o: 0 }] },
+      { kind: "track", shapes: ["book-closed"], origin: at(195, 440), size: [0.26, 0.26], at: 780,
+        keys: [{ t: 0, s: 1.15, o: 0 }, { t: 20, o: 1, e: "hold" }, { t: 140, s: 1 }, { t: 700, s: 1 }, { t: 1150, x: 0.34, y: -0.66, s: 0.3, o: 0, e: "in" }] },
+      { kind: "track", shapes: ["check-badge"], origin: at(205, 440), size: [0.12, 0.12], at: 930,
+        keys: [{ t: 0, s: 0 }, { t: 200, s: 1.15, e: "out" }, { t: 300, s: 1 }, { t: 550, s: 1 }, { t: 1000, x: 0.31, y: -0.66, s: 0.3, o: 0, e: "in" }] },
+      sparks(at(205, 440), 950, [LIME, CREAM, GOLD], 10),
+    ],
+    sounds: [{ name: "lab-page-flip-1", at: 0, volume: 0.5 }, { name: "lab-envelope-tuck-1", at: 520, volume: 0.6 }, { name: "lab-book-close-1", at: 790, volume: 0.8 }, { name: "lab-save-confirm-1", at: 940, volume: 0.7 }],
+    pip: [...SAVED_END, { at: 200, look: [-1, 1] }, { at: 1500, look: "off", body: "lean" }, { at: 2000, body: "nod" }] },
+  { id: "rs2-stamp", name: "Stamped", ms: 2200,
+    feel: "A rubber stamp drops onto the sheet above Save, thump, lifts away and leaves a green check seal that glows for a moment.",
+    emitters: [
+      { kind: "track", shapes: ["stamp"], origin: at(195, 668), size: [0.24, 0.24], at: 0,
+        keys: [{ t: 0, y: -0.7, o: 1 }, { t: 360, y: 0, e: "in" }, { t: 420, y: 0.006, s: 0.97 }, { t: 520, y: 0, s: 1 }, { t: 820, y: -0.75, o: 0, e: "in" }] },
+      { kind: "track", shapes: ["seal"], origin: at(195, 700), size: [0.22, 0.22], at: 360,
+        keys: [{ t: 0, s: 1.12, o: 0 }, { t: 30, o: 1, e: "hold" }, { t: 200, s: 1 }, { t: 1300, s: 1, o: 1 }, { t: 1650, o: 0 }] },
+      { kind: "ring", shapes: ["ringline"], colors: ["#58CC02"], origin: at(195, 700), at: 380, size: [0.5, 0.5], life: [500, 500], opacity: 0.7 },
+      sparks(at(195, 700), 400, [LIME, CREAM], 8),
+    ],
+    sounds: [{ name: "lab-rubber-stamp-1", at: 360, volume: 0.85 }, { name: "lab-save-confirm-1", at: 520, volume: 0.6 }],
+    pip: [...SAVED_END, { at: 100, look: [-0.5, 1] }, { at: 420, face: "proud" }, { at: 900, look: "off", body: "lean", face: "warm" }, { at: 1700, body: "nod" }] },
+  { id: "rs2-check", name: "Check flies to Pip", ms: 2000,
+    feel: "A green check pops out of the Save button with a ring, then flies up in an arc to Pip, who takes it with a warm nod.",
+    emitters: [
+      { kind: "track", shapes: ["check-badge"], origin: at(195, 780), size: [0.14, 0.14], at: 0,
+        keys: [{ t: 0, s: 0 }, { t: 220, s: 1.2, e: "out" }, { t: 320, s: 1 }, { t: 450, s: 1 }, ...flight([[450, 195, 780, 120], [1050, 300, 190, 0]]).slice(1).map(k => ({ ...k, s: 1 - 0.5 * ((k.t - 450) / 600) })), { t: 1250, s: 0.3, o: 0 }] },
+      { kind: "ring", shapes: ["ringline"], colors: ["#58CC02"], origin: at(195, 780), at: 60, size: [0.45, 0.45], life: [500, 500], opacity: 0.7 },
+      sparks(at(300, 190), 1050, [LIME, CREAM, GOLD], 10),
+    ],
+    sounds: [{ name: "lab-save-confirm-1", at: 40, volume: 0.7 }, { name: "lab-kalimba-warm-1", at: 1050, volume: 0.6 }],
+    pip: [...SAVED_END, { at: 400, look: [-0.6, 1] }, { at: 700, look: [-0.3, 0.6] }, { at: 1050, look: "off", body: "lean" }, { at: 1600, body: "nod" }] },
 ];
 
 /** The sample options per moment id (they replace the old options in the lab while the samples are judged). */

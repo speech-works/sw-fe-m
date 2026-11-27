@@ -104,6 +104,50 @@ export const PROP_SHAPES: Record<string, FxShape> = {
     { d: "M0 52C18 38 34 64 52 50C68 38 84 52 100 44V52C84 60 68 46 52 58C34 72 18 46 0 60Z", fill: "$c", opacity: 0.55 },
     { d: "M0 55C18 43 34 66 52 53C68 42 84 55 100 47", stroke: "#FFF9E9", sw: 1.2, opacity: 0.5 },
   ] },
+  // a cartoon frog, sitting, facing right
+  frog: { paths: [
+    ink("M14 78C10 58 26 40 50 40C74 40 90 56 88 76C86 88 70 92 50 92C30 92 16 90 14 78Z", "#58CC02"),
+    ink("M20 84C12 84 8 92 16 94H34Z", "#46A302", 3), ink("M80 84C88 84 92 92 84 94H66Z", "#46A302", 3),
+    ink(circ(34, 40, 13), "#58CC02"), ink(circ(66, 40, 13), "#58CC02"),
+    { d: circ(34, 40, 8), fill: "#FFF9E9" }, { d: circ(66, 40, 8), fill: "#FFF9E9" },
+    { d: circ(37, 41, 4.5), fill: INK }, { d: circ(69, 41, 4.5), fill: INK },
+    line("M34 64C42 72 58 72 66 64", INK, 4),
+    { d: circ(28, 66, 5), fill: "#FF9DB1", opacity: 0.6 }, { d: circ(72, 66, 5), fill: "#FF9DB1", opacity: 0.6 },
+  ] },
+  // a small practice card: orange top band and text lines
+  card: { paths: [
+    ink(rrect(10, 22, 80, 56, 8), "#2A2723"),
+    { d: "M14 30A4 4 0 0 1 18 26H82A4 4 0 0 1 86 30V38H14Z", fill: "#FF9040" },
+    line("M20 50H72M20 60H64M20 70H50", "#8E877C", 4),
+  ] },
+  // a journal, open (two pages) and closed (cover with a band)
+  "book-open": { paths: [
+    ink("M50 28C38 20 20 20 6 26V82C20 76 38 76 50 84Z", "#FFF9E9"),
+    ink("M50 28C62 20 80 20 94 26V82C80 76 62 76 50 84Z", "#FFF9E9"),
+    line("M14 40C24 37 34 37 42 40M14 50C24 47 34 47 42 50M58 40C66 37 76 37 86 40", "#B9AE9C", 3),
+  ] },
+  "book-closed": { paths: [
+    ink(rrect(20, 14, 62, 76, 7), "#FF7A1A"),
+    ink(rrect(20, 14, 12, 76, 5), "#E0601A", 3),
+    line("M70 14V90", "#FFD84A", 6),
+  ] },
+  // a rubber stamp: wooden knob and handle over a red base
+  stamp: { paths: [
+    ink(circ(50, 18, 13), "#C98A4B"),
+    ink("M42 28H58L60 54H40Z", "#C98A4B"),
+    ink(rrect(18, 54, 64, 16, 5), "#5A3A22"),
+    ink(rrect(22, 70, 56, 10, 3), "#FF2B2B"),
+  ] },
+  // the stamp's mark: a green seal with a check
+  seal: { paths: [
+    { d: circ(50, 50, 44), fill: "none", stroke: "#58CC02", sw: 7 },
+    { d: circ(50, 50, 34), fill: "#58CC02", opacity: 0.18 },
+    line("M30 52L44 66L72 36", "#58CC02", 10),
+  ] },
+  // a filled green check badge
+  "check-badge": { paths: [ink(circ(50, 50, 42), "#58CC02", 5), line("M28 52L44 67L73 36", "#FFF9E9", 11)] },
+  // a small droplet
+  drop: { paths: [{ d: "M50 10C60 34 74 48 74 64A24 24 0 0 1 26 64C26 48 40 34 50 10Z", fill: "$c" }] },
   // an ember: a small glowing teardrop
   ember: { paths: [{ d: "M50 8C62 34 76 48 76 64A26 26 0 0 1 24 64C24 48 38 34 50 8Z", fill: "$c" }] },
 };
