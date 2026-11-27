@@ -45,7 +45,7 @@ const START_KIND: Record<string, string> = {
 /** The real app screen each moment happens on (captured from the test lab with sample data, Pip hidden), and where Pip
  *  stands on it, in the screen's own 390 x 844 points: x, y, size of Pip's picture; cut = the sheet's top edge (Pip is
  *  hidden below it, as on the real screen). Only the Program moments have a screen so far. */
-type Scr = { img: any; x: number; y: number; size: number; cut: number };
+type Scr = { img: any; x: number; y: number; size: number; cut: number; blob?: boolean };
 const SCR: Record<string, Scr> = {
   quizRight: { img: require("./screens/quiz-right.jpg"), x: 254, y: 419, size: 132, cut: 530 },
   quizWrong: { img: require("./screens/quiz-wrong.jpg"), x: 255, y: 445, size: 130, cut: 555 },
@@ -55,10 +55,16 @@ const SCR: Record<string, Scr> = {
   dayDone: { img: require("./screens/daydone.jpg"), x: -26, y: 331, size: 441, cut: 700 },
   goals: { img: require("./screens/goals.jpg"), x: 170, y: 205, size: 212, cut: 383 },
   form: { img: require("./screens/form.jpg"), x: 254, y: 136, size: 132, cut: 250 },   // no Pip on this screen today: a spot on the sheet's edge for now
+  practiceDone: { img: require("./screens/practice-done.jpg"), x: 250, y: 84, size: 138, cut: 204 },   // the written practice ("Done"); a spot in the hero for now
+  home: { img: require("./screens/home.jpg"), x: 95, y: 90, size: 200, cut: 844, blob: true },   // Home's empty top, over "For you"; Pip on his blob
+  stage: { img: require("./screens/stage.jpg"), x: 75, y: 250, size: 240, cut: 844, blob: true },   // no real screen yet: the app's dark background
 };
 const SCREEN_OF: Record<string, keyof typeof SCR> = {
   "quiz-right": "quizRight", "quiz-not-this-one": "quizWrong", "step-done": "close", "day-start": "start", "reflection-saved": "form",
   "step-skipped": "practice", "day-done": "dayDone", "day-closed": "goals", "furthest-moment": "dayDone", "program-finished": "dayDone",
+  "practice-done": "practiceDone", "practice-ended-early": "practiceDone", "home-greeting": "home", "mood-checkin": "home",
+  "first-call-done": "stage", "level-up": "stage", "recording-problem": "stage", "welcome-first-launch": "stage", "onboarding-done": "stage",
+  "buddy-paired": "stage", "purchase-done": "stage", "error-safe": "stage", "waiting-empty": "stage", "permission-ask": "stage",
 };
 const LETTERS = "ABCDEFGH";
 /** Web review: #momentslab=day-done,step-skipped shows only those moments (in that order), nothing else to look at. */
@@ -168,7 +174,7 @@ export default function MomentsLab() {
   const stageFx = samples && fx && samples.some(e => e.id === fx.id) ? fx : null;
   const pipEl = (
     <PipStage ref={stage} key={variant + moment.id} variant={variant} size={pSize} stageW={pSize} stageH={pH} pipTop={0} effect={stageFx} screen={win}
-      {...(scr ? { blob: false, labNoCut: true, jelly: false, figureClip: Math.round((scr.cut - scr.y) * k), backClip: Math.round(scr.cut * k) } : {})} />);
+      {...(scr && !scr.blob ? { blob: false, labNoCut: true, jelly: false, figureClip: Math.round((scr.cut - scr.y) * k), backClip: Math.round(scr.cut * k) } : {})} />);
   const measureShot = () => shot.current?.measureInWindow((x, y, w, h) => { if (Number.isFinite(x) && w > 0) setWin(o => (o && o.x === x && o.y === y && o.width === w ? o : { x, y, width: w, height: h })); });
   return (
     <View style={[s.root, { backgroundColor: CANVAS[mode], paddingTop: insets.top + 6 }]}>
