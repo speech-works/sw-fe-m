@@ -1,9 +1,10 @@
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import PressableScale from "../PressableScale";
 import {
   Icon,
   Text,
+  borderWidth,
   icons,
   primaryEdge,
   radius,
@@ -17,7 +18,6 @@ import {
 import type { ActiveProgram } from "./useActiveProgram";
 import { dayCloseLine } from "../../util/packs/dayLock";
 import { packIconFor } from "./packIcon";
-import { CoverBook } from "../ProgramCoverArt";
 import { COVER_SLIDE_HEIGHT } from "./CoverSlide";
 import { programCoverFor } from "../../util/packs/programCover";
 
@@ -118,19 +118,15 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
    */
   const cover = programCoverFor(program.catalogKey, program.coverImage);
   if (cover) {
-    // Mock 14: the day screens in small. An orange top holds the status and the
-    // program's name, its cover tucked behind a small sheet; the sheet holds the
-    // next day, the day bar and the button.
-    //
-    // "NEXT UP" and its day line are ONE block that owns its top gap. When the
-    // program is done (a refresher) there is no next day, so the block renders
-    // nothing and the bar row moves up. The bar has one segment per day.
+    // Big cover tile: the cover across the top at a fixed height, then the
+    // words. The reason owns its top gap, so a program without one leaves no
+    // hole. A finished program has no bar and no day count, only the line that
+    // says so.
     const showBar = !program.isRefresher && totalModules > 0;
-    const showNext = !program.isRefresher && !!nextModule;
     const doneDays = Math.round(
       Math.max(0, Math.min(1, percentComplete)) * totalModules,
     );
-    const sheetBg = colors.surface.default;
+    const reason = program.reason?.trim() ? program.reason.trim() : null;
     return (
       <PressableScale
         scaleTo={0.98}
@@ -141,66 +137,55 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
       >
         <View
           style={[
-            styles.homeCard,
-            { backgroundColor: colors.action.primary },
-            primaryEdge(colors),
+            styles.tile,
+            {
+              backgroundColor: colors.surface.default,
+              borderColor: colors.border.default,
+            },
           ]}
         >
-          <View style={styles.homeZone}>
-            <View style={styles.homeWords}>
-              <Text variant="eyebrow" color={ink} numberOfLines={1} style={styles.homeLabel}>
-                {program.isRefresher ? "YOU FINISHED THIS" : "IN PROGRESS"}
+          <Image
+            source={cover.source}
+            resizeMode="cover"
+            style={styles.tileCover}
+            accessible={false}
+            importantForAccessibility="no"
+          />
+          <View style={styles.tileBody}>
+            <Text variant="h3" color="primary" style={styles.tileTitle}>
+              {program.title}
+            </Text>
+            {reason ? (
+              <Text variant="bodySm" color="accent" numberOfLines={2} style={styles.tileReason}>
+                {reason}
               </Text>
-              <Text variant="h2" color={ink} numberOfLines={3} style={styles.homeTitle}>
-                {program.title}
-              </Text>
-            </View>
-            {/* The cover stands on the sheet's edge and goes behind it: the
-                sheet is drawn after the zone, so its edge covers the cover's
-                lowest tenth. Tied to the zone's bottom, so it stays tucked
-                however tall the zone is. */}
-            <View style={styles.homeCover} pointerEvents="none">
-              <CoverBook cover={cover} width={HOME_COVER_W} radius={radius.md} style={styles.flat} />
-            </View>
-          </View>
-          <View style={[styles.homeSheet, { backgroundColor: sheetBg }]}>
-            {showNext ? (
-              <View style={styles.homeNext}>
-                <Text variant="eyebrow" color={colors.text.secondary} style={styles.homeNextLabel}>
-                  {dayLocked ? "TODAY" : "NEXT UP"}
-                </Text>
-                <Text variant="title" color="primary" numberOfLines={2} style={styles.homeNextLine}>
-                  {/* Never advertise a day that cannot be started. */}
-                  {dayLocked ? dayCloseLine(dayCloseState) : nextModule?.title}
-                </Text>
+            ) : null}
+            {showBar ? (
+              <View style={styles.segs}>
+                {Array.from({ length: totalModules }, (_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.seg,
+                      {
+                        backgroundColor:
+                          i < doneDays
+                            ? colors.action.primary
+                            : colors.surface.control,
+                      },
+                    ]}
+                  />
+                ))}
               </View>
             ) : null}
-            <View style={styles.homeRow}>
-              {showBar ? (
-                <View style={styles.homeDetail}>
-                  <Text variant="caption" color="secondary" numberOfLines={1}>
-                    Day {moduleOrder} of {totalModules}
-                  </Text>
-                  <View style={styles.segs}>
-                    {Array.from({ length: totalModules }, (_, i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.seg,
-                          {
-                            backgroundColor:
-                              i < doneDays
-                                ? colors.action.primary
-                                : colors.surface.control,
-                          },
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.homeDetail} />
-              )}
+            <View style={styles.tileRow}>
+              <Text variant="caption" color="secondary" numberOfLines={1} style={styles.tileMeta}>
+                {program.isRefresher
+                  ? "You finished this"
+                  : totalModules > 0
+                    ? `Day ${moduleOrder} of ${totalModules}`
+                    : ""}
+              </Text>
               <View style={[styles.coverCta, { backgroundColor: colors.action.primary }]}>
                 <Icon
                   name={dayLocked ? icons.success : icons.play}
@@ -347,11 +332,6 @@ const InProgressSlide: React.FC<InProgressSlideProps> = ({
 
 export default InProgressSlide;
 
-/** The cover on the Home card, tucked behind the small sheet. */
-const HOME_COVER_W = 82;
-/** How far the cover goes behind the sheet. */
-const HOME_COVER_TUCK = 11;
-
 const styles = StyleSheet.create({
   // `flex: 1` on both, so the slide fills whatever height the tallest card in
   // the row establishes. Without it the card keeps its natural size and the
@@ -397,44 +377,41 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     marginTop: spacing.lg,
   },
-  homeCard: {
+  tile: {
     flex: 1,
     minHeight: COVER_SLIDE_HEIGHT,
-    borderRadius: radius.card,
+    borderRadius: 22,
+    borderWidth: borderWidth.hairline,
     overflow: "hidden",
-    padding: 2,
   },
-  homeZone: { flexGrow: 1, flexShrink: 0, minHeight: 116, paddingTop: 18, paddingLeft: space.cardPad - 2, paddingRight: HOME_COVER_W + 36 },
-  homeWords: { minWidth: 0 },
-  homeLabel: { fontSize: 12, lineHeight: 16, letterSpacing: 1 },
-  homeTitle: { marginTop: spacing.xs, fontSize: 22, lineHeight: 26, fontFamily: fonts.extrabold, fontWeight: "800", letterSpacing: -0.4 },
-  homeCover: { position: "absolute", bottom: -HOME_COVER_TUCK, right: 20 },
-  flat: Platform.select({
-    web: { boxShadow: "none" } as object,
-    default: { shadowOpacity: 0, elevation: 0 },
-  }) as object,
-  homeSheet: {
-    borderTopLeftRadius: radius.card - 4,
-    borderTopRightRadius: radius.card - 4,
-    borderBottomLeftRadius: radius.card - 2,
-    borderBottomRightRadius: radius.card - 2,
-    paddingHorizontal: space.cardPad - 2,
-    paddingTop: 20,
-    paddingBottom: 20,
+  // An explicit height, never a flex chain: on Android a flex child of an
+  // auto-height carousel row can resolve to 0.
+  tileCover: { width: "100%", height: 150 },
+  tileBody: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
-  homeNext: { marginBottom: spacing.lg },
-  homeNextLabel: { fontSize: 11, lineHeight: 14, letterSpacing: 1 },
-  homeNextLine: { marginTop: 2, fontSize: 15, lineHeight: 20 },
-  homeRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  homeDetail: { flex: 1, minWidth: 0 },
-  segs: { flexDirection: "row", gap: 3, marginTop: 6 },
+  tileTitle: { fontSize: 17, lineHeight: 21, fontFamily: fonts.extrabold, fontWeight: "800" },
+  tileReason: { marginTop: 4, fontSize: 12, lineHeight: 17 },
+  segs: { flexDirection: "row", gap: 3, marginTop: 8 },
   seg: { flex: 1, height: 4, borderRadius: 2 },
+  tileRow: {
+    marginTop: "auto",
+    paddingTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  tileMeta: { flex: 1, minWidth: 0 },
   coverCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingVertical: 13,
+    height: 36,
     borderRadius: radius.pill,
   },
 });

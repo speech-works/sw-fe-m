@@ -310,6 +310,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             poster={videoContent.thumbnailUrl}
             autoPlay={true}
             maxHeight={videoMaxHeight}
+            fallbackAspectRatio={dayFrame ? 9 / 16 : undefined}
           />
         </View>
       );

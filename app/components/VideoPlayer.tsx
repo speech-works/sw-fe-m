@@ -86,6 +86,11 @@ interface VideoPlayerProps {
   /** If known ahead of time, pass the aspect ratio to avoid any layout shift */
   initialAspectRatio?: number;
   /**
+   * The shape used until the real one is known, and kept if the poster and the video never load (a failed video then
+   * still fills its room instead of a short 16:9 box with empty space under it). Program lessons pass 9/16. Default 16/9.
+   */
+  fallbackAspectRatio?: number;
+  /**
    * False when the player is mounted but no longer the thing on screen — e.g. a
    * pager moved to another tab. Playback parks (position kept, never auto-resumed);
    * pass this from any host that keeps the player mounted off-screen.
@@ -141,6 +146,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPressUnlock,
   hideControls = false,
   initialAspectRatio,
+  fallbackAspectRatio = 16 / 9,
   isActive = true,
   maxHeight,
 }) => {
@@ -157,7 +163,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Bumped to remount <Video> on retry — the surest way to re-attempt a source.
   const [reloadNonce, setReloadNonce] = useState(0);
   const [videoAspectRatio, setVideoAspectRatio] = useState(
-    initialAspectRatio || 16 / 9,
+    initialAspectRatio || fallbackAspectRatio,
   );
   const [aspectRatioReady, setAspectRatioReady] =
     useState(!!initialAspectRatio);

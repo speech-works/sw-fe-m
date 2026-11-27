@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import Svg, { Line } from "react-native-svg";
 import { getOffers, type OfferItem, type Offers } from "../../api";
-import { getRecommendedPack } from "../../api/packs";
+import { getPackProgress, getRecommendedPack } from "../../api/packs";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import PriceTag from "../../components/PriceTag";
@@ -166,6 +166,9 @@ const ProgramsScreen = () => {
    * from: it restarts at day one.
    */
   const [activePackId, setActivePackId] = useState<string | null>(null);
+  // How far into that program, for the day bar on its Yours row. Null until the
+  // progress call lands (or if it fails): the row then shows no bar and no gap.
+  const [activeDays, setActiveDays] = useState<{ day: number; total: number; done: number } | null>(null);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -173,6 +176,16 @@ const ProgramsScreen = () => {
         .then((rec) => {
           if (!alive) return;
           setActivePackId(rec?.isRefresher ? null : (rec?.pack?.id ?? null));
+          const id = rec?.isRefresher ? null : rec?.pack?.id;
+          if (!id) return setActiveDays(null);
+          return getPackProgress(id)
+            .then((pr) => {
+              if (!alive) return;
+              const total = pr?.modules?.length ?? 0;
+              const done = pr?.modules?.filter((m) => m.status === "COMPLETED").length ?? 0;
+              setActiveDays(total > 0 ? { day: Math.min(total, done + 1), total, done } : null);
+            })
+            .catch(() => setActiveDays(null));
         })
         .catch(() => {
           /* Every card says "Open". Less specific, still true. */
@@ -856,28 +869,27 @@ const ProgramsScreen = () => {
         ? programCoverFor(item.key, item.coverImage)
         : null;
 
-    // ── YOURS: ONE CALM ROW PER PROGRAM (mock 14) ───────────────────────────
-    // Cover, name, the server's reason (only when it sent one), "7 days ·
-    // Standard", and the way in. Only the program in progress has the filled
-    // "Resume" pill; every other row says "Open". The reason owns its top gap,
-    // so a row without one leaves no hole. The way in is pinned to the foot.
+    // ── YOURS: CLEAN ROW WITH PROGRESS ──────────────────────────────────────
+    // Small cover, name, the server's reason (only when it sent one), then for
+    // the program in progress a day bar and "Day N of M", for the others
+    // "N days · not started". A round arrow at the right: filled for the one in
+    // progress, quiet for the rest. Every optional line owns its top gap, so a
+    // missing value leaves no hole.
     if (ownedCover && view === "yours") {
       const inProgress = !!item.packId && item.packId === activePackId;
-      const meta = [
-        item.arcDays ? `${item.arcDays} days` : null,
-        capitalise(programShelfLabel(item).toLowerCase()),
-      ]
-        .filter(Boolean)
-        .join(" \u00b7 ");
+      const days = inProgress ? activeDays : null;
+      const meta = days
+        ? `Day ${days.day} of ${days.total}`
+        : [item.arcDays ? `${item.arcDays} days` : null, inProgress ? null : "not started"]
+            .filter(Boolean)
+            .join(" \u00b7 ");
       return (
         <PressableScale
           key={item.key}
           scaleTo={0.98}
           onPress={() => openDetail(item, source, index)}
           accessibilityRole="button"
-          accessibilityLabel={`${item.title}. ${meta}. ${
-            inProgress ? "Resume" : "Open"
-          }.`}
+          accessibilityLabel={`${inProgress ? "Resume" : "Open"} ${item.title}.${meta ? ` ${meta}.` : ""}`}
           style={[
             styles.yoursRow,
             {
@@ -901,34 +913,41 @@ const ProgramsScreen = () => {
                 {reason}
               </Text>
             ) : null}
-            <Text variant="caption" color="secondary" style={styles.yoursMeta}>
-              {meta}
-            </Text>
-            <View style={styles.yoursFoot}>
-              {inProgress ? (
-                <View style={[styles.resumePill, { backgroundColor: colors.action.primary }]}>
-                  <Icon
-                    name={icons.play}
-                    size={size.iconInline}
-                    color={colors.action.onPrimary}
+            {days ? (
+              <View style={styles.yoursSegs}>
+                {Array.from({ length: days.total }, (_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.yoursSeg,
+                      {
+                        backgroundColor:
+                          i < days.done ? colors.action.primary : colors.surface.control,
+                      },
+                    ]}
                   />
-                  <Text variant="label" color={colors.action.onPrimary}>
-                    Resume
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.openLink}>
-                  <Text variant="title" color={colors.text.accent}>
-                    Open
-                  </Text>
-                  <Icon
-                    name={icons.chevronRight}
-                    size={size.iconSm}
-                    color={colors.text.accent}
-                  />
-                </View>
-              )}
-            </View>
+                ))}
+              </View>
+            ) : null}
+            {meta ? (
+              <Text variant="caption" color="secondary" style={styles.yoursMeta}>
+                {meta}
+              </Text>
+            ) : null}
+          </View>
+          <View
+            style={[
+              styles.yoursArrow,
+              {
+                backgroundColor: inProgress ? colors.action.primary : colors.surface.control,
+              },
+            ]}
+          >
+            <Icon
+              name={icons.chevronRight}
+              size={size.iconInline}
+              color={inProgress ? colors.action.onPrimary : colors.text.primary}
+            />
           </View>
         </PressableScale>
       );
@@ -1690,7 +1709,7 @@ const HERO_COVER_W = 144;
 const ROW_TILE_W = 148;
 /** A cover beside an owned program's card on "Your programs". */
 const OWNED_COVER_W = 84;
-const YOURS_COVER_W = 78;
+const YOURS_COVER_W = 64;
 
 type TierFilter = "all" | "regular" | "deep";
 
@@ -1890,10 +1909,10 @@ const styles = StyleSheet.create({
   // the bottom edge, level with the foot of the cover.
   yoursRow: {
     flexDirection: "row",
-    alignItems: "stretch",
-    gap: 14,
-    padding: 14,
-    borderRadius: 24,
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 20,
     borderWidth: borderWidth.hairline,
   },
   flatCover: Platform.select({
@@ -1901,18 +1920,17 @@ const styles = StyleSheet.create({
     default: { shadowOpacity: 0, elevation: 0 },
   }) as object,
   yoursBody: { flex: 1, minWidth: 0 },
-  yoursTitle: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
-  yoursReason: { marginTop: 5, fontSize: 13.5, lineHeight: 19 },
-  yoursMeta: { marginTop: 5, fontSize: 13, lineHeight: 18 },
-  yoursFoot: { marginTop: "auto", paddingTop: spacing.sm, flexDirection: "row" },
-  openLink: { flexDirection: "row", alignItems: "center", gap: 4 },
-  resumePill: {
-    flexDirection: "row",
+  yoursTitle: { fontSize: 15, lineHeight: 19, fontWeight: "700", letterSpacing: -0.1 },
+  yoursReason: { marginTop: 6, fontSize: 12, lineHeight: 17 },
+  yoursSegs: { flexDirection: "row", gap: 3, marginTop: 6 },
+  yoursSeg: { flex: 1, height: 4, borderRadius: 2 },
+  yoursMeta: { marginTop: 6, fontSize: 12, lineHeight: 16 },
+  yoursArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
+    justifyContent: "center",
   },
   yoursAction: {
     marginTop: "auto",
