@@ -4,5 +4,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "exclude": ["node_modules", "ios", "android", ".expo", "dist"]
+  "exclude": ["node_modules", "ios", "android", ".expo", "dist", "design"]
 }
