@@ -1,9 +1,13 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { View } from "react-native";
 import type { AvatarManifest } from "../types/avatar";
 import { useMotion } from "../design-system";
 import { KitAvatarLive } from "./KitAvatar/KitAvatarLive";
 import { KitAvatarStill } from "./KitAvatar/KitAvatarStill";
+import type { KitVariant } from "./KitAvatar/kitLook";
+
+/** DEV LAB ONLY (FxLab option mocks): draw every still avatar below with this treatment instead of its own. No screen sets it. */
+export const AvatarVariantOverride = createContext<KitVariant | null>(null);
 
 export interface UserAvatarProps {
   /** null/undefined ⇒ the default avatar (user has never saved one). */
@@ -24,8 +28,11 @@ export interface UserAvatarProps {
    * "square": a rounded-square frame the body runs past, for the screens
    * built on square tiles (the Community wall, Discover, buddy requests). The
    * frame is the old tile's size and corner, so those layouts are unchanged.
+   *
+   * "ring": no blob; the figure fills a circle that cuts it, the body running
+   * on past the circle's lower arc (Home's energy ring and its info sheet).
    */
-  shape?: "circle" | "square";
+  shape?: "circle" | "square" | "ring";
   accessibilityLabel?: string;
 }
 
@@ -37,7 +44,8 @@ export interface UserAvatarProps {
 export const UserAvatar = React.memo<UserAvatarProps>(
   ({ manifest, size, animate = false, shape = "circle", accessibilityLabel }) => {
     const { reduced } = useMotion();
-    const live = animate && !reduced && shape === "circle";
+    const override = useContext(AvatarVariantOverride);
+    const live = animate && !reduced && shape !== "square" && !override;
     return (
       <View
         style={{ width: size, height: size }}
@@ -45,9 +53,9 @@ export const UserAvatar = React.memo<UserAvatarProps>(
         accessibilityLabel={accessibilityLabel ?? "Your avatar"}
       >
         {live ? (
-          <KitAvatarLive manifest={manifest} size={size} />
+          <KitAvatarLive manifest={manifest} size={size} ring={shape === "ring"} />
         ) : (
-          <KitAvatarStill manifest={manifest} size={size} variant={shape === "square" ? "frame" : "blob"} />
+          <KitAvatarStill manifest={manifest} size={size} variant={override ?? (shape === "square" ? "frame" : shape === "ring" ? "ring" : "blob")} />
         )}
       </View>
     );

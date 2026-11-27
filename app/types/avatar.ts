@@ -57,7 +57,7 @@ export const DEFAULT_MANIFEST: AvatarManifest = {
     beard: null,
     headgear: null,
     eyewear: null,
-    collar: "collar.crew",
+    collar: "collar.v4_polo_v4_n", // the website collars (founder, 2026-11-28); old collar ids are kit aliases
     prop: null,
   },
   colors: { skin: "#E8B98A", hair: "#4A362C", bg: "#2E86AB", collar: "#3A5A8C" },

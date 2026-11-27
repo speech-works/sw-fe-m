@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { AvatarManifest, AvatarSlot } from "../../../types/avatar";
-import { PART_LABELS } from "../../../assets/avatar/registry";
+import { PART_LABELS, SLOT_FALLBACK } from "../../../assets/avatar/registry";
 import { UserAvatar } from "../../../components/UserAvatar";
 import PressableScale from "../../../components/PressableScale";
 import {
@@ -35,7 +35,7 @@ export const PartGrid: React.FC<PartGridProps> = ({
   allowNone,
 }) => {
   const { colors, elevation } = useTheme();
-  const selectedId = draft.parts[slot];
+  const selectedId = draft.parts[slot] ?? SLOT_FALLBACK[slot] ?? null;
 
   /**
    * One preview manifest per cell, built once. Every cell draws a still

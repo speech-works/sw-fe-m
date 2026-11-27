@@ -4,6 +4,7 @@ import { PART_IDS } from "../registry";
 import type { AvatarSlot } from "../../../types/avatar";
 import CATALOG from "../../../components/KitAvatar/kit/catalog.json";
 import RESERVED_HINT from "../../../components/Pip/pip-app.json";
+import { KIT_SHAPES } from "../../../components/KitAvatar/kitLook";
 
 /**
  * Every part the avatar kit lets users wear must be offered in the Studio, and
@@ -31,9 +32,23 @@ describe("the Studio offers the whole kit", () => {
   });
 
   it("offers no slot the kit has no parts for (no empty tabs)", () => {
-    (["bg", "aura", "prop"] as AvatarSlot[]).forEach((slot) => expect(PART_IDS[slot]).toEqual([]));
+    (["aura", "prop"] as AvatarSlot[]).forEach((slot) => expect(PART_IDS[slot]).toEqual([]));
     expect(source).not.toMatch(/key: "prop"/);
-    expect(source).not.toMatch(/slot="bg"/);
+  });
+
+  it("offers every blob shape, and every shape stays inside the avatar's box", () => {
+    expect(source).toContain("ids={PART_IDS.bg}");
+    expect(PART_IDS.bg).toEqual(KIT_SHAPES.map((x) => x.id));
+    expect(PART_IDS.bg.length).toBeGreaterThan(10);
+    // the square box (kitLook VIEW_BOX) and the live drawer's canvas (Pip VIEW): x -24..348, y -6..316 (with a margin)
+    KIT_SHAPES.forEach((sh) => {
+      const [x0, x1, y0, y1] = sh.box;
+      expect(x0).toBeGreaterThanOrEqual(-18);
+      expect(x1).toBeLessThanOrEqual(342);
+      expect(y0).toBeGreaterThanOrEqual(0);
+      expect(y1).toBeLessThanOrEqual(310);
+      expect(sh.cut.startsWith("M")).toBe(true);
+    });
   });
 
   it("offers the kit's own palettes", () => {

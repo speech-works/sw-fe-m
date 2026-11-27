@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { UserAvatar } from "../../components/UserAvatar";
 import { StageBlobs } from "../../components/stage/StageBlobs";
-import { Text, radius, spacing, useTheme } from "../../design-system";
+import { Text, mix, radius, spacing, useTheme } from "../../design-system";
 import { SITUATION_PHRASE } from "../../constants/onboardingActOne";
 import { DEFAULT_MANIFEST } from "../../types/avatar";
 
@@ -213,8 +213,11 @@ const WelcomeStage: React.FC<{
   labels?: string[];
   /** Optional kit face id (e.g., 'face.smile') to override the default avatar face. */
   face?: string;
-}> = ({ available, labels, face }) => {
-  const { colors } = useTheme();
+  /** DEV LAB ONLY (FxLab AvatarLab, founder option mocks F6): "A" = the avatar on its blob, no stage wash; "B" = the stage
+   *  wash only: the avatar's blob takes the wash's tint, so the body ends on a wash-coloured curve. No screen sets it. */
+  labOption?: "A" | "B";
+}> = ({ available, labels, face, labOption }) => {
+  const { colors, scheme } = useTheme();
   const { width } = useWindowDimensions();
   const s = sizes(width, available);
 
@@ -237,14 +240,16 @@ const WelcomeStage: React.FC<{
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <StageBlobs size={s.blob} />
+      {labOption === "A" ? null : <StageBlobs size={s.blob} />}
 
       {/* When a specific face is requested (the smile for the teaser), we
           override the default calm face in the manifest. Otherwise, we rely
           on UserAvatar's default normalization. */}
       <UserAvatar
         size={s.avatar}
-        manifest={face ? { ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, face } } : undefined}
+        manifest={labOption === "B"
+          ? { ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, ...(face ? { face } : {}) }, colors: { ...DEFAULT_MANIFEST.colors, bg: mix(colors.background.canvas, colors.action.primary, scheme === "dark" ? 0.16 : 0.26) } }
+          : face ? { ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, face } } : undefined}
       />
 
       {shown.map(({ b, label }) => (

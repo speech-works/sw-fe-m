@@ -1,6 +1,6 @@
 import type { AvatarSlot } from "../../types/avatar";
 import { STAGE_MIN_LEVELS } from "../../types/avatar";
-import { KIT_PALETTES, KIT_PARTS, kitLabel, kitSlotOf } from "../../components/KitAvatar/kitLook";
+import { DEFAULT_SHAPE, KIT_PALETTES, KIT_PARTS, KIT_SHAPES, kitLabel, kitSlotOf } from "../../components/KitAvatar/kitLook";
 
 /**
  * The avatar catalog: the layered avatar kit's parts (components/KitAvatar,
@@ -12,9 +12,9 @@ import { KIT_PALETTES, KIT_PARTS, kitLabel, kitSlotOf } from "../../components/K
  * part set (founder, 2026-11-27) and can come back as kit parts later.
  */
 
-/** The part ids the Studio offers, per slot. Empty for slots with no kit parts. */
+/** The part ids the Studio offers, per slot. Empty for slots with no kit parts. bg = the blob shapes. */
 export const PART_IDS: Record<AvatarSlot, string[]> = {
-  bg: [],
+  bg: KIT_SHAPES.map((x) => x.id),
   aura: [],
   head: ["head.classic"],
   face: KIT_PARTS.face,
@@ -96,34 +96,13 @@ const SHORT: Record<string, string> = {
   "eyewear.square": "Square",
   "eyewear.sunglasses": "Shades",
   "eyewear.cateyebold": "Bold cat-eye",
-  "collar.crew": "Crew tee",
-  "collar.mandarin": "Mandarin",
-  "collar.peterpan": "Peter Pan",
-  "collar.rounddress": "Round dress",
-  "collar.sailor": "Sailor",
-  "collar.polo": "Polo",
-  "collar.notched": "Jacket",
-  "collar.shawl": "Shawl knit",
-  "collar.rollneck": "Roll neck",
-  "collar.scarf": "Scarf",
-  "collar.jackettie": "Jacket, tie",
-  "collar.bowcardigan": "Bow cardigan",
-  "collar.chunky": "Chunky knit",
-  "collar.zipjacket": "Zip jacket",
-  "collar.cardigan": "Cardigan",
-  "collar.wrapjacket": "Wrap jacket",
-  "collar.piped": "Piped polo",
-  "collar.suittie": "Suit and tie",
-  "collar.jacketround": "Jacket, tee",
-  "collar.postaljacket": "Postal coat",
-  "collar.neckerchief": "Neck scarf",
 };
 
 /** Display names for wardrobe cells (part ids are ids, not copy). */
 export const PART_LABELS: Record<string, string> = (() => {
-  const out: Record<string, string> = {};
+  const out: Record<string, string> = Object.fromEntries(KIT_SHAPES.map((x) => [x.id, x.label]));
   (Object.keys(PART_IDS) as AvatarSlot[]).forEach((slot) => {
-    if (slot === "head") return;
+    if (slot === "head" || slot === "bg") return;
     PART_IDS[slot].forEach((id) => {
       out[id] = SHORT[id] ?? kitLabel(id);
     });
@@ -133,8 +112,11 @@ export const PART_LABELS: Record<string, string> = (() => {
 
 /** Which slot does a part live in? null for an id the kit does not know. */
 export function slotOfPart(partId: string): AvatarSlot | null {
-  return kitSlotOf(partId);
+  return PART_IDS.bg.includes(partId) ? "bg" : kitSlotOf(partId);
 }
+
+/** What a slot shows when the manifest leaves it empty and the slot is never empty on screen (the blob shape). */
+export const SLOT_FALLBACK: Partial<Record<AvatarSlot, string>> = { bg: DEFAULT_SHAPE };
 
 /**
  * Did this level-up cross into a new stage?

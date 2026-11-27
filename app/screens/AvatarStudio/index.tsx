@@ -291,12 +291,26 @@ const AvatarStudio = () => {
           )}
 
           {tab === "backdrop" && (
-            // The backdrop is the colour of the blob the character stands on.
-            <SwatchGrid
-              swatches={BG_COLORS}
-              selectedHex={draft.colors.bg}
-              onSelect={(hex) => setColor("bg", hex)}
-            />
+            // The blob the character stands on: its colour, then its shape.
+            <>
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Colour
+              </Text>
+              <SwatchGrid
+                swatches={BG_COLORS}
+                selectedHex={draft.colors.bg}
+                onSelect={(hex) => setColor("bg", hex)}
+              />
+              <Text variant="label" color="tertiary" style={styles.subLabel}>
+                Shape
+              </Text>
+              <PartGrid
+                slot="bg"
+                ids={PART_IDS.bg}
+                draft={draft}
+                onSelect={(id) => setPart("bg", id)}
+              />
+            </>
           )}
         </View>
         </GestureDetector>
