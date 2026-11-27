@@ -86,6 +86,24 @@ export const PROP_SHAPES: Record<string, FxShape> = {
     return `M50 50L${p(a)}L${p(b)}Z`; }).join(""), fill: "$c" }] },
   // the fast-forward sign, outlined
   "ffwd-ink": { paths: [ink("M8 22L48 50L8 78ZM50 22L90 50L50 78Z", "$c", 6)] },
+  // a smooth grey pebble (skipping stone)
+  stone: { paths: [ink("M14 56C14 40 34 30 54 32C74 34 88 44 86 58C84 70 66 76 48 74C28 72 14 68 14 56Z", "#9AA3AD"), { d: "M30 48C38 42 52 40 62 42", stroke: "#C9D0D6", sw: 5 }] },
+  // a ripple: an open ring (splashes where the stone touches)
+  ringline: { paths: [{ d: "M8 50a42 18 0 1 0 84 0a42 18 0 1 0 -84 0Z", stroke: "$c", sw: 5 }] },
+  // a paper plane flying right
+  plane: { paths: [ink("M6 46L94 20L56 86L44 60Z", "#FFF9E9"), ink("M44 60L94 20L36 72Z", "#DDE6EE"), line("M44 60L56 86", INK, 3)] },
+  // an orange bouncy ball with a white stripe
+  ball: { paths: [ink(circ(50, 50, 40), "#FF7A1A"), { d: "M14 40C34 52 66 52 86 40", stroke: "#FFF9E9", sw: 7 }] },
+  // a folded note
+  note: { paths: [ink("M18 14H70L84 28V86H18Z", "#FFF9E9"), ink("M70 14V28H84Z", "#E6DCCB"), line("M30 42H70M30 56H70M30 70H56", "#B9AE9C", 5)] },
+  // a soft round glow (aurora bands, haze): one colour, soft by low opacity in the emitter
+  glow: { paths: [{ d: circ(50, 50, 48), fill: "$c", opacity: 0.35 }, { d: circ(50, 50, 32), fill: "$c", opacity: 0.45 }, { d: circ(50, 50, 18), fill: "$c", opacity: 0.6 }] },
+  // an aurora ribbon: a long wavy band of light, soft edge and a brighter core
+  ribbon: { paths: [
+    { d: "M0 44C18 28 34 58 52 42C68 28 84 46 100 34V58C84 70 68 52 52 66C34 82 18 52 0 68Z", fill: "$c", opacity: 0.32 },
+    { d: "M0 52C18 38 34 64 52 50C68 38 84 52 100 44V52C84 60 68 46 52 58C34 72 18 46 0 60Z", fill: "$c", opacity: 0.55 },
+    { d: "M0 55C18 43 34 66 52 53C68 42 84 55 100 47", stroke: "#FFF9E9", sw: 1.2, opacity: 0.5 },
+  ] },
   // an ember: a small glowing teardrop
   ember: { paths: [{ d: "M50 8C62 34 76 48 76 64A26 26 0 0 1 24 64C24 48 38 34 50 8Z", fill: "$c" }] },
 };

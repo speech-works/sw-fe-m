@@ -534,3 +534,8 @@ const SCENE_OF: Record<string, NonNullable<FxEffect["scene"]>> = {
 };
 // no extra scene pieces: still stickers hanging beside Pip looked cheap (founder 2026-11-26); a scene is his blob's colour only
 for (const e of FX_EFFECTS) { const scene = SCENE_OF[e.id]; if (scene) e.scene = scene; }
+
+/** The library's palette and emitter helpers, for moments built on the same lines (./samples.ts). */
+export const FXK = { depth, toss, fall, lift, sparks, twinkles, release, loose, shell, CONFETTI, SPARKS, PARTY, GOLDS, NEON,
+  C: { INK, LIME, RED, PINK, WHITE, OR, OR2, CORAL, GOLD, SUN, CREAM, ROSE, BLUE, TEAL, SKY, ICE, VIO, LILAC } };
+export const fxById = (id: string) => FX_EFFECTS.find(e => e.id === id)!;

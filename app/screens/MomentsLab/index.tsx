@@ -61,6 +61,10 @@ const SCREEN_OF: Record<string, keyof typeof SCR> = {
   "step-skipped": "practice", "day-done": "dayDone", "day-closed": "goals", "furthest-moment": "dayDone", "program-finished": "dayDone",
 };
 const LETTERS = "ABCDEFGH";
+/** Web review: #momentslab=day-done,step-skipped shows only those moments (in that order), nothing else to look at. */
+const ONLY: string[] | null = (() => { try { const m = ((globalThis as any).location?.hash ?? "").match(/momentslab=([a-z0-9,-]+)/); return m ? m[1].split(",") : null; } catch { return null; } })();
+const ORDER: number[] = ONLY ? ONLY.map(id => PIP_MOMENTS.findIndex(m => m.id === id)).filter(i => i >= 0) : PIP_MOMENTS.map((_, i) => i);
+const SHOWN = ORDER.map(i => PIP_MOMENTS[i]);
 const SLOTS = ["ours", "A", "B", "C"] as const;
 const candOf = (kind: string, slot: string) => CANDS.filter(c => c.role === kind).sort((a, b) => a.rank - b.rank)[["A", "B", "C"].indexOf(slot)];
 const soundLabel = (v?: string) => (!v ? "-" : v === "none" ? "no sound" : v === "own" ? "its own sounds" : `${v.split(":")[0]} ${v.split(":")[1] === "ours" ? "(ours)" : v.split(":")[1]}`);
@@ -86,7 +90,7 @@ export default function MomentsLab() {
   const [fx, setFx] = useState<FxEffect | null>(null), [runId, setRunId] = useState(0), [win, setWin] = useState<{ x: number; y: number; width: number; height: number } | undefined>(undefined);
   const nav = React.useContext(NavigationContext) as NavigationProp<ParamListBase> | undefined;
   const [variant, setVariant] = useState<PipVariant>("pip"), [mode, setMode] = useState<"light" | "dark">("dark");
-  const [idx, setIdx] = useState(0), [picks, setPicks] = useState<Picks>({}), [summary, setSummary] = useState(false), [jump, setJump] = useState(false);
+  const [idx, setIdx] = useState(ORDER[0] ?? 0), [picks, setPicks] = useState<Picks>({}), [summary, setSummary] = useState(false), [jump, setJump] = useState(false);
   const [busy, setBusy] = useState(false), [note, setNote] = useState(""), [lastPool, setLastPool] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -98,12 +102,13 @@ export default function MomentsLab() {
   const moment = PIP_MOMENTS[idx], dark = mode === "dark";
   const fg = dark ? "#F7F4EE" : "#141311", sub = dark ? "#B9B3A8" : "#5E584E", card = dark ? "#23211E" : "#FFFFFF", line = dark ? "#3A3733" : "#DDD6C8";
   const isDone = (id: string) => !!picks[id]?.anim && !!picks[id]?.sound;
-  const pickedCount = PIP_MOMENTS.filter(m => isDone(m.id)).length;
+  const pickedCount = SHOWN.filter(m => isDone(m.id)).length, pos = Math.max(0, ORDER.indexOf(idx));
   const [kindOf, setKindOf] = useState<Record<string, string>>({});
   const kind = kindOf[moment.id] || START_KIND[moment.id] || KINDS[0];
   // what plays with every animation on this moment: the chosen sound, or the first of the current kind until one is chosen
   const heard = picks[moment.id]?.sound ?? `${kind}:ours`;
   const go = (i: number) => { setIdx(Math.max(0, Math.min(PIP_MOMENTS.length - 1, i))); setNote(""); };
+  const step = (d: number) => { const n = ORDER[Math.max(0, Math.min(ORDER.length - 1, pos + d))]; if (n !== undefined) go(n); };
 
   const play = useCallback(async (beats: PipBeat[]) => {
     if (busy || !pip.current) return;
@@ -141,11 +146,13 @@ export default function MomentsLab() {
   }, [runId]);   // eslint-disable-line react-hooks/exhaustive-deps
   const chooseSound = (v: string) => { save({ sound: v }); playChoice(v); };
 
-  const lines = PIP_MOMENTS.map(m => {
+  const lines = SHOWN.map(m => {
     const p = picks[m.id] || {}, o = m.options.find(x => x.id === p.anim) ?? SAMPLE_MOMENTS[m.id]?.find(x => x.id === p.anim);
     return `${m.id}: ${o ? `${o.id} ${o.name}` : "NO ANIMATION"} | sound: ${p.sound ? soundLabel(p.sound) + ` [${p.sound}]` : "NO SOUND"}${p.note?.trim() ? ` | comment: ${p.note.trim()}` : ""}`;
   });
-  const missing = PIP_MOMENTS.filter(m => !isDone(m.id)).length;
+  const missing = SHOWN.filter(m => !isDone(m.id)).length;
+  // web review: the page hands its answers over (window.reviewAnswers()), so nobody retypes them
+  useEffect(() => { try { (globalThis as any).reviewAnswers = () => lines.join("\n"); } catch { /* ignore */ } });
   const share = () => { Share.share({ message: lines.join("\n") }).catch(() => undefined); };
 
   const Btn = ({ label, onPress, on, off, grow }: { label: string; onPress: () => void; on?: boolean; off?: boolean; grow?: boolean }) => (
@@ -177,12 +184,12 @@ export default function MomentsLab() {
         </View>
       )}
       <View style={[s.head, { alignSelf: "stretch", paddingHorizontal: 12, marginTop: 8 }]}>
-        <Btn label="‹" off={idx === 0} onPress={() => go(idx - 1)} />
+        <Btn label="‹" off={pos === 0} onPress={() => step(-1)} />
         <View style={{ flex: 1, alignItems: "center" }}>
           <Text style={[s.title, { color: fg, textAlign: "center" }]} numberOfLines={1}>{summary ? "All picks" : moment.title}</Text>
-          <Text style={[s.tiny, { color: sub }]}>{summary ? `Done: ${pickedCount} of ${PIP_MOMENTS.length}` : `${idx + 1} of ${PIP_MOMENTS.length} - ${moment.area} - done ${pickedCount}`}</Text>
+          <Text style={[s.tiny, { color: sub }]}>{summary ? `Done: ${pickedCount} of ${SHOWN.length}` : `${pos + 1} of ${SHOWN.length} - ${moment.area} - done ${pickedCount}`}</Text>
         </View>
-        <Btn label="›" off={idx === PIP_MOMENTS.length - 1} onPress={() => go(idx + 1)} />
+        <Btn label="›" off={pos === ORDER.length - 1} onPress={() => step(1)} />
       </View>
 
       {summary ? (
@@ -191,12 +198,12 @@ export default function MomentsLab() {
             <Btn label="Back" onPress={() => setSummary(false)} />
             <Btn label="Share picks" onPress={share} on />
           </View>
-          <Text style={[s.note, { color: missing ? "#E8A33D" : "#7BC67B" }]}>{missing ? `${missing} moments still need a pick` : "All 24 moments done"}</Text>
-          {PIP_MOMENTS.map((m, i) => {
+          <Text style={[s.note, { color: missing ? "#E8A33D" : "#7BC67B" }]}>{missing ? `${missing} moments still need a pick` : `All ${SHOWN.length} moments done`}</Text>
+          {SHOWN.map((m) => { const i = PIP_MOMENTS.indexOf(m);
             const p = picks[m.id] || {}, list: { id: string; name: string }[] = SAMPLE_MOMENTS[m.id] ?? m.options, oi = list.findIndex(x => x.id === p.anim);
             return (
               <Pressable key={m.id} onPress={() => { go(i); setSummary(false); }} style={[s.card, { backgroundColor: card, borderColor: isDone(m.id) ? line : "#E8A33D" }]}>
-                <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>{i + 1}. {m.title}</Text>
+                <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>{ONLY ? "" : `${i + 1}. `}{m.title}</Text>
                 <Text style={[s.small, { color: oi >= 0 ? fg : "#E8A33D" }]}>{oi >= 0 ? `${LETTERS[oi]}: ${list[oi].name}` : "No animation yet"} - {p.sound ? soundLabel(p.sound) : "no sound yet"}</Text>
                 {p.note?.trim() ? <Text style={[s.small, { color: sub }]}>Comment: {p.note.trim()}</Text> : null}
               </Pressable>);
@@ -262,7 +269,7 @@ export default function MomentsLab() {
           </View>
           <View style={s.row}>
             <Btn label="All picks" onPress={() => setSummary(true)} />
-            <Btn label={jump ? "Hide list" : "Jump to..."} on={jump} onPress={() => setJump(v => !v)} />
+            {ONLY ? null : <Btn label={jump ? "Hide list" : "Jump to..."} on={jump} onPress={() => setJump(v => !v)} />}
             <Btn label={variant === "pip" ? "Pip" : "Pip-f"} onPress={() => setVariant(v => (v === "pip" ? "pip-f" : "pip"))} />
             {scr ? null : <Btn label={dark ? "Dark" : "Light"} onPress={() => setMode(m => (m === "dark" ? "light" : "dark"))} />}
             {nav ? <Btn label="FX lab" onPress={() => nav.navigate("FxLab")} /> : null}

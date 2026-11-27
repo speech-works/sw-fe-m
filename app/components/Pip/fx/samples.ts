@@ -7,6 +7,7 @@
  * Rules kept: nothing covers Pip's face or collar; props move (enter, act, leave), none stands still beside him.
  */
 import type { FxEffect, FxEmitter } from "./types";
+import { FXK, fxById } from "./library";
 
 const W = 390, H = 844;
 const at = (x: number, y: number): [number, number] => [x / W, y / H];
@@ -157,9 +158,170 @@ const nextDay: FxEffect[] = [
     pip: [{ at: 250, look: [-1, -0.5], face: "curious" }, { at: 1080, face: "laugh", body: "hop", haptic: "light" }, { at: 1700, look: "off", face: "warm", body: "nod" }, { at: 2900, face: "calm" }] },
 ];
 
+// ═════════════ Batch 1 (2026-11-28): on the lines of the FX lab effects the founder liked ═════════════
+const { depth, toss, fall, lift, sparks: fsparks, twinkles, shell } = FXK;
+const HERO_DD = 0.83;   // Day done screen: the sheet's top edge (y 700 of 844); background effects end there
+/** An FX lab effect, renamed for its moment, with its sounds and Pip's beats swapped. */
+const fromLib = (id: string, over: Partial<FxEffect>): FxEffect => ({ ...fxById(id), ...over });
+const night = (t: number, edge: number, peak = 0.82, end = 3400): E =>
+  ({ kind: "track", layer: "back", shapes: ["flood"], colors: [NIGHT], origin: [0.5, edge / H / 2], size: [2.4, 2.4], at: t, keys: [{ t: 0, o: 0 }, { t: 500, o: peak }, { t: end - 600, o: peak }, { t: end, o: 0 }] });
+// a flood square of side 2.4 x width centred at edge/2 reaches below the edge; backClip ends it at the sheet
+
+const dayDone2: FxEffect[] = [
+  fromLib("confetti-cannons", { id: "dd2-cannons", name: "Side cannons", ms: 3300,
+    feel: "Two confetti cannons fire from the sides just above the sheet, one after the other; the paper crosses high over Pip and floats down.",
+    emitters: [
+      ...depth(toss({ origin: [-0.03, 0.8], spread: [-80, -55], speed: [1.6, 2.8], drag: 1.5, gravity: 0.55, life: [2200, 2800] }), 44),
+      ...depth(toss({ at: 220, origin: [1.03, 0.8], spread: [-125, -100], speed: [1.6, 2.8], drag: 1.5, gravity: 0.55, life: [2200, 2800] }), 44),
+      toss({ origin: [-0.03, 0.8], spread: [-76, -60], speed: [1.8, 2.6], drag: 1.5, gravity: 0.55, shapes: ["streamer"], count: 5, size: [0.09, 0.14], spin: [30, 120], flip: false, life: [2200, 2800] }),
+      toss({ at: 220, origin: [1.03, 0.8], spread: [-120, -104], speed: [1.8, 2.6], drag: 1.5, gravity: 0.55, shapes: ["streamer"], count: 5, size: [0.09, 0.14], spin: [30, 120], flip: false, life: [2200, 2800] }),
+      twinkle([0.05, 0.08, 0.95, 0.6], 700, 10, [GOLD, CREAM, LIME], 1400),
+    ],
+    sounds: [{ name: "lab-cannon-confetti-1", at: 0, volume: 0.85 }, { name: "lab-cannon-confetti-2", at: 220, volume: 0.8 }, { name: "lab-cheer-short-1", at: 600, volume: 0.6 }],
+    pip: [{ at: 0, look: [-0.8, 0.4], face: "curious" }, { at: 230, look: [0.8, 0.4] }, { at: 480, look: "off", body: "bighop", face: "laugh", haptic: "success" }, { at: 1500, body: "sway", face: "proud" }, { at: 2900, face: "smile" }] }),
+  { id: "dd2-balloons", name: "Balloon lift", ms: 3600,
+    feel: "A bunch of balloons floats up past Pip from below the sheet, near ones big and fast, far ones small, while confetti pops out of him.",
+    emitters: [
+      // up both sides of Pip, never over his face or collar
+      ...[[-0.02, 0.24], [0.76, 1.02]].flatMap(([x0, x1]) => depth({ kind: "rise", shapes: ["balloon"], colors: [RED, BLUE, GOLD, PINK, TEAL, LIME, OR2], upright: true, area: [x0, 0.6, x1, 0.82], speed: [0.32, 0.5], gravity: -0.05, sway: 0.02, swayHz: 0.45, size: [0.1, 0.16], life: [2400, 3000], stagger: 900, fadeIn: 200, fadeOut: 400 }, 12)),
+      ...depth(toss({ at: 420, origin: at(194, 360), spread: [-160, -20] }), 40),
+      twinkle([0.05, 0.05, 0.95, 0.4], 900, 10, [GOLD, CREAM, PINK], 1600),
+    ],
+    sounds: [{ name: "lab-balloon-release-1", at: 0, volume: 0.75 }, { name: "lab-cannon-confetti-1", at: 420, volume: 0.6 }, { name: "lab-party-horn-1", at: 700, volume: 0.6 }],
+    pip: [{ at: 0, look: [0, -1], face: "curious" }, { at: 420, look: "off", body: "bighop", face: "laugh", haptic: "success" }, { at: 1400, body: "bounce", face: "proud" }, { at: 3100, face: "smile" }] },
+  { id: "dd2-stars", name: "Star shower", ms: 3500,
+    feel: "Golden rays open slowly behind Pip and fat stars in four colours rain down the whole screen, near ones big, far ones tiny, with a twinkle.",
+    emitters: [
+      { kind: "rays", layer: "back", shapes: ["sunburst"], colors: [SUN], origin: at(194, 470), at: 100, size: [2.6, 2.6], spin: [16, 16], life: [3200, 3200], fadeIn: 600, fadeOut: 700, opacity: 0.42 },
+      ...depth(fall({ shapes: ["star", "star", "sparkle"], colors: [GOLD, LIME, PINK, SUN, CREAM], speed: [0.34, 0.52], gravity: 0.08, sway: 0.02, spin: [40, 160], size: [0.035, 0.065], life: [2200, 2600], stagger: 1100, flip: false }), 60),
+      fsparks({ at: 200, origin: at(194, 470), count: 22, colors: [GOLD, SUN, CREAM], speed: [0.3, 0.9] }),
+    ],
+    sounds: [{ name: "lab-magic-shimmer-1", at: 0, volume: 0.7 }, { name: "lab-success-fanfare-1", at: 250, volume: 0.65 }, { name: "lab-stars-twinkle-1", at: 1300, volume: 0.45 }],
+    pip: [{ at: 0, face: "curious", body: "settle" }, { at: 250, body: "pop", face: "proud", haptic: "success" }, { at: 1200, look: [0, -1] }, { at: 1900, look: "off", body: "nod", face: "laugh" }, { at: 3100, face: "smile" }] },
+  { id: "dd2-sparklers", name: "Sparkler finale", ms: 3500,
+    feel: "Two sparkler fountains shoot gold sparks up from the sheet's corners, then two fireworks open high above Pip.",
+    emitters: [
+      ...depth(fsparks({ origin: [0.08, 0.82], stagger: 1400, spread: [-96, -70], speed: [1.2, 1.9], drag: 1.3, gravity: 0.75, size: [0.026, 0.06], life: [1200, 1600], fadeOut: 400 }), 80),
+      ...depth(fsparks({ origin: [0.92, 0.82], stagger: 1400, at: 120, spread: [-110, -84], speed: [1.2, 1.9], drag: 1.3, gravity: 0.75, size: [0.026, 0.06], life: [1200, 1600], fadeOut: 400 }), 80),
+      ...shell(0.25, 0.2, 1500, [GOLD, SUN, OR2], "front"),
+      ...shell(0.76, 0.16, 2000, [PINK, LIME, CREAM], "front"),
+    ],
+    sounds: [{ name: "lab-sparkler-1", at: 0, volume: 0.6 }, { name: "lab-firework-launch-1", at: 1150, volume: 0.5 }, { name: "lab-firework-pop-1", at: 1500, volume: 0.75 }, { name: "lab-firework-pop-2", at: 2000, volume: 0.7 }],
+    pip: [{ at: 0, look: [-0.6, 0.5], face: "curious" }, { at: 600, look: [0.6, 0.5] }, { at: 1250, look: [0, -1], face: "laugh" }, { at: 1550, body: "bighop", haptic: "success" }, { at: 2300, look: "off", face: "proud", body: "nod" }, { at: 3100, face: "smile" }] },
+];
+
+// Further than ever: the picked acting (leans in, stays) with a rich, calm background
+const FURTHER_PIP = [{ at: 0, face: "listening" as const }, { at: 340, body: "lean" as const, haptic: "light" as const }, { at: 1240, face: "warm" as const, body: "settle" as const }, { at: 2600, face: "proud" as const }];
+const further: FxEffect[] = [
+  fromLib("gold-shower", { id: "fm-gold", name: "Golden shower", feel: "Gold sparkles sink slowly down the whole screen, near ones big and bright, far ones tiny, while a harp plays and he leans in.",
+    sounds: [{ name: "lab-harp-gliss-1", at: 0, volume: 0.7 }, { name: "lab-stars-twinkle-1", at: 1200, volume: 0.4 }], pip: FURTHER_PIP }),
+  fromLib("rainbow", { id: "fm-rainbow", name: "Rainbow sweep", feel: "Six bands of light sweep across the screen one colour after another, hang as a wide rainbow and drift away while he leans in.",
+    sounds: [{ name: "lab-magic-shimmer-1", at: 150, volume: 0.65 }, { name: "lab-soft-bell-1", at: 1300, volume: 0.45 }], pip: FURTHER_PIP }),
+  { id: "fm-aurora", name: "Aurora", ms: 4200,
+    feel: "The sky behind Pip turns deep blue and soft bands of green, violet and pink light drift across it like an aurora, with slow stars.",
+    emitters: [
+      night(0, 700, 0.7, 4200),
+      ...([[TEAL, 0.3, -6, 0], [LIME, 0.36, 5, 250], [LILAC, 0.42, -3, 500], [PINK, 0.27, 8, 750]] as const).map(([c, y, r, t]): E => ({ kind: "track", layer: "back", shapes: ["ribbon"], colors: [c], origin: [0.5, y], size: [1.25, 1.25], at: 300 + t,
+        keys: [{ t: 0, x: -0.12, r, o: 0, s: 0.95 }, { t: 900, x: -0.04, o: 0.85 }, { t: 2200, x: 0.05, r: r * -0.6, s: 1.05 }, { t: 3300 - t, x: 0.1, o: 0 }] })),
+      twinkle([0.04, 0.04, 0.96, 0.55], 600, 20, [CREAM, SUN, LILAC], 3000, "back"),
+    ],
+    sounds: [{ name: "lab-soft-bell-1", at: 200, volume: 0.6 }, { name: "lab-magic-shimmer-2", at: 900, volume: 0.45 }, { name: "lab-stars-twinkle-2", at: 2200, volume: 0.35 }],
+    pip: FURTHER_PIP },
+];
+
+// Program finished: the biggest moment
+const finished: FxEffect[] = [
+  { id: "pf-fireworks-night", name: "Fireworks night", ms: 4400,
+    feel: "The sky goes dark and five fireworks climb and open one after another over Pip in gold, pink, lime and blue; he cheers at the biggest one.",
+    emitters: [
+      night(0, 700, 0.85, 4400),
+      ...shell(0.22, 0.24, 700, [GOLD, SUN, OR2], "back", 26), ...shell(0.78, 0.18, 1150, [PINK, "#FF9DB1", CREAM], "back", 26),
+      ...shell(0.5, 0.12, 1650, [LIME, TEAL, CREAM], "back", 30), ...shell(0.3, 0.32, 2150, [BLUE, LILAC, CREAM], "back", 24), ...shell(0.7, 0.3, 2550, [GOLD, RED, SUN], "back", 30),
+      twinkle([0.04, 0.03, 0.96, 0.5], 500, 16, [CREAM, SUN], 3200, "back"),
+    ],
+    sounds: [{ name: "lab-firework-launch-1", at: 320, volume: 0.5 }, { name: "lab-firework-pop-1", at: 700, volume: 0.75 }, { name: "lab-firework-pop-2", at: 1150, volume: 0.7 },
+      { name: "lab-firework-launch-2", at: 1300, volume: 0.45 }, { name: "lab-firework-pop-1", at: 1650, volume: 0.8 }, { name: "lab-firework-pop-2", at: 2150, volume: 0.7 }, { name: "lab-firework-pop-1", at: 2550, volume: 0.8 }, { name: "lab-cheer-short-1", at: 1700, volume: 0.6 }],
+    pip: [{ at: 0, look: [0, -1], face: "curious" }, { at: 700, look: [-0.6, -0.8] }, { at: 1150, look: [0.6, -0.9] }, { at: 1650, look: [0, -1], face: "laugh", body: "bighop", haptic: "success" }, { at: 2600, look: "off", face: "proud", body: "pop" }, { at: 3900, face: "smile" }] },
+  { id: "pf-grand-finale", name: "Grand finale", ms: 3800,
+    feel: "Everything at once: cannons fire from both sides, streamers shoot up from Pip and two fireworks open, with a fanfare and a cheer.",
+    emitters: [
+      ...depth(toss({ origin: [-0.03, 0.8], spread: [-80, -55], speed: [1.6, 2.8], drag: 1.5, gravity: 0.55, life: [2200, 2800] }), 40),
+      ...depth(toss({ at: 200, origin: [1.03, 0.8], spread: [-125, -100], speed: [1.6, 2.8], drag: 1.5, gravity: 0.55, life: [2200, 2800] }), 40),
+      ...depth(toss({ at: 450, origin: at(194, 470), shapes: ["streamer"], speed: [0.6, 1.2], drag: 2.0, gravity: 0.32, size: [0.1, 0.17], spin: [30, 130], flip: false, life: [2300, 3000] }), 18),
+      ...shell(0.24, 0.18, 900, [GOLD, SUN, OR2], "back"), ...shell(0.76, 0.14, 1350, [PINK, LIME, CREAM], "back"),
+    ],
+    sounds: [{ name: "lab-cannon-confetti-1", at: 0, volume: 0.8 }, { name: "lab-cannon-confetti-2", at: 200, volume: 0.75 }, { name: "lab-success-fanfare-1", at: 400, volume: 0.7 }, { name: "lab-firework-pop-1", at: 900, volume: 0.6 }, { name: "lab-firework-pop-2", at: 1350, volume: 0.6 }, { name: "lab-cheer-short-2", at: 700, volume: 0.6 }],
+    pip: [{ at: 0, face: "curious", body: "settle" }, { at: 450, body: "bighop", face: "laugh", haptic: "success" }, { at: 1400, body: "bounce", face: "proud" }, { at: 2400, look: [0, -0.8] }, { at: 3000, look: "off", face: "smile", body: "nod" }] },
+  { id: "pf-star-rays", name: "Rays and stars", ms: 4000,
+    feel: "Golden rays open behind Pip, party hats fly up from him and a rain of stars and confetti fills the screen while a fanfare plays.",
+    emitters: [
+      { kind: "rays", layer: "back", shapes: ["sunburst"], colors: [SUN], origin: at(194, 470), at: 100, size: [2.6, 2.6], spin: [14, 14], life: [3700, 3700], fadeIn: 600, fadeOut: 700, opacity: 0.45 },
+      FXK.loose(["hat"], [OR, RED, BLUE, TEAL, PINK], 6, { at: 450, origin: at(194, 450), spread: [-150, -30], size: [0.12, 0.2], speed: [0.6, 1.1], drag: 1.8, gravity: 0.4, spin: [30, 90], life: [2000, 2500] }),
+      ...depth(fall({ shapes: ["star", "rect", "strip", "star"], colors: [...PARTY, GOLD], stagger: 1300, flip: true }), 70),
+    ],
+    sounds: [{ name: "lab-success-fanfare-2", at: 200, volume: 0.7 }, { name: "lab-cartoon-boing-1", at: 450, volume: 0.6 }, { name: "lab-cheer-short-1", at: 900, volume: 0.55 }],
+    pip: [{ at: 0, face: "curious" }, { at: 450, body: "bighop", face: "laugh", haptic: "success" }, { at: 1500, body: "sway", face: "proud" }, { at: 3500, face: "smile" }] },
+];
+
+// Step skipped (the practice screen; "Skip this practice" at x 24-149, y 607; empty sheet below it, y 640-750)
+const SKIP_PIP = (follow: number): any[] => [{ at: 0, face: "warm", look: [-0.7, 1] }, { at: follow, look: [0.7, 1] }, { at: follow + 700, look: "off", body: "sway" }, { at: follow + 1500, face: "smile", body: "nod" }];
+const skipped: FxEffect[] = [
+  { id: "sk-stone", name: "Skipping stone", ms: 2800,
+    feel: "A pebble skips across the empty sheet from the Skip link: three hops, a ripple at each touch, then it slides off the edge. Pip follows it and shrugs: fine by me.",
+    emitters: [
+      { kind: "track", shapes: ["stone"], origin: at(150, 640), size: [0.07, 0.07], at: 100,
+        keys: [{ t: 0, x: -0.1, y: -0.08, o: 0 }, { t: 80, o: 1 }, { t: 300, x: 0, y: 0.08, e: "in" }, { t: 560, x: 0.18, y: -0.02, e: "out" }, { t: 760, x: 0.32, y: 0.1, e: "in" }, { t: 940, x: 0.44, y: 0.04, e: "out" },
+          { t: 1080, x: 0.53, y: 0.12, e: "in" }, { t: 1600, x: 0.78, y: 0.13, o: 0, e: "out" }] },
+      ...[[400, 150 + 0, 671], [860, 150 + 0.32 * W, 679], [1180, 150 + 0.53 * W, 687]].map(([t, x, y]): E => ({ kind: "ring", shapes: ["ringline"], colors: [CREAM], origin: at(x, y), at: t, size: [0.18, 0.18], life: [650, 650], opacity: 0.8 })),
+    ],
+    sounds: [{ name: "lab-water-skip-1", at: 380, volume: 0.75 }, { name: "lab-swoosh-soft-1", at: 1150, volume: 0.4 }],
+    pip: SKIP_PIP(700) },
+  { id: "sk-plane", name: "Paper plane", ms: 2700,
+    feel: "A paper plane takes off from the Skip link, loops once over the sheet and glides off the right edge, leaving a dotted trail. Pip watches it go and nods.",
+    emitters: [
+      { kind: "track", shapes: ["plane"], origin: at(150, 610), size: [0.12, 0.12], at: 100,
+        keys: [{ t: 0, s: 0.4, o: 0, r: -10 }, { t: 120, s: 1, o: 1 }, { t: 500, x: 0.25, y: -0.1, r: -30 }, { t: 800, x: 0.4, y: -0.02, r: 60 }, { t: 1050, x: 0.3, y: 0.06, r: 170 }, { t: 1300, x: 0.38, y: -0.06, r: 330 },
+          { t: 1900, x: 0.95, y: -0.2, r: 345, e: "in" }] },
+      { kind: "twinkle", shapes: ["dot"], colors: [CREAM], count: 14, at: 300, stagger: 1500, area: [0.42, 0.62, 0.95, 0.76], size: [0.012, 0.018], life: [500, 700], opacity: 0.7 },
+    ],
+    sounds: [{ name: "lab-swoosh-soft-1", at: 150, volume: 0.6 }, { name: "lab-swoosh-soft-2", at: 1300, volume: 0.5 }],
+    pip: SKIP_PIP(800) },
+  { id: "sk-ball", name: "Bouncy ball", ms: 2600,
+    feel: "A small orange ball drops out of the Skip link and bounces across the sheet, each bounce lower, then rolls off. Boing, boing, boing.",
+    emitters: [
+      { kind: "track", shapes: ["ball"], origin: at(150, 700), size: [0.06, 0.06], at: 100,
+        keys: [{ t: 0, x: -0.05, y: -0.22, o: 0 }, { t: 60, o: 1 }, { t: 320, x: 0, y: 0, e: "in" }, { t: 560, x: 0.14, y: -0.16, e: "out" }, { t: 800, x: 0.28, y: 0, e: "in" }, { t: 980, x: 0.38, y: -0.09, e: "out" },
+          { t: 1160, x: 0.48, y: 0, e: "in" }, { t: 1280, x: 0.54, y: -0.03, e: "out" }, { t: 1400, x: 0.6, y: 0, e: "in" }, { t: 2000, x: 0.85, y: 0, r: 540, o: 0, e: "lin" }] },
+    ],
+    sounds: [{ name: "lab-cartoon-boing-1", at: 400, volume: 0.6 }, { name: "lab-cartoon-boing-1", at: 880, volume: 0.45 }, { name: "lab-cartoon-boing-2", at: 1240, volume: 0.35 }],
+    pip: SKIP_PIP(600) },
+];
+
+// Reflection saved (picked acting: leans close, warm). Only the sound was wrong: three sound ideas, each with a small touch.
+const SAVED_PIP = [{ at: 0, face: "warm" as const, body: "lean" as const }, { at: 1100, body: "nod" as const }];
+const saved: FxEffect[] = [
+  { id: "rs-tucked", name: "Note tucked in", ms: 2000,
+    feel: "A folded note slides up from the Save button and tucks away behind the sheet's edge with a paper sound and two soft kalimba notes.",
+    emitters: [{ kind: "track", shapes: ["note"], origin: at(195, 760), size: [0.1, 0.1], at: 0,
+      keys: [{ t: 0, s: 0.6, o: 0 }, { t: 150, s: 1, o: 1, y: -0.05 }, { t: 650, x: 0.18, y: -1.2, r: -10 }, { t: 850, x: 0.2, y: -1.28, s: 0.5, o: 0 }] }],
+    sounds: [{ name: "lab-envelope-tuck-1", at: 500, volume: 0.7 }, { name: "lab-kalimba-warm-1", at: 800, volume: 0.6 }], pip: SAVED_PIP },
+  { id: "rs-bell", name: "Soft bell", ms: 1800,
+    feel: "One warm bell note and a few slow sparkles around Pip as he leans in.",
+    emitters: [twinkle([0.55, 0.1, 0.98, 0.3], 200, 6, [CREAM, SUN], 900)],
+    sounds: [{ name: "lab-soft-bell-1", at: 150, volume: 0.6 }], pip: SAVED_PIP },
+  { id: "rs-harp", name: "Harp breath", ms: 1800,
+    feel: "A gentle harp run upward, like a breath out, while he leans in.",
+    emitters: [twinkle([0.55, 0.1, 0.98, 0.3], 300, 5, [CREAM, LILAC], 900)],
+    sounds: [{ name: "lab-harp-gliss-1", at: 100, volume: 0.55 }], pip: SAVED_PIP },
+];
+
 /** The sample options per moment id (they replace the old options in the lab while the samples are judged). */
 export const SAMPLE_MOMENTS: Record<string, FxEffect[]> = {
   "step-done": stepDone,
-  "day-done": dayDone,
+  "day-done": dayDone2,
+  "furthest-moment": further,
+  "program-finished": finished,
+  "step-skipped": skipped,
+  "reflection-saved": saved,
   "day-closed": nextDay,
 };
