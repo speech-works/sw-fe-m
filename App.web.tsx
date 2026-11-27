@@ -4,9 +4,14 @@ import { Inter_400Regular, Inter_400Regular_Italic, Inter_500Medium, Inter_600Se
 import React from "react";
 import FxWeb from "./app/screens/FxLab/FxWeb";
 import { AvatarLab } from "./app/screens/FxLab/AvatarLab";
+import MomentsLab from "./app/screens/MomentsLab";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function App() {
   const [ok, err] = useFonts({ Inter_400Regular, Inter_400Regular_Italic, Inter_500Medium, Inter_600SemiBold, Inter_600SemiBold_Italic, Inter_700Bold, Inter_800ExtraBold })   // every face the design system uses (as util/components/FontLoader.tsx);
   const avatars = typeof location !== "undefined" && location.hash.startsWith("#avatars");
-  return ok || err ? (avatars ? <AvatarLab /> : <FxWeb />) : null;
+  const moments = typeof location !== "undefined" && location.hash.startsWith("#momentslab");
+  if (!(ok || err)) return null;
+  if (moments) return <SafeAreaProvider><MomentsLab /></SafeAreaProvider>;
+  return avatars ? <AvatarLab /> : <FxWeb />;
 }

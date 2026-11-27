@@ -8,9 +8,9 @@
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import { NavigationContext } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pip } from "../../components/Pip";
 import type { PipBeat, PipHandle, PipVariant } from "../../components/Pip";
@@ -39,6 +39,25 @@ const START_KIND: Record<string, string> = {
   "onboarding-done": "chime-up", "buddy-paired": "heart-blip", "purchase-done": "sparkle", "error-safe": "bubbles",
   "waiting-empty": "snow", "permission-ask": "zip",
 };
+/** The real app screen each moment happens on (captured from the test lab with sample data, Pip hidden), and where Pip
+ *  stands on it, in the screen's own 390 x 844 points: x, y, size of Pip's picture; cut = the sheet's top edge (Pip is
+ *  hidden below it, as on the real screen). Only the Program moments have a screen so far. */
+type Scr = { img: any; x: number; y: number; size: number; cut: number };
+const SCR: Record<string, Scr> = {
+  quizRight: { img: require("./screens/quiz-right.jpg"), x: 254, y: 419, size: 132, cut: 530 },
+  quizWrong: { img: require("./screens/quiz-wrong.jpg"), x: 255, y: 445, size: 130, cut: 555 },
+  start: { img: require("./screens/start.jpg"), x: 165, y: 140, size: 219, cut: 322 },
+  close: { img: require("./screens/close.jpg"), x: 165, y: 140, size: 218, cut: 322 },
+  practice: { img: require("./screens/practice.jpg"), x: 52, y: 157, size: 286, cut: 396 },
+  dayDone: { img: require("./screens/daydone.jpg"), x: -26, y: 331, size: 441, cut: 700 },
+  goals: { img: require("./screens/goals.jpg"), x: 170, y: 205, size: 212, cut: 383 },
+  form: { img: require("./screens/form.jpg"), x: 254, y: 136, size: 132, cut: 250 },   // no Pip on this screen today: a spot on the sheet's edge for now
+};
+const SCREEN_OF: Record<string, keyof typeof SCR> = {
+  "quiz-right": "quizRight", "quiz-not-this-one": "quizWrong", "step-done": "close", "day-start": "start", "reflection-saved": "form",
+  "step-skipped": "practice", "day-done": "dayDone", "day-closed": "goals", "furthest-moment": "dayDone", "program-finished": "dayDone",
+};
+const LETTERS = "ABCDEFGH";
 const SLOTS = ["ours", "A", "B", "C"] as const;
 const candOf = (kind: string, slot: string) => CANDS.filter(c => c.role === kind).sort((a, b) => a.rank - b.rank)[["A", "B", "C"].indexOf(slot)];
 const soundLabel = (v?: string) => (!v ? "-" : v === "none" ? "no sound" : `${v.split(":")[0]} ${v.split(":")[1] === "ours" ? "(ours)" : v.split(":")[1]}`);
@@ -60,7 +79,7 @@ const plain = (k: string) => k.replace(/-/g, " ");
 export default function MomentsLab() {
   const { width } = useWindowDimensions(), insets = useSafeAreaInsets();
   const pip = useRef<PipHandle>(null), alive = useRef(true);
-  const nav = useNavigation<NavigationProp<ParamListBase>>();
+  const nav = React.useContext(NavigationContext) as NavigationProp<ParamListBase> | undefined;
   const [variant, setVariant] = useState<PipVariant>("pip"), [mode, setMode] = useState<"light" | "dark">("dark");
   const [idx, setIdx] = useState(0), [picks, setPicks] = useState<Picks>({}), [summary, setSummary] = useState(false), [jump, setJump] = useState(false);
   const [busy, setBusy] = useState(false), [note, setNote] = useState(""), [lastPool, setLastPool] = useState<Record<string, number>>({});
@@ -118,95 +137,103 @@ export default function MomentsLab() {
       <Text style={[s.btnT, { color: on ? "#141311" : fg }]}>{label}</Text>
     </Pressable>);
 
-  const size = Math.min(width - 32, 300);
+  const { height } = useWindowDimensions();
+  const scr = SCR[SCREEN_OF[moment.id]];
+  const screenH = Math.round(height * 0.56), k = screenH / 844, screenW = Math.round(390 * k);
+  const plainSize = Math.min(width - 32, 260);
+  const pipEl = <Pip ref={pip} key={variant + moment.id} variant={variant} size={scr ? Math.round(scr.size * k) : plainSize} {...(scr ? { blob: false, labNoCut: true, jelly: false } : {})} />;
   return (
-    <View style={[s.root, { backgroundColor: CANVAS[mode], paddingTop: insets.top + 8 }]}>
-      <View style={{ height: Math.round(size * 322 / 372), justifyContent: "center", alignItems: "center" }}>
-        <Pip ref={pip} key={variant} variant={variant} size={size} backdrop={CANVAS[mode]} />
+    <View style={[s.root, { backgroundColor: CANVAS[mode], paddingTop: insets.top + 6 }]}>
+      {scr ? (
+        <View style={[s.screen, { width: screenW, height: screenH }]}>
+          <Image source={scr.img} style={{ width: screenW, height: screenH }} resizeMode="cover" />
+          <View pointerEvents="none" style={[s.abs, { left: 0, top: 0, width: screenW, height: Math.round(scr.cut * k), overflow: "hidden" }]}>
+            <View style={[s.abs, { left: Math.round(scr.x * k), top: Math.round(scr.y * k) }]}>{pipEl}</View>
+          </View>
+        </View>
+      ) : (
+        <View style={[s.screen, { width: screenW, height: screenH, backgroundColor: CANVAS[mode], borderWidth: 1, borderColor: line, justifyContent: "center", alignItems: "center" }]}>
+          {pipEl}
+          <Text style={[s.small, { color: sub }]}>No real screen for this moment yet</Text>
+        </View>
+      )}
+      <View style={[s.head, { alignSelf: "stretch", paddingHorizontal: 12, marginTop: 8 }]}>
+        <Btn label="‹" off={idx === 0} onPress={() => go(idx - 1)} />
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text style={[s.title, { color: fg, textAlign: "center" }]} numberOfLines={1}>{summary ? "All picks" : moment.title}</Text>
+          <Text style={[s.tiny, { color: sub }]}>{summary ? `Done: ${pickedCount} of ${PIP_MOMENTS.length}` : `${idx + 1} of ${PIP_MOMENTS.length} - ${moment.area} - done ${pickedCount}`}</Text>
+        </View>
+        <Btn label="›" off={idx === PIP_MOMENTS.length - 1} onPress={() => go(idx + 1)} />
       </View>
-      <View style={s.row}>
-        <Btn label="Pip" on={variant === "pip"} onPress={() => setVariant("pip")} />
-        <Btn label="Pip-f" on={variant === "pip-f"} onPress={() => setVariant("pip-f")} />
-        <Btn label={dark ? "Dark" : "Light"} onPress={() => setMode(m => (m === "dark" ? "light" : "dark"))} />
-        <Btn label={summary ? "Back" : "Summary"} on={summary} onPress={() => setSummary(v => !v)} />
-        <Btn label="FX lab" onPress={() => nav.navigate("FxLab")} />
-      </View>
-      <Text style={[s.small, { color: sub }]}>Done: {pickedCount} of {PIP_MOMENTS.length} moments (animation + sound)</Text>
 
       {summary ? (
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+          <View style={s.row}>
+            <Btn label="Back" onPress={() => setSummary(false)} />
+            <Btn label="Share picks" onPress={share} on />
+          </View>
           <Text style={[s.note, { color: missing ? "#E8A33D" : "#7BC67B" }]}>{missing ? `${missing} moments still need a pick` : "All 24 moments done"}</Text>
-          <Btn label="Share picks" onPress={share} on />
           {PIP_MOMENTS.map((m, i) => {
-            const p = picks[m.id] || {}, name = m.options.find(x => x.id === p.anim)?.name;
+            const p = picks[m.id] || {}, oi = m.options.findIndex(x => x.id === p.anim);
             return (
               <Pressable key={m.id} onPress={() => { go(i); setSummary(false); }} style={[s.card, { backgroundColor: card, borderColor: isDone(m.id) ? line : "#E8A33D" }]}>
-                <Text style={[s.title, { color: fg }]}>{i + 1}. {m.title}</Text>
-                <Text style={[s.body, { color: name ? fg : "#E8A33D" }]}>{name ?? "No animation yet"}</Text>
-                <Text style={[s.body, { color: p.sound ? fg : "#E8A33D" }]}>Sound: {p.sound ? soundLabel(p.sound) : "not chosen yet"}</Text>
+                <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]}>{i + 1}. {m.title}</Text>
+                <Text style={[s.small, { color: oi >= 0 ? fg : "#E8A33D" }]}>{oi >= 0 ? `${LETTERS[oi]}: ${m.options[oi].name}` : "No animation yet"} - {p.sound ? soundLabel(p.sound) : "no sound yet"}</Text>
               </Pressable>);
           })}
         </ScrollView>
       ) : (
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-          <View style={[s.card, { backgroundColor: card, borderColor: line }]}>
-            <Text style={[s.small, { color: sub }]}>Moment {idx + 1} of {PIP_MOMENTS.length}</Text>
-            <Text style={[s.title, { color: fg }]}>{moment.title}</Text>
-            <Text style={[s.body, { color: sub }]}>{moment.area} - {moment.freq} - size: {moment.size}</Text>
-            <View style={s.row}>
-              <Btn label="Prev" off={idx === 0} onPress={() => go(idx - 1)} grow />
-              <Btn label="Next" off={idx === PIP_MOMENTS.length - 1} onPress={() => go(idx + 1)} grow />
-              <Btn label={jump ? "Hide list" : "Jump to..."} on={jump} onPress={() => setJump(v => !v)} grow />
-            </View>
-            {jump ? AREAS.map(a => (
-              <View key={a} style={{ marginTop: 10 }}>
-                <Text style={[s.small, { color: sub }]}>{a}</Text>
-                <View style={s.row}>
-                  {PIP_MOMENTS.map((m, i) => m.area !== a ? null : (
-                    <Btn key={m.id} label={`${i + 1}${isDone(m.id) ? " ✓" : ""}`} on={i === idx} onPress={() => { go(i); setJump(false); }} />
-                  ))}
+          {moment.options.map((o, oi) => {
+            const starred = picks[moment.id]?.anim === o.id, pool = isPool(o);
+            const run = () => (pool ? playPool(o) : o.variants ? play(o.variants[Object.keys(o.variants)[0]]) : play(o.beats || []));
+            return (
+              <View key={o.id} style={[s.opt, { backgroundColor: card, borderColor: starred ? "#E8A33D" : line }]}>
+                <Pressable disabled={busy} onPress={run} style={[s.optPlay, busy && { opacity: 0.5 }]} accessibilityLabel={`Play ${LETTERS[oi]}`}>
+                  <Text style={s.optL}>{LETTERS[oi]}</Text>
+                  <Text style={s.playT}>▶</Text>
+                </Pressable>
+                <View style={{ flex: 1, paddingHorizontal: 10 }}>
+                  <Text style={[s.body, { color: fg, marginTop: 0, fontWeight: "700" }]} numberOfLines={1}>{o.name}</Text>
+                  <Text style={[s.tiny, { color: sub }]}>{(o.ms / 1000).toFixed(1)} s{pool ? ` - plays a different one each time (${lastPool[o.id] || 0}/${poolKeys(o).length})` : ""}</Text>
+                  {o.variants && !pool ? (
+                    <View style={[s.row, { justifyContent: "flex-start", marginTop: 4 }]}>
+                      {Object.keys(o.variants).map(v => <Btn key={v} label={plain(v)} off={busy} onPress={() => play(o.variants![v])} />)}
+                    </View>) : null}
                 </View>
-              </View>)) : null}
-          </View>
+                <Pressable onPress={() => toggle(o)} style={s.star} accessibilityLabel={starred ? "Unpick" : "Pick this one"}>
+                  <Text style={{ fontSize: 30, color: starred ? "#E8A33D" : sub }}>{starred ? "★" : "☆"}</Text>
+                </Pressable>
+              </View>);
+          })}
           <View style={[s.card, { backgroundColor: card, borderColor: picks[moment.id]?.sound ? line : "#E8A33D" }]}>
             <View style={s.head}>
-              <Text style={[s.title, { color: fg, flex: 1 }]}>Sound</Text>
+              <Text style={[s.body, { color: fg, flex: 1, marginTop: 0, fontWeight: "700" }]}>Sound: {soundLabel(heard)}{picks[moment.id]?.sound ? " ✓" : ""}</Text>
               <Btn label={`Kind: ${kind}`} onPress={() => setKindOf(k => ({ ...k, [moment.id]: KINDS[(KINDS.indexOf(kind) + 1) % KINDS.length] }))} />
             </View>
-            <Text style={[s.small, { color: sub }]}>Plays with every animation below. Tap one to hear it and choose it.</Text>
-            <View style={s.row}>
+            <Text style={[s.tiny, { color: sub }]}>Plays with every option above. Tap one to hear it and choose it.</Text>
+            <View style={[s.row, { justifyContent: "flex-start" }]}>
               <Btn label="None" on={picks[moment.id]?.sound === "none"} onPress={() => chooseSound("none")} />
               {SLOTS.map(sl => <Btn key={sl} label={sl === "ours" ? "Ours" : sl} on={picks[moment.id]?.sound === `${kind}:${sl}`} onPress={() => chooseSound(`${kind}:${sl}`)} />)}
             </View>
-            <Text style={[s.small, { color: sub }]}>Chosen: {soundLabel(picks[moment.id]?.sound)}</Text>
           </View>
+          <View style={s.row}>
+            <Btn label="All picks" onPress={() => setSummary(true)} />
+            <Btn label={jump ? "Hide list" : "Jump to..."} on={jump} onPress={() => setJump(v => !v)} />
+            <Btn label={variant === "pip" ? "Pip" : "Pip-f"} onPress={() => setVariant(v => (v === "pip" ? "pip-f" : "pip"))} />
+            {scr ? null : <Btn label={dark ? "Dark" : "Light"} onPress={() => setMode(m => (m === "dark" ? "light" : "dark"))} />}
+            {nav ? <Btn label="FX lab" onPress={() => nav.navigate("FxLab")} /> : null}
+          </View>
+          {jump ? AREAS.map(a => (
+            <View key={a} style={{ marginTop: 10 }}>
+              <Text style={[s.small, { color: sub }]}>{a}</Text>
+              <View style={[s.row, { justifyContent: "flex-start" }]}>
+                {PIP_MOMENTS.map((m, i) => m.area !== a ? null : (
+                  <Btn key={m.id} label={`${i + 1}${isDone(m.id) ? " ✓" : ""}`} on={i === idx} onPress={() => { go(i); setJump(false); }} />
+                ))}
+              </View>
+            </View>)) : null}
           {note ? <Text style={s.note}>{note}</Text> : null}
-          {moment.options.map(o => {
-            const starred = picks[moment.id]?.anim === o.id, pool = isPool(o);
-            return (
-              <View key={o.id} style={[s.card, { backgroundColor: card, borderColor: starred ? "#C77B2A" : line }]}>
-                <View style={s.head}>
-                  <Text style={[s.title, { color: fg, flex: 1 }]}>{o.name}</Text>
-                  <Pressable onPress={() => toggle(o)} style={s.star} accessibilityLabel={starred ? "Unpick" : "Pick this one"}>
-                    <Text style={{ fontSize: 30, color: starred ? "#E8A33D" : sub }}>{starred ? "★" : "☆"}</Text>
-                  </Pressable>
-                </View>
-                <Text style={[s.body, { color: fg }]}>{o.feel}</Text>
-                <Text style={[s.small, { color: sub }]}>{(o.ms / 1000).toFixed(2)} s - {o.inspiredBy}</Text>
-                {o.variants && !pool ? (
-                  <View style={s.row}>
-                    {Object.keys(o.variants).map(k => <Btn key={k} label={`Play ${plain(k)}`} off={busy} onPress={() => play(o.variants![k])} grow />)}
-                  </View>
-                ) : (
-                  <>
-                    {pool ? <Text style={[s.small, { color: sub }]}>Pool: plays {lastPool[o.id] || 0} of {poolKeys(o).length}</Text> : null}
-                    <Pressable disabled={busy} onPress={() => (pool ? playPool(o) : play(o.beats || []))} style={[s.play, busy && { opacity: 0.4 }]}>
-                      <Text style={s.playT}>{pool ? "Play next" : "Play"}</Text>
-                    </Pressable>
-                  </>
-                )}
-              </View>);
-          })}
         </ScrollView>
       )}
     </View>);
@@ -225,6 +252,12 @@ const s = StyleSheet.create({
   title: { fontSize: 18, fontWeight: "700" },
   body: { fontSize: 16, lineHeight: 22, marginTop: 6 },
   small: { fontSize: 14, lineHeight: 19, marginTop: 6 },
+  tiny: { fontSize: 13, lineHeight: 17, marginTop: 2 },
+  abs: { position: "absolute" },
+  screen: { borderRadius: 18, overflow: "hidden" },
+  opt: { flexDirection: "row", alignItems: "center", borderRadius: 16, borderWidth: 1.5, padding: 8, marginTop: 8 },
+  optPlay: { width: 64, height: 56, borderRadius: 12, backgroundColor: "#E8A33D", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
+  optL: { fontSize: 20, fontWeight: "800", color: "#141311" },
   note: { color: "#E8A33D", fontSize: 16, fontWeight: "600", textAlign: "center", marginTop: 10 },
   play: { minHeight: 56, borderRadius: 14, backgroundColor: "#E8A33D", alignItems: "center", justifyContent: "center", marginTop: 12 },
   playT: { fontSize: 18, fontWeight: "700", color: "#141311" },
