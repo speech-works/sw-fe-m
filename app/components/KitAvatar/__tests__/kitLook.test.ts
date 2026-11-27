@@ -16,7 +16,7 @@ const OLD: AvatarManifest = {
 describe("kitManifest", () => {
   it("draws the kit default for every old or unknown part id", () => {
     const k = kitManifest(OLD);
-    expect(k.parts).toMatchObject({ face: "face.calm", hair: null, beard: null, headgear: null, eyewear: null, collar: "collar.crew", bg: null, aura: null, prop: null });   // bg.hearts is no blob shape
+    expect(k.parts).toMatchObject({ face: "face.calm", hair: null, beard: null, headgear: null, eyewear: null, collar: "collar.v4_polo_v4_n", bg: null, aura: null, prop: null });   // bg.hearts is no blob shape
     expect(k.colors.skin).toBe("#7A4A2B");
   });
 
@@ -32,7 +32,7 @@ describe("kitManifest", () => {
   });
 
   it("always wears a collar (the kit needs one)", () => {
-    expect(kitManifest({ ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, collar: null } }).parts.collar).toBe("collar.crew");
+    expect(kitManifest({ ...DEFAULT_MANIFEST, parts: { ...DEFAULT_MANIFEST.parts, collar: null } }).parts.collar).toBe("collar.v4_polo_v4_n");
   });
 
   it("keeps a known blob shape in bg; an unknown one (an old backdrop) is the default shape", () => {
