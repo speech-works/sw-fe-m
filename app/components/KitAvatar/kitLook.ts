@@ -43,6 +43,19 @@ export const KIT_PALETTES: Record<"skin" | "hair" | "collar" | "bg", { label: st
 /** The kit's default look (bare head, crew tee). */
 export const KIT_DEFAULT: { parts: Record<string, string | null>; colors: Record<string, string> } = CAT.defaultManifest;
 
+/**
+ * The blob shapes a user can stand on: the website's blobs (sw-landing avatar-blobs.ts), normalised by the export to ONE
+ * box (352 wide, centred on the figure, lowest point y 297), so no shape is ever cut by the avatar's box or the live
+ * drawer's canvas, at any size and while it moves. Each carries its own cut: the body ends on THAT shape's curve.
+ * Stored in the manifest's bg slot ("bg.<name>"); null = the default shape.
+ */
+export type KitShape = { id: string; label: string; shape: string; d: string; cut: string; box: number[] };
+export const KIT_SHAPES: KitShape[] = (STAGE as any).shapes;
+const SHAPE_BY_ID: Record<string, KitShape> = Object.fromEntries(KIT_SHAPES.map((x) => [x.id, x]));
+export const DEFAULT_SHAPE: string = (STAGE as any).blob.id;
+/** The blob shape a manifest stands on. */
+export const kitShape = (m: AvatarManifest | null | undefined): KitShape => SHAPE_BY_ID[kitManifest(m).parts.bg ?? DEFAULT_SHAPE] ?? SHAPE_BY_ID[DEFAULT_SHAPE];
+
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 /** A part id the kit can draw in this slot (an alias resolves to its part), or null. */
 function kitPart(slot: string, id: unknown): string | null {
@@ -53,8 +66,8 @@ function kitPart(slot: string, id: unknown): string | null {
 
 /**
  * Any stored manifest as a manifest the kit can draw. Never throws. An unknown or old part id (the app's earlier part set,
- * a part removed later) becomes the kit default for its slot; an empty optional slot stays empty; bg, aura and prop are
- * always empty (no kit parts). No manifest at all = the app's DEFAULT_MANIFEST. Colours: the kit's defaults, then every
+ * a part removed later) becomes the kit default for its slot; an empty optional slot stays empty. bg holds the blob shape
+ * (one of KIT_SHAPES; anything else = null = the default shape); aura and prop are always empty. No manifest at all = the app's DEFAULT_MANIFEST. Colours: the kit's defaults, then every
  * valid hex the manifest carries.
  */
 export function kitManifest(input: AvatarManifest | null | undefined): { parts: Record<string, string | null>; colors: Record<string, string> } {
@@ -66,6 +79,7 @@ export function kitManifest(input: AvatarManifest | null | undefined): { parts: 
     if (v === null || v === undefined) parts[slot] = CAT.required?.[slot] ? d : v === null ? null : d;
     else parts[slot] = kitPart(slot, v) ?? d;
   }
+  parts.bg = typeof want.bg === "string" && SHAPE_BY_ID[want.bg] && want.bg !== DEFAULT_SHAPE ? want.bg : null;   // null = the default shape
   const colors: Record<string, string> = { ...KIT_DEFAULT.colors };
   const have = m.colors as Record<string, unknown>;
   for (const k of Object.keys(have)) { const v = have[k]; if (typeof v === "string" && HEX.test(v)) colors[k] = v; }
@@ -83,7 +97,7 @@ function hashId(s: string): string {
 }
 
 /** The picture (site units: 320 x 310) and where the kit frame sits in it. */
-export const STAGE_INFO: { stage: { w: number; h: number; scale: number; tx: number; ty: number }; outline: { colour: string; width: number }; blob: { d: string }; cut: string } = STAGE as any;
+export const STAGE_INFO: { stage: { w: number; h: number; scale: number; tx: number; ty: number }; outline: { colour: string; width: number }; blob: { id: string; d: string }; cut: string } = STAGE as any;
 const S = STAGE_INFO.stage, ZOOM: number = CAT.zoom, BOTTOM_PAD = 14;   // lookgen makeLook: look.bottomPad
 const FIGURE_T = `translate(${S.tx} ${S.ty}) scale(${S.scale})`;
 const ZOOM_T = `translate(500 ${1000 + BOTTOM_PAD}) scale(${ZOOM}) translate(-500 -1000)`;
@@ -102,7 +116,15 @@ const framePath = () => {
   return `M${f(x + r)} ${f(y)}H${f(x + s - r)}A${f(r)} ${f(r)} 0 0 1 ${f(x + s)} ${f(y + r)}V${f(y + s - r)}A${f(r)} ${f(r)} 0 0 1 ${f(x + s - r)} ${f(y + s)}H${f(x + r)}A${f(r)} ${f(r)} 0 0 1 ${f(x)} ${f(y + s - r)}V${f(y + r)}A${f(r)} ${f(r)} 0 0 1 ${f(x + r)} ${f(y)}Z`;
 };
 
-export type KitVariant = "blob" | "frame";
+/**
+ * ring: no blob, the figure cut by a circle (the Home energy ring's inside). The circle is drawn bigger than the blob view
+ * so the head and the full collar fill it; the body runs on past the circle's lower arc, so its bottom never shows, also
+ * while the figure breathes (collar above the arc with room to spare).
+ * edge (option mock only, not used by any screen): no blob, no frame; the box's own bottom edge ends the body.
+ */
+export const RING = { cx: 160, cy: 165, r: 135 };
+export const EDGE_BOX = { x: -10, y: -30, s: 340 };
+export type KitVariant = "blob" | "frame" | "ring" | "edge";
 
 const STILLS = new Map<string, string>();
 const STILLS_MAX = 160;
@@ -115,7 +137,8 @@ export function stillSvg(m: AvatarManifest | null | undefined, variant: KitVaria
   if (hit) { STILLS.delete(key); STILLS.set(key, hit); return hit; }
   const u = hashId(key);
   let raw: string;
-  try { raw = Kit.compose(CAT, km, { shape: "none", bg: false, zoom: 1, uid: u }); }
+  const shp = SHAPE_BY_ID[km.parts.bg ?? DEFAULT_SHAPE];
+  try { raw = Kit.compose(CAT, { ...km, parts: { ...km.parts, bg: null } }, { shape: "none", bg: false, zoom: 1, uid: u }); }
   catch { raw = Kit.compose(CAT, { parts: { ...KIT_DEFAULT.parts }, colors: km.colors }, { shape: "none", bg: false, zoom: 1, uid: u }); }   // never a blank avatar
   const defs = (raw.match(/<defs>([\s\S]*?)<\/defs>/) || ["", ""])[1];
   // the part groups' data-part / data-layer marks are not needed to draw (and React on web warns about them)
@@ -125,9 +148,15 @@ export function stillSvg(m: AvatarManifest | null | undefined, variant: KitVaria
   if (variant === "frame") {
     const B = FRAME_BOX, fp = framePath();
     svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${B.x.toFixed(2)} ${B.y.toFixed(2)} ${B.s.toFixed(2)} ${B.s.toFixed(2)}"><defs>${defs}<clipPath id="${u}c"><path d="${fp}"/></clipPath></defs><path d="${fp}" fill="${bg}"/><g clip-path="url(#${u}c)">${fig}</g></svg>`;
+  } else if (variant === "ring") {
+    const { cx, cy, r } = RING;
+    svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${cx - r} ${cy - r} ${2 * r} ${2 * r}"><defs>${defs}<clipPath id="${u}c"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath></defs><g clip-path="url(#${u}c)">${fig}</g></svg>`;
+  } else if (variant === "edge") {
+    const B = EDGE_BOX;
+    svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${B.x} ${B.y} ${B.s} ${B.s}"><defs>${defs}<clipPath id="${u}c"><rect x="${B.x - 200}" y="${B.y - 200}" width="${B.s + 400}" height="${B.s + 200}"/></clipPath></defs><g clip-path="url(#${u}c)">${fig}</g></svg>`;
   } else {
     const B = VIEW_BOX;
-    svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${B.x} ${B.y} ${B.s} ${B.s}"><defs>${defs}<clipPath id="${u}c"><path d="${STAGE_INFO.cut}"/></clipPath></defs><path d="${STAGE_INFO.blob.d}" fill="${bg}"/><g clip-path="url(#${u}c)">${fig}</g></svg>`;
+    svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${B.x} ${B.y} ${B.s} ${B.s}"><defs>${defs}<clipPath id="${u}c"><path d="${shp.cut}"/></clipPath></defs><path d="${shp.d}" fill="${bg}"/><g clip-path="url(#${u}c)">${fig}</g></svg>`;
   }
   STILLS.set(key, svg);
   if (STILLS.size > STILLS_MAX) STILLS.delete(STILLS.keys().next().value as string);
@@ -142,12 +171,12 @@ export const kitFace = (m: AvatarManifest | null | undefined): string => (kitMan
  * (a few ms); the Studio rebuilds it on every change.
  */
 export function liveFigure(m: AvatarManifest | null | undefined): { look: any; stage: any; blob: { d: string; colour: string }; cut: string } {
-  const km = kitManifest(m);
+  const km = kitManifest(m), shp = SHAPE_BY_ID[km.parts.bg ?? DEFAULT_SHAPE];
   let look: any;
-  try { look = makeLook(Kit, CAT, km, { outline: false }); }
+  try { look = makeLook(Kit, CAT, { ...km, parts: { ...km.parts, bg: null } }, { outline: false }); }
   catch { look = makeLook(Kit, CAT, { parts: { ...KIT_DEFAULT.parts }, colors: km.colors }, { outline: false }); }
   look.armShadow = false;   // no hand moves on user avatars
-  return { look, stage: { ...S }, blob: { d: STAGE_INFO.blob.d, colour: km.colors.bg }, cut: STAGE_INFO.cut };
+  return { look, stage: { ...S }, blob: { d: shp.d, colour: km.colors.bg }, cut: shp.cut };
 }
 
 /** Slot of a kit part id, or null. */

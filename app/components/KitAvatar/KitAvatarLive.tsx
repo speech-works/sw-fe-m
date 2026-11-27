@@ -12,12 +12,12 @@ import { useFrameCallback, useReducedMotion, useSharedValue } from "react-native
 import type { AvatarManifest } from "../../types/avatar";
 import { Figure, VIEW, makeBundle } from "../Pip/Pip";
 import { faceNow, faceStill, solveIdle } from "../Pip/core/app.js";
-import { kitFace, kitKey, liveFigure } from "./kitLook";
+import { RING, kitFace, kitKey, liveFigure } from "./kitLook";
 
 const IDLE_SEC = 30;   // the idle (blink, glance, breath) is solved once for 30 s, then loops
 let UID = 0;
 
-function Live({ manifest, size, picture }: { manifest?: AvatarManifest | null; size: number; picture: string }) {
+function Live({ manifest, size, picture, ring }: { manifest?: AvatarManifest | null; size: number; picture: string; ring: boolean }) {
   // built once per picture (picture = kitKey(manifest)); a new object for the same look does not rebuild it
   const B = useMemo(() => makeBundle(liveFigure(manifest), [], { seconds: IDLE_SEC, hair: false }), [picture]);   // eslint-disable-line react-hooks/exhaustive-deps
   const face = useMemo(() => kitFace(manifest), [picture]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -33,6 +33,18 @@ function Live({ manifest, size, picture }: { manifest?: AvatarManifest | null; s
   useFrameCallback((info) => {
     fs.value = solveIdle(I.value, info.timeSinceFirstFrame, faceNow(FK.value, fc.value, info.timestamp));
   }, !reduced);
+  if (ring) {
+    // ring: no blob, no blob cut. The circle (kitLook RING, picture units) fills the box and cuts the figure; the body runs
+    // on past its lower arc. The drawer's picture is scaled so the circle's diameter is the box.
+    const u = size / (2 * RING.r), w = VIEW.w * u, h = VIEW.h * u;
+    return (
+      <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden" }} pointerEvents="none">
+        <View style={{ position: "absolute", left: (VIEW.x - (RING.cx - RING.r)) * u, top: (VIEW.y - (RING.cy - RING.r)) * u, width: w, height: h }}>
+          <Figure fs={fs} mv={mv} hs={hs} jel={jel} B={B} uid={uid} w={w} h={h} blob={false} noCut arts={[]} pv={null} />
+        </View>
+      </View>
+    );
+  }
   const h = (size * VIEW.h) / VIEW.w;
   return (
     <View style={{ width: size, height: size }} pointerEvents="none">
@@ -44,7 +56,7 @@ function Live({ manifest, size, picture }: { manifest?: AvatarManifest | null; s
 }
 
 /** Keyed on the picture: a new look mounts a fresh drawer (its shared values start from the new look). */
-export const KitAvatarLive = memo(function KitAvatarLive({ manifest, size }: { manifest?: AvatarManifest | null; size: number }) {
+export const KitAvatarLive = memo(function KitAvatarLive({ manifest, size, ring = false }: { manifest?: AvatarManifest | null; size: number; ring?: boolean }) {
   const picture = kitKey(manifest);
-  return <Live key={picture} picture={picture} manifest={manifest} size={size} />;
+  return <Live key={picture} picture={picture} manifest={manifest} size={size} ring={ring} />;
 });

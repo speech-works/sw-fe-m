@@ -85,7 +85,6 @@ const DIAGRAM = {
    * a picture with a caption stuck on the side.
    */
   ring: { size: 84, stroke: 6 },
-  avatar: 58,
 };
 
 export const RingsInfoSheet: React.FC<Props> = ({
@@ -121,7 +120,7 @@ export const RingsInfoSheet: React.FC<Props> = ({
       color={energyHue}
       trackColor={colors.surface.track}
     >
-      <UserAvatar manifest={avatarManifest} size={DIAGRAM.avatar} />
+      <UserAvatar manifest={avatarManifest} size={DIAGRAM.ring.size - 2 * DIAGRAM.ring.stroke} shape="ring" />
     </ProgressRing>
   );
 
