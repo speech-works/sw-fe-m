@@ -1,6 +1,6 @@
 /**
  * "FURTHER THAN EVER BEFORE" (Pip moment P9, founder 2026-11-28): the day-done screen adds a golden shower and the line
- * "Further than ever before." only when this is the furthest day the person has reached.
+ * "New best: Day N" only when this is the furthest day the person has reached.
  *
  * WHAT COUNTS. The record is the furthest program day they ever finished, in any program, kept on the phone. A day beats
  * it when its number is higher AND the record was set in another program. Inside one program every new day is a new

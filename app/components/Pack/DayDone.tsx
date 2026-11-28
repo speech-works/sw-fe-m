@@ -4,8 +4,8 @@
  * BEAT 1, the moment: a warm orange zone, the heading ("Day 2 done") big, and Pip. He rises from behind the top edge of a
  * low sheet and the founder's "day done" final plays (Star shower, 2026-11-28: golden rays open behind him, in the orange
  * zone only, and fat stars rain down the screen). The sheet holds one button.
- * FURTHER THAN EVER (`furthest`, util/packs/furthestDay): right after it, on the same screen, the line "Further than ever
- * before." comes in under the heading and the golden shower falls, the whole of it in the orange zone only.
+ * FURTHER THAN EVER (`furthest`, util/packs/furthestDay): right after it, on the same screen, the line "New best: Day N"
+ * comes in under the heading and the golden shower falls, the whole of it in the orange zone only.
  * BEAT 2, the wrap-up (only when the program has goals to ask about): "Continue" lifts the sheet. Pip gets smaller and
  * rides the sheet's edge at the right, the heading moves to the left and gets smaller, and the sheet shows the goals
  * check, then (after a divider) the tomorrow lines, and "Back to home".
@@ -58,6 +58,8 @@ export interface DayDoneProps {
   onHome: () => void;
   /** This is the furthest day the person has reached (util/packs/furthestDay): the "further than ever" moment follows. */
   furthest?: boolean;
+  /** The day just done (its number), for the new-best line. */
+  day?: number | null;
   sound?: boolean;
   /** false: Pip waits behind the edge until play() (the labs). */
   autoPlay?: boolean;
@@ -88,7 +90,8 @@ const EASE = ZONE_EASE;
 // the founder's finals (Pip/fx/momentFx.ts)
 const CREAM = "#FFF6E8";
 const DAY_DONE_FX = momentFxNow("day-done"), FURTHEST_FX = momentFxNow("furthest-moment");
-const FURTHEST_LINE = "Further than ever before.";
+/** The new-best line: plain words for people who read English as a second language (founder 2026-11-28, P9 A). */
+export const furthestLine = (day?: number | null) => (day && day > 0 ? `New best: Day ${day}` : "New best");
 
 /** Beat 2's still stars round the small Pip: [x, y] from the point where his middle meets the edge, in units of his visible
  *  height; size in the same unit. All of them clear of his face, his collar and the heading. */
@@ -101,7 +104,7 @@ const STARS: { x: number; y: number; r: number; c: string }[] = [
 const STAR_D = FX_SHAPES.star?.paths[0]?.d ?? "";
 
 export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
-  { heading, closeLine, nextTitle, onNext, goalsSlot, onHome, furthest = false, sound = true, autoPlay = true, screen, insets }, ref) {
+  { heading, closeLine, nextTitle, onNext, goalsSlot, onHome, furthest = false, day = null, sound = true, autoPlay = true, screen, insets }, ref) {
   const { colors, scheme } = useTheme();
   const reduced = useReducedMotion();
   const safe = useContext(SafeAreaInsetsContext);
@@ -244,7 +247,7 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
 
       {furthest ? (
         <Animated.View pointerEvents="none" style={[s.headRow, { top: furtherY }, furtherSt]} accessibilityLiveRegion="polite">
-          <Text variant="h3" color={onOrange} center>{FURTHEST_LINE}</Text>
+          <Text variant="h3" color={onOrange} center>{furthestLine(day)}</Text>
         </Animated.View>) : null}
 
       {/* everything that rides on the sheet's edge: a line of no height at the edge */}

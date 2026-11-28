@@ -1519,6 +1519,7 @@ const PackModuleScreen = () => {
         <DayDone
           heading={dayDoneTitle(module?.title)}
           furthest={furthestDay}
+          day={module?.orderIndex ?? null}
           /* WHY THE DAY CLOSES ITSELF HERE.
              The arc continues but tomorrow is tomorrow, so there is no "next"
              button to offer. Saying nothing looked like the app running out
