@@ -72,6 +72,9 @@ const LETTERS = "ABCDEFGH";
  *  the founder's final pick(s), to check them on the phone. */
 const FINAL = process.env.EXPO_PUBLIC_PIP_LAB === "final" || (() => { try { return /momentslab=final/.test((globalThis as any).location?.hash ?? ""); } catch { return false; } })();
 const SAMPLE_MOMENTS = FINAL ? FINAL_MOMENTS : ALL_SAMPLES;
+/** Placement preview (web, for the placement review): &place=dim shows the moment over the real screen dimmed, Pip on his blob in
+ *  the middle; the default shows Pip in his own spot on the screen. */
+const PLACE: "spot" | "dim" = (() => { try { return /[&,]place=dim/.test((globalThis as any).location?.hash ?? "") ? "dim" : "spot"; } catch { return "spot"; } })();
 /** Web review: #momentslab=day-done,step-skipped shows only those moments (in that order), nothing else to look at. */
 const ONLY: string[] | null = (() => { try { const m = ((globalThis as any).location?.hash ?? "").match(/momentslab=([a-z0-9,-]+)/); return m && m[1] !== "final" ? m[1].split(",") : null; } catch { return null; } })();
 const ORDER: number[] = ONLY ? ONLY.map(id => PIP_MOMENTS.findIndex(m => m.id === id)).filter(i => i >= 0) : PIP_MOMENTS.map((_, i) => i);
@@ -172,7 +175,8 @@ export default function MomentsLab() {
     </Pressable>);
 
   const { height } = useWindowDimensions();
-  const scr = SCR[SCREEN_OF[moment.id]];
+  const scr0 = SCR[SCREEN_OF[moment.id]];
+  const scr = scr0 && PLACE === "dim" ? { ...scr0, x: 75, y: 250, size: 240, cut: 844, blob: true } : scr0;
   const screenH = Math.round(height * 0.56), k = screenH / 844, screenW = Math.round(390 * k);
   const plainSize = Math.min(width - 32, 260);
   const pSize = scr ? Math.round(scr.size * k) : plainSize, pH = Math.round(pSize * 322 / 372);
@@ -186,6 +190,7 @@ export default function MomentsLab() {
       {scr ? (
         <View ref={shot} onLayout={measureShot} style={[s.screen, { width: screenW, height: screenH }]}>
           <Image source={scr.img} style={{ width: screenW, height: screenH }} resizeMode="cover" />
+          {PLACE === "dim" ? <View pointerEvents="none" style={[s.abs, { left: 0, top: 0, width: screenW, height: screenH, backgroundColor: "rgba(10,9,8,0.72)" }]} /> : null}
           <View pointerEvents="none" style={[s.abs, { left: Math.round(scr.x * k), top: Math.round(scr.y * k) }]}>{pipEl}</View>
         </View>
       ) : (
