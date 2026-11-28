@@ -15,6 +15,9 @@ import { FX_SHAPES } from "./library";
 import { playSfx, preloadSfx } from "./sfx";
 import type { SfxName } from "./sfx";
 import type { FxEffect } from "./types";
+import { fitFx } from "./fitFx";
+import { useFxFront } from "./FxPortal";
+import type { FxSpot } from "./fitFx";
 
 export interface PipStageHandle {
   /** Pip himself (play, face, body, perform). */
@@ -38,9 +41,20 @@ export interface PipStageProps extends PipProps {
   figureY?: SharedValue<number>;
   /** The visible screen in window px (default: the whole window). The web preview page puts a phone screen inside the browser window. */
   screen?: { x: number; y: number; width: number; height: number };
+  /** The background effects (layer "back") end at this line, px from the screen's top: on a screen with a bottom sheet, the
+   *  hero behind Pip changes (night, heat, rays) and the sheet stays as it is. */
+  backClip?: number;
+  /** true: Pip is not drawn; only the effect's props play (Home's bird, the loading timer, the notification bell: founder
+   *  2026-11-28). His beats still run, unseen, so the effect's timing is unchanged. */
+  hideFigure?: boolean;
+  /** true: the front layer ends at `backClip` too (a moment that stays in the orange zone, e.g. "further than ever"). */
+  clipFront?: boolean;
+  /** Where the effect was designed (its lab screen, momentFx.ts MOMENT_SPOT): its props are moved to where Pip really stands
+   *  (fitFx.ts). None: the effect plays as written. */
+  design?: FxSpot;
 }
 
-export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect, sound = true, screen, figureClip, figureY, ...pip }, ref) {
+export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect: given, sound = true, screen, figureClip, figureY, backClip, clipFront, hideFigure, design, ...pip }, ref) {
   const reduced = useReducedMotion();
   const pipRef = useRef<PipHandle>(null);
   const clock = useSharedValue(-1), t0 = useSharedValue(-1), endMs = useSharedValue(0);
@@ -52,6 +66,20 @@ export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipSt
   const wd = useWindowDimensions(), win = screen ?? { x: 0, y: 0, width: wd.width, height: wd.height }, root = useRef<View>(null), [off, setOff] = useState<[number, number]>([0, 0]);
   const measure = useCallback(() => { root.current?.measureInWindow((x, y) => { if (Number.isFinite(x) && Number.isFinite(y)) setOff(o => (o[0] === x && o[1] === y ? o : [x, y])); }); }, []);
   const origin = useMemo<[number, number]>(() => [(off[0] - win.x + stageW / 2) / win.width, (off[1] - win.y + top + pipH * 0.42) / win.height], [off, stageW, top, pipH, win.x, win.y, win.width, win.height]);
+  // the effect fitted to Pip's real place (his centre in the screen and his width), once his place is measured
+  const effect = useMemo(() => (given && design ? fitFx(given, design, { cx: origin[0] * win.width, cy: origin[1] * win.height, size: pip.size, W: win.width, H: win.height }) : given),
+    [given, design, origin, pip.size, win.width, win.height]);
+  // a screen with a sheet over Pip draws the front layer above its sheet (FxPortal): hand it over
+  const front = useFxFront(), frontKey = useRef(`fx${Math.random().toString(36).slice(2)}`).current;
+  const frontClipped = clipFront && backClip != null;
+  useEffect(() => {
+    if (!front) return;
+    front.set(frontKey, (
+      <View pointerEvents="none" style={{ position: "absolute", left: win.x, top: win.y, width: win.width, height: frontClipped ? Math.max(0, backClip ?? 0) : win.height, overflow: frontClipped ? "hidden" : "visible" }}>
+        <FxLayer effect={effect} layer="front" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
+      </View>));
+  }, [front, frontKey, effect, origin, clock, win.x, win.y, win.width, win.height, frontClipped, backClip]);
+  useEffect(() => () => front?.set(frontKey, null), [front, frontKey]);
   const fxBox = { position: "absolute" as const, left: win.x - off[0], top: win.y - off[1], width: win.width, height: win.height };
   // run = 1 while an effect plays. Once it ends the clock stays at -1: a frame that still runs after the end must not
   // start the effect again (that left every particle frozen near its start point)
@@ -76,13 +104,13 @@ export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipSt
   const noShift = useSharedValue(0), shift = figureY ?? noShift;
   const figSt = useAnimatedStyle(() => ({ transform: [{ translateY: shift.value }] }));
   const figure = (
-    <Animated.View style={[{ position: "absolute", left: Math.round((stageW - pip.size) / 2), top }, figSt]}>
+    <Animated.View style={[{ position: "absolute", left: Math.round((stageW - pip.size) / 2), top }, hideFigure && { opacity: 0 }, figSt]}>
       <Pip ref={pipRef} {...pip} scene={"scene" in pip ? pip.scene : effect?.scene ?? null} />
     </Animated.View>);
   return (
     // zIndex: the stage (and so its effects) floats above the screen's other content
     <View ref={root} onLayout={measure} style={{ width: stageW, height: stageH, zIndex: 50 }} pointerEvents="none">
-      <View pointerEvents="none" style={fxBox}>
+      <View pointerEvents="none" style={[fxBox, backClip != null && { height: Math.max(0, backClip), overflow: "hidden" as const }]}>
         <FxLayer effect={effect} layer="back" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
       </View>
       {figureClip == null ? figure : (
@@ -90,8 +118,9 @@ export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipSt
         <View pointerEvents="none" style={{ position: "absolute", left: -pip.size, top: -pip.size, width: stageW + 2 * pip.size, height: figureClip + pip.size, overflow: "hidden" }}>
           <View style={{ position: "absolute", left: pip.size, top: pip.size }}>{figure}</View>
         </View>)}
-      <View pointerEvents="none" style={fxBox}>
-        <FxLayer effect={effect} layer="front" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
-      </View>
+      {front ? null : (
+        <View pointerEvents="none" style={[fxBox, frontClipped && { height: Math.max(0, backClip ?? 0), overflow: "hidden" as const }]}>
+          <FxLayer effect={effect} layer="front" W={win.width} H={win.height} pipOrigin={origin} clock={clock} shapes={FX_SHAPES} />
+        </View>)}
     </View>);
 });

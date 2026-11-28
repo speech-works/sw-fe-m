@@ -12,13 +12,16 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
 import type { FxEffect, FxEmitter, FxShape } from "./types";
 
-const KIND = { burst: 0, rain: 1, rise: 2, twinkle: 3, flicker: 4, rays: 5, ring: 6, pop: 7, arc: 3 } as const;   // arc moves like twinkle, placed along its arc
+const KIND = { burst: 0, rain: 1, rise: 2, twinkle: 3, flicker: 4, rays: 5, ring: 6, pop: 7, arc: 3, track: 8 } as const;   // arc moves like twinkle, placed along its arc
 
 type Part = {
   k: number; t0: number; life: number; x0: number; y0: number; vx: number; vy: number; g: number; drag: number;
   size: number; rot0: number; spin: number; wob: number; sway: number; hz: number; ph: number; flip: number; fi: number; fo: number; op: number;
   shape: string; c1: string; c2: string;
+  /** track: keyframes flattened, 7 numbers each: t, x, y, r, s, o, easing (0 io, 1 out, 2 in, 3 back, 4 lin, 5 hold) */
+  kf: number[];
 };
+const EASE = { io: 0, out: 1, in: 2, back: 3, lin: 4, hold: 5 } as const;
 
 /** A small seeded random (mulberry32), so an effect looks the same each time it plays. */
 function rng(seed: number) {
@@ -35,13 +38,19 @@ export function makeParticles(effect: FxEffect, layer: "back" | "front", W: numb
     const r = rng(hash(effect.id + ":" + ei));
     const R = (v: [number, number] | undefined, d: [number, number]) => { const q = v ?? d; return q[0] + (q[1] - q[0]) * r(); };
     const k = KIND[e.kind];
-    const single = e.kind === "rays" || e.kind === "ring" || e.kind === "pop";
+    const single = e.kind === "rays" || e.kind === "ring" || e.kind === "pop" || e.kind === "track";
     const n = e.count ?? (single ? 1 : 20);
     const o = e.origin ?? pipOrigin, area = e.area ?? [0, 0, 1, 1];
     const colors = e.colors && e.colors.length ? e.colors : ["#F76117"];
+    // a track: its keyframes, every value carried forward from the key before
+    const kf: number[] = [];
+    if (e.kind === "track" && e.keys) {
+      let x = 0, y = 0, rr = 0, sc = 1, op = 1;
+      for (const q of e.keys) { x = q.x ?? x; y = q.y ?? y; rr = q.r ?? rr; sc = q.s ?? sc; op = q.o ?? op; kf.push(q.t, x, y, rr, sc, op, EASE[q.e ?? "io"]); }
+    }
     for (let i = 0; i < n; i++) {
       const ci = Math.floor(r() * colors.length);
-      const life0 = R(e.life, single ? [1600, 1600] : [900, 1500]);
+      const life0 = e.kind === "track" && kf.length ? kf[kf.length - 7] : R(e.life, single ? [1600, 1600] : [900, 1500]);
       const t0 = (e.at ?? 0) + (e.stagger ? (e.kind === "arc" ? (n > 1 ? i / (n - 1) : 0) : r()) * e.stagger : 0);
       // every particle has faded out before the effect ends: nothing is left on screen, nothing is cut off mid-air
       const life = Math.min(life0, effect.ms - 40 - t0);
@@ -66,7 +75,7 @@ export function makeParticles(effect: FxEffect, layer: "back" | "front", W: numb
         rot0: e.tilt ? R(e.tilt, [0, 0]) : single || e.upright ? 0 : r() * 360, spin: e.upright ? 0 : R(e.spin, [0, 0]) * (r() < 0.5 && !single ? -1 : 1), wob: e.upright ? 8 : 0,
         sway: (e.sway ?? 0) * (0.6 + 0.8 * r()), hz: (e.swayHz ?? 0.6) * (0.7 + 0.6 * r()), ph: r() * Math.PI * 2,
         flip: e.flip ? 1 : 0, fi: Math.min(e.fadeIn ?? 120, life * 0.3), fo: Math.min(e.fadeOut ?? 300, life * 0.5), op: e.opacity ?? 1,
-        shape: e.shapes[Math.floor(r() * e.shapes.length)], c1: colors[ci], c2: colors[(ci + 1) % colors.length],
+        shape: e.shapes[Math.floor(r() * e.shapes.length)], c1: colors[ci], c2: colors[(ci + 1) % colors.length], kf,
       });
     }
   });
@@ -94,13 +103,26 @@ const Particle = memo(function Particle({ p, clock, W, H, shape }: { p: Part; cl
       rot += p.spin * s;
     } else if (p.k === 6) {                // ring
       const u = a / p.life; sc = 0.15 + 0.85 * (1 - (1 - u) * (1 - u)); op *= 1 - u;
+    } else if (p.k === 8) {                // track: between the keys around now
+      const K = p.kf, n = K.length / 7;
+      let j = 0; while (j < n - 1 && K[(j + 1) * 7] <= a) j++;
+      const b0 = j * 7, b1 = Math.min(n - 1, j + 1) * 7, span = K[b1] - K[b0];
+      let u = span > 0 ? Math.min(1, Math.max(0, (a - K[b0]) / span)) : 1;
+      const ek = K[b1 + 6];
+      if (ek === 0) u = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      else if (ek === 1) u = 1 - Math.pow(1 - u, 3);
+      else if (ek === 2) u = u * u * u;
+      else if (ek === 3) { const c = 1.70158 * 1.3; u = 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); }
+      else if (ek === 5) u = u >= 1 ? 1 : 0;
+      const L = (o: number) => K[b0 + o] + (K[b1 + o] - K[b0 + o]) * u;
+      x += L(1); y += (L(2) * W) / H; rot += L(3); sc = L(4); op *= L(5);
     } else {                               // pop: spring in (300 ms), bob, pop out (220 ms)
       const inT = 300, outT = 220;
       if (a < inT) { const u = a / inT, c = 1.70158 * 1.4; sc = 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); }
       else if (a > p.life - outT) { const u = (a - (p.life - outT)) / outT; sc = 1 + 0.15 * u; op *= 1 - u; }
       else { sc = 1 + 0.025 * Math.sin(2 * Math.PI * 1.1 * s); y += 0.006 * Math.sin(2 * Math.PI * 0.8 * s); }
     }
-    if (p.k !== 7 && p.k !== 6) { op *= Math.min(1, a / Math.max(1, p.fi)) * Math.min(1, (p.life - a) / Math.max(1, p.fo)); }
+    if (p.k !== 7 && p.k !== 6 && p.k !== 8) { op *= Math.min(1, a / Math.max(1, p.fi)) * Math.min(1, (p.life - a) / Math.max(1, p.fo)); }
     if (p.flip) sy *= Math.cos(2 * Math.PI * 1.7 * s + p.ph);
     if (p.wob) rot += p.wob * Math.sin(2 * Math.PI * 0.9 * s + p.ph);
     return { opacity: op, transform: [{ translateX: x * W - p.size / 2 }, { translateY: y * H - p.size / 2 }, { rotate: rot + "deg" }, { scale: sc }, { scaleY: sy }] };

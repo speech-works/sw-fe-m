@@ -434,11 +434,14 @@ const OnboardingQuestionScreen: React.FC = () => {
     } catch (err) {
       console.error("Failed to submit onboarding answers:", err);
       showErrorBottomSheet(
-        "We couldn't save that",
+        "Your answer is safe",
         apiErrorMessage(
           err,
           "Your answer is still here. Check your connection and try again.",
         ),
+        undefined,
+        undefined,
+        { pip: "work-safe" },
       );
       return { ok: false, isComplete: false };
     }

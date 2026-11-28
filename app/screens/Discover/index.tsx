@@ -54,6 +54,7 @@ import { listingFix, listingFixLabel } from "../../util/functions/listingBlock";
 import { TAG_LABELS, proposedTags } from "../../constants/discoveryTags";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
+import { PipWaiting } from "../../components/Pip/PipWaiting";
 
 /**
  * Finding a buddy when you don't already know one.
@@ -631,7 +632,7 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
   };
 
   const body = () => {
-    if (candidates === null && !error) return <Spinner label="Looking…" />;
+    if (candidates === null && !error) return <PipWaiting kind="loading" label="Looking…" />;
     if (error && !candidates?.length) {
       return (
         <ErrorState

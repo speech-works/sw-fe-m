@@ -24,6 +24,7 @@ import type { DayDoneHandle } from "../../components/Pack/DayDone";
 import { DAY_DONE_SAMPLES, DayDoneReal } from "./DayDoneReal";
 import type { DayDoneSample } from "./DayDoneReal";
 import { ProgramLab, labLink, parseLabHash } from "./ProgramLab";
+import { MomentSpotLab, parseSpotHash } from "./MomentSpotLab";
 import type { LabSpec } from "./ProgramLab";
 import { PROGRAM_LAB_LINKS } from "./programLabLinks";
 import { LAB_LOOKS } from "./AvatarLab";
@@ -112,7 +113,7 @@ export default function FxWeb() {
   // phase 3 moments: the picked effect with its text, over a dimmed screen or on the screen as it is
   const momentRef = useRef<PipMomentHandle>(null), [backdrop, setBackdrop] = useState<PipBackdrop | undefined>(undefined);   // undefined = each moment's own pick
   const playMoment = async (i: number, look?: AvatarManifest | null) => {
-    if (busyRef.current) return; busyRef.current = true; setBusy(true); setLast(PIP_MOMENTS[i].ref + " " + PIP_MOMENTS[i].name);
+    if (busyRef.current) return; busyRef.current = true; setBusy(true); setLast(PIP_MOMENTS[i].id);
     // a "user" moment (Avatar saved) is played by a sample user avatar here (the app passes the avatar just saved)
     const lk = PIP_MOMENTS[i].figure === "user" ? (look !== undefined ? look : LAB_LOOKS[5][1]) : undefined;
     try { if (shown.current) await move(exit); await momentRef.current?.play({ ...PIP_MOMENTS[i], ...(lk !== undefined ? { look: lk } : {}) }); } finally { busyRef.current = false; setBusy(false); }
@@ -238,6 +239,9 @@ export default function FxWeb() {
       <Text style={[s.chipT, { color: on ? "#141311" : T.fg }]}>{label}</Text>
     </Pressable>);
   const narrow = narrowW;
+  // the moments' own pieces with sample data (review shots): #mspot=<which>,390x844,dark (MomentSpotLab.tsx)
+  const spot = parseSpotHash(typeof location !== "undefined" ? location.hash || "" : "");
+  if (spot) return <MomentSpotLab spec={spot} />;
   // bare link (what the phone frame's iframe loads): only the phone screen, filling the window, so the window IS the phone
   if (pl?.spec.bare) return <View style={{ flex: 1, backgroundColor: dark ? "#141311" : "#F7F4EE" }}><ProgramLab key={pl.run + ":" + dark} spec={pl.spec} dark={dark} /></View>;
   const plSrc = pl && typeof location !== "undefined" ? location.pathname + decodeURIComponent(location.hash || "").replace(/,(dark|light|bare)\b/g, "") + "," + (dark ? "dark" : "light") + ",bare" : "";
@@ -309,7 +313,7 @@ export default function FxWeb() {
             <Btn label="Dimmed" on={backdrop === "dim"} onPress={() => setBackdrop("dim")} off={busy} />
             <Btn label="Normal screen" on={backdrop === "none"} onPress={() => setBackdrop("none")} off={busy} />
           </View>
-          <View style={s.row}>{PIP_MOMENTS.map((m, i) => <Btn key={m.id} label={m.ref + " " + m.name} onPress={() => playMoment(i)} off={busy} />)}</View>
+          <View style={s.row}>{PIP_MOMENTS.map((m, i) => <Btn key={m.id} label={m.id} onPress={() => playMoment(i)} off={busy} />)}</View>
         </View>}
         <View style={[s.card, { backgroundColor: T.card, borderColor: T.line }]}>
           <Text style={[s.title, { color: T.fg }]}>Body moves{compare ? ": both phones play at the same moment" : ""}</Text>

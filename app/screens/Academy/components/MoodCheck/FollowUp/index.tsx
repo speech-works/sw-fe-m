@@ -208,7 +208,11 @@ const FollowUp = () => {
     setShowSuccessSheet(false);
     if (moodPipFired.current) return;
     moodPipFired.current = true;
-    void showPipMoment("mood-saved");
+    // A beat after the sheet is gone, so Pip never plays under its closing animation.
+    // The sticker matches the mood: happy gets the laughing one and a hop; sad or angry get the soft, silent one (Pip never
+    // cheers at someone who feels low); calm gets the plain one.
+    const variant = mood === MoodType.HAPPY ? "high" : mood === MoodType.SAD || mood === MoodType.ANGRY ? "low" : "neutral";
+    setTimeout(() => { void showPipMoment("mood-checkin", { variant }); }, 350);
   };
   const [showExitPromptSheet, setShowExitPromptSheet] = useState(false);
   const [recoverySheet, setRecoverySheet] = useState<RecoverySheetState>({

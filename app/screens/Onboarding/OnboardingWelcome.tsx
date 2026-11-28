@@ -1,12 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useRef, useState } from "react";
-import { showPipMoment } from "../../components/Pip";
-import { StyleSheet, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { PipMomentSpot } from "../../components/Pip/PipMomentSpot";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import ScreenView from "../../components/ScreenView";
-import WelcomeStage from "../PreAuth/WelcomeStage";
 import {
   OnboardingStackNavigationProp,
   OnboardingStackParamList,
@@ -25,7 +24,6 @@ import {
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { useUserStore } from "../../stores/user";
-import { SITUATION_PHRASE } from "../../constants/onboardingActOne";
 import { loadServerOnboardingAnswers } from "../../util/functions/loadServerOnboardingAnswers";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 import { apiErrorMessage } from "../../util/functions/apiError";
@@ -54,17 +52,15 @@ const OnboardingWelcome: React.FC = () => {
     useNavigation<
       OnboardingStackNavigationProp<keyof OnboardingStackParamList>
     >();
-  const { enterFlow, answers } = useOnboardingStore();
+  const { enterFlow } = useOnboardingStore();
   const user = useUserStore((s) => s.user);
   const { emit } = useEventStore();
   const [stageHeight, setStageHeight] = useState(0);
-  // Pip welcomes the person once, when the screen first mounts (founder 2026-11-26).
-  const pipFired = useRef(false);
-  useEffect(() => {
-    if (pipFired.current) return;
-    pipFired.current = true;
-    void showPipMoment("welcome");
-  }, []);
+  // Pip is the hero here (the welcome moment plays on his own spot: the mat the first time, the HELLO letters later).
+  // His props act under him, so the words sit ABOVE him and the props fall into the free space over the button.
+  const { width } = useWindowDimensions();
+  // his picture (0.87 of his width) plus his props under him (1.1 of his width) fit the slot
+  const pipSize = Math.round(Math.max(120, Math.min(width * 0.56, stageHeight / 2)));
   // Continue now makes two network calls, so it needs a visible busy state —
   // and a guard, since a double tap would fire two flow fetches and two
   // navigates.
@@ -84,23 +80,6 @@ const OnboardingWelcome: React.FC = () => {
     const created = user?.createdAt ? new Date(user.createdAt).getTime() : null;
     if (!created || Number.isNaN(created)) return false;
     return Date.now() - created > 24 * 60 * 60 * 1000;
-  })();
-
-  /**
-   * Their Act 1 situations, if the replay seeded them.
-   *
-   * `undefined` rather than `[]` when there are none — that distinction is
-   * load-bearing in WelcomeStage: undefined means "show the samples", an empty
-   * array means "show no bubbles at all". Someone who never did Act 1 should
-   * see the samples, not an empty stage.
-   */
-  const ownSituations = (() => {
-    const raw = answers?.["speech.situations"];
-    const chosen = Array.isArray(raw) ? raw : raw ? [raw] : [];
-    const phrases = chosen
-      .map((v) => SITUATION_PHRASE[String(v)])
-      .filter(Boolean) as string[];
-    return phrases.length > 0 ? phrases.slice(0, 3) : undefined;
   })();
 
   /**
@@ -171,19 +150,8 @@ const OnboardingWelcome: React.FC = () => {
       </View>
 
       <View style={[styles.body, { paddingTop: spacing.lg }]}>
-        {/* The slot measures itself and hands its height to the illustration —
-            see the note on `sizes()` in WelcomeStage for why this is measured
-            rather than derived from the window. */}
-        <Animated.View
-          style={styles.stageSlot}
-          entering={motion.stagger(0)}
-          onLayout={(e) => setStageHeight(e.nativeEvent.layout.height)}
-        >
-          <WelcomeStage available={stageHeight} labels={ownSituations} />
-        </Animated.View>
-
         <View style={styles.copyBlock}>
-          <Animated.View entering={motion.stagger(1)}>
+          <Animated.View entering={motion.stagger(0)}>
             {/* Hard-broken to two lines so the lockup matches "Everyone has /
                 a list." on the opening screen — same variant, same 40 leading,
                 same left edge.
@@ -201,7 +169,7 @@ const OnboardingWelcome: React.FC = () => {
             </Text>
           </Animated.View>
 
-          <Animated.View entering={motion.stagger(2)}>
+          <Animated.View entering={motion.stagger(1)}>
             <Text variant="h3" color="secondary">
               {isReask
                 ? "We've improved how we match programs to people. Yours will fit properly."
@@ -209,6 +177,15 @@ const OnboardingWelcome: React.FC = () => {
             </Text>
           </Animated.View>
         </View>
+
+        {/* The slot measures itself and hands its height to Pip, so he fills the gap on any device. */}
+        <Animated.View
+          style={styles.stageSlot}
+          entering={motion.stagger(2)}
+          onLayout={(e) => setStageHeight(e.nativeEvent.layout.height)}
+        >
+          {stageHeight > 0 ? <PipMomentSpot moment="welcome-first-launch" size={pipSize} enter delay={500} /> : null}
+        </Animated.View>
       </View>
 
       <View
@@ -253,12 +230,11 @@ const styles = StyleSheet.create({
     gap: space.groupGap,
     paddingBottom: space.groupGap,
   },
-  // Absorbs the slack so the illustration floats up top and the text block
-  // lands against the CTA — the stacking that gives ActOneWelcome its weight.
+  // Pip stands at the top of the slack; his props act in the free room under him.
   stageSlot: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   copyBlock: {
     gap: space.inlineGap,

@@ -15,7 +15,7 @@ let host: PipMomentHandle | null = null, playing: Promise<void> | null = null, w
 
 /** Play a moment (pipMoments.ts). `override` changes its text, e.g. the real day number. A moment whose figure is "user"
  *  is played by the user's own avatar: `override.look`, or else the signed-in user's saved one. Resolves when the figure has left. */
-export async function showPipMoment(id: PipMomentId, override?: Partial<Pick<PipMomentDef, "title" | "body">> & { look?: AvatarManifest | null }): Promise<void> {
+export async function showPipMoment(id: PipMomentId, override?: Partial<Pick<PipMomentDef, "title" | "body">> & { look?: AvatarManifest | null; variant?: string }): Promise<void> {
   if (!host) return;
   if (playing) { if (waiting) return; waiting = true; await playing; waiting = false; }
   const def = pipMoment(id);

@@ -312,7 +312,7 @@ const QuizRunner = forwardRef<QuizRunnerHandle, QuizRunnerProps>(function QuizRu
       above={sheetOpen && revealed ? (space: number) => (
         <View style={styles.peekRow}>
           <View style={{ marginRight: Math.round(PEEK_CENTRE * peekK - (Math.round(PEEK_W * peekK) + 40) / 2) }}>
-            <PipPeek key={index + ":" + (gotItRight ? "r" : "n")} moment={gotItRight ? "quiz-right" : "quiz-not-this"} space={space} max={Math.round(PEEK_W * peekK)} hide={PIP_HIDE} stay />
+            <PipPeek key={index + ":" + (gotItRight ? "r" : "n")} moment={gotItRight ? "quiz-right" : "quiz-not-this-one"} space={space} max={Math.round(PEEK_W * peekK)} hide={PIP_HIDE} stay />
           </View>
         </View>
       ) : undefined}
