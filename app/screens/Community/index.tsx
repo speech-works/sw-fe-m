@@ -80,6 +80,7 @@ import {
   getBuddyRequests,
   acceptBuddyRequest,
   declineBuddyRequest,
+  cancelBuddyRequest,
   type BuddyRequest,
   attachInviteCode,
 } from "../../api/buddies";
@@ -94,6 +95,7 @@ import { shareBuddyInvite } from "../../util/functions/share";
 import { monthYear, relativeAgo } from "../../util/functions/time";
 import BuddyRequestList from "../../components/BuddyRequests";
 import RequestSheet from "../../components/BuddyRequests/RequestSheet";
+import SentRequestList from "../../components/BuddyRequests/SentList";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
@@ -538,6 +540,10 @@ const Community = () => {
   const incomingRequests = requests.filter(
     (r) => r.direction === "incoming" && !hiddenIds.includes(r.id),
   );
+  // Requests YOU sent, still waiting. Shown on the Waiting tab with Cancel and
+  // as one line on the home stage (buddy audit 2026-11-28, B5).
+  const sentRequests = requests.filter((r) => r.direction === "outgoing");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   /**
    * What the pairing modal says, and what it deliberately does not ask.
@@ -589,7 +595,33 @@ const Community = () => {
       .getState()
       .setPendingRequestCount(isPaired ? 0 : incomingRequests.length);
   }, [isPaired, incomingRequests.length]);
-  const isPending = link?.status === "pending";
+  // One line under the stage for what you are waiting on. `/buddies/me` only
+  // ever returns an ACTIVE link, so the old `link.status === "pending"` test
+  // was never true and nothing showed after "Request sent".
+  const sentLine =
+    sentRequests.length === 0
+      ? null
+      : sentRequests.length === 1
+        ? `Waiting for ${sentRequests[0].profile.name?.split(" ")[0] || "them"} to say yes`
+        : `Waiting for ${sentRequests.length} people to say yes`;
+
+  const cancelSent = async (req: BuddyRequest) => {
+    if (cancellingId) return;
+    setCancellingId(req.id);
+    try {
+      await cancelBuddyRequest(req.id);
+      setRequests((prev) => prev.filter((r) => r.id !== req.id));
+    } catch (e) {
+      // Already gone (answered, expired) is the outcome the person wanted.
+      if (isNotFound(e)) {
+        setRequests((prev) => prev.filter((r) => r.id !== req.id));
+      } else {
+        showErrorBottomSheet("Couldn't cancel", apiErrorMessage(e, "Please try again."));
+      }
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   // The morph is only available once paired (the invite screen has no Us/Timeline).
   useEffect(() => {
@@ -1188,11 +1220,16 @@ const Community = () => {
                 <EmptyState
                   icon={null}
                   title="Nobody waiting"
-                  message="When someone asks to practise with you, they'll be here."
+                  message="When someone asks to practice with you, they'll be here."
                 />
               ) : (
                 <BuddyRequestList requests={incomingRequests} onOpen={setOpenRequest} />
               )}
+              <SentRequestList
+                requests={sentRequests}
+                busyId={cancellingId}
+                onCancel={(req) => void cancelSent(req)}
+              />
             </View>
           </CustomScrollView>
         </View>
@@ -1448,11 +1485,11 @@ const Community = () => {
             : "Practice sticks when someone's in it with you."}
         </Text>
 
-        {isPending && (
+        {sentLine && (
           <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint }]}>
             <Icon name={icons.soon} size={size.iconInline} color={colors.text.accent} />
             <Text variant="caption" color="accent" style={styles.bold}>
-              Waiting for them to join…
+              {sentLine}
             </Text>
           </View>
         )}

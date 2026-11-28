@@ -206,7 +206,7 @@ export const TagPickerSheet: React.FC<TagPickerSheetProps> = ({
         </View>
 
         {question(
-          "What are you practising?",
+          "What are you practicing?",
           "The ones you actually work on.",
           SITUATION_TAGS,
         )}

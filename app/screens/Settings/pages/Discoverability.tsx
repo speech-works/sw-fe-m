@@ -118,6 +118,15 @@ const Discoverability = () => {
   }
 
   /**
+   * A block (no name, setup not finished) stops you turning listing ON. It
+   * must never stop you turning it OFF: someone listed earlier whose name
+   * later went missing was locked on, with Save greyed out (buddy audit
+   * 2026-11-28, B11). The server always accepts "off".
+   */
+  const blocked = !!profile?.blockedReason;
+  const cantSave = blocked && discoverable;
+
+  /**
    * The same two questions the Discover sheet asks, over the same groups.
    *
    * This screen used to show `profile.suggestions` alone, in one flat grid.
@@ -151,7 +160,7 @@ const Discoverability = () => {
       footer={
         <Button
           label={saving ? "Saving…" : "Save"}
-          disabled={saving || !!profile?.blockedReason}
+          disabled={saving || cantSave}
           onPress={save}
         />
       }
@@ -197,10 +206,21 @@ const Discoverability = () => {
           </View>
           <Toggle
             value={discoverable}
-            disabled={!!profile?.blockedReason}
+            disabled={blocked && !discoverable}
             onChange={() => setDiscoverable((v) => !v)}
           />
         </View>
+        {/* On, but nobody can see you right now (holiday mode, or you have a
+            buddy). The server says why; this screen used to show only the
+            switch, on, as if all was well (buddy audit 2026-11-28, B7). Only
+            for the saved state: a switch you just flipped is not saved yet. */}
+        {discoverable && profile?.discoverable && profile.pausedReason ? (
+          <View style={[styles.paused, { borderTopColor: colors.border.hairline }]}>
+            <Text variant="bodySm" color="secondary">
+              {profile.pausedReason}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {discoverable ? (
@@ -210,7 +230,7 @@ const Discoverability = () => {
             choose it, and you can change it any time.
           </Text>
           {question(
-            "What are you practising?",
+            "What are you practicing?",
             "The ones you actually work on.",
             SITUATION_TAGS,
           )}
@@ -235,6 +255,11 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   rowText: { flex: 1, gap: 4 },
+  paused: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
   tagSection: { gap: spacing.sm },
   tagIntro: { marginBottom: spacing.xs },
 });
