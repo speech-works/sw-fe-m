@@ -21,8 +21,8 @@ import {
   icons,
   Button,
   Gradient,
-  Spinner,
 } from "../../../../../../design-system";
+import { PipWaiting } from "../../../../../../components/Pip/PipWaiting";
 
 interface Props {
   practiceActivityId: string;
@@ -148,7 +148,7 @@ const PhoneCallReport: React.FC<Props> = ({
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background.canvas }]}>
-        <Spinner label="Crafting your feedback…" />
+        <PipWaiting kind="loading" label="Crafting your feedback…" />
       </View>
     );
   }

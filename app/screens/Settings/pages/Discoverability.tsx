@@ -12,7 +12,6 @@ import {
   Toggle,
   Button,
   Banner,
-  Spinner,
   ErrorState,
 } from "../../../design-system";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
@@ -31,6 +30,7 @@ import {
   SITUATION_TAGS,
   GOAL_TAGS,
 } from "../../../constants/discoveryTags";
+import { PipWaiting } from "../../../components/Pip/PipWaiting";
 
 /**
  * Being findable — off unless you say otherwise.
@@ -100,7 +100,7 @@ const Discoverability = () => {
   if (profile === null && !error) {
     return (
       <Page title="Being findable" onBack={() => navigation.goBack()}>
-        <Spinner label="Loading…" />
+        <PipWaiting kind="loading" label="Loading…" />
       </Page>
     );
   }

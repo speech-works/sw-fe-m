@@ -77,7 +77,7 @@ const GoalsReportScreen = () => {
   useEffect(() => {
     if (!closed || pipFired.current) return;
     pipFired.current = true;
-    void showPipMoment("program-done");
+    void showPipMoment("program-finished");
   }, [closed]);
   /**
    * ── ASK ONLY WHAT IS STILL OPEN ────────────────────────────────────────────
@@ -225,8 +225,8 @@ const GoalsReportScreen = () => {
   if (closed) {
     return (
       <Page
-        title="That is the program done"
-        description="Your goals stay with you. Nothing here disappears."
+        title="You finished the program"
+        description="Your goals stay here for you."
         footer={<Button label="Done" onPress={leave} />}
       >
         <View style={styles.summary}>

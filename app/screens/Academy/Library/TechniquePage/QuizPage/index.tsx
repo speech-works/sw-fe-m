@@ -20,7 +20,6 @@ import {
   Text,
   Icon,
   icons,
-  Spinner,
   EmptyState,
   useTheme,
   spacing,
@@ -28,6 +27,7 @@ import {
   radius,
   borderWidth,
 } from "../../../../../design-system";
+import { PipWaiting } from "../../../../../components/Pip/PipWaiting";
 
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -86,7 +86,7 @@ const QuizPage = ({
   if (isLoading) {
     return (
       <View style={styles.stateContainer}>
-        <Spinner label="Loading quiz..." />
+        <PipWaiting kind="loading" label="Loading quiz..." />
       </View>
     );
   }

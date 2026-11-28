@@ -84,7 +84,7 @@ export const LevelUpTakeover: React.FC<LevelUpTakeoverProps> = ({
   // so Pip cannot play inside it; the moment plays on the app-level host the moment the takeover closes. Plain level-ups: none.
   const onClose = () => {
     onCloseProp();
-    if (grand) void showPipMoment("new-stage");
+    if (grand) void showPipMoment("level-up", { variant: "stage" });
   };
 
   /*

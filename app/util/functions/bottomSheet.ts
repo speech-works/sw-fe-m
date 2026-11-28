@@ -16,7 +16,12 @@ export const showErrorBottomSheet = (
   primaryAction?: BottomSheetAction,
   dismissLabel?: string,
   /** `dimBackdrop`: keep the screen behind visible under a dim scrim. */
-  options?: { dimBackdrop?: boolean },
+  options?: {
+    dimBackdrop?: boolean;
+    /** "work-safe": a save failed but the person's work is kept. Pip and the calm computer replace the red disc, and
+     *  the title must lead with the good news ("Your work is safe"). Only for that case. */
+    pip?: "work-safe";
+  },
 ) => {
   // The one buzz worth keeping on an ordinary screen. Something failed, the
   // person may already be looking away, and this is the app's single door for
@@ -28,6 +33,7 @@ export const showErrorBottomSheet = (
     primaryAction,
     dismissLabel,
     dimBackdrop: options?.dimBackdrop === true,
+    pip: options?.pip,
   });
 };
 

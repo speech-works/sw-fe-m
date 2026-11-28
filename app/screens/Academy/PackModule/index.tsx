@@ -47,6 +47,10 @@ import {
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import { DayStepsSheet, ReadingSheet } from "../../../components/Pack/DayChrome";
 import { DayFrame, DayIslandDock } from "../../../components/Pack/DayFrame";
+import type { DayFrameApi } from "../../../components/Pack/DayFrame";
+import { PipWaiting } from "../../../components/Pip/PipWaiting";
+import { MOMENT_SPOT, momentFxNow } from "../../../components/Pip/fx/momentFx";
+import type { MomentFxId } from "../../../components/Pip/fx/momentFx";
 import { dayStepFrame } from "../../../components/Pack/dayStepFrame";
 import { TeachPart, teachParts } from "../../../util/packs/teachParts";
 import { dayStepList } from "../../../util/packs/stepList";
@@ -62,7 +66,6 @@ import {
   Button,
   Icon,
   IconName,
-  Spinner,
   Text,
   icons,
   spacing,
@@ -97,6 +100,7 @@ import {
   takeSavedSteps,
 } from "../../../util/packs/dayRefresh";
 import { dayStepKey, resumeStepIndex } from "../../../util/packs/dayStep";
+import { recordDayFinished } from "../../../util/packs/furthestDay";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -243,7 +247,8 @@ const PackModuleScreen = () => {
 
     setShowSkipConfirmation(false);
     // Defer so the sheet's close animation doesn't collide with navigation.
-    setTimeout(() => proceedToNext(), 350);
+    // Then Pip's "step skipped" moment on the practice card (the sneaker car takes the card away), then the next step.
+    setTimeout(() => momentThen("step-skipped", proceedToNext), 350);
   };
 
   /**
@@ -253,7 +258,37 @@ const PackModuleScreen = () => {
    */
   const skipSaidOutLoud = () => {
     setShowSkipConfirmation(false);
-    setTimeout(() => proceedToNext(), 350);
+    setTimeout(() => momentThen("step-skipped", proceedToNext), 350);
+  };
+
+  /**
+   * PIP'S MOMENTS ON THE DAY'S STEPS (founder's finals, placement option A, 2026-11-28). They play on the step's own Pip
+   * (DayFrame.playMoment), then the day goes on:
+   *   step done      Next on a step that has a Pip (start, close, from yesterday, a practice or log card that is done):
+   *                  he ticks the step off, a fast-forward zips past, then the next step slides in. A step with no Pip
+   *                  (a lesson, a quiz, the video) moves on at once, as before.
+   *   step skipped   after the "why" sheet of a skipped practice has closed.
+   *   day start      the first time a Pip comes up on this visit (the start step; or the step a half-done day opens on).
+   * One at a time: a tap while one plays does nothing.
+   */
+  const frameApi = useRef<DayFrameApi | null>(null);
+  const momentBusy = useRef(false);
+  const dayStartPlayed = useRef(false);
+  const momentThen = (id: MomentFxId, go: () => void) => {
+    if (momentBusy.current) return;
+    const api = frameApi.current;
+    if (!api?.pip()) {
+      go();
+      return;
+    }
+    momentBusy.current = true;
+    void api
+      .playMoment(id)
+      .catch(() => undefined)
+      .finally(() => {
+        momentBusy.current = false;
+        go();
+      });
   };
 
   // Wizard State - Initialize with passed index or 0
@@ -1101,6 +1136,8 @@ const PackModuleScreen = () => {
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
+  /** The day just finished is the furthest they have reached (util/packs/furthestDay): DayDone adds "further than ever". */
+  const [furthestDay, setFurthestDay] = useState(false);
   // Pip's day-done moment (founder pick M5: Star burst) plays inside the day-done view itself (DayDone).
   /** Handed to DailyLog so it does not refetch what handleComplete just read. */
   const [goalsAfterModule, setGoalsAfterModule] = useState<
@@ -1136,8 +1173,11 @@ const PackModuleScreen = () => {
         if (started === "handled") return;
         if (started === "failed") {
           showErrorBottomSheet(
-            "We could not save that yet",
+            "Your work is safe",
             "Your work is not lost. Check your connection and tap Complete again.",
+            undefined,
+            undefined,
+            { pip: "work-safe" },
           );
           return;
         }
@@ -1146,6 +1186,8 @@ const PackModuleScreen = () => {
       // skipTally is null unless they answered the "why" question, and null is
       // the honest signal for "unknown" -- see completeModule.
       await completeModule(packId, module.id, skipTally);
+      // the furthest day reached, on the phone (checked once the day is saved; a failure answers "no")
+      setFurthestDay(await recordDayFinished(packId, module.orderIndex));
       // A finished day opens at step 1 again.
       void AsyncStorage.removeItem(dayStepKey(packId, module.id)).catch(() => {});
 
@@ -1254,8 +1296,11 @@ const PackModuleScreen = () => {
       console.error("Failed to complete module", error);
       // The app's own error sheet, not a raw OS alert.
       showErrorBottomSheet(
-        "We could not save that yet",
+        "Your work is safe",
         "Your work is not lost. Check your connection and tap Complete again.",
+        undefined,
+        undefined,
+        { pip: "work-safe" },
       );
     } finally {
       setIsCompleting(false);
@@ -1285,8 +1330,13 @@ const PackModuleScreen = () => {
       setShowSkipConfirmation(true);
       return;
     }
+    // "Skip" on a card that is not done is not a step done: no moment
+    if (isInteractiveBlock && !isBlockCompleted) {
+      proceedToNext();
+      return;
+    }
 
-    proceedToNext();
+    momentThen("step-done", proceedToNext);
   };
 
   const proceedToNext = () => {
@@ -1323,7 +1373,7 @@ const PackModuleScreen = () => {
       <ScreenView style={{ backgroundColor: colors.background.canvas }}>
         <SchemeStatusBar />
         <View style={styles.centerFill}>
-          <Spinner label="Loading content..." />
+          <PipWaiting kind="loading" label="Loading content..." />
         </View>
       </ScreenView>
     );
@@ -1468,6 +1518,8 @@ const PackModuleScreen = () => {
       <ScreenView style={{ backgroundColor: colors.action.primary }}>
         <DayDone
           heading={dayDoneTitle(module?.title)}
+          furthest={furthestDay}
+          day={module?.orderIndex ?? null}
           /* WHY THE DAY CLOSES ITSELF HERE.
              The arc continues but tomorrow is tomorrow, so there is no "next"
              button to offer. Saying nothing looked like the app running out
@@ -1783,8 +1835,17 @@ const PackModuleScreen = () => {
         pip={stepFrame.pip}
         pipFace={stepFrame.pipFace}
         pipReach={stepFrame.pipReach}
-        // Pip's own moves for this step, once he has come up.
-        onPipUp={(p) => void p.pip?.perform(stepFrame.pipUp)}
+        // Pip's own moves for this step, once he has come up. The first Pip of the visit plays "day start" instead
+        // (it replaces the start step's wave).
+        onPipUp={(p) => {
+          if (!dayStartPlayed.current) {
+            dayStartPlayed.current = true;
+            void p.play(momentFxNow("day-start"), MOMENT_SPOT["day-start"]);
+            return;
+          }
+          void p.pip?.perform(stepFrame.pipUp);
+        }}
+        apiRef={frameApi}
         textDelay={stepFrame.textDelay}
         contentKey={currentBlock?.id || currentBlockIndex}
         scrollResetKey={`${currentBlockIndex}:${partIndex}`}

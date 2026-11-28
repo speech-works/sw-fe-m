@@ -20,11 +20,11 @@ import {
   Page,
   size,
   spacing,
-  Spinner,
   Surface,
   Text,
   useTheme,
 } from "../../design-system";
+import { PipWaiting } from "../../components/Pip/PipWaiting";
 
 /**
  * Everything a program's teaching rests on, in one place.
@@ -228,7 +228,7 @@ export default function ProgramEvidence({
     return (
       <Frame>
         <View style={styles.centered}>
-          <Spinner label="Loading…" />
+          <PipWaiting kind="loading" label="Loading…" />
         </View>
       </Frame>
     );

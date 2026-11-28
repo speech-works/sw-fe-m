@@ -158,6 +158,11 @@ export function installLabApi(s?: Partial<LabScenario>): () => void {
     };
     await new Promise((r) => setTimeout(r, 30));
     if (!hit) { console.warn("[lab] unrouted " + method + " " + url); return reply(404, { message: "lab: no stub" }); }
+    // #program=...,day2,locked (the day-locked screen): day 2 and later answer 403 PACK_DAY_LOCKED, as the server does
+    if (method === "GET" && /^\/packs\/[^/]+\/modules\/mod-d(\d+)$/.test(url) && (globalThis as any).location?.hash?.includes(",locked")) {
+      const day = Number(url.match(/mod-d(\d+)$/)![1]);
+      if (day >= 2) return reply(403, { errorCode: "PACK_DAY_LOCKED", error: "This day is not open yet" });
+    }
     return reply(200, JSON.parse(JSON.stringify(hit[2](url.match(hit[1]) as RegExpMatchArray, body))));
   };
   restore = () => { client.defaults.adapter = oldAdapter; client.interceptors.request.handlers = reqHandlers; restore = null; };

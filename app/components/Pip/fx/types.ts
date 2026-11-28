@@ -24,6 +24,8 @@ export type FxEmitterKind =
   | "ring"    // one shape at `origin` growing from small to `size` while fading (shockwave)
   | "arc"    // particles appear one after another along an arc around `origin` (radius `radius`, from `arc[0]` to `arc[1]` degrees,
              // over `stagger` ms), then grow, drift with `sway` and fade like twinkle: sweeping bands (a rainbow of light, a swirl)
+  | "track"  // ONE prop that follows its own keyframes (`keys`): it walks, turns, grows, tips over, hides... For acting props
+             // (a clock that rings, a sign held up, hands gripping a sheet). Offsets are from `origin` (default Pip's centre)
   | "pop";    // a prop springs in with overshoot, bobs gently, pops out at the end of its life (lightbulb, bubble, hat). One at `origin`,
              // or with `area` + `count` several at random spots in the area, spawned over `stagger` (sticker slaps)
 
@@ -54,7 +56,13 @@ export type FxEmitter = {
   fadeIn?: number;                  // ms (default 120)
   fadeOut?: number;                 // ms (default 300)
   opacity?: number;                 // peak opacity (default 1)
+  keys?: FxKey[];                   // for "track": the prop's keyframes (its life = the last key's t)
 };
+/** A keyframe of a "track" prop, `t` ms after the prop starts (its `at`). x, y: offset from the origin in fractions of the screen
+ *  WIDTH (both, so paths keep their shape); r degrees; s scale; o opacity. A value left out holds the key before's. `e` = the
+ *  easing INTO this key: "io" (default) in-out, "out" fast then soft, "in" slow then fast, "back" overshoots and settles, "lin",
+ *  "hold" (jumps at the key: for blinks, ticks, snaps). */
+export type FxKey = { t: number; x?: number; y?: number; r?: number; s?: number; o?: number; e?: "io" | "out" | "in" | "back" | "lin" | "hold" };
 
 /** A sound cue: a file from ./sfx.ts, at a time, at a volume (0..1). */
 export type FxSound = { name: string; at: number; volume?: number };

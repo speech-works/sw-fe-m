@@ -48,7 +48,6 @@ import {
   space,
   borderWidth,
   withAlpha,
-  Spinner,
   haptics,
   spring,
   useNavBarInset,
@@ -84,6 +83,7 @@ import {
   programCoverFor,
   type ProgramCover,
 } from "../../util/packs/programCover";
+import { PipWaiting } from "../../components/Pip/PipWaiting";
 
 /**
  * THE SHOP — every program we sell, ranked for the person looking at it.
@@ -1503,23 +1503,23 @@ const ProgramsScreen = () => {
        learn twice. So it says what will be here, and sends them back to the
        half that can put something in it. */
     <View style={styles.centered}>
-      <Text variant="body" color="secondary" center>
-        Nothing here yet. A program you buy stays yours, and it will wait for
-        you on this shelf.
-      </Text>
-      <View style={styles.emptyAction}>
+      <PipWaiting
+        kind="empty"
+        which="goldfish"
+        label="Nothing here yet. A program you buy stays yours, and it will wait for you on this shelf."
+      >
         <Chip
           label="See what's available"
           icon={icons.explore}
           onPress={() => setView("browse")}
         />
-      </View>
+      </PipWaiting>
     </View>
   );
 
   const status = loading ? (
     <View style={styles.centered}>
-      <Spinner label="Loading programs…" />
+      <PipWaiting kind="loading" label="Loading programs…" />
     </View>
   ) : failed ? (
     <View style={styles.centered}>
@@ -1532,9 +1532,7 @@ const ProgramsScreen = () => {
     // Deliberately not an error: an empty catalog is a normal state before
     // anything is on sale, and it should read as "nothing yet", not "broken".
     <View style={styles.centered}>
-      <Text variant="body" color="secondary" center>
-        No programs are available right now. Check back soon.
-      </Text>
+      <PipWaiting kind="empty" which="snail" label="No programs are available right now. Check back soon." />
     </View>
   ) : null;
 
@@ -1757,7 +1755,6 @@ const styles = StyleSheet.create({
     zIndex: zIndex.sticky,
   },
   /** The sentence and its way out are one block, not two stacked paragraphs. */
-  emptyAction: { marginTop: space.groupGap, alignItems: "center" },
   centered: {
     paddingVertical: spacing["3xl"],
     alignItems: "center",

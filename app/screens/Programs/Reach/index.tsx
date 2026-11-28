@@ -8,7 +8,6 @@ import { getAllProgramGoals } from "../../../api/programGoals";
 import { GoalBlock } from "../../../api/programGoals/types";
 import {
   Card,
-  EmptyState,
   Page,
   Spinner,
   TabDock,
@@ -21,6 +20,7 @@ import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreSt
 import { GoalLine } from "./GoalLine";
 import { KeepsakeDeck } from "./KeepsakeDeck";
 import { LockedState } from "./LockedState";
+import { PipWaiting } from "../../../components/Pip/PipWaiting";
 
 /**
  * ===========================================================================
@@ -142,10 +142,11 @@ const ReachScreen = () => {
         keepsakes.length === 0 ? (
           <GestureDetector gesture={tabSwipe}>
             <View>
-              <EmptyState
-                icon={icons.checklist}
+              <PipWaiting
+                kind="empty"
+                which="goldfish"
                 title="No cards yet"
-                message="Programs that end with something to keep leave it here. Your line, your plan, in your own words."
+                label="Programs that end with something to keep leave it here. Your line, your plan, in your own words."
               />
             </View>
           </GestureDetector>
@@ -161,10 +162,11 @@ const ReachScreen = () => {
               the cards and takes Page's gap with it. It gives the gap back. */}
           <View style={styles.list}>
             {blocks.length === 0 ? (
-              <EmptyState
-                icon={icons.checklist}
+              <PipWaiting
+                kind="empty"
+                which="snail"
                 title="No goals yet"
-                message="Programs that ask what you want to do will show your answers here."
+                label="Programs that ask what you want to do will show your answers here."
               />
             ) : (
               blocks.map((block, i) => (

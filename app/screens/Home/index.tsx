@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { InteractionManager, RefreshControl, View } from "react-native";
+import { InteractionManager, RefreshControl, View, useWindowDimensions } from "react-native";
+import { PipMomentSpot } from "../../components/Pip/PipMomentSpot";
+import type { PipMomentSpotHandle } from "../../components/Pip/PipMomentSpot";
+import { FxFront, FxFrontHost } from "../../components/Pip/fx/FxPortal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
 import { showSuccessBottomSheet } from "../../util/functions/bottomSheet";
@@ -41,6 +45,14 @@ import {
   space,
   radius,
 } from "../../design-system";
+
+// The bird's hello is checked once per app open (set when Home first mounts).
+let homeGreetingShown = false;
+/** When Home last opened (on the phone): back after 2+ days, the bird brings a flower. */
+const LAST_OPEN_KEY = "pip.lastHomeOpen";
+const AWAY_MS = 2 * 24 * 60 * 60 * 1000;
+/** The day the bird last came (it comes at most once a day). */
+const BIRD_DAY_KEY = "pip.birdDay";
 
 const Home = () => {
   const { colors } = useTheme();
@@ -289,6 +301,30 @@ const Home = () => {
       : currentHour < 18
         ? "Good Afternoon,"
         : "Good Evening,";
+  // HOME GREETING (founder 2026-11-28): no Pip on Home, only his bird, and not on every open. The bird flies in and lands on
+  // the program card below at most once a day (the first Home of the day); back after 2+ days away it brings a flower.
+  // The bird's place is worked out from an invisible Pip at the left of the greeting (the moment was designed around him).
+  const { width: screenW } = useWindowDimensions();
+  const pipSize = Math.round(Math.min(screenW * 0.3, 120));
+  const greetPip = useRef(!homeGreetingShown);
+  const greetSpot = useRef<PipMomentSpotHandle>(null);
+  useEffect(() => {
+    homeGreetingShown = true;
+    if (!greetPip.current) return;
+    let alive = true, timer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      let away = false, today = true;
+      try {
+        const now = new Date(), day = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        const [last, lastDay] = await Promise.all([AsyncStorage.getItem(LAST_OPEN_KEY), AsyncStorage.getItem(BIRD_DAY_KEY)]);
+        away = Number(last) > 0 && Date.now() - Number(last) >= AWAY_MS;
+        today = lastDay === day;
+        await AsyncStorage.multiSet([[LAST_OPEN_KEY, String(Date.now())], [BIRD_DAY_KEY, day]]);
+      } catch { /* no record: no bird this time */ }
+      if (alive && !today) timer = setTimeout(() => { void greetSpot.current?.play(away ? "away" : undefined); }, 700);
+    })();
+    return () => { alive = false; if (timer) clearTimeout(timer); };
+  }, []);
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
   const renderCard = (cardType: string) => {
@@ -330,12 +366,16 @@ const Home = () => {
   };
 
   return (
-    <>
+    <FxFront>
       <Page
         tabBarSafe
         contentGap={space.sectionGap}
         hero={
           <View>
+            {/* the bird's invisible anchor: takes no room, draws no Pip (see HOME GREETING above) */}
+            <View pointerEvents="none" style={{ position: "absolute", left: 0, top: -Math.round(pipSize * 0.2) }}>
+              <PipMomentSpot ref={greetSpot} moment="home-greeting" size={pipSize} play="manual" figure={false} />
+            </View>
             <Text variant="h3" color="secondary">
               {greeting}
             </Text>
@@ -412,7 +452,9 @@ const Home = () => {
           anything else) took the moment first. */}
       {interactionsDone && <NotificationPermissionPrompt />}
 
-    </>
+      {/* the bird is drawn over the page (it lands on the program card, which is drawn after the greeting) */}
+      <FxFrontHost />
+    </FxFront>
   );
 };
 

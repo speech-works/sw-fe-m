@@ -86,6 +86,7 @@ import {
   ExploreStackNavigationProp,
   ExploreStackRouteProp,
 } from "../../navigators/stacks/ExploreStack/types";
+import { PipWaiting } from "../../components/Pip/PipWaiting";
 
 /**
  * One program's detail page — every word of it from the server.
@@ -512,7 +513,7 @@ const ProgramDetailScreen = () => {
         // all. Tightening the branch above without this one would have turned a
         // wrong congratulation into a silent charge, which is worse.
         // Pip's moment replaced the "You're in" sheet (founder 2026-11-26); same words: "You're in" / "Your program is unlocked. You can start now."
-        void showPipMoment("program-bought");
+        void showPipMoment("purchase-done");
       }
       return "landed";
     },
@@ -902,7 +903,7 @@ const ProgramDetailScreen = () => {
     return (
       <Page title="" onBack={() => navigation.goBack()}>
         <View style={styles.centered}>
-          <Spinner label="Loading…" />
+          <PipWaiting kind="loading" label="Loading…" />
         </View>
       </Page>
     );

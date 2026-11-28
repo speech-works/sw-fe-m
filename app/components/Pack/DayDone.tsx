@@ -2,7 +2,10 @@
  * The program's "day done" screen (founder's pick: "Mock 3 · Two beats", 2026-11-26).
  *
  * BEAT 1, the moment: a warm orange zone, the heading ("Day 2 done") big, and Pip. He rises from behind the top edge of a
- * low sheet, looks proud, pops, laughs, and his Star burst plays. The sheet holds one button.
+ * low sheet and the founder's "day done" final plays (Star shower, 2026-11-28: golden rays open behind him, in the orange
+ * zone only, and fat stars rain down the screen). The sheet holds one button.
+ * FURTHER THAN EVER (`furthest`, util/packs/furthestDay): right after it, on the same screen, the line "New best: Day N"
+ * comes in under the heading and the golden shower falls, the whole of it in the orange zone only.
  * BEAT 2, the wrap-up (only when the program has goals to ask about): "Continue" lifts the sheet. Pip gets smaller and
  * rides the sheet's edge at the right, the heading moves to the left and gets smaller, and the sheet shows the goals
  * check, then (after a divider) the tomorrow lines, and "Back to home".
@@ -31,8 +34,9 @@ import Svg, { Path } from "react-native-svg";
 import { Button, Divider, Text, icons, radius, space, spacing, useTheme } from "../../design-system";
 import { PipOnEdge, pipEdgeBox } from "../Pip/PipOnEdge";
 import type { PipOnEdgeHandle } from "../Pip/PipOnEdge";
-import { FX_EFFECTS, FX_SHAPES } from "../Pip/fx/library";
-import type { FxEffect } from "../Pip/fx/types";
+import { FX_SHAPES } from "../Pip/fx/library";
+import { MOMENT_SPOT, momentFxNow } from "../Pip/fx/momentFx";
+import { FxFront, FxFrontHost } from "../Pip/fx/FxPortal";
 import { PIP_HALF_HEAD, PIP_HALF_WAVE, PIP_HIDE, ZONE_EASE, ZONE_TEXT_X, sheetFill } from "./zoneSheet";
 
 export type DayDoneAnswer = "toggle" | "dismiss";
@@ -52,6 +56,10 @@ export interface DayDoneProps {
    */
   goalsSlot?: ((api: { onAnswer: (kind: DayDoneAnswer) => void }) => React.ReactNode) | null;
   onHome: () => void;
+  /** This is the furthest day the person has reached (util/packs/furthestDay): the "further than ever" moment follows. */
+  furthest?: boolean;
+  /** The day just done (its number), for the new-best line. */
+  day?: number | null;
   sound?: boolean;
   /** false: Pip waits behind the edge until play() (the labs). */
   autoPlay?: boolean;
@@ -79,18 +87,11 @@ const MOVE_MS = 480, SETTLE_MS = 320;
 // shared with the day screen's frame (zoneSheet.ts): Pip's cut at the edge, his reach, the slide curve, the sheet's fill
 const EASE = ZONE_EASE;
 
-// Star burst with two changes for this screen: red does not read on the orange zone, so those stars are cream (mock 3);
-// and Pip's own beats are this moment's (proud, a pop, then a laugh; he ends on a smile).
-const CREAM = "#FFF6E8", RED = "#FF2B2B";
-const DAY_DONE_FX: FxEffect | null = (() => {
-  const base = FX_EFFECTS.find(e => e.id === "star-burst");
-  if (!base) return null;
-  return {
-    ...base,
-    emitters: base.emitters.map(m => ({ ...m, colors: m.colors?.map(c => (c === RED ? CREAM : c)) })),
-    pip: [{ at: 0, body: "pop", face: "proud", haptic: "success" }, { at: 950, face: "laugh" }, { at: 2300, face: "smile" }],
-  };
-})();
+// the founder's finals (Pip/fx/momentFx.ts)
+const CREAM = "#FFF6E8";
+const DAY_DONE_FX = momentFxNow("day-done"), FURTHEST_FX = momentFxNow("furthest-moment");
+/** The new-best line: plain words for people who read English as a second language (founder 2026-11-28, P9 A). */
+export const furthestLine = (day?: number | null) => (day && day > 0 ? `New best: Day ${day}` : "New best");
 
 /** Beat 2's still stars round the small Pip: [x, y] from the point where his middle meets the edge, in units of his visible
  *  height; size in the same unit. All of them clear of his face, his collar and the heading. */
@@ -103,7 +104,7 @@ const STARS: { x: number; y: number; r: number; c: string }[] = [
 const STAR_D = FX_SHAPES.star?.paths[0]?.d ?? "";
 
 export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
-  { heading, closeLine, nextTitle, onNext, goalsSlot, onHome, sound = true, autoPlay = true, screen, insets }, ref) {
+  { heading, closeLine, nextTitle, onNext, goalsSlot, onHome, furthest = false, day = null, sound = true, autoPlay = true, screen, insets }, ref) {
   const { colors, scheme } = useTheme();
   const reduced = useReducedMotion();
   const safe = useContext(SafeAreaInsetsContext);
@@ -165,7 +166,16 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
   useEffect(() => { gone.value = reduced ? +goalsGone : withTiming(+goalsGone, { duration: SETTLE_MS, easing: EASE }); }, [goalsGone]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const pip = useRef<PipOnEdgeHandle>(null);
-  const play = useCallback(() => { void pip.current?.rise(); }, []);
+  // the furthest line fades in when its moment starts (and out in beat 2)
+  const further = useSharedValue(0);
+  const furthestRef = useRef(furthest); furthestRef.current = furthest;
+  const play = useCallback(() => {
+    void pip.current?.rise().then(() => {
+      if (!furthestRef.current || !pip.current) return;
+      further.value = reduced ? 1 : withTiming(1, { duration: 320, easing: EASE });
+      void pip.current.play(FURTHEST_FX, MOMENT_SPOT["furthest-moment"], { clipFront: true });
+    });
+  }, [further, reduced]);
   const played = useRef(false);
   useEffect(() => {
     if (!showPip || !autoPlay || played.current) return;
@@ -213,6 +223,9 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
   const contentSt = useAnimatedStyle(() => ({ opacity: twoBeats ? interpolate(p.value, [0.35, 1], [0, 1], "clamp") : 1 }), [twoBeats]);
   const shiftSt = useAnimatedStyle(() => ({ transform: [{ translateY: -tom.y * gone.value }] }), [tom.y]);
   const starsSt = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0.7, 1], [0, 1], "clamp") }));
+  const furtherSt = useAnimatedStyle(() => ({ opacity: further.value * (1 - p.value), transform: [{ translateY: (1 - further.value) * 8 }] }));
+  // the furthest line: in the room between the heading and Pip's head, in beat 1
+  const furtherY = Math.round(headCy1 + headH / 2 + Math.max(8, (edge1 - (showPip ? pipBox.visible : 0) - (headCy1 + headH / 2) - 28) / 2));
 
   const sheetBg = sheetFill(colors, scheme);
   const onOrange = colors.action.onPrimary;
@@ -221,6 +234,7 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
   useEffect(() => { if (goalsGone) scroll.current?.scrollTo({ y: 0, animated: false }); }, [goalsGone]);
 
   return (
+    <FxFront>
     <View style={[s.root, { backgroundColor: colors.action.primary }]} onLayout={e => { const b = round(e); setBox(o => (o && o.w === b.w && o.h === b.h ? o : { w: b.w, h: b.h })); }}>
       <StatusBar barStyle="dark-content" />
 
@@ -230,6 +244,11 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
           <Text variant="screenTitle" color={onOrange} center accessibilityRole="header">{heading}</Text>
         </View>
       </Animated.View>
+
+      {furthest ? (
+        <Animated.View pointerEvents="none" style={[s.headRow, { top: furtherY }, furtherSt]} accessibilityLiveRegion="polite">
+          <Text variant="h3" color={onOrange} center>{furthestLine(day)}</Text>
+        </Animated.View>) : null}
 
       {/* everything that rides on the sheet's edge: a line of no height at the edge */}
       {showPip ? (
@@ -245,7 +264,8 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
               })}
             </Animated.View>) : null}
           <Animated.View style={[s.pipFoot, { left: Math.round((W - pipSize) / 2), width: pipSize }, pipSt]}>
-            <PipOnEdge ref={pip} key={pipSize} size={pipSize} hide={PIP_HIDE} effect={DAY_DONE_FX} sound={sound} screen={screen} clipBelow={radius.sheet + 2} />
+            <PipOnEdge ref={pip} key={pipSize} size={pipSize} hide={PIP_HIDE} effect={DAY_DONE_FX} design={MOMENT_SPOT["day-done"]} sound={sound} screen={screen}
+              clipBelow={radius.sheet + 2} backClip={(screen?.y ?? 0) + edge1} />
           </Animated.View>
         </Animated.View>) : null}
 
@@ -274,6 +294,9 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
         </Animated.View>
       </Animated.View>
 
+      {/* the moment's stars fall over the sheet too (the sheet is drawn over Pip) */}
+      <FxFrontHost />
+
       {/* the buttons stay at the bottom of the screen while the sheet moves under them */}
       <View style={[s.buttons, { bottom: bottomPad }]}>
         {!inBeat2 ? (
@@ -284,7 +307,8 @@ export const DayDone = forwardRef<DayDoneHandle, DayDoneProps>(function DayDone(
             <Button label="Back to home" variant={onNext ? "ghost" : "primary"} onPress={() => leave(onHome)} />
           </>)}
       </View>
-    </View>);
+    </View>
+    </FxFront>);
 });
 
 const s = StyleSheet.create({

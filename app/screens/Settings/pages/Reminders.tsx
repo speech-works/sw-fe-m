@@ -18,10 +18,10 @@ import {
   Toggle,
   Button,
   Dialog,
-  EmptyState,
   Text,
   IconName,
 } from "../../../design-system";
+import { PipWaiting } from "../../../components/Pip/PipWaiting";
 
 const CATEGORY_META: Record<
   ReminderCategory,
@@ -191,10 +191,11 @@ const Reminders = () => {
             </View>
           </View>
         ) : (
-          <EmptyState
-            icon="bell"
+          <PipWaiting
+            kind="empty"
+            which="snail"
             title="No reminders yet"
-            message="Set a reminder to build your daily speech practice habit."
+            label="Set a reminder to build your daily speech practice habit."
           />
         )}
       </Page>

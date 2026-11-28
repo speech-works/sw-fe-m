@@ -36,7 +36,6 @@ import {
   SchemeStatusBar,
   Button,
   Dialog,
-  EmptyState,
   Sheet,
   Snackbar,
   useTheme,
@@ -106,6 +105,7 @@ import { apiErrorMessage, isNotFound } from "../../util/functions/apiError";
 import { declineBarMessage, undoableDeclines } from "../../util/functions/declineBatch";
 import { resetBuddyLocalState } from "../../util/functions/buddyReset";
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
+import { PipWaiting } from "../../components/Pip/PipWaiting";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -1217,10 +1217,11 @@ const Community = () => {
                   list. There is no glyph that means "this is fine and also
                   nothing has happened", so it says it in words instead. */}
               {incomingRequests.length === 0 ? (
-                <EmptyState
-                  icon={null}
+                <PipWaiting
+                  kind="empty"
+                  which="goldfish"
                   title="Nobody waiting"
-                  message="When someone asks to practice with you, they'll be here."
+                  label="When someone asks to practice with you, they'll be here."
                 />
               ) : (
                 <BuddyRequestList requests={incomingRequests} onOpen={setOpenRequest} />
