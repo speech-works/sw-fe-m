@@ -1,12 +1,12 @@
 [
   {
     "file": "a2-bird-tweet-1.m4a",
-    "name": "Single Bird Chirp 2",
-    "freesound_id": 233254,
-    "author": "alegemaate",
-    "page": "https://freesound.org/people/alegemaate/sounds/233254/",
+    "name": "Birds Chirping 02 (cut)",
+    "freesound_id": 182502,
+    "author": "swiftoid",
+    "page": "https://freesound.org/people/swiftoid/sounds/182502/",
     "license": "CC0",
-    "duration_s": 0.71,
+    "duration_s": 0.56,
     "onsets_ms": [
       15,
       100,
@@ -15,12 +15,12 @@
   },
   {
     "file": "a2-bird-tweet-2.m4a",
-    "name": "Single Bird Chirp",
-    "freesound_id": 233255,
-    "author": "alegemaate",
-    "page": "https://freesound.org/people/alegemaate/sounds/233255/",
+    "name": "Birds Chirping 02 (cut)",
+    "freesound_id": 182502,
+    "author": "swiftoid",
+    "page": "https://freesound.org/people/swiftoid/sounds/182502/",
     "license": "CC0",
-    "duration_s": 0.31,
+    "duration_s": 0.22,
     "onsets_ms": [
       40
     ]

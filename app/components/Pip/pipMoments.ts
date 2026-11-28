@@ -37,7 +37,7 @@ export type PipMomentDef = {
 
 export const PIP_MOMENTS: PipMomentDef[] = [
   { id: "onboarding-done", fx: "onboarding-done", title: "You're all set!", body: "Your first day is ready when you are.", source: "OnboardingDone.tsx; approved line", backdrop: "dim" },
-  { id: "program-finished", fx: "program-finished", title: "That is the program done", body: "Your goals stay with you. Nothing here disappears.", source: "GoalsReport.tsx", backdrop: "dim" },
+  { id: "program-finished", fx: "program-finished", title: "You finished the program", body: "Your goals stay here for you.", source: "GoalsReport.tsx (simpler words, founder 2026-11-28)", backdrop: "dim" },
   { id: "purchase-done", fx: "purchase-done", title: "You're in", body: "Your program is unlocked. You can start now.", source: "ProgramDetail.tsx", backdrop: "dim" },
   // a new stage (only 4 ever): over the dimmed screen. A level on the done page plays there (DonePractice), not here.
   { id: "level-up", fx: "level-up", title: "New stage", body: "You reached the next stage of your practice.", source: "approved line", backdrop: "dim" },

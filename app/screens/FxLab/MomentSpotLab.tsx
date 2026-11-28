@@ -21,6 +21,7 @@ import OnboardingWelcome from "../Onboarding/OnboardingWelcome";
 import { OutcomeSheet } from "../../components/OutcomeModal";
 import { PipWaiting } from "../../components/Pip/PipWaiting";
 import { PipMomentSpot } from "../../components/Pip/PipMomentSpot";
+import { FxFront, FxFrontHost } from "../../components/Pip/fx/FxPortal";
 import NotificationAsk from "../../components/NotificationAsk";
 import { askNotificationsNicely, useNotificationAskStore } from "../../util/functions/notificationAsk";
 import { PipMomentHost, showPipMoment } from "../../components/Pip";
@@ -51,7 +52,17 @@ function Body({ which }: { which: string }) {
   void askNotificationsNicely;
   if (which === "done" || which === "early" || which === "level") return <DonePractice practiceName="Reading practice" isAborted={which === "early"} />;
   if (which === "welcome") return <OnboardingWelcome />;
-  if (which === "away") return <View style={{ paddingTop: 70, paddingHorizontal: 16 }}><View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><PipMomentSpot moment="home-greeting" variant="away" size={117} delay={900} /><View><Text>Good Morning,</Text><Text style={{ fontSize: 30, fontWeight: "800" }}>Sam</Text></View></View><View style={{ marginTop: 40, height: 220, borderRadius: 20, backgroundColor: "#2A2724" }} /></View>;
+  if (which === "away" || which === "home") return (
+    <FxFront>
+    <View style={{ flex: 1, paddingTop: 70, paddingHorizontal: 16 }}>
+      <View>
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, top: -23 }}><PipMomentSpot moment="home-greeting" variant={which === "away" ? "away" : undefined} size={117} delay={900} figure={false} /></View>
+        <Text>Good Morning,</Text><Text style={{ fontSize: 30, fontWeight: "800" }}>Sam</Text>
+      </View>
+      <View style={{ marginTop: 40, height: 220, borderRadius: 20, backgroundColor: "#2A2724" }} />
+      <FxFrontHost />
+    </View>
+    </FxFront>);
   if (which === "error") return <OutcomeSheet visible type="error" title="Your work is safe" message="Your work is not lost. Check your connection and tap Complete again." pip="work-safe" onClose={() => undefined} />;
   if (which === "loading") return <View style={{ flex: 1, justifyContent: "center" }}><PipWaiting kind="loading" label="Loading content..." /></View>;
   if (which === "goldfish" || which === "snail") return <View style={{ flex: 1, justifyContent: "center" }}><PipWaiting kind="empty" which={which} title="No programs yet" label="Programs you start show up here." /></View>;

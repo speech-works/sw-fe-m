@@ -2,8 +2,9 @@
  * One Pip moment over the screen (pipMoments.ts): Pip comes in, his effect (or his own beats), the moment's text, he leaves.
  *
  * backdrop "dim": a dark scrim fades over the screen; Pip and the text sit in the middle; a tap ends it early.
- * backdrop "none": the screen stays as it is and stays usable; the text sits on a soft card (text needs a surface to stay
- * readable over busy content).
+ * backdrop "none": the screen stays as it is and stays usable. A final moment's words are laid out as on the dimmed moments
+ * (no box: founder 2026-11-28, P15/P17/P20), with a soft shadow in the canvas colour so they stay readable over the screen.
+ * An older moment (avatar saved) keeps its soft card.
  * A final moment (momentFx.ts) was designed with Pip on his blob at the lab's stage spot (x 75, y 250, 240 wide on 390 x 844)
  * and its props acting UNDER him: he stands at that spot as a share of the screen, and the words go ABOVE him, so nothing
  * covers the props or him. A moment whose props act above his head and none under him (level up's bonus block) has its
@@ -94,11 +95,13 @@ export const PipMoment = forwardRef<PipMomentHandle, PipMomentProps>(function Pi
   const onDim = (backdrop ?? m.backdrop) === "dim";
   const fg = onDim ? "#FFFFFF" : dark ? "#F7F4EE" : "#141311", sub = onDim ? "rgba(255,255,255,0.82)" : dark ? "#CFC8BD" : "#4E4840";
 
+  // no box on the screen (fin, no dim): a soft shadow in the canvas colour keeps the words clear of what is behind them
+  const halo = fin && !onDim ? { textShadowColor: dark ? "rgba(20,19,17,0.95)" : "rgba(247,244,238,0.95)", textShadowRadius: 10, textShadowOffset: { width: 0, height: 0 } } : null;
   const words = hasText ? (
-    <Animated.View style={[{ width: textW, alignItems: "center", zIndex: 60 /* above the effect's particles (stage zIndex 50): text stays readable */ }, !fin && { marginTop: 14 }, !onDim && [s.card, { backgroundColor: dark ? "#23211E" : "#FFFFFF", borderColor: dark ? "#3A3733" : "#DDD6C8" }], txtSt]}
+    <Animated.View style={[{ width: textW, alignItems: "center", zIndex: 60 /* above the effect's particles (stage zIndex 50): text stays readable */ }, !fin && { marginTop: 14 }, !onDim && !fin && [s.card, { backgroundColor: dark ? "#23211E" : "#FFFFFF", borderColor: dark ? "#3A3733" : "#DDD6C8" }], txtSt]}
       accessibilityLiveRegion="polite">
-      {m.title ? <Text style={[typography.h2, { color: fg, textAlign: "center" }]}>{m.title}</Text> : null}
-      {m.body ? <Text style={[typography.body, { color: sub, textAlign: "center", marginTop: 6 }]}>{m.body}</Text> : null}
+      {m.title ? <Text style={[typography.h2, { color: fg, textAlign: "center" }, halo]}>{m.title}</Text> : null}
+      {m.body ? <Text style={[typography.body, { color: sub, textAlign: "center", marginTop: 6 }, halo]}>{m.body}</Text> : null}
     </Animated.View>) : null;
   if (fin) {
     const stageEl = <PipStage ref={stage} key={m.id + ":" + variant + ":" + effect?.id} startHidden screen={screen} stageW={size} stageH={pipH} pipTop={0} effect={effect} sound={sound} variant={variant} size={size} design={spot ?? undefined} />;

@@ -26,6 +26,20 @@ import type { FxEffect } from "./fx/types";
 /** How far below Pip's picture the props of a final reach, as a share of his width (the lab's stage: props to y ~ 700 of a
  *  Pip 240 wide whose picture ends at 458). A screen keeps this much free under him (or lets the props run over its content). */
 export const PROP_ROOM = 1.1;
+/** With no Pip drawn (figure false), the props of a stage moment fill this band under where he would stand: from PROPS_TOP
+ *  to PROPS_TOP + PROPS_H of his width below his picture's top. A screen shows only that band (PropsOnly). */
+export const PROPS_TOP = 1.08, PROPS_H = 0.85;
+
+/** A moment's props with no Pip, in a box that holds just the props (loading, the notification ask). */
+export function PropsOnly(props: Omit<PipMomentSpotProps, "figure"> & { spotRef?: React.Ref<PipMomentSpotHandle> }) {
+  const { spotRef, size, ...rest } = props;
+  return (
+    <View pointerEvents="none" style={{ width: size, height: Math.round(size * PROPS_H) }}>
+      <View style={{ position: "absolute", left: 0, top: -Math.round(size * PROPS_TOP) }}>
+        <PipMomentSpot ref={spotRef} size={size} {...rest} figure={false} />
+      </View>
+    </View>);
+}
 
 export interface PipMomentSpotHandle {
   /** Play the moment (again). `variant`: momentFx's variant (waiting-empty: goldfish / snail; permission-ask: not-now). */
@@ -45,6 +59,8 @@ export interface PipMomentSpotProps {
   /** Loops before he stops and just idles (default: for ever while shown). */
   maxLoops?: number;
   enter?: boolean;
+  /** false: Pip is not drawn, only the moment's props play (they still sit where they would around him). */
+  figure?: boolean;
   blob?: boolean;
   face?: PipFace;
   pip?: PipVariant;
@@ -55,9 +71,9 @@ export interface PipMomentSpotProps {
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export const PipMomentSpot = forwardRef<PipMomentSpotHandle, PipMomentSpotProps>(function PipMomentSpot(
-  { moment, size, variant, play = "mount", delay = 350, loop = false, loopSound = 2, maxLoops, enter = false, blob = true, face, pip = "pip", sound = true, onDone }, ref) {
+  { moment, size, variant, play = "mount", delay = 350, loop = false, loopSound = 2, maxLoops, enter = false, figure = true, blob = true, face, pip = "pip", sound = true, onDone }, ref) {
   const reduced = useReducedMotion();
-  const stage = useRef<PipStageHandle>(null), alive = useRef(true), entered = useRef(!enter);
+  const stage = useRef<PipStageHandle>(null), alive = useRef(true), entered = useRef(!enter || !figure);
   const [effect, setEffect] = useState<FxEffect | null>(null);
   const [withSound, setWithSound] = useState(sound);
   const doneCb = useRef(onDone); doneCb.current = onDone;
@@ -90,7 +106,7 @@ export const PipMomentSpot = forwardRef<PipMomentSpotHandle, PipMomentSpotProps>
   const h = Math.round(size * 322 / 372);
   return (
     <View pointerEvents="none" style={{ width: size, height: h }}>
-      <PipStage ref={stage} stageW={size} stageH={h} pipTop={0} size={size} variant={pip} blob={blob} face={face} startHidden={enter}
+      <PipStage ref={stage} stageW={size} stageH={h} pipTop={0} size={size} variant={pip} blob={blob && figure} face={face} startHidden={enter && figure} hideFigure={!figure}
         effect={effect} sound={withSound} design={MOMENT_SPOT[moment]} />
     </View>);
 });

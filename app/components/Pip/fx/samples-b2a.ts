@@ -441,9 +441,10 @@ const lampKeys: K[] = [{ t: 0, s: 0 }, { t: 220, s: 1, e: "back" }, { t: ON, r: 
 const PLANT: Pt = [50, 204], PLANTS = 0.27, PERK = 430;
 const plantKeys: K[] = [{ t: 0, s: 0 }, { t: 220, s: 1, e: "back" }, { t: 350, s: 1, y: 0 }, { t: PERK, s: 0.9, y: px(4) }, { t: PERK + 110, s: 1.14, y: px(-9), e: "out" }, { t: PERK + 280, s: 1, y: 0, e: "back" },
   { t: PERK + 360, r: -6 }, { t: PERK + 470, r: 6 }, { t: PERK + 570, r: -3 }, { t: PERK + 650, r: 0 }, { t: 1300, s: 1 }, { t: 1380, s: 1.06, e: "out" }, { t: 1570, s: 0, e: "in" }];
-const BIRD: Pt = [338, 299], BIRDS = 0.21, PERCH = 450, TW = [640, 725, 805], TW2 = 1100, OFF = 1550;
+// the beak opens on the three chirps of a real bird (fx-a2-bird-tweet-1, CC0 swiftoid: hits 40, 210, 370 ms after it starts)
+const BIRD: Pt = [338, 299], BIRDS = 0.21, PERCH = 450, TW = [640, 810, 970], SING_END = 1070, TW2 = 1150, OFF = 1550;
 const birdKeys: K[] = [...hops(BIRD, [[0, 470, 110, -40], [PERCH, BIRD[0], BIRD[1], 0]], 0).map(k => ({ ...k, r: -18 * (1 - k.t / PERCH), s: 0.8 + 0.2 * (k.t / PERCH) })), { t: PERCH + 50, s: 0.9, y: px(3), r: 0 }, { t: PERCH + 170, s: 1, y: 0, e: "back" },
-  { t: TW[0], r: 0, y: 0 }, { t: TW[0] + 40, r: -9, y: px(-5), e: "out" }, { t: TW[1], r: -2, y: 0 }, { t: TW[1] + 40, r: -9, y: px(-5), e: "out" }, { t: TW[2], r: -2, y: 0 }, { t: TW[2] + 40, r: -9, y: px(-5), e: "out" }, { t: 900, r: 0, y: 0 },
+  { t: TW[0], r: 0, y: 0 }, { t: TW[0] + 40, r: -9, y: px(-5), e: "out" }, { t: TW[1], r: -2, y: 0 }, { t: TW[1] + 40, r: -9, y: px(-5), e: "out" }, { t: TW[2], r: -2, y: 0 }, { t: TW[2] + 40, r: -9, y: px(-5), e: "out" }, { t: SING_END, r: 0, y: 0 },
   { t: TW2, r: 0, y: 0 }, { t: TW2 + 50, r: -11, y: px(-7), e: "out" }, { t: TW2 + 150, r: 0, y: 0 }, { t: OFF - 100, s: 1, y: 0 }, { t: OFF, s: 0.9, y: px(4) },
   { t: OFF + 110, x: px(14), y: px(-34), r: -16, s: 1, e: "out" }, { t: OFF + 400, x: px(170), y: px(-250), s: 0.7, r: -22, e: "in" }];
 
@@ -470,16 +471,16 @@ const homeGreeting: FxEffect[] = [
     ],
     sounds: [{ name: "fx-hop-boing-small-1", at: PERK, volume: 0.6 }, { name: "fx-kalimba-warm-1", at: PERK + 270, volume: 0.4 }],
     pip: [{ at: 0, look: [-1, 0.3] }, { at: PERK - 70, face: "smile", body: "hop" }, { at: 1300, look: "off" }] },
-  // SYNC: the bird lands on "tick" (450 ms); its beak opens on the three chirps of lab-a2-bird-tweet-1 (640, 725, 805 ms), a
-  // note with each, and once more on lab-a2-bird-tweet-2 (1100 ms); it takes off on the soft swoosh (1550 ms).
+  // SYNC: the bird lands on "tick" (450 ms); its beak opens on the three chirps of a real bird, fx-a2-bird-tweet-1 (640, 810,
+  // 970 ms), a note with each, and once more on fx-a2-bird-tweet-2 (1150 ms); it takes off on the soft swoosh (1550 ms).
   { id: "hg-bird-hello", name: "Bird says hello", ms: 2000,
     feel: "A small blue bird glides in and lands on the edge of your program card, sings three quick notes at Pip, one more, and flies off. Pip smiles and nods back. After days away: it brings a flower in its beak and Pip waves.",
     emitters: [
-      tr("a2-bird", BIRD, BIRDS, during(birdKeys, 0, TW[0])), tr("a2-bird-sing", BIRD, BIRDS, during(birdKeys, TW[0], 900)), tr("a2-bird", BIRD, BIRDS, during(birdKeys, 900, TW2)),
+      tr("a2-bird", BIRD, BIRDS, during(birdKeys, 0, TW[0])), tr("a2-bird-sing", BIRD, BIRDS, during(birdKeys, TW[0], SING_END)), tr("a2-bird", BIRD, BIRDS, during(birdKeys, SING_END, TW2)),
       tr("a2-bird-sing", BIRD, BIRDS, during(birdKeys, TW2, TW2 + 150)), tr("a2-bird", BIRD, BIRDS, during(birdKeys, TW2 + 150, END)),
       ...[TW[0], TW[2], TW2].map((t, i): E => ({ kind: "burst", upright: true, shapes: ["note"], colors: [[PINK, LIME, SUN][i]], origin: at(BIRD[0] - 30, BIRD[1] - 34), at: t, count: 1, spread: [-84 + i * 14, -84 + i * 14], speed: [0.2, 0.24], drag: 1.4, gravity: -0.04, size: [0.05, 0.06], life: [700, 800], fadeIn: 60, fadeOut: 350 })),
     ],
-    sounds: [{ name: "fx-swoosh-soft-1", at: 60, volume: 0.3 }, { name: "tick", at: PERCH, volume: 0.35 }, { name: "fx-a2-bird-tweet-1", at: TW[0] - 15, volume: 0.85 }, { name: "fx-a2-bird-tweet-2", at: TW2 - 40, volume: 0.8 }, { name: "fx-swoosh-soft-1", at: OFF, volume: 0.3 }],
+    sounds: [{ name: "fx-swoosh-soft-1", at: 60, volume: 0.3 }, { name: "tick", at: PERCH, volume: 0.35 }, { name: "fx-a2-bird-tweet-1", at: TW[0] - 40, volume: 0.85 }, { name: "fx-a2-bird-tweet-2", at: TW2 - 40, volume: 0.8 }, { name: "fx-swoosh-soft-1", at: OFF, volume: 0.3 }],
     pip: [{ at: 0, look: [1, -0.7], face: "curious" }, { at: PERCH, look: [1, 0.9] }, { at: TW[0] + 40, face: "smile", body: "nod" }, { at: OFF + 100, look: [1, -0.6] }, { at: 1900, look: "off" }] },
 ];
 

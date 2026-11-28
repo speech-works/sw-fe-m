@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Button, Sheet, Text, spacing } from "../design-system";
-import { PipMomentSpot, PROP_ROOM } from "./Pip/PipMomentSpot";
+import { PropsOnly } from "./Pip/PipMomentSpot";
 import type { PipMomentSpotHandle } from "./Pip/PipMomentSpot";
 import { closeNotificationAsk, useNotificationAskStore } from "../util/functions/notificationAsk";
 
@@ -10,7 +10,7 @@ const NOT_NOW_MS = 3000;
 
 /**
  * The in-app notification ask (P24), mounted once at the root. It opens when askNotificationsNicely() is called.
- * Pip stands on his blob with the polite bell; the words are under the bell's room so nothing covers them.
+ * The polite bell alone (no Pip: founder 2026-11-28); the words are under the bell so nothing covers them.
  * "Allow" hands back to the caller, which then shows the phone's dialog. "Not now" never reaches the OS: the bell dozes,
  * the line says where to turn reminders on later, and the sheet closes after a few seconds or on a tap.
  */
@@ -50,8 +50,9 @@ const NotificationAsk: React.FC = () => {
     <Sheet visible={open} onClose={dismiss} exclusive>
       <Pressable disabled={!declined} onPress={close}>
         <View style={styles.body}>
-          <View style={{ height: pipSize * 0.865 + pipSize * PROP_ROOM, alignItems: "center" }}>
-            <PipMomentSpot ref={spot} moment="permission-ask" variant="ask" size={pipSize} enter delay={250} />
+          {/* the polite bell alone, no Pip (founder 2026-11-28) */}
+          <View style={{ alignItems: "center" }}>
+            <PropsOnly spotRef={spot} moment="permission-ask" variant="ask" size={pipSize} delay={250} />
           </View>
           {declined ? (
             <Text variant="h3" center>No problem. You can turn reminders on in Settings.</Text>

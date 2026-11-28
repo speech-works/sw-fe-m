@@ -44,6 +44,9 @@ export interface PipStageProps extends PipProps {
   /** The background effects (layer "back") end at this line, px from the screen's top: on a screen with a bottom sheet, the
    *  hero behind Pip changes (night, heat, rays) and the sheet stays as it is. */
   backClip?: number;
+  /** true: Pip is not drawn; only the effect's props play (Home's bird, the loading timer, the notification bell: founder
+   *  2026-11-28). His beats still run, unseen, so the effect's timing is unchanged. */
+  hideFigure?: boolean;
   /** true: the front layer ends at `backClip` too (a moment that stays in the orange zone, e.g. "further than ever"). */
   clipFront?: boolean;
   /** Where the effect was designed (its lab screen, momentFx.ts MOMENT_SPOT): its props are moved to where Pip really stands
@@ -51,7 +54,7 @@ export interface PipStageProps extends PipProps {
   design?: FxSpot;
 }
 
-export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect: given, sound = true, screen, figureClip, figureY, backClip, clipFront, design, ...pip }, ref) {
+export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipStage({ stageW, stageH, pipTop, effect: given, sound = true, screen, figureClip, figureY, backClip, clipFront, hideFigure, design, ...pip }, ref) {
   const reduced = useReducedMotion();
   const pipRef = useRef<PipHandle>(null);
   const clock = useSharedValue(-1), t0 = useSharedValue(-1), endMs = useSharedValue(0);
@@ -101,7 +104,7 @@ export const PipStage = forwardRef<PipStageHandle, PipStageProps>(function PipSt
   const noShift = useSharedValue(0), shift = figureY ?? noShift;
   const figSt = useAnimatedStyle(() => ({ transform: [{ translateY: shift.value }] }));
   const figure = (
-    <Animated.View style={[{ position: "absolute", left: Math.round((stageW - pip.size) / 2), top }, figSt]}>
+    <Animated.View style={[{ position: "absolute", left: Math.round((stageW - pip.size) / 2), top }, hideFigure && { opacity: 0 }, figSt]}>
       <Pip ref={pipRef} {...pip} scene={"scene" in pip ? pip.scene : effect?.scene ?? null} />
     </Animated.View>);
   return (
