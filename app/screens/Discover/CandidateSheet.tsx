@@ -144,7 +144,7 @@ export const CandidateSheet: React.FC<CandidateSheetProps> = ({
           </View>
         ) : null}
 
-        <TagGroup label="Practising" tags={practising} />
+        <TagGroup label="Practicing" tags={practising} />
         <TagGroup label="Hoping for" tags={hoping} />
       </View>
     </Sheet>

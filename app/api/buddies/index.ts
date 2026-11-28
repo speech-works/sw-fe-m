@@ -263,6 +263,11 @@ export interface DiscoveryProfile {
    * yours to change while paused.
    */
   pausedReason?: string | null;
+  /**
+   * True while you have a buddy. Discover then shows a note instead of a list:
+   * the server returns nobody, since every ask would be refused.
+   */
+  paired?: boolean;
 }
 
 /**

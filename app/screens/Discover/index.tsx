@@ -632,6 +632,15 @@ const Discover: React.FC<DiscoverProps> = ({ embedded = false, header, onScrollY
   };
 
   const body = () => {
+    // One buddy at a time. This used to list people anyway, and every "Ask to
+    // pair" came back "You already have a buddy." (buddy audit 2026-11-28, B6).
+    if (profile?.paired) {
+      return (
+        <Text variant="body" color="secondary" center style={styles.emptyLine}>
+          You have a buddy. To find someone new, leave your buddy first.
+        </Text>
+      );
+    }
     if (candidates === null && !error) return <PipWaiting kind="loading" label="Looking…" />;
     if (error && !candidates?.length) {
       return (

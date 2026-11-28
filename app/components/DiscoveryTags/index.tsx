@@ -36,7 +36,7 @@ export interface DiscoveryTagsProps {
 }
 
 const QUESTION: Record<DiscoveryTag["group"], string> = {
-  practising: "Practising",
+  practising: "Practicing",
   hoping: "Hoping for",
 };
 

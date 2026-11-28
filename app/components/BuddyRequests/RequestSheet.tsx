@@ -198,7 +198,7 @@ export const RequestSheet: React.FC<RequestSheetProps> = ({
         {/* One card per question, in the order they were asked, so a value is
             never shown without the thing it answers. Each renders nothing when
             its side is empty, so somebody who published only one gets one. */}
-        <TagGroup label="Practising" tags={practising} />
+        <TagGroup label="Practicing" tags={practising} />
         <TagGroup label="Hoping for" tags={hoping} />
       </View>
     </Sheet>
