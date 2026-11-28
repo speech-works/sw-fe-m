@@ -157,7 +157,7 @@ export default function FxLab() {
               <View style={[s.row, { paddingHorizontal: 0 }]}>{g.items.filter(it => !it.rest.some(r => r.startsWith("do="))).map(it => <Btn key={it.label} label={it.label} onPress={() => { const sp = parseLabHash(labLink(it.word, Math.round(width), 800, it.rest, dark)); if (sp) setProgramLab(o => ({ spec: sp, run: (o?.run ?? 0) + 1 })); }} />)}</View>
             </View>))}
           <Text style={[s.title, { color: fg, marginTop: 12 }]}>Moments in the app</Text>
-          <View style={[s.row, { paddingHorizontal: 0 }]}>{PIP_MOMENTS.map(m => <Btn key={m.id} label={m.ref + " " + m.name} onPress={() => { void showPipMoment(m.id); }} />)}</View>
+          <View style={[s.row, { paddingHorizontal: 0 }]}>{PIP_MOMENTS.map(m => <Btn key={m.id} label={m.id} onPress={() => { void showPipMoment(m.id); }} />)}</View>
         </View>
         {speed.length ? (
           <View style={[s.card, { backgroundColor: card, borderColor: line }]}>

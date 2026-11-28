@@ -12,3 +12,12 @@
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
+
+// expo-av is a native module too. Screens that show Pip (loading, empty lists) import his sound player, and a sound never
+// plays in a test: a silent stand-in.
+jest.mock("expo-av", () => ({
+  Audio: {
+    setAudioModeAsync: jest.fn(async () => undefined),
+    Sound: { createAsync: jest.fn(async () => ({ sound: { setVolumeAsync: jest.fn(async () => undefined), replayAsync: jest.fn(async () => undefined) } })) },
+  },
+}));

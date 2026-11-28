@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { PipMomentSpot, PROP_ROOM } from "./Pip/PipMomentSpot";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import type { BottomSheetAction } from "../util/functions/bottomSheet";
@@ -37,7 +38,11 @@ export interface OutcomeSheetProps {
   onDismissed?: () => void;
   /** Wait for other native modals to close first (the global instance). */
   exclusive?: boolean;
+  /** "work-safe": Pip and the calm computer on top instead of the red disc (an error where the work is kept). */
+  pip?: "work-safe";
 }
+
+const PIP_W = 100;
 
 /** The success/error sheet itself. The global OutcomeModal renders one at the
  *  app root. A screen that is itself shown as a native modal (the plan screen
@@ -54,6 +59,7 @@ export const OutcomeSheet = ({
   onClose,
   onDismissed,
   exclusive = false,
+  pip,
 }: OutcomeSheetProps) => {
   const { colors } = useTheme();
   const success = type === "success";
@@ -67,9 +73,16 @@ export const OutcomeSheet = ({
   return (
     <Sheet visible={visible} onClose={onClose} onDismissed={onDismissed} exclusive={exclusive}>
       <View style={styles.body}>
-        <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
-          <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />
-        </Animated.View>
+        {pip === "work-safe" && !success ? (
+          // Pip on his blob; the computer acts under him, so the title waits below that room.
+          <View style={{ height: Math.round(PIP_W * 0.865 + PIP_W * PROP_ROOM), alignItems: "center" }}>
+            <PipMomentSpot moment="error-safe" size={PIP_W} enter delay={250} />
+          </View>
+        ) : (
+          <Animated.View style={[styles.iconDisc, { backgroundColor: accent }, discStyle]}>
+            <Icon name={success ? icons.success : icons.danger} size={size.iconLg} color={accentOn} />
+          </Animated.View>
+        )}
         <Text variant="h2" center>{title}</Text>
         {tag ? (
           <Text variant="label" color="tertiary" center style={styles.tag}>{tag}</Text>
@@ -114,6 +127,7 @@ const OutcomeModal = () => {
   const [primaryAction, setPrimaryAction] = useState<BottomSheetAction | undefined>(undefined);
   const [dismissLabel, setDismissLabel] = useState("");
   const [autoClose, setAutoClose] = useState(false);
+  const [pip, setPip] = useState<"work-safe" | undefined>(undefined);
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -144,6 +158,7 @@ const OutcomeModal = () => {
         setPrimaryAction(event.detail?.primaryAction);
         setDismissLabel(event.detail?.dismissLabel || "");
         setAutoClose(!!event.detail?.autoClose);
+        setPip(kind === "error" && event.detail?.pip === "work-safe" ? "work-safe" : undefined);
         setVisible(true);
         clear(event.name);
       }
@@ -166,6 +181,7 @@ const OutcomeModal = () => {
       primaryAction={primaryAction}
       dismissLabel={dismissLabel}
       autoClose={autoClose}
+      pip={pip}
       onClose={() => setVisible(false)}
       exclusive
     />

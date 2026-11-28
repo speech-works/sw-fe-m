@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { InteractionManager, RefreshControl, View } from "react-native";
+import { InteractionManager, RefreshControl, View, useWindowDimensions } from "react-native";
+import { PipMomentSpot } from "../../components/Pip/PipMomentSpot";
+import type { PipMomentSpotHandle } from "../../components/Pip/PipMomentSpot";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
 import { showSuccessBottomSheet } from "../../util/functions/bottomSheet";
@@ -41,6 +44,12 @@ import {
   space,
   radius,
 } from "../../design-system";
+
+// Pip's hello plays once per app open (set when Home first mounts).
+let homeGreetingShown = false;
+/** When Home last opened (on the phone): back after 2+ days, the bird brings a flower. */
+const LAST_OPEN_KEY = "pip.lastHomeOpen";
+const AWAY_MS = 2 * 24 * 60 * 60 * 1000;
 
 const Home = () => {
   const { colors } = useTheme();
@@ -289,6 +298,28 @@ const Home = () => {
       : currentHour < 18
         ? "Good Afternoon,"
         : "Good Evening,";
+  // Pip beside the greeting; his hello plays once per app open: the flag lives in the module, so coming back to Home does
+  // not replay it. His bird lands
+  // on the program card below; the card stays where it is and the props run over it for about 2 s.
+  const { width: screenW } = useWindowDimensions();
+  const pipSize = Math.round(Math.min(screenW * 0.3, 120));
+  const greetPip = useRef(!homeGreetingShown);
+  const greetSpot = useRef<PipMomentSpotHandle>(null);
+  useEffect(() => {
+    homeGreetingShown = true;
+    if (!greetPip.current) return;
+    let alive = true, timer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      let away = false;
+      try {
+        const last = Number(await AsyncStorage.getItem(LAST_OPEN_KEY));
+        away = last > 0 && Date.now() - last >= AWAY_MS;
+        await AsyncStorage.setItem(LAST_OPEN_KEY, String(Date.now()));
+      } catch { /* no record: the normal hello */ }
+      if (alive) timer = setTimeout(() => { void greetSpot.current?.play(away ? "away" : undefined); }, 700);
+    })();
+    return () => { alive = false; if (timer) clearTimeout(timer); };
+  }, []);
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
   const renderCard = (cardType: string) => {
@@ -335,15 +366,21 @@ const Home = () => {
         tabBarSafe
         contentGap={space.sectionGap}
         hero={
-          <View>
-            <Text variant="h3" color="secondary">
-              {greeting}
-            </Text>
-            {firstName ? (
-              <Text variant="screenTitle" color="primary">
-                {firstName}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {/* he always stands here, at the LEFT of the greeting (the hero keeps one layout); his hello plays once per app
+                open. His bird flies in at his right and lands on the program card below: at the right edge it would fly off
+                the screen. */}
+            <PipMomentSpot ref={greetSpot} moment="home-greeting" size={pipSize} play="manual" />
+            <View style={{ flex: 1 }}>
+              <Text variant="h3" color="secondary">
+                {greeting}
               </Text>
-            ) : null}
+              {firstName ? (
+                <Text variant="screenTitle" color="primary">
+                  {firstName}
+                </Text>
+              ) : null}
+            </View>
           </View>
         }
         refreshControl={

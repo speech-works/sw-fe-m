@@ -50,6 +50,9 @@ import { PageScrollContext } from "../../design-system/pageScroll";
 import type { PipFace } from "../Pip/Pip";
 import { PipOnEdge, pipEdgeBox } from "../Pip/PipOnEdge";
 import type { PipOnEdgeHandle } from "../Pip/PipOnEdge";
+import { MOMENT_SPOT, momentFx } from "../Pip/fx/momentFx";
+import { FxFront, FxFrontHost } from "../Pip/fx/FxPortal";
+import type { MomentFxId } from "../Pip/fx/momentFx";
 import { StepsBar } from "./DayChrome";
 import { MarkdownTight } from "./SimpleMarkdown";
 import type { DayPipKind, DayZone } from "./dayStepFrame";
@@ -88,6 +91,9 @@ export interface DayFrameApi {
   pip: () => PipOnEdgeHandle | null;
   /** The step's own button (see DayLaunch). Null takes it away. */
   setLaunch: (launch: DayLaunchState | null) => void;
+  /** Play one of Pip's final moments (momentFx.ts) where this step's Pip stands: its props are fitted to him and its
+   *  background stays in the orange zone. Resolves when it has finished; at once on a step with no Pip. */
+  playMoment: (id: MomentFxId, variant?: string) => Promise<void>;
 }
 const DayFrameContext = createContext<DayFrameApi | null>(null);
 /** For a step's content: Pip in the zone (to let him answer a tap). Null outside the day frame. */
@@ -145,6 +151,8 @@ export interface DayFrameProps {
   dock: React.ReactNode;
   /** Sheets and other things that draw over the screen. */
   overlays?: React.ReactNode;
+  /** The frame's API for the screen that draws it (the step's content gets it from useDayFrame). */
+  apiRef?: React.MutableRefObject<DayFrameApi | null>;
   children?: React.ReactNode;
 }
 
@@ -153,7 +161,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const clearOf = (hex: string) => { const m = /^#([0-9a-f]{6})$/i.exec(hex); if (!m) return "transparent"; const n = parseInt(m[1], 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},0)`; };
 
 export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = true, compact = false, zoneTitle = null, zoneMeta = false, pip = null, pipFace = "calm", pipReach = 0,
-  onPipUp, sound = true, contentKey, scrollResetKey, textDelay = 0, dock, overlays, children }: DayFrameProps) {
+  onPipUp, sound = true, contentKey, scrollResetKey, textDelay = 0, dock, overlays, apiRef, children }: DayFrameProps) {
   const { colors, scheme } = useTheme();
   const reduced = useReducedMotion();
   const safe = useContext(SafeAreaInsetsContext);
@@ -259,6 +267,11 @@ export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = t
   const launchPress = useRef<(() => void) | null>(null);
   const api = useMemo<DayFrameApi>(() => ({
     pip: () => (pipKey ? handles.current[pipKey] ?? null : null),
+    playMoment: async (id, variant) => {
+      const h = pipKey ? handles.current[pipKey] : null;
+      if (!h) return;
+      await h.play(await momentFx(id, variant), MOMENT_SPOT[id]);
+    },
     setLaunch: next => {
       launchPress.current = next?.onPress ?? null;
       setLaunchState(old => {
@@ -268,6 +281,7 @@ export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = t
       });
     },
   }), [pipKey]);
+  if (apiRef) apiRef.current = api;
 
   // ── the scroll body (what Page gives its children: QuizRunner scrolls to its explanation, useInView) ──
   const scrollY = useSharedValue(0);
@@ -286,6 +300,7 @@ export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = t
 
   return (
     <DayFrameContext.Provider value={api}>
+      <FxFront>
       <DayLaunchContext.Provider value={launch}>
       <PageScrollContext.Provider value={pageScroll}>
         <View style={[s.root, { backgroundColor: colors.action.primary }]} onLayout={onBox}>
@@ -322,7 +337,7 @@ export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = t
             return (
               <EdgePip key={slot.key} edge={edge} hold={slot.hold} width={W} left={Math.round(pipXOf(slot.kind, sz) - sz / 2)} size={sz}>
                 <PipOnEdge ref={h => { handles.current[slot.key] = h; }} key={sz} size={sz} hide={PIP_HIDE} face={slot.face} sound={sound}
-                  startUp={!!risen.current[slot.key]} clipBelow={radius.sheet + 2} />
+                  startUp={!!risen.current[slot.key]} clipBelow={radius.sheet + 2} backClip={edgeY} />
               </EdgePip>);
           })}
 
@@ -349,10 +364,13 @@ export function DayFrame({ zone, title, meta, onBack, bar = null, headerText = t
                 {dock}
               </View>
             </View>) : null}
+          {/* a moment's props that act on the sheet (the pencil, the check) are drawn over it */}
+          <FxFrontHost />
           {overlays}
         </View>
       </PageScrollContext.Provider>
       </DayLaunchContext.Provider>
+      </FxFront>
     </DayFrameContext.Provider>);
 }
 

@@ -17,6 +17,7 @@ import {
 } from "../../api/devices";
 import { navigate } from "./navigation";
 import { ROUTE_NAMES } from "../../constants/routes";
+import { askNotificationsNicely } from "./notificationAsk";
 
 const DEFAULT_REMINDER_CHANNEL_ID = "default_reminders";
 
@@ -93,6 +94,8 @@ export async function requestNotificationPermissionQuietly(): Promise<boolean> {
     // iOS turns this false permanently after one denial; asking again is a
     // silent no-op, so don't bother the user with a dialog that can't appear.
     if (!settings.canAskAgain) return false;
+    // Our own ask first; "Not now" leaves the OS unasked.
+    if (!(await askNotificationsNicely())) return false;
 
     const result = await Notifications.requestPermissionsAsync({
       ios: { allowAlert: true, allowBadge: true, allowSound: true },
@@ -480,6 +483,8 @@ async function resolveNotificationPermission(): Promise<boolean> {
 
   // 3. If we can still ask (status is undetermined/not yet asked), request it
   if (settings.canAskAgain) {
+    // Our own ask first; "Not now" leaves the OS unasked (the caller sees "denied", not "blocked").
+    if (!(await askNotificationsNicely())) return false;
     const requestResult = await Notifications.requestPermissionsAsync({
       ios: {
         allowAlert: true,

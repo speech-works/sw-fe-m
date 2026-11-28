@@ -7,6 +7,7 @@ import { PostHogProvider } from "posthog-react-native";
 import UpsellModal from "./app/components/UpsellModal";
 import ContinueMembershipSheet from "./app/components/ContinueMembershipSheet";
 import OutcomeModal from "./app/components/OutcomeModal";
+import NotificationAsk from "./app/components/NotificationAsk";
 import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
 // Safe-area probe for the Android bottom-inset question. Renders NOTHING
 // unless its own ENABLED flag is flipped on — see the file for how to read it.
@@ -410,6 +411,8 @@ const App: React.FC = () => {
                           wherever the user happens to open the app. */}
                       <ContinueMembershipSheet />
                       <OutcomeModal />
+                      {/* Our own notification ask, before the phone's dialog (askNotificationsNicely). */}
+                      <NotificationAsk />
                       <StaminaVignetteOverlay />
                       <GlobalStaminaController />
                       <OutOfStaminaController />

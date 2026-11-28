@@ -34,8 +34,6 @@ import {
   Text,
   Button,
   SearchField,
-  Spinner,
-  EmptyState,
   ErrorState,
   PageHeader,
   useTheme,
@@ -47,6 +45,7 @@ import {
   useNavBarInset,
 } from "../../../design-system";
 import { isMember } from "../../../util/functions/membership";
+import { PipWaiting } from "../../../components/Pip/PipWaiting";
 
 // --- Data Definitions ---
 
@@ -386,7 +385,7 @@ const Library = () => {
 
         {loading && allTechniques.length === 0 ? (
           <View style={styles.stateWrap}>
-            <Spinner label="Fetching techniques..." />
+            <PipWaiting kind="loading" label="Fetching techniques..." />
           </View>
         ) : error && allTechniques.length === 0 ? (
           <View style={styles.stateWrap}>
@@ -411,10 +410,11 @@ const Library = () => {
           ))
         ) : (
           <View style={styles.stateWrap}>
-            <EmptyState
-              icon="search"
+            <PipWaiting
+              kind="empty"
+              which="goldfish"
               title="No techniques found"
-              message="Nothing matches your search or filters yet."
+              label="Nothing matches your search or filters yet."
             />
           </View>
         )}

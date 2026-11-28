@@ -16,7 +16,7 @@ import type { PipBeat, PipVariant } from "../../components/Pip";
 import { PipStage } from "../../components/Pip/fx/PipStage";
 import type { PipStageHandle } from "../../components/Pip/fx/PipStage";
 import { SAMPLE_MOMENTS as ALL_SAMPLES } from "../../components/Pip/fx/samples";
-import { FINAL_MOMENTS, FINAL_NOTES } from "../../components/Pip/fx/final";
+import { MOMENT_FX as FINAL_MOMENTS, MOMENT_FX_NOTES as FINAL_NOTES } from "../../components/Pip/fx/momentFx";
 import type { FxEffect } from "../../components/Pip/fx/types";
 import { PIP_MOMENTS } from "../../components/Pip/moments";
 import { playSfx, SFX } from "../../components/Pip/fx/sfx";
@@ -71,7 +71,7 @@ const LETTERS = "ABCDEFGH";
 /** Final mode (the phone lab build with EXPO_PUBLIC_PIP_LAB=final, or #momentslab=final on the web): every moment shows only
  *  the founder's final pick(s), to check them on the phone. */
 const FINAL = process.env.EXPO_PUBLIC_PIP_LAB === "final" || (() => { try { return /momentslab=final/.test((globalThis as any).location?.hash ?? ""); } catch { return false; } })();
-const SAMPLE_MOMENTS = FINAL ? FINAL_MOMENTS : ALL_SAMPLES;
+const SAMPLE_MOMENTS: Record<string, FxEffect[]> = FINAL ? FINAL_MOMENTS : ALL_SAMPLES;
 /** Placement preview (web, for the placement review): &place=dim shows the moment over the real screen dimmed, Pip on his blob in
  *  the middle; the default shows Pip in his own spot on the screen. */
 const PLACE: "spot" | "dim" = (() => { try { return /[&,]place=dim/.test((globalThis as any).location?.hash ?? "") ? "dim" : "spot"; } catch { return "spot"; } })();
@@ -227,7 +227,7 @@ export default function MomentsLab() {
         </ScrollView>
       ) : (
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-          {samples ? <Text style={[s.tiny, { color: "#7BC67B", textAlign: "center", marginTop: 6 }]}>{FINAL ? `Final pick${samples.length > 1 ? "s" : ""}. ${FINAL_NOTES[moment.id] ?? ""}` : "New samples: each one plays the whole moment (props, background and its own sounds)"}</Text> : null}
+          {samples ? <Text style={[s.tiny, { color: "#7BC67B", textAlign: "center", marginTop: 6 }]}>{FINAL ? `Final pick${samples.length > 1 ? "s" : ""}. ${(FINAL_NOTES as Record<string, string>)[moment.id] ?? ""}` : "New samples: each one plays the whole moment (props, background and its own sounds)"}</Text> : null}
           {samples ? samples.map((e, oi) => {
             const starred = picks[moment.id]?.anim === e.id;
             return (

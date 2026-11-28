@@ -47,7 +47,7 @@ const stepDone: FxEffect[] = [
   { id: "sd-read-grip-zoom", name: "Reads, grips, zooms", ms: 2800,
     feel: "He reads the title, then the text, grips the sheet with both hands, and the screen fast-forwards to the next step.",
     emitters: [...hands(SD.cx, SD.edge, 1100, 2000), ...fastForward(1750, 0.52)],
-    sounds: [{ name: "lab-grip-pat-2", at: 1150, volume: 0.6 }, { name: "lab-ff-zip-2", at: 1750, volume: 0.7 }],
+    sounds: [{ name: "fx-grip-pat-2", at: 1150, volume: 0.6 }, { name: "fx-ff-zip-2", at: 1750, volume: 0.7 }],
     pip: [{ at: 0, look: [-1, -0.35], face: "curious" }, { at: 650, look: [-0.25, 1], face: "listening" }, { at: 1150, look: "off", face: "smile", body: "nod" },
       { at: 1750, body: "lean", face: "laugh", haptic: "light" }, { at: 2500, face: "calm" }] },
   { id: "sd-tick-it-off", name: "Ticks it off", ms: 3100,
@@ -62,13 +62,13 @@ const stepDone: FxEffect[] = [
       sparks(at(338, 372), 1450, [LIME, GOLD, CREAM], 8),
       ...fastForward(2250, 0.52),
     ],
-    sounds: [{ name: "lab-grip-pat-2", at: 1000, volume: 0.5 }, { name: "lab-pencil-check-1", at: 1150, volume: 0.7 }, { name: "ding", at: 1450, volume: 0.5 }, { name: "lab-ff-zip-2", at: 2250, volume: 0.7 }],
+    sounds: [{ name: "fx-grip-pat-2", at: 1000, volume: 0.5 }, { name: "fx-pencil-check-1", at: 1150, volume: 0.7 }, { name: "ding", at: 1450, volume: 0.5 }, { name: "fx-ff-zip-2", at: 2250, volume: 0.7 }],
     pip: [{ at: 0, look: [-1, -0.35], face: "curious" }, { at: 550, look: [-0.25, 1], face: "listening" }, { at: 1250, look: [0.7, 1], face: "curious" },
       { at: 1500, face: "proud", body: "nod", haptic: "light" }, { at: 2000, look: "off" }, { at: 2250, body: "lean", face: "laugh" }, { at: 2900, face: "calm" }] },
   { id: "sd-quick", name: "Quick grip and go", ms: 1400,
     feel: "Short, for every step: hands slap onto the sheet and the screen zips forward.",
     emitters: [...hands(SD.cx, SD.edge, 0, 700), ...fastForward(250, 0.52)],
-    sounds: [{ name: "lab-grip-pat-2", at: 60, volume: 0.6 }, { name: "lab-ff-zip-2", at: 250, volume: 0.7 }],
+    sounds: [{ name: "fx-grip-pat-2", at: 60, volume: 0.6 }, { name: "fx-ff-zip-2", at: 250, volume: 0.7 }],
     pip: [{ at: 0, face: "smile", look: [0.4, 0.6] }, { at: 250, body: "lean", face: "laugh", look: "off", haptic: "light" }, { at: 1100, face: "calm" }] },
 ];
 
@@ -91,7 +91,7 @@ const dayDone: FxEffect[] = [
       ...flames(200),
       { kind: "rise", shapes: ["ember"], colors: [GOLD, OR2, SUN, RED], count: 34, at: 300, stagger: 2000, area: [0, 0.6, 1, 0.85], speed: [0.3, 0.55], gravity: -0.05, sway: 0.03, size: [0.018, 0.034], life: [1300, 1800], upright: true },
     ],
-    sounds: [{ name: "lab-fire-whoosh-1", at: 150, volume: 0.8 }, { name: "lab-kids-yay-1", at: 450, volume: 0.7 }, { name: "sparkle", at: 1400, volume: 0.35 }],
+    sounds: [{ name: "fx-fire-whoosh-1", at: 150, volume: 0.8 }, { name: "lab-kids-yay-1", at: 450, volume: 0.7 }, { name: "sparkle", at: 1400, volume: 0.35 }],
     pip: [{ at: 0, body: "settle", face: "curious" }, { at: 250, body: "bighop", face: "laugh", haptic: "success" }, { at: 1300, body: "pop", face: "proud" }, { at: 2700, face: "smile" }] },
   { id: "dd-poppers", name: "Popper party", ms: 3300,
     feel: "Two party poppers slide up from the bottom corners, aim at Pip and fire confetti across the screen; he jumps between them.",
@@ -118,7 +118,7 @@ const dayDone: FxEffect[] = [
       sparks(at(330, 320), 640, [GOLD, SUN, CREAM], 14),
       twinkle([0.05, 0.15, 0.95, 0.55], 700, 14, [GOLD, SUN, CREAM], 1600),
     ],
-    sounds: [{ name: "lab-medal-ding-1", at: 600, volume: 0.75 }, { name: "sparkle", at: 900, volume: 0.4 }, { name: "lab-kids-yay-2", at: 1100, volume: 0.6 }],
+    sounds: [{ name: "fx-medal-ding-1", at: 600, volume: 0.75 }, { name: "sparkle", at: 900, volume: 0.4 }, { name: "lab-kids-yay-2", at: 1100, volume: 0.6 }],
     pip: [{ at: 300, look: [0.75, -0.7], face: "curious" }, { at: 650, face: "proud", body: "pop", haptic: "success" }, { at: 1500, look: "off", body: "nod", face: "laugh" }, { at: 2700, face: "smile" }] },
 ];
 
@@ -157,7 +157,7 @@ const nextDay: FxEffect[] = [
         keys: [{ t: 0, s: 0, y: 0.04 }, { t: 280, s: 1, y: 0, e: "back" }, { t: 1050, s: 1, r: 0 }, { t: 1120, r: -6, y: -0.01 }, { t: 1500, x: -0.2, y: -0.35, r: -40, o: 0, e: "in" }] },
       sparks(at(130, 318), 1250, [LIME, GOLD, CREAM], 8),
     ],
-    sounds: [{ name: "pop", at: 0, volume: 0.5 }, { name: "lab-page-flip-1", at: 1080, volume: 0.8 }, { name: "chime-up", at: 1300, volume: 0.45 }],
+    sounds: [{ name: "pop", at: 0, volume: 0.5 }, { name: "fx-page-flip-1", at: 1080, volume: 0.8 }, { name: "chime-up", at: 1300, volume: 0.45 }],
     pip: [{ at: 250, look: [-1, -0.5], face: "curious" }, { at: 1080, face: "laugh", body: "hop", haptic: "light" }, { at: 1700, look: "off", face: "warm", body: "nod" }, { at: 2900, face: "calm" }] },
 ];
 
@@ -180,7 +180,7 @@ const dayDone2: FxEffect[] = [
       toss({ at: 220, origin: [1.03, 0.8], spread: [-120, -104], speed: [1.8, 2.6], drag: 1.5, gravity: 0.55, shapes: ["streamer"], count: 5, size: [0.09, 0.14], spin: [30, 120], flip: false, life: [2200, 2800] }),
       twinkle([0.05, 0.08, 0.95, 0.6], 700, 10, [GOLD, CREAM, LIME], 1400),
     ],
-    sounds: [{ name: "lab-cannon-confetti-1", at: 0, volume: 0.85 }, { name: "lab-cannon-confetti-2", at: 220, volume: 0.8 }, { name: "lab-cheer-short-1", at: 600, volume: 0.6 }],
+    sounds: [{ name: "fx-cannon-confetti-1", at: 0, volume: 0.85 }, { name: "fx-cannon-confetti-2", at: 220, volume: 0.8 }, { name: "fx-cheer-short-1", at: 600, volume: 0.6 }],
     pip: [{ at: 0, look: [-0.8, 0.4], face: "curious" }, { at: 230, look: [0.8, 0.4] }, { at: 480, look: "off", body: "bighop", face: "laugh", haptic: "success" }, { at: 1500, body: "sway", face: "proud" }, { at: 2900, face: "smile" }] }),
   { id: "dd2-balloons", name: "Balloon lift", ms: 3600,
     feel: "A bunch of balloons floats up past Pip from below the sheet, near ones big and fast, far ones small, while confetti pops out of him.",
@@ -190,7 +190,7 @@ const dayDone2: FxEffect[] = [
       ...depth(toss({ at: 420, origin: at(194, 360), spread: [-160, -20] }), 40),
       twinkle([0.05, 0.05, 0.95, 0.4], 900, 10, [GOLD, CREAM, PINK], 1600),
     ],
-    sounds: [{ name: "lab-balloon-release-1", at: 0, volume: 0.75 }, { name: "lab-cannon-confetti-1", at: 420, volume: 0.6 }, { name: "lab-party-horn-1", at: 700, volume: 0.6 }],
+    sounds: [{ name: "lab-balloon-release-1", at: 0, volume: 0.75 }, { name: "fx-cannon-confetti-1", at: 420, volume: 0.6 }, { name: "lab-party-horn-1", at: 700, volume: 0.6 }],
     pip: [{ at: 0, look: [0, -1], face: "curious" }, { at: 420, look: "off", body: "bighop", face: "laugh", haptic: "success" }, { at: 1400, body: "bounce", face: "proud" }, { at: 3100, face: "smile" }] },
   { id: "dd2-stars", name: "Star shower", ms: 3500,
     feel: "Golden rays open slowly behind Pip and fat stars in four colours rain down the whole screen, near ones big, far ones tiny, with a twinkle.",
@@ -199,7 +199,7 @@ const dayDone2: FxEffect[] = [
       ...depth(fall({ shapes: ["star", "star", "sparkle"], colors: [GOLD, LIME, PINK, SUN, CREAM], speed: [0.34, 0.52], gravity: 0.08, sway: 0.02, spin: [40, 160], size: [0.035, 0.065], life: [2200, 2600], stagger: 1100, flip: false }), 60),
       fsparks({ at: 200, origin: at(194, 470), count: 22, colors: [GOLD, SUN, CREAM], speed: [0.3, 0.9] }),
     ],
-    sounds: [{ name: "lab-magic-shimmer-1", at: 0, volume: 0.7 }, { name: "lab-success-fanfare-1", at: 250, volume: 0.65 }, { name: "lab-stars-twinkle-1", at: 1300, volume: 0.45 }],
+    sounds: [{ name: "fx-magic-shimmer-1", at: 0, volume: 0.7 }, { name: "fx-success-fanfare-1", at: 250, volume: 0.65 }, { name: "fx-stars-twinkle-1", at: 1300, volume: 0.45 }],
     pip: [{ at: 0, face: "curious", body: "settle" }, { at: 250, body: "pop", face: "proud", haptic: "success" }, { at: 1200, look: [0, -1] }, { at: 1900, look: "off", body: "nod", face: "laugh" }, { at: 3100, face: "smile" }] },
   { id: "dd2-sparklers", name: "Sparkler finale", ms: 3500,
     feel: "Two sparkler fountains shoot gold sparks up from the sheet's corners, then two fireworks open high above Pip.",
@@ -209,7 +209,7 @@ const dayDone2: FxEffect[] = [
       ...shell(0.25, 0.2, 1500, [GOLD, SUN, OR2], "front"),
       ...shell(0.76, 0.16, 2000, [PINK, LIME, CREAM], "front"),
     ],
-    sounds: [{ name: "lab-sparkler-1", at: 0, volume: 0.6 }, { name: "lab-firework-launch-1", at: 1150, volume: 0.5 }, { name: "lab-firework-pop-1", at: 1500, volume: 0.75 }, { name: "lab-firework-pop-2", at: 2000, volume: 0.7 }],
+    sounds: [{ name: "lab-sparkler-1", at: 0, volume: 0.6 }, { name: "fx-firework-launch-1", at: 1150, volume: 0.5 }, { name: "fx-firework-pop-1", at: 1500, volume: 0.75 }, { name: "fx-firework-pop-2", at: 2000, volume: 0.7 }],
     pip: [{ at: 0, look: [-0.6, 0.5], face: "curious" }, { at: 600, look: [0.6, 0.5] }, { at: 1250, look: [0, -1], face: "laugh" }, { at: 1550, body: "bighop", haptic: "success" }, { at: 2300, look: "off", face: "proud", body: "nod" }, { at: 3100, face: "smile" }] },
 ];
 
@@ -217,9 +217,9 @@ const dayDone2: FxEffect[] = [
 const FURTHER_PIP = [{ at: 0, face: "listening" as const }, { at: 340, body: "lean" as const, haptic: "light" as const }, { at: 1240, face: "warm" as const, body: "settle" as const }, { at: 2600, face: "proud" as const }];
 const further: FxEffect[] = [
   fromLib("gold-shower", { id: "fm-gold", name: "Golden shower", feel: "Gold sparkles sink slowly down the whole screen, near ones big and bright, far ones tiny, while a harp plays and he leans in.",
-    sounds: [{ name: "lab-harp-gliss-1", at: 0, volume: 0.7 }, { name: "lab-stars-twinkle-1", at: 1200, volume: 0.4 }], pip: FURTHER_PIP }),
+    sounds: [{ name: "fx-harp-gliss-1", at: 0, volume: 0.7 }, { name: "fx-stars-twinkle-1", at: 1200, volume: 0.4 }], pip: FURTHER_PIP }),
   fromLib("rainbow", { id: "fm-rainbow", name: "Rainbow sweep", feel: "Six bands of light sweep across the screen one colour after another, hang as a wide rainbow and drift away while he leans in.",
-    sounds: [{ name: "lab-magic-shimmer-1", at: 150, volume: 0.65 }, { name: "lab-soft-bell-1", at: 1300, volume: 0.45 }], pip: FURTHER_PIP }),
+    sounds: [{ name: "fx-magic-shimmer-1", at: 150, volume: 0.65 }, { name: "lab-soft-bell-1", at: 1300, volume: 0.45 }], pip: FURTHER_PIP }),
   { id: "fm-aurora", name: "Aurora", ms: 4200,
     feel: "The sky behind Pip turns deep blue and soft bands of green, violet and pink light drift across it like an aurora, with slow stars.",
     emitters: [
@@ -242,8 +242,8 @@ const finished: FxEffect[] = [
       ...shell(0.5, 0.12, 1650, [LIME, TEAL, CREAM], "back", 30), ...shell(0.3, 0.32, 2150, [BLUE, LILAC, CREAM], "back", 24), ...shell(0.7, 0.3, 2550, [GOLD, RED, SUN], "back", 30),
       twinkle([0.04, 0.03, 0.96, 0.5], 500, 16, [CREAM, SUN], 3200, "back"),
     ],
-    sounds: [{ name: "lab-firework-launch-1", at: 320, volume: 0.5 }, { name: "lab-firework-pop-1", at: 700, volume: 0.75 }, { name: "lab-firework-pop-2", at: 1150, volume: 0.7 },
-      { name: "lab-firework-launch-2", at: 1300, volume: 0.45 }, { name: "lab-firework-pop-1", at: 1650, volume: 0.8 }, { name: "lab-firework-pop-2", at: 2150, volume: 0.7 }, { name: "lab-firework-pop-1", at: 2550, volume: 0.8 }, { name: "lab-cheer-short-1", at: 1700, volume: 0.6 }],
+    sounds: [{ name: "fx-firework-launch-1", at: 320, volume: 0.5 }, { name: "fx-firework-pop-1", at: 700, volume: 0.75 }, { name: "fx-firework-pop-2", at: 1150, volume: 0.7 },
+      { name: "lab-firework-launch-2", at: 1300, volume: 0.45 }, { name: "fx-firework-pop-1", at: 1650, volume: 0.8 }, { name: "fx-firework-pop-2", at: 2150, volume: 0.7 }, { name: "fx-firework-pop-1", at: 2550, volume: 0.8 }, { name: "fx-cheer-short-1", at: 1700, volume: 0.6 }],
     pip: [{ at: 0, look: [0, -1], face: "curious" }, { at: 700, look: [-0.6, -0.8] }, { at: 1150, look: [0.6, -0.9] }, { at: 1650, look: [0, -1], face: "laugh", body: "bighop", haptic: "success" }, { at: 2600, look: "off", face: "proud", body: "pop" }, { at: 3900, face: "smile" }] },
   { id: "pf-grand-finale", name: "Grand finale", ms: 3800,
     feel: "Everything at once: cannons fire from both sides, streamers shoot up from Pip and two fireworks open, with a fanfare and a cheer.",
@@ -253,7 +253,7 @@ const finished: FxEffect[] = [
       ...depth(toss({ at: 450, origin: at(194, 470), shapes: ["streamer"], speed: [0.6, 1.2], drag: 2.0, gravity: 0.32, size: [0.1, 0.17], spin: [30, 130], flip: false, life: [2300, 3000] }), 18),
       ...shell(0.24, 0.18, 900, [GOLD, SUN, OR2], "back"), ...shell(0.76, 0.14, 1350, [PINK, LIME, CREAM], "back"),
     ],
-    sounds: [{ name: "lab-cannon-confetti-1", at: 0, volume: 0.8 }, { name: "lab-cannon-confetti-2", at: 200, volume: 0.75 }, { name: "lab-success-fanfare-1", at: 400, volume: 0.7 }, { name: "lab-firework-pop-1", at: 900, volume: 0.6 }, { name: "lab-firework-pop-2", at: 1350, volume: 0.6 }, { name: "lab-cheer-short-2", at: 700, volume: 0.6 }],
+    sounds: [{ name: "fx-cannon-confetti-1", at: 0, volume: 0.8 }, { name: "fx-cannon-confetti-2", at: 200, volume: 0.75 }, { name: "fx-success-fanfare-1", at: 400, volume: 0.7 }, { name: "fx-firework-pop-1", at: 900, volume: 0.6 }, { name: "fx-firework-pop-2", at: 1350, volume: 0.6 }, { name: "fx-cheer-short-2", at: 700, volume: 0.6 }],
     pip: [{ at: 0, face: "curious", body: "settle" }, { at: 450, body: "bighop", face: "laugh", haptic: "success" }, { at: 1400, body: "bounce", face: "proud" }, { at: 2400, look: [0, -0.8] }, { at: 3000, look: "off", face: "smile", body: "nod" }] },
   { id: "pf-star-rays", name: "Rays and stars", ms: 4000,
     feel: "Golden rays open behind Pip, party hats fly up from him and a rain of stars and confetti fills the screen while a fanfare plays.",
@@ -262,7 +262,7 @@ const finished: FxEffect[] = [
       FXK.loose(["hat"], [OR, RED, BLUE, TEAL, PINK], 6, { at: 450, origin: at(194, 450), spread: [-150, -30], size: [0.12, 0.2], speed: [0.6, 1.1], drag: 1.8, gravity: 0.4, spin: [30, 90], life: [2000, 2500] }),
       ...depth(fall({ shapes: ["star", "rect", "strip", "star"], colors: [...PARTY, GOLD], stagger: 1300, flip: true }), 70),
     ],
-    sounds: [{ name: "lab-success-fanfare-2", at: 200, volume: 0.7 }, { name: "lab-cartoon-boing-1", at: 450, volume: 0.6 }, { name: "lab-cheer-short-1", at: 900, volume: 0.55 }],
+    sounds: [{ name: "lab-success-fanfare-2", at: 200, volume: 0.7 }, { name: "lab-cartoon-boing-1", at: 450, volume: 0.6 }, { name: "fx-cheer-short-1", at: 900, volume: 0.55 }],
     pip: [{ at: 0, face: "curious" }, { at: 450, body: "bighop", face: "laugh", haptic: "success" }, { at: 1500, body: "sway", face: "proud" }, { at: 3500, face: "smile" }] },
 ];
 
@@ -366,7 +366,7 @@ const skipped: FxEffect[] = [
       stone(),
       ...splash(SINK + 60, SX + 4, 0.22),
     ],
-    sounds: [{ name: "pop", at: 110, volume: 0.35 }, { name: "lab-water-skip-1", at: SKIM, volume: 0.95 }, { name: "lab-plop-small-1", at: SINK - 25, volume: 0.7 }, { name: "lab-kalimba-warm-1", at: SINK + 500, volume: 0.4 }],
+    sounds: [{ name: "pop", at: 110, volume: 0.35 }, { name: "lab-water-skip-1", at: SKIM, volume: 0.95 }, { name: "lab-plop-small-1", at: SINK - 25, volume: 0.7 }, { name: "fx-kalimba-warm-1", at: SINK + 500, volume: 0.4 }],
     pip: [{ at: 0, move: "h-palms", look: [-0.9, 0.9] }, { at: TOUCH[0] - 80, look: [-0.6, 1] }, { at: TOUCH[1] - 80, look: [0, 1] }, { at: TOUCH[2] - 80, look: [0.45, 1] }, { at: SINK - 60, look: [0.75, 1], haptic: "light" },
       { at: SINK + 600, look: "off" }] },
   // SYNC: the card springs on lab-hop-boing-small-1 (720 ms) and lands in the shoe on the pat of lab-grip-pat-2 (1040 ms);
@@ -379,8 +379,8 @@ const skipped: FxEffect[] = [
       ...puffs(480, 118, 2, 0.12), ...puffs(GO + 40, 190, 4, 0.22),
       ...speedLines(GO + 120),
     ],
-    sounds: [{ name: "lab-swoosh-soft-2", at: 0, volume: 0.5 }, { name: "pop", at: 200, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: HOP, volume: 0.65 }, { name: "lab-grip-pat-2", at: LAND - 60, volume: 0.75 },
-      { name: "lab-ff-zip-2", at: GO, volume: 0.8 }, { name: "whoosh", at: GO + 60, volume: 0.45 }, { name: "chime-up", at: GO + 700, volume: 0.35 }],
+    sounds: [{ name: "fx-swoosh-soft-2", at: 0, volume: 0.5 }, { name: "pop", at: 200, volume: 0.45 }, { name: "fx-hop-boing-small-1", at: HOP, volume: 0.65 }, { name: "fx-grip-pat-2", at: LAND - 60, volume: 0.75 },
+      { name: "fx-ff-zip-2", at: GO, volume: 0.8 }, { name: "whoosh", at: GO + 60, volume: 0.45 }, { name: "chime-up", at: GO + 700, volume: 0.35 }],
     pip: [{ at: 0, look: [-0.5, 1], face: "curious" }, { at: 250, move: "h-palms" }, { at: HOP, look: [-0.3, 1] }, { at: LAND, look: [0.1, 1], haptic: "light" }, { at: GO, look: [0.9, 0.9] },
       { at: GO + 600, look: "off" }] },
   // SYNC: the card pops on "pop" (40 ms); the balloon springs full on lab-cartoon-boing-2 (430 ms); lift-off on
@@ -393,7 +393,7 @@ const skipped: FxEffect[] = [
       { kind: "burst", shapes: ["sparkle", "glitter"], colors: [LIME, CREAM, SUN], origin: at(LOON.x, LOON.y - 60), at: 620, count: 8, spread: [0, 360], speed: [0.2, 0.45], drag: 3, size: [0.025, 0.05], life: [500, 800] },
       { kind: "twinkle", shapes: ["sparkle"], colors: [CREAM, LIME], count: 6, at: LIFT + 300, stagger: 1500, area: [0.03, 0.2, 0.3, 0.75], size: [0.03, 0.05], life: [500, 800] },
     ],
-    sounds: [{ name: "pop", at: 40, volume: 0.5 }, { name: "lab-cartoon-boing-2", at: 425, volume: 0.6 }, { name: "lab-hop-boing-small-2", at: LIFT, volume: 0.55 }, { name: "lab-balloon-release-2", at: LIFT + 100, volume: 0.3 },
+    sounds: [{ name: "pop", at: 40, volume: 0.5 }, { name: "fx-cartoon-boing-2", at: 425, volume: 0.6 }, { name: "fx-hop-boing-small-2", at: LIFT, volume: 0.55 }, { name: "lab-balloon-release-2", at: LIFT + 100, volume: 0.3 },
       { name: "lab-kalimba-warm-2", at: LIFT + 500, volume: 0.5 }],
     pip: [{ at: 0, look: [-0.9, 1], face: "curious" }, { at: 120, move: "h-wave" }, { at: LIFT + 400, look: [-1, 0.7] }, { at: LIFT + 1000, look: [-1, 0.1] }, { at: LIFT + 1600, look: [-1, -0.6] }, { at: LIFT + 2300, look: [-0.7, -1] },
       { at: 3900, look: "off" }] },
@@ -443,9 +443,9 @@ const saved: FxEffect[] = [
       tr("p3-badge", BOX, BS, joins(boxKeys, 2980, [{ s: 0.4, o: 1 }, { t: 3110, s: 1.2, e: "out" }, { t: 3220, s: 1 }], 3220)),
       ...glow([BOX[0] + 40, BOX[1] + 40], 3000, [LIME, CREAM, GOLD]),
     ],
-    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: 590, volume: 0.6 }, { name: "lab-envelope-tuck-2", at: 1110, volume: 0.7 }, { name: "boop", at: 1450, volume: 0.55 },
-      { name: "lab-grip-pat-2", at: 2260, volume: 0.8 }, { name: "lab-book-close-2", at: 2420, volume: 0.8 }, { name: "lab-ff-zip-1", at: 2750, volume: 0.6 }, { name: "lab-save-confirm-1", at: 2980, volume: 0.75 },
-      { name: "lab-swoosh-soft-1", at: 3480, volume: 0.4 }],
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "fx-hop-boing-small-1", at: 590, volume: 0.6 }, { name: "fx-envelope-tuck-2", at: 1110, volume: 0.7 }, { name: "boop", at: 1450, volume: 0.55 },
+      { name: "fx-grip-pat-2", at: 2260, volume: 0.8 }, { name: "fx-book-close-2", at: 2420, volume: 0.8 }, { name: "fx-ff-zip-1", at: 2750, volume: 0.6 }, { name: "fx-save-confirm-1", at: 2980, volume: 0.75 },
+      { name: "fx-swoosh-soft-1", at: 3480, volume: 0.4 }],
     pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 1450, face: "laugh", body: "hop" }, { at: 2320, face: "smile" }, { at: 2980, face: "proud", body: "nod", haptic: "success" }, { at: 3700, look: "off", face: "warm" }] },
   // SYNC: the note folds into a heart on lab-page-flip-2 (900 ms); the heart lands in the jar on "ding" (1500 ms); the lid
   // clicks on with lab-lock-click-2 (2050 ms); the check and the glow come on lab-save-confirm-2 (2300 ms).
@@ -462,8 +462,8 @@ const saved: FxEffect[] = [
       tr("p3-badge", JAR, JS, joins(jarKeys, 2300, [{ s: 0.4, o: 1 }, { t: 2430, s: 1.2, e: "out" }, { t: 2540, s: 1 }], 2750)),
       ...glow(JAR, 2320, [GOLD, CREAM, PINK]),
     ],
-    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: 590, volume: 0.55 }, { name: "lab-page-flip-2", at: 900, volume: 0.7 }, { name: "ding", at: 1500, volume: 0.55 },
-      { name: "lab-lock-click-2", at: 2050, volume: 0.85 }, { name: "lab-save-confirm-2", at: 2300, volume: 0.75 }, { name: "lab-stars-twinkle-1", at: 2450, volume: 0.3 }],
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "fx-hop-boing-small-1", at: 590, volume: 0.55 }, { name: "fx-page-flip-2", at: 900, volume: 0.7 }, { name: "ding", at: 1500, volume: 0.55 },
+      { name: "fx-lock-click-2", at: 2050, volume: 0.85 }, { name: "fx-save-confirm-2", at: 2300, volume: 0.75 }, { name: "fx-stars-twinkle-1", at: 2450, volume: 0.3 }],
     pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 1000, face: "smile" }, { at: 1500, body: "nod" }, { at: 2300, face: "proud", body: "pop", haptic: "success" }, { at: 3200, look: "off", face: "warm" }] },
   // SYNC: the note slides in on the two rustles of lab-envelope-tuck-1 (1000 and 1225 ms); the flap shuts on the pat of
   // lab-grip-pat-2 (1500 ms); the wax seal stamps on the thump of lab-rubber-stamp-1 (2130 ms), with lab-save-confirm-1 right after.
@@ -480,8 +480,8 @@ const saved: FxEffect[] = [
       ...glow([ENV[0], ENV[1] + 20], 2150, [RED, CREAM, GOLD]),
       { kind: "rise", shapes: ["heart"], colors: [RED, PINK], count: 5, at: 3200, stagger: 400, area: [0.55, 0.24, 0.64, 0.31], speed: [0.12, 0.2], sway: 0.015, size: [0.035, 0.055], life: [550, 600], upright: true },
     ],
-    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "lab-hop-boing-small-1", at: 540, volume: 0.55 }, { name: "lab-envelope-tuck-1", at: 1000, volume: 0.75 }, { name: "lab-grip-pat-2", at: 1440, volume: 0.75 },
-      { name: "lab-rubber-stamp-1", at: 2110, volume: 0.9 }, { name: "lab-save-confirm-1", at: 2230, volume: 0.65 }, { name: "lab-swoosh-soft-1", at: 2880, volume: 0.45 }, { name: "heart-blip", at: 3270, volume: 0.5 }],
+    sounds: [{ name: "pop", at: 60, volume: 0.45 }, { name: "fx-hop-boing-small-1", at: 540, volume: 0.55 }, { name: "lab-envelope-tuck-1", at: 1000, volume: 0.75 }, { name: "fx-grip-pat-2", at: 1440, volume: 0.75 },
+      { name: "fx-rubber-stamp-1", at: 2110, volume: 0.9 }, { name: "fx-save-confirm-1", at: 2230, volume: 0.65 }, { name: "fx-swoosh-soft-1", at: 2880, volume: 0.45 }, { name: "heart-blip", at: 3270, volume: 0.5 }],
     pip: [{ at: 0, look: [-0.7, 1], face: "curious" }, { at: 800, move: "h-heart" }, { at: 2130, look: [-0.6, 0.9], haptic: "success" }, { at: 3300, look: "off" }] },
 ];
 

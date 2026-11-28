@@ -14,7 +14,7 @@
  * Put this component with its BOTTOM `overlap` below the edge (it does that itself with a negative bottom margin).
  * Reduced motion: he is simply there (no slide, no particles, no wave); his faces still change.
  */
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { View } from "react-native";
 import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import type { PipBeat, PipFace, PipHandle, PipVariant } from "./Pip";
@@ -22,6 +22,7 @@ import { PipStage } from "./fx/PipStage";
 import type { PipStageHandle } from "./fx/PipStage";
 import { playSfx } from "./fx/sfx";
 import type { FxEffect } from "./fx/types";
+import type { FxSpot } from "./fx/fitFx";
 
 /** The share of his height that stays behind the edge (as PipPeek). */
 export const PIP_EDGE_HIDE = 0.14;
@@ -50,6 +51,9 @@ export interface PipOnEdgeHandle {
   /** Slide down behind the edge with no wave (he steps aside: another Pip takes the moment, or the step changes).
    *  Resolves when he is hidden. Reduced motion: he is hidden at once. */
   down: () => Promise<void>;
+  /** Play a moment's effect where he stands (he is up): its props, background, sounds and his acting. `design`: where the
+   *  effect was designed (momentFx MOMENT_SPOT), so its props are fitted to him. Resolves when it has finished. */
+  play: (effect: FxEffect, design?: FxSpot, opts?: { clipFront?: boolean }) => Promise<void>;
   /** Pip himself, for a face between the calls. */
   pip: PipHandle | null;
 }
@@ -71,9 +75,13 @@ export interface PipOnEdgeProps {
    *  He is cut there, not on the edge line: where a rounded corner curves away below the line, his sleeve runs on behind
    *  the curve instead of ending in a flat cut over an orange gap (founder, 2026-11-26: "there should be no gap"). */
   clipBelow?: number;
+  /** The effects' background layer ends at this line (px from the screen's top): the orange zone above a sheet. */
+  backClip?: number;
+  /** Where `effect` was designed (fitFx). */
+  design?: FxSpot;
 }
 
-export const PipOnEdge = forwardRef<PipOnEdgeHandle, PipOnEdgeProps>(function PipOnEdge({ size, hide = PIP_EDGE_HIDE, effect = null, sound = true, variant, startUp = false, face, screen, clipBelow = 0 }, ref) {
+export const PipOnEdge = forwardRef<PipOnEdgeHandle, PipOnEdgeProps>(function PipOnEdge({ size, hide = PIP_EDGE_HIDE, effect = null, sound = true, variant, startUp = false, face, screen, clipBelow = 0, backClip, design }, ref) {
   const reduced = useReducedMotion();
   const stage = useRef<PipStageHandle>(null), alive = useRef(true);
   const { h, overlap } = pipEdgeBox(size, hide);
@@ -82,6 +90,9 @@ export const PipOnEdge = forwardRef<PipOnEdgeHandle, PipOnEdgeProps>(function Pi
   const down = h + clipBelow;
   const y = useSharedValue(startUp || reduced ? 0 : down);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  // a moment played with play(): it replaces `effect` until the next play
+  const [played, setPlayed] = useState<{ effect: FxEffect; design?: FxSpot; clipFront?: boolean } | null>(null);
+  const fx = played?.effect ?? effect, fxDesign = played ? played.design : design;
   useImperativeHandle(ref, () => ({
     get pip() { return stage.current?.pip ?? null; },
     rise: async (opts) => {
@@ -95,6 +106,12 @@ export const PipOnEdge = forwardRef<PipOnEdgeHandle, PipOnEdgeProps>(function Pi
       await stage.current?.fire();
     },
     react: async () => { await stage.current?.pip?.perform(ACK); },
+    play: async (e, d, opts) => {
+      setPlayed({ effect: e, design: d, clipFront: opts?.clipFront });
+      await wait(80);                                                   // the stage has the new effect (its particles made)
+      if (!alive.current) return;
+      await stage.current?.fire();
+    },
     leave: async () => {
       const pip = stage.current?.pip;
       if (reduced || !pip) { pip?.face("warm"); return; }
@@ -113,7 +130,7 @@ export const PipOnEdge = forwardRef<PipOnEdgeHandle, PipOnEdgeProps>(function Pi
   return (
     // the negative margin hangs his lower part below the edge, behind the sheet
     <View pointerEvents="none" style={{ marginBottom: -overlap }}>
-      <PipStage ref={stage} blob={false} labNoCut jelly={false} variant={variant} stageW={size} stageH={h} pipTop={0} effect={effect} sound={sound} size={size} face={face}
-        screen={screen} figureY={y} figureClip={h - overlap + clipBelow} />
+      <PipStage ref={stage} blob={false} labNoCut jelly={false} variant={variant} stageW={size} stageH={h} pipTop={0} effect={fx} sound={sound} size={size} face={face}
+        screen={screen} figureY={y} figureClip={h - overlap + clipBelow} backClip={backClip} clipFront={played?.clipFront} design={fxDesign} />
     </View>);
 });

@@ -1,0 +1,477 @@
+[
+  {
+    "file": "a2-bird-tweet-1.m4a",
+    "name": "Single Bird Chirp 2",
+    "freesound_id": 233254,
+    "author": "alegemaate",
+    "page": "https://freesound.org/people/alegemaate/sounds/233254/",
+    "license": "CC0",
+    "duration_s": 0.71,
+    "onsets_ms": [
+      15,
+      100,
+      180
+    ]
+  },
+  {
+    "file": "a2-bird-tweet-2.m4a",
+    "name": "Single Bird Chirp",
+    "freesound_id": 233255,
+    "author": "alegemaate",
+    "page": "https://freesound.org/people/alegemaate/sounds/233255/",
+    "license": "CC0",
+    "duration_s": 0.31,
+    "onsets_ms": [
+      40
+    ]
+  },
+  {
+    "file": "a2-marimba-climb-1.m4a",
+    "name": "Marimba - C7 (pitched into a rising run)",
+    "freesound_id": 373581,
+    "author": "sgossner",
+    "page": "https://freesound.org/people/sgossner/sounds/373581/",
+    "license": "CC0",
+    "duration_s": 1.7,
+    "onsets_ms": [
+      0,
+      190,
+      380,
+      570,
+      800
+    ]
+  },
+  {
+    "file": "a2-marimba-wave-1.m4a",
+    "name": "Marimba - C7 (pitched into a rising run)",
+    "freesound_id": 373581,
+    "author": "sgossner",
+    "page": "https://freesound.org/people/sgossner/sounds/373581/",
+    "license": "CC0",
+    "duration_s": 1.23,
+    "onsets_ms": [
+      0,
+      110,
+      220,
+      330
+    ]
+  },
+  {
+    "file": "a2-mic-tap-1.m4a",
+    "name": "tappingMic.wav",
+    "freesound_id": 149034,
+    "author": "susychristiansen",
+    "page": "https://freesound.org/people/susychristiansen/sounds/149034/",
+    "license": "CC0",
+    "duration_s": 0.95,
+    "onsets_ms": [
+      0,
+      300,
+      585
+    ]
+  },
+  {
+    "file": "a2-plug-in-1.m4a",
+    "name": "plug getting connected to wall socket",
+    "freesound_id": 525017,
+    "author": "preyk",
+    "page": "https://freesound.org/people/preyk/sounds/525017/",
+    "license": "CC0",
+    "duration_s": 0.33,
+    "onsets_ms": [
+      0,
+      135
+    ]
+  },
+  {
+    "file": "b2-door-bell-1.m4a",
+    "name": "DoorBell Shortened",
+    "freesound_id": 442280,
+    "author": "jwheeler91",
+    "page": "https://freesound.org/people/jwheeler91/sounds/442280/",
+    "license": "CC0",
+    "duration_s": 1.9,
+    "onsets_ms": [
+      10
+    ]
+  },
+  {
+    "file": "b2-hand-bell-1.m4a",
+    "name": "Ringing bell - happy.wav",
+    "freesound_id": 116779,
+    "author": "domrodrig",
+    "page": "https://freesound.org/people/domrodrig/sounds/116779/",
+    "license": "CC0",
+    "duration_s": 1.6,
+    "onsets_ms": [
+      15
+    ]
+  },
+  {
+    "file": "b2-hello-notes-1.m4a",
+    "name": "Kalimba (C-note) (re-pitched to 5 notes)",
+    "freesound_id": 331047,
+    "author": "foochie_foochie",
+    "page": "https://freesound.org/people/foochie_foochie/sounds/331047/",
+    "license": "CC0",
+    "duration_s": 1.42,
+    "onsets_ms": [
+      0,
+      180,
+      360,
+      540,
+      720
+    ]
+  },
+  {
+    "file": "book-close-2.m4a",
+    "name": "Notebook close",
+    "freesound_id": 320456,
+    "author": "Kukensius",
+    "page": "https://freesound.org/people/Kukensius/sounds/320456/",
+    "license": "CC0",
+    "duration_s": 0.6,
+    "onsets_ms": [
+      40
+    ]
+  },
+  {
+    "file": "cannon-confetti-1.m4a",
+    "name": "Balloon Pop / Christmas cracker / Confetti Cannon",
+    "freesound_id": 458398,
+    "author": "Breviceps",
+    "page": "https://freesound.org/people/Breviceps/sounds/458398/",
+    "license": "CC0",
+    "duration_s": 0.35
+  },
+  {
+    "file": "cannon-confetti-2.m4a",
+    "name": "PVC Rocket Cannon_2.mp3",
+    "freesound_id": 151714,
+    "author": "bowlingballout",
+    "page": "https://freesound.org/people/bowlingballout/sounds/151714/",
+    "license": "CC0",
+    "duration_s": 0.46
+  },
+  {
+    "file": "cartoon-boing-2.m4a",
+    "name": "Boing 2",
+    "freesound_id": 540790,
+    "author": "magnuswaker",
+    "page": "https://freesound.org/people/magnuswaker/sounds/540790/",
+    "license": "CC0",
+    "duration_s": 0.8
+  },
+  {
+    "file": "cheer-short-1.m4a",
+    "name": "yay.mp3",
+    "freesound_id": 162395,
+    "author": "zut50",
+    "page": "https://freesound.org/people/zut50/sounds/162395/",
+    "license": "CC0",
+    "duration_s": 1.79
+  },
+  {
+    "file": "cheer-short-2.m4a",
+    "name": "yay.mp3",
+    "freesound_id": 563845,
+    "author": "Disarmenemyships",
+    "page": "https://freesound.org/people/Disarmenemyships/sounds/563845/",
+    "license": "CC0",
+    "duration_s": 2.39
+  },
+  {
+    "file": "envelope-tuck-2.m4a",
+    "name": "PaperSlide.wav",
+    "freesound_id": 464302,
+    "author": "eyesonlegs",
+    "page": "https://freesound.org/people/eyesonlegs/sounds/464302/",
+    "license": "CC0",
+    "duration_s": 0.9
+  },
+  {
+    "file": "ff-zip-1.m4a",
+    "name": "Cartoon Quick Zip 02",
+    "freesound_id": 541507,
+    "author": "se2001",
+    "page": "https://freesound.org/people/se2001/sounds/541507/",
+    "license": "CC0",
+    "duration_s": 0.18
+  },
+  {
+    "file": "ff-zip-2.m4a",
+    "name": "Tape speed up effect - Tuned (F4)",
+    "freesound_id": 790841,
+    "author": "quatricise",
+    "page": "https://freesound.org/people/quatricise/sounds/790841/",
+    "license": "CC0",
+    "duration_s": 0.9
+  },
+  {
+    "file": "fire-whoosh-1.m4a",
+    "name": "fire-whoosh.wav",
+    "freesound_id": 244926,
+    "author": "hnhnh",
+    "page": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "license": "CC0",
+    "duration_s": 1.8
+  },
+  {
+    "file": "firework-launch-1.m4a",
+    "name": "Bottle Rocket Launch #2.wav",
+    "freesound_id": 695731,
+    "author": "Bryce835",
+    "page": "https://freesound.org/people/Bryce835/sounds/695731/",
+    "license": "CC0",
+    "duration_s": 1.2
+  },
+  {
+    "file": "firework-pop-1.m4a",
+    "name": "Firework Cluster",
+    "freesound_id": 140717,
+    "author": "j1987",
+    "page": "https://freesound.org/people/j1987/sounds/140717/",
+    "license": "CC0",
+    "duration_s": 1.02
+  },
+  {
+    "file": "firework-pop-2.m4a",
+    "name": "Fireworks Crackle",
+    "freesound_id": 505264,
+    "author": "16FThumaF",
+    "page": "https://freesound.org/people/16FThumaF/sounds/505264/",
+    "license": "CC0",
+    "duration_s": 2.0
+  },
+  {
+    "file": "grip-pat-2.m4a",
+    "name": "Tap on Wooden Table",
+    "freesound_id": 427393,
+    "author": "zembacraftworks",
+    "page": "https://freesound.org/people/zembacraftworks/sounds/427393/",
+    "license": "CC0",
+    "duration_s": 0.35
+  },
+  {
+    "file": "harp-gliss-1.m4a",
+    "name": "Good answer harp glissando.wav",
+    "freesound_id": 610703,
+    "author": "oggraphics",
+    "page": "https://freesound.org/people/oggraphics/sounds/610703/",
+    "license": "CC0",
+    "duration_s": 2.0
+  },
+  {
+    "file": "hop-boing-small-1.m4a",
+    "name": "Cartoon, Penguin 02.wav",
+    "freesound_id": 459341,
+    "author": "LilMati",
+    "page": "https://freesound.org/people/LilMati/sounds/459341/",
+    "license": "CC0",
+    "duration_s": 0.23,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "hop-boing-small-2.m4a",
+    "name": "Retro Jump 02.wav",
+    "freesound_id": 458641,
+    "author": "LilMati",
+    "page": "https://freesound.org/people/LilMati/sounds/458641/",
+    "license": "CC0",
+    "duration_s": 0.16,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "kalimba-warm-1.m4a",
+    "name": "Kalimba (C-note)",
+    "freesound_id": 331047,
+    "author": "foochie_foochie",
+    "page": "https://freesound.org/people/foochie_foochie/sounds/331047/",
+    "license": "CC0",
+    "duration_s": 1.5
+  },
+  {
+    "file": "lock-click-1.m4a",
+    "name": "Small Padlock Opening",
+    "freesound_id": 536414,
+    "author": "Rudmer_Rotteveel",
+    "page": "https://freesound.org/people/Rudmer_Rotteveel/sounds/536414/",
+    "license": "CC0",
+    "duration_s": 0.25,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "lock-click-2.m4a",
+    "name": "Latch_04.wav",
+    "freesound_id": 56246,
+    "author": "Q.K.",
+    "page": "https://freesound.org/people/Q.K./sounds/56246/",
+    "license": "CC0",
+    "duration_s": 0.28,
+    "onsets_ms": [
+      0,
+      165
+    ]
+  },
+  {
+    "file": "magic-shimmer-1.m4a",
+    "name": "cartoon_wink_magic_sparkle.wav",
+    "freesound_id": 511485,
+    "author": "MLaudio",
+    "page": "https://freesound.org/people/MLaudio/sounds/511485/",
+    "license": "CC0",
+    "duration_s": 1.27
+  },
+  {
+    "file": "medal-ding-1.m4a",
+    "name": "Glockenspiel_46_f4_04",
+    "freesound_id": 348924,
+    "author": "cabled_mess",
+    "page": "https://freesound.org/people/cabled_mess/sounds/348924/",
+    "license": "CC0",
+    "duration_s": 1.5
+  },
+  {
+    "file": "page-flip-1.m4a",
+    "name": "Page Turn 01",
+    "freesound_id": 397548,
+    "author": "LilMati",
+    "page": "https://freesound.org/people/LilMati/sounds/397548/",
+    "license": "CC0",
+    "duration_s": 0.46
+  },
+  {
+    "file": "page-flip-2.m4a",
+    "name": "turnPage.mp3",
+    "freesound_id": 457767,
+    "author": "partheeban",
+    "page": "https://freesound.org/people/partheeban/sounds/457767/",
+    "license": "CC0",
+    "duration_s": 0.71
+  },
+  {
+    "file": "pencil-check-1.m4a",
+    "name": "Scribble_short.wav",
+    "freesound_id": 257518,
+    "author": "waldram",
+    "page": "https://freesound.org/people/waldram/sounds/257518/",
+    "license": "CC0",
+    "duration_s": 0.7
+  },
+  {
+    "file": "rubber-stamp-1.m4a",
+    "name": "Stamp",
+    "freesound_id": 362624,
+    "author": "kermite607",
+    "page": "https://freesound.org/people/kermite607/sounds/362624/",
+    "license": "CC0",
+    "duration_s": 0.5,
+    "onsets_ms": [
+      0,
+      280,
+      350
+    ]
+  },
+  {
+    "file": "save-confirm-1.m4a",
+    "name": "Task Complete Pop",
+    "freesound_id": 878606,
+    "author": "Qvantor",
+    "page": "https://freesound.org/people/Qvantor/sounds/878606/",
+    "license": "CC0",
+    "duration_s": 0.72,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "save-confirm-2.m4a",
+    "name": "Success Chime",
+    "freesound_id": 878601,
+    "author": "Qvantor",
+    "page": "https://freesound.org/people/Qvantor/sounds/878601/",
+    "license": "CC0",
+    "duration_s": 1.0,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "stars-twinkle-1.m4a",
+    "name": "Crystal Twinkle",
+    "freesound_id": 639429,
+    "author": "LaurenPonder",
+    "page": "https://freesound.org/people/LaurenPonder/sounds/639429/",
+    "license": "CC0",
+    "duration_s": 2.0
+  },
+  {
+    "file": "success-fanfare-1.m4a",
+    "name": "Tada Fanfare A",
+    "freesound_id": 397355,
+    "author": "plasterbrain",
+    "page": "https://freesound.org/people/plasterbrain/sounds/397355/",
+    "license": "CC0",
+    "duration_s": 1.7
+  },
+  {
+    "file": "swoosh-soft-1.m4a",
+    "name": "Whoosh",
+    "freesound_id": 60013,
+    "author": "qubodup",
+    "page": "https://freesound.org/people/qubodup/sounds/60013/",
+    "license": "CC0",
+    "duration_s": 0.43
+  },
+  {
+    "file": "swoosh-soft-2.m4a",
+    "name": "classic double swwosh .wav",
+    "freesound_id": 19312,
+    "author": "martian",
+    "page": "https://freesound.org/people/martian/sounds/19312/",
+    "license": "CC0",
+    "duration_s": 0.53
+  },
+  {
+    "file": "ding-soft.m4a",
+    "name": "correct",
+    "freesound_id": 243701,
+    "author": "ertfelda",
+    "page": "https://freesound.org/s/243701/",
+    "license": "CC0",
+    "duration_s": 0.32,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "boop-soft.m4a",
+    "name": "Bubble",
+    "freesound_id": 269583,
+    "author": "deleted_user_3854053",
+    "page": "https://freesound.org/s/269583/",
+    "license": "CC0",
+    "duration_s": 0.38,
+    "onsets_ms": [
+      0
+    ]
+  },
+  {
+    "file": "chime-start.m4a",
+    "name": "UI Toast Notification",
+    "freesound_id": 878254,
+    "author": "Qvantor",
+    "page": "https://freesound.org/s/878254/",
+    "license": "CC0",
+    "duration_s": 0.63,
+    "onsets_ms": [
+      0
+    ]
+  }
+]

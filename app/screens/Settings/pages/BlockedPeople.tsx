@@ -12,9 +12,7 @@ import {
   ListItem,
   Button,
   Dialog,
-  EmptyState,
   ErrorState,
-  Spinner,
 } from "../../../design-system";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 import {
@@ -27,6 +25,7 @@ import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import { removeBlocked, blockedOnLabel } from "./BlockedPeople.helpers";
+import { PipWaiting } from "../../../components/Pip/PipWaiting";
 
 /**
  * Blocked people — the undo half of blocking.
@@ -94,7 +93,7 @@ const BlockedPeople = () => {
   };
 
   const body = () => {
-    if (rows === null && !error) return <Spinner label="Loading…" />;
+    if (rows === null && !error) return <PipWaiting kind="loading" label="Loading…" />;
     if (error && !rows?.length) {
       return (
         <ErrorState
@@ -106,10 +105,11 @@ const BlockedPeople = () => {
     }
     if (!rows?.length) {
       return (
-        <EmptyState
-          icon="users"
+        <PipWaiting
+          kind="empty"
+          which="goldfish"
           title="No one's blocked"
-          message="People you block will show up here. You can unblock them any time."
+          label="People you block will show up here. You can unblock them any time."
         />
       );
     }

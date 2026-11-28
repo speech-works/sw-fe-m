@@ -197,6 +197,10 @@ export const PROPS_B2A: Record<string, FxShape> = {
   "a2-bird-sing": sticker([fl("M68 58L94 46L90 70Z", BLUE, 2), fl(ell(47, 54, 27, 25), CYAN)], [ln("M41 78V90M55 78V90", OR, 3.4), fl(ell(44, 63, 16, 13), ICE), fl("M42 50C55 47 66 56 64 70C53 71 44 63 42 50Z", BLUE),
     fl("M25 47L6 41L22 54Z", OR), fl("M24 60L8 67L22 54Z", ORD), fl("M24 49L13 54L24 59Z", "#E8261C"), ln("M31 42q4 -5 8 0", SL, 2.6), fl(ell(27, 63, 3.4, 2.6), CHEEK, 0, 0.8), ln("M46 30C46 24 50 21 54 22", CYAN, 4)]),
 
+  // a small flower the bird carries in its beak (home greeting, back after days away): five pink petals, a sun centre, a stem
+  "a2-flower": sticker([ln("M50 54C50 68 47 80 42 92", GREEN2, 5), fl("M50 54C58 66 70 66 72 60C66 56 58 56 50 54Z", GREEN),
+    ...[0, 72, 144, 216, 288].map(a => fl(ell(50 + 13 * Math.cos(((a - 90) * Math.PI) / 180), 32 + 13 * Math.sin(((a - 90) * Math.PI) / 180), 10, 10), PINK))],
+    [fl(ell(50, 32, 8, 8), "#FFD84A"), fl(ell(47, 29, 2.4, 2.4), WH, 0, 0.8)]),
   // ── mood check-in ──
   "a2-mood-neutral": badge(LIME, LIME2, "smile"),
   "a2-mood-low": badge("#A9CCFF", "#5B8DEF", "soft"),

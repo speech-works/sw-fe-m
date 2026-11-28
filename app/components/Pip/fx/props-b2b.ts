@@ -254,6 +254,9 @@ export const PROPS_B2B: Record<string, FxShape> = {
   "b2-clapper": { paths: [fl(ell(50, 86, 8), AMBER)] },
   "b2-bell": sticker([fl(BELL, GOLD), fl(rrect(9, 71, 82, 10, 5), SUN)], [
     { d: ell(50, 10.5, 5), stroke: GOLD, sw: 4 }, ln("M33 31C35 25 39 21 45 19", "#FFE98A", 4), ...awake(50, 46, 1.25, 0, -0.9), fl(ell(34, 64, 1.3), AMBER), fl(ell(66, 62, 1.3), AMBER)]),
+  // the same bell asleep (the "Not now" ending): eyes shut, a small round mouth, no shine on its rim
+  "b2-bell-asleep": sticker([fl(BELL, GOLD), fl(rrect(9, 71, 82, 10, 5), SUN)], [
+    { d: ell(50, 10.5, 5), stroke: GOLD, sw: 4 }, ln("M33 31C35 25 39 21 45 19", "#FFE98A", 4), ...asleep(50, 46, 1.25), fl(ell(34, 64, 1.3), AMBER), fl(ell(66, 62, 1.3), AMBER)]),
   // a letterbox on a post with a face on its door; its flag (drawn round its pivot: down is 90 degrees); a letter that peeks out
   "b2-mailbox": sticker([fl(rrect(44, 62, 12, 37, 2), "#9A6A3A"), fl("M20 68V38C20 20 33 9 50 9C67 9 80 20 80 38V68Z", BLUE, 2)], [
     fl("M28 64V39C28 26 37 17 50 17C63 17 72 26 72 39V64Z", "#5BA6FF"), ln("M33 34C35 27 40 23 46 21", "#B5D6FF", 3), ...awake(50, 40, 1.15, 0, -0.7)]),

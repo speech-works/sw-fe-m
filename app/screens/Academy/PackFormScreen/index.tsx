@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -29,9 +29,15 @@ import { zoneTitleSize } from "../../../components/Pack/dayStepFrame";
 import {
   ON_ORANGE_DISC,
   ON_ORANGE_MUTED,
+  PIP_HALF_WAVE,
+  PIP_HIDE,
   ZONE_TEXT_X,
   sheetFill,
 } from "../../../components/Pack/zoneSheet";
+import { PipOnEdge, pipEdgeBox } from "../../../components/Pip/PipOnEdge";
+import type { PipOnEdgeHandle } from "../../../components/Pip/PipOnEdge";
+import { MOMENT_SPOT, momentFxNow } from "../../../components/Pip/fx/momentFx";
+import { FxFront, FxFrontHost } from "../../../components/Pip/fx/FxPortal";
 import {
   Button,
   Icon,
@@ -50,6 +56,7 @@ import {
 } from "../../../util/functions/bottomSheet";
 import { noteStepSaved } from "../../../util/packs/dayRefresh";
 import {
+  GUESS_FORM_KEY,
   formSavedMessage,
   formScreenHeader,
   initialFormAnswers,
@@ -449,6 +456,13 @@ const PackFormScreen = () => {
     initialFormAnswers(configuration),
   );
   const [submitting, setSubmitting] = useState(false);
+  // REFLECTION SAVED (Pip moment P5, founder 2026-11-28): notes saved -> Pip comes up from behind the sheet's edge at the
+  // right of the title, the jar of notes plays (your note folds into a heart and drops in), and the Save bar says
+  // "Saved to your notes." Then the screen closes. A guess is not a note: it keeps its own saved sheet.
+  const [savedLine, setSavedLine] = useState<string | null>(null);
+  const savePip = useRef<PipOnEdgeHandle>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const jar = useMemo(() => momentFxNow("reflection-saved"), []);
   const header = formScreenHeader(
     configuration,
     route.params.titleOverride,
@@ -519,6 +533,14 @@ const PackFormScreen = () => {
 
       // ONE OUTCOME, ALWAYS. A "breakthrough" modal used to pre-empt this —
       // see the note in `api/forms/types.ts` for why it is gone.
+      if (configuration?.formKey !== GUESS_FORM_KEY && savePip.current) {
+        Keyboard.dismiss();
+        scrollRef.current?.scrollTo({ y: 0, animated: true });   // Pip's spot is at the top of the sheet
+        setSavedLine("Saved to your notes.");
+        await savePip.current.rise({ quiet: true });             // he comes up and the jar plays (resolves when it ends)
+        navigation.goBack();
+        return;
+      }
       const saved = formSavedMessage(configuration?.formKey);
       showSavedBottomSheet(saved.title, saved.body);
       navigation.goBack();
@@ -569,8 +591,13 @@ const PackFormScreen = () => {
   const subLine = header.description?.trim() || "";
   const titleType = zoneTitleSize(header.title, screenW - 2 * ZONE_TEXT_X);
   const ink = colors.action.onPrimary;
+  // Pip's place for the jar: at the right of the zone, a whole wave's reach inside the sheet's round corner (as the day
+  // frame's right-hand Pip), the lab's size (132 at 390 wide)
+  const pipSize = Math.round((132 * screenW) / 390);
+  const pipLeft = Math.round(screenW - radius.sheet - 2 - PIP_HALF_WAVE * pipSize - pipSize / 2);
 
   return (
+    <FxFront>
     <View style={[styles.root, { backgroundColor: colors.action.primary }]}>
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       {/* iOS: KeyboardAvoidingView. Android: a plain View padded by the real
@@ -579,6 +606,7 @@ const PackFormScreen = () => {
           closes, which showed the orange root under the Save bar. */}
       <KeyboardWrap style={styles.fill} inset={keyboardInset}>
         <ScrollView
+          ref={scrollRef}
           style={styles.fill}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -615,6 +643,10 @@ const PackFormScreen = () => {
                 {header.title}
               </Text>
               {subLine ? <Text style={styles.zoneSub}>{subLine}</Text> : null}
+            </View>
+            {/* Pip on the sheet's edge, hidden behind it until the notes are saved (the sheet is drawn over him) */}
+            <View pointerEvents="none" style={[styles.savePip, { left: pipLeft, width: pipSize, height: pipEdgeBox(pipSize, PIP_HIDE).visible }]}>
+              <PipOnEdge ref={savePip} size={pipSize} hide={PIP_HIDE} face="listening" effect={jar} design={MOMENT_SPOT["reflection-saved"]} clipBelow={radius.sheet + 2} />
             </View>
           </View>
 
@@ -691,16 +723,26 @@ const PackFormScreen = () => {
             },
           ]}
         >
-          <Button
-            label="Save"
-            leftIcon="check"
-            loading={submitting}
-            disabled={!allRequiredFilled}
-            onPress={handleSubmit}
-          />
+          {savedLine ? (
+            <View style={styles.savedLine} accessibilityLiveRegion="polite">
+              <Icon name="check" size={20} color={colors.text.primary} />
+              <Text variant="body" color="primary">{savedLine}</Text>
+            </View>
+          ) : (
+            <Button
+              label="Save"
+              leftIcon="check"
+              loading={submitting}
+              disabled={!allRequiredFilled}
+              onPress={handleSubmit}
+            />
+          )}
         </View>
       </KeyboardWrap>
+      {/* the jar plays over the sheet (the sheet is drawn over Pip) */}
+      <FxFrontHost />
     </View>
+    </FxFront>
   );
 };
 
@@ -784,6 +826,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   requiredTag: { fontFamily: fonts.medium, fontWeight: "500", fontSize: 12 },
+  // Pip's box ends on the sheet's edge (the zone's bottom); PipOnEdge hangs his hidden part below it, under the sheet
+  savePip: { position: "absolute", bottom: 0, justifyContent: "flex-end" },
+  // where Save was: the same height as the button, so nothing jumps
+  savedLine: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   saveBar: {
     paddingHorizontal: 16,
     paddingTop: 16,

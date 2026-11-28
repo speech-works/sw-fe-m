@@ -1,11 +1,14 @@
 import { returnToProgramDay } from "../../../../../util/packs/returnToProgramDay";
 import { useIsFocused, useNavigation, useRoute } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import { StatusBar, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
 } from "react-native-reanimated";
 
-import { showPipMoment } from "../../../../../components/Pip";
+import { PipMomentSpot } from "../../../../../components/Pip/PipMomentSpot";
+import type { PipMomentSpotHandle } from "../../../../../components/Pip/PipMomentSpot";
+import { FxFront, FxFrontHost } from "../../../../../components/Pip/fx/FxPortal";
+import { stageCrossedBetween } from "../../../../../assets/avatar/registry";
 import ScreenView from "../../../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import {
@@ -100,19 +103,40 @@ const DonePractice = ({
   // "Step done" and no confetti inside a program; see doneTitle.ts.
   const headline = donePracticeHeadline({ isAborted, inProgram });
   const { reduced } = useMotion();
-  // Pip's moment fires once, only while this screen is the focused one (a celebration must never surface over another screen).
-  const pipFired = useRef(false);
-  useEffect(() => {
-    if (!headline.confetti || !isFocused || pipFired.current) return;
-    pipFired.current = true;
-    void showPipMoment("practice-done", { title: headline.title });
-  }, [headline.confetti, headline.title, isFocused]);
+  // Pip stands where the status disc was and plays the page's moment (no dim). A step inside a program keeps the plain disc:
+  // it is not a celebration (see doneTitle.ts). Width is capped so his props still fit on a 360 wide phone.
+  const { width: screenW } = useWindowDimensions();
+  const pipSize = Math.round(Math.min(screenW * 0.4, 170));
+  const showPip = isAborted || headline.confetti;
+  const pip = useRef<PipMomentSpotHandle>(null);
+  const pipDoneOnce = useRef(false);
+  const levelPlayed = useRef(false);
 
   // Routine completions stay a plain warm screen (they happen many times a
   // day). Only a real level-up — rare, genuinely exciting — earns a moment.
   // `activityId` binds the celebration to THIS completion's snapshot.
   const celebration = useCompletionCelebration({ enabled: !isAborted, activityId });
   const [showTakeover, setShowTakeover] = useState(false);
+  // A plain level plays on this page after the done moment. A new stage (grand) stays on the dimmed takeover, which brings its own Pip.
+  const plainLevel = celebration.leveledUp && !stageCrossedBetween(celebration.fromLevel, celebration.newLevel);
+  const [levelMode, setLevelMode] = useState(false);
+  const playLevel = useCallback(() => {
+    if (levelPlayed.current || !isFocused) return;
+    levelPlayed.current = true;
+    setLevelMode(true);
+  }, [isFocused]);
+  // The spot plays the new moment once it has rendered with it.
+  useEffect(() => {
+    if (levelMode) void pip.current?.play();
+  }, [levelMode]);
+  useEffect(() => {
+    if (plainLevel && pipDoneOnce.current) playLevel();
+  }, [plainLevel, playLevel]);
+  // The done moment ends: a level that is already known follows it. One that arrives later plays when it arrives.
+  const onPipDone = useCallback(() => {
+    if (levelPlayed.current) return;
+    if (!pipDoneOnce.current) { pipDoneOnce.current = true; if (plainLevel) playLevel(); }
+  }, [plainLevel, playLevel]);
   const takeoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** The takeover is a once-per-screen moment: never re-arm after it has been
    *  shown (otherwise an OS reduce-motion toggle re-runs the effect and the
@@ -181,6 +205,7 @@ const DonePractice = ({
   }, [isAborted, storeHasBuddy]);
 
   return (
+    <FxFront>
     <ScreenView style={styles.screen}>
       {accentColor ? (
         <StatusBar barStyle="dark-content" backgroundColor={pageColor} />
@@ -198,30 +223,27 @@ const DonePractice = ({
           drag the centred block down; pad it back so the composition sits where
           it does today. 0 on iOS. */}
       <View style={[styles.content, { paddingBottom: navBarInset }]}>
-        {/* Status disc — green success on completion, a calm neutral disc when aborted. */}
-        <Animated.View
-          style={[
-            styles.disc,
-            {
-              backgroundColor: isAborted
-                ? colors.surface.elevated
-                : accentColor
-                  ? colors.surface.elevated
-                  : colors.accent.success,
-            },
-            discPop,
-          ]}
-        >
-          <Icon
-            name={isAborted ? icons.affirmation : icons.success}
-            size={isAborted ? 50 : 60}
-            color={
-              isAborted
-                ? colors.text.secondary
-                : accentColor ?? colors.accentOn.success
-            }
+        {/* Pip on his blob above the headline; the done moment first, then a plain level if one was reached.
+            A step inside a program keeps the plain status disc. */}
+        {showPip ? (
+          <PipMomentSpot
+            ref={pip}
+            moment={levelMode ? "level-up" : isAborted ? "practice-ended-early" : "practice-done"}
+            size={pipSize}
+            delay={450}
+            onDone={onPipDone}
           />
-        </Animated.View>
+        ) : (
+          <Animated.View
+            style={[
+              styles.disc,
+              { backgroundColor: accentColor ? colors.surface.elevated : colors.accent.success },
+              discPop,
+            ]}
+          >
+            <Icon name={icons.success} size={60} color={accentColor ?? colors.accentOn.success} />
+          </Animated.View>
+        )}
 
         {/* Success / Encouraging Text */}
         <View style={styles.textContainer}>
@@ -412,7 +434,10 @@ const DonePractice = ({
         stageTitle={celebration.stageTitle}
         onClose={dismissTakeover}
       />
+      {/* Pip's props (the sticky note, the book) act over the page's buttons, not under them */}
+      <FxFrontHost />
     </ScreenView>
+    </FxFront>
   );
 };
 

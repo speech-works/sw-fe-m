@@ -77,7 +77,7 @@ const GoalsReportScreen = () => {
   useEffect(() => {
     if (!closed || pipFired.current) return;
     pipFired.current = true;
-    void showPipMoment("program-done");
+    void showPipMoment("program-finished");
   }, [closed]);
   /**
    * ── ASK ONLY WHAT IS STILL OPEN ────────────────────────────────────────────

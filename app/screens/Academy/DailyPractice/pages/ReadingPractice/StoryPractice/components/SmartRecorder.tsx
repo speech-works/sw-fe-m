@@ -16,6 +16,7 @@ import {
 } from "../../../../../../../design-system";
 import { useAppBackgrounded } from "../../../../../../../hooks/useAppBackgrounded";
 import ModernWaveform from "../../../../../Library/TechniquePage/components/ModernWaveform";
+import { showPipMoment } from "../../../../../../../components/Pip";
 import { useAudioRecorder } from "./useAudioRecorder";
 
 const formatTime = (ms: number) => {
@@ -425,7 +426,11 @@ const SmartRecorder: React.FC<Props> = ({
       {/* Mic couldn't start — single acknowledge, no action we can take for them. */}
       <Dialog
         visible={showMicFailed}
-        onClose={() => setShowMicFailed(false)}
+        onClose={() => {
+          setShowMicFailed(false);
+          // Pip plays after the dialog is gone, not over it (the host sits below native modals). No dim.
+          setTimeout(() => { void showPipMoment("recording-problem"); }, 350);
+        }}
         title="Microphone unavailable"
         message="We couldn't start recording. Check that Speechworks has microphone access in your device settings, then try again."
         cancelLabel="OK"
